@@ -8,18 +8,17 @@
 @muladd begin
 #! format: noindent
 
-# The boundary_index is chosen so that
-# semi.boundary_conditions.boundary_indices[boundary_index]
-# gives the solution point indices on which the function `variable` will compute
-# the quantity of interest. The `variable` can, e.g., integrate over all indices
-# to compute the coefficient of lift. But it can also be used to loop over all indices
-# to save coefficient of pressure versus surface points in a data file
-# The struct contains an inner constructor which helps the user choose those indices
-# by specifying the `boundary_condition_type` of the indices. The user needs to make
-# sure that they choose the `boundary_condition_type` so that it is only applying to the
-# parts of boundary that are of interest
+"""
+    AnalysisSurfaceIntegral{Semidiscretization, Variable}(semi, 
+                                                          boundary_symbol_or_boundary_symbols, 
+                                                          variable)
+
+    This struct is used to compute the surface integral of a quantity of interest `variable` alongside 
+    the boundary/boundaries associated with `boundary_symbol` or `boundary_symbols`.
+    For instance, this can be used to compute the lift or drag coefficient of e.g. an airfoil in 2D.
+"""
 struct AnalysisSurfaceIntegral{Semidiscretization, Variable}
-    semi::Semidiscretization # Semidiscretization of PDE used by the solver
+    semi::Semidiscretization # passed in to retrieve boundary condition information
     indices::Vector{Int} # Indices in `boundary_condition_indices` where quantity of interest is computed
     variable::Variable # Quantity of interest, like lift or drag
 
@@ -92,16 +91,12 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
-    @unpack semi, indices, variable = surface_variable
+
+    @unpack indices, variable = surface_variable
 
     surface_integral = zero(eltype(u))
     index_range = eachnode(dg)
-    for local_index in eachindex(indices)
-        # Use the local index to get the global boundary index from the pre-sorted list
-        boundary = indices[local_index]
-
-        # Get information on the adjacent element, compute the surface fluxes,
-        # and store them
+    for boundary in indices
         element = boundaries.neighbor_ids[boundary]
         node_indices = boundaries.node_indices[boundary]
         direction = indices2direction(node_indices)
@@ -120,6 +115,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
 
             # L2 norm of normal direction is the surface element
             dS = weights[node_index] * norm(normal_direction)
+            # Integral over whole boundary surface
             surface_integral += variable(u_node, normal_direction, equations) * dS
 
             i_node += i_node_step
