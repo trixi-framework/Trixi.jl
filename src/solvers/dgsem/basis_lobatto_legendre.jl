@@ -404,8 +404,7 @@ function calc_dsplit(nodes, weights)
     return dsplit
 end
 
-# Calculate the polynomial derivative matrix D.
-# This implements algorithm 37 "PolynomialDerivativeMatrix" from Kopriva's book.
+# Calculate the polynomial derivative matrix D
 function polynomial_derivative_matrix(nodes)
     n_nodes = length(nodes)
     d = zeros(n_nodes, n_nodes)
@@ -422,7 +421,6 @@ function polynomial_derivative_matrix(nodes)
 end
 
 # Calculate and interpolation matrix (Vandermonde matrix) between two given sets of nodes
-# See algorithm 32 "PolynomialInterpolationMatrix" from Kopriva's book.
 function polynomial_interpolation_matrix(nodes_in, nodes_out,
                                          baryweights_in = barycentric_weights(nodes_in))
     n_nodes_in = length(nodes_in)
@@ -435,7 +433,6 @@ function polynomial_interpolation_matrix(nodes_in, nodes_out,
     return vandermonde
 end
 
-# This implements algorithm 32 "PolynomialInterpolationMatrix" from Kopriva's book.
 function polynomial_interpolation_matrix!(vandermonde,
                                           nodes_in, nodes_out,
                                           baryweights_in)
@@ -466,19 +463,7 @@ function polynomial_interpolation_matrix!(vandermonde,
     return vandermonde
 end
 
-"""
-    barycentric_weights(nodes)
-
-Calculate the barycentric weights for a given node distribution, i.e.,
-```math
-w_j = \\frac{1}{ \\prod_{k \\neq j} \\left( x_j - x_k \\right ) }
-```
-
-For details, see (especially Section 3)
-- Jean-Paul Berrut and Lloyd N. Trefethen (2004).
-  Barycentric Lagrange Interpolation.
-  [DOI:10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
-"""
+# Calculate the barycentric weights for a given node distribution.
 function barycentric_weights(nodes)
     n_nodes = length(nodes)
     weights = ones(n_nodes)
@@ -509,31 +494,12 @@ function calc_lhat(x, nodes, weights)
     return lhat
 end
 
-""" 
-    lagrange_interpolating_polynomials(x, nodes, wbary)
-
-Calculate Lagrange polynomials for a given node distribution with
-associated barycentric weights `wbary` at a given point `x` on the 
-reference interval ``[-1, 1]``.
-
-This returns all ``l_j(x)``, i.e., the Lagrange polynomials for each node ``x_j``.
-Thus, to obtain the interpolating polynomial ``p(x)`` at ``x``, one has to 
-multiply the Lagrange polynomials with the nodal values ``u_j`` and sum them up:
-``p(x) = \\sum_{j=1}^{n} u_j l_j(x)``.
-
-For details, see e.g. Section 2 of 
-- Jean-Paul Berrut and Lloyd N. Trefethen (2004).
-  Barycentric Lagrange Interpolation.
-  [DOI:10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
-"""
+# Calculate Lagrange polynomials for a given node distribution.
 function lagrange_interpolating_polynomials(x, nodes, wbary)
     n_nodes = length(nodes)
     polynomials = zeros(n_nodes)
 
     for i in 1:n_nodes
-        # Avoid division by zero when `x` is close to node by using 
-        # the Kronecker-delta property at nodes
-        # of the Lagrange interpolation polynomials.
         if isapprox(x, nodes[i], rtol = eps(x))
             polynomials[i] = 1
             return polynomials
@@ -552,17 +518,6 @@ function lagrange_interpolating_polynomials(x, nodes, wbary)
     return polynomials
 end
 
-"""
-    gauss_lobatto_nodes_weights(n_nodes::Integer)
-
-Computes nodes ``x_j`` and weights ``w_j`` for the (Legendre-)Gauss-Lobatto quadrature.
-This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
-
-- David A. Kopriva, (2009). 
-  Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers. 
-  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
-"""
 # From FLUXO (but really from blue book by Kopriva)
 function gauss_lobatto_nodes_weights(n_nodes::Integer)
     # From Kopriva's book
@@ -630,7 +585,7 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer)
     return nodes, weights
 end
 
-# From FLUXO (but really from blue book by Kopriva, algorithm 24)
+# From FLUXO (but really from blue book by Kopriva)
 function calc_q_and_l(N::Integer, x::Float64)
     L_Nm2 = 1.0
     L_Nm1 = x
@@ -654,17 +609,7 @@ function calc_q_and_l(N::Integer, x::Float64)
 end
 calc_q_and_l(N::Integer, x::Real) = calc_q_and_l(N, convert(Float64, x))
 
-"""
-    gauss_nodes_weights(n_nodes::Integer)
-
-Computes nodes ``x_j`` and weights ``w_j`` for the Gauss-Legendre quadrature.
-This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
-
-- David A. Kopriva, (2009). 
-  Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers. 
-  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
-"""
+# From FLUXO (but really from blue book by Kopriva)
 function gauss_nodes_weights(n_nodes::Integer)
     # From Kopriva's book
     n_iterations = 10
@@ -721,17 +666,7 @@ function gauss_nodes_weights(n_nodes::Integer)
     end
 end
 
-"""
-    legendre_polynomial_and_derivative(N::Int, x::Real)
-
-Computes the Legendre polynomial of degree `N` and its derivative at `x`.
-This implements algorithm 22 "LegendrePolynomialAndDerivative" from the book
-
-- David A. Kopriva, (2009). 
-  Implementing spectral methods for partial differential equations:
-  Algorithms for scientists and engineers. 
-  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
-"""
+# From FLUXO (but really from blue book by Kopriva)
 function legendre_polynomial_and_derivative(N::Int, x::Real)
     if N == 0
         poly = 1.0

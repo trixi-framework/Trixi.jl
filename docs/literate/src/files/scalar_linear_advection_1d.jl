@@ -115,7 +115,7 @@ integral = sum(nodes.^3 .* weights)
 # To approximate the solution, we need to get the polynomial coefficients $\{u_j^{Q_l}\}_{j=0}^N$
 # for every element $Q_l$.
 
-# After defining all nodes, we can implement the spatial coordinate $x$ and its initial value $u0 = u(t_0)$
+# After defining all nodes, we can implement the spatial coordinate $x$ and its initial value $u0$
 # for every node.
 x = Matrix{Float64}(undef, length(nodes), n_elements)
 for element in 1:n_elements
