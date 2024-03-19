@@ -5,10 +5,10 @@ using Trixi
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-mu(u, equations) = 0.01
+mu() = 0.01
 
 equations = CompressibleEulerEquations3D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
+equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
@@ -58,7 +58,7 @@ end
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
     inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
-    mu_ = mu(u, equations)
+    mu_ = mu()
 
     # Constants. OBS! Must match those in `initial_condition_navier_stokes_convergence_test`
     c = 2.0

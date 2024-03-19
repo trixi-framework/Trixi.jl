@@ -160,11 +160,15 @@ function flux(u, gradients, orientation::Integer,
     # in the implementation
     q1 = equations.kappa * dTdx
 
-    # The equations are equipped with a function that computes the dynamic viscosity mu
-    # from the current state. 
     # In the simplest case, `mu(u, equations)` returns just a constant but
     # more complex functions like Sutherland's law are possible.
-    mu = equations.mu(u, equations)
+    if equations.mu isa Real
+        mu = equations.mu
+        # The equations are equipped with a function that computes the dynamic viscosity mu
+        # from the current state. 
+    else
+        mu = equations.mu(u, equations)
+    end
 
     # viscous flux components in the x-direction
     f1 = zero(rho)

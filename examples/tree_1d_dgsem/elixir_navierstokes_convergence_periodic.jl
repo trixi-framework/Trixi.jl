@@ -6,10 +6,10 @@ using Trixi
 # semidiscretization of the compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-mu(u, equations) = 6.25e-4 # equivalent to Re = 1600
+mu() = 6.25e-4 # equivalent to Re = 1600
 
 equations = CompressibleEulerEquations1D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu,
+equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
@@ -36,7 +36,7 @@ initial_condition = initial_condition_navier_stokes_convergence_test
     # see also https://github.com/trixi-framework/Trixi.jl/pull/1160
     inv_gamma_minus_one = inv(equations.gamma - 1)
     Pr = prandtl_number()
-    mu_ = mu(u, equations)
+    mu_ = mu()
 
     # Same settings as in `initial_condition`
     # Amplitude and shift
