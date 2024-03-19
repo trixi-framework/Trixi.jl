@@ -31,7 +31,7 @@ advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3
-solver = DGSEM(polydeg = 3)#, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # Domain size of the parent mesh.
 coordinates_min = (-1.0, -1.0)
