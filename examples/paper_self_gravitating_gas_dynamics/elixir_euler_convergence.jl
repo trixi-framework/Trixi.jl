@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations2D(2.0)
 
 initial_condition = initial_condition_eoc_test_coupled_euler_gravity
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
+solver = DGSEM(polydeg = 3, surface_flux = FluxHLL(min_max_speed_naive))
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)

@@ -5,8 +5,10 @@
 @muladd begin
 #! format: noindent
 
-# Store time series file for a TreeMesh with a DG solver
-function save_time_series_file(time_series_callback, mesh::TreeMesh, equations, dg::DG)
+# Store time series file for a DG solver
+function save_time_series_file(time_series_callback,
+                               mesh::Union{TreeMesh, UnstructuredMesh2D},
+                               equations, dg::DG)
     @unpack (interval, solution_variables, variable_names,
     output_directory, filename, point_coordinates,
     point_data, time, step, time_series_cache) = time_series_callback
