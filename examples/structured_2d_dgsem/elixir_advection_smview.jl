@@ -40,7 +40,7 @@ coordinates_max = (1.0, 1.0)
 # Cell dimensions of the parent mesh.
 cells_per_dimension = (16, 16)
 
-# Create  drentmesh with 16 x 16 elements
+# Create parent mesh with 16 x 16 elements
 parent_mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 # Create the two mesh views, each of which takes half of the parent mesh.
