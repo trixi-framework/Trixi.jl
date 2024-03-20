@@ -60,6 +60,7 @@ files = [
     "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
     "Shock capturing with flux differencing and stage limiter" => "shock_capturing.jl",
+    "Subcell limiting with the IDP Limiter" => "subcell_shock_capturing.jl",
     "Non-periodic boundaries" => "non_periodic_boundaries.jl",
     "DG schemes via `DGMulti` solver" => "DGMulti_1.jl",
     "Other SBP schemes (FD, CGSEM) via `DGMulti` solver" => "DGMulti_2.jl",
