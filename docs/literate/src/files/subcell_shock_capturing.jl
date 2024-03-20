@@ -57,7 +57,9 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 # The quantity name of the density is `rho` shich is how we enable its limiting.
-positivity_variables_cons = ["rho"]
+# ````julia
+# positivity_variables_cons = ["rho"]
+# ````
 
 # The quantity names are passed as a vector to allow several quantities.
 # This is for instance used if you want to limit the density of two different components using
@@ -66,7 +68,9 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
                                                        gas_constants = (0.287, 1.578))
 
 # Then, we just pass both quantity names.
-positivity_variables_cons = ["rho1", "rho2"]
+# ````julia
+# positivity_variables_cons = ["rho1", "rho2"]
+# ````
 
 # Alternatively, it is possible to all limit all density variables with a general command using
 # ````julia
@@ -77,7 +81,9 @@ positivity_variables_cons = ["rho1", "rho2"]
 # To allow limitation for all possible non-linear variables including on-the-fly defined ones,
 # you directly pass function here.
 # For instance, if you want to enforce non-negativity for the pressure, do as follows.
-positivity_variables_nonlinear = [pressure]
+# ````julia
+# positivity_variables_nonlinear = [pressure]
+# ````
 
 # ## Local bounds (Shock capturing)
 # Second, Trixi.jl supports the limiting with local bounds for conservative variables. They
@@ -90,7 +96,9 @@ positivity_variables_nonlinear = [pressure]
 # As for the limiting with global bounds you are passing the quantity names of the conservative
 # variables you want to limit. So, to limit the density with lower and upper local bounds pass
 # the following.
-local_minmax_variables_cons = ["rho"]
+# ````julia
+# local_minmax_variables_cons = ["rho"]
+# ````
 
 # ## Exemplary simulation
 # TODO
