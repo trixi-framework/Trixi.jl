@@ -608,7 +608,6 @@ end
     lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
                          semi.cache)
 
-
     @test isapprox(lift, 0.026397498239816828, atol = 1e-13)
     @test isapprox(drag, 0.10908833968266139, atol = 1e-13)
 end
