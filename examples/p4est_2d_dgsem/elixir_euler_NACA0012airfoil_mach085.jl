@@ -12,7 +12,7 @@ equations = CompressibleEulerEquations2D(1.4)
 pre_inf() = 1.0
 rho_inf() = pre_inf() / (1.0 * 287.87) # pre_inf = 1.0,  T = 1, R = 287.87
 mach_inf() = 0.85
-aoa() = pi / 180.0
+aoa() = pi / 180.0 # 1 Degree angle of attack
 c_inf(equations) = sqrt(equations.gamma * pre_inf() / rho_inf())
 U_inf(equations) = mach_inf() * c_inf(equations)
 

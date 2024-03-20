@@ -51,7 +51,7 @@ cells_per_dimension = (64, 64)
 # conditions there. However, the image of eta = -1, +1 coincides at the line y = 0. There is no
 # physical boundary there so we specify periodicity = true there and the solver treats the
 # element across eta = -1, +1 as neighbours which is what we want
-mesh = P4estMesh(cells_per_dimension, mapping = mapping2cylinder, polydeg = 3,
+mesh = P4estMesh(cells_per_dimension, mapping = mapping2cylinder, polydeg = polydeg,
                  periodicity = (false, true))
 
 # The boundary conditions of the outer cylinder is constant but subsonic, so we cannot compute the
