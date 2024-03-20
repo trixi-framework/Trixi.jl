@@ -13,8 +13,26 @@
 # stage. This is done by passing the stage callback [`SubcellLimiterIDPCorrection`](@ref) to the
 # time integration method.
 
-# TODO: Some comment about the time integration method. (Don't have to be here)
-# - Using Trixi-intern SSPRK methods with `Trixi.solve(ode, algorithm; ...)`
+# ## Time integration method
+# As mentioned before, the IDP limiting is an a-posteriori limiter. Its limiting process
+# guarantees the target bounds for a simple Euler evolution. To still achieve a high-order
+# approximation, the implementation uses strong-stability preserving (SSP) Runge-Kutta method
+# which can be written as convex combination of these forward Euler steps.
+#-
+# Due to this functionality of the limiting procedure the correcting stage and therefore the stage
+# callbacks has to be applied to the solution after the forward Euler step and before further
+# computation. Unfortunately, the `solve(...)` routines of
+# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), which is normally used in
+# Trixi.jl for the time integration, does not support calculations via callback at this point
+# in the simulation.
+#-
+# Therefore, subcell limiting with the IDP limiter requires the use of a Trixi-intern
+# time integration SSPRK method called with
+# ````julia
+# Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)`.
+# ````
+#-
+# Right now, only the third-order SSPRK method [`SimpleSSPRK33`](@ref) is supported.
 
 # TODO: Some comments about
 # - parameters of Newton method (max_iterations_newton = 10, newton_tolerances = (1.0e-12, 1.0e-14), gamma_constant_newton = 2 * ndims(equations)))
