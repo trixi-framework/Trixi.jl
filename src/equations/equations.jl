@@ -418,24 +418,15 @@ include("compressible_euler_quasi_1d.jl")
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <:
               AbstractEquations{NDIMS, NVARS} end
-include("compressible_euler_multicomponent_1d.jl")
-include("compressible_euler_multicomponent_2d.jl")
-
-# PolytropicEulerEquations
-abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
-              AbstractEquations{NDIMS, NVARS} end
-include("polytropic_euler_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,
                                                                                 NVARS,
-                                                                                NCOMP}) where {
-                                                                                               NDIMS,
-                                                                                               NVARS,
-                                                                                               NCOMP
-                                                                                               }
+                                                                                NCOMP}) where
+                 {NDIMS, NVARS, NCOMP}
     NCOMP
 end
+
 """
     eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
 
@@ -446,6 +437,16 @@ In particular, not the components themselves are returned.
 @inline function eachcomponent(equations::AbstractCompressibleEulerMulticomponentEquations)
     Base.OneTo(ncomponents(equations))
 end
+
+include("compressible_euler_multicomponent_1d.jl")
+include("compressible_euler_multicomponent_abstract_2d.jl")
+include("compressible_euler_multicomponent_2d.jl")
+include("compressible_euler_multicomponent_moist_2d.jl")
+
+# PolytropicEulerEquations
+abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("polytropic_euler_2d.jl")
 
 # Ideal MHD
 abstract type AbstractIdealGlmMhdEquations{NDIMS, NVARS} <:
@@ -462,11 +463,8 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS,
-                                                                          NCOMP}) where {
-                                                                                         NDIMS,
-                                                                                         NVARS,
-                                                                                         NCOMP
-                                                                                         }
+                                                                          NCOMP}) where
+                 {NDIMS, NVARS, NCOMP}
     NCOMP
 end
 """
