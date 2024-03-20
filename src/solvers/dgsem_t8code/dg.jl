@@ -13,8 +13,8 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, dg::DG, ::
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
     mortars = init_mortars(mesh, equations, dg.basis, elements)
 
-    trixi_t8_fill_mesh_info(mesh.forest, elements, interfaces, mortars, boundaries,
-                            mesh.boundary_names)
+    fill_mesh_info!(mesh, interfaces, mortars, boundaries,
+                    mesh.boundary_names)
 
     cache = (; elements, interfaces, boundaries, mortars)
 
@@ -29,4 +29,7 @@ end
 include("containers.jl")
 include("containers_2d.jl")
 include("containers_3d.jl")
+
+include("containers_parallel.jl")
+include("dg_parallel.jl")
 end # @muladd

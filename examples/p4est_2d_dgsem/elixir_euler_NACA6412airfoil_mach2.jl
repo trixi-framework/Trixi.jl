@@ -79,8 +79,8 @@ mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_sy
 
 boundary_conditions = Dict(:PhysicalLine1 => boundary_condition_supersonic_inflow, # Left boundary
                            :PhysicalLine2 => boundary_condition_supersonic_outflow, # Right boundary
-                           :PhysicalLine3 => boundary_condition_slip_wall, # Airfoil
-                           :PhysicalLine4 => boundary_condition_supersonic_outflow) # Top and bottom boundary
+                           :PhysicalLine3 => boundary_condition_supersonic_outflow, # Top and bottom boundary 
+                           :PhysicalLine4 => boundary_condition_slip_wall) # Airfoil
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
@@ -103,6 +103,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 sol = solve(ode, SSPRK104(; thread = OrdinaryDiffEq.True());
             dt = 1.0, # overwritten by the `stepsize_callback`
+            save_everystep = false,
             callback = callbacks);
 
 summary_callback() # print the timer summary

@@ -8,6 +8,7 @@ end
 
 using Trixi
 using Trixi2Vtk
+using TrixiBase
 
 # Get Trixi.jl root directory
 trixi_root_dir = dirname(@__DIR__)
@@ -48,6 +49,13 @@ end
 #   "title" => ["subtitle 1" => ("folder 1", "filename 1.jl"),
 #               "subtitle 2" => ("folder 2", "filename 2.jl")]
 files = [
+    # Topic: introduction
+    "First steps in Trixi.jl" => [
+        "Getting started" => ("first_steps", "getting_started.jl"),
+        "Create first setup" => ("first_steps", "create_first_setup.jl"),
+        "Changing Trixi.jl itself" => ("first_steps", "changing_trixi.jl"),
+    ],
+    "Behind the scenes of a simulation setup" => "behind_the_scenes_simulation_setup.jl",
     # Topic: DG semidiscretizations
     "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
@@ -69,14 +77,14 @@ files = [
     # Topic: other stuff
     "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl",
-    "Custom semidiscretizations" => "custom_semidiscretization.jl"
+    "Custom semidiscretizations" => "custom_semidiscretization.jl",
     ]
 tutorials = create_tutorials(files)
 
 # Make documentation
 makedocs(
     # Specify modules for which docstrings should be shown
-    modules = [Trixi, Trixi2Vtk],
+    modules = [Trixi, TrixiBase, Trixi2Vtk],
     # Set sitename to Trixi.jl
     sitename = "Trixi.jl",
     # Provide additional formatting options
@@ -108,6 +116,7 @@ makedocs(
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",
+            "Coupling" => "multi-physics_coupling.md"
         ],
         "Advanced topics & developers" => [
             "Conventions" =>"conventions.md",
@@ -121,6 +130,7 @@ makedocs(
         "Troubleshooting and FAQ" => "troubleshooting.md",
         "Reference" => [
                         "Trixi.jl" => "reference-trixi.md",
+                        "TrixiBase.jl" => "reference-trixibase.md",
                         "Trixi2Vtk.jl" => "reference-trixi2vtk.md"
                        ],
         "Authors" => "authors.md",
