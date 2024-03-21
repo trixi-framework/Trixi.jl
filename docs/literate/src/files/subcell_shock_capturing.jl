@@ -102,7 +102,7 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
 
 # ## Exemplary simulation
 # How to set up a simulation using the IDP limiting becomes clearer when lokking at a exemplary
-# setup. This will be a simplyfied version of `tree_2d_dgsem/elixir_euler_blast_wave_sc_subcell.jl`.
+# setup. This will be a simplified version of `tree_2d_dgsem/elixir_euler_blast_wave_sc_subcell.jl`.
 # Since the setup is mostly very similar to a pure DGSEM setup as in
 # `tree_2d_dgsem/elixir_euler_blast_wave.jl`, the equivalent parts are without any explanation
 # here.
@@ -198,7 +198,7 @@ sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
 summary_callback() # print the timer summary
 
 
-# ## Visualizaton
+# ## Visualization
 # As for a standard simulation in Trixi.jl, it is possible to visualize the solution using Plots
 # `plot` routine.
 using Plots
