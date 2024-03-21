@@ -32,7 +32,7 @@
 # Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)`.
 # ````
 #-
-# Right now, only the third-order SSPRK method [`SimpleSSPRK33`](@ref) is supported.
+# Right now, only the third-order SSPRK method [`Trixi.SimpleSSPRK33`](@ref) is implemented.
 
 # TODO: Some comments about
 # - parameters of Newton method (max_iterations_newton = 10, newton_tolerances = (1.0e-12, 1.0e-14), gamma_constant_newton = 2 * ndims(equations)))
