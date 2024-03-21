@@ -29,7 +29,7 @@
 # Therefore, subcell limiting with the IDP limiter requires the use of a Trixi-intern
 # time integration SSPRK method called with
 # ````julia
-# Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)`.
+# Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)
 # ````
 #-
 # Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher)
@@ -43,13 +43,13 @@
 # The IDP limiter supports several options of limiting which are passed very flexible as parameters to
 # the limiter individually.
 
-# ## Global bounds
+# ### Global bounds
 # First, there is the use of global bounds. If enabled, they enforce physical admissibility
 # conditions, such as non-negativity of variables.
 # This can be done for conservative variables, where the limiter is of a one-sided Zalesak-type, and
 # general non-linear variables, where a Newton-bisection algorithm is used to enforce the bounds.
 
-# ### Conservative variables
+# #### Conservative variables
 # The procedure to enforce global bounds for a conservative variables is as follows:
 # If you want to guarantee non-negativity for the density of compressible Euler equations,
 # you pass the specific quantity name of the conservative variable.
@@ -77,7 +77,7 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
 # positivity_variables_cons = ["rho" * string(i) for i in eachcomponent(equations)]
 # ````
 
-# ### Non-linear variables
+# #### Non-linear variables
 # To allow limitation for all possible non-linear variables including on-the-fly defined ones,
 # you directly pass function here.
 # For instance, if you want to enforce non-negativity for the pressure, do as follows.
@@ -85,7 +85,7 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
 # positivity_variables_nonlinear = [pressure]
 # ````
 
-# ## Local bounds (Shock capturing)
+# ### Local bounds (Shock capturing)
 # Second, Trixi.jl supports the limiting with local bounds for conservative variables. They
 # allow to avoid spurious  oscillations within the global bounds and to improve the
 # shock-capturing capabilities of the method. The corresponding numerical admissibility
@@ -111,17 +111,9 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-"""
-    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-
-A medium blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
-  A provably entropy stable subcell shock capturing approach for high order split form DG
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-"""
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
-    # Set up polar coordinates
+    ## Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    ## Set up polar coordinates
     inicenter = SVector(0.0, 0.0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
@@ -129,7 +121,7 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
-    # Calculate primitive variables
+    ## Calculate primitive variables
     rho = r > 0.5 ? 1.0 : 1.1691
     v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
     v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
@@ -137,9 +129,8 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
-initial_condition = initial_condition_blast_wave
+initial_condition = initial_condition_blast_wave;
 
-###############################################################################
 # TODO: Some explanation
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
@@ -149,9 +140,9 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
-solver = DGSEM(basis, surface_flux, volume_integral)
+solver = DGSEM(basis, surface_flux, volume_integral);
 
-
+#-
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
@@ -165,12 +156,12 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 500
+analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 200,
+save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
@@ -180,9 +171,8 @@ stepsize_callback = StepsizeCallback(cfl = 0.3)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
-                        stepsize_callback)
+                        stepsize_callback);
 
-###############################################################################
 # As explained above, the IDP limiter works a-posteriori and requires the additional use of a
 # correction stage implemented with the stage callback [`SubcellLimiterIDPCorrection`](@ref).
 # This callback is passed within a tuple to the time integration method.
@@ -213,6 +203,7 @@ plot(sol)
 #-
 # With that implementation and the standard procedure used for Trixi2Vtk you get the following
 # dropdown menu in ParaView.
+#-
 # ![ParaView_Dropdownmenu](https://github.com/trixi-framework/Trixi.jl/assets/74359358/70d15f6a-059b-4349-8291-68d9ab3af43e)
 
 # The resulting visualization of the density and the limiting parameter then looks like this.
@@ -227,5 +218,5 @@ plot(sol)
 # ![blast_wave_paraview_reinterpolate=false](https://github.com/trixi-framework/Trixi.jl/assets/74359358/39274f18-0064-469c-b4da-bac4b843e116)
 
 
-# ## Target bounds checking
+# ## Bounds checking
 # TODO
