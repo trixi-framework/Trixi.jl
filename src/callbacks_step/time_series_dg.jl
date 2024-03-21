@@ -34,4 +34,41 @@ function save_time_series_file(time_series_callback,
         end
     end
 end
+
+# Creates cache for time series callback
+function create_cache_time_series(point_coordinates,
+                                  mesh::Union{TreeMesh, UnstructuredMesh2D},
+                                  dg, cache)
+    # Determine element ids for point coordinates
+    element_ids = get_elements_by_coordinates(point_coordinates, mesh, dg, cache)
+
+    # Calculate & store Lagrange interpolation polynomials
+    interpolating_polynomials = calc_interpolating_polynomials(point_coordinates,
+                                                               element_ids, mesh,
+                                                               dg, cache)
+
+    time_series_cache = (; element_ids, interpolating_polynomials)
+
+    return time_series_cache
+end
+
+function get_elements_by_coordinates(coordinates, mesh, dg, cache)
+    element_ids = Vector{Int}(undef, size(coordinates, 2))
+    get_elements_by_coordinates!(element_ids, coordinates, mesh, dg, cache)
+
+    return element_ids
+end
+
+function calc_interpolating_polynomials(coordinates, element_ids,
+                                        mesh::Union{TreeMesh, UnstructuredMesh2D},
+                                        dg, cache)
+    interpolating_polynomials = Array{real(dg), 3}(undef,
+                                                   nnodes(dg), ndims(mesh),
+                                                   length(element_ids))
+    calc_interpolating_polynomials!(interpolating_polynomials, coordinates, element_ids,
+                                    mesh, dg,
+                                    cache)
+
+    return interpolating_polynomials
+end
 end # @muladd
