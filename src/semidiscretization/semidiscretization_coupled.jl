@@ -467,10 +467,53 @@ end
 # In 2D
 function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
                                              direction, mesh, equations, dg::DGSEM)
+    @autoinfiltrate
     if direction in (1, 2)
         cell_size = size(mesh, 2)
     else
         cell_size = size(mesh, 1)
+    end
+
+    uEltype = eltype(boundary_condition)
+    boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
+                                                      nnodes(dg),
+                                                      cell_size)
+end
+
+# In 2D
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
+                                                                                          },
+                                             direction, mesh::P4estMesh, equations, dg::DGSEM)
+    @autoinfiltrate
+    if direction in (1, 2)
+        cell_size = size(mesh, 2)
+    # Negative and positive y.
+    else
+        cell_size = size(mesh, 1)
+    end
+
+    uEltype = eltype(boundary_condition)
+    boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
+                                                      nnodes(dg),
+						      cell_size)
+end
+
+# In 2D for a p4est mesh.
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
+                                                                                          },
+                                             direction, mesh::P4estMesh, equations, dg::DGSEM)
+    # Negative x.
+    if direction == 1
+        cell_size = sum(mesh.tree_node_coordinates[1, 1, 1, :] .== minimum(mesh.tree_node_coordinates[1, 1, 1, :]))
+    # Positive x.
+    elseif direction == 2
+        cell_size = sum(mesh.tree_node_coordinates[1, 1, 1, :] .== maximum(mesh.tree_node_coordinates[1, 1, 1, :]))
+    # Negative y.
+    elseif direction == 3
+        cell_size = sum(mesh.tree_node_coordinates[2, 1, 1, :] .== minimum(mesh.tree_node_coordinates[2, 1, 1, :]))
+    # Positive  y.
+    else
+        cell_size = sum(mesh.tree_node_coordinates[2, 1, 1, :] .== maximum(mesh.tree_node_coordinates[2, 1, 1, :]))
     end
 
     uEltype = eltype(boundary_condition)
@@ -535,6 +578,26 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         cells = axes(mesh_other, 1)
     end
 
+    if mesh isa P4estMesh
+        linear_indices = LinearIndices((mesh.trees_per_dimension[1], mesh.trees_per_dimension[2]))
+    else
+        linear_indices = LinearIndices(size(mesh))
+    end
+
+    if mesh isa P4estMesh
+        if other_orientation == 1
+            cells = mesh.trees_per_dimension[2]
+        else # other_orientation == 2
+            cells = mesh.trees_per_dimension[1]
+        end
+    else
+        if other_orientation == 1
+            cells = axes(mesh, 2)
+        else # other_orientation == 2
+            cells = axes(mesh, 1)
+        end
+    end
+
     # Copy solution data to the coupled boundary using "delayed indexing" with
     # a start value and a step size to get the correct face and orientation.
     node_index_range = eachnode(solver_other)
@@ -543,10 +606,18 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
 
     i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
     j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
+    if mesh isa P4estMesh
+        i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], mesh.trees_per_dimension[1])
+        j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], mesh.trees_per_dimension[2])
+    else
+        i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh, 1))
+        j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh, 2))
+    end
 
     i_cell = i_cell_start
     j_cell = j_cell_start
 
+    # @autoinfiltrate
     for cell in cells
         i_node = i_node_start
         j_node = j_node_start
