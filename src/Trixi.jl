@@ -191,7 +191,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxUpwind
 
 export splitting_steger_warming, splitting_vanleer_haenel,
-       splitting_coirier_vanleer, splitting_lax_friedrichs
+       splitting_coirier_vanleer, splitting_lax_friedrichs,
+       splitting_drikakis_tsangaris
 
 export initial_condition_constant,
        initial_condition_gauss,

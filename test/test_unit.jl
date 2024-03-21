@@ -605,6 +605,7 @@ end
 end
 
 @timed_testset "TimeSeriesCallback" begin
+    # Test the 2D TreeMesh version of the callback and some warnings
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_2d_dgsem",
                                             "elixir_acoustics_gaussian_source.jl"),
