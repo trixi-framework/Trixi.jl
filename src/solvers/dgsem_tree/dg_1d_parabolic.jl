@@ -64,7 +64,8 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache, element_range)
+        calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache,
+                              element_range)
     end
 
     # Prolong solution to interfaces
@@ -101,7 +102,8 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache_parabolic, element_range)
+        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache_parabolic,
+                                  element_range)
     end
 
     return nothing
@@ -112,7 +114,7 @@ end
 # TODO: can we avoid copying data?
 function transform_variables!(u_transformed, u, mesh::TreeMesh{1},
                               equations_parabolic::AbstractEquationsParabolic,
-                              dg::DG, parabolic_scheme, cache, cache_parabolic, 
+                              dg::DG, parabolic_scheme, cache, cache_parabolic,
                               element_range)
     transformation = gradient_variable_transformation(equations_parabolic)
 
