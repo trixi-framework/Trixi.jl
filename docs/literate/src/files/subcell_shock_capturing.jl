@@ -32,13 +32,12 @@
 # Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)`.
 # ````
 #-
-# Right now, only the third-order SSPRK method [`Trixi.SimpleSSPRK33`](@ref) is implemented.
+# Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher)
+# [`Trixi.SimpleSSPRK33`](@ref) is implemented.
 
 # TODO: Some comments about
 # - parameters of Newton method (max_iterations_newton = 10, newton_tolerances = (1.0e-12, 1.0e-14), gamma_constant_newton = 2 * ndims(equations)))
 # - positivity_correction_factor (Maybe show calculation of bounds, also of local bounds)
-
-using Trixi
 
 # # `SubcellLimiterIDP`
 # The IDP limiter supports several options of limiting which are passed very flexible as parameters to
@@ -54,6 +53,7 @@ using Trixi
 # The procedure to enforce global bounds for a conservative variables is as follows:
 # If you want to guarantee non-negativity for the density of compressible Euler equations,
 # you pass the specific quantity name of the conservative variable.
+using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 # The quantity name of the density is `rho` shich is how we enable its limiting.
@@ -101,4 +101,131 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
 # ````
 
 # ## Exemplary simulation
+# How to set up a simulation using the IDP limiting becomes clearer when lokking at a exemplary
+# setup. This will be a simplyfied version of `tree_2d_dgsem/elixir_euler_blast_wave_sc_subcell.jl`.
+# Since the setup is mostly very similar to a pure DGSEM setup as in
+# `tree_2d_dgsem/elixir_euler_blast_wave.jl`, the equivalent parts are without any explanation
+# here.
+using OrdinaryDiffEq
+using Trixi
+
+equations = CompressibleEulerEquations2D(1.4)
+
+"""
+    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
+
+A medium blast wave taken from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
+    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    # Set up polar coordinates
+    inicenter = SVector(0.0, 0.0)
+    x_norm = x[1] - inicenter[1]
+    y_norm = x[2] - inicenter[2]
+    r = sqrt(x_norm^2 + y_norm^2)
+    phi = atan(y_norm, x_norm)
+    sin_phi, cos_phi = sincos(phi)
+
+    # Calculate primitive variables
+    rho = r > 0.5 ? 1.0 : 1.1691
+    v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+    v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
+    p = r > 0.5 ? 1.0E-3 : 1.245
+
+    return prim2cons(SVector(rho, v1, v2, p), equations)
+end
+initial_condition = initial_condition_blast_wave
+
+###############################################################################
+# TODO: Some explanation
+surface_flux = flux_lax_friedrichs
+volume_flux = flux_ranocha
+basis = LobattoLegendreBasis(3)
+limiter_idp = SubcellLimiterIDP(equations, basis;
+                                local_minmax_variables_cons = ["rho"])
+volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                volume_flux_dg = volume_flux,
+                                                volume_flux_fv = surface_flux)
+solver = DGSEM(basis, surface_flux, volume_integral)
+
+
+coordinates_min = (-2.0, -2.0)
+coordinates_max = (2.0, 2.0)
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 5,
+                n_cells_max = 10_000)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+tspan = (0.0, 2.0)
+ode = semidiscretize(semi, tspan)
+
+summary_callback = SummaryCallback()
+
+analysis_interval = 500
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
+save_solution = SaveSolutionCallback(interval = 200,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+
+stepsize_callback = StepsizeCallback(cfl = 0.3)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback,
+                        save_solution,
+                        stepsize_callback)
+
+###############################################################################
+# As explained above, the IDP limiter works a-posteriori and requires the additional use of a
+# correction stage implemented with the stage callback [`SubcellLimiterIDPCorrection`](@ref).
+# This callback is passed within a tuple to the time integration method.
+#-
+# Moreover, as mentioned before as well, simulations with subcell limiting require a Trixi-intern
+# SSPRK time integration methods with passed stage callbacks and a Trixi-intern `Trixi.solve(...)`
+# routine.
+stage_callbacks = (SubcellLimiterIDPCorrection(),)
+
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  callback = callbacks);
+summary_callback() # print the timer summary
+
+
+# ## Visualizaton
+# As for a standard simulation in Trixi.jl, it is possible to visualize the solution using Plots
+# `plot` routine.
+using Plots
+plot(sol)
+
+# To get an additional look at the amount of limiting that is used, you can use the visualization
+# approach using the [`SaveSolutionCallback`](@ref), [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
+# and [ParaView](https://www.paraview.org/download/). More details about this procedure
+# can be found in the [visualization documentation](@ref visualization).
+# Unfortunately, the support for subcell limiting data is not yet merge into the main branch
+# of Trixi2Vtk but lies in the branch `bennibolm/node-variables`.
+#-
+# With that implementation and the standard procedure used for Trixi2Vtk you get the following
+# dropdown menu in ParaView.
+# ![ParaView_Dropdownmenu](https://github.com/trixi-framework/Trixi.jl/assets/74359358/70d15f6a-059b-4349-8291-68d9ab3af43e)
+
+# The resulting visualization of the density and the limiting parameter then looks like this.
+# ![blast_wave_paraview](https://github.com/trixi-framework/Trixi.jl/assets/74359358/e5808bed-c8ab-43bf-af7a-050fe43dd630)
+
+# You can see that the limiting coefficient does not lie in the interval [0,1], what actually was
+# expected due to its calculation.
+# TODO: Did I write something about this calculation?
+# This is due to the reconstruction functionality which is defaultly enabled in Trixi2Vtk.
+# You can disabled it with `reinterpolate=false` within the call of `trixi2vtk(...)` and get the
+# following visualization.
+# ![blast_wave_paraview_reinterpolate=false](https://github.com/trixi-framework/Trixi.jl/assets/74359358/39274f18-0064-469c-b4da-bac4b843e116)
+
+
+# ## Target bounds checking
 # TODO
