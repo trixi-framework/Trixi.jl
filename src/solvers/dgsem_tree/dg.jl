@@ -15,17 +15,25 @@ function reset_du!(du, dg, cache)
     return du
 end
 
+function reset_du!(du, dg, cache, element_range)
+    @threaded for element in element_range
+        du[.., element] .= zero(eltype(du))
+    end
+
+    return du
+end
+
 #     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
 #
 # Given blending factors `alpha` and the solver `dg`, fill
 # `element_ids_dg` with the IDs of elements using a pure DG scheme and
 # `element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
 function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::DG,
-                                       cache)
+                                       cache, element_range)
     empty!(element_ids_dg)
     empty!(element_ids_dgfv)
 
-    for element in eachelement(dg, cache)
+    for element in element_range
         # Clip blending factor for values close to zero (-> pure DG)
         dg_only = isapprox(alpha[element], 0, atol = 1e-12)
         if dg_only
