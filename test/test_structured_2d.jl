@@ -84,11 +84,11 @@ end
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         errors = analysis_callback(sol)
-        @test errors.l2≈[
+        @test errors.l2 ≈ [
             4.5131319539071844e-5,
             4.5131319538970356e-5,
-        ] 
-        @test errors.linf≈[
+        ]
+        @test errors.linf ≈ [
             0.00022262992334731724,
             0.00022262994922361834,
         ]
