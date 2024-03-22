@@ -39,7 +39,7 @@
 # - parameters of Newton method (max_iterations_newton = 10, newton_tolerances = (1.0e-12, 1.0e-14), gamma_constant_newton = 2 * ndims(equations)))
 # - positivity_correction_factor (Maybe show calculation of bounds, also of local bounds)
 
-# # `SubcellLimiterIDP`
+# # [`SubcellLimiterIDP`](@id SubcellLimiterIDP)
 # The IDP limiter supports several options of limiting which are passed very flexible as parameters to
 # the limiter individually.
 
@@ -85,7 +85,7 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
 # positivity_variables_nonlinear = [pressure]
 # ````
 
-# ### Local bounds (Shock capturing)
+# ### Local bounds
 # Second, Trixi.jl supports the limiting with local bounds for conservative variables. They
 # allow to avoid spurious  oscillations within the global bounds and to improve the
 # shock-capturing capabilities of the method. The corresponding numerical admissibility
@@ -131,16 +131,32 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
 end
 initial_condition = initial_condition_blast_wave;
 
-# TODO: Some explanation
+# Since the surface integral is equal for both the DG and the subcell FV method, only the volume
+# integral divides between the two methods.
+#-
+# Note, that the DG method is based on the flux differencing formulation. Hence, you have to use a
+# two-point flux, such as [`flux_ranocha`](@ref), [`flux_shima_etal`](@ref), [`flux_chandrashekar`](@ref)
+# or [`flux_kennedy_gruber`](@ref), for the DG volume flux.
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
+
+# The actuall limiter is implemented within [`SubcellLimiterIDP`](@ref). It always requires the
+# parameters `equations` and `basis`. With additional parameters (described [above](@ref SubcellLimiterIDP)
+# or listed in the docstring) you can specify and enabled the wanted limiting options.
+# Here, the simulation should contain local limiting for the density using lower and upper bounds.
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_minmax_variables_cons = ["rho"])
+
+# The initialized limiter is passed to `VolumeIntegralSubcellLimiting` in addition to the volume
+# volume fluxes of the low-order and high-order scheme.
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
-solver = DGSEM(basis, surface_flux, volume_integral);
+
+# Then, the volume integral is passed to `solver` as it is done for the standard flux-differencing
+# DG scheme or the element-wise limiting.
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 #-
 coordinates_min = (-2.0, -2.0)
