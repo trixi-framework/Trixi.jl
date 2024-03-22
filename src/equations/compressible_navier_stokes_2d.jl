@@ -175,6 +175,8 @@ function flux(u, gradients, orientation::Integer,
     # In the simplest cases, the user passed in `mu` or `mu()` 
     # (which returns just a constant) but
     # more complex functions like Sutherland's law are possible.
+    # `dynamic_viscosity` is a helper function that handles both cases
+    # by dispatching on the type of `equations.mu`.
     mu = dynamic_viscosity(u, equations)
 
     if orientation == 1
