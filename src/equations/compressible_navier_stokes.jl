@@ -62,3 +62,7 @@ Under `GradientVariablesEntropy`, the Navier-Stokes discretization is provably e
 """
 struct GradientVariablesPrimitive end
 struct GradientVariablesEntropy end
+
+dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
+dynamic_viscosity(u, mu::Real, equations) = mu
+dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)

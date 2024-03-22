@@ -175,13 +175,7 @@ function flux(u, gradients, orientation::Integer,
     # In the simplest cases, the user passed in `mu` or `mu()` 
     # (which returns just a constant) but
     # more complex functions like Sutherland's law are possible.
-    if equations.mu isa Real
-        mu = equations.mu
-    else
-        # The equations are equipped with a function that computes the dynamic viscosity mu
-        # from the current state. 
-        mu = equations.mu(u, equations)
-    end
+    mu = dynamic_viscosity(u, equations)
 
     if orientation == 1
         # viscous flux components in the x-direction
