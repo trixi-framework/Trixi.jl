@@ -7,6 +7,7 @@
 
 include("tree_mesh.jl")
 include("structured_mesh.jl")
+include("structured_mesh_view.jl")
 include("surface_interpolant.jl")
 include("unstructured_mesh.jl")
 include("face_interpolant.jl")
