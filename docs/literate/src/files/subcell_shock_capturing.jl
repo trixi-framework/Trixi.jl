@@ -141,7 +141,7 @@ surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 
-# The actuall limiter is implemented within [`SubcellLimiterIDP`](@ref). It always requires the
+# The actual limiter is implemented within [`SubcellLimiterIDP`](@ref). It always requires the
 # parameters `equations` and `basis`. With additional parameters (described [above](@ref SubcellLimiterIDP)
 # or listed in the docstring) you can specify and enabled the wanted limiting options.
 # Here, the simulation should contain local limiting for the density using lower and upper bounds.
@@ -240,7 +240,7 @@ plot(sol)
 # On the one hand, the deviations could be in machine precision which is not problematic.
 # On the other hand, the target bound can be exceeded by larger deviations. Mostly, this is due
 # to too large time step sizes and can be easily fixed by reducing the CFL number.
-# Rarely, the larger deviations come from the use of specifc boundary condition of source terms.
+# Rarely, the larger deviations come from the use of specific boundary condition of source terms.
 #-
 # In all this cases the exceeded bounds are not too problematic. Though, it is reasonable to
 # monitor them. Because of that Trixi.jl supports a bounds checking routine implemented using
