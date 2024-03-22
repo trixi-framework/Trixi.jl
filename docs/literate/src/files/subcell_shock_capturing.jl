@@ -205,8 +205,8 @@ summary_callback() # print the timer summary
 
 
 # ## Visualization
-# As for a standard simulation in Trixi.jl, it is possible to visualize the solution using Plots
-# `plot` routine.
+# As for a standard simulation in Trixi.jl, it is possible to visualize the solution using the
+# `plot` routine from Plots.jl.
 using Plots
 plot(sol)
 
@@ -235,4 +235,47 @@ plot(sol)
 
 
 # ## Bounds checking
-# TODO
+# Subcell limiting is based on the fulfillment of target bounds - either global or local.
+# Although the implementation is correct there are some cases where these bounds are not met.
+# On the one hand, the deviations could be in machine precision which is not problematic.
+# On the other hand, the target bound can be exceeded by larger deviations. Mostly, this is due
+# to too large time step sizes and can be easily fixed by reducing the CFL number.
+# Rarely, the larger deviations come from the use of specifc boundary condition of source terms.
+#-
+# In all this cases the exceeded bounds are not too problematic. Though, it is reasonable to
+# monitor them. Because of that Trixi.jl supports a bounds checking routine implemented using
+# the stage callback [`BoundsCheckCallback`](@ref). It checks all target bounds for fulfillment
+# in every RK stage. If added to the tuple of stage callbacks like
+# ````julia
+# stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
+# ````
+# and passed to the time integration method, a summary is added to the final console output.
+# For the given example this summary shows that all bounds are met at all times.
+# ````
+# ────────────────────────────────────────────────────────────────────────────────────────────────────
+# Maximum deviation from bounds:
+# ────────────────────────────────────────────────────────────────────────────────────────────────────
+# rho:
+# - lower bound: 0.0
+# - upper bound: 0.0
+# ────────────────────────────────────────────────────────────────────────────────────────────────────
+# ````
+
+# Moreover, it is also possible to monitor the deviations due to the simulations. To do that use
+# the parameter `save_errors = true` and the current deviations are written to `deviations.txt`
+# in `output_directory` every `interval` time steps.
+# ````julia
+# BoundsCheckCallback(save_errors = true, output_directory = "out", interval = 100)
+# ````
+# Then, for the given example the deviations file contains all daviations for the current
+# timestep and simulation time.
+# ````
+# iter, simu_time, rho_min, rho_max
+# 1, 0.0, 0.0, 0.0
+# 101, 0.29394033217556337, 0.0, 0.0
+# 201, 0.6012597465597065, 0.0, 0.0
+# 301, 0.9559096690030839, 0.0, 0.0
+# 401, 1.3674274981949077, 0.0, 0.0
+# 501, 1.8395301696603052, 0.0, 0.0
+# 532, 1.9974179806990118, 0.0, 0.0
+# ````
