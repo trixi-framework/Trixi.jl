@@ -584,7 +584,10 @@ end
                         base_level=0, med_level=1, max_level=1,
                         tspan=(0.0, 0.0001),
                         adapt_initial_condition=false,
-                        adapt_initial_condition_only_refine=false)
+                        adapt_initial_condition_only_refine=false,
+                        # With the default `maxiters = 1` in coverage tests,
+                        # the values for `drag` and `lift` below would differ.
+                        coverage_override=(maxiters = 100_000,))
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -604,8 +607,6 @@ end
                          semi.cache)
     lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
                          semi.cache)
-
-    @show analysis_callback(sol)
 
     @test isapprox(lift, 0.026397498239816828, atol = 1e-13)
     @test isapprox(drag, 0.10908833968266139, atol = 1e-13)
