@@ -84,8 +84,12 @@ heat_airfoil = Adiabatic((x, t, equations) -> 0.0)
 boundary_conditions_airfoil = BoundaryConditionNavierStokesWall(velocity_airfoil,
                                                                 heat_airfoil)
 
-velocity_bc_square = NoSlip((x, t, equations) -> initial_condition_mach08_flow(x, t,
-                                                                               equations)[2:3])
+function momenta_initial_condition_mach08_flow(x, t, equations)
+  u = initial_condition_mach08_flow(x, t, equations)
+  momenta = SVector(u[2], u[3])
+end
+velocity_bc_square = NoSlip((x, t, equations) -> momenta_initial_condition_mach08_flow(x, t, equations))                                                
+
 heat_bc_square = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_square = BoundaryConditionNavierStokesWall(velocity_bc_square,
                                                               heat_bc_square)
@@ -127,6 +131,7 @@ lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
                                      save_analysis = true,
+                                     analysis_errors = Symbol[],
                                      analysis_integrals = (drag_coefficient,
                                                            lift_coefficient))
 
@@ -143,6 +148,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
 summary_callback() # print the timer summary
