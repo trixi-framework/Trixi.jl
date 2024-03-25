@@ -501,6 +501,33 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_free_stream_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_sc_subcell.jl"),
+                        l2=[
+                            8.679465418313328e-17,
+                            7.45128559275597e-16,
+                            6.526610493700283e-16,
+                            1.6923968530609196e-15,
+                        ],
+                        linf=[
+                            8.881784197001252e-16,
+                            9.478529072737274e-15,
+                            7.188694084447889e-15,
+                            1.4210854715202004e-14,
+                        ],
+                        atol=1.0e-13,
+                        cells_per_dimension=(8, 8))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
 @trixi_testset "elixir_euler_free_stream.jl with FluxRotated(flux_lax_friedrichs)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         surface_flux=FluxRotated(flux_lax_friedrichs),
