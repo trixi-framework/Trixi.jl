@@ -218,9 +218,9 @@ end
                                  "elixir_advection_diffusion.jl"),
                         tspan=(0.0, 0.0))
     LLID = Trixi.local_leaf_cells(mesh.tree)
-    num_leafs = length(LLID)
-    @assert num_leafs % 8 == 0
-    Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs / 8)])
+    num_leaves = length(LLID)
+    @assert num_leaves % 8 == 0
+    Trixi.refine!(mesh.tree, LLID[1:Int(num_leaves / 8)])
     tspan = (0.0, 1.5)
     semi = SemidiscretizationHyperbolicParabolic(mesh,
                                                  (equations, equations_parabolic),
@@ -414,9 +414,9 @@ end
                                  "elixir_navierstokes_convergence.jl"),
                         tspan=(0.0, 0.0), initial_refinement_level=3)
     LLID = Trixi.local_leaf_cells(mesh.tree)
-    num_leafs = length(LLID)
-    @assert num_leafs % 4 == 0
-    Trixi.refine!(mesh.tree, LLID[1:Int(num_leafs / 4)])
+    num_leaves = length(LLID)
+    @assert num_leaves % 4 == 0
+    Trixi.refine!(mesh.tree, LLID[1:Int(num_leaves / 4)])
     tspan = (0.0, 0.5)
     semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                                  initial_condition, solver;
@@ -561,8 +561,8 @@ end
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         tspan=(0.0, 0.01),
-                        l2=[0.00793438523666649],
-                        linf=[0.11030633127144573])
+                        l2=[0.007933791324450538],
+                        linf=[0.11029480573492567])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -286,7 +286,8 @@ end
             equations = CompressibleEulerEquations1D(1.4)
             mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 3,
                             n_cells_max = 10^4)
-            solver = DGSEM(3, flux_hll, VolumeIntegralFluxDifferencing(flux_ranocha))
+            solver = DGSEM(3, FluxHLL(min_max_speed_naive),
+                           VolumeIntegralFluxDifferencing(flux_ranocha))
             initial_condition = (x, t, equations) -> begin
                 rho = 2 + sinpi(k * sum(x))
                 v1 = 0.1

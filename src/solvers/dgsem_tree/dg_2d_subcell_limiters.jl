@@ -470,6 +470,9 @@ end
 For subcell limiting, the calculation of local bounds for non-periodic domains require the boundary
 outer state. This function returns the boundary value at time `t` and for node with spatial
 indices `indices`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 @inline function get_boundary_outer_state(boundary_condition::BoundaryConditionDirichlet,
                                           cache, t, equations, dg, indices...)
