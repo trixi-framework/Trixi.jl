@@ -44,7 +44,7 @@
         end
     end
     if local_onesided
-        foreach(limiter.local_onesided_variables_nonlinear) do (variable, min_or_max)
+        for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
             key = Symbol(string(variable), "_", string(min_or_max))
             deviation_threaded = idp_bounds_delta_local[key]
             sign_ = min_or_max(1.0, -1.0)

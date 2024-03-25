@@ -354,7 +354,7 @@ end
 # Local one-sided limiting of nonlinear variables
 
 @inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi)
-    foreach(limiter.local_onesided_variables_nonlinear) do (variable, min_or_max)
+    for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
         idp_local_onesided!(alpha, limiter, u, t, dt, semi, variable, min_or_max)
     end
 
