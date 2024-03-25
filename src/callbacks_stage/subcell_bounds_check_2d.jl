@@ -47,18 +47,14 @@
         foreach(limiter.local_onesided_variables_nonlinear) do (variable, min_or_max)
             key = Symbol(string(variable), "_", string(min_or_max))
             deviation_threaded = idp_bounds_delta_local[key]
+            sign_ = min_or_max(1.0, -1.0)
             @threaded for element in eachelement(solver, cache)
                 deviation = deviation_threaded[stride_size * Threads.threadid()]
                 for j in eachnode(solver), i in eachnode(solver)
                     v = variable(get_node_vars(u, equations, solver, i, j, element),
                                  equations)
-                    if min_or_max === max
-                        deviation = max(deviation,
-                                        v - variable_bounds[key][i, j, element])
-                    else # min_or_max === min
-                        deviation = max(deviation,
-                                        variable_bounds[key][i, j, element] - v)
-                    end
+                    deviation = max(deviation,
+                                    sign_ * (v - variable_bounds[key][i, j, element]))
                 end
                 deviation_threaded[stride_size * Threads.threadid()] = deviation
             end

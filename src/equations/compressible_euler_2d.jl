@@ -1854,8 +1854,9 @@ end
     return SVector(w1, w2, w3, w4)
 end
 
-# Transformation from conservative variables u to entropy vector dSdu,
-# S = -rho*s/(gamma-1), s=ln(p)-gamma*ln(rho)
+# Transformation from conservative variables u to entropy vector ds_0/du,
+# using the specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
+# Note: This is *not* the "conventional" specific entropy s = ln(p / rho^(gamma)).
 @inline function cons2entropy_spec(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
@@ -1870,13 +1871,6 @@ end
     w2 = -rho_v1 * inv_rho_gammap1
     w3 = -rho_v2 * inv_rho_gammap1
     w4 = (1 / rho)^equations.gamma
-
-    # The derivative vector for other specific entropy
-    # sp = 1.0/(gammam1 * (rho_e - 0.5 * rho * v_square)
-    # w1 = gammam1 * 0.5 * v_square * sp - gamma / rho
-    # w2 = -gammam1 * v1 * sp
-    # w3 = -gammam1 * v2 * sp
-    # w4 = gammam1 * sp
 
     return SVector(w1, w2, w3, w4)
 end
@@ -1999,9 +1993,6 @@ end
     # Modified specific entropy from Guermond et al. (2019)
     s = (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho) * (1 / rho)^equations.gamma
 
-    # Other specific entropy
-    # rho_sp = rho/((equations.gamma - 1.0) * (rho_e - 0.5 * rho * v_square))
-    # s = log(p) - (equaions.gamma + 1) * log(rho)
     return s
 end
 
