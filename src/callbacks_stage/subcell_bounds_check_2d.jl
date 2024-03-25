@@ -77,7 +77,8 @@
             if local_minmax
                 for v in limiter.local_minmax_variables_cons
                     v_string = string(v)
-                    print(f, ", ", idp_bounds_delta_local[Symbol(v_string, "_min")], ", ", idp_bounds_delta_local[Symbol(v_string, "_max")])
+                    print(f, ", ", idp_bounds_delta_local[Symbol(v_string, "_min")],
+                          ", ", idp_bounds_delta_local[Symbol(v_string, "_max")])
                 end
             end
             if positivity
@@ -88,7 +89,8 @@
                     print(f, ", ", idp_bounds_delta_local[Symbol(string(v), "_min")])
                 end
                 for variable in limiter.positivity_variables_nonlinear
-                    print(f, ", ", idp_bounds_delta_local[Symbol(string(variable), "_min")])
+                    print(f, ", ",
+                          idp_bounds_delta_local[Symbol(string(variable), "_min")])
                 end
             end
             println(f)
