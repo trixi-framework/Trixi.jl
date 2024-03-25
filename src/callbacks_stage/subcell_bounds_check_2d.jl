@@ -12,6 +12,14 @@
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta_local, idp_bounds_delta_global) = limiter.cache
 
+    # Note: In order to get the maximum deviation from the target bounds, this bounds check
+    # requires a reduction in every RK stage and for every enabled limiting option. To make
+    # this Thread-parallel we are using Polyester.jl's (at least v0.7.10) `@batch reduction`
+    # functionality.
+    # Although `@threaded` and `@batch` are currently used equivalently in Trixi.jl, we use
+    # `@batch` here to allow a possible redefinition of `@threaded` without creating errors here.
+    # See also https://github.com/trixi-framework/Trixi.jl/pull/1888#discussion_r1537785293.
+
     if local_minmax
         for v in limiter.local_minmax_variables_cons
             v_string = string(v)
@@ -23,6 +31,10 @@
                                                                                                      cache)
                 for j in eachnode(solver), i in eachnode(solver)
                     var = u[v, i, j, element]
+                    # Note: We always save the absolute deviations >= 0 and therefore use the
+                    # `max` operator for the lower and upper bound. The different directions of
+                    # upper and lower bound are considered in their calculations with a
+                    # different sign.
                     deviation_min = max(deviation_min,
                                         variable_bounds[key_min][i, j, element] - var)
                     deviation_max = max(deviation_max,
