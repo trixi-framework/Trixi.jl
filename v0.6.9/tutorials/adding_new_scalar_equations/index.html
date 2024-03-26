@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>9 Adding a new scalar conservation law · Trixi.jl</title><meta name="title" content="9 Adding a new scalar conservation law · Trixi.jl"/><meta property="og:title" content="9 Adding a new scalar conservation law · Trixi.jl"/><meta property="twitter:title" content="9 Adding a new scalar conservation law · Trixi.jl"/><meta name="description" content="Documentation for Trixi.jl."/><meta property="og:description" content="Documentation for Trixi.jl."/><meta property="twitter:description" content="Documentation for Trixi.jl."/><meta property="og:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_new_scalar_equations/"/><meta property="twitter:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_new_scalar_equations/"/><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_new_scalar_equations/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Trixi.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../overview/">Overview</a></li><li><a class="tocitem" href="../../visualization/">Visualization</a></li><li><a class="tocitem" href="../../restart/">Restart simulation</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../introduction/">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox"/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">1 First steps in Trixi.jl</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../first_steps/getting_started/">1.1 Getting started</a></li><li><a class="tocitem" href="../first_steps/create_first_setup/">1.2 Create first setup</a></li><li><a class="tocitem" href="../first_steps/changing_trixi/">1.3 Changing Trixi.jl itself</a></li></ul></li><li><a class="tocitem" href="../scalar_linear_advection_1d/">2 Introduction to DG methods</a></li><li><a class="tocitem" href="../DGSEM_FluxDiff/">3 DGSEM with flux differencing</a></li><li><a class="tocitem" href="../shock_capturing/">4 Shock capturing with flux differencing and stage limiter</a></li><li><a class="tocitem" href="../non_periodic_boundaries/">5 Non-periodic boundaries</a></li><li><a class="tocitem" href="../DGMulti_1/">6 DG schemes via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../DGMulti_2/">7 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../upwind_fdsbp/">8 Upwind FD SBP schemes</a></li><li class="is-active"><a class="tocitem" href>9 Adding a new scalar conservation law</a><ul class="internal"><li><a class="tocitem" href="#Basic-setup"><span>Basic setup</span></a></li><li><a class="tocitem" href="#Advanced-setup"><span>Advanced setup</span></a></li><li><a class="tocitem" href="#Summary-of-the-code"><span>Summary of the code</span></a></li><li><a class="tocitem" href="#Package-versions"><span>Package versions</span></a></li></ul></li><li><a class="tocitem" href="../adding_nonconservative_equation/">10 Adding a non-conservative equation</a></li><li><a class="tocitem" href="../parabolic_terms/">11 Parabolic terms</a></li><li><a class="tocitem" href="../adding_new_parabolic_terms/">12 Adding new parabolic terms</a></li><li><a class="tocitem" href="../adaptive_mesh_refinement/">13 Adaptive mesh refinement</a></li><li><a class="tocitem" href="../structured_mesh_mapping/">14 Structured mesh with curvilinear mapping</a></li><li><a class="tocitem" href="../hohqmesh_tutorial/">15 Unstructured meshes with HOHQMesh.jl</a></li><li><a class="tocitem" href="../p4est_from_gmsh/">16 P4est mesh from gmsh</a></li><li><a class="tocitem" href="../time_stepping/">17 Explicit time stepping</a></li><li><a class="tocitem" href="../differentiable_programming/">18 Differentiable programming</a></li><li><a class="tocitem" href="../custom_semidiscretization/">19 Custom semidiscretizations</a></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox"/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li><li><a class="tocitem" href="../../meshes/p4est_mesh/">P4est-based mesh</a></li><li><a class="tocitem" href="../../meshes/dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../../multi-physics_coupling/">Coupling</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../development/">Development</a></li><li><a class="tocitem" href="../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../testing/">Testing</a></li><li><a class="tocitem" href="../../performance/">Performance</a></li><li><a class="tocitem" href="../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../reference-trixibase/">TrixiBase.jl</a></li><li><a class="tocitem" href="../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../authors/">Authors</a></li><li><a class="tocitem" href="../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../code_of_conduct/">Code of Conduct</a></li><li><a class="tocitem" href="../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>9 Adding a new scalar conservation law</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>9 Adding a new scalar conservation law</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl/blob/main/docs/literate/src/files/adding_new_scalar_equations.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="adding_new_scalar_equations"><a class="docs-heading-anchor" href="#adding_new_scalar_equations">9: Adding a new scalar conservation law</a><a id="adding_new_scalar_equations-1"></a><a class="docs-heading-anchor-permalink" href="#adding_new_scalar_equations" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=tutorials/notebooks/adding_new_scalar_equations.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/tutorials/notebooks/adding_new_scalar_equations.ipynb"><img src="https://img.shields.io/badge/render-nbviewer-f37726" alt/></a> <a href="https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/tutorials/notebooks/adding_new_scalar_equations.ipynb"><img src="https://img.shields.io/badge/raw-notebook-4cc61e" alt/></a></p><p>If you want to use Trixi.jl for your own research, you might be interested in a new physics model that&#39;s not already included in Trixi.jl. In this tutorial, we will implement the cubic conservation law</p><p class="math-container">\[\partial_t u(t,x) + \partial_x u(t,x)^3 = 0\]</p><p>in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model is encoded as a subtype of <a href="../../reference-trixi/#Trixi.AbstractEquations"><code>Trixi.AbstractEquations</code></a>.</p><h2 id="Basic-setup"><a class="docs-heading-anchor" href="#Basic-setup">Basic setup</a><a id="Basic-setup-1"></a><a class="docs-heading-anchor-permalink" href="#Basic-setup" title="Permalink"></a></h2><pre><code class="language-julia hljs">using Trixi
+
+struct CubicEquation &lt;: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
+                                                1 #= number of primary variables, i.e. scalar =#};
+end</code></pre><p>We create <code>CubicEquation</code> as an empty <code>struct</code> since we do not use any parameters for this equation. Other models could bundle arbitrary parameters, e.g., the ideal gas constant for the compressible Euler equations.</p><p>Next, we define the physical flux <code>f(u) = u^3</code> using the calling structure used in Trixi.jl.</p><pre><code class="language-julia hljs">Trixi.flux(u, orientation, equation::CubicEquation) = u.^3
+Trixi.varnames(_, ::CubicEquation) = (&quot;scalar&quot;,)</code></pre><p>In Trixi.jl, the conserved variables <code>u</code> are usually passed as <code>SVector</code>s of variables at a single physical location. Hence, we must use <code>u.^3</code> instead of the scalar operation <code>u^3</code>.</p><p>That&#39;s already enough to run a simple simulation with a standard DGSEM discretization using the non-dissipative central flux at interfaces.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq
+
+# Create a simulation setup
+equation = CubicEquation()
+
+initial_condition_sine(x, t, equation::CubicEquation) = SVector(sinpi(x[1]))
+
+mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
+                initial_refinement_level=4,
+                n_cells_max=10^4)
+
+solver = DGSEM(3 #= polynomial degree =#, flux_central)
+
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SemidiscretizationHyperbolic                                                                     │
+│ ════════════════════════════                                                                     │
+│ #spatial dimensions: ………………………… 1                                                                │
+│ mesh: ………………………………………………………………… TreeMesh{1, Trixi.SerialTree{1}} with length 31                  │
+│ equations: …………………………………………………… CubicEquation                                                    │
+│ initial condition: ……………………………… initial_condition_sine                                           │
+│ boundary conditions: ………………………… Trixi.BoundaryConditionPeriodic                                  │
+│ source terms: …………………………………………… nothing                                                          │
+│ solver: …………………………………………………………… DG                                                               │
+│ total #DOFs per field: …………………… 64                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>We wrap the return value of the <code>initial_condition_sine</code> inside an <code>SVector</code> since that&#39;s the approach used in Trixi.jl also for systems of equations. We need to index the spatial coordinate <code>x[1]</code>, since it is an <code>SVector</code> with one component. In multiple space dimensions, all spatial coordinates are passed together.</p><p>Next, we create an <code>ODEProblem</code> from the SciML/DifferentialEquations ecosystem. We can solve this ODE numerically using any time integration method, e.g., <code>SSPRK43</code> from <a href="https://github.com/SciML/OrdinaryDiffEq.jl">OrdinaryDiffEq.jl</a>. Before, we set up a <a href="../../callbacks/#callbacks-id">callback</a> to summarize the simulation setup.</p><pre><code class="language-julia hljs"># Create ODE problem with given time span
+tspan = (0.0, 0.09)
+ode = semidiscretize(semi, tspan)
+
+summary_callback = SummaryCallback()
+callbacks = CallbackSet(summary_callback)
+
+# OrdinaryDiffEq&#39;s `solve` method evolves the solution in time and executes the passed callbacks
+sol = solve(ode, SSPRK43();
+            ode_default_options()..., callback=callbacks);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+████████╗██████╗ ██╗██╗  ██╗██╗
+╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
+   ██║   ██████╔╝██║ ╚███╔╝ ██║
+   ██║   ██╔══██╗██║ ██╔██╗ ██║
+   ██║   ██║  ██║██║██╔╝ ██╗██║
+   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SemidiscretizationHyperbolic                                                                     │
+│ ════════════════════════════                                                                     │
+│ #spatial dimensions: ………………………… 1                                                                │
+│ mesh: ………………………………………………………………… TreeMesh{1, Trixi.SerialTree{1}} with length 31                  │
+│ equations: …………………………………………………… CubicEquation                                                    │
+│ initial condition: ……………………………… initial_condition_sine                                           │
+│ boundary conditions: ………………………… Trixi.BoundaryConditionPeriodic                                  │
+│ source terms: …………………………………………… nothing                                                          │
+│ solver: …………………………………………………………… DG                                                               │
+│ total #DOFs per field: …………………… 64                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ TreeMesh{1, Trixi.SerialTree{1}}                                                                 │
+│ ════════════════════════════════                                                                 │
+│ center: …………………………………………………………… [0.0]                                                            │
+│ length: …………………………………………………………… 2.0                                                              │
+│ periodicity: ……………………………………………… (true,)                                                          │
+│ current #cells: ……………………………………… 31                                                               │
+│ #leaf-cells: ……………………………………………… 16                                                               │
+│ maximum #cells: ……………………………………… 10000                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CubicEquation                                                                                    │
+│ ═════════════                                                                                    │
+│ #variables: ………………………………………………… 1                                                                │
+│ │ variable 1: …………………………………………… scalar                                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DG{Float64}                                                                                      │
+│ ═══════════                                                                                      │
+│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
+│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
+│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
+│ │ surface flux: ……………………………………… flux_central                                                     │
+│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Time integration                                                                                 │
+│ ════════════════                                                                                 │
+│ Start time: ………………………………………………… 0.0                                                              │
+│ Final time: ………………………………………………… 0.09                                                             │
+│ time integrator: …………………………………… SSPRK43                                                          │
+│ adaptive: ……………………………………………………… true                                                             │
+│ abstol: …………………………………………………………… 1.0e-6                                                           │
+│ reltol: …………………………………………………………… 0.001                                                            │
+│ controller: ………………………………………………… PIController{Rational{Int64}}(7//30, 2//15)                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Environment information                                                                          │
+│ ═══════════════════════                                                                          │
+│ #threads: ……………………………………………………… 1                                                                │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>That&#39;s it, you ran your first simulation using your new equation with Trixi.jl! Now, we can plot the solution at the final time using Plots.jl.</p><pre><code class="language-julia hljs">using Plots
+plot(sol)</code></pre><img src="effa7255.svg" alt="Example block output"/><p>You can already see that discontinuities will develop and oscillations start to occur around steep parts of the wave. That&#39;s expected from our central discretization. To avoid these issues, we need to use dissipative numerical fluxes (approximate Riemann solvers) at interfaces.</p><h2 id="Advanced-setup"><a class="docs-heading-anchor" href="#Advanced-setup">Advanced setup</a><a id="Advanced-setup-1"></a><a class="docs-heading-anchor-permalink" href="#Advanced-setup" title="Permalink"></a></h2><p>Thus, we add a Godunov&#39;s flux for our cubic equation. That is easy for this equation since the wave speed <code>f&#39;(u) = 3u^2</code> is always non-negative.</p><pre><code class="language-julia hljs">@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)</code></pre><p>Let&#39;s run the example again but with a dissipative numerical flux at interfaces. <code>remake</code> will recreate the semidiscretization we used before and only change selected parameters, in this case the <code>solver</code>.</p><pre><code class="language-julia hljs"># A new setup with dissipation
+semi = remake(semi, solver=DGSEM(3, flux_godunov))
+ode = semidiscretize(semi, tspan)
+sol = solve(ode, SSPRK43(); ode_default_options()...)
+plot!(sol)</code></pre><img src="bc8c9ea7.svg" alt="Example block output"/><p>You can see that there are fewer oscillations, in particular around steep edges. Now let&#39;s increase the final time (and also the spatial resolution).</p><pre><code class="language-julia hljs"># A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
+semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
+ode = semidiscretize(semi, (0.0, 0.5) #= tspan =#)
+sol = solve(ode, SSPRK43(); ode_default_options()...)
+plot(sol)</code></pre><img src="f9ea95cb.svg" alt="Example block output"/><p>You can observe that nonclassical shocks develop and are stable under grid refinement, e.g. for <code>initial_refinement_level=12</code>. In this case, these nonclassical shocks can be avoided by using an entropy-dissipative semidiscretization. Thus, we need to define an entropy-conservative numerical flux</p><pre><code class="language-julia hljs">@inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicEquation)
+  return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
+end</code></pre><p>and use a <a href="../../reference-trixi/#Trixi.VolumeIntegralFluxDifferencing"><code>VolumeIntegralFluxDifferencing</code></a> instead of the standard <a href="../../reference-trixi/#Trixi.VolumeIntegralWeakForm"><code>VolumeIntegralWeakForm</code></a> in the DGSEM.</p><pre><code class="language-julia hljs"># Let&#39;s use a provably entropy-dissipative semidiscretization
+semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
+ode = semidiscretize(semi, (0.0, 0.5))
+sol = solve(ode, SSPRK43(); ode_default_options()...);
+plot(sol)</code></pre><img src="9df28e75.svg" alt="Example block output"/><p>Possible next steps could be</p><ul><li>to define <code>Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2</code> to use CFL-based time step control via a <a href="../../reference-trixi/#Trixi.StepsizeCallback"><code>StepsizeCallback</code></a></li><li>to define quantities of interest like <code>Trixi.entropy(u, equations::CubicEquation) = u[1]^2</code> and integrate them in a simulation using the <a href="../../reference-trixi/#Trixi.AnalysisCallback"><code>AnalysisCallback</code></a></li><li>to experiment with shock-capturing volume integrals <a href="../../reference-trixi/#Trixi.VolumeIntegralShockCapturingHG"><code>VolumeIntegralShockCapturingHG</code></a> and adaptive mesh refinement <a href="../../reference-trixi/#Trixi.AMRCallback"><code>AMRCallback</code></a></li></ul><p>For further reading, Trixi.jl provides another example on adding a scalar equation. In the <a href="https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_kpp.jl">elixir about the KPP problem</a>, the 2D scalar &quot;KPP equation&quot; from <a href="https://doi.org/10.1137/040614189">Kurganov, Petrova, Popov (2007)</a> is implemented.</p><h2 id="Summary-of-the-code"><a class="docs-heading-anchor" href="#Summary-of-the-code">Summary of the code</a><a id="Summary-of-the-code-1"></a><a class="docs-heading-anchor-permalink" href="#Summary-of-the-code" title="Permalink"></a></h2><p>To sum up, here is the complete code that we used (without the callbacks since these create a lot of unnecessary output in the doctests of this tutorial). In addition, we create the <code>struct</code> inside the new module <code>CubicConservationLaw</code>. That ensures that we can re-create <code>struct</code>s defined therein without having to restart Julia.</p><pre><code class="language-julia hljs"># Define new physics
+module CubicConservationLaw
+
+using Trixi
+
+struct CubicEquation &lt;: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
+                                                1 #= number of primary variables, i.e. scalar =#}
+end
+
+@inline Trixi.flux(u, orientation, equation::CubicEquation) = u.^3
+Trixi.varnames(_, ::CubicEquation) = (&quot;scalar&quot;,)
+
+@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)
+@inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicEquation)
+  return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
+end
+
+end # module
+
+
+# Create a simulation setup
+import .CubicConservationLaw
+using Trixi
+using OrdinaryDiffEq
+using Plots
+
+equation = CubicConservationLaw.CubicEquation()
+
+initial_condition_sine(x, t, equation::CubicConservationLaw.CubicEquation) = SVector(sinpi(x[1]))
+
+mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
+                initial_refinement_level=4,
+                n_cells_max=10^4)
+
+solver = DGSEM(3 #= polynomial degree =#, flux_central)
+
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+
+# Create ODE problem with given time span
+tspan = (0.0, 0.1)
+ode = semidiscretize(semi, tspan)
+
+# OrdinaryDiffEq&#39;s `solve` method evolves the solution in time and executes the passed callbacks
+sol = solve(ode, SSPRK43(); ode_default_options()...)
+plot(sol)
+
+
+# A new setup with dissipation
+semi = remake(semi, solver=DGSEM(3, flux_godunov))
+ode = semidiscretize(semi, tspan)
+sol = solve(ode, SSPRK43(); ode_default_options()...)
+plot!(sol)
+
+
+# A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
+semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
+ode = semidiscretize(semi, (0.0, 0.5))
+sol = solve(ode, SSPRK43(); ode_default_options()...)
+plot(sol)
+
+
+# Let&#39;s use a provably entropy-dissipative semidiscretization
+semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
+ode = semidiscretize(semi, (0.0, 0.5))
+sol = solve(ode, SSPRK43(); ode_default_options()...)
+plot(sol)</code></pre><img src="0dc171b0.svg" alt="Example block output"/><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEq&quot;, &quot;Plots&quot;],
+           mode=PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.9.4
+Commit 8e5136fa297 (2023-11-14 08:46 UTC)
+Build Info:
+  Official https://julialang.org/ release
+Platform Info:
+  OS: Linux (x86_64-linux-gnu)
+  CPU: 4 × AMD EPYC 7763 64-Core Processor
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-14.0.6 (ORCJIT, znver3)
+  Threads: 1 on 4 virtual cores
+Environment:
+  JULIA_PKG_SERVER_REGISTRY_PREFERENCE = eager
+<span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
+<span class="sgr33">⌅</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
+<span class="sgr33">⌅</span> <span class="sgr90">[91a5bcdd] </span>Plots v1.39.0
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.6.9 `~/work/Trixi.jl/Trixi.jl`
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr33">⌅</span> have new versions available but compatibility constraints restrict them from upgrading. To see why use `status --outdated -m`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../upwind_fdsbp/">« 8 Upwind FD SBP schemes</a><a class="docs-footer-nextpage" href="../adding_nonconservative_equation/">10 Adding a non-conservative equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Friday 16 February 2024 05:59">Friday 16 February 2024</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
