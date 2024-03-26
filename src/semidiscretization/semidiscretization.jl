@@ -28,10 +28,6 @@ running in parallel with MPI.
     ndofsglobal(mesh, solver, cache)
 end
 
-@inline function ndofsglobal(mesh, solver, cache)
-    ndofs(mesh, solver, cache)
-end
-
 """
     integrate_via_indices(func, u_ode, semi::AbstractSemidiscretization, args...; normalize=true)
 
