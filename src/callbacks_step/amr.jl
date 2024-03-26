@@ -138,11 +138,18 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
         # iterate until mesh does not change anymore
         has_changed = amr_callback(integrator,
                                    only_refine = amr_callback.adapt_initial_condition_only_refine)
+        iterations = 1
         while has_changed
             compute_coefficients!(integrator.u, t, semi)
             u_modified!(integrator, true)
             has_changed = amr_callback(integrator,
                                        only_refine = amr_callback.adapt_initial_condition_only_refine)
+            iterations = iterations + 1
+            if iterations > 10
+                @warn "AMR for initial condition did not settle within 10 iterations!\n" *
+                      "Consider adjusting thresholds or setting `adapt_initial_condition_only_refine`."
+                break
+            end
         end
     end
 
