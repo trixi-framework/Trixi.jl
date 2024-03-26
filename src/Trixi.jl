@@ -276,6 +276,8 @@ export trixi_include, examples_dir, get_examples, default_example,
 
 export ode_norm, ode_unstable_check
 
+export PERK2
+
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
