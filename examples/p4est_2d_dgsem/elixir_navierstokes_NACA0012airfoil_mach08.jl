@@ -85,10 +85,11 @@ boundary_conditions_airfoil = BoundaryConditionNavierStokesWall(velocity_airfoil
                                                                 heat_airfoil)
 
 function momenta_initial_condition_mach08_flow(x, t, equations)
-  u = initial_condition_mach08_flow(x, t, equations)
-  momenta = SVector(u[2], u[3])
+    u = initial_condition_mach08_flow(x, t, equations)
+    momenta = SVector(u[2], u[3])
 end
-velocity_bc_square = NoSlip((x, t, equations) -> momenta_initial_condition_mach08_flow(x, t, equations))                                                
+velocity_bc_square = NoSlip((x, t, equations) -> momenta_initial_condition_mach08_flow(x, t,
+                                                                                       equations))
 
 heat_bc_square = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_square = BoundaryConditionNavierStokesWall(velocity_bc_square,
@@ -148,6 +149,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 
 time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = time_int_tol, reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = time_int_tol,
+            reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
 summary_callback() # print the timer summary
