@@ -61,12 +61,11 @@ end
 function LiftCoefficient(aoa, rhoinf, uinf, linf)
     # psi_lift is the normal unit vector to the freestream direction
     psi_lift = (-sin(aoa), cos(aoa))
-    force_state = ForceState(psi_lift, rhoinf, uinf, linf)
-    return LiftCoefficient(force_state)
+    return LiftCoefficient(ForceState(psi_lift, rhoinf, uinf, linf))
 end
 
 function DragCoefficient(aoa, rhoinf, uinf, linf)
-    # psi_drag is the unit vector parallel to the freestream direction
+    # `psi_drag` is the unit vector in direction of the freestream
     psi_drag = (cos(aoa), sin(aoa))
     return DragCoefficient(ForceState(psi_drag, rhoinf, uinf, linf))
 end
@@ -74,6 +73,7 @@ end
 function (lift_coefficient::LiftCoefficient)(u, normal_direction, equations)
     p = pressure(u, equations)
     @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
+    # Normalize as `normal_direction` is not necessarily a unit vector
     n = dot(normal_direction, psi) / norm(normal_direction)
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
@@ -81,6 +81,7 @@ end
 function (drag_coefficient::DragCoefficient)(u, normal_direction, equations)
     p = pressure(u, equations)
     @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
+    # Normalize as `normal_direction` is not necessarily a unit vector
     n = dot(normal_direction, psi) / norm(normal_direction)
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
@@ -106,9 +107,11 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
 
         i_node = i_node_start
         j_node = j_node_start
-        for node_index in eachnode(dg)
+        for node_index in index_range
             u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
                                          boundary)
+            # Extract normal direction at nodes which points from the elements outwards,
+            # i.e., *into* the structure.                                         
             normal_direction = get_normal_direction(direction, contravariant_vectors,
                                                     i_node, j_node,
                                                     element)
