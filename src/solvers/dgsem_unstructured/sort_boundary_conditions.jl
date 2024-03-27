@@ -105,7 +105,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     # Store boundary indices per symbol (required for force computations, for instance)
     for (symbol, _) in boundary_dictionary
         indices = findall(x -> x === symbol, cache.boundaries.name)
-        # Store the indices in `boundary_symbol_indices`
+        # Store the indices in `boundary_symbol_indices` dictionary
         boundary_types_container.boundary_symbol_indices[symbol] = sort!(indices)
     end
 
