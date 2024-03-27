@@ -1,12 +1,3 @@
-# Transonic flow around an airfoil
-
-# This test is taken from the paper below. The values from Case 5 in Table 3 are used to validate
-# the scheme and computation of surface forces.
-
-# - Roy Charles Swanson, Stefan Langer (2016)
-#   Structured and Unstructured Grid Methods (2016)
-#   [https://ntrs.nasa.gov/citations/20160003623] (https://ntrs.nasa.gov/citations/20160003623)
-
 using Downloads: download
 using OrdinaryDiffEq
 using Trixi
@@ -15,6 +6,21 @@ using Trixi: AnalysisSurfaceIntegral, DragCoefficient, LiftCoefficient
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+
+# Laminar transonic flow around an airfoil.
+
+# This test is taken from the paper below. The values from Case 5 in Table 3 are used to validate
+# the scheme and computation of surface forces.
+
+# - Roy Charles Swanson, Stefan Langer (2016)
+#   Structured and Unstructured Grid Methods (2016)
+#   [https://ntrs.nasa.gov/citations/20160003623] (https://ntrs.nasa.gov/citations/20160003623)
+
+# See also:
+# - Deep Ray, Praveen Chandrashekar (2017)
+#   An entropy stable finite volume scheme for the 
+#   two dimensional Navier–Stokes equations on triangular grids
+#   [DOI:10.1016/j.amc.2017.07.020](https://doi.org/10.1016/j.amc.2017.07.020)
 
 equations = CompressibleEulerEquations2D(1.4)
 
