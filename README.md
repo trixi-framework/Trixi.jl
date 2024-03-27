@@ -257,6 +257,22 @@ To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
+## Institutional Support
+Trixi.jl relies on institutions that provide infrastructure for coding and testing, as well as encourage students, post-docs and scientists to contribute code. Institutes and groups that supported us in the past and present are listed below.
+
+<p align="left">
+  <img style="float:left;height:30px;margin-right:10px" 
+    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/e9432f4c-995f-434e-b393-d15efe68abf1">
+  <a href="https://www.mi.uni-koeln.de/NumSim/">Numerical Simulation Group, University of Cologne</a>
+</p>
+
+<p align="left">
+  <img style="float:left;height:30px;margin-right:10px" 
+    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/c3e1f6c9-4d13-4001-b817-b3ab405f177b">
+  <a href="https://www.acom.rwth-aachen.de">Lab for Applied and Computational Mathematics, RWTH Aachen</a>
+</p>
+  
+...and many more.
 
 ## Acknowledgments
 <p align="center" style="font-size:0;"><!--
@@ -274,8 +290,8 @@ This project has benefited from funding by the [Deutsche
 Forschungsgemeinschaft](https://www.dfg.de/) (DFG, German Research Foundation)
 through the following grants:
 * Excellence Strategy EXC 2044-390685587, Mathematics Münster: Dynamics-Geometry-Structure.
-* Research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
-  Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
+* Research Unit FOR 5409 "[Structure-Preserving Numerical Methods for Bulk- and
+  Interface Coupling of Heterogeneous Models (SNuBIC)](https://www.snubic.io/)" (project number 463312734).
 * Individual grant no. 528753982.
 
 This project has benefited from funding from the [European Research Council](https://erc.europa.eu)
