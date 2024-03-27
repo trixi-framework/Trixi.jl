@@ -105,11 +105,11 @@ trixi_include(joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_e
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       6.71000000e-07 s
+ #timesteps:                  0                run time:       7.11000000e-07 s
  Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:       3220.035 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:       3275.610 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -118,18 +118,18 @@ trixi_include(joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_e
  ∑∂S/∂U ⋅ Uₜ :   2.63255193e-19
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 1.0797e-02 │ sim. time: 1.0745e-01 (26.862%)  │ run time: 7.9214e-02 s
-#timesteps:     20 │ Δt: 1.1033e-02 │ sim. time: 2.1692e-01 (54.229%)  │ run time: 1.5689e-01 s
-#timesteps:     30 │ Δt: 1.1481e-02 │ sim. time: 3.3075e-01 (82.688%)  │ run time: 2.3634e-01 s
+#timesteps:     10 │ Δt: 1.0797e-02 │ sim. time: 1.0745e-01 (26.862%)  │ run time: 8.2661e-02 s
+#timesteps:     20 │ Δt: 1.1033e-02 │ sim. time: 2.1692e-01 (54.229%)  │ run time: 1.6389e-01 s
+#timesteps:     30 │ Δt: 1.1481e-02 │ sim. time: 3.3075e-01 (82.688%)  │ run time: 2.4677e-01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 37                run time:       2.96689202e-01 s
+ #timesteps:                 37                run time:       3.09358764e-01 s
  Δt:             4.74704430e-04                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  9.03222036e-08 s
-                                               PID:            9.60342722e-08 s
- #DOFs per field:         16384                alloc&#39;d memory:       3221.675 MiB
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  9.31583666e-08 s
+                                               PID:            1.00170990e-07 s
+ #DOFs per field:         16384                alloc&#39;d memory:       3277.250 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -145,33 +145,33 @@ Trixi.jl simulation finished.  Final time: 0.4  Time steps: 37 (accepted), 37 (t
 <span class="sgr1"> ────────────────────────────────────────────────────────────────────────────────</span>
 <span class="sgr1">            Trixi.jl           </span>         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            303ms /  96.0%           3.69MiB /  85.8%
+       Tot / % measured:            316ms /  94.9%           3.69MiB /  85.8%
 
  Section               ncalls     time    %tot     avg     alloc    %tot      avg
  ────────────────────────────────────────────────────────────────────────────────
- rhs!                     186    275ms   94.5%  1.48ms   9.33KiB    0.3%    51.4B
-   volume integral        186    198ms   67.8%  1.06ms     0.00B    0.0%    0.00B
-   interface flux         186   40.5ms   13.9%   218μs     0.00B    0.0%    0.00B
-   surface integral       186   17.1ms    5.9%  92.1μs     0.00B    0.0%    0.00B
-   prolong2interfaces     186   15.6ms    5.4%  84.0μs     0.00B    0.0%    0.00B
-   Jacobian               186   2.10ms    0.7%  11.3μs     0.00B    0.0%    0.00B
-   reset ∂u/∂t            186   1.95ms    0.7%  10.5μs     0.00B    0.0%    0.00B
-   ~rhs!~                 186    311μs    0.1%  1.67μs   9.33KiB    0.3%    51.4B
-   prolong2boundaries     186   13.4μs    0.0%  72.1ns     0.00B    0.0%    0.00B
-   prolong2mortars        186   10.9μs    0.0%  58.7ns     0.00B    0.0%    0.00B
-   mortar flux            186   8.43μs    0.0%  45.3ns     0.00B    0.0%    0.00B
+ rhs!                     186    284ms   94.7%  1.53ms   9.33KiB    0.3%    51.4B
+   volume integral        186    198ms   66.1%  1.06ms     0.00B    0.0%    0.00B
+   interface flux         186   48.7ms   16.3%   262μs     0.00B    0.0%    0.00B
+   surface integral       186   17.3ms    5.8%  92.8μs     0.00B    0.0%    0.00B
+   prolong2interfaces     186   15.5ms    5.2%  83.4μs     0.00B    0.0%    0.00B
+   Jacobian               186   2.07ms    0.7%  11.1μs     0.00B    0.0%    0.00B
+   reset ∂u/∂t            186   1.86ms    0.6%  10.0μs     0.00B    0.0%    0.00B
+   ~rhs!~                 186    302μs    0.1%  1.62μs   9.33KiB    0.3%    51.4B
+   prolong2mortars        186   11.5μs    0.0%  61.6ns     0.00B    0.0%    0.00B
+   prolong2boundaries     186   10.6μs    0.0%  56.7ns     0.00B    0.0%    0.00B
+   mortar flux            186   8.23μs    0.0%  44.2ns     0.00B    0.0%    0.00B
+   source terms           186   5.51μs    0.0%  29.6ns     0.00B    0.0%    0.00B
    boundary flux          186   5.46μs    0.0%  29.4ns     0.00B    0.0%    0.00B
-   source terms           186   5.43μs    0.0%  29.2ns     0.00B    0.0%    0.00B
- analyze solution           2   8.26ms    2.8%  4.13ms   54.6KiB    1.7%  27.3KiB
- I/O                        3   4.06ms    1.4%  1.35ms   3.10MiB   98.0%  1.03MiB
-   save solution            2   3.23ms    1.1%  1.62ms   3.02MiB   95.4%  1.51MiB
-   ~I/O~                    3    821μs    0.3%   274μs   84.9KiB    2.6%  28.3KiB
-   get element vari...      2    562ns    0.0%   281ns     0.00B    0.0%    0.00B
+ analyze solution           2   8.27ms    2.8%  4.14ms   54.6KiB    1.7%  27.3KiB
+ I/O                        3   4.00ms    1.3%  1.33ms   3.10MiB   98.0%  1.03MiB
+   save solution            2   3.14ms    1.0%  1.57ms   3.02MiB   95.4%  1.51MiB
+   ~I/O~                    3    856μs    0.3%   285μs   84.9KiB    2.6%  28.3KiB
+   get element vari...      2    721ns    0.0%   360ns     0.00B    0.0%    0.00B
    save mesh                2    180ns    0.0%  90.0ns     0.00B    0.0%    0.00B
-   get node variables       2    131ns    0.0%  65.5ns     0.00B    0.0%    0.00B
- calculate dt              38   3.60ms    1.2%  94.9μs     0.00B    0.0%    0.00B
+   get node variables       2   60.0ns    0.0%  30.0ns     0.00B    0.0%    0.00B
+ calculate dt              38   3.61ms    1.2%  94.9μs     0.00B    0.0%    0.00B
 <span class="sgr1"> ────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>To analyze the result of the computation, we can use the Plots.jl package and the function <code>plot(...)</code>, which creates a graphical representation of the solution. <code>sol</code> is a variable defined in the executed example and it contains the solution at the final moment of the simulation.</p><pre><code class="language-julia hljs">using Plots
-plot(sol)</code></pre><img src="626adac7.svg" alt="Example block output"/><p>To obtain a list of all Trixi.jl elixirs execute <a href="../../../reference-trixi/#Trixi.get_examples-Tuple{}"><code>get_examples</code></a>. It returns the paths to all example setups.</p><pre><code class="language-julia hljs">get_examples()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">382-element Vector{String}:
+plot(sol)</code></pre><img src="f29d3fc0.svg" alt="Example block output"/><p>To obtain a list of all Trixi.jl elixirs execute <a href="../../../reference-trixi/#Trixi.get_examples-Tuple{}"><code>get_examples</code></a>. It returns the paths to all example setups.</p><pre><code class="language-julia hljs">get_examples()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">383-element Vector{String}:
  &quot;/home/runner/work/Trixi.jl/Trix&quot; ⋯ 23 bytes ⋯ &quot;d/elixir_advection_gauss_sbp.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot; ⋯ 24 bytes ⋯ &quot;/elixir_euler_fdsbp_periodic.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot; ⋯ 19 bytes ⋯ &quot;ti_1d/elixir_euler_flux_diff.jl&quot;
@@ -219,9 +219,9 @@ end
 initial_condition = initial_condition_density_waves</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">initial_condition_density_waves (generic function with 1 method)</code></pre><ul><li>Execute the following code one more time, but instead of <code>path/to/file</code> paste the path to the <code>elixir_euler_ec.jl</code> file that you just edited.<pre><code class="language-julia hljs">using Trixi
 trixi_include(path/to/file)
 using Plots
-plot(sol)</code></pre></li></ul><p>Then you will obtain a new solution from running the simulation with a different initial condition.</p><img src="534e09c7.svg" alt="Example block output"/><p>To get exactly the same picture execute the following.</p><pre><code class="language-julia hljs">pd = PlotData2D(sol)
+plot(sol)</code></pre></li></ul><p>Then you will obtain a new solution from running the simulation with a different initial condition.</p><img src="f7ca7f53.svg" alt="Example block output"/><p>To get exactly the same picture execute the following.</p><pre><code class="language-julia hljs">pd = PlotData2D(sol)
 p1 = plot(pd[&quot;rho&quot;])
 p2 = plot(pd[&quot;v1&quot;], clim=(0.05, 0.15))
 p3 = plot(pd[&quot;v2&quot;], clim=(0.15, 0.25))
 p4 = plot(pd[&quot;p&quot;], clim=(10, 30))
-plot(p1, p2, p3, p4)</code></pre><p>Feel free to make further changes to the initial condition to observe different solutions.</p><p>Now you are able to download, modify and execute simulation setups for Trixi.jl. To explore further details on setting up a new simulation with Trixi.jl, refer to the second part of the introduction titled <a href="../create_first_setup/#create_first_setup">Create first setup</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../create_first_setup/">1.2 Create first setup »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.3.0 on <span class="colophon-date" title="Tuesday 26 March 2024 09:32">Tuesday 26 March 2024</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+plot(p1, p2, p3, p4)</code></pre><p>Feel free to make further changes to the initial condition to observe different solutions.</p><p>Now you are able to download, modify and execute simulation setups for Trixi.jl. To explore further details on setting up a new simulation with Trixi.jl, refer to the second part of the introduction titled <a href="../create_first_setup/#create_first_setup">Create first setup</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../create_first_setup/">1.2 Create first setup »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.3.0 on <span class="colophon-date" title="Wednesday 27 March 2024 15:21">Wednesday 27 March 2024</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
