@@ -87,7 +87,24 @@ function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
 
     dt = cfl_number * max_dt(u, t, mesh,
                 have_constant_speed(equations), equations,
-                solver, cache)
+                semi, solver, cache, solver.volume_integral)
+end
+
+function max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
+                volume_integral::AbstractVolumeIntegral)
+    max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+end
+
+@inline function max_dt(u, t, mesh,
+                        constant_speed, equations, semi, solver, cache,
+                        volume_integral::VolumeIntegralSubcellLimiting)
+    @unpack limiter = volume_integral
+    if limiter isa SubcellLimiterIDP && !limiter.bar_states
+        return max_dt(u, t, mesh, constant_speed, equations, solver, cache)
+    else
+        return max_dt(u, t, mesh, constant_speed, equations, semi, solver, cache,
+                      limiter)
+    end
 end
 
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own

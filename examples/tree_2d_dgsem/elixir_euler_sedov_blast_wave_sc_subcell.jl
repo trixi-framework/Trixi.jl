@@ -42,7 +42,10 @@ surface_flux = flux_lax_friedrichs
 volume_flux = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                local_minmax_variables_cons = ["rho"])
+                                local_minmax_variables_cons = ["rho"],
+                                spec_entropy = true,
+                                smoothness_indicator = false,
+                                bar_states = true)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -74,11 +77,15 @@ save_solution = SaveSolutionCallback(interval = 1000,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.6)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
+
+limiting_analysis_callback = LimitingAnalysisCallback(output_directory = "out",
+                                                      interval = 1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         stepsize_callback,
+                        limiting_analysis_callback,
                         save_solution)
 ###############################################################################
 # run the simulation

@@ -295,8 +295,8 @@ of local and symmetric parts. It is equivalent to the non-conservative flux of B
 et al. (`flux_nonconservative_powell`) for conforming meshes but it yields different
 results on non-conforming meshes(!).
 
-The two other flux functions with the same name return either the local 
-or symmetric portion of the non-conservative flux based on the type of the 
+The two other flux functions with the same name return either the local
+or symmetric portion of the non-conservative flux based on the type of the
 nonconservative_type argument, employing multiple dispatch. They are used to
 compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
