@@ -59,13 +59,17 @@ struct DragCoefficient{RealT <: Real}
 end
 
 function LiftCoefficient(aoa, rhoinf, uinf, linf)
-    # psi_lift is the normal unit vector to the freestream direction
+    # psi_lift is the normal unit vector to the freestream direction.
+    # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa))
+    # leads to positive lift coefficients for positive angles of attack for airfoils.
+    # Note that one could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same 
+    # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa))
     return LiftCoefficient(ForceState(psi_lift, rhoinf, uinf, linf))
 end
 
 function DragCoefficient(aoa, rhoinf, uinf, linf)
-    # `psi_drag` is the unit vector in direction of the freestream
+    # `psi_drag` is the unit vector in direction of the freestream.
     psi_drag = (cos(aoa), sin(aoa))
     return DragCoefficient(ForceState(psi_drag, rhoinf, uinf, linf))
 end
@@ -116,7 +120,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                                                     i_node, j_node,
                                                     element)
 
-            # L2 norm of normal direction is the surface element
+            # L2 norm of normal direction (contravariant_vector) is the surface element
             dS = weights[node_index] * norm(normal_direction)
             # Integral over whole boundary surface
             surface_integral += variable(u_node, normal_direction, equations) * dS
