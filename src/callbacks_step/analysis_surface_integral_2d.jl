@@ -68,13 +68,13 @@ C_{L,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_L \, 
                         {0.5 \cdot \rho_{\infty} \cdot U_{\infty}^2 \cdot L_{\infty}}
 ```
 based on the pressure distribution along a boundary.
-Supposed to be used in conjuction with [`AnalysisSurfaceIntegral`](@ref) 
+Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref) 
 which stores the boundary information and semidiscretization.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rhoinf::Real`: Free-stream density
 - `uinf::Real`: Free-stream velocity
-- `linf::Real`: Reference length of geoemtry (e.g. airfoil chord length)
+- `linf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
 function LiftCoefficientPressure(aoa, rhoinf, uinf, linf)
     # psi_lift is the normal unit vector to the freestream direction.
@@ -95,13 +95,13 @@ C_{D,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_D \, 
                         {0.5 \cdot \rho_{\infty} \cdot U_{\infty}^2 \cdot L_{\infty}}
 ```
 based on the pressure distribution along a boundary.
-Supposed to be used in conjuction with [`AnalysisSurfaceIntegral`](@ref) 
+Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref) 
 which stores the boundary information and semidiscretization.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rhoinf::Real`: Free-stream density
 - `uinf::Real`: Free-stream velocity
-- `linf::Real`: Reference length of geoemtry (e.g. airfoil chord length)
+- `linf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
 function DragCoefficientPressure(aoa, rhoinf, uinf, linf)
     # `psi_drag` is the unit vector in direction of the freestream.
