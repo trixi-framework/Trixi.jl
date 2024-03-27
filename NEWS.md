@@ -8,7 +8,7 @@ for human readability.
 
 #### Added
 - Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D`.
-
+- Pressure lift and drag coefficients can now be computed for 2D `P4estMesh`.
 
 ## Changes when updating to v0.7 from v0.6.x
 

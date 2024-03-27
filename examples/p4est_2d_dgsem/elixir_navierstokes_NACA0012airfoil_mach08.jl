@@ -2,8 +2,6 @@ using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
-using Trixi: AnalysisSurfaceIntegral, DragCoefficient, LiftCoefficient
-
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
@@ -128,12 +126,14 @@ analysis_interval = 2000
 
 force_boundary_names = [:AirfoilBottom, :AirfoilTop]
 drag_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
-                                           DragCoefficient(sw_aoa(), sw_rho_inf(),
-                                                           sw_U_inf(equations), sw_linf()))
+                                           DragCoefficientPressure(sw_aoa(), sw_rho_inf(),
+                                                                   sw_U_inf(equations),
+                                                                   sw_linf()))
 
 lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
-                                           LiftCoefficient(sw_aoa(), sw_rho_inf(),
-                                                           sw_U_inf(equations), sw_linf()))
+                                           LiftCoefficientPressure(sw_aoa(), sw_rho_inf(),
+                                                                   sw_U_inf(equations),
+                                                                   sw_linf()))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",

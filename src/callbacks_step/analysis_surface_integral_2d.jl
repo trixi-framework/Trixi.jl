@@ -15,7 +15,8 @@
 
     This struct is used to compute the surface integral of a quantity of interest `variable` alongside 
     the boundary/boundaries associated with `boundary_symbol` or `boundary_symbols`.
-    For instance, this can be used to compute the lift or drag coefficient of e.g. an airfoil in 2D.
+    For instance, this can be used to compute the lift [`LiftCoefficientPressure`](@ref) or 
+    drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil in 2D.
 """
 struct AnalysisSurfaceIntegral{Semidiscretization, Variable}
     semi::Semidiscretization # passed in to retrieve boundary condition information
@@ -50,31 +51,65 @@ struct ForceState{RealT <: Real}
     linf::RealT
 end
 
-struct LiftCoefficient{RealT <: Real}
+struct LiftCoefficientPressure{RealT <: Real}
     force_state::ForceState{RealT}
 end
 
-struct DragCoefficient{RealT <: Real}
+struct DragCoefficientPressure{RealT <: Real}
     force_state::ForceState{RealT}
 end
 
-function LiftCoefficient(aoa, rhoinf, uinf, linf)
+""" 
+    LiftCoefficientPressure(aoa, rhoinf, uinf, linf)
+
+Compute the lift coefficient 
+```math
+C_{L,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_L \, \mathrm{d} S}
+                        {0.5 \cdot \rho_{\infty} \cdot U_{\infty}^2 \cdot L_{\infty}}
+```
+based on the pressure distribution along a boundary.
+Supposed to be used in conjuction with [`AnalysisSurfaceIntegral`](@ref) 
+which stores the boundary information and semidiscretization.
+
+- `aoa::Real`: Angle of attack in radians (for airfoils etc.)
+- `rhoinf::Real`: Free-stream density
+- `uinf::Real`: Free-stream velocity
+- `linf::Real`: Reference length of geoemtry (e.g. airfoil chord length)
+"""
+function LiftCoefficientPressure(aoa, rhoinf, uinf, linf)
     # psi_lift is the normal unit vector to the freestream direction.
     # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa))
     # leads to positive lift coefficients for positive angles of attack for airfoils.
     # Note that one could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same 
     # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa))
-    return LiftCoefficient(ForceState(psi_lift, rhoinf, uinf, linf))
+    return LiftCoefficientPressure(ForceState(psi_lift, rhoinf, uinf, linf))
 end
 
-function DragCoefficient(aoa, rhoinf, uinf, linf)
+""" 
+    DragCoefficientPressure(aoa, rhoinf, uinf, linf)
+
+Compute the drag coefficient 
+```math
+C_{D,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_D \, \mathrm{d} S}
+                        {0.5 \cdot \rho_{\infty} \cdot U_{\infty}^2 \cdot L_{\infty}}
+```
+based on the pressure distribution along a boundary.
+Supposed to be used in conjuction with [`AnalysisSurfaceIntegral`](@ref) 
+which stores the boundary information and semidiscretization.
+
+- `aoa::Real`: Angle of attack in radians (for airfoils etc.)
+- `rhoinf::Real`: Free-stream density
+- `uinf::Real`: Free-stream velocity
+- `linf::Real`: Reference length of geoemtry (e.g. airfoil chord length)
+"""
+function DragCoefficientPressure(aoa, rhoinf, uinf, linf)
     # `psi_drag` is the unit vector in direction of the freestream.
     psi_drag = (cos(aoa), sin(aoa))
-    return DragCoefficient(ForceState(psi_drag, rhoinf, uinf, linf))
+    return DragCoefficientPressure(ForceState(psi_drag, rhoinf, uinf, linf))
 end
 
-function (lift_coefficient::LiftCoefficient)(u, normal_direction, equations)
+function (lift_coefficient::LiftCoefficientPressure)(u, normal_direction, equations)
     p = pressure(u, equations)
     @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
     # Normalize as `normal_direction` is not necessarily a unit vector
@@ -82,7 +117,7 @@ function (lift_coefficient::LiftCoefficient)(u, normal_direction, equations)
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
 
-function (drag_coefficient::DragCoefficient)(u, normal_direction, equations)
+function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, equations)
     p = pressure(u, equations)
     @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
     # Normalize as `normal_direction` is not necessarily a unit vector
@@ -133,19 +168,20 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
 end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any,
-                                                     <:LiftCoefficient{<:Any}})
-    "CL"
+                                                     <:LiftCoefficientPressure{<:Any}})
+    "CL_p"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any,
-                                                   <:LiftCoefficient{<:Any}})
-    "CL"
+                                                   <:LiftCoefficientPressure{<:Any}})
+    "CL_p"
 end
+
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any,
-                                                     <:DragCoefficient{<:Any}})
-    "CD"
+                                                     <:DragCoefficientPressure{<:Any}})
+    "CD_p"
 end
 function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any,
-                                                   <:DragCoefficient{<:Any}})
-    "CD"
+                                                   <:DragCoefficientPressure{<:Any}})
+    "CD_p"
 end
 end # muladd

@@ -2,8 +2,6 @@ using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
-using Trixi: AnalysisSurfaceIntegral, DragCoefficient, LiftCoefficient
-
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
@@ -92,10 +90,12 @@ U_inf = 0.38
 linf = 1.0 # Diameter of circle
 
 drag_coefficient = AnalysisSurfaceIntegral(semi, :x_neg,
-                                           DragCoefficient(aoa, rho_inf, U_inf, linf))
+                                           DragCoefficientPressure(aoa, rho_inf, U_inf,
+                                                                   linf))
 
 lift_coefficient = AnalysisSurfaceIntegral(semi, :x_neg,
-                                           LiftCoefficient(aoa, rho_inf, U_inf, linf))
+                                           LiftCoefficientPressure(aoa, rho_inf, U_inf,
+                                                                   linf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
