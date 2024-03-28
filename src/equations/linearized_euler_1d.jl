@@ -25,7 +25,8 @@ Linearized euler equations in one space dimension. The equations are given by
 \end{pmatrix}
 ```
 The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and c is the speed of sound.
-The unknowns are the acoustic velocity ``v_1'``, the pressure ``p'`` and the density ``\rho'``.
+The unknowns are the perturbation quantities of the acoustic velocity ``v_1'``, the pressure ``p'`` 
+and the density ``\rho'``.
 """
 struct LinearizedEulerEquations1D{RealT <: Real} <:
        AbstractLinearizedEulerEquations{1, 3}
