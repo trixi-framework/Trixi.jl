@@ -47,7 +47,7 @@ function LinearizedEulerEquations1D(v_mean_global::Real,
                                       rho_mean_global)
 end
 
-# Constructor with keywords (note the leading ';')
+# Constructor with keywords
 function LinearizedEulerEquations1D(; v_mean_global::Real,
                                     c_mean_global::Real, rho_mean_global::Real)
     return LinearizedEulerEquations1D(v_mean_global, c_mean_global,
