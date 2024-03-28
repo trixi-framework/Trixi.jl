@@ -48,6 +48,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Traffic flow LWR
     include("test_tree_1d_traffic_flow_lwr.jl")
+
+    # Linearized Euler
+    include("test_tree_1d_linearizedeuler.jl")
 end
 
 # Coverage test for all initial conditions
