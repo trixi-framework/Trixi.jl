@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-# Laminar transonic flow around an airfoil.
+# Laminar transonic flow around a NACA0012 airfoil.
 
 # This test is taken from the paper of Swanson and Langer. The values for the drag and lift coefficients
 # from Case 5 in Table 3 are used to validate the scheme and computation of surface forces.
@@ -113,7 +113,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers
 
-# Run for a long time to reach a steady state
+# Run for a long time to reach a state where forces stabilize up to 3 digits
 tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
