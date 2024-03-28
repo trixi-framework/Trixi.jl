@@ -18,6 +18,9 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 100_000,
                 periodicity = false)
 
+# Initialize density and pressure perturbation with a Gaussian bump
+# that is advected to left with v - c and to the right with v + c.
+# Correspondigly, the bump splits in half.
 function initial_condition_gauss_wall(x, t, equations::LinearizedEulerEquations1D)
     v1_prime = 0.0
     rho_prime = p_prime = 2 * exp(-(x[1] - 45)^2 / 25)
