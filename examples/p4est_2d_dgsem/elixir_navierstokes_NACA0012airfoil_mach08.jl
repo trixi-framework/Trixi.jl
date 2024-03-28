@@ -153,6 +153,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = 1e-8, reltol = 1e-8,
+sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = 1e-8,
+            reltol = 1e-8,
             ode_default_options()..., callback = callbacks)
 summary_callback() # print the timer summary
