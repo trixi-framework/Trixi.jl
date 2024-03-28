@@ -9,7 +9,7 @@ for human readability.
 #### Added
 - Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D` and extension
   to 1D and 3D on `TreeMesh`.
-
+- Implementation of 1D Linearized Euler Equations.
 
 ## Changes when updating to v0.7 from v0.6.x
 
