@@ -476,18 +476,36 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_amr.jl"),
                         l2=[
-                            0.00526017743452336,
-                            0.4130430692895672,
-                            0.4310996183791349,
-                            1.1544344171604635,
+                            0.005155557460409018,
+                            0.4048446934219344,
+                            0.43040068852937047,
+                            1.1255130552079322,
                         ],
                         linf=[
-                            0.03492185879198495,
-                            1.392635891671335,
-                            1.357551616406459,
-                            8.713760873018146,
+                            0.03287305649809613,
+                            1.1656793717431393,
+                            1.3917196016246969,
+                            8.146587380114653,
                         ],
                         tspan=(0.0, 0.7))
+end
+
+@trixi_testset "TreeMesh2D: elixir_navierstokes_taylor_green_vortex_sutherland.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex_sutherland.jl"),
+                        l2=[
+                            0.001452856280034929,
+                            0.0007538775539989481,
+                            0.0007538775539988681,
+                            0.011035506549989587,
+                        ],
+                        linf=[
+                            0.003291912841311362,
+                            0.002986462478096974,
+                            0.0029864624780958637,
+                            0.0231954665514138,
+                        ],
+                        tspan=(0.0, 1.0))
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
