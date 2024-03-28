@@ -47,12 +47,12 @@ end
 cells_per_dimension = (64, 64)
 # xi = -1 maps to the inner circle and xi = +1 maps to the outer circle and we can specify boundary
 # conditions there. However, the image of eta = -1, +1 coincides at the line y = 0. There is no
-# physical boundary there so we specify periodicity = true there and the solver treats the
+# physical boundary there so we specify `periodicity = true` there and the solver treats the
 # element across eta = -1, +1 as neighbours which is what we want
 mesh = P4estMesh(cells_per_dimension, mapping = mapping2cylinder, polydeg = polydeg,
                  periodicity = (false, true))
 
-# The boundary conditions of the outer cylinder is constant but subsonic, so we cannot compute the
+# The boundary condition on the outer cylinder is constant but subsonic, so we cannot compute the
 # boundary flux from the external information alone. Thus, we use the numerical flux to distinguish
 # between inflow and outflow characteristics
 @inline function boundary_condition_subsonic_constant(u_inner,
@@ -86,16 +86,16 @@ analysis_interval = 2000
 
 aoa = 0.0
 rho_inf = 1.4
-U_inf = 0.38
-linf = 1.0 # Diameter of circle
+u_inf = 0.38
+l_inf = 1.0 # Diameter of circle
 
 drag_coefficient = AnalysisSurfaceIntegral(semi, :x_neg,
-                                           DragCoefficientPressure(aoa, rho_inf, U_inf,
-                                                                   linf))
+                                           DragCoefficientPressure(aoa, rho_inf, u_inf,
+                                                                   l_inf))
 
 lift_coefficient = AnalysisSurfaceIntegral(semi, :x_neg,
-                                           LiftCoefficientPressure(aoa, rho_inf, U_inf,
-                                                                   linf))
+                                           LiftCoefficientPressure(aoa, rho_inf, u_inf,
+                                                                   l_inf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",

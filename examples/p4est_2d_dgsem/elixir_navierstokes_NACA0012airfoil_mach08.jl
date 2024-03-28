@@ -7,14 +7,13 @@ using Trixi
 
 # Laminar transonic flow around an airfoil.
 
-# This test is taken from the paper below. The values from Case 5 in Table 3 are used to validate
-# the scheme and computation of surface forces.
+# This test is taken from the paper of Swanson and Langer. The values for the drag and lift coefficients
+# from Case 5 in Table 3 are used to validate the scheme and computation of surface forces.
 
+# References:
 # - Roy Charles Swanson, Stefan Langer (2016)
 #   Structured and Unstructured Grid Methods (2016)
 #   [https://ntrs.nasa.gov/citations/20160003623] (https://ntrs.nasa.gov/citations/20160003623)
-
-# See also:
 # - Deep Ray, Praveen Chandrashekar (2017)
 #   An entropy stable finite volume scheme for the 
 #   two dimensional Navier–Stokes equations on triangular grids
@@ -27,25 +26,25 @@ mu() = 0.0031959974968701088
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
-sw_rho_inf() = 1.0
-sw_pre_inf() = 2.85
-sw_aoa() = 10.0 * pi / 180.0
-sw_linf() = 1.0
-sw_mach_inf() = 0.8
-sw_U_inf(equations) = sw_mach_inf() * sqrt(equations.gamma * sw_pre_inf() / sw_rho_inf())
+rho_inf() = 1.0
+p_inf() = 2.85
+aoa() = 10.0 * pi / 180.0 # 10 degree angle of attack
+l_inf() = 1.0
+mach_inf() = 0.8
+u_inf(equations) = mach_inf() * sqrt(equations.gamma * p_inf() / rho_inf())
 @inline function initial_condition_mach08_flow(x, t, equations)
     # set the freestream flow parameters
-    gasGam = equations.gamma
-    mach_inf = sw_mach_inf()
-    aoa = sw_aoa()
-    rho_inf = sw_rho_inf()
-    pre_inf = sw_pre_inf()
-    U_inf = mach_inf * sqrt(gasGam * pre_inf / rho_inf)
+    gamma = equations.gamma
+    mach_inf = mach_inf()
+    aoa = aoa()
+    rho_inf = rho_inf()
+    p_inf = p_inf()
+    u_inf = mach_inf * sqrt(gamma * p_inf / rho_inf)
 
-    v1 = U_inf * cos(aoa)
-    v2 = U_inf * sin(aoa)
+    v1 = u_inf * cos(aoa)
+    v2 = u_inf * sin(aoa)
 
-    prim = SVector(rho_inf, v1, v2, pre_inf)
+    prim = SVector(rho_inf, v1, v2, p_inf)
     return prim2cons(prim, equations)
 end
 
@@ -126,14 +125,14 @@ analysis_interval = 2000
 
 force_boundary_names = [:AirfoilBottom, :AirfoilTop]
 drag_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
-                                           DragCoefficientPressure(sw_aoa(), sw_rho_inf(),
-                                                                   sw_U_inf(equations),
-                                                                   sw_linf()))
+                                           DragCoefficientPressure(aoa(), rho_inf(),
+                                                                   u_inf(equations),
+                                                                   l_inf()))
 
 lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
-                                           LiftCoefficientPressure(sw_aoa(), sw_rho_inf(),
-                                                                   sw_U_inf(equations),
-                                                                   sw_linf()))
+                                           LiftCoefficientPressure(aoa(), rho_inf(),
+                                                                   u_inf(equations),
+                                                                   l_inf()))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -154,8 +153,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = time_int_tol,
-            reltol = time_int_tol,
+sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = 1e-8, reltol = 1e-8,
             ode_default_options()..., callback = callbacks)
 summary_callback() # print the timer summary

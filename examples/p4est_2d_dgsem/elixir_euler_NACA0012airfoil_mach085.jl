@@ -7,17 +7,17 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-pre_inf() = 1.0
-rho_inf() = pre_inf() / (1.0 * 287.87) # pre_inf = 1.0,  T = 1, R = 287.87
+p_inf() = 1.0
+rho_inf() = p_inf() / (1.0 * 287.87) # p_inf = 1.0,  T = 1, R = 287.87
 mach_inf() = 0.85
 aoa() = pi / 180.0 # 1 Degree angle of attack
-c_inf(equations) = sqrt(equations.gamma * pre_inf() / rho_inf())
-U_inf(equations) = mach_inf() * c_inf(equations)
+c_inf(equations) = sqrt(equations.gamma * p_inf() / rho_inf())
+u_inf(equations) = mach_inf() * c_inf(equations)
 
 @inline function initial_condition_mach085_flow(x, t,
                                                 equations::CompressibleEulerEquations2D)
-    v1 = U_inf(equations) * cos(aoa())
-    v2 = U_inf(equations) * sin(aoa())
+    v1 = u_inf(equations) * cos(aoa())
+    v2 = u_inf(equations) * sin(aoa())
 
     prim = SVector(rho_inf(), v1, v2, pre_inf())
     return prim2cons(prim, equations)
@@ -82,16 +82,16 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 2000
 
-linf = 1.0 # Length of airfoil
+l_inf = 1.0 # Length of airfoil
 
 force_boundary_names = [:AirfoilBottom, :AirfoilTop]
 drag_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
                                            DragCoefficientPressure(aoa(), rho_inf(),
-                                                                   U_inf(equations), linf))
+                                                                   u_inf(equations), linf))
 
 lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
                                            LiftCoefficientPressure(aoa(), rho_inf(),
-                                                                   U_inf(equations), linf))
+                                                                   u_inf(equations), linf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",

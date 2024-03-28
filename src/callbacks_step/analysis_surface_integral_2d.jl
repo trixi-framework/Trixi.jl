@@ -1,6 +1,3 @@
-# This file contains callbacks that are performed on the surface like computation of
-# surface forces
-
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -8,15 +5,20 @@
 @muladd begin
 #! format: noindent
 
+# This file contains callbacks that are performed on the surface like computation of
+# surface forces
+
 """
     AnalysisSurfaceIntegral{Semidiscretization, Variable}(semi, 
                                                           boundary_symbol_or_boundary_symbols, 
                                                           variable)
 
     This struct is used to compute the surface integral of a quantity of interest `variable` alongside 
-    the boundary/boundaries associated with `boundary_symbol` or `boundary_symbols`.
+    the boundary/boundaries associated with particular name(s) given in `boundary_symbol` 
+    or `boundary_symbols`.
     For instance, this can be used to compute the lift [`LiftCoefficientPressure`](@ref) or 
-    drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil in 2D.
+    drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil with the boundary
+    name `:Airfoil` in 2D.
 """
 struct AnalysisSurfaceIntegral{Semidiscretization, Variable}
     semi::Semidiscretization # passed in to retrieve boundary condition information
@@ -80,7 +82,7 @@ function LiftCoefficientPressure(aoa, rhoinf, uinf, linf)
     # psi_lift is the normal unit vector to the freestream direction.
     # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa))
     # leads to positive lift coefficients for positive angles of attack for airfoils.
-    # Note that one could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same 
+    # One could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same 
     # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa))
     return LiftCoefficientPressure(ForceState(psi_lift, rhoinf, uinf, linf))
@@ -157,7 +159,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
 
             # L2 norm of normal direction (contravariant_vector) is the surface element
             dS = weights[node_index] * norm(normal_direction)
-            # Integral over whole boundary surface
+            # Integral over entire boundary surface
             surface_integral += variable(u_node, normal_direction, equations) * dS
 
             i_node += i_node_step
