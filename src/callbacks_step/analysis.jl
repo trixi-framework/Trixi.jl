@@ -310,7 +310,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         mpi_println("                 " * "              " *
                     "               " *
                     " PID:            " * @sprintf("%10.8e s", performance_index))
-        mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofs(semi)) *
+        mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofsglobal(semi)) *
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *

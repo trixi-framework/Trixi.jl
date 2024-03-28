@@ -81,7 +81,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
                          semi.semis[i].source_terms)
             summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
         end
-        summary_line(io, "total #DOFs per field", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)
     end
 end
@@ -121,6 +121,10 @@ end
 
 @inline function ndofs(semi::SemidiscretizationCoupled)
     sum(ndofs, semi.semis)
+end
+
+@inline function ndofsglobal(semi::SemidiscretizationCoupled)
+    sum(ndofsglobal, semi.semis)
 end
 
 function compute_coefficients(t, semi::SemidiscretizationCoupled)
