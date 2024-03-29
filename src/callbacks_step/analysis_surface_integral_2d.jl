@@ -106,7 +106,7 @@ which stores the boundary information and semidiscretization.
 - `l_inf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
 function DragCoefficientPressure(aoa, rhoinf, uinf, l_inf)
-    # `psi_drag` is the unit vector in direction of the freestream.
+    # `psi_drag` is the unit vector tangent to the freestream direction
     psi_drag = (cos(aoa), sin(aoa))
     return DragCoefficientPressure(ForceState(psi_drag, rhoinf, uinf, l_inf))
 end
