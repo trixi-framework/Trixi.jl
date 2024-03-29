@@ -110,15 +110,14 @@ save_solution = SaveSolutionCallback(interval = 500,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-# Small time step should be used to reach steady state
-stepsize_callback = StepsizeCallback(cfl = 0.25)
+stepsize_callback = StepsizeCallback(cfl = 2.0)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
                         stepsize_callback)
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false; thread = OrdinaryDiffEq.True()),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary
