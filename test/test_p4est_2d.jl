@@ -574,12 +574,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_NACA0012airfoil_mach085.jl"),
                         l2=[
-                            5.37640294704164e-7, 6.418954697992308e-6,
-                            1.0332595763357066e-5, 0.0006353813399881882,
+                            5.371568111383228e-7, 6.4158131303956445e-6,
+                            1.0324346542348325e-5, 0.0006348064933187732,
                         ],
                         linf=[
-                            0.0016284523634016628, 0.028505821812697323,
-                            0.029918806073518, 1.9505653217814127,
+                            0.0016263400091978443, 0.028471072159724428,
+                            0.02986133204785877, 1.9481060511014872,
                         ],
                         base_level=0, med_level=1, max_level=1,
                         tspan=(0.0, 0.0001),
@@ -608,8 +608,8 @@ end
     lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
                          semi.cache)
 
-    @test isapprox(lift, 0.026397498239816828, atol = 1e-13)
-    @test isapprox(drag, 0.10908833968266139, atol = 1e-13)
+    @test isapprox(lift, 0.0262382560809345, atol = 1e-13)
+    @test isapprox(drag, 0.10898248971932244, atol = 1e-13)
 end
 end
 

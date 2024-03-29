@@ -19,7 +19,7 @@ u_inf(equations) = mach_inf() * c_inf(equations)
     v1 = u_inf(equations) * cos(aoa())
     v2 = u_inf(equations) * sin(aoa())
 
-    prim = SVector(rho_inf(), v1, v2, pre_inf())
+    prim = SVector(rho_inf(), v1, v2, p_inf())
     return prim2cons(prim, equations)
 end
 
@@ -107,7 +107,7 @@ save_solution = SaveSolutionCallback(interval = 500,
                                      solution_variables = cons2prim)
 
 # Small time step should be used to reach steady state
-stepsize_callback = StepsizeCallback(cfl = 0.25)
+stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
 
@@ -127,7 +127,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK54(),
+sol = solve(ode, SSPRK54(thread = OrdinaryDiffEq.True()),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

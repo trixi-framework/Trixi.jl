@@ -66,8 +66,8 @@ end
 
 Compute the lift coefficient
 ```math
-C_{L,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_L \, \mathrm{d} S}
-                        {0.5 \cdot \rho_{\infty} \cdot U_{\infty}^2 \cdot L_{\infty}}
+C_{L,p} \\coloneqq \\frac{\\oint_{\\partial \\Omega} p \\boldsymbol n \\cdot \\psi_L \\, \\mathrm{d} S}
+                        {0.5 \\cdot \\rho_{\\infty} \\cdot U_{\\infty}^2 \\cdot L_{\\infty}}
 ```
 based on the pressure distribution along a boundary.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
@@ -93,8 +93,8 @@ end
 
 Compute the drag coefficient
 ```math
-C_{D,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_D \, \mathrm{d} S}
-                        {0.5 \cdot \rho_{\infty} \cdot U_{\infty}^2 \cdot L_{\infty}}
+C_{D,p} \\coloneqq \\frac{\\oint_{\\partial \\Omega} p \\boldsymbol n \\cdot \\psi_D \\, \\mathrm{d} S}
+                        {0.5 \\cdot \\rho_{\\infty} \\cdot U_{\\infty}^2 \\cdot L_{\\infty}}
 ```
 based on the pressure distribution along a boundary.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
