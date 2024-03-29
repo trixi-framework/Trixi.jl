@@ -35,16 +35,12 @@ u_inf(equations) = mach_inf() * sqrt(equations.gamma * p_inf() / rho_inf())
 @inline function initial_condition_mach08_flow(x, t, equations)
     # set the freestream flow parameters
     gamma = equations.gamma
-    mach_inf = mach_inf()
-    aoa = aoa()
-    rho_inf = rho_inf()
-    p_inf = p_inf()
-    u_inf = mach_inf * sqrt(gamma * p_inf / rho_inf)
+    u_inf = mach_inf() * sqrt(gamma * p_inf() / rho_inf())
 
-    v1 = u_inf * cos(aoa)
-    v2 = u_inf * sin(aoa)
+    v1 = u_inf * cos(aoa())
+    v2 = u_inf * sin(aoa())
 
-    prim = SVector(rho_inf, v1, v2, p_inf)
+    prim = SVector(rho_inf(), v1, v2, p_inf())
     return prim2cons(prim, equations)
 end
 
@@ -114,7 +110,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers
 
 # Run for a long time to reach a state where forces stabilize up to 3 digits
-tspan = (0.0, 10.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 # Callbacks
