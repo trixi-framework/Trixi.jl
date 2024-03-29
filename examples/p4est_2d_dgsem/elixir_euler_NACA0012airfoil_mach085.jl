@@ -106,7 +106,6 @@ save_solution = SaveSolutionCallback(interval = 500,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-# Small time step should be used to reach steady state
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
