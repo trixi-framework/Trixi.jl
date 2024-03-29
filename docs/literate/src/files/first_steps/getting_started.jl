@@ -32,6 +32,8 @@
 #   ```shell
 #   winget install julia -s msstore
 #   ```
+#   Note: This installation method requires the use of MS Store, therefore, an MS Store account
+#   is necessary to proceed.
 # - Verify the successful installation of Julia by executing the following command in the terminal:
 #   ```shell
 #   julia
@@ -69,11 +71,14 @@
 # [Plots.jl](https://github.com/JuliaPlots/Plots.jl).
 
 # - Open a terminal and start Julia.
-# - Execute following commands:
+# - Execute the following commands to install all mentioned packages. Please note that the
+#   installation process involves downloading and precompiling the source code, which may take
+#   approximately 30 minutes.
 #   ```julia
 #   import Pkg
 #   Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
 #   ```
+# - On Windows, the firewall may request for permission to install packages.
 
 # Now you have installed all these 
 # packages. [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) provides time
@@ -102,7 +107,40 @@
 
 # Let's execute a short two-dimensional problem setup. It approximates the solution of
 # the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
-# with a weak blast wave as the initial condition.
+# with a weak blast wave as the initial condition and periodic boundary conditions. Compressible
+# Euler equations describes the motions of an ideal gas.
+
+# The compressible Euler equations in two spatial dimensions,
+# ```math
+# \frac{\partial}{\partial t}
+# \begin{pmatrix}
+# \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e
+# \end{pmatrix}
+# +
+# \frac{\partial}{\partial x}
+# \begin{pmatrix}
+# \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e + p) v_1
+# \end{pmatrix}
+# +
+# \frac{\partial}{\partial y}
+# \begin{pmatrix}
+# \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e + p) v_2
+# \end{pmatrix}
+# =
+# \begin{pmatrix}
+# 0 \\ 0 \\ 0 \\ 0
+# \end{pmatrix},
+# ```
+# for an ideal gas with the specific heat ratio ``\gamma``.
+# Here, ``\rho`` is the density, ``v_1`` and ``v_2`` are the velocities, ``e`` is the specific
+# total energy, and
+# ```math
+# p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
+# ```
+# is the pressure.
+
+# The initial conditions for the weak blast wave are specified in
+# [`compressible_euler_2d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/compressible_euler_2d.jl) 
 
 # Start Julia in a terminal and execute the following code:
 
@@ -113,9 +151,17 @@
 using Trixi, OrdinaryDiffEq #hide #md
 trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
 
+# The solution was approximated over the [`TreeMesh`](@ref) using the CarpenterKennedy2N54 ODE
+# solver. Further details about the ODE solver can be found on the
+# [`DifferentialEquations.jl page`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/)
+
 # To analyze the result of the computation, we can use the Plots.jl package and the function 
 # `plot(...)`, which creates a graphical representation of the solution. `sol` is a variable
-# defined in the executed example and it contains the solution at the final moment of the simulation.
+# defined in the executed example and it contains the solution at the final moment of the
+# simulation. `sol.u` holds the vector of values at each saved timestep, while `sol.t` holds the
+# corresponding times for each saved timestep. In this instance, only two timesteps were saved: the
+# initial and final ones. The plot depicts the evolution of the weak blast wave at the final moment
+# of time, showing the density, velocities, and pressure of the ideal gas across a 2D domain.
 
 using Plots
 plot(sol)
@@ -146,39 +192,9 @@ get_examples()
 # ### Modifying an existing setup
 
 # As an example, we will change the initial condition for calculations that occur in
-# `elixir_euler_ec.jl`. In this example we consider the compressible Euler equations in two spatial
-# dimensions,
-# ```math
-# \frac{\partial}{\partial t}
-# \begin{pmatrix}
-# \rho \\ \rho v_1 \\ \rho v_2 \\ \rho e
-# \end{pmatrix}
-# +
-# \frac{\partial}{\partial x}
-# \begin{pmatrix}
-# \rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e + p) v_1
-# \end{pmatrix}
-# +
-# \frac{\partial}{\partial y}
-# \begin{pmatrix}
-# \rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e + p) v_2
-# \end{pmatrix}
-# =
-# \begin{pmatrix}
-# 0 \\ 0 \\ 0 \\ 0
-# \end{pmatrix},
-# ```
-# for an ideal gas with the specific heat ratio ``\gamma``.
-# Here, ``\rho`` is the density, ``v_1`` and ``v_2`` are the velocities, ``e`` is the specific
-# total energy, and
-# ```math
-# p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
-# ```
-# is the pressure.
-# Initial conditions consist of initial values for ``\rho``, ``\rho v_1``,
-# ``\rho v_2`` and ``\rho e``.
-# One of the common initial conditions for the compressible Euler equations is a simple density
-# wave. Let's implement it.
+# `elixir_euler_ec.jl`. Initial conditions consist of initial values for ``\rho``, ``\rho v_1``,
+# ``\rho v_2`` and ``\rho e``. One of the common initial conditions for the compressible Euler
+# equations is a simple density wave. Let's implement it.
 
 # - Open the downloaded file `elixir_euler_ec.jl` with a text editor.
 # - Go to the line with the following code:

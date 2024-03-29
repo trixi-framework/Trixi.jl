@@ -1,4 +1,4 @@
-#src # Create first setup
+#src # Create your first setup
 
 # In this part of the introductory guide, we will create a first Trixi.jl setup as an extension of
 # [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl).
@@ -19,7 +19,9 @@
 
 # The first step is to create and open a file with the .jl extension. You can do this with your
 # favorite text editor (if you do not have one, we recommend [VS Code](https://code.visualstudio.com/)).
-# In this file you will create your setup.
+# In this file you will create your setup. Alternatively, you can execute each line of the
+# following code one by one in the Julia REPL. This will generate useful output for nearly every
+# command and improve your comprehension of the process.
 
 # To be able to use functionalities of Trixi.jl, you always need to load Trixi.jl itself
 # and the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package.
@@ -65,7 +67,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # To approximate the solution of the defined model, we create a [`DGSEM`](@ref) solver.
 # The solution in each of the recently defined mesh elements will be approximated by a polynomial
 # of degree `polydeg`. For more information about discontinuous Galerkin methods,
-# check out the [Introduction to DG methods](@ref scalar_linear_advection_1d) tutorial.
+# check out the [Introduction to DG methods](@ref scalar_linear_advection_1d) tutorial. Per default
+# `DGSEM` initializes the surface flux as central and the volume integral in the weak form.
 
 solver = DGSEM(polydeg=3)
 
@@ -90,8 +93,8 @@ solver = DGSEM(polydeg=3)
 # [section about analyzing the solution](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/#Analyzing-the-numerical-solution).
 
 function initial_condition_sinpi(x, t, equations::LinearScalarAdvectionEquation2D)
-    scalar = sinpi(x[1]) * sinpi(x[2])
-    return SVector(scalar)
+    u = sinpi(x[1]) * sinpi(x[2])
+    return SVector(u)
 end
 initial_condition = initial_condition_sinpi
 
@@ -103,8 +106,8 @@ initial_condition = initial_condition_sinpi
 # equation itself as arguments and returns the source term as a static vector `SVector`.
 
 function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation2D)
-    scalar = - 2 * exp(-t) * sinpi(2*(x[1] - t)) * sinpi(2*(x[2] - t))
-    return SVector(scalar)
+    u = - 2 * exp(-t) * sinpi(2*(x[1] - t)) * sinpi(2*(x[2] - t))
+    return SVector(u)
 end
 
 # Now we collect all the information that is necessary to define a spatial discretization,
@@ -126,7 +129,7 @@ ode = semidiscretize(semi, tspan);
 # We will show you how to use some of the common callbacks.
 
 # To print a summary of the simulation setup at the beginning
-# and to reset timers we use the [`SummaryCallback`](@ref).
+# and to reset timers to zero, we use the [`SummaryCallback`](@ref).
 # When the returned callback is executed directly, the current timer values are shown.
 
 summary_callback = SummaryCallback()
@@ -171,7 +174,7 @@ save_restart = SaveRestartCallback(interval = 100, save_final_restart = true)
 # function.
 
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback, save_solution,
-                        save_restart)
+                        save_restart);
 
 # The last step is to choose the time integration method. OrdinaryDiffEq.jl defines a wide range of
 # [ODE solvers](https://docs.sciml.ai/DiffEqDocs/latest/solvers/ode_solve/), e.g.
