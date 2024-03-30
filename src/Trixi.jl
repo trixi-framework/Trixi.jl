@@ -261,7 +261,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AveragingCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
-       TrivialCallback, AnalysisCallbackCoupled
+       TrivialCallback, AnalysisCallbackCoupled,
+       AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure
 
 export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
