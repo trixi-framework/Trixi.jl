@@ -12,35 +12,37 @@
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta_local, idp_bounds_delta_global) = limiter.cache
 
-    # Note: Accessing the threaded memory vector `idp_bounds_delta_local` with
-    # `deviation = idp_bounds_delta_local[key][Threads.threadid()]` causes critical performance
-    # issues due to False Sharing.
-    # Initializing a vector with n times the length and using every n-th entry fixes this
-    # problem and allows proper scaling:
-    # `deviation = idp_bounds_delta_local[key][n * Threads.threadid()]`
-    # Since there are no processors with caches over 128B, we use `n = 128B / size(uEltype)`
-    stride_size = div(128, sizeof(eltype(u))) # = n
+    # Note: In order to get the maximum deviation from the target bounds, this bounds check
+    # requires a reduction in every RK stage and for every enabled limiting option. To make
+    # this Thread-parallel we are using Polyester.jl's (at least v0.7.10) `@batch reduction`
+    # functionality.
+    # Although `@threaded` and `@batch` are currently used equivalently in Trixi.jl, we use
+    # `@batch` here to allow a possible redefinition of `@threaded` without creating errors here.
+    # See also https://github.com/trixi-framework/Trixi.jl/pull/1888#discussion_r1537785293.
 
     if local_minmax
         for v in limiter.local_minmax_variables_cons
             v_string = string(v)
             key_min = Symbol(v_string, "_min")
             key_max = Symbol(v_string, "_max")
-            deviation_min_threaded = idp_bounds_delta_local[key_min]
-            deviation_max_threaded = idp_bounds_delta_local[key_max]
-            @threaded for element in eachelement(solver, cache)
-                deviation_min = deviation_min_threaded[stride_size * Threads.threadid()]
-                deviation_max = deviation_max_threaded[stride_size * Threads.threadid()]
+            deviation_min = idp_bounds_delta_local[key_min]
+            deviation_max = idp_bounds_delta_local[key_max]
+            @batch reduction=((max, deviation_min), (max, deviation_max)) for element in eachelement(solver,
+                                                                                                     cache)
                 for j in eachnode(solver), i in eachnode(solver)
                     var = u[v, i, j, element]
+                    # Note: We always save the absolute deviations >= 0 and therefore use the
+                    # `max` operator for the lower and upper bound. The different directions of
+                    # upper and lower bound are considered in their calculations with a
+                    # different sign.
                     deviation_min = max(deviation_min,
                                         variable_bounds[key_min][i, j, element] - var)
                     deviation_max = max(deviation_max,
                                         var - variable_bounds[key_max][i, j, element])
                 end
-                deviation_min_threaded[stride_size * Threads.threadid()] = deviation_min
-                deviation_max_threaded[stride_size * Threads.threadid()] = deviation_max
             end
+            idp_bounds_delta_local[key_min] = deviation_min
+            idp_bounds_delta_local[key_max] = deviation_max
         end
     end
     if positivity
@@ -49,40 +51,35 @@
                 continue
             end
             key = Symbol(string(v), "_min")
-            deviation_threaded = idp_bounds_delta_local[key]
-            @threaded for element in eachelement(solver, cache)
-                deviation = deviation_threaded[stride_size * Threads.threadid()]
+            deviation = idp_bounds_delta_local[key]
+            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
                 for j in eachnode(solver), i in eachnode(solver)
                     var = u[v, i, j, element]
                     deviation = max(deviation,
                                     variable_bounds[key][i, j, element] - var)
                 end
-                deviation_threaded[stride_size * Threads.threadid()] = deviation
             end
+            idp_bounds_delta_local[key] = deviation
         end
         for variable in limiter.positivity_variables_nonlinear
             key = Symbol(string(variable), "_min")
-            deviation_threaded = idp_bounds_delta_local[key]
-            @threaded for element in eachelement(solver, cache)
-                deviation = deviation_threaded[stride_size * Threads.threadid()]
+            deviation = idp_bounds_delta_local[key]
+            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
                 for j in eachnode(solver), i in eachnode(solver)
                     var = variable(get_node_vars(u, equations, solver, i, j, element),
                                    equations)
                     deviation = max(deviation,
                                     variable_bounds[key][i, j, element] - var)
                 end
-                deviation_threaded[stride_size * Threads.threadid()] = deviation
             end
+            idp_bounds_delta_local[key] = deviation
         end
     end
 
     for (key, _) in idp_bounds_delta_local
-        # Calculate maximum deviations of all threads
-        idp_bounds_delta_local[key][stride_size] = maximum(idp_bounds_delta_local[key][stride_size * i]
-                                                           for i in 1:Threads.nthreads())
         # Update global maximum deviations
         idp_bounds_delta_global[key] = max(idp_bounds_delta_global[key],
-                                           idp_bounds_delta_local[key][stride_size])
+                                           idp_bounds_delta_local[key])
     end
 
     if save_errors
@@ -92,10 +89,8 @@
             if local_minmax
                 for v in limiter.local_minmax_variables_cons
                     v_string = string(v)
-                    print(f, ", ",
-                          idp_bounds_delta_local[Symbol(v_string, "_min")][stride_size],
-                          ", ",
-                          idp_bounds_delta_local[Symbol(v_string, "_max")][stride_size])
+                    print(f, ", ", idp_bounds_delta_local[Symbol(v_string, "_min")],
+                          ", ", idp_bounds_delta_local[Symbol(v_string, "_max")])
                 end
             end
             if positivity
@@ -103,21 +98,18 @@
                     if v in limiter.local_minmax_variables_cons
                         continue
                     end
-                    print(f, ", ",
-                          idp_bounds_delta_local[Symbol(string(v), "_min")][stride_size])
+                    print(f, ", ", idp_bounds_delta_local[Symbol(string(v), "_min")])
                 end
                 for variable in limiter.positivity_variables_nonlinear
                     print(f, ", ",
-                          idp_bounds_delta_local[Symbol(string(variable), "_min")][stride_size])
+                          idp_bounds_delta_local[Symbol(string(variable), "_min")])
                 end
             end
             println(f)
         end
         # Reset local maximum deviations
         for (key, _) in idp_bounds_delta_local
-            for i in 1:Threads.nthreads()
-                idp_bounds_delta_local[key][stride_size * i] = zero(eltype(idp_bounds_delta_local[key][stride_size]))
-            end
+            idp_bounds_delta_local[key] = zero(eltype(idp_bounds_delta_local[key]))
         end
     end
 
