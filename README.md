@@ -257,7 +257,10 @@ To get in touch with the developers,
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 ## Institutional Support
-Trixi.jl relies on institutions that provide infrastructure for coding and testing, as well as encourage students, post-docs and scientists to contribute code. Institutes and groups that supported us in the past and present are listed below.
+Trixi.jl relies on institutions that provide infrastructure for coding and testing,
+as well as encourage students, post-docs, and scientists to contribute code.
+Some institutes and groups that supported us in the past and present are listed below,
+roughly in chronological order.
 
 <p align="left">
   <img style="float:left;height:30px;margin-right:10px" 
