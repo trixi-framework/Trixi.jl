@@ -268,13 +268,18 @@ roughly in chronological order.
   <a href="https://www.mi.uni-koeln.de/NumSim/">Numerical Simulation Group, University of Cologne</a>
 </p>
 
+- [Applied Mathematics, Linköping University, Sweden](https://liu.se/en/organisation/liu/mai/tima)
+- [Applied Mathematics, University of Münster, Germany](https://www.uni-muenster.de/AMM/en/)
+- [Computational and Applied Mathematics, Rice University, USA](https://cmor.rice.edu)
+- [Applied Mathematics, University of Hamburg, Germany](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
+
 <p align="left">
   <img style="float:left;height:30px;margin-right:10px" 
     src="https://github.com/torrilhon/Trixi.jl/assets/17232977/c3e1f6c9-4d13-4001-b817-b3ab405f177b">
   <a href="https://www.acom.rwth-aachen.de">Lab for Applied and Computational Mathematics, RWTH Aachen</a>
 </p>
-  
-...and many more.
+
+- [Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz, Germany](https://www.nummath.math.uni-mainz.de)
 
 ## Acknowledgments
 <p align="center" style="font-size:0;"><!--
