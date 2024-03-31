@@ -110,7 +110,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 # ODE solvers
 
 # Run for a long time to reach a state where forces stabilize up to 3 digits
-tspan = (0.0, 1.0)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 # Callbacks
@@ -130,12 +130,24 @@ lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
                                                                    u_inf(equations),
                                                                    l_inf()))
 
+drag_coefficient_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
+                                                 Trixi.DragCoefficientShearStress(aoa(), rho_inf(),
+                                                                      u_inf(equations),
+                                                                      l_inf()))
+
+lift_coefficient_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
+                                                 Trixi.LiftCoefficientShearStress(aoa(), rho_inf(),
+                                                                      u_inf(equations),
+                                                                      l_inf()))
+
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
                                      save_analysis = true,
                                      analysis_errors = Symbol[],
                                      analysis_integrals = (drag_coefficient,
-                                                           lift_coefficient))
+                                                           lift_coefficient,
+                                                           drag_coefficient_force,
+                                                           lift_coefficient_force))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -144,7 +156,7 @@ save_solution = SaveSolutionCallback(interval = 500,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)#, save_solution)
 
 ###############################################################################
 # run the simulation
