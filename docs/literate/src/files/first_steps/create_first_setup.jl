@@ -116,8 +116,9 @@ end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_term_exp_sinpi)
+#
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At this point, our problem is defined. We will use the `solve` function defined in
 # [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) to get the solution.

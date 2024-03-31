@@ -139,7 +139,7 @@
 # ```
 # is the pressure.
 
-# The weak blast wave initial conditions are specified in
+# The [`initial_condition_weak_blast_wave`](@ref) is specified in
 # [`compressible_euler_2d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/compressible_euler_2d.jl) 
 
 # Start Julia in a terminal and execute the following code:
@@ -218,6 +218,7 @@ function initial_condition_density_waves(x, t, equations::CompressibleEulerEquat
     return SVector(rho, rho*v1, rho*v2, rho_e)
 end
 initial_condition = initial_condition_density_waves
+nothing; #hide #md
 
 # - Execute the following code one more time, but instead of `path/to/file` paste the path to the
 #   `elixir_euler_ec.jl` file that you just edited.
