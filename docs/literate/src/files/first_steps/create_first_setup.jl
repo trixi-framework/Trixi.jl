@@ -214,7 +214,7 @@ summary_callback()
 using Plots
 
 # As was shown in the [Getting started](@ref getting_started) section, you can plot all
-# differential variables from the system of equations by executing the following.
+# variables from the system of equations by executing the following.
 # ```julia
 # plot(sol)
 # ```
