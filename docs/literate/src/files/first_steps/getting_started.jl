@@ -139,7 +139,7 @@
 # ```
 # is the pressure.
 
-# The initial conditions for the weak blast wave are specified in
+# The weak blast wave initial conditions are specified in
 # [`compressible_euler_2d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/compressible_euler_2d.jl) 
 
 # Start Julia in a terminal and execute the following code:
