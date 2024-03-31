@@ -7,9 +7,10 @@ for human readability.
 ## Changes in the v0.7 lifecycle
 
 #### Added
+- Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D`.
 - Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D` and extension
   to 1D and 3D on `TreeMesh`.
-
+- New analysis callback for 2D `P4estMesh` to compute integrated quantities along a boundary surface, e.g., pressure lift and drag coefficients.
 
 ## Changes when updating to v0.7 from v0.6.x
 
