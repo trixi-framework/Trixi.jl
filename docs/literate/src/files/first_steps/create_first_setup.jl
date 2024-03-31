@@ -134,13 +134,14 @@ ode = semidiscretize(semi, tspan);
 summary_callback = SummaryCallback()
 
 # We also want to analyze the current state of the solution in regular intervals.
-# The [`AnalysisCallback`](@ref) outputs some useful statistical information during the solving process
-# every `interval` time steps.
+# The [`AnalysisCallback`](@ref) outputs some useful statistical information during the solving
+# process every `interval` time steps.
 
 analysis_callback = AnalysisCallback(semi, interval = 20)
 
-# An inexpensive callback that indicates a simulation is still running by periodically printing
-# information, such as the current time, to the screen every `alive_interval` time steps. 
+# To indicate that a simulation is still running by periodically printing information, such as the
+# current time, to the screen every `alive_interval` time steps, we utilize the inexpensive
+# [`AliveCallback`](@ref).
 
 alive_callback = AliveCallback(alive_interval = 10)
 
