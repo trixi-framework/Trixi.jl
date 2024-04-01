@@ -24,7 +24,7 @@
 #   your account.
 # - Open GitHub Desktop, press `Ctrl+Shift+O`.
 # - In the opened window, navigate to the `URL` tab and paste `trixi-framework/Trixi.jl` or
-#   `YourGitHubUserName/Trixi.jl` to clone your own fork of Trixi.jl, choose the
+#   `YourGitHubUserName/Trixi.jl` to clone your own fork of Trixi.jl, and choose the
 #   path to the folder where you want to save Trixi.jl. Then click `Clone` and Trixi.jl will be
 #   cloned to your computer. 
 
