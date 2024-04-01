@@ -160,7 +160,7 @@ trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_eule
 # defined in the executed example and it contains the solution at the final moment of the
 # simulation. `sol.u` holds the vector of values at each saved timestep, while `sol.t` holds the
 # corresponding times for each saved timestep. In this instance, only two timesteps were saved: the
-# initial and final ones. The plot depicts the evolution of the weak blast wave at the final moment
+# initial and final ones. The plot depicts the distribution of the weak blast wave at the final moment
 # of time, showing the density, velocities, and pressure of the ideal gas across a 2D domain.
 
 using Plots
