@@ -86,8 +86,7 @@
 # [Git documentation](https://git-scm.com/docs).
 
 # For Windows and GitHub Desktop users, refer to the
-# [`making-changes-in-a-branch`](https://docs.github.com/en/desktop/overview/getting-started-with-github-desktop#making-changes-in-a-branch)
-# documentation.
+# [documentation of GitHub Desktop](https://docs.github.com/en/desktop/overview/getting-started-with-github-desktop#making-changes-in-a-branch).
 
 # After making local changes to Trixi.jl and pushing them to the remote repository, you can open a
 # `Pull Request` from your branch to the main branch of `trixi-framework/Trixi.jl`. Then, follow
