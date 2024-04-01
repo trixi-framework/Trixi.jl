@@ -151,7 +151,7 @@
 using Trixi, OrdinaryDiffEq #hide #md
 trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
 
-# The solution was approximated over the [`TreeMesh`](@ref) using the CarpenterKennedy2N54 ODE
+# The solution was approximated over the [`TreeMesh`](@ref) using the `CarpenterKennedy2N54` ODE
 # solver. Further details about the ODE solver can be found on the
 # [`DifferentialEquations.jl page`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/)
 
