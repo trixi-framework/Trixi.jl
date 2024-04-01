@@ -107,8 +107,8 @@
 
 # Let's execute a short two-dimensional problem setup. It approximates the solution of
 # the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
-# with a weak blast wave as the initial condition and periodic boundary conditions. Compressible
-# Euler equations describes the motions of an ideal gas.
+# with a weak blast wave as the initial condition and periodic boundary conditions. The compressible
+# Euler equations describe the motion of an ideal gas.
 
 # The compressible Euler equations in two spatial dimensions,
 # ```math
