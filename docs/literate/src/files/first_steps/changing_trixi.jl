@@ -97,6 +97,11 @@
 # ## Additional reading
 
 # To further delve into Trixi.jl, you may have a look at the following introductory tutorials.
+# - [Behind the scenes of a simulation setup](@ref behind_the_scenes_simulation_setup) will guide
+#   you through a simple Trixi.jl setup ("elixir"), giving an overview of what happens in the
+#   background during the initialization of a simulation. It clarifies some of the more
+#   fundamental, technical concepts that are applicable to a variety of (also more complex)
+#   configurations.
 # - [Introduction to DG methods](@ref scalar_linear_advection_1d) will teach you how to set up a
 #   simple way to approximate the solution of a hyperbolic partial differential equation. It will
 #   be especially useful to learn about the 
