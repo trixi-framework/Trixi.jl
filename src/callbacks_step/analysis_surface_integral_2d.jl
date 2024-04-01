@@ -296,10 +296,12 @@ end
 function analyze(surface_variable::AnalysisSurfaceIntegral{Semidiscretization,
                                                            Variable},
                  du, u, t, mesh::P4estMesh{2},
-                 equations, equations_parabolic::AbstractEquationsParabolic,
+                 equations, equations_parabolic,
                  dg::DGSEM, cache,
-                 cache_parabolic) where {Semidiscretization, Variable <:
-                                                             VariableViscous}
+                 cache_parabolic) where {
+                                         Semidiscretization <:
+                                         AbstractSemidiscretization,
+                                         Variable <: VariableViscous}
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis

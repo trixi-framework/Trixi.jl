@@ -685,7 +685,9 @@ include("analysis_dg3d_parallel.jl")
 function analyze(quantity::Union{typeof(enstrophy),
                                  AnalysisSurfaceIntegral{Semidiscretization, Variable}},
                  du, u, t,
-                 semi::SemidiscretizationHyperbolicParabolic) where {Semidiscretization,
+                 semi::SemidiscretizationHyperbolicParabolic) where {
+                                                                     Semidiscretization <:
+                                                                     AbstractSemidiscretization,
                                                                      Variable <:
                                                                      VariableViscous}
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
