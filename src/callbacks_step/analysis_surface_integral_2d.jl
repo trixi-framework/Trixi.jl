@@ -231,12 +231,12 @@ function viscous_stress_vector(u, normal_direction, equations_parabolic,
     return (visc_stress_vector_1, visc_stress_vector_2)
 end
 
-function (drag_coefficient::LiftCoefficientShearStress)(u, normal_direction,
+function (lift_coefficient::LiftCoefficientShearStress)(u, normal_direction,
                                                         equations_parabolic,
                                                         gradients_1, gradients_2)
     visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                gradients_1, gradients_2)
-    @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
+    @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
     return (visc_stress_vector[1] * psi[1] + visc_stress_vector[2] * psi[2]) /
            (0.5 * rhoinf * uinf^2 * linf)
 end
