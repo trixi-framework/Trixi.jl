@@ -7,7 +7,7 @@
 # ## Forking Trixi.jl
 
 # To create your own fork of Trixi.jl, log in to your GitHub account, visit the
-# [`Trixi.jl github`](https://github.com/trixi-framework/Trixi.jl) repository and click the `Fork`
+# [`Trixi.jl GitHub repository`](https://github.com/trixi-framework/Trixi.jl) and click the `Fork`
 # button located in the upper-right corner of the page. Then, click on `Create fork` in the opened
 # window to complete the forking process.
 
