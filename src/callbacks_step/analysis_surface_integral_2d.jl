@@ -19,9 +19,13 @@ or `boundary_symbols`.
 For instance, this can be used to compute the lift [`LiftCoefficientPressure`](@ref) or
 drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil with the boundary
 name `:Airfoil` in 2D.
+
+- `semi::Semidiscretization`: Passed in to retrieve boundary condition information
+- `boundary_symbol_or_boundary_symbols::Symbol|Vector{Symbol}`: Name(s) of the boundary/boundaries
+  where the quantity of interest is computed
+- `variable::Variable`: Quantity of interest, like lift or drag
 """
-struct AnalysisSurfaceIntegral{Semidiscretization, Variable}
-    semi::Semidiscretization # passed in to retrieve boundary condition information
+struct AnalysisSurfaceIntegral{Variable}
     indices::Vector{Int} # Indices in `boundary_condition_indices` where quantity of interest is computed
     variable::Variable # Quantity of interest, like lift or drag
 
@@ -29,8 +33,8 @@ struct AnalysisSurfaceIntegral{Semidiscretization, Variable}
         @unpack boundary_symbol_indices = semi.boundary_conditions
         indices = boundary_symbol_indices[boundary_symbol]
 
-        return new{typeof(semi), typeof(variable)}(semi, indices,
-                                                   variable)
+        return new{typeof(variable)}(semi, indices,
+                                     variable)
     end
 
     function AnalysisSurfaceIntegral(semi, boundary_symbols::Vector{Symbol}, variable)
@@ -41,8 +45,8 @@ struct AnalysisSurfaceIntegral{Semidiscretization, Variable}
         end
         sort!(indices)
 
-        return new{typeof(semi), typeof(variable)}(semi, indices,
-                                                   variable)
+        return new{typeof(variable)}(indices,
+                                     variable)
     end
 end
 
@@ -293,15 +297,11 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     return surface_integral
 end
 
-function analyze(surface_variable::AnalysisSurfaceIntegral{Semidiscretization,
-                                                           Variable},
+function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
                  du, u, t, mesh::P4estMesh{2},
                  equations, equations_parabolic,
                  dg::DGSEM, cache,
-                 cache_parabolic) where {
-                                         Semidiscretization <:
-                                         AbstractSemidiscretization,
-                                         Variable <: VariableViscous}
+                 cache_parabolic) where {Variable <: VariableViscous}
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
@@ -354,39 +354,31 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Semidiscretization,
     return surface_integral
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any,
-                                                     <:LiftCoefficientPressure{<:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any}})
     "CL_p"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any,
-                                                   <:LiftCoefficientPressure{<:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any}})
     "CL_p"
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any,
-                                                     <:DragCoefficientPressure{<:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any}})
     "CD_p"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any,
-                                                   <:DragCoefficientPressure{<:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any}})
     "CD_p"
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any,
-                                                     <:LiftCoefficientShearStress{<:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any}})
     "CL_f"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any,
-                                                   <:LiftCoefficientShearStress{<:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any}})
     "CL_f"
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:Any,
-                                                     <:DragCoefficientShearStress{<:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any}})
     "CD_f"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:Any,
-                                                   <:DragCoefficientShearStress{<:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any}})
     "CD_f"
 end
 end # muladd
