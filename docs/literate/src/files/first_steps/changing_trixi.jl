@@ -83,7 +83,7 @@
 # Linux and MacOS utilize the `git` version control system to manage changes between your local and
 # remote repositories. The most commonly used commands include `add`, `commit`, `push` and `pull`.
 # You can find detailed information about these functions in the
-# [`Git documentation`](https://git-scm.com/docs).
+# [Git documentation](https://git-scm.com/docs).
 
 # For Windows and GitHub Desktop users, refer to the
 # [`making-changes-in-a-branch`](https://docs.github.com/en/desktop/overview/getting-started-with-github-desktop#making-changes-in-a-branch)
