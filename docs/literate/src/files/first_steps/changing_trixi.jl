@@ -90,7 +90,7 @@
 
 # After making local changes to Trixi.jl and pushing them to the remote repository, you can open a
 # Pull Request from your branch to the main branch of `trixi-framework/Trixi.jl`. Then, follow
-# the `Review checklist` provided in the `Pull Request` to streamline the review process.
+# the Review checklist provided in the Pull Request to streamline the review process.
 
 
 # ## Additional reading
