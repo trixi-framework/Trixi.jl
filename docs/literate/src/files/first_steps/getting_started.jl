@@ -152,8 +152,8 @@ using Trixi, OrdinaryDiffEq #hide #md
 trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
 
 # The solution was approximated over the [`TreeMesh`](@ref) using the `CarpenterKennedy2N54` ODE
-# solver. Further details about the ODE solver can be found on the
-# [`DifferentialEquations.jl page`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/)
+# solver. Further details about the ODE solver can be found in the
+# [documentation of OrdinaryDiffEq.jl](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods)
 
 # To analyze the result of the computation, we can use the Plots.jl package and the function 
 # `plot(...)`, which creates a graphical representation of the solution. `sol` is a variable
