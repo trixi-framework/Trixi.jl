@@ -33,8 +33,7 @@ struct AnalysisSurfaceIntegral{Variable}
         @unpack boundary_symbol_indices = semi.boundary_conditions
         indices = boundary_symbol_indices[boundary_symbol]
 
-        return new{typeof(variable)}(semi, indices,
-                                     variable)
+        return new{typeof(variable)}(indices, variable)
     end
 
     function AnalysisSurfaceIntegral(semi, boundary_symbols::Vector{Symbol}, variable)
@@ -45,8 +44,7 @@ struct AnalysisSurfaceIntegral{Variable}
         end
         sort!(indices)
 
-        return new{typeof(variable)}(indices,
-                                     variable)
+        return new{typeof(variable)}(indices, variable)
     end
 end
 
