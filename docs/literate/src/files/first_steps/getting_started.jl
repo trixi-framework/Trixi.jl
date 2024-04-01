@@ -110,7 +110,7 @@
 # with a weak blast wave as the initial condition and periodic boundary conditions. The compressible
 # Euler equations describe the motion of an ideal gas.
 
-# The compressible Euler equations in two spatial dimensions,
+# The compressible Euler equations in two spatial dimensions are given by
 # ```math
 # \frac{\partial}{\partial t}
 # \begin{pmatrix}
