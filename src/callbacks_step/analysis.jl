@@ -633,6 +633,22 @@ end
 pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
 
+# Special analyze for `SemidiscretizationHyperbolicParabolic` such that
+# precomputed gradients are available.
+function analyze(quantity::typeof(enstrophy), du, u, t,
+                 semi::SemidiscretizationHyperbolicParabolic)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+            cache_parabolic)
+end
+function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
+                 cache, cache_parabolic)
+    integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache,
+              cache_parabolic, normalize = true)
+end
+
 function entropy_timederivative end
 pretty_form_utf(::typeof(entropy_timederivative)) = "∑∂S/∂U ⋅ Uₜ"
 pretty_form_ascii(::typeof(entropy_timederivative)) = "dsdu_ut"
@@ -679,11 +695,10 @@ include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
 
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
-# precomputed gradients are available. Required for `enstrophy` and viscous forces.
+# precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
 # Note that this needs to be included after `analysis_surface_integral_2d.jl` to 
 # have `VariableViscous` available.
-function analyze(quantity::Union{typeof(enstrophy),
-                                 AnalysisSurfaceIntegral{Variable}},
+function analyze(quantity::AnalysisSurfaceIntegral{Variable},
                  du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic) where {
                                                                      Variable <:
@@ -693,9 +708,4 @@ function analyze(quantity::Union{typeof(enstrophy),
     cache_parabolic = semi.cache_parabolic
     analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
             cache_parabolic)
-end
-function analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver,
-                 cache, cache_parabolic)
-    integrate(quantity, u, mesh, equations, equations_parabolic, solver, cache,
-              cache_parabolic, normalize = true)
 end
