@@ -192,9 +192,9 @@ get_examples()
 # ### Modifying an existing setup
 
 # As an example, we will change the initial condition for calculations that occur in
-# `elixir_euler_ec.jl`. Initial conditions consist of initial values for ``\rho``, ``\rho v_1``,
-# ``\rho v_2`` and ``\rho e``. One of the common initial conditions for the compressible Euler
-# equations is a simple density wave. Let's implement it.
+# `elixir_euler_ec.jl`. Initial conditions for [`CompressibleEulerEquations2D`](@ref) consist of
+# initial values for ``\rho``, ``\rho v_1``, ``\rho v_2`` and ``\rho e``. One of the common initial
+# conditions for the compressible Euler equations is a simple density wave. Let's implement it.
 
 # - Open the downloaded file `elixir_euler_ec.jl` with a text editor.
 # - Go to the line with the following code:
