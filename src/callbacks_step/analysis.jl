@@ -683,9 +683,8 @@ include("analysis_dg3d_parallel.jl")
 # Note that this needs to be included after `analysis_surface_integral_2d.jl` to 
 # have `VariableViscous` available.
 function analyze(quantity::Union{typeof(enstrophy),
-                                 AnalysisSurfaceIntegral{Semidiscretization, Variable}}, du,
-                 u,
-                 t,
+                                 AnalysisSurfaceIntegral{Semidiscretization, Variable}},
+                 du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic) where {Semidiscretization,
                                                                      Variable <:
                                                                      VariableViscous}

@@ -62,7 +62,7 @@ struct DragCoefficientPressure{RealT <: Real}
 end
 
 # Abstract base type used for dispatch of `analyze` for quantities 
-# requiring gradients
+# requiring gradients of the velocity field.
 abstract type VariableViscous end
 
 struct LiftCoefficientShearStress{RealT <: Real} <: VariableViscous
@@ -189,12 +189,17 @@ function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, equati
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
 
-function viscous_stress_vector(u, normal_direction, equations_parabolic, gradients_1, gradients_2)
-    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients_1, equations_parabolic)
-    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients_2, equations_parabolic)
-
-    #  Normalize normal direction, should point *into* the fluid => *(-1)
-    n_normal = -normal_direction / norm(normal_direction)
+# Compute the three different components of the viscous stress tensor
+# (tau_11, tau_12, tau_22) based on the gradients of the velocity field.
+# This is required for drag and lift coefficients based on shear stress, 
+# as well as for the non-integrated quantities such as 
+# skin friction coefficient (to be added).
+function viscous_stress_tensor(u, normal_direction, equations_parabolic,
+                               gradients_1, gradients_2)
+    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients_1,
+                                                         equations_parabolic)
+    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients_2,
+                                                         equations_parabolic)
 
     # Components of viscous stress tensor
     # (4/3 * (v1)_x - 2/3 * (v2)_y)
@@ -205,19 +210,31 @@ function viscous_stress_vector(u, normal_direction, equations_parabolic, gradien
     # (4/3 * (v2)_y - 2/3 * (v1)_x)
     tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
 
+    mu = dynamic_viscosity(u, equations_parabolic)
+
+    return mu .* (tau_11, tau_12, tau_22)
+end
+
+function viscous_stress_vector(u, normal_direction, equations_parabolic,
+                               gradients_1, gradients_2)
+    #  Normalize normal direction, should point *into* the fluid => *(-1)
+    n_normal = -normal_direction / norm(normal_direction)
+
+    tau_11, tau_12, tau_22 = viscous_stress_tensor(u, normal_direction,
+                                                   equations_parabolic,
+                                                   gradients_1, gradients_2)
+
     # Viscous stress vector: Stress tensor * normal vector
     visc_stress_vector_1 = tau_11 * n_normal[1] + tau_12 * n_normal[2]
     visc_stress_vector_2 = tau_12 * n_normal[1] + tau_22 * n_normal[2]
 
-    mu = dynamic_viscosity(u, equations_parabolic)
-
-    return mu .* (visc_stress_vector_1, visc_stress_vector_2)
+    return (visc_stress_vector_1, visc_stress_vector_2)
 end
 
 function (drag_coefficient::LiftCoefficientShearStress)(u, normal_direction,
                                                         equations_parabolic,
                                                         gradients_1, gradients_2)
-    visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic, 
+    visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                gradients_1, gradients_2)
     @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
     return (visc_stress_vector[1] * psi[1] + visc_stress_vector[2] * psi[2]) /
@@ -227,7 +244,7 @@ end
 function (drag_coefficient::DragCoefficientShearStress)(u, normal_direction,
                                                         equations_parabolic,
                                                         gradients_1, gradients_2)
-    visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic, 
+    visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                gradients_1, gradients_2)
     @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
     return (visc_stress_vector[1] * psi[1] + visc_stress_vector[2] * psi[2]) /
@@ -277,9 +294,9 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
 end
 
 function analyze(surface_variable::AnalysisSurfaceIntegral{Semidiscretization,
-                                                           Variable}, du, u, t,
-                 mesh::P4estMesh{2},
-                 equations, equations_parabolic,
+                                                           Variable},
+                 du, u, t, mesh::P4estMesh{2},
+                 equations, equations_parabolic::AbstractEquationsParabolic,
                  dg::DGSEM, cache,
                  cache_parabolic) where {Semidiscretization, Variable <:
                                                              VariableViscous}

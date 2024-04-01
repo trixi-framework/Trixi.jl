@@ -131,14 +131,16 @@ lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
                                                                    l_inf()))
 
 drag_coefficient_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
-                                                 Trixi.DragCoefficientShearStress(aoa(), rho_inf(),
-                                                                      u_inf(equations),
-                                                                      l_inf()))
+                                                 DragCoefficientShearStress(aoa(),
+                                                                            rho_inf(),
+                                                                            u_inf(equations),
+                                                                            l_inf()))
 
 lift_coefficient_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
-                                                 Trixi.LiftCoefficientShearStress(aoa(), rho_inf(),
-                                                                      u_inf(equations),
-                                                                      l_inf()))
+                                                 LiftCoefficientShearStress(aoa(),
+                                                                            rho_inf(),
+                                                                            u_inf(equations),
+                                                                            l_inf()))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -156,7 +158,7 @@ save_solution = SaveSolutionCallback(interval = 500,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)#, save_solution)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution)
 
 ###############################################################################
 # run the simulation
