@@ -36,6 +36,17 @@ By passing the equations we can make use of their parameters, if they are requir
 Examples can be seen in `examples/structured_2d_dgsem/elixir_advection_coupled.jl`.
 
 
+## GlmSpeedCallback for coupled MHD simulations
+
+When simulating an MHD system and the [`GlmSpeedCallback`](@ref) is required
+we need to specify for which semidiscretization we need the GLM speed updated.
+This can be done with an additional parameter called `semi_indices` which
+is a tuple containing the semidiscretization indices for all systems
+that require the GLM speed updated.
+
+An example elixir can be found at [`examples/structured_2d_dgsem/elixir_mhd_coupled.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/structured_2d_dgsem/elixir_mhd_coupled.jl).
+
+
 ## Warning about binary compatibility
 Currently the coordinate values on the nodes can differ by machine precision when
 simulating the mesh and when splitting the mesh in multiple domains.
