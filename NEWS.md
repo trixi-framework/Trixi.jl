@@ -7,9 +7,9 @@ for human readability.
 ## Changes in the v0.7 lifecycle
 
 #### Added
-- Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D`.
 - Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D` and extension
   to 1D and 3D on `TreeMesh`.
+- Implementation of 1D Linearized Euler Equations.
 - New analysis callback for 2D `P4estMesh` to compute integrated quantities along a boundary surface, e.g., pressure lift and drag coefficients.
 - Optional tuple parameter for `GlmSpeedCallback` called `semi_indices` to specify for which semidiscretization we need to update the GLM speed.
 
