@@ -7,7 +7,7 @@
 # ## Forking Trixi.jl
 
 # To create your own fork of Trixi.jl, log in to your GitHub account, visit the
-# [`Trixi.jl GitHub repository`](https://github.com/trixi-framework/Trixi.jl) and click the `Fork`
+# [Trixi.jl GitHub repository](https://github.com/trixi-framework/Trixi.jl) and click the `Fork`
 # button located in the upper-right corner of the page. Then, click on `Create fork` in the opened
 # window to complete the forking process.
 
@@ -78,7 +78,7 @@
 # ## Developing Trixi.jl
 
 # If you've created and cloned your own fork of Trixi.jl, you can make local changes to Trixi.jl
-# and propose them as a `Pull Request` to be merged into `trixi-framework/Trixi.jl`.
+# and propose them as a Pull Request (PR) to be merged into `trixi-framework/Trixi.jl`.
 
 # Linux and MacOS utilize the `git` version control system to manage changes between your local and
 # remote repositories. The most commonly used commands include `add`, `commit`, `push` and `pull`.
@@ -89,7 +89,7 @@
 # [documentation of GitHub Desktop](https://docs.github.com/en/desktop/overview/getting-started-with-github-desktop#making-changes-in-a-branch).
 
 # After making local changes to Trixi.jl and pushing them to the remote repository, you can open a
-# Pull Request from your branch to the main branch of `trixi-framework/Trixi.jl`. Then, follow
+# Pull Request (PR) from your branch to the main branch of `trixi-framework/Trixi.jl`. Then, follow
 # the Review checklist provided in the Pull Request to streamline the review process.
 
 
