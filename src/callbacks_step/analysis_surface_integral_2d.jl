@@ -133,7 +133,7 @@ Compute the lift coefficient
 C_{L,f} \\coloneqq \\frac{\\oint_{\\partial \\Omega} \\boldsymbol \\tau_w \\cdot \\psi_L \\, \\mathrm{d} S}
                         {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
 ```
-based on the shear stress distribution along a boundary.
+based on the wall shear stress vector ``\\tau_w`` along a boundary.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
 which stores the boundary information and semidiscretization.
 
@@ -160,7 +160,7 @@ Compute the drag coefficient
 C_{D,f} \\coloneqq \\frac{\\oint_{\\partial \\Omega} \\boldsymbol \\tau_w \\cdot \\psi_D \\, \\mathrm{d} S}
                         {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
 ```
-based on the shear stress distribution along a boundary.
+based on the wall shear stress vector ``\\tau_w`` along a boundary.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
 which stores the boundary information and semidiscretization.
 
