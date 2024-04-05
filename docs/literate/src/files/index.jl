@@ -53,7 +53,13 @@
 
 # ### [6 Subcell limiting with the IDP Limiter](@ref subcell_shock_capturing)
 #-
-# TODO
+# Trixi.jl also includes subcell-wise limiting using an invariant domain-preserving (IDP) limiting
+# approach. It calculates the blending factor between a high-order DG method and a low-order subcell
+# finite volume (FV) method for each node within each element independently. Therefore, the limiting
+# acts more local and requires less limiting than the element-wise limiting. In addition to the support
+# of local bounds (mostly used for shock-capturing), the implementation also supports the application
+# of global bounds, which result in the minimal necessary amount of limiting required for physical
+# admissibility conditions (e.g. non-negativity of variables).
 
 # ### [7 Non-periodic boundary conditions](@ref non_periodic_boundaries)
 #-
