@@ -191,7 +191,7 @@ function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, equati
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
 
-# Compute the three different components of the viscous stress tensor
+# Compute the three components of the symmetric viscous stress tensor
 # (tau_11, tau_12, tau_22) based on the gradients of the velocity field.
 # This is required for drag and lift coefficients based on shear stress, 
 # as well as for the non-integrated quantities such as 
