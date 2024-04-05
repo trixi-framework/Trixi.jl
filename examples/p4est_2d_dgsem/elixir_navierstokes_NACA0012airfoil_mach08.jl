@@ -130,17 +130,17 @@ lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
                                                                    u_inf(equations),
                                                                    l_inf()))
 
-drag_coefficient_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
-                                                 DragCoefficientShearStress(aoa(),
-                                                                            rho_inf(),
-                                                                            u_inf(equations),
-                                                                            l_inf()))
+drag_coefficient_shear_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
+                                                       DragCoefficientShearStress(aoa(),
+                                                                                  rho_inf(),
+                                                                                  u_inf(equations),
+                                                                                  l_inf()))
 
-lift_coefficient_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
-                                                 LiftCoefficientShearStress(aoa(),
-                                                                            rho_inf(),
-                                                                            u_inf(equations),
-                                                                            l_inf()))
+lift_coefficient_shear_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
+                                                       LiftCoefficientShearStress(aoa(),
+                                                                                  rho_inf(),
+                                                                                  u_inf(equations),
+                                                                                  l_inf()))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -148,8 +148,8 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_errors = Symbol[],
                                      analysis_integrals = (drag_coefficient,
                                                            lift_coefficient,
-                                                           drag_coefficient_force,
-                                                           lift_coefficient_force))
+                                                           drag_coefficient_shear_force,
+                                                           lift_coefficient_shear_force))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
