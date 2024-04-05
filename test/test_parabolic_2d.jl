@@ -719,7 +719,10 @@ end
                             1.199362305026636,
                             0.9077214424040279,
                             5.666071182328691], tspan=(0.0, 0.001),
-                        initial_refinement_level=0)
+                        initial_refinement_level=0,
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time steps after the restart.
+                        coverage_override=(maxiters = 10_000,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
