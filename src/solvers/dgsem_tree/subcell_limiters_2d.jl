@@ -18,18 +18,11 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
-    # Using a threaded vector to parallelize bounds check.
-    idp_bounds_delta_local = Dict{Symbol, Vector{real(basis)}}()
+    idp_bounds_delta_local = Dict{Symbol, real(basis)}()
     # Global variable contains the total maximum deviation.
     idp_bounds_delta_global = Dict{Symbol, real(basis)}()
-    # Note: False sharing causes critical performance issues on multiple threads when using a vector
-    # of length `Threads.nthreads()`. Initializing a vector of length `n * Threads.nthreads()`
-    # and then only using every n-th entry, fixes the problem and allows proper scaling.
-    # Since there are no processors with caches over 128B, we use `n = 128B / size(uEltype)`
-    stride_size = div(128, sizeof(eltype(basis.nodes))) # = n
     for key in bound_keys
-        idp_bounds_delta_local[key] = [zero(real(basis))
-                                       for _ in 1:(stride_size * Threads.nthreads())]
+        idp_bounds_delta_local[key] = zero(real(basis))
         idp_bounds_delta_global[key] = zero(real(basis))
     end
 
