@@ -7,11 +7,12 @@
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
 
 [**Trixi.jl**](https://github.com/trixi-framework/Trixi.jl)
-is a numerical simulation framework for hyperbolic conservation
+is a numerical simulation framework for conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
 having an extensible design with a fast implementation, Trixi.jl is
@@ -39,6 +40,7 @@ installation and postprocessing procedures. Its features include:
 * Periodic and weakly-enforced boundary conditions
 * Multiple governing equations:
   * Compressible Euler equations
+  * Compressible Navier-Stokes equations
   * Magnetohydrodynamics (MHD) equations
   * Multi-component compressible Euler and MHD equations
   * Linearized Euler and acoustic perturbation equations
@@ -49,6 +51,7 @@ installation and postprocessing procedures. Its features include:
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
+* Multi-node parallelization via MPI
 * Visualization and postprocessing of the results
   * In-situ and a posteriori visualization with [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
   * Interactive visualization with [Makie.jl](https://makie.juliaplots.org/)
@@ -324,7 +327,7 @@ Schlottke-Lakemper](https://lakemper.eu)
 (RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(University of Hamburg, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
+(Johannes Gutenberg University Mainz, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found under [Authors](@ref).
@@ -343,29 +346,58 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 ## Acknowledgments
 
-![funding-logo](https://user-images.githubusercontent.com/3637659/233821022-84910be7-8649-4999-a0ff-22d5e20f0b90.jpg)
+```@raw html
+<div style="width: 100%; text-align: center; font-size: 0;">
+  <div><!--
+    BMBF     --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" style="height: 120px; width: auto"><!--
+    DFG      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" style="height: 120px; width: auto"><!--
+    SRC      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" style="height: 120px; width: auto"><!--
+    -->
+  </div>
+  <div><!--
+    ERC      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" style="height: 120px; width: auto"><!--
+    NSF      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/5325103c-ae81-4747-b87c-c6e4a1b1d7a8" style="height: 120px; width: auto"><!--
+    DUBS     --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" style="height: 120px; width: auto"><!--
+    -->
+  </div>
+  <div><!--
+    NumFOCUS --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" style="height: 120px; width: auto"><!--
+    -->
+  </div>
+</div>
+```
 
-This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
-under Germany's Excellence Strategy EXC 2044-390685587, Mathematics Münster:
-Dynamics-Geometry-Structure.
+This project has benefited from funding by the [Deutsche
+Forschungsgemeinschaft](https://www.dfg.de/) (DFG, German Research Foundation)
+through the following grants:
+* Excellence Strategy EXC 2044-390685587, Mathematics Münster: Dynamics-Geometry-Structure.
+* Research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
+  Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
+* Individual grant no. 528753982.
 
-This project has benefited from funding by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation)
-through the research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
-Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
-
-This project has benefited from funding from the European Research Council through the
+This project has benefited from funding from the [European Research Council](https://erc.europa.eu)
+through the
 ERC Starting Grant "An Exascale aware and Un-crashable Space-Time-Adaptive
 Discontinuous Spectral Element Solver for Non-Linear Conservation Laws" (Extreme),
 ERC grant agreement no. 714487.
 
-This project has benefited from funding from Vetenskapsrådet (VR, Swedish Research Council), Sweden
+This project has benefited from funding from [Vetenskapsrådet](https://www.vr.se)
+(VR, Swedish Research Council), Sweden
 through the VR Starting Grant "Shallow water flows including sediment transport and morphodynamics",
 VR grant agreement 2020-03642 VR.
 
-This project has benefited from funding from the United States National Science Foundation under awards
+This project has benefited from funding from the United States
+[National Science Foundation](https://www.nsf.gov/) (NSF) under awards
 DMS-1719818 and DMS-1943186.
 
-This project has benefited from funding from the German Federal Ministry of
-Education and Research through the project grant "Adaptive earth system modeling
+This project has benefited from funding from the German
+[Federal Ministry of Education and Research](https://www.bmbf.de) (BMBF)
+through the project grant "Adaptive earth system modeling
 with significantly reduced computation time for exascale supercomputers
 (ADAPTEX)" (funding id: 16ME0668K).
+
+This project has benefited from funding by the
+[Daimler und Benz Stiftung](https://www.daimler-benz-stiftung.de) (Daimler and Benz Foundation)
+through grant no. 32-10/22.
+
+Trixi.jl is supported by [NumFOCUS](https://numfocus.org/) as an Affiliated Project.

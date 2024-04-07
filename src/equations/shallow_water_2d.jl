@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations2D(gravity, H0)
+    ShallowWaterEquations2D(; gravity, H0 = 0)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math
@@ -55,8 +55,9 @@ end
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
-# well-balancedness test cases
-function ShallowWaterEquations2D(; gravity_constant, H0 = 0.0)
+# well-balancedness test cases.
+# Strict default values for thresholds that performed well in many numerical experiments
+function ShallowWaterEquations2D(; gravity_constant, H0 = zero(gravity_constant))
     ShallowWaterEquations2D(gravity_constant, H0)
 end
 
@@ -211,8 +212,12 @@ Should be used together with [`TreeMesh`](@ref).
         u_boundary = SVector(u_inner[1], u_inner[2], -u_inner[3], u_inner[4])
     end
 
-    # compute and return the flux using `boundary_condition_slip_wall` routine above
-    flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    # Calculate boundary flux
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    end
 
     return flux
 end
@@ -517,6 +522,74 @@ end
 end
 
 """
+    flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations2D)
+    flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                     normal_direction_ll::AbstractVector,
+                                     normal_direction_average::AbstractVector,
+                                     equations::ShallowWaterEquations2D)
+
+!!! warning "Experimental code"
+    This numerical flux is experimental and may change in any future release.
+
+Non-symmetric path-conservative two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
+
+On curvilinear meshes, this nonconservative flux depends on both the
+contravariant vector (normal direction) at the current node and the averaged
+one. This is different from numerical fluxes used to discretize conservative
+terms.
+
+This is a modified version of [`flux_nonconservative_wintermeyer_etal`](@ref) that gives entropy 
+conservation and well-balancedness in both the volume and surface when combined with 
+[`flux_wintermeyer_etal`](@ref).
+
+For further details see:
+- Patrick Ersing, Andrew R. Winters (2023)
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
+  curvilinear meshes
+  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
+"""
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                                  equations::ShallowWaterEquations2D)
+    # Pull the necessary left and right state information
+    h_ll = waterheight(u_ll, equations)
+    b_rr = u_rr[4]
+    b_ll = u_ll[4]
+
+    # Calculate jump
+    b_jump = b_rr - b_ll
+
+    z = zero(eltype(u_ll))
+    # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
+    if orientation == 1
+        f = SVector(z, equations.gravity * h_ll * b_jump, z, z)
+    else # orientation == 2
+        f = SVector(z, z, equations.gravity * h_ll * b_jump, z)
+    end
+    return f
+end
+
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
+                                                  normal_direction_ll::AbstractVector,
+                                                  normal_direction_average::AbstractVector,
+                                                  equations::ShallowWaterEquations2D)
+    # Pull the necessary left and right state information
+    h_ll = waterheight(u_ll, equations)
+    b_rr = u_rr[4]
+    b_ll = u_ll[4]
+
+    # Calculate jump
+    b_jump = b_rr - b_ll
+    # Note this routine only uses the `normal_direction_average` and the average of the
+    # bottom topography to get a quadratic split form DG gradient on curved elements
+    return SVector(zero(eltype(u_ll)),
+                   normal_direction_average[1] * equations.gravity * h_ll * b_jump,
+                   normal_direction_average[2] * equations.gravity * h_ll * b_jump,
+                   zero(eltype(u_ll)))
+end
+
+"""
     flux_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction,
                         equations::ShallowWaterEquations2D)
 
@@ -725,7 +798,7 @@ end
     end
 end
 
-# Calculate minimum and maximum wave speeds for HLL-type fluxes
+# Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::ShallowWaterEquations2D)
     h_ll = waterheight(u_ll, equations)
@@ -762,11 +835,99 @@ end
     return λ_min, λ_max
 end
 
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations2D)
+    h_ll = waterheight(u_ll, equations)
+    v1_ll, v2_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v1_rr, v2_rr = velocity(u_rr, equations)
+
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    if orientation == 1 # x-direction
+        λ_min = min(v1_ll - c_ll, v1_rr - c_rr)
+        λ_max = max(v1_ll + c_ll, v1_rr + c_rr)
+    else # y-direction
+        λ_min = min(v2_ll - c_ll, v2_rr - c_rr)
+        λ_max = max(v2_ll + c_ll, v2_rr + c_rr)
+    end
+
+    return λ_min, λ_max
+end
+
+@inline function min_max_speed_davis(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::ShallowWaterEquations2D)
+    h_ll = waterheight(u_ll, equations)
+    v1_ll, v2_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v1_rr, v2_rr = velocity(u_rr, equations)
+
+    norm_ = norm(normal_direction)
+    c_ll = sqrt(equations.gravity * h_ll) * norm_
+    c_rr = sqrt(equations.gravity * h_rr) * norm_
+
+    v_normal_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_normal_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    # The v_normals are already scaled by the norm
+    λ_min = min(v_normal_ll - c_ll, v_normal_rr - c_rr)
+    λ_max = max(v_normal_ll + c_ll, v_normal_rr + c_rr)
+
+    return λ_min, λ_max
+end
+
+@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
+                                        equations::ShallowWaterEquations2D)
+    h_ll = waterheight(u_ll, equations)
+    v1_ll, v2_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v1_rr, v2_rr = velocity(u_rr, equations)
+
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    if orientation == 1 # x-direction
+        v_roe, c_roe = calc_wavespeed_roe(u_ll, u_rr, orientation, equations)
+        λ_min = min(v1_ll - c_ll, v_roe - c_roe)
+        λ_max = max(v1_rr + c_rr, v_roe + c_roe)
+    else # y-direction
+        v_roe, c_roe = calc_wavespeed_roe(u_ll, u_rr, orientation, equations)
+        λ_min = min(v2_ll - c_ll, v_roe - c_roe)
+        λ_max = max(v2_rr + c_rr, v_roe + c_roe)
+    end
+
+    return λ_min, λ_max
+end
+
+@inline function min_max_speed_einfeldt(u_ll, u_rr, normal_direction::AbstractVector,
+                                        equations::ShallowWaterEquations2D)
+    h_ll = waterheight(u_ll, equations)
+    v1_ll, v2_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v1_rr, v2_rr = velocity(u_rr, equations)
+
+    norm_ = norm(normal_direction)
+
+    c_ll = sqrt(equations.gravity * h_ll) * norm_
+    c_rr = sqrt(equations.gravity * h_rr) * norm_
+
+    v_normal_ll = (v1_ll * normal_direction[1] + v2_ll * normal_direction[2])
+    v_normal_rr = (v1_rr * normal_direction[1] + v2_rr * normal_direction[2])
+
+    v_roe, c_roe = calc_wavespeed_roe(u_ll, u_rr, normal_direction, equations)
+    λ_min = min(v_normal_ll - c_ll, v_roe - c_roe)
+    λ_max = max(v_normal_rr + c_rr, v_roe + c_roe)
+
+    return λ_min, λ_max
+end
+
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations2D)
     h = waterheight(u, equations)
     v1, v2 = velocity(u, equations)
 
-    c = equations.gravity * sqrt(h)
+    c = sqrt(equations.gravity * h)
     return abs(v1) + c, abs(v2) + c
 end
 
@@ -837,6 +998,63 @@ end
     return waterheight(u, equations) * pressure(u, equations)
 end
 
+"""
+    calc_wavespeed_roe(u_ll, u_rr, direction::Integer,
+                       equations::ShallowWaterEquations2D)
+
+Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = sqrt{g * h_roe}` depending on direction.
+See for instance equation (62) in 
+- Paul A. Ullrich, Christiane Jablonowski, and Bram van Leer (2010)
+  High-order finite-volume methods for the shallow-water equations on the sphere
+  [DOI: 10.1016/j.jcp.2010.04.044](https://doi.org/10.1016/j.jcp.2010.04.044)
+Or [this slides](https://faculty.washington.edu/rjl/classes/am574w2011/slides/am574lecture20nup3.pdf), 
+slides 8 and 9.
+"""
+@inline function calc_wavespeed_roe(u_ll, u_rr, orientation::Integer,
+                                    equations::ShallowWaterEquations2D)
+    h_ll = waterheight(u_ll, equations)
+    v1_ll, v2_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v1_rr, v2_rr = velocity(u_rr, equations)
+
+    h_roe = 0.5 * (h_ll + h_rr)
+    c_roe = sqrt(equations.gravity * h_roe)
+
+    h_ll_sqrt = sqrt(h_ll)
+    h_rr_sqrt = sqrt(h_rr)
+
+    if orientation == 1 # x-direction
+        v_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr) / (h_ll_sqrt + h_rr_sqrt)
+    else # y-direction
+        v_roe = (h_ll_sqrt * v2_ll + h_rr_sqrt * v2_rr) / (h_ll_sqrt + h_rr_sqrt)
+    end
+
+    return v_roe, c_roe
+end
+
+@inline function calc_wavespeed_roe(u_ll, u_rr, normal_direction::AbstractVector,
+                                    equations::ShallowWaterEquations2D)
+    h_ll = waterheight(u_ll, equations)
+    v1_ll, v2_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v1_rr, v2_rr = velocity(u_rr, equations)
+
+    norm_ = norm(normal_direction)
+
+    h_roe = 0.5 * (h_ll + h_rr)
+    c_roe = sqrt(equations.gravity * h_roe) * norm_
+
+    h_ll_sqrt = sqrt(h_ll)
+    h_rr_sqrt = sqrt(h_rr)
+
+    v1_roe = (h_ll_sqrt * v1_ll + h_rr_sqrt * v1_rr) / (h_ll_sqrt + h_rr_sqrt)
+    v2_roe = (h_ll_sqrt * v2_ll + h_rr_sqrt * v2_rr) / (h_ll_sqrt + h_rr_sqrt)
+
+    v_roe = (v1_roe * normal_direction[1] + v2_roe * normal_direction[2])
+
+    return v_roe, c_roe
+end
+
 # Entropy function for the shallow water equations is the total energy
 @inline function entropy(cons, equations::ShallowWaterEquations2D)
     energy_total(cons, equations)
@@ -863,9 +1081,10 @@ end
 end
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
-# be a constant value over time
+# be a constant value over time.
 @inline function lake_at_rest_error(u, equations::ShallowWaterEquations2D)
     h, _, _, b = u
+
     return abs(equations.H0 - (h + b))
 end
 end # @muladd

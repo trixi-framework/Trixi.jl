@@ -1,8 +1,6 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
-
 
 ###############################################################################
 # semidiscretization of the linear advection equation
@@ -13,36 +11,33 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = Dict(
-  :all => boundary_condition
-)
+boundary_conditions = Dict(:all => boundary_condition)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.
 f1(s) = SVector(-1.0, s - 1.0)
-f2(s) = SVector( 1.0, s + 1.0)
+f2(s) = SVector(1.0, s + 1.0)
 f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
-f4(s) = SVector(s,  1.0 + sin(0.5 * pi * s))
+f4(s) = SVector(s, 1.0 + sin(0.5 * pi * s))
 faces = (f1, f2, f3, f4)
 
 Trixi.validate_faces(faces)
 mapping_flag = Trixi.transfinite_mapping(faces)
 
 # Unstructured mesh with 24 cells of the square domain [-1, 1]^n
-mesh_file = joinpath(@__DIR__, "square_unstructured_2.inp")
-isfile(mesh_file) || download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
-                              mesh_file)
+mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
+                           joinpath(@__DIR__, "square_unstructured_2.inp"))
 
-mesh = P4estMesh{2}(mesh_file, polydeg=3,
-                    mapping=mapping_flag,
-                    initial_refinement_level=2)
+mesh = P4estMesh{2}(mesh_file, polydeg = 3,
+                    mapping = mapping_flag,
+                    initial_refinement_level = 2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver, boundary_conditions=boundary_conditions)
-
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -56,26 +51,26 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval=100)
+analysis_callback = AnalysisCallback(semi, interval = 100)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval=100,
-                                     solution_variables=cons2prim)
+save_solution = SaveSolutionCallback(interval = 100,
+                                     solution_variables = cons2prim)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl=1.4)
+stepsize_callback = StepsizeCallback(cfl = 1.4)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
-
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
 
 # Print the timer summary
 summary_callback()

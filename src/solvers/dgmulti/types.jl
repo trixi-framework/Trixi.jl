@@ -4,49 +4,46 @@
 
 # `DGMulti` refers to both multiple DG types (polynomial/SBP, simplices/quads/hexes) as well as
 # the use of multi-dimensional operators in the solver.
-const DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} = DG{
-                                                                                 <:RefElemData{
-                                                                                               NDIMS,
+const DGMulti{NDIMS, ElemType, ApproxType, SurfaceIntegral, VolumeIntegral} = DG{<:RefElemData{NDIMS,
                                                                                                ElemType,
-                                                                                               ApproxType
-                                                                                               },
+                                                                                               ApproxType},
                                                                                  Mortar,
                                                                                  SurfaceIntegral,
-                                                                                 VolumeIntegral
-                                                                                 } where {
-                                                                                          Mortar
-                                                                                          }
+                                                                                 VolumeIntegral} where {
+                                                                                                        Mortar
+                                                                                                        }
 
 # Type aliases. The first parameter is `ApproxType` since it is more commonly used for dispatch.
 const DGMultiWeakForm{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                       <:SurfaceIntegralWeakForm,
-                                                      <:VolumeIntegralWeakForm
-                                                      } where {NDIMS}
+                                                      <:VolumeIntegralWeakForm} where {NDIMS
+                                                                                       }
 
 const DGMultiFluxDiff{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                       <:SurfaceIntegralWeakForm,
-                                                      <:Union{
-                                                              VolumeIntegralFluxDifferencing,
-                                                              VolumeIntegralShockCapturingHG
-                                                              }} where {NDIMS}
+                                                      <:Union{VolumeIntegralFluxDifferencing,
+                                                              VolumeIntegralShockCapturingHG}} where {
+                                                                                                      NDIMS
+                                                                                                      }
 
 const DGMultiFluxDiffSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
                                                          <:SurfaceIntegralWeakForm,
-                                                         <:Union{
-                                                                 VolumeIntegralFluxDifferencing,
-                                                                 VolumeIntegralShockCapturingHG
-                                                                 }
-                                                         } where {NDIMS,
-                                                                  ApproxType <: Union{SBP,
-                                                                        AbstractDerivativeOperator
-                                                                        }}
+                                                         <:Union{VolumeIntegralFluxDifferencing,
+                                                                 VolumeIntegralShockCapturingHG}} where {
+                                                                                                         NDIMS,
+                                                                                                         ApproxType <:
+                                                                                                         Union{SBP,
+                                                                                                               AbstractDerivativeOperator}
+                                                                                                         }
 
 const DGMultiSBP{ApproxType, ElemType} = DGMulti{NDIMS, ElemType, ApproxType,
-                                                 SurfaceIntegral, VolumeIntegral
-                                                 } where {NDIMS, ElemType,
-                                                          ApproxType <: Union{SBP,
-                                                                AbstractDerivativeOperator},
-                                                          SurfaceIntegral, VolumeIntegral}
+                                                 SurfaceIntegral,
+                                                 VolumeIntegral} where {NDIMS, ElemType,
+                                                                        ApproxType <:
+                                                                        Union{SBP,
+                                                                              AbstractDerivativeOperator},
+                                                                        SurfaceIntegral,
+                                                                        VolumeIntegral}
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -94,6 +91,21 @@ function DGMulti(; polydeg = nothing,
     # call dispatchable constructor
     DGMulti(element_type, approximation_type, volume_integral, surface_integral;
             polydeg = polydeg, kwargs...)
+end
+
+# dispatchable constructor for DGMulti using a TensorProductWedge
+function DGMulti(element_type::Wedge,
+                 approximation_type,
+                 volume_integral,
+                 surface_integral;
+                 polydeg::Tuple,
+                 kwargs...)
+    factor_a = RefElemData(Tri(), approximation_type, polydeg[1]; kwargs...)
+    factor_b = RefElemData(Line(), approximation_type, polydeg[2]; kwargs...)
+
+    tensor = TensorProductWedge(factor_a, factor_b)
+    rd = RefElemData(element_type, tensor; kwargs...)
+    return DG(rd, nothing, surface_integral, volume_integral)
 end
 
 # dispatchable constructor for DGMulti to allow for specialization
@@ -165,9 +177,9 @@ GeometricTermsType(mesh_type::Curved, element_type::AbstractElemShape) = NonAffi
 # other potential mesh types to add later: Polynomial{polydeg_geo}?
 
 """
-  DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
-              is_on_boundary=nothing,
-              periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
+    DGMultiMesh(dg::DGMulti{NDIMS}, vertex_coordinates, EToV;
+                is_on_boundary=nothing,
+                periodicity=ntuple(_->false, NDIMS)) where {NDIMS}
 
 - `dg::DGMulti` contains information associated with to the reference element (e.g., quadrature,
   basis evaluation, differentiation, etc).
@@ -418,15 +430,3 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     return nothing
 end
 end # @muladd
-
-# TODO: deprecations introduced in Trixi.jl v0.6
-@deprecate DGMultiMesh(dg::DGMulti{NDIMS}; cells_per_dimension, kwargs...) where {NDIMS} DGMultiMesh(dg,
-                                                                                                     cells_per_dimension;
-                                                                                                     kwargs...)
-
-# TODO: deprecations introduced in Trixi.jl v0.5
-@deprecate DGMultiMesh(vertex_coordinates, EToV, dg::DGMulti{NDIMS};
-                       kwargs...) where {NDIMS} DGMultiMesh(dg, vertex_coordinates, EToV;
-                                                            kwargs...)
-@deprecate DGMultiMesh(triangulateIO, dg::DGMulti{2, Tri}, boundary_dict::Dict{Symbol, Int};
-                       kwargs...) DGMultiMesh(dg, triangulateIO, boundary_dict; kwargs...)

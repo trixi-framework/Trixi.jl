@@ -13,9 +13,9 @@ to manage trees and mesh refinement.
 """
 mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    p4est::P # Either Ptr{p4est_t} or Ptr{p8est_t}
-    is_parallel::IsParallel
-    ghost::Ghost # Either Ptr{p4est_ghost_t} or Ptr{p8est_ghost_t}
+    p4est       :: P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
+    is_parallel :: IsParallel
+    ghost       :: Ghost # Either PointerWrapper{p4est_ghost_t} or PointerWrapper{p8est_ghost_t}
     # Coordinates at the nodes specified by the tensor product of `nodes` (NDIMS times).
     # This specifies the geometry interpolation for each tree.
     tree_node_coordinates::Array{RealT, NDIMSP2} # [dimension, i, j, k, tree]
@@ -43,18 +43,21 @@ mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NN
             is_parallel = False()
         end
 
+        p4est_pw = PointerWrapper(p4est)
+
         ghost = ghost_new_p4est(p4est)
+        ghost_pw = PointerWrapper(ghost)
 
         mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel),
-                   typeof(p4est), typeof(ghost), NDIMS + 2, length(nodes)}(p4est,
-                                                                           is_parallel,
-                                                                           ghost,
-                                                                           tree_node_coordinates,
-                                                                           nodes,
-                                                                           boundary_names,
-                                                                           current_filename,
-                                                                           unsaved_changes,
-                                                                           p4est_partition_allow_for_coarsening)
+                   typeof(p4est_pw), typeof(ghost_pw), NDIMS + 2, length(nodes)}(p4est_pw,
+                                                                                 is_parallel,
+                                                                                 ghost_pw,
+                                                                                 tree_node_coordinates,
+                                                                                 nodes,
+                                                                                 boundary_names,
+                                                                                 current_filename,
+                                                                                 unsaved_changes,
+                                                                                 p4est_partition_allow_for_coarsening)
 
         # Destroy `p4est` structs when the mesh is garbage collected
         finalizer(destroy_mesh, mesh)
@@ -70,14 +73,14 @@ const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:True}
 @inline mpi_parallel(mesh::ParallelP4estMesh) = True()
 
 function destroy_mesh(mesh::P4estMesh{2})
-    connectivity = unsafe_load(mesh.p4est).connectivity
+    connectivity = mesh.p4est.connectivity
     p4est_ghost_destroy(mesh.ghost)
     p4est_destroy(mesh.p4est)
     p4est_connectivity_destroy(connectivity)
 end
 
 function destroy_mesh(mesh::P4estMesh{3})
-    connectivity = unsafe_load(mesh.p4est).connectivity
+    connectivity = mesh.p4est.connectivity
     p8est_ghost_destroy(mesh.ghost)
     p8est_destroy(mesh.p4est)
     p8est_connectivity_destroy(connectivity)
@@ -87,11 +90,10 @@ end
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
 @inline function ntrees(mesh::P4estMesh)
-    trees = unsafe_load(mesh.p4est).trees
-    return unsafe_load(trees).elem_count
+    return mesh.p4est.trees.elem_count[]
 end
 # returns Int32 by default which causes a weird method error when creating the cache
-@inline ncells(mesh::P4estMesh) = Int(unsafe_load(mesh.p4est).local_num_quadrants)
+@inline ncells(mesh::P4estMesh) = Int(mesh.p4est.local_num_quadrants[])
 
 function Base.show(io::IO, mesh::P4estMesh)
     print(io, "P4estMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -287,7 +289,8 @@ end
     P4estMesh{NDIMS}(meshfile::String;
                      mapping=nothing, polydeg=1, RealT=Float64,
                      initial_refinement_level=0, unsaved_changes=true,
-                     p4est_partition_allow_for_coarsening=true)
+                     p4est_partition_allow_for_coarsening=true,
+                     boundary_symbols = nothing)
 
 Main mesh constructor for the `P4estMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
@@ -308,8 +311,9 @@ To create a curved unstructured mesh `P4estMesh` two strategies are available:
                                      straight-sided from the information parsed from the `meshfile`. If a mapping
                                      function is specified then it computes the mapped tree coordinates via polynomial
                                      interpolants with degree `polydeg`. The mesh created by this function will only
-                                     have one boundary `:all`, as distinguishing different physical boundaries is
-                                     non-trivial.
+                                     have one boundary `:all` if `boundary_symbols` is not specified.
+                                     If `boundary_symbols` is specified the mesh file will be parsed for nodesets defining
+                                     the boundary nodes from which boundary edges (2D) and faces (3D) will be assigned.
 
 Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
 function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
@@ -343,11 +347,14 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
                                                 independent of domain partitioning. Should be `false` for static meshes
                                                 to permit more fine-grained partitioning.
+- `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
+                                      If `nothing` is passed then all boundaries are named `:all`.                                                
 """
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping = nothing, polydeg = 1, RealT = Float64,
                           initial_refinement_level = 0, unsaved_changes = true,
-                          p4est_partition_allow_for_coarsening = true) where {NDIMS}
+                          p4est_partition_allow_for_coarsening = true,
+                          boundary_symbols = nothing) where {NDIMS}
     # Prevent `p4est` from crashing Julia if the file doesn't exist
     @assert isfile(meshfile)
 
@@ -371,7 +378,8 @@ function P4estMesh{NDIMS}(meshfile::String;
                                                                                               polydeg,
                                                                                               initial_refinement_level,
                                                                                               NDIMS,
-                                                                                              RealT)
+                                                                                              RealT,
+                                                                                              boundary_symbols)
     end
 
     return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
@@ -387,14 +395,14 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
                                          n_dimensions, RealT)
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
-    connectivity_obj = unsafe_load(connectivity)
+    connectivity_pw = PointerWrapper(connectivity)
 
     # These need to be of the type Int for unsafe_wrap below to work
-    n_trees::Int = connectivity_obj.num_trees
-    n_vertices::Int = connectivity_obj.num_vertices
+    n_trees::Int = connectivity_pw.num_trees[]
+    n_vertices::Int = connectivity_pw.num_vertices[]
 
     # Extract a copy of the element vertices to compute the tree node coordinates
-    vertices = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
+    vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
 
     # Readin all the information from the mesh file into a string array
     file_lines = readlines(open(meshfile))
@@ -442,17 +450,18 @@ end
 # the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
 # names are given the name `:all`.
 function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
-                                         initial_refinement_level, n_dimensions, RealT)
+                                         initial_refinement_level, n_dimensions, RealT,
+                                         boundary_symbols)
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
-    connectivity_obj = unsafe_load(connectivity)
+    connectivity_pw = PointerWrapper(connectivity)
 
     # These need to be of the type Int for unsafe_wrap below to work
-    n_trees::Int = connectivity_obj.num_trees
-    n_vertices::Int = connectivity_obj.num_vertices
+    n_trees::Int = connectivity_pw.num_trees[]
+    n_vertices::Int = connectivity_pw.num_vertices[]
 
-    vertices = unsafe_wrap(Array, connectivity_obj.vertices, (3, n_vertices))
-    tree_to_vertex = unsafe_wrap(Array, connectivity_obj.tree_to_vertex,
+    vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
+    tree_to_vertex = unsafe_wrap(Array, connectivity_pw.tree_to_vertex,
                                  (2^n_dimensions, n_trees))
 
     basis = LobattoLegendreBasis(RealT, polydeg)
@@ -467,10 +476,213 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
 
     p4est = new_p4est(connectivity, initial_refinement_level)
 
-    # There's no simple and generic way to distinguish boundaries. Name all of them :all.
-    boundary_names = fill(:all, 2 * n_dimensions, n_trees)
+    if boundary_symbols === nothing
+        # There's no simple and generic way to distinguish boundaries without any information given.
+        # Name all of them :all.
+        boundary_names = fill(:all, 2 * n_dimensions, n_trees)
+    else # Boundary information given
+        # Read in nodes belonging to boundaries
+        node_set_dict = parse_node_sets(meshfile, boundary_symbols)
+        # Read in all elements with associated nodes to specify the boundaries
+        element_node_matrix = parse_elements(meshfile, n_trees, n_dimensions)
+
+        # Initialize boundary information matrix with symbol for no boundary / internal connection
+        boundary_names = fill(Symbol("---"), 2 * n_dimensions, n_trees)
+
+        # Fill `boundary_names` such that it can be processed by p4est
+        assign_boundaries_standard_abaqus!(boundary_names, n_trees,
+                                           element_node_matrix, node_set_dict,
+                                           Val(n_dimensions))
+    end
 
     return p4est, tree_node_coordinates, nodes, boundary_names
+end
+
+function parse_elements(meshfile, n_trees, n_dims)
+    @assert n_dims in (2, 3) "Only 2D and 3D meshes are supported"
+    # Valid element types (that can be processed by p4est) based on dimension
+    element_types = n_dims == 2 ?
+                    ["*ELEMENT, type=CPS4", "*ELEMENT, type=C2D4",
+        "*ELEMENT, type=S4"] : ["*ELEMENT, type=C3D8"]
+    # 2D quads: 4 nodes + element index, 3D hexes: 8 nodes + element index                                                               
+    expected_content_length = n_dims == 2 ? 5 : 9
+
+    element_node_matrix = Matrix{Int64}(undef, n_trees, expected_content_length - 1)
+    el_list_follows = false
+    tree_id = 1
+
+    open(meshfile, "r") do file
+        for line in eachline(file)
+            if any(startswith(line, el_type) for el_type in element_types)
+                el_list_follows = true
+            elseif el_list_follows
+                content = split(line, ",")
+                if length(content) == expected_content_length # Check that we still read in connectivity data
+                    content_int = parse.(Int64, content)
+                    # Add constituent nodes to the element_node_matrix.
+                    # Important: Do not use index from the Abaqus file, but the one from p4est.
+                    element_node_matrix[tree_id, :] = content_int[2:end] # First entry is element id
+                    tree_id += 1
+                else # Processed all elements for this ELSET
+                    el_list_follows = false
+                end
+            end
+        end
+    end
+
+    return element_node_matrix
+end
+
+function parse_node_sets(meshfile, boundary_symbols)
+    nodes_dict = Dict{Symbol, Vector{Int64}}()
+    current_symbol = nothing
+    current_nodes = Int64[]
+
+    open(meshfile, "r") do file
+        for line in eachline(file)
+            # Check if the line contains nodes assembled in a special set, i.e., a physical boundary
+            if startswith(line, "*NSET,NSET=")
+                # Safe the previous nodeset
+                if current_symbol !== nothing
+                    nodes_dict[current_symbol] = current_nodes
+                end
+
+                current_symbol = Symbol(split(line, "=")[2])
+                if current_symbol in boundary_symbols
+                    # New nodeset
+                    current_nodes = Int64[]
+                else # Read only boundary node sets
+                    current_symbol = nothing
+                end
+            elseif current_symbol !== nothing # Read only if there was already a nodeset specified
+                try # Check if line contains nodes
+                    # There is always a trailing comma, remove the corresponding empty string
+                    append!(current_nodes, parse.(Int64, split(line, ",")[1:(end - 1)]))
+                catch # Something different, stop reading in nodes
+                    # If parsing fails, set current_symbol to nothing
+                    nodes_dict[current_symbol] = current_nodes
+                    current_symbol = nothing
+                end
+            end
+        end
+        # Safe the previous nodeset
+        if current_symbol !== nothing
+            nodes_dict[current_symbol] = current_nodes
+        end
+    end
+
+    for symbol in boundary_symbols
+        if !haskey(nodes_dict, symbol)
+            @warn "No nodes found for nodeset :" * "$symbol" * " !"
+        end
+    end
+
+    return nodes_dict
+end
+
+# This function assigns the edges of elements to boundaries by
+# checking if the nodes that define the edges are part of nodesets which correspond to boundaries.
+function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
+                                            element_node_matrix, node_set_dict,
+                                            ::Val{2}) # 2D version
+    for tree in 1:n_trees
+        tree_nodes = element_node_matrix[tree, :]
+        # For node labeling, see 
+        # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
+        # and search for "Node ordering and face numbering on elements"
+        for boundary in keys(node_set_dict) # Loop over specified boundaries
+            # Check bottom edge
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[2] in node_set_dict[boundary]
+                # Bottom boundary is position 3 in p4est indexing
+                boundary_names[3, tree] = boundary
+            end
+            # Check right edge
+            if tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[3] in node_set_dict[boundary]
+                # Right boundary is position 2 in p4est indexing
+                boundary_names[2, tree] = boundary
+            end
+            # Check top edge
+            if tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary]
+                # Top boundary is position 4 in p4est indexing
+                boundary_names[4, tree] = boundary
+            end
+            # Check left edge
+            if tree_nodes[4] in node_set_dict[boundary] &&
+               tree_nodes[1] in node_set_dict[boundary]
+                # Left boundary is position 1 in p4est indexing
+                boundary_names[1, tree] = boundary
+            end
+        end
+    end
+
+    return boundary_names
+end
+
+# This function assigns the edges of elements to boundaries by
+# checking if the nodes that define the faces are part of nodesets which correspond to boundaries.
+function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
+                                            element_node_matrix, node_set_dict,
+                                            ::Val{3}) # 3D version
+    for tree in 1:n_trees
+        tree_nodes = element_node_matrix[tree, :]
+        # For node labeling, see 
+        # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
+        for boundary in keys(node_set_dict) # Loop over specified boundaries
+            # Check "front face" (y_min)
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[5] in node_set_dict[boundary] &&
+               tree_nodes[6] in node_set_dict[boundary]
+                # Front face is position 3 in p4est indexing
+                boundary_names[3, tree] = boundary
+            end
+            # Check "back face" (y_max)
+            if tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary] &&
+               tree_nodes[7] in node_set_dict[boundary] &&
+               tree_nodes[8] in node_set_dict[boundary]
+                # Front face is position 4 in p4est indexing
+                boundary_names[4, tree] = boundary
+            end
+            # Check "left face" (x_min)
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary] &&
+               tree_nodes[5] in node_set_dict[boundary] &&
+               tree_nodes[8] in node_set_dict[boundary]
+                # Left face is position 1 in p4est indexing
+                boundary_names[1, tree] = boundary
+            end
+            # Check "right face" (x_max)
+            if tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[6] in node_set_dict[boundary] &&
+               tree_nodes[7] in node_set_dict[boundary]
+                # Right face is position 2 in p4est indexing
+                boundary_names[2, tree] = boundary
+            end
+            # Check "bottom face" (z_min)
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary]
+                # Bottom face is position 5 in p4est indexing
+                boundary_names[5, tree] = boundary
+            end
+            # Check "top face" (z_max)
+            if tree_nodes[5] in node_set_dict[boundary] &&
+               tree_nodes[6] in node_set_dict[boundary] &&
+               tree_nodes[7] in node_set_dict[boundary] &&
+               tree_nodes[8] in node_set_dict[boundary]
+                # Top face is position 6 in p4est indexing
+                boundary_names[6, tree] = boundary
+            end
+        end
+    end
+
+    return boundary_names
 end
 
 """
@@ -1488,6 +1700,10 @@ function bilinear_interpolation!(coordinate, face_vertices, u, v)
     end
 end
 
+function get_global_first_element_ids(mesh::P4estMesh)
+    return unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
+end
+
 function balance!(mesh::P4estMesh{2}, init_fn = C_NULL)
     p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
     # Due to a bug in `p4est`, the forest needs to be rebalanced twice sometimes
@@ -1511,17 +1727,18 @@ end
 
 function update_ghost_layer!(mesh::P4estMesh)
     ghost_destroy_p4est(mesh.ghost)
-    mesh.ghost = ghost_new_p4est(mesh.p4est)
+    mesh.ghost = PointerWrapper(ghost_new_p4est(mesh.p4est))
 end
 
 function init_fn(p4est, which_tree, quadrant)
     # Unpack quadrant's user data ([global quad ID, controller_value])
-    ptr = Ptr{Int}(unsafe_load(quadrant.p.user_data))
+    # Use `unsafe_load` here since `quadrant.p.user_data isa Ptr{Ptr{Nothing}}`
+    # and we only need the first (only!) entry
+    pw = PointerWrapper(Int, unsafe_load(quadrant.p.user_data))
 
     # Initialize quad ID as -1 and controller_value as 0 (don't refine or coarsen)
-    unsafe_store!(ptr, -1, 1)
-    unsafe_store!(ptr, 0, 2)
-
+    pw[1] = -1
+    pw[2] = 0
     return nothing
 end
 
@@ -1539,8 +1756,10 @@ end
 function refine_fn(p4est, which_tree, quadrant)
     # Controller value has been copied to the quadrant's user data storage before.
     # Unpack quadrant's user data ([global quad ID, controller_value]).
-    ptr = Ptr{Int}(unsafe_load(quadrant.p.user_data))
-    controller_value = unsafe_load(ptr, 2)
+    # Use `unsafe_load` here since `quadrant.p.user_data isa Ptr{Ptr{Nothing}}`
+    # and we only need the first (only!) entry
+    pw = PointerWrapper(Int, unsafe_load(quadrant.p.user_data))
+    controller_value = pw[2]
 
     if controller_value > 0
         # return true (refine)
@@ -1586,9 +1805,9 @@ function coarsen_fn(p4est, which_tree, quadrants_ptr)
 
     # Controller value has been copied to the quadrant's user data storage before.
     # Load controller value from quadrant's user data ([global quad ID, controller_value]).
-    function controller_value(i)
-        unsafe_load(Ptr{Int}(unsafe_load(quadrants[i].p.user_data)), 2)
-    end
+    # Use `unsafe_load` here since `quadrant.p.user_data isa Ptr{Ptr{Nothing}}`
+    # and we only need the first (only!) entry
+    controller_value(i) = PointerWrapper(Int, unsafe_load(quadrants[i].p.user_data))[2]
 
     # `p4est` calls this function for each 2^ndims quads that could be coarsened to a single one.
     # Only coarsen if all these 2^ndims quads have been marked for coarsening.
@@ -1671,20 +1890,19 @@ end
 
 # Copy global quad ID to quad's user data storage, will be called below
 function save_original_id_iter_volume(info, user_data)
-    info_obj = unsafe_load(info)
+    info_pw = PointerWrapper(info)
 
     # Load tree from global trees array, one-based indexing
-    tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
+    tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
     # Quadrant numbering offset of this quadrant
-    offset = tree.quadrants_offset
+    offset = tree_pw.quadrants_offset[]
     # Global quad ID
-    quad_id = offset + info_obj.quadid
+    quad_id = offset + info_pw.quadid[]
 
     # Unpack quadrant's user data ([global quad ID, controller_value])
-    ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
+    pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
     # Save global quad ID
-    unsafe_store!(ptr, quad_id, 1)
-
+    pw[1] = quad_id
     return nothing
 end
 
@@ -1708,24 +1926,23 @@ end
 
 # Extract information about which cells have been changed
 function collect_changed_iter_volume(info, user_data)
-    info_obj = unsafe_load(info)
+    info_pw = PointerWrapper(info)
 
     # The original element ID has been saved to user_data before.
     # Load original quad ID from quad's user data ([global quad ID, controller_value]).
-    quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
-    original_id = unsafe_load(quad_data_ptr, 1)
+    quad_data_pw = PointerWrapper(Int, info_pw.quad.p.user_data[])
+    original_id = quad_data_pw[1]
 
     # original_id of cells that have been newly created is -1
     if original_id >= 0
         # Unpack user_data = original_cells
-        user_data_ptr = Ptr{Int}(user_data)
+        user_data_pw = PointerWrapper(Int, user_data)
 
         # If quad has an original_id, it existed before refinement/coarsening,
         # and therefore wasn't changed.
         # Mark original_id as "not changed during refinement/coarsening" in original_cells
-        unsafe_store!(user_data_ptr, 0, original_id + 1)
+        user_data_pw[original_id + 1] = 0
     end
-
     return nothing
 end
 
@@ -1756,29 +1973,27 @@ end
 
 # Extract newly created cells
 function collect_new_iter_volume(info, user_data)
-    info_obj = unsafe_load(info)
+    info_pw = PointerWrapper(info)
 
     # The original element ID has been saved to user_data before.
     # Unpack quadrant's user data ([global quad ID, controller_value]).
-    quad_data_ptr = Ptr{Int}(unsafe_load(info_obj.quad.p.user_data))
-    original_id = unsafe_load(quad_data_ptr, 1)
+    original_id = PointerWrapper(Int, info_pw.quad.p.user_data[])[1]
 
     # original_id of cells that have been newly created is -1
     if original_id < 0
         # Load tree from global trees array, one-based indexing
-        tree = unsafe_load_tree(info_obj.p4est, info_obj.treeid + 1)
+        tree_pw = load_pointerwrapper_tree(info_pw.p4est, info_pw.treeid[] + 1)
         # Quadrant numbering offset of this quadrant
-        offset = tree.quadrants_offset
+        offset = tree_pw.quadrants_offset[]
         # Global quad ID
-        quad_id = offset + info_obj.quadid
+        quad_id = offset + info_pw.quadid[]
 
         # Unpack user_data = original_cells
-        user_data_ptr = Ptr{Int}(user_data)
+        user_data_pw = PointerWrapper(Int, user_data)
 
         # Mark cell as "newly created during refinement/coarsening/balancing"
-        unsafe_store!(user_data_ptr, 1, quad_id + 1)
+        user_data_pw[quad_id + 1] = 1
     end
-
     return nothing
 end
 

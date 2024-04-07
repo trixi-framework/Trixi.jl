@@ -77,7 +77,7 @@ function rhs!(du, u, t,
     end
 
     # Apply Jacobian from mapping to reference element
-    #  Note! this routine is reused from dg_curved/dg_2d.jl
+    #  Note! this routine is reused from dgsem_structured/dg_2d.jl
     @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
 
     # Calculate source terms
@@ -95,49 +95,51 @@ function prolong2interfaces!(cache, u,
                              mesh::UnstructuredMesh2D,
                              equations, surface_integral, dg::DG)
     @unpack interfaces = cache
+    @unpack element_ids, element_side_ids = interfaces
+    interfaces_u = interfaces.u
 
     @threaded for interface in eachinterface(dg, cache)
-        primary_element = interfaces.element_ids[1, interface]
-        secondary_element = interfaces.element_ids[2, interface]
+        primary_element = element_ids[1, interface]
+        secondary_element = element_ids[2, interface]
 
-        primary_side = interfaces.element_side_ids[1, interface]
-        secondary_side = interfaces.element_side_ids[2, interface]
+        primary_side = element_side_ids[1, interface]
+        secondary_side = element_side_ids[2, interface]
 
         if primary_side == 1
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, i, 1, primary_element]
+                interfaces_u[1, v, i, interface] = u[v, i, 1, primary_element]
             end
         elseif primary_side == 2
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, nnodes(dg), i, primary_element]
+                interfaces_u[1, v, i, interface] = u[v, nnodes(dg), i, primary_element]
             end
         elseif primary_side == 3
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, i, nnodes(dg), primary_element]
+                interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg), primary_element]
             end
         else # primary_side == 4
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[1, v, i, interface] = u[v, 1, i, primary_element]
+                interfaces_u[1, v, i, interface] = u[v, 1, i, primary_element]
             end
         end
 
         if secondary_side == 1
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[2, v, i, interface] = u[v, i, 1, secondary_element]
+                interfaces_u[2, v, i, interface] = u[v, i, 1, secondary_element]
             end
         elseif secondary_side == 2
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[2, v, i, interface] = u[v, nnodes(dg), i,
+                interfaces_u[2, v, i, interface] = u[v, nnodes(dg), i,
                                                      secondary_element]
             end
         elseif secondary_side == 3
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[2, v, i, interface] = u[v, i, nnodes(dg),
+                interfaces_u[2, v, i, interface] = u[v, i, nnodes(dg),
                                                      secondary_element]
             end
         else # secondary_side == 4
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces.u[2, v, i, interface] = u[v, 1, i, secondary_element]
+                interfaces_u[2, v, i, interface] = u[v, 1, i, secondary_element]
             end
         end
     end
@@ -278,26 +280,28 @@ function prolong2boundaries!(cache, u,
                              mesh::UnstructuredMesh2D,
                              equations, surface_integral, dg::DG)
     @unpack boundaries = cache
+    @unpack element_id, element_side_id = boundaries
+    boundaries_u = boundaries.u
 
     @threaded for boundary in eachboundary(dg, cache)
-        element = boundaries.element_id[boundary]
-        side = boundaries.element_side_id[boundary]
+        element = element_id[boundary]
+        side = element_side_id[boundary]
 
         if side == 1
             for l in eachnode(dg), v in eachvariable(equations)
-                boundaries.u[v, l, boundary] = u[v, l, 1, element]
+                boundaries_u[v, l, boundary] = u[v, l, 1, element]
             end
         elseif side == 2
             for l in eachnode(dg), v in eachvariable(equations)
-                boundaries.u[v, l, boundary] = u[v, nnodes(dg), l, element]
+                boundaries_u[v, l, boundary] = u[v, nnodes(dg), l, element]
             end
         elseif side == 3
             for l in eachnode(dg), v in eachvariable(equations)
-                boundaries.u[v, l, boundary] = u[v, l, nnodes(dg), element]
+                boundaries_u[v, l, boundary] = u[v, l, nnodes(dg), element]
             end
         else # side == 4
             for l in eachnode(dg), v in eachvariable(equations)
-                boundaries.u[v, l, boundary] = u[v, 1, l, element]
+                boundaries_u[v, l, boundary] = u[v, 1, l, element]
             end
         end
     end
@@ -307,14 +311,14 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @assert isempty(eachboundary(dg, cache))
 end
 
 # Function barrier for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
@@ -327,7 +331,8 @@ end
 # in a type-stable way using "lispy tuple programming".
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
-                                     mesh::Union{UnstructuredMesh2D, P4estMesh},
+                                     mesh::Union{UnstructuredMesh2D, P4estMesh,
+                                                 T8codeMesh},
                                      equations, surface_integral, dg::DG) where {N}
     # Extract the boundary condition type and index vector
     boundary_condition = first(BCs)
@@ -350,14 +355,15 @@ end
 
 # terminate the type-stable iteration over tuples
 function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
-                                     mesh::Union{UnstructuredMesh2D, P4estMesh},
+                                     mesh::Union{UnstructuredMesh2D, P4estMesh,
+                                                 T8codeMesh},
                                      equations, surface_integral, dg::DG)
     nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
+function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::UnstructuredMesh2D, equations,
-                             surface_integral, dg::DG)
+                             surface_integral, dg::DG) where {BC}
     @unpack surface_flux_values = cache.elements
     @unpack element_id, element_side_id = cache.boundaries
 

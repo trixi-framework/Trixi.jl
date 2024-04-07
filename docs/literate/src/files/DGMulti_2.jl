@@ -38,3 +38,15 @@ D = couple_continuously(legendre_derivative_operator(xmin=0.0, xmax=1.0, N=4),
 
 # For more information and other SBP operators, see the documentations of [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/)
 # and [SummationByPartsOperators.jl](https://ranocha.de/SummationByPartsOperators.jl/stable/).
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "StartUpDG", "SummationByPartsOperators"],
+           mode=PKGMODE_MANIFEST)

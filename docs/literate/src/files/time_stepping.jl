@@ -49,7 +49,7 @@
 # ```math
 # \Delta t_n = \text{CFL} * \min_i \frac{\Delta x_i}{\lambda_{\max}(u_i^n)}
 # ```
-# We compute $\Delta x_i$ by scaling the element size by a factor of $1/(N+1)$, cf. 
+# We compute $\Delta x_i$ by scaling the element size by a factor of $1/(N+1)$, cf.
 # [Gassner and Kopriva (2011)](https://doi.org/10.1137/100807211), Section 5.
 
 # Trixi.jl provides such a CFL-based step size control. It is implemented as the callback
@@ -73,3 +73,15 @@
 # You can find simple examples with a CFL-based step size control for instance in the elixirs
 # [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl)
 # or [`elixir_euler_source_terms.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_source_terms.jl).
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq"],
+           mode=PKGMODE_MANIFEST)

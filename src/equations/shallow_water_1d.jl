@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations1D(gravity, H0)
+    ShallowWaterEquations1D(; gravity, H0 = 0)
 
 Shallow water equations (SWE) in one space dimension. The equations are given by
 ```math
@@ -52,8 +52,8 @@ end
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
-# well-balancedness test cases
-function ShallowWaterEquations1D(; gravity_constant, H0 = 0.0)
+# well-balancedness test cases.
+function ShallowWaterEquations1D(; gravity_constant, H0 = zero(gravity_constant))
     ShallowWaterEquations1D(gravity_constant, H0)
 end
 
@@ -308,6 +308,44 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
 end
 
 """
+    flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations1D)
+
+!!! warning "Experimental code"
+    This numerical flux is experimental and may change in any future release.
+
+Non-symmetric path-conservative two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography [`ShallowWaterEquations1D`](@ref).
+
+This is a modified version of [`flux_nonconservative_wintermeyer_etal`](@ref) that gives entropy 
+conservation and well-balancedness in both the volume and surface when combined with 
+[`flux_wintermeyer_etal`](@ref).
+
+For further details see:
+- Patrick Ersing, Andrew R. Winters (2023)
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
+  curvilinear meshes
+  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
+"""
+@inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
+                                                  equations::ShallowWaterEquations1D)
+    # Pull the necessary left and right state information
+    h_ll = waterheight(u_ll, equations)
+    b_rr = u_rr[3]
+    b_ll = u_ll[3]
+
+    # Calculate jump
+    b_jump = b_rr - b_ll
+
+    z = zero(eltype(u_ll))
+
+    # Bottom gradient nonconservative term: (0, g h b_x, 0)
+    f = SVector(z, equations.gravity * h_ll * b_jump, z)
+
+    return f
+end
+
+"""
     flux_fjordholm_etal(u_ll, u_rr, orientation,
                         equations::ShallowWaterEquations1D)
 
@@ -381,7 +419,7 @@ end
 
 A particular type of hydrostatic reconstruction on the water height to guarantee well-balancedness
 for a general bottom topography [`ShallowWaterEquations1D`](@ref). The reconstructed solution states
-`u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
+`u_ll_star` and `u_rr_star` variables are then used to evaluate the surface numerical flux at the interface.
 Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
 
 Further details on this hydrostatic reconstruction and its motivation can be found in
@@ -460,7 +498,7 @@ end
     end
 end
 
-# Calculate minimum and maximum wave speeds for HLL-type fluxes
+# Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::ShallowWaterEquations1D)
     h_ll = waterheight(u_ll, equations)
@@ -474,11 +512,46 @@ end
     return λ_min, λ_max
 end
 
+# More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
+@inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
+                                     equations::ShallowWaterEquations1D)
+    h_ll = waterheight(u_ll, equations)
+    v_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v_rr = velocity(u_rr, equations)
+
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    λ_min = min(v_ll - c_ll, v_rr - c_rr)
+    λ_max = max(v_ll + c_ll, v_rr + c_rr)
+
+    return λ_min, λ_max
+end
+
+@inline function min_max_speed_einfeldt(u_ll, u_rr, orientation::Integer,
+                                        equations::ShallowWaterEquations1D)
+    h_ll = waterheight(u_ll, equations)
+    v_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v_rr = velocity(u_rr, equations)
+
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    v_roe, c_roe = calc_wavespeed_roe(u_ll, u_rr, orientation, equations)
+
+    λ_min = min(v_ll - c_ll, v_roe - c_roe)
+    λ_max = max(v_rr + c_rr, v_roe + c_roe)
+
+    return λ_min, λ_max
+end
+
 @inline function max_abs_speeds(u, equations::ShallowWaterEquations1D)
     h = waterheight(u, equations)
     v = velocity(u, equations)
 
-    c = equations.gravity * sqrt(h)
+    c = sqrt(equations.gravity * h)
     return (abs(v) + c,)
 end
 
@@ -547,6 +620,35 @@ end
     return waterheight(u, equations) * pressure(u, equations)
 end
 
+"""
+    calc_wavespeed_roe(u_ll, u_rr, direction::Integer,
+                       equations::ShallowWaterEquations1D)
+
+Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = sqrt{g * h_roe}`
+See for instance equation (62) in 
+- Paul A. Ullrich, Christiane Jablonowski, and Bram van Leer (2010)
+  High-order finite-volume methods for the shallow-water equations on the sphere
+  [DOI: 10.1016/j.jcp.2010.04.044](https://doi.org/10.1016/j.jcp.2010.04.044)
+Or equation (9.17) in [this lecture notes](https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf).
+"""
+@inline function calc_wavespeed_roe(u_ll, u_rr, direction::Integer,
+                                    equations::ShallowWaterEquations1D)
+    h_ll = waterheight(u_ll, equations)
+    v_ll = velocity(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    v_rr = velocity(u_rr, equations)
+
+    h_roe = 0.5 * (h_ll + h_rr)
+    c_roe = sqrt(equations.gravity * h_roe)
+
+    h_ll_sqrt = sqrt(h_ll)
+    h_rr_sqrt = sqrt(h_rr)
+
+    v_roe = (h_ll_sqrt * v_ll + h_rr_sqrt * v_rr) / (h_ll_sqrt + h_rr_sqrt)
+
+    return v_roe, c_roe
+end
+
 # Entropy function for the shallow water equations is the total energy
 @inline function entropy(cons, equations::ShallowWaterEquations1D)
     energy_total(cons, equations)
@@ -572,9 +674,10 @@ end
 end
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
-# be a constant value over time
+# be a constant value over time. 
 @inline function lake_at_rest_error(u, equations::ShallowWaterEquations1D)
     h, _, b = u
+
     return abs(equations.H0 - (h + b))
 end
 end # @muladd

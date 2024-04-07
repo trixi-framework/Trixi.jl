@@ -132,7 +132,7 @@ end
     default_example()
 
 Return the path to an example elixir that can be used to quickly see Trixi.jl in action on a
-[`TreeMesh`]@(ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
+[`TreeMesh`](@ref). See also [`examples_dir`](@ref) and [`get_examples`](@ref).
 """
 function default_example()
     joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_basic.jl")
@@ -142,7 +142,7 @@ end
     default_example_unstructured()
 
 Return the path to an example elixir that can be used to quickly see Trixi.jl in action on an
-[`UnstructuredMesh2D`]@(ref). This simulation is run on the example curved, unstructured mesh
+[`UnstructuredMesh2D`](@ref). This simulation is run on the example curved, unstructured mesh
 given in the Trixi.jl documentation regarding unstructured meshes.
 """
 function default_example_unstructured()
@@ -155,7 +155,7 @@ end
 Return the default options for OrdinaryDiffEq's `solve`. Pass `ode_default_options()...` to `solve`
 to only return the solution at the final time and enable **MPI aware** error-based step size control,
 whenever MPI is used.
-For example, use `solve(ode, alg; ode_default_options()...)`
+For example, use `solve(ode, alg; ode_default_options()...)`.
 """
 function ode_default_options()
     if mpi_isparallel()
@@ -213,8 +213,8 @@ might be provided by other packages such as [Polyester.jl](https://github.com/Ju
     This macro does not necessarily work for general `for` loops. For example,
     it does not necessarily support general iterables such as `eachline(filename)`.
 
-Some discussion can be found at https://discourse.julialang.org/t/overhead-of-threads-threads/53964
-and https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435.
+Some discussion can be found at [https://discourse.julialang.org/t/overhead-of-threads-threads/53964](https://discourse.julialang.org/t/overhead-of-threads-threads/53964)
+and [https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435](https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435).
 """
 macro threaded(expr)
     # Use `esc(quote ... end)` for nested macro calls as suggested in
@@ -242,6 +242,8 @@ macro threaded(expr)
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
 
+    # By using `Trixi.@batch` we allow users of Trixi.jl to use `@threaded` without having
+    # Polyester.jl in their namespace.
     return esc(quote
                    Trixi.@batch $(expr)
                end)
@@ -344,5 +346,28 @@ function register_error_hints()
     end
 
     return nothing
+end
+
+"""
+    Trixi.download(src_url, file_path)
+
+Download a file from given `src_url` to given `file_path` if
+`file_path` is not already a file. This function just returns
+`file_path`.
+This is a small wrapper of `Downloads.download(src_url, file_path)`
+that avoids race conditions when multiple MPI ranks are used.
+"""
+function download(src_url, file_path)
+    # Note that `mpi_isroot()` is also `true` if running
+    # in serial (without MPI).
+    if mpi_isroot()
+        isfile(file_path) || Downloads.download(src_url, file_path)
+    end
+
+    if mpi_isparallel()
+        MPI.Barrier(mpi_comm())
+    end
+
+    return file_path
 end
 end # @muladd

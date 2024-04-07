@@ -136,6 +136,29 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     return nothing
 end
 
+function refine!(u_ode::AbstractVector, adaptor,
+                 mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
+                 equations, dg::DGSEM, cache, cache_parabolic,
+                 elements_to_refine)
+    # Call `refine!` for the hyperbolic part, which does the heavy lifting of
+    # actually transferring the solution to the refined cells
+    refine!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_refine)
+
+    # Resize parabolic helper variables
+    @unpack viscous_container = cache_parabolic
+    resize!(viscous_container, equations, dg, cache)
+    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
+
+    # Sanity check
+    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
+       !mpi_isparallel()
+        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
+                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    end
+
+    return nothing
+end
+
 # TODO: Taal compare performance of different implementations
 # Refine solution data u for an element, using L2 projection (interpolation)
 function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
@@ -275,6 +298,29 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     return nothing
 end
 
+function coarsen!(u_ode::AbstractVector, adaptor,
+                  mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
+                  equations, dg::DGSEM, cache, cache_parabolic,
+                  elements_to_remove)
+    # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
+    # actually transferring the solution to the coarsened cells
+    coarsen!(u_ode, adaptor, mesh, equations, dg, cache, elements_to_remove)
+
+    # Resize parabolic helper variables
+    @unpack viscous_container = cache_parabolic
+    resize!(viscous_container, equations, dg, cache)
+    reinitialize_containers!(mesh, equations, dg, cache_parabolic)
+
+    # Sanity check
+    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
+       !mpi_isparallel()
+        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
+                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    end
+
+    return nothing
+end
+
 # TODO: Taal compare performance of different implementations
 # Coarsen solution data u for four elements, using L2 projection
 function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
@@ -333,9 +379,84 @@ function coarsen_elements!(u::AbstractArray{<:Any, 4}, element_id,
     end
 end
 
+# Coarsen and refine elements in the DG solver based on a difference list.
+function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
+                dg::DGSEM, cache, difference)
+
+    # Return early if there is nothing to do.
+    if !any(difference .!= 0)
+        if mpi_isparallel()
+            # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+            # locally (there still might be other MPI ranks that have refined elements)
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
+        return
+    end
+
+    # Number of (local) cells/elements.
+    old_nelems = nelements(dg, cache)
+    new_nelems = ncells(mesh)
+
+    # Local element indices.
+    old_index = 1
+    new_index = 1
+
+    # Note: This is true for `quads`.
+    T8_CHILDREN = 4
+
+    # Retain current solution data.
+    old_u_ode = copy(u_ode)
+
+    GC.@preserve old_u_ode begin
+        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        reinitialize_containers!(mesh, equations, dg, cache)
+
+        resize!(u_ode,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+        while old_index <= old_nelems && new_index <= new_nelems
+            if difference[old_index] > 0 # Refine.
+
+                # Refine element and store solution directly in new data structure.
+                refine_element!(u, new_index, old_u, old_index, adaptor, equations, dg)
+
+                old_index += 1
+                new_index += T8_CHILDREN
+
+            elseif difference[old_index] < 0 # Coarsen.
+
+                # If an element is to be removed, sanity check if the following elements
+                # are also marked - otherwise there would be an error in the way the
+                # cells/elements are sorted.
+                @assert all(difference[old_index:(old_index + T8_CHILDREN - 1)] .< 0) "bad cell/element order"
+
+                # Coarsen elements and store solution directly in new data structure.
+                coarsen_elements!(u, new_index, old_u, old_index, adaptor, equations,
+                                  dg)
+
+                old_index += T8_CHILDREN
+                new_index += 1
+
+            else # No changes.
+
+                # Copy old element data to new element container.
+                @views u[:, .., new_index] .= old_u[:, .., old_index]
+
+                old_index += 1
+                new_index += 1
+            end
+        end # while
+    end # GC.@preserve old_u_ode
+
+    return nothing
+end
+
 # this method is called when an `ControllerThreeLevel` is constructed
 function create_cache(::Type{ControllerThreeLevel},
-                      mesh::Union{TreeMesh{2}, P4estMesh{2}}, equations, dg::DG, cache)
+                      mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
+                      dg::DG, cache)
     controller_value = Vector{Int}(undef, nelements(dg, cache))
     return (; controller_value)
 end

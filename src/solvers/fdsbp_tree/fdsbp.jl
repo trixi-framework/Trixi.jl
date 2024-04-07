@@ -27,6 +27,9 @@ The other arguments have the same meaning as in [`DG`](@ref) or [`DGSEM`](@ref).
 """
 const FDSBP = DG{Basis} where {Basis <: AbstractDerivativeOperator}
 
+# Internal abbreviation for easier-to-read dispatch (not exported)
+const PeriodicFDSBP = FDSBP{Basis} where {Basis <: AbstractPeriodicDerivativeOperator}
+
 function FDSBP(D_SBP::AbstractDerivativeOperator; surface_integral, volume_integral)
     # `nothing` is passed as `mortar`
     return DG(D_SBP, nothing, surface_integral, volume_integral)

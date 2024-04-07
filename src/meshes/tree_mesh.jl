@@ -125,9 +125,9 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
 
     # TODO: MPI, create nice interface for a parallel tree/mesh
     if mpi_isparallel()
-        if mpi_isroot() && NDIMS == 3
+        if mpi_isroot() && NDIMS != 2
             println(stderr,
-                    "ERROR: TreeMesh3D does not support parallel execution with MPI")
+                    "ERROR: The TreeMesh supports parallel execution with MPI only in 2 dimensions")
             MPI.Abort(mpi_comm(), 1)
         end
         TreeType = ParallelTree{NDIMS}
@@ -199,6 +199,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "length" => mesh.tree.length_level_0,
             "periodicity" => mesh.tree.periodicity,
             "current #cells" => mesh.tree.length,
+            "#leaf-cells" => count_leaf_cells(mesh.tree),
             "maximum #cells" => mesh.tree.capacity,
         ]
         summary_box(io, "TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}",
@@ -226,6 +227,9 @@ end
 function total_volume(mesh::TreeMesh)
     return mesh.tree.length_level_0^ndims(mesh)
 end
+
+isperiodic(mesh::TreeMesh) = isperiodic(mesh.tree)
+isperiodic(mesh::TreeMesh, dimension) = isperiodic(mesh.tree, dimension)
 
 include("parallel_tree_mesh.jl")
 end # @muladd

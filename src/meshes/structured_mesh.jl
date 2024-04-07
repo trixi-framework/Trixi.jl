@@ -33,7 +33,7 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
              the reference mesh to the physical domain.
              If no `mapping_as_string` is defined, this function must be defined with the name `mapping`
              to allow for restarts.
-             This will be changed in the future, see https://github.com/trixi-framework/Trixi.jl/issues/541.
+             This will be changed in the future, see [https://github.com/trixi-framework/Trixi.jl/issues/541](https://github.com/trixi-framework/Trixi.jl/issues/541).
 - `RealT::Type`: the type that should be used for coordinates.
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}`
                  deciding for each dimension if the boundaries in this dimension are periodic.
@@ -41,7 +41,7 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
 - `mapping_as_string::String`: the code that defines the `mapping`.
                                If `CodeTracking` can't find the function definition, it can be passed directly here.
                                The code string must define the mapping function with the name `mapping`.
-                               This will be changed in the future, see https://github.com/trixi-framework/Trixi.jl/issues/541.
+                               This will be changed in the future, see [https://github.com/trixi-framework/Trixi.jl/issues/541](https://github.com/trixi-framework/Trixi.jl/issues/541).
 """
 function StructuredMesh(cells_per_dimension, mapping; RealT = Float64,
                         periodicity = true, unsaved_changes = true,
@@ -96,13 +96,17 @@ function StructuredMesh(cells_per_dimension, faces::Tuple; RealT = Float64,
 
     # Collect definitions of face functions in one string (separated by semicolons)
     face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS - 1))
-    join_semicolon(strings) = join(strings, "; ")
+    join_newline(strings) = join(strings, "\n")
 
-    faces_definition = faces .|> face2substring .|> string |> join_semicolon
+    faces_definition = faces .|> face2substring .|> string |> join_newline
 
     # Include faces definition in `mapping_as_string` to allow for evaluation
     # without knowing the face functions
-    mapping_as_string = "$faces_definition; faces = $(string(faces)); mapping = transfinite_mapping(faces)"
+    mapping_as_string = """
+        $faces_definition
+        faces = $(string(faces))
+        mapping = transfinite_mapping(faces)
+        """
 
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
@@ -123,13 +127,14 @@ Create a StructuredMesh that represents a uncurved structured mesh with a rectan
 """
 function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                         periodicity = true)
-    NDIMS = length(cells_per_dimension)
     RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
-    mapping_as_string = "coordinates_min = $coordinates_min; " *
-                        "coordinates_max = $coordinates_max; " *
-                        "mapping = coordinates2mapping(coordinates_min, coordinates_max)"
+    mapping_as_string = """
+        coordinates_min = $coordinates_min
+        coordinates_max = $coordinates_max
+        mapping = coordinates2mapping(coordinates_min, coordinates_max)
+        """
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
                           mapping_as_string = mapping_as_string)

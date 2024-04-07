@@ -15,8 +15,9 @@ An unstructured (possibly curved) quadrilateral mesh.
 All mesh information, neighbour coupling, and boundary curve information is read in
 from a mesh file `filename`.
 """
-mutable struct UnstructuredMesh2D{RealT <: Real, CurvedSurfaceT <: CurvedSurface{RealT}
-                                  } <: AbstractMesh{2}
+mutable struct UnstructuredMesh2D{RealT <: Real,
+                                  CurvedSurfaceT <: CurvedSurface{RealT}} <:
+               AbstractMesh{2}
     filename              :: String
     n_corners             :: Int
     n_surfaces            :: Int # total number of surfaces

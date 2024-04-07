@@ -34,7 +34,7 @@ Hence, you should at least investigate the performance roughly by comparing the 
 timings of several elixirs. Deeper investigations and micro-benchmarks should usually use
 [BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl).
 For example, the following steps were used to benchmark the changes introduced in
-https://github.com/trixi-framework/Trixi.jl/pull/256.
+[PR #256](https://github.com/trixi-framework/Trixi.jl/pull/256).
 
 1. `git checkout e7ebf3846b3fd62ee1d0042e130afb50d7fe8e48` (new version)
 2. Start `julia --threads=1 --check-bounds=no`.
@@ -106,7 +106,22 @@ resulting performance improvements of Trixi.jl are given in the following blog p
 We use [PkgBenchmark.jl](https://github.com/JuliaCI/PkgBenchmark.jl) to provide a standard set of
 benchmarks for Trixi.jl. The relevant benchmark script is
 [benchmark/benchmarks.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/benchmark/benchmarks.jl).
-You can run a standard set of benchmarks via
+To benchmark the changes made in a PR, please proceed as follows:
+
+1. Check out the latest `main` branch of your Trixi.jl development repository.
+2. Check out the latest development branch of your PR.
+3. Change your working directory to the `benchmark` directory of Trixi.jl.
+4. Execute `julia run_benchmarks.jl`.
+
+This will take some hours to complete and requires at least 8 GiB of RAM. When everything is finished, some
+output files will be created in the `benchmark` directory of Trixi.jl.
+
+!!! warning
+    Please note that the benchmark scripts use `--check-bounds=no` at the moment.
+    Thus, they will not work in any useful way for Julia v1.10 (and newer?), see
+    [Julia issue #50985](https://github.com/JuliaLang/julia/issues/50985).
+
+You can also run a standard set of benchmarks manually via
 ```julia
 julia> using PkgBenchmark, Trixi
 
@@ -170,7 +185,7 @@ As a rule of thumb:
 - Consider using `@nospecialize` for methods like custom implementations of `Base.show`.
 
 
-## Performance metrics of the `AnalysisCallback`
+## [Performance metrics of the `AnalysisCallback`](@id performance-metrics)
 The [`AnalysisCallback`](@ref) computes two performance indicators that you can use to
 evaluate the serial and parallel performance of Trixi.jl. They represent
 measured run times that are normalized by the number of `rhs!` evaluations and

@@ -22,7 +22,7 @@ using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, norm
                      UniformScaling, det
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
-                    rowvals, nzrange, nonzeros, spzeros
+                    rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -32,12 +32,14 @@ using Reexport: @reexport
 using MPI: MPI
 
 using SciMLBase: CallbackSet, DiscreteCallback,
-                 ODEProblem, ODESolution, ODEFunction,
+                 ODEProblem, ODESolution,
                  SplitODEProblem
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
-                  AbstractODEIntegrator, init, step!, check_error,
+                  init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
-                  terminate!, remake
+                  terminate!, remake, add_tstop!, has_tstop, first_tstop
+
+using Downloads: Downloads
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
@@ -51,10 +53,10 @@ using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
-using Polyester: @batch # You know, the cheapest threads you can find...
+using Polyester: Polyester, @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
-using Setfield: @set
+using T8code
 using RecipesBase: RecipesBase
 using Requires: @require
 using Static: Static, One, True, False
@@ -63,18 +65,27 @@ using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
-using Triangulate: Triangulate, TriangulateIO, triangulate
+using Triangulate: Triangulate, TriangulateIO
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
+@reexport using TrixiBase: trixi_include
+using TrixiBase: TrixiBase
 @reexport using SimpleUnPack: @unpack
 using SimpleUnPack: @pack!
+using DataStructures: BinaryHeap, FasterForward, extract_all!
+
+using UUIDs: UUID
+using Preferences: @load_preference, set_preferences!
+
+const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
+const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
-                                 AbstractNonperiodicDerivativeOperator, DerivativeOperator,
+                                 AbstractNonperiodicDerivativeOperator,
                                  AbstractPeriodicDerivativeOperator,
-                                 PeriodicDerivativeOperator, grid
+                                 grid
 import SummationByPartsOperators: integrate, semidiscretize,
                                   compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight
@@ -83,7 +94,8 @@ import SummationByPartsOperators: integrate, semidiscretize,
                                            upwind_operators
 
 # DGMulti solvers
-@reexport using StartUpDG: StartUpDG, Polynomial, Gauss, SBP, Line, Tri, Quad, Hex, Tet
+@reexport using StartUpDG: StartUpDG, Polynomial, Gauss, TensorProductWedge, SBP, Line, Tri,
+                           Quad, Hex, Tet, Wedge
 using StartUpDG: RefElemData, MeshData, AbstractElemShape
 
 # TODO: include_optimized
@@ -109,6 +121,7 @@ include("basic_types.jl")
 include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
+include("auxiliary/t8code.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")
@@ -118,12 +131,12 @@ include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
+include("time_integration/time_integration.jl")
 include("callbacks_step/callbacks_step.jl")
 include("callbacks_stage/callbacks_stage.jl")
 include("semidiscretization/semidiscretization_euler_gravity.jl")
-include("time_integration/time_integration.jl")
 
-# `trixi_include` and special elixirs such as `convergence_test`
+# Special elixirs such as `convergence_test`
 include("auxiliary/special_elixirs.jl")
 
 # Plot recipes and conversion functions to visualize results with Plots.jl
@@ -136,6 +149,7 @@ export AcousticPerturbationEquations2D,
        CompressibleEulerEquations3D,
        CompressibleEulerMulticomponentEquations1D,
        CompressibleEulerMulticomponentEquations2D,
+       CompressibleEulerEquationsQuasi1D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D,
@@ -145,25 +159,30 @@ export AcousticPerturbationEquations2D,
        InviscidBurgersEquation1D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
-       ShallowWaterTwoLayerEquations1D, ShallowWaterTwoLayerEquations2D,
-       LinearizedEulerEquations2D
+       ShallowWaterEquationsQuasi1D,
+       LinearizedEulerEquations1D, LinearizedEulerEquations2D,
+       PolytropicEulerEquations2D,
+       TrafficFlowLWREquations1D
 
-export LaplaceDiffusion1D, LaplaceDiffusion2D,
-       CompressibleNavierStokesDiffusion2D, CompressibleNavierStokesDiffusion3D
+export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
+       CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
+       CompressibleNavierStokesDiffusion3D
 
-export GradientVariablesPrimitive, GradientVariablesEntropy
+export GradientVariablesConservative, GradientVariablesPrimitive, GradientVariablesEntropy
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_godunov,
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
-       flux_nonconservative_powell,
+       flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
-       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal, flux_es_fjordholm_etal,
+       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
        flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
+       flux_nonconservative_ersing_etal,
+       flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        FluxLaxFriedrichs, max_abs_speed_naive,
-       FluxHLL, min_max_speed_naive,
+       FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
        FluxLMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
@@ -171,7 +190,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxUpwind
 
 export splitting_steger_warming, splitting_vanleer_haenel,
-       splitting_coirier_vanleer, splitting_lax_friedrichs
+       splitting_coirier_vanleer, splitting_lax_friedrichs,
+       splitting_drikakis_tsangaris
 
 export initial_condition_constant,
        initial_condition_gauss,
@@ -205,7 +225,7 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
-export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh
+export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
@@ -218,6 +238,9 @@ export DG,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
+
+export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
+       SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
@@ -238,14 +261,14 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AveragingCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
-       TrivialCallback, AnalysisCallbackCoupled
+       TrivialCallback, AnalysisCallbackCoupled,
+       AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure
 
-export load_mesh, load_time
+export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
+       load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax,
-       IndicatorNeuralNetwork, NeuralNetworkPerssonPeraire, NeuralNetworkRayHesthaven,
-       NeuralNetworkCNN
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax
 
 export PositivityPreservingLimiterZhangShu
 
@@ -269,6 +292,7 @@ function __init__()
     init_mpi()
 
     init_p4est()
+    init_t8code()
 
     register_error_hints()
 
@@ -282,10 +306,6 @@ function __init__()
         @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
             include("../ext/TrixiMakieExt.jl")
         end
-    end
-
-    @require Flux="587475ba-b771-5e3f-ad9e-33799f191a9c" begin
-        using .Flux: params
     end
 
     # FIXME upstream. This is a hacky workaround for

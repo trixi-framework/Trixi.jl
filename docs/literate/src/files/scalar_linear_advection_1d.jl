@@ -115,7 +115,7 @@ integral = sum(nodes.^3 .* weights)
 # To approximate the solution, we need to get the polynomial coefficients $\{u_j^{Q_l}\}_{j=0}^N$
 # for every element $Q_l$.
 
-# After defining all nodes, we can implement the spatial coordinate $x$ and its initial value $u0$
+# After defining all nodes, we can implement the spatial coordinate $x$ and its initial value $u0 = u(t_0)$
 # for every node.
 x = Matrix{Float64}(undef, length(nodes), n_elements)
 for element in 1:n_elements
@@ -511,3 +511,15 @@ sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode
 
 plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+           mode=PKGMODE_MANIFEST)

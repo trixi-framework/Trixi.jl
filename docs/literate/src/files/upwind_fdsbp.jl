@@ -62,3 +62,15 @@ Matrix(D_upw.plus)
 # flux vector splitting, e.g.,
 # - [`elixir_euler_vortex.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_fdsbp/elixir_euler_vortex.jl)
 # - [`elixir_euler_taylor_green_vortex.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_3d_fdsbp/elixir_euler_taylor_green_vortex.jl)
+
+
+# ## Package versions
+
+# These results were obtained using the following versions.
+
+using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status(["Trixi", "SummationByPartsOperators"],
+           mode=PKGMODE_MANIFEST)

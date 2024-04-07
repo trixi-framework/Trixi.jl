@@ -1,0 +1,86 @@
+name: Downgrade
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CITATION.bib'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'NEWS.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
+      - 'docs/**'
+      - 'utils/**'
+  workflow_dispatch:
+
+# Cancel redundant CI tests automatically
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  downgrade_test:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    # We could also include the Julia version as in
+    # name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    # to be more specific. However, that requires us updating the required CI tests whenever we update Julia.
+    name: Downgrade ${{ matrix.trixi_test }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.9'
+          # - '~1.9.0-0' # including development versions
+          # - 'nightly'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+        trixi_test:
+          # - tree_part1
+          # - tree_part2
+          # - tree_part3
+          # - tree_part4
+          # - tree_part5
+          # - tree_part6
+          # - structured
+          # - p4est_part1
+          # - p4est_part2
+          # - t8code_part1
+          # - unstructured_dgmulti
+          # - parabolic
+          # - paper_self_gravitating_gas_dynamics
+          # - misc_part1
+          # - misc_part2
+          # - performance_specializations_part1
+          # - performance_specializations_part2
+          # - mpi
+          - threaded
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-downgrade-compat@v1
+        with:
+          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DiffEqBase
+          projects: ., test
+      - uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ""
+      - name: Run tests without coverage
+        uses: julia-actions/julia-runtest@v1
+        with:
+          coverage: false
+        env:
+          PYTHON: ""
+          TRIXI_TEST: ${{ matrix.trixi_test }}

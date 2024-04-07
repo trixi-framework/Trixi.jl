@@ -375,7 +375,7 @@ During the simulation, the visualization callback creates and displays
 visualizations of the current solution in regular intervals. This can be useful
 to, e.g., monitor the validity of a long-running simulation or for illustrative
 purposes. An example for how to create a `VisualizationCallback` can be found in
-[examples/tree_2d_dgsem/elixir\_advection\_amr\_visualization.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_amr_visualization.jl):
+[`examples/tree_2d_dgsem/elixir_advection_amr_visualization.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_amr_visualization.jl):
 ```julia
 [...]
 

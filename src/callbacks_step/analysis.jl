@@ -23,6 +23,13 @@ Additional errors can be computed, e.g. by passing
 `extra_analysis_errors = (:l2_error_primitive, :linf_error_primitive)`
 or `extra_analysis_errors = (:conservation_error,)`.
 
+If you want to omit the computation (to safe compute-time) of the [`default_analysis_errors`](@ref), specify
+`analysis_errors = Symbol[]`.
+Note: `default_analysis_errors` are `:l2_error` and `:linf_error` for all equations.
+If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e., 
+without `:l2_error, :linf_error` you need to specify 
+`analysis_errors = [:conservation_error]` instead of `extra_analysis_errors = [:conservation_error]`.
+
 Further scalar functions `func` in `extra_analysis_integrals` are applied to the numerical
 solution and integrated over the computational domain. Some examples for this are
 [`entropy`](@ref), [`energy_kinetic`](@ref), [`energy_internal`](@ref), and [`energy_total`](@ref).
@@ -232,6 +239,12 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     @unpack dt, t = integrator
     iter = integrator.stats.naccept
 
+    # Compute the percentage of the simulation that is done
+    t = integrator.t
+    t_initial = first(integrator.sol.prob.tspan)
+    t_final = last(integrator.sol.prob.tspan)
+    sim_time_percentage = (t - t_initial) / (t_final - t_initial) * 100
+
     # Record performance measurements and compute performance index (PID)
     runtime_since_last_analysis = 1.0e-9 * (time_ns() -
                                    analysis_callback.start_time_last_analysis)
@@ -267,7 +280,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     gc_time_absolute = 1.0e-9 * (Base.gc_time_ns() - analysis_callback.start_gc_time)
 
     # Compute the percentage of total time that was spent in garbage collection
-    gc_time_percentage = gc_time_absolute / runtime_absolute
+    gc_time_percentage = gc_time_absolute / runtime_absolute * 100
 
     # Obtain the current memory usage of the Julia garbage collector, in MiB, i.e., the total size of
     # objects in memory that have been allocated by the JIT compiler or the user code.
@@ -291,13 +304,13 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     "               " *
                     " └── GC time:    " *
                     @sprintf("%10.8e s (%5.3f%%)", gc_time_absolute, gc_time_percentage))
-        mpi_println(" sim. time:      " * @sprintf("%10.8e", t) *
-                    "               " *
+        mpi_println(rpad(" sim. time:      " *
+                         @sprintf("%10.8e (%5.3f%%)", t, sim_time_percentage), 46) *
                     " time/DOF/rhs!:  " * @sprintf("%10.8e s", runtime_relative))
         mpi_println("                 " * "              " *
                     "               " *
                     " PID:            " * @sprintf("%10.8e s", performance_index))
-        mpi_println(" #DOF:           " * @sprintf("% 14d", ndofs(semi)) *
+        mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofs(semi)) *
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *
@@ -326,7 +339,8 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
         u = wrap_array(u_ode, mesh, equations, solver, cache)
         du = wrap_array(du_ode, mesh, equations, solver, cache)
-        l2_error, linf_error = analysis_callback(io, du, u, u_ode, t, semi)
+        # Compute l2_error, linf_error
+        analysis_callback(io, du, u, u_ode, t, semi)
 
         mpi_println("─"^100)
         mpi_println()
@@ -348,8 +362,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     analysis_callback.start_time_last_analysis = time_ns()
     analysis_callback.ncalls_rhs_last_analysis = ncalls(semi.performance_counter)
 
-    # Return errors for EOC analysis
-    return l2_error, linf_error
+    return nothing
 end
 
 # This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
@@ -371,28 +384,31 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
         println()
     end
 
-    # Calculate L2/Linf errors, which are also returned
-    l2_error, linf_error = calc_error_norms(u_ode, t, analyzer, semi, cache_analysis)
+    if :l2_error in analysis_errors || :linf_error in analysis_errors
+        # Calculate L2/Linf errors
+        l2_error, linf_error = calc_error_norms(u_ode, t, analyzer, semi,
+                                                cache_analysis)
 
-    if mpi_isroot()
-        # L2 error
-        if :l2_error in analysis_errors
-            print(" L2 error:    ")
-            for v in eachvariable(equations)
-                @printf("  % 10.8e", l2_error[v])
-                @printf(io, "  % 10.8e", l2_error[v])
+        if mpi_isroot()
+            # L2 error
+            if :l2_error in analysis_errors
+                print(" L2 error:    ")
+                for v in eachvariable(equations)
+                    @printf("  % 10.8e", l2_error[v])
+                    @printf(io, "  % 10.8e", l2_error[v])
+                end
+                println()
             end
-            println()
-        end
 
-        # Linf error
-        if :linf_error in analysis_errors
-            print(" Linf error:  ")
-            for v in eachvariable(equations)
-                @printf("  % 10.8e", linf_error[v])
-                @printf(io, "  % 10.8e", linf_error[v])
+            # Linf error
+            if :linf_error in analysis_errors
+                print(" Linf error:  ")
+                for v in eachvariable(equations)
+                    @printf("  % 10.8e", linf_error[v])
+                    @printf(io, "  % 10.8e", linf_error[v])
+                end
+                println()
             end
-            println()
         end
     end
 
@@ -471,7 +487,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     # additional integrals
     analyze_integrals(analysis_integrals, io, du, u, t, semi)
 
-    return l2_error, linf_error
+    return nothing
 end
 
 # Print level information only if AMR is enabled
@@ -508,7 +524,7 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
 
     elements_per_level = zeros(P4EST_MAXLEVEL + 1)
 
-    for tree in unsafe_wrap_sc(p4est_tree_t, unsafe_load(mesh.p4est).trees)
+    for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
         elements_per_level .+= tree.quadrants_per_level
     end
 
@@ -530,6 +546,36 @@ function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
     end
     mpi_println(" └── level $min_level:    " *
                 @sprintf("% 14d", elements_per_level[min_level + 1]))
+
+    return nothing
+end
+
+# Print level information only if AMR is enabled
+function print_amr_information(callbacks, mesh::T8codeMesh, solver, cache)
+
+    # Return early if there is nothing to print
+    uses_amr(callbacks) || return nothing
+
+    # TODO: Switch to global element levels array when MPI supported or find
+    # another solution.
+    levels = trixi_t8_get_local_element_levels(mesh.forest)
+
+    min_level = minimum(levels)
+    max_level = maximum(levels)
+
+    mpi_println(" minlevel = $min_level")
+    mpi_println(" maxlevel = $max_level")
+
+    if min_level > 0
+        elements_per_level = [count(==(l), levels) for l in 1:max_level]
+
+        for level in max_level:-1:(min_level + 1)
+            mpi_println(" ├── level $level:    " *
+                        @sprintf("% 14d", elements_per_level[level]))
+        end
+        mpi_println(" └── level $min_level:    " *
+                    @sprintf("% 14d", elements_per_level[min_level]))
+    end
 
     return nothing
 end
@@ -645,6 +691,7 @@ end # @muladd
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
+include("analysis_surface_integral_2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")

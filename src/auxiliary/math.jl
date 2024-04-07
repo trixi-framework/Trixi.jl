@@ -5,6 +5,103 @@
 @muladd begin
 #! format: noindent
 
+const TRIXI_UUID = UUID("a7f1ee26-1774-49b1-8366-f1abc58fbfcb")
+
+"""
+    Trixi.set_sqrt_type(type; force = true)
+
+Set the `type` of the square root function to be used in Trixi.jl.
+The default is `"sqrt_Trixi_NaN"` which returns `NaN` for negative arguments
+instead of throwing an error.
+Alternatively, you can set `type` to `"sqrt_Base"` to use the Julia built-in `sqrt` function 
+which provides a stack-trace of the error which might come in handy when debugging code.
+"""
+function set_sqrt_type(type; force = true)
+    @assert type == "sqrt_Trixi_NaN"||type == "sqrt_Base" "Only allowed `sqrt` function types are `\"sqrt_Trixi_NaN\"` and `\"sqrt_Base\"`"
+    set_preferences!(TRIXI_UUID, "sqrt" => type, force = force)
+    @info "Please restart Julia and reload Trixi.jl for the `sqrt` computation change to take effect"
+end
+
+@static if _PREFERENCE_SQRT == "sqrt_Trixi_NaN"
+    """
+        Trixi.sqrt(x::Real)
+
+    Custom square root function which returns `NaN` for negative arguments instead of throwing an error.
+    This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
+    when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
+    i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
+
+    We dispatch this function for `Float64, Float32, Float16` to the LLVM intrinsics 
+    `llvm.sqrt.f64`, `llvm.sqrt.f32`, `llvm.sqrt.f16` as for these the LLVM functions can be used out-of the box, 
+    i.e., they return `NaN` for negative arguments.
+    In principle, one could also use the `sqrt_llvm` call, but for transparency and consistency with [`log`](@ref) we 
+    spell out the datatype-dependent functions here. 
+    For other types, such as integers or dual numbers required for algorithmic differentiation, we
+    fall back to the Julia built-in `sqrt` function after a check for negative arguments.
+    Since these cases are not performance critical, the check for negativity does not hurt here 
+    and can (as of now) even be optimized away by the compiler due to the implementation of `sqrt` in Julia.
+
+    When debugging code, it might be useful to change the implementation of this function to redirect to 
+    the Julia built-in `sqrt` function, as this reports the exact place in code where the domain is violated 
+    in the stacktrace.
+
+    See also [`Trixi.set_sqrt_type`](@ref).
+    """
+    @inline sqrt(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.sqrt(x)
+
+    # For `sqrt` we could use the `sqrt_llvm` call, ...
+    #@inline sqrt(x::Union{Float64, Float32, Float16}) = Base.sqrt_llvm(x)
+
+    # ... but for transparency and consistency we use the direct LLVM calls here.
+    @inline sqrt(x::Float64) = ccall("llvm.sqrt.f64", llvmcall, Float64, (Float64,), x)
+    @inline sqrt(x::Float32) = ccall("llvm.sqrt.f32", llvmcall, Float32, (Float32,), x)
+    @inline sqrt(x::Float16) = ccall("llvm.sqrt.f16", llvmcall, Float16, (Float16,), x)
+end
+
+"""
+    Trixi.set_log_type(type; force = true)
+
+Set the `type` of the (natural) `log` function to be used in Trixi.jl.
+The default is `"sqrt_Trixi_NaN"` which returns `NaN` for negative arguments
+instead of throwing an error.
+Alternatively, you can set `type` to `"sqrt_Base"` to use the Julia built-in `sqrt` function 
+which provides a stack-trace of the error which might come in handy when debugging code.
+"""
+function set_log_type(type; force = true)
+    @assert type == "log_Trixi_NaN"||type == "log_Base" "Only allowed log function types are `\"log_Trixi_NaN\"` and `\"log_Base\"`."
+    set_preferences!(TRIXI_UUID, "log" => type, force = force)
+    @info "Please restart Julia and reload Trixi.jl for the `log` computation change to take effect"
+end
+
+@static if _PREFERENCE_LOG == "log_Trixi_NaN"
+    """
+        Trixi.log(x::Real)
+
+    Custom natural logarithm function which returns `NaN` for negative arguments instead of throwing an error.
+    This is required to ensure [correct results for multithreaded computations](https://github.com/trixi-framework/Trixi.jl/issues/1766) 
+    when using the [`Polyester` package](https://github.com/JuliaSIMD/Polyester.jl), 
+    i.e., using the `@batch` macro instead of the Julia built-in `@threads` macro, see [`@threaded`](@ref).
+
+    We dispatch this function for `Float64, Float32, Float16` to the respective LLVM intrinsics 
+    `llvm.log.f64`, `llvm.log.f32`, `llvm.log.f16` as for this the LLVM functions can be used out-of the box, i.e., 
+    they return `NaN` for negative arguments.
+    For other types, such as integers or dual numbers required for algorithmic differentiation, we
+    fall back to the Julia built-in `log` function after a check for negative arguments.
+    Since these cases are not performance critical, the check for negativity does not hurt here.
+
+    When debugging code, it might be useful to change the implementation of this function to redirect to 
+    the Julia built-in `log` function, as this reports the exact place in code where the domain is violated 
+    in the stacktrace.
+
+    See also [`Trixi.set_log_type`](@ref).
+    """
+    @inline log(x::Real) = x < zero(x) ? oftype(x, NaN) : Base.log(x)
+
+    @inline log(x::Float64) = ccall("llvm.log.f64", llvmcall, Float64, (Float64,), x)
+    @inline log(x::Float32) = ccall("llvm.log.f32", llvmcall, Float32, (Float32,), x)
+    @inline log(x::Float16) = ccall("llvm.log.f16", llvmcall, Float16, (Float16,), x)
+end
+
 """
     ln_mean(x, y)
 
@@ -51,7 +148,7 @@ Given ε = 1.0e-4, we use the following algorithm.
 - Agner Fog.
   Lists of instruction latencies, throughputs and micro-operation breakdowns
   for Intel, AMD, and VIA CPUs.
-  https://www.agner.org/optimize/instruction_tables.pdf
+  [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
 @inline function ln_mean(x, y)
     epsilon_f2 = 1.0e-4
@@ -166,8 +263,10 @@ checks necessary in the presence of `NaN`s (or signed zeros).
 
 # Examples
 
+```jldoctest
 julia> max(2, 5, 1)
 5
+```
 """
 @inline max(args...) = @fastmath max(args...)
 
@@ -183,8 +282,10 @@ checks necessary in the presence of `NaN`s (or signed zeros).
 
 # Examples
 
+```jldoctest
 julia> min(2, 5, 1)
 1
+```
 """
 @inline min(args...) = @fastmath min(args...)
 
@@ -206,5 +307,72 @@ Return `x` if `x` is negative, else zero. In other words, return
 """
 @inline function negative_part(x)
     return min(x, zero(x))
+end
+
+"""
+    stolarsky_mean(x, y, gamma)
+
+Compute an instance of a weighted Stolarsky mean of the form
+
+    stolarsky_mean(x, y, gamma) = (gamma - 1)/gamma * (y^gamma - x^gamma) / (y^(gamma-1) - x^(gamma-1))
+
+where `gamma > 1`.
+
+Problem: The formula above has a removable singularity at `x == y`. Thus,
+some care must be taken to implement it correctly without problems or loss
+of accuracy when `x ≈ y`. Here, we use the approach proposed by
+Winters et al. (2020).
+Set f = (y - x) / (y + x) and g = gamma (for compact notation).
+Then, we use the expansions
+
+    ((1+f)^g - (1-f)^g) / g = 2*f + (g-1)(g-2)/3 * f^3 + (g-1)(g-2)(g-3)(g-4)/60 * f^5 + O(f^7)
+
+and
+
+    ((1+f)^(g-1) - (1-f)^(g-1)) / (g-1) = 2*f + (g-2)(g-3)/3 * f^3 + (g-2)(g-3)(g-4)(g-5)/60 * f^5 + O(f^7)
+
+Inserting the first few terms of these expansions and performing polynomial long division
+we find that
+
+    stolarsky_mean(x, y, gamma) ≈ (y + x) / 2 * (1 + (g-2)/3 * f^2 - (g+1)(g-2)(g-3)/45 * f^4 + (g+1)(g-2)(g-3)(2g(g-2)-9)/945 * f^6)
+
+Since divisions are usually more expensive on modern hardware than
+multiplications (Agner Fog), we try to avoid computing two divisions. Thus,
+we use
+
+    f^2 = (y - x)^2 / (x + y)^2
+        = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y)
+
+Given ε = 1.0e-4, we use the following algorithm.
+
+    if f^2 < ε
+      # use the expansion above
+    else
+      # use the direct formula (gamma - 1)/gamma * (y^gamma - x^gamma) / (y^(gamma-1) - x^(gamma-1))
+    end
+
+# References
+- Andrew R. Winters, Christof Czernik, Moritz B. Schily & Gregor J. Gassner (2020)
+  Entropy stable numerical approximations for the isothermal and polytropic
+  Euler equations
+  [DOI: 10.1007/s10543-019-00789-w](https://doi.org/10.1007/s10543-019-00789-w)
+- Agner Fog.
+  Lists of instruction latencies, throughputs and micro-operation breakdowns
+  for Intel, AMD, and VIA CPUs.
+  [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
+"""
+@inline function stolarsky_mean(x, y, gamma)
+    epsilon_f2 = 1.0e-4
+    f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
+    if f2 < epsilon_f2
+        # convenience coefficients
+        c1 = (1 / 3) * (gamma - 2)
+        c2 = -(1 / 15) * (gamma + 1) * (gamma - 3) * c1
+        c3 = -(1 / 21) * (2 * gamma * (gamma - 2) - 9) * c2
+        return 0.5 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
+    else
+        return (gamma - 1) / gamma * (y^gamma - x^gamma) /
+               (y^(gamma - 1) - x^(gamma - 1))
+    end
 end
 end # @muladd

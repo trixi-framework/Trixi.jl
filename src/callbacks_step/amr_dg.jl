@@ -6,12 +6,14 @@
 #! format: noindent
 
 # Redistribute data for load balancing after partitioning the mesh
-function rebalance_solver!(u_ode::AbstractVector, mesh::ParallelP4estMesh, equations,
+function rebalance_solver!(u_ode::AbstractVector,
+                           mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
+                           equations,
                            dg::DGSEM, cache, old_global_first_quadrant)
-    # mpi ranks are 0-based, this array uses 1-based indices
-    global_first_quadrant = unsafe_wrap(Array,
-                                        unsafe_load(mesh.p4est).global_first_quadrant,
-                                        mpi_nranks() + 1)
+
+    # MPI ranks are 0-based. This array uses 1-based indices.
+    global_first_quadrant = get_global_first_element_ids(mesh)
+
     if global_first_quadrant[mpi_rank() + 1] ==
        old_global_first_quadrant[mpi_rank() + 1] &&
        global_first_quadrant[mpi_rank() + 2] ==
