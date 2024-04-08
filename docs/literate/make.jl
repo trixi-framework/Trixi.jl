@@ -75,7 +75,16 @@ function create_tutorials(files)
     end
 
     # Generate markdown file for introduction page
-    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction")
+    # Preprocessing introduction file: Generate tutorial numbers
+    function preprocess_introduction(content)
+        counter = 1
+        while occursin("# ### [Number: ", content)
+            content = replace(content, "# ### [Number:" => "# ### [$counter", count = 1)
+            counter += 1
+        end
+        return content
+    end
+    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction", preprocess=preprocess_introduction)
     # Navigation system for makedocs
     pages = Any["Introduction" => "tutorials/introduction.md",]
 
