@@ -39,9 +39,11 @@
 # - parameters of Newton method (max_iterations_newton = 10, newton_tolerances = (1.0e-12, 1.0e-14), gamma_constant_newton = 2 * ndims(equations)))
 # - positivity_correction_factor (Maybe show calculation of bounds, also of local bounds)
 
-# # [`SubcellLimiterIDP`](@id SubcellLimiterIDP)
-# The IDP limiter supports several options of limiting which are passed very flexible as parameters to
-# the limiter individually.
+# # [IDP Limiting](@id IDPLimiter)
+# The implementation of the invariant domain preserving (IDP) limiting approach ([`SubcellLimiterIDP`](@ref))
+# is based on [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.101/j.compfluid.2022.105627)
+# and [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876).
+# It supports several types of limiting which are enabled by passing parameters individually.
 
 # ### Global bounds
 # First, there is the use of global bounds. If enabled, they enforce physical admissibility
@@ -57,9 +59,7 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 # The quantity name of the density is `rho` shich is how we enable its limiting.
-# ````julia
-# positivity_variables_cons = ["rho"]
-# ````
+positivity_variables_cons = ["rho"]
 
 # The quantity names are passed as a vector to allow several quantities.
 # This is for instance used if you want to limit the density of two different components using
@@ -68,22 +68,16 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
                                                        gas_constants = (0.287, 1.578))
 
 # Then, we just pass both quantity names.
-# ````julia
-# positivity_variables_cons = ["rho1", "rho2"]
-# ````
+positivity_variables_cons = ["rho1", "rho2"]
 
 # Alternatively, it is possible to all limit all density variables with a general command using
-# ````julia
-# positivity_variables_cons = ["rho" * string(i) for i in eachcomponent(equations)]
-# ````
+positivity_variables_cons = ["rho" * string(i) for i in eachcomponent(equations)]
 
 # #### Non-linear variables
 # To allow limitation for all possible non-linear variables including on-the-fly defined ones,
 # you directly pass function here.
 # For instance, if you want to enforce non-negativity for the pressure, do as follows.
-# ````julia
-# positivity_variables_nonlinear = [pressure]
-# ````
+positivity_variables_nonlinear = [pressure]
 
 # ### Local bounds
 # Second, Trixi.jl supports the limiting with local bounds for conservative variables. They
@@ -96,9 +90,7 @@ equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
 # As for the limiting with global bounds you are passing the quantity names of the conservative
 # variables you want to limit. So, to limit the density with lower and upper local bounds pass
 # the following.
-# ````julia
-# local_minmax_variables_cons = ["rho"]
-# ````
+local_minmax_variables_cons = ["rho"]
 
 # ## Exemplary simulation
 # How to set up a simulation using the IDP limiting becomes clearer when lokking at a exemplary
@@ -142,7 +134,7 @@ volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 
 # The actual limiter is implemented within [`SubcellLimiterIDP`](@ref). It always requires the
-# parameters `equations` and `basis`. With additional parameters (described [above](@ref SubcellLimiterIDP)
+# parameters `equations` and `basis`. With additional parameters (described [above](@ref IDPLimiter)
 # or listed in the docstring) you can specify and enabled the wanted limiting options.
 # Here, the simulation should contain local limiting for the density using lower and upper bounds.
 limiter_idp = SubcellLimiterIDP(equations, basis;
