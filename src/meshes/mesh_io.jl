@@ -74,6 +74,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["n_cells"] = n_cells
+        attributes(file)["capacity"] = mesh.tree.capacity
         attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
         attributes(file)["minimum_level"] = minimum_level(mesh.tree)
         attributes(file)["maximum_level"] = maximum_level(mesh.tree)

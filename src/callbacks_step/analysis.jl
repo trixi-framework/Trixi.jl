@@ -9,11 +9,11 @@
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
 """
     AnalysisCallback(semi; interval=0,
-                           save_analysis=false,
-                           output_directory="out",
-                           analysis_filename="analysis.dat",
-                           extra_analysis_errors=Symbol[],
-                           extra_analysis_integrals=())
+                            save_analysis=false,
+                            output_directory="out",
+                            analysis_filename="analysis.dat",
+                            extra_analysis_errors=Symbol[],
+                            extra_analysis_integrals=())
 
 Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in
@@ -634,9 +634,7 @@ pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
 
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
-# precomputed gradients are available. For now only implemented for the `enstrophy`
-#!!! warning "Experimental code"
-#    This code is experimental and may be changed or removed in any future release.
+# precomputed gradients are available.
 function analyze(quantity::typeof(enstrophy), du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
@@ -691,6 +689,23 @@ end # @muladd
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
+include("analysis_surface_integral_2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
+
+# Special analyze for `SemidiscretizationHyperbolicParabolic` such that
+# precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
+# Note that this needs to be included after `analysis_surface_integral_2d.jl` to 
+# have `VariableViscous` available.
+function analyze(quantity::AnalysisSurfaceIntegral{Variable},
+                 du, u, t,
+                 semi::SemidiscretizationHyperbolicParabolic) where {
+                                                                     Variable <:
+                                                                     VariableViscous}
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+            cache_parabolic)
+end

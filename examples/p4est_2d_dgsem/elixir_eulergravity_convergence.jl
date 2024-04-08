@@ -10,7 +10,7 @@ gamma = 2.0
 equations_euler = CompressibleEulerEquations2D(gamma)
 
 polydeg = 3
-solver_euler = DGSEM(polydeg, flux_hll)
+solver_euler = DGSEM(polydeg, FluxHLL(min_max_speed_naive))
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)

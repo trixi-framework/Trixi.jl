@@ -421,6 +421,8 @@ end
 function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
     # Exit early if there are no boundaries to initialize
     if nboundaries(boundaries) == 0
+        # In this case n_boundaries_per_direction still needs to be reset!
+        boundaries.n_boundaries_per_direction = SVector(0, 0, 0, 0)
         return nothing
     end
 

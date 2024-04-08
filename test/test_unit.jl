@@ -420,11 +420,6 @@ end
                                     (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
-    # TODO: TrixiShallowWater: move unit test
-    indicator_hg_swe = IndicatorHennemannGassnerShallowWater(1.0, 0.0, true, "variable",
-                                                             "cache")
-    @test_nowarn show(stdout, indicator_hg_swe)
-
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_loehner)
 
@@ -543,7 +538,7 @@ end
 end
 
 @timed_testset "Shallow water conversion between conservative/entropy variables" begin
-    H, v1, v2, b = 3.5, 0.25, 0.1, 0.4
+    H, v1, v2, b, a = 3.5, 0.25, 0.1, 0.4, 0.3
 
     let equations = ShallowWaterEquations1D(gravity_constant = 9.8)
         cons_vars = prim2cons(SVector(H, v1, b), equations)
@@ -572,6 +567,14 @@ end
         entropy_vars = cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
+
+    let equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.8)
+        cons_vars = prim2cons(SVector(H, v1, b, a), equations)
+        entropy_vars = cons2entropy(cons_vars, equations)
+
+        total_energy = energy_total(cons_vars, equations)
+        @test entropy(cons_vars, equations) ≈ a * total_energy
+    end
 end
 
 @timed_testset "boundary_condition_do_nothing" begin
@@ -597,6 +600,7 @@ end
 end
 
 @timed_testset "TimeSeriesCallback" begin
+    # Test the 2D TreeMesh version of the callback and some warnings
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_2d_dgsem",
                                             "elixir_acoustics_gaussian_source.jl"),
@@ -697,6 +701,14 @@ end
     u = SVector(1, 0.5, 0.0)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
 
+    u_ll = SVector(0.1, 1.0, 0.0)
+    u_rr = SVector(0.1, 1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, 1, equations) ≈ flux(u_ll, 1, equations)
+
+    u_ll = SVector(0.1, -1.0, 0.0)
+    u_rr = SVector(0.1, -1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, 1, equations) ≈ flux(u_rr, 1, equations)
+
     equations = ShallowWaterEquations2D(gravity_constant = 9.81)
     normal_directions = [SVector(1.0, 0.0),
         SVector(0.0, 1.0),
@@ -707,6 +719,17 @@ end
         @test flux_hll(u, u, normal_direction, equations) ≈
               flux(u, normal_direction, equations)
     end
+
+    normal_direction = SVector(1.0, 0.0, 0.0)
+    u_ll = SVector(0.1, 1.0, 1.0, 0.0)
+    u_rr = SVector(0.1, 1.0, 1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, normal_direction, equations) ≈
+          flux(u_ll, normal_direction, equations)
+
+    u_ll = SVector(0.1, -1.0, -1.0, 0.0)
+    u_rr = SVector(0.1, -1.0, -1.0, 0.0)
+    @test flux_hll(u_ll, u_rr, normal_direction, equations) ≈
+          flux(u_rr, normal_direction, equations)
 end
 
 @timed_testset "Consistency check for HLL flux (naive): MHD" begin
@@ -853,6 +876,30 @@ end
 
         for normal_direction in normal_directions
             @test flux_winters_etal(u, u, normal_direction, equations) ≈
+                  flux(u, normal_direction, equations)
+        end
+    end
+end
+
+@timed_testset "Consistency check for Lax-Friedrich flux: Polytropic CEE" begin
+    for gamma in [1.4, 1.0, 5 / 3]
+        kappa = 0.5     # Scaling factor for the pressure.
+        equations = PolytropicEulerEquations2D(gamma, kappa)
+        u = SVector(1.1, -0.5, 2.34)
+
+        orientations = [1, 2]
+        for orientation in orientations
+            @test flux_lax_friedrichs(u, u, orientation, equations) ≈
+                  flux(u, orientation, equations)
+        end
+
+        normal_directions = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+
+        for normal_direction in normal_directions
+            @test flux_lax_friedrichs(u, u, normal_direction, equations) ≈
                   flux(u, normal_direction, equations)
         end
     end
@@ -1528,6 +1575,45 @@ end
     mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = false)
 
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
+end
+
+@testset "Sutherlands Law" begin
+    function mu(u, equations)
+        T_ref = 291.15
+
+        R_specific_air = 287.052874
+        T = R_specific_air * Trixi.temperature(u, equations)
+
+        C_air = 120.0
+        mu_ref_air = 1.827e-5
+
+        return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
+    end
+
+    function mu_control(u, equations, T_ref, R_specific, C, mu_ref)
+        T = R_specific * Trixi.temperature(u, equations)
+
+        return mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
+    end
+
+    # Dry air (values from Wikipedia: https://de.wikipedia.org/wiki/Sutherland-Modell)
+    T_ref = 291.15
+    C = 120.0 # Sutherland's constant
+    R_specific = 287.052874
+    mu_ref = 1.827e-5
+    prandtl_number() = 0.72
+    gamma = 1.4
+
+    equations = CompressibleEulerEquations2D(gamma)
+    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+                                                              Prandtl = prandtl_number())
+
+    # Flow at rest
+    u = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+
+    # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html at 18°C
+    @test isapprox(mu_control(u, equations_parabolic, T_ref, R_specific, C, mu_ref),
+                   1.803e-5, atol = 5e-8)
 end
 end
 
