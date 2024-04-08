@@ -374,11 +374,10 @@ end
 abstract type MeshFile{NDIMS} end
 
 struct GmshFile{NDIMS} <: MeshFile{NDIMS}
-  path :: String
+    path::String
 end
 
 struct AbaqusFile{NDIMS} <: MeshFile{NDIMS}
-  path :: String
+    path::String
 end
-
 end # @muladd
