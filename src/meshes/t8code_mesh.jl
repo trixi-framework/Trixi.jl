@@ -106,7 +106,7 @@ end
 Create a 'T8codeMesh'.
 
 # Arguments
-- 'forest': Pointer to a commited forest.
+- 'forest': Pointer to a committed forest.
 - 'boundary_names': List of boundary names.
 - 'polydeg::Integer': Polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
@@ -325,7 +325,7 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
         end
     end
 
-    # Note, `p*est_connectivity_new_brick` convers a domain of `[0,nx] x [0,ny] x ....`.
+    # Note, `p*est_connectivity_new_brick` converts a domain of `[0,nx] x [0,ny] x ....`.
     # Hence, transform mesh coordinates to reference space [-1,1]^NDIMS before applying user defined mapping.
     mapping_(xyz...) = mapping((x * 2.0/tpd - 1.0 for (x,tpd) in zip(xyz, trees_per_dimension))...)
 
