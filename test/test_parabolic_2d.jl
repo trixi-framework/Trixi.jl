@@ -719,7 +719,10 @@ end
                             1.199362305026636,
                             0.9077214424040279,
                             5.666071182328691], tspan=(0.0, 0.001),
-                        initial_refinement_level=0)
+                        initial_refinement_level=0,
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time steps after the restart.
+                        coverage_override=(maxiters = 10_000,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -728,6 +731,30 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode) # Just a placeholder in this case
+
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+
+    drag_p = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
+                           semi.cache)
+    lift_p = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
+                           semi.cache)
+
+    drag_f = Trixi.analyze(drag_coefficient_shear_force, du, u, tspan[2], mesh,
+                           equations, equations_parabolic, solver,
+                           semi.cache, semi.cache_parabolic)
+    lift_f = Trixi.analyze(lift_coefficient_shear_force, du, u, tspan[2], mesh,
+                           equations, equations_parabolic, solver,
+                           semi.cache, semi.cache_parabolic)
+
+    @test isapprox(drag_p, 0.17963843913309516, atol = 1e-13)
+    @test isapprox(lift_p, 0.26462588007949367, atol = 1e-13)
+
+    @test isapprox(drag_f, 1.5427441885921553, atol = 1e-13)
+    @test isapprox(lift_f, 0.005621910087395724, atol = 1e-13)
 end
 end
 
