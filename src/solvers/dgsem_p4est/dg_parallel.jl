@@ -49,7 +49,7 @@ function start_mpi_send!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
     n_small_elements = 2^(ndims(mesh) - 1)
 
-    for d in eachindex(mpi_cache.mpi_neighbor_ranks)
+    for d in 1:length(mpi_cache.mpi_neighbor_ranks)
         send_buffer = mpi_cache.mpi_send_buffers[d]
 
         for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[d])
@@ -505,7 +505,7 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache,
     # Create buffers and requests
     send_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_mortars))
     recv_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_mortars))
-    for index in eachindex(mpi_neighbor_mortars)
+    for index in 1:length(mpi_neighbor_mortars)
         send_buffers[index] = Vector{RealT}(undef,
                                             length(mpi_neighbor_mortars[index]) *
                                             n_small_elements * data_size)
@@ -519,7 +519,7 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache,
     recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_mortars))
 
     # Fill send buffers
-    for d in eachindex(mpi_neighbor_ranks)
+    for d in 1:length(mpi_neighbor_ranks)
         send_buffer = send_buffers[d]
 
         for (index, mortar) in enumerate(mpi_neighbor_mortars[d])

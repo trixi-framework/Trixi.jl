@@ -1,131 +1,3 @@
-
-# ========= GaussSBP approximation types ============
-# Note: we define type aliases outside of the @muladd block to avoid Revise breaking when code
-# inside the @muladd block is edited. See https://github.com/trixi-framework/Trixi.jl/issues/801
-# for more details.
-
-# `GaussSBP` is a type alias for a StartUpDG type (e.g., Gauss nodes on quads/hexes)
-const GaussSBP = Polynomial{Gauss}
-
-function tensor_product_quadrature(element_type::Line, r1D, w1D)
-    return r1D, w1D
-end
-
-function tensor_product_quadrature(element_type::Quad, r1D, w1D)
-    sq, rq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D))
-    ws, wr = vec.(StartUpDG.NodesAndModes.meshgrid(w1D))
-    wq = wr .* ws
-    return rq, sq, wq
-end
-
-function tensor_product_quadrature(element_type::Hex, r1D, w1D)
-    rq, sq, tq = vec.(StartUpDG.NodesAndModes.meshgrid(r1D, r1D, r1D))
-    wr, ws, wt = vec.(StartUpDG.NodesAndModes.meshgrid(w1D, w1D, w1D))
-    wq = wr .* ws .* wt
-    return rq, sq, tq, wq
-end
-
-# type parameters for `TensorProductFaceOperator`.
-abstract type AbstractGaussOperator end
-struct Interpolation <: AbstractGaussOperator end
-# - `Projection{ScaleByFaceWeights=Static.False()}` corresponds to the operator `projection_matrix_gauss_to_face = M \ Vf'`,
-#   which is used in `VolumeIntegralFluxDifferencing`.
-# - `Projection{ScaleByFaceWeights=Static.True()}` corresponds to the quadrature-based lifting
-#   operator `LIFT = M \ (Vf' * diagm(rd.wf))`, which is used in `SurfaceIntegralWeakForm`
-struct Projection{ScaleByFaceWeights} <: AbstractGaussOperator end
-
-# used to dispatch for different Gauss interpolation operators
-abstract type AbstractTensorProductGaussOperator end
-
-#   TensorProductGaussFaceOperator{Tmat, Ti}
-#
-# Data for performing tensor product interpolation from volume nodes to face nodes.
-struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperator,
-                                      Tmat, Tweights, Tfweights, Tindices} <:
-       AbstractTensorProductGaussOperator
-    interp_matrix_gauss_to_face_1d::Tmat
-    inv_volume_weights_1d::Tweights
-    face_weights::Tfweights
-    face_indices_tensor_product::Tindices
-    nnodes_1d::Int
-    nfaces::Int
-end
-
-# constructor for a 2D operator
-function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
-                                        dg::DGMulti{2, Quad, GaussSBP})
-    rd = dg.basis
-
-    rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
-    interp_matrix_gauss_to_face_1d = polynomial_interpolation_matrix(rq1D, [-1; 1])
-
-    nnodes_1d = length(rq1D)
-
-    # Permutation of indices in a tensor product form
-    num_faces = StartUpDG.num_faces(rd.element_type)
-    indices = reshape(eachindex(rd.rf), nnodes_1d, num_faces)
-    face_indices_tensor_product = zeros(Int, 2, nnodes_1d, ndims(rd.element_type))
-    for i in 1:nnodes_1d # loop over nodes in one face
-        face_indices_tensor_product[:, i, 1] .= indices[i, 1:2]
-        face_indices_tensor_product[:, i, 2] .= indices[i, 3:4]
-    end
-
-    T_op = typeof(operator)
-    Tm = typeof(interp_matrix_gauss_to_face_1d)
-    Tw = typeof(inv.(wq1D))
-    Tf = typeof(rd.wf)
-    Ti = typeof(face_indices_tensor_product)
-    return TensorProductGaussFaceOperator{2, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
-                                                                   inv.(wq1D), rd.wf,
-                                                                   face_indices_tensor_product,
-                                                                   nnodes_1d, num_faces)
-end
-
-# constructor for a 3D operator
-function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
-                                        dg::DGMulti{3, Hex, GaussSBP})
-    rd = dg.basis
-
-    rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
-    interp_matrix_gauss_to_face_1d = polynomial_interpolation_matrix(rq1D, [-1; 1])
-
-    nnodes_1d = length(rq1D)
-
-    # Permutation of indices in a tensor product form
-    num_faces = StartUpDG.num_faces(rd.element_type)
-    indices = reshape(eachindex(rd.rf), nnodes_1d, nnodes_1d, num_faces)
-    face_indices_tensor_product = zeros(Int, 2, nnodes_1d, nnodes_1d,
-                                        ndims(rd.element_type))
-    for j in 1:nnodes_1d, i in 1:nnodes_1d # loop over nodes in one face
-        face_indices_tensor_product[:, i, j, 1] .= indices[i, j, 1:2]
-        face_indices_tensor_product[:, i, j, 2] .= indices[i, j, 3:4]
-        face_indices_tensor_product[:, i, j, 3] .= indices[i, j, 5:6]
-    end
-
-    T_op = typeof(operator)
-    Tm = typeof(interp_matrix_gauss_to_face_1d)
-    Tw = typeof(inv.(wq1D))
-    Tf = typeof(rd.wf)
-    Ti = typeof(face_indices_tensor_product)
-    return TensorProductGaussFaceOperator{3, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
-                                                                   inv.(wq1D), rd.wf,
-                                                                   face_indices_tensor_product,
-                                                                   nnodes_1d, num_faces)
-end
-
-# specialize behavior of `mul_by!(A)` where `A isa TensorProductGaussFaceOperator)`
-@inline function mul_by!(A::AbstractTensorProductGaussOperator)
-    return (out, x) -> tensor_product_gauss_face_operator!(out, A, x)
-end
-
-@inline function tensor_product_gauss_face_operator!(out::AbstractMatrix,
-                                                     A::AbstractTensorProductGaussOperator,
-                                                     x::AbstractMatrix)
-    @threaded for col in Base.OneTo(size(out, 2))
-        tensor_product_gauss_face_operator!(view(out, :, col), A, view(x, :, col))
-    end
-end
-
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -133,461 +5,775 @@ end
 @muladd begin
 #! format: noindent
 
-#! format: off
-# Interpolates values from volume Gauss nodes to face nodes on one element.
-@inline function tensor_product_gauss_face_operator!(out::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{2, Interpolation},
-                                                     x_in::AbstractVector)
-#! format: on                                                     
-    (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
-    (; nnodes_1d) = A
+abstract type AbstractTree{NDIMS} <: AbstractContainer end
 
-    fill!(out, zero(eltype(out)))
+# Type traits to obtain dimension
+@inline Base.ndims(::AbstractTree{NDIMS}) where {NDIMS} = NDIMS
 
-    # for 2D GaussSBP nodes, the indexing is first in x, then in y
-    x = reshape(x_in, nnodes_1d, nnodes_1d)
+# Auxiliary methods to allow semantic queries on the tree
+# Check whether cell has parent cell
+has_parent(t::AbstractTree, cell_id::Int) = t.parent_ids[cell_id] > 0
 
-    # interpolation in the x-direction
-    @turbo for i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-        index_left = face_indices_tensor_product[1, i, 1]
-        index_right = face_indices_tensor_product[2, i, 1]
-        for jj in Base.OneTo(nnodes_1d)      # loop over "line" of volume nodes
-            out[index_left] = out[index_left] +
-                              interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i]
-            out[index_right] = out[index_right] +
-                               interp_matrix_gauss_to_face_1d[2, jj] * x[jj, i]
+# Count number of children for a given cell
+function n_children(t::AbstractTree, cell_id::Int)
+    count(x -> (x > 0), @view t.child_ids[:, cell_id])
+end
+
+# Check whether cell has any child cell
+has_children(t::AbstractTree, cell_id::Int) = n_children(t, cell_id) > 0
+
+# Check whether cell is leaf cell
+is_leaf(t::AbstractTree, cell_id::Int) = !has_children(t, cell_id)
+
+# Check whether cell has specific child cell
+has_child(t::AbstractTree, cell_id::Int, child::Int) = t.child_ids[child, cell_id] > 0
+
+# Check if cell has a neighbor at the same refinement level in the given direction
+function has_neighbor(t::AbstractTree, cell_id::Int, direction::Int)
+    t.neighbor_ids[direction, cell_id] > 0
+end
+
+# Check if cell has a coarse neighbor, i.e., with one refinement level lower
+function has_coarse_neighbor(t::AbstractTree, cell_id::Int, direction::Int)
+    return has_parent(t, cell_id) && has_neighbor(t, t.parent_ids[cell_id], direction)
+end
+
+# Check if cell has any neighbor (same-level or lower-level)
+function has_any_neighbor(t::AbstractTree, cell_id::Int, direction::Int)
+    return has_neighbor(t, cell_id, direction) ||
+           has_coarse_neighbor(t, cell_id, direction)
+end
+
+# Check if cell is own cell, i.e., belongs to this MPI rank
+is_own_cell(t::AbstractTree, cell_id) = true
+
+# Return cell length for a given level
+length_at_level(t::AbstractTree, level::Int) = t.length_level_0 / 2^level
+
+# Return cell length for a given cell
+length_at_cell(t::AbstractTree, cell_id::Int) = length_at_level(t, t.levels[cell_id])
+
+# Return minimum level of any leaf cell
+minimum_level(t::AbstractTree) = minimum(t.levels[leaf_cells(t)])
+
+# Return maximum level of any leaf cell
+maximum_level(t::AbstractTree) = maximum(t.levels[leaf_cells(t)])
+
+# Check if tree is periodic
+isperiodic(t::AbstractTree) = all(t.periodicity)
+isperiodic(t::AbstractTree, dimension) = t.periodicity[dimension]
+
+# Auxiliary methods for often-required calculations
+# Number of potential child cells
+n_children_per_cell(::AbstractTree{NDIMS}) where {NDIMS} = 2^NDIMS
+
+# Number of directions
+#
+# Directions are indicated by numbers from 1 to 2*ndims:
+# 1 -> -x
+# 2 -> +x
+# 3 -> -y
+# 4 -> +y
+# 5 -> -z
+# 6 -> +z
+@inline n_directions(::AbstractTree{NDIMS}) where {NDIMS} = 2 * NDIMS
+# TODO: Taal performance, 1:n_directions(tree) vs. Base.OneTo(n_directions(tree)) vs. SOneTo(n_directions(tree))
+"""
+    eachdirection(tree::AbstractTree)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the directions in `AbstractTree`. 
+In particular, not the directions themselves are returned.
+"""
+@inline eachdirection(tree::AbstractTree) = Base.OneTo(n_directions(tree))
+
+# For a given direction, return its opposite direction
+#
+# dir -> opp
+#  1  ->  2
+#  2  ->  1
+#  3  ->  4
+#  4  ->  3
+#  5  ->  6
+#  6  ->  5
+opposite_direction(direction::Int) = direction + 1 - 2 * ((direction + 1) % 2)
+
+# For a given child position (from 1 to 8) and dimension (from 1 to 3),
+# calculate a child cell's position relative to its parent cell.
+#
+# Essentially calculates the following
+#         dim=1 dim=2 dim=3
+# child     x     y     z
+#   1       -     -     -
+#   2       +     -     -
+#   3       -     +     -
+#   4       +     +     -
+#   5       -     -     +
+#   6       +     -     +
+#   7       -     +     +
+#   8       +     +     +
+# child_sign(child::Int, dim::Int) = 1 - 2 * (div(child + 2^(dim - 1) - 1, 2^(dim-1)) % 2)
+# Since we use only a fixed number of dimensions, we use a lookup table for improved performance.
+const _child_signs = [-1 -1 -1;
+                      +1 -1 -1;
+                      -1 +1 -1;
+                      +1 +1 -1;
+                      -1 -1 +1;
+                      +1 -1 +1;
+                      -1 +1 +1;
+                      +1 +1 +1]
+child_sign(child::Int, dim::Int) = _child_signs[child, dim]
+
+# For each child position (1 to 8) and a given direction (from 1 to 6), return
+# neighboring child position.
+const _adjacent_child_ids = [2 2 3 3 5 5;
+                             1 1 4 4 6 6;
+                             4 4 1 1 7 7;
+                             3 3 2 2 8 8;
+                             6 6 7 7 1 1;
+                             5 5 8 8 2 2;
+                             8 8 5 5 3 3;
+                             7 7 6 6 4 4]
+adjacent_child(child::Int, direction::Int) = _adjacent_child_ids[child, direction]
+
+# For each child position (1 to 8) and a given direction (from 1 to 6), return
+# if neighbor is a sibling
+function has_sibling(child::Int, direction::Int)
+    return (child_sign(child, div(direction + 1, 2)) * (-1)^(direction - 1)) > 0
+end
+
+# Obtain leaf cells that fulfill a given criterion.
+#
+# The function `f` is passed the cell id of each leaf cell
+# as an argument.
+function filter_leaf_cells(f, t::AbstractTree)
+    filtered = Vector{Int}(undef, length(t))
+    count = 0
+    for cell_id in 1:length(t)
+        if is_leaf(t, cell_id) && f(cell_id)
+            count += 1
+            filtered[count] = cell_id
         end
     end
 
-    # interpolation in the y-direction
-    @turbo for i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-        index_left = face_indices_tensor_product[1, i, 2]
-        index_right = face_indices_tensor_product[2, i, 2]
-        for jj in Base.OneTo(nnodes_1d)               # loop over "line" of volume nodes
-            out[index_left] = out[index_left] +
-                              interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj]
-            out[index_right] = out[index_right] +
-                               interp_matrix_gauss_to_face_1d[2, jj] * x[i, jj]
-        end
+    return filtered[1:count]
+end
+
+# Return an array with the ids of all leaf cells
+leaf_cells(t::AbstractTree) = filter_leaf_cells((cell_id) -> true, t)
+
+# Return an array with the ids of all leaf cells for a given rank
+leaf_cells_by_rank(t::AbstractTree, rank) = leaf_cells(t)
+
+# Return an array with the ids of all local leaf cells
+local_leaf_cells(t::AbstractTree) = leaf_cells(t)
+
+# Count the number of leaf cells.
+count_leaf_cells(t::AbstractTree) = length(leaf_cells(t))
+
+@inline function cell_coordinates(t::AbstractTree{NDIMS}, cell) where {NDIMS}
+    SVector(ntuple(d -> t.coordinates[d, cell], Val(NDIMS)))
+end
+
+@inline function set_cell_coordinates!(t::AbstractTree{NDIMS}, coords,
+                                       cell) where {NDIMS}
+    for d in 1:NDIMS
+        t.coordinates[d, cell] = coords[d]
     end
 end
 
-# Interpolates values from volume Gauss nodes to face nodes on one element.
-#! format: off
-@inline function tensor_product_gauss_face_operator!(out::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{3, Interpolation},
-                                                     x::AbstractVector)
-#! format: on                                                     
-    (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
-    (; nnodes_1d) = A
+# Determine if point is located inside cell
+function is_point_in_cell(t::AbstractTree, point_coordinates, cell_id)
+    cell_length = length_at_cell(t, cell_id)
+    cell_coordinates_ = cell_coordinates(t, cell_id)
+    min_coordinates = cell_coordinates_ .- cell_length / 2
+    max_coordinates = cell_coordinates_ .+ cell_length / 2
 
-    fill!(out, zero(eltype(out)))
+    return all(min_coordinates .<= point_coordinates .<= max_coordinates)
+end
 
-    # for 3D GaussSBP nodes, the indexing is first in y, then x, then z.
-    x = reshape(x, nnodes_1d, nnodes_1d, nnodes_1d)
+# Store cell id in each cell to use for post-AMR analysis
+function reset_original_cell_ids!(t::AbstractTree)
+    t.original_cell_ids[1:length(t)] .= 1:length(t)
+end
 
-    # interpolation in the y-direction
-    @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-        index_left = face_indices_tensor_product[1, i, j, 2]
-        index_right = face_indices_tensor_product[2, i, j, 2]
-        for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-            out[index_left] = out[index_left] +
-                              interp_matrix_gauss_to_face_1d[1, jj] * x[jj, i, j]
-            out[index_right] = out[index_right] +
-                               interp_matrix_gauss_to_face_1d[2, jj] * x[jj, i, j]
-        end
+# Efficiently perform uniform refinement up to a given level (works only on mesh with a single cell)
+function refine_uniformly!(t::AbstractTree, max_level)
+    @assert length(t)==1 "efficient uniform refinement only works for a newly created tree"
+    @assert max_level>=0 "the uniform refinement level must be non-zero"
+
+    # Calculate size of final tree and resize tree
+    total_length = 1
+    for level in 1:max_level
+        total_length += n_children_per_cell(t)^level
     end
+    resize!(t, total_length)
 
-    # interpolation in the x-direction
-    @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-        index_left = face_indices_tensor_product[1, i, j, 1]
-        index_right = face_indices_tensor_product[2, i, j, 1]
-        for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-            out[index_left] = out[index_left] +
-                              interp_matrix_gauss_to_face_1d[1, jj] * x[i, jj, j]
-            out[index_right] = out[index_right] +
-                               interp_matrix_gauss_to_face_1d[2, jj] * x[i, jj, j]
-        end
-    end
+    # Traverse tree to set parent-child relationships
+    init_children!(t, 1, max_level)
 
-    # interpolation in the z-direction
-    @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-        index_left = face_indices_tensor_product[1, i, j, 3]
-        index_right = face_indices_tensor_product[2, i, j, 3]
-        for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-            # The ordering (i,j) -> (j,i) needs to be reversed for this last face.
-            # This is due to way we define face nodes for Hex() types in StartUpDG.jl.
-            out[index_left] = out[index_left] +
-                              interp_matrix_gauss_to_face_1d[1, jj] * x[j, i, jj]
-            out[index_right] = out[index_right] +
-                               interp_matrix_gauss_to_face_1d[2, jj] * x[j, i, jj]
+    # Set all neighbor relationships
+    init_neighbors!(t, max_level)
+end
+
+# Recursively initialize children up to level `max_level` in depth-first ordering, starting with
+# cell `cell_id` and set all information except neighbor relations (see `init_neighbors!`).
+#
+# Return the number of offspring of the initialized cell plus one
+function init_children!(t::AbstractTree, cell_id, max_level)
+    # Stop recursion if max_level has been reached
+    if t.levels[cell_id] >= max_level
+        return 1
+    else
+        # Initialize each child cell, counting the total number of offspring
+        n_offspring = 0
+        for child in 1:n_children_per_cell(t)
+            # Get cell id of child
+            child_id = cell_id + 1 + n_offspring
+
+            # Initialize child cell (except neighbors)
+            init_child!(t, cell_id, child, child_id)
+
+            # Recursively initialize child cell
+            n_offspring += init_children!(t, child_id, max_level)
         end
+
+        return n_offspring + 1
     end
 end
 
-# Projects face node values to volume Gauss nodes on one element.
-#! format: off
-@inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
-                                                     x::AbstractVector) where {ApplyFaceWeights}
-#! format: on                                                     
-    (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
-    (; inv_volume_weights_1d, nnodes_1d) = A
+# Iteratively set all neighbor relations, starting at an initialized level 0 cell. Assume that
+# parent-child relations have already been initialized (see `init_children!`).
+function init_neighbors!(t::AbstractTree, max_level = maximum_level(t))
+    @assert all(n >= 0 for n in t.neighbor_ids[:, 1]) "level 0 cell neighbors must be initialized"
 
-    fill!(out_vec, zero(eltype(out_vec)))
+    # Initialize neighbors level by level
+    for level in 1:max_level
+        # Walk entire tree, starting from level 0 cell
+        for cell_id in 1:length(t)
+            # Skip cells whose immediate children are already initialized *or* whose level is too high for this round
+            if t.levels[cell_id] != level - 1
+                continue
+            end
 
-    # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
-    # Thus, Base.ReshapedArray should be used if you are setting values in the array.
-    # `reshape` is fine if you are only accessing values.
-    # Note that, for 2D GaussSBP nodes, the indexing is first in x, then y
-    out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d), ())
-
-    if ApplyFaceWeights == true
-        @turbo for i in eachindex(x)
-            x[i] = x[i] * A.face_weights[i]
+            # Iterate over children and set neighbor information
+            for child in 1:n_children_per_cell(t)
+                child_id = t.child_ids[child, cell_id]
+                init_child_neighbors!(t, cell_id, child, child_id)
+            end
         end
     end
-
-    # interpolation in the x-direction
-    @turbo for i in Base.OneTo(nnodes_1d) # loop over face nodes
-        index_left = face_indices_tensor_product[1, i, 1]
-        index_right = face_indices_tensor_product[2, i, 1]
-        for jj in Base.OneTo(nnodes_1d) # loop over a line of volume nodes
-            out[jj, i] = out[jj, i] +
-                         interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
-            out[jj, i] = out[jj, i] +
-                         interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
-        end
-    end
-
-    # interpolation in the y-direction
-    @turbo for i in Base.OneTo(nnodes_1d)
-        index_left = face_indices_tensor_product[1, i, 2]
-        index_right = face_indices_tensor_product[2, i, 2]
-        # loop over a line of volume nodes
-        for jj in Base.OneTo(nnodes_1d)
-            out[i, jj] = out[i, jj] +
-                         interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
-            out[i, jj] = out[i, jj] +
-                         interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
-        end
-    end
-
-    # apply inv(M)
-    @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d)
-        out[i, j] = out[i, j] * inv_volume_weights_1d[i] * inv_volume_weights_1d[j]
-    end
-end
-
-# Interpolates values from volume Gauss nodes to face nodes on one element.
-#! format: off
-@inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{3, Projection{ApplyFaceWeights}},
-                                                     x::AbstractVector) where {ApplyFaceWeights}
-#! format: on                                                                               
-    @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
-    @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
-
-    fill!(out_vec, zero(eltype(out_vec)))
-
-    # As of Julia 1.9, Base.ReshapedArray does not produce allocations when setting values.
-    # Thus, Base.ReshapedArray should be used if you are setting values in the array.
-    # `reshape` is fine if you are only accessing values.
-    # Note that, for 3D GaussSBP nodes, the indexing is first in y, then x, then z.
-    out = Base.ReshapedArray(out_vec, (nnodes_1d, nnodes_1d, nnodes_1d), ())
-
-    if ApplyFaceWeights == true
-        @turbo for i in eachindex(x)
-            x[i] = x[i] * A.face_weights[i]
-        end
-    end
-
-    # interpolation in the y-direction
-    @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-        index_left = face_indices_tensor_product[1, i, j, 2]
-        index_right = face_indices_tensor_product[2, i, j, 2]
-        for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-            out[jj, i, j] = out[jj, i, j] +
-                            interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
-            out[jj, i, j] = out[jj, i, j] +
-                            interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
-        end
-    end
-
-    # interpolation in the x-direction
-    @turbo for j in Base.OneTo(nnodes_1d), i in Base.OneTo(nnodes_1d) # loop over nodes in a face
-        index_left = face_indices_tensor_product[1, i, j, 1]
-        index_right = face_indices_tensor_product[2, i, j, 1]
-        for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-            out[i, jj, j] = out[i, jj, j] +
-                            interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
-            out[i, jj, j] = out[i, jj, j] +
-                            interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
-        end
-    end
-
-    # interpolation in the z-direction
-    @turbo for i in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d) # loop over nodes in a face
-        index_left = face_indices_tensor_product[1, i, j, 3]
-        index_right = face_indices_tensor_product[2, i, j, 3]
-        for jj in Base.OneTo(nnodes_1d) # loop over "line" of volume nodes
-            # The ordering (i,j) -> (j,i) needs to be reversed for this last face.
-            # This is due to way we define face nodes for Hex() types in StartUpDG.jl.
-            out[j, i, jj] = out[j, i, jj] +
-                            interp_matrix_gauss_to_face_1d[1, jj] * x[index_left]
-            out[j, i, jj] = out[j, i, jj] +
-                            interp_matrix_gauss_to_face_1d[2, jj] * x[index_right]
-        end
-    end
-
-    # apply inv(M)
-    @turbo for k in Base.OneTo(nnodes_1d), j in Base.OneTo(nnodes_1d),
-               i in Base.OneTo(nnodes_1d)
-
-        out[i, j, k] = out[i, j, k] * inv_volume_weights_1d[i] *
-                       inv_volume_weights_1d[j] * inv_volume_weights_1d[k]
-    end
-end
-
-# For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
-# In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
-function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT,
-                      uEltype)
-
-    # call general Polynomial flux differencing constructor
-    cache = invoke(create_cache,
-                   Tuple{typeof(mesh), typeof(equations),
-                         DGMultiFluxDiff, typeof(RealT), typeof(uEltype)},
-                   mesh, equations, dg, RealT, uEltype)
-
-    rd = dg.basis
-    @unpack md = mesh
-
-    # for change of basis prior to the volume integral and entropy projection
-    r1D, _ = StartUpDG.gauss_lobatto_quad(0, 0, polydeg(dg))
-    rq1D, _ = StartUpDG.gauss_quad(0, 0, polydeg(dg))
-    interp_matrix_lobatto_to_gauss_1D = polynomial_interpolation_matrix(r1D, rq1D)
-    interp_matrix_gauss_to_lobatto_1D = polynomial_interpolation_matrix(rq1D, r1D)
-    NDIMS = ndims(rd.element_type)
-    interp_matrix_lobatto_to_gauss = SimpleKronecker(NDIMS,
-                                                     interp_matrix_lobatto_to_gauss_1D,
-                                                     uEltype)
-    interp_matrix_gauss_to_lobatto = SimpleKronecker(NDIMS,
-                                                     interp_matrix_gauss_to_lobatto_1D,
-                                                     uEltype)
-    inv_gauss_weights = inv.(rd.wq)
-
-    # specialized operators to perform tensor product interpolation to faces for Gauss nodes
-    interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-    projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{Static.False()}(),
-                                                                     dg)
-
-    # `LIFT` matrix for Gauss nodes - this is equivalent to `projection_matrix_gauss_to_face` scaled by `diagm(rd.wf)`,
-    # where `rd.wf` are Gauss node face quadrature weights.
-    gauss_LIFT = TensorProductGaussFaceOperator(Projection{Static.True()}(), dg)
-
-    nvars = nvariables(equations)
-    rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                                 for _ in 1:Threads.nthreads()]
-    gauss_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
-                                   for _ in 1:Threads.nthreads()]
-
-    return (; cache..., projection_matrix_gauss_to_face, gauss_LIFT, inv_gauss_weights,
-            rhs_volume_local_threaded, gauss_volume_local_threaded,
-            interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_lobatto,
-            interp_matrix_gauss_to_face,
-            create_cache(mesh, equations, dg.volume_integral, dg, RealT, uEltype)...) # add cache specialized on the volume integral
-end
-
-# by default, return an empty tuple for volume integral caches
-create_cache(mesh, equations, volume_integral, dg, RealT, uEltype) = NamedTuple()
-
-# TODO: DGMulti. Address hard-coding of `entropy2cons!` and `cons2entropy!` for this function.
-function entropy_projection!(cache, u, mesh::DGMultiMesh, equations,
-                             dg::DGMultiFluxDiff{<:GaussSBP})
-    rd = dg.basis
-    @unpack Vq = rd
-    @unpack VhP, entropy_var_values, u_values = cache
-    @unpack projected_entropy_var_values, entropy_projected_u_values = cache
-    @unpack interp_matrix_lobatto_to_gauss, interp_matrix_gauss_to_face = cache
-
-    @threaded for e in eachelement(mesh, dg, cache)
-        apply_to_each_field(mul_by!(interp_matrix_lobatto_to_gauss),
-                            view(u_values, :, e), view(u, :, e))
-    end
-
-    # transform quadrature values to entropy variables
-    cons2entropy!(entropy_var_values, u_values, equations)
-
-    volume_indices = Base.OneTo(rd.Nq)
-    face_indices = (rd.Nq + 1):(rd.Nq + rd.Nfq)
-
-    # Interpolate volume Gauss nodes to Gauss face nodes (note the layout of
-    # `projected_entropy_var_values = [vol pts; face pts]`).
-    entropy_var_face_values = view(projected_entropy_var_values, face_indices, :)
-    apply_to_each_field(mul_by!(interp_matrix_gauss_to_face), entropy_var_face_values,
-                        entropy_var_values)
-
-    # directly copy over volume values (no entropy projection required)
-    entropy_projected_volume_values = view(entropy_projected_u_values, volume_indices,
-                                           :)
-    @threaded for i in eachindex(u_values)
-        entropy_projected_volume_values[i] = u_values[i]
-    end
-
-    # transform entropy to conservative variables on face values
-    entropy_projected_face_values = view(entropy_projected_u_values, face_indices, :)
-    entropy2cons!(entropy_projected_face_values, entropy_var_face_values, equations)
 
     return nothing
 end
 
-# Assumes cache.flux_face_values is already computed.
-# Enables tensor product evaluation of `LIFT isa TensorProductGaussFaceOperator`.
-function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
-                                surface_integral::SurfaceIntegralWeakForm,
-                                dg::DGMultiFluxDiff{<:GaussSBP}, cache)
-    (; gauss_LIFT, gauss_volume_local_threaded) = cache
+# Initialize the neighbors of child cell `child_id` based on parent cell `cell_id`
+function init_child_neighbors!(t::AbstractTree, cell_id, child, child_id)
+    t.neighbor_ids[:, child_id] .= zero(eltype(t.neighbor_ids))
+    for direction in eachdirection(t)
+        # If neighbor is a sibling, establish one-sided connectivity
+        # Note: two-sided is not necessary, as each sibling will do this
+        if has_sibling(child, direction)
+            adjacent = adjacent_child(child, direction)
+            neighbor_id = t.child_ids[adjacent, cell_id]
 
-    @threaded for e in eachelement(mesh, dg, cache)
-
-        # applies LIFT matrix, output is stored at Gauss nodes
-        gauss_volume_local = gauss_volume_local_threaded[Threads.threadid()]
-        apply_to_each_field(mul_by!(gauss_LIFT), gauss_volume_local,
-                            view(cache.flux_face_values, :, e))
-
-        for i in eachindex(gauss_volume_local)
-            du[i, e] = du[i, e] + gauss_volume_local[i]
-        end
-    end
-end
-
-@inline function flux_differencing_kernel!(du, u, element, mesh::DGMultiMesh,
-                                           have_nonconservative_terms, equations,
-                                           volume_flux, dg::DGMultiFluxDiff{<:GaussSBP},
-                                           cache, alpha = true)
-    fluxdiff_local = cache.fluxdiff_local_threaded[Threads.threadid()]
-    fill!(fluxdiff_local, zero(eltype(fluxdiff_local)))
-    u_local = view(cache.entropy_projected_u_values, :, element)
-
-    local_flux_differencing!(fluxdiff_local, u_local, element,
-                             have_nonconservative_terms,
-                             volume_flux, has_sparse_operators(dg),
-                             mesh, equations, dg, cache)
-
-    # convert `fluxdiff_local::Vector{<:SVector}` to `rhs_local::StructArray{<:SVector}`
-    # for faster performance when using `apply_to_each_field`.
-    rhs_local = cache.rhs_local_threaded[Threads.threadid()]
-    for i in Base.OneTo(length(fluxdiff_local))
-        rhs_local[i] = fluxdiff_local[i]
-    end
-
-    project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh, dg, cache, alpha)
-end
-
-function project_rhs_to_gauss_nodes!(du, rhs_local, element, mesh::DGMultiMesh,
-                                     dg::DGMulti, cache, alpha = true)
-
-    # Here, we exploit that under a Gauss nodal basis the structure of the projection
-    # matrix `Ph = [diagm(1 ./ wq), projection_matrix_gauss_to_face]` such that
-    # `Ph * [u; uf] = (u ./ wq) + projection_matrix_gauss_to_face * uf`.
-    volume_indices = Base.OneTo(dg.basis.Nq)
-    face_indices = (dg.basis.Nq + 1):(dg.basis.Nq + dg.basis.Nfq)
-    local_volume_flux = view(rhs_local, volume_indices)
-    local_face_flux = view(rhs_local, face_indices)
-
-    # initialize rhs_volume_local = projection_matrix_gauss_to_face * local_face_flux
-    rhs_volume_local = cache.rhs_volume_local_threaded[Threads.threadid()]
-    apply_to_each_field(mul_by!(cache.projection_matrix_gauss_to_face),
-                        rhs_volume_local, local_face_flux)
-
-    # accumulate volume contributions at Gauss nodes
-    for i in eachindex(rhs_volume_local)
-        du_local = rhs_volume_local[i] +
-                   local_volume_flux[i] * cache.inv_gauss_weights[i]
-        du[i, element] = du[i, element] + alpha * du_local
-    end
-end
-
-function calc_volume_integral!(du, u, mesh::DGMultiMesh,
-                               have_nonconservative_terms, equations,
-                               volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGMultiFluxDiff{<:GaussSBP}, cache)
-    @threaded for e in eachelement(mesh, dg, cache)
-        flux_differencing_kernel!(du, u, e, mesh,
-                                  have_nonconservative_terms, equations,
-                                  volume_integral.volume_flux, dg, cache)
-    end
-end
-
-# interpolate back to Lobatto nodes after applying the inverse Jacobian at Gauss points
-function invert_jacobian_and_interpolate!(du, mesh::DGMultiMesh, equations,
-                                          dg::DGMultiFluxDiff{<:GaussSBP}, cache;
-                                          scaling = -1)
-    (; interp_matrix_gauss_to_lobatto, rhs_volume_local_threaded, invJ) = cache
-
-    @threaded for e in eachelement(mesh, dg, cache)
-        rhs_volume_local = rhs_volume_local_threaded[Threads.threadid()]
-
-        # At this point, `rhs_volume_local` should still be stored at Gauss points.
-        # We scale it by the inverse Jacobian before transforming back to Lobatto.
-        for i in eachindex(rhs_volume_local)
-            rhs_volume_local[i] = du[i, e] * invJ[i, e] * scaling
+            t.neighbor_ids[direction, child_id] = neighbor_id
+            continue
         end
 
-        # Interpolate result back to Lobatto nodes for ease of analysis, visualization
-        apply_to_each_field(mul_by!(interp_matrix_gauss_to_lobatto),
-                            view(du, :, e), rhs_volume_local)
-    end
-end
+        # Skip if original cell does have no neighbor in direction
+        if !has_neighbor(t, cell_id, direction)
+            continue
+        end
 
-# Specialize RHS so that we can call `invert_jacobian_and_interpolate!` instead of just `invert_jacobian!`,
-# since `invert_jacobian!` is also used in other places (e.g., parabolic terms).
-function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
-              source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP},
-              cache) where {Source, BC}
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+        # Otherwise, check if neighbor has children - if not, skip again
+        neighbor_id = t.neighbor_ids[direction, cell_id]
+        if !has_children(t, neighbor_id)
+            continue
+        end
 
-    # this function evaluates the solution at volume and face quadrature points (which was previously
-    # done in `prolong2interfaces` and `calc_volume_integral`)
-    @trixi_timeit timer() "entropy_projection!" begin
-        entropy_projection!(cache, u, mesh, equations, dg)
-    end
+        # Check if neighbor has corresponding child and if yes, establish connectivity
+        adjacent = adjacent_child(child, direction)
+        if has_child(t, neighbor_id, adjacent)
+            neighbor_child_id = t.child_ids[adjacent, neighbor_id]
+            opposite = opposite_direction(direction)
 
-    # `du` is stored at Gauss nodes here
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
-    end
-
-    # the following functions are the same as in VolumeIntegralWeakForm, and can be reused from dg.jl
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache, dg.surface_integral, mesh,
-                             have_nonconservative_terms(equations), equations, dg)
-    end
-
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh,
-                            have_nonconservative_terms(equations), equations, dg)
-    end
-
-    # `du` is stored at Gauss nodes here
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
-    end
-
-    # invert Jacobian and map `du` from Gauss to Lobatto nodes
-    @trixi_timeit timer() "Jacobian" begin
-        invert_jacobian_and_interpolate!(du, mesh, equations, dg, cache)
-    end
-
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, mesh, equations, dg, cache)
+            t.neighbor_ids[direction, child_id] = neighbor_child_id
+            t.neighbor_ids[opposite, neighbor_child_id] = child_id
+        end
     end
 
     return nothing
 end
+
+# Refine given cells without rebalancing tree.
+#
+# Note: After a call to this method the tree may be unbalanced!
+function refine_unbalanced!(t::AbstractTree, cell_ids,
+                            sorted_unique_cell_ids = sort(unique(cell_ids)))
+    # Store actual ids refined cells (shifted due to previous insertions)
+    refined = zeros(Int, length(cell_ids))
+
+    # Loop over all cells that are to be refined
+    for (count, original_cell_id) in enumerate(sorted_unique_cell_ids)
+        # Determine actual cell id, taking into account previously inserted cells
+        n_children = n_children_per_cell(t)
+        cell_id = original_cell_id + (count - 1) * n_children
+        refined[count] = cell_id
+
+        @assert !has_children(t, cell_id) "Non-leaf cell $cell_id cannot be refined"
+
+        # Insert new cells directly behind parent (depth-first)
+        insert!(t, cell_id + 1, n_children)
+
+        # Flip sign of refined cell such that we can easily find it later
+        t.original_cell_ids[cell_id] = -t.original_cell_ids[cell_id]
+
+        # Initialize child cells (except neighbors)
+        for child in 1:n_children
+            child_id = cell_id + child
+            init_child!(t, cell_id, child, child_id)
+        end
+
+        # Initialize child cells (only neighbors)
+        # This separate loop is required since init_child_neighbors requires initialized parent-child
+        # relationships
+        for child in 1:n_children
+            child_id = cell_id + child
+            init_child_neighbors!(t, cell_id, child, child_id)
+        end
+    end
+
+    return refined
+end
+
+# Refine entire tree by one level
+function refine!(t::AbstractTree)
+    cells = @trixi_timeit timer() "collect all leaf cells" leaf_cells(t)
+    @trixi_timeit timer() "refine!" refine!(t, cells, cells)
+end
+
+# Refine given cells and rebalance tree.
+#
+# Note 1: Rebalancing is iterative, i.e., neighboring cells are refined if
+#         otherwise the 2:1 rule would be violated, which can cause more
+#         refinements.
+# Note 2: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
+function refine!(t::AbstractTree, cell_ids,
+                 sorted_unique_cell_ids = sort(unique(cell_ids)))
+    # Reset original cell ids such that each cell knows its current id
+    reset_original_cell_ids!(t)
+
+    # Refine all requested cells
+    refined = @trixi_timeit timer() "refine_unbalanced!" refine_unbalanced!(t, cell_ids,
+                                                                            sorted_unique_cell_ids)
+    refinement_count = length(refined)
+
+    # Iteratively rebalance the tree until it does not change anymore
+    while length(refined) > 0
+        refined = @trixi_timeit timer() "rebalance!" rebalance!(t, refined)
+        refinement_count += length(refined)
+    end
+
+    # Determine list of *original* cell ids that were refined
+    # Note: original_cell_ids contains the cell_id *before* refinement. At
+    # refinement, the refined cell's original_cell_ids value has its sign flipped
+    # to easily find it now.
+    refined_original_cells = @views(-t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
+
+    # Check if count of refinement cells matches information in original_cell_ids
+    @assert refinement_count==length(refined_original_cells) ("Mismatch in number of refined cells")
+
+    return refined_original_cells
+end
+
+# Refine all leaf cells with coordinates in a given rectangular box
+function refine_box!(t::AbstractTree{NDIMS}, coordinates_min,
+                     coordinates_max) where {NDIMS}
+    for dim in 1:NDIMS
+        @assert coordinates_min[dim]<coordinates_max[dim] "Minimum coordinates are not minimum."
+    end
+
+    # Find all leaf cells within box
+    cells = filter_leaf_cells(t) do cell_id
+        return (all(coordinates_min .< cell_coordinates(t, cell_id)) &&
+                all(coordinates_max .> cell_coordinates(t, cell_id)))
+    end
+
+    # Refine cells
+    refine!(t, cells)
+end
+
+# Convenience method for 1D
+function refine_box!(t::AbstractTree{1}, coordinates_min::Real, coordinates_max::Real)
+    return refine_box!(t, [convert(Float64, coordinates_min)],
+                       [convert(Float64, coordinates_max)])
+end
+
+# Refine all leaf cells with coordinates in a given sphere
+function refine_sphere!(t::AbstractTree{NDIMS}, center::SVector{NDIMS},
+                        radius) where {NDIMS}
+    @assert radius>=0 "Radius must be positive."
+
+    # Find all leaf cells within sphere
+    cells = filter_leaf_cells(t) do cell_id
+        return sum(abs2, cell_coordinates(t, cell_id) - center) < radius^2
+    end
+
+    # Refine cells
+    refine!(t, cells)
+end
+
+# Convenience function to allow passing center as a tuple
+function refine_sphere!(t::AbstractTree{NDIMS}, center::NTuple{NDIMS},
+                        radius) where {NDIMS}
+    refine_sphere!(t, SVector(center), radius)
+end
+
+# For the given cell ids, check if neighbors need to be refined to restore a rebalanced tree.
+#
+# Note 1: Rebalancing currently only considers *Cartesian* neighbors, not diagonal neighbors!
+# Note 2: The current algorithm assumes that a previous refinement step has
+#         created level differences of at most 2. That is, before the previous
+#         refinement step, the tree was balanced.
+function rebalance!(t::AbstractTree, refined_cell_ids)
+    # Create buffer for newly refined cells
+    to_refine = zeros(Int, n_directions(t) * length(refined_cell_ids))
+    count = 0
+
+    # Iterate over cell ids that have previously been refined
+    for cell_id in refined_cell_ids
+        # Go over all potential neighbors of child cell
+        for direction in eachdirection(t)
+            # Continue if refined cell has a neighbor in that direction
+            if has_neighbor(t, cell_id, direction)
+                continue
+            end
+
+            # Continue if refined cell has no coarse neighbor, since that would
+            # mean it there is no neighbor in that direction at all (domain
+            # boundary)
+            if !has_coarse_neighbor(t, cell_id, direction)
+                continue
+            end
+
+            # Otherwise, the coarse neighbor exists and is not refined, thus it must
+            # be marked for refinement
+            coarse_neighbor_id = t.neighbor_ids[direction, t.parent_ids[cell_id]]
+            count += 1
+            to_refine[count] = coarse_neighbor_id
+        end
+    end
+
+    # Finally, refine all marked cells...
+    refined = refine_unbalanced!(t, unique(to_refine[1:count]))
+
+    # ...and return list of refined cells
+    return refined
+end
+
+# Refine given cells without rebalancing tree.
+#
+# Note: After a call to this method the tree may be unbalanced!
+# function refine_unbalanced!(t::AbstractTree, cell_ids) end
+
+# Wrap single-cell refinements such that `sort(...)` does not complain
+refine_unbalanced!(t::AbstractTree, cell_id::Int) = refine_unbalanced!(t, [cell_id])
+
+# Coarsen entire tree by one level
+function coarsen!(t::AbstractTree)
+    # Special case: if there is only one cell (root), there is nothing to do
+    if length(t) == 1
+        return Int[]
+    end
+
+    # Get list of unique parent ids for all leaf cells
+    parent_ids = unique(t.parent_ids[leaf_cells(t)])
+    coarsen!(t, parent_ids)
+end
+
+# Coarsen given *parent* cells (= these cells must have children who are all
+# leaf cells) while retaining a balanced tree.
+#
+# A cell to be coarsened might cause an unbalanced tree if the neighboring cell
+# was already refined. Since it is generally not desired that cells are
+# coarsened without specifically asking for it, these cells will then *not* be
+# coarsened.
+function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
+    # Return early if array is empty
+    if length(cell_ids) == 0
+        return Int[]
+    end
+
+    # Reset original cell ids such that each cell knows its current id
+    reset_original_cell_ids!(t)
+
+    # To maximize the number of cells that may be coarsened, start with the cells at the highest level
+    sorted_by_level = sort(cell_ids, by = i -> t.levels[i])
+
+    # Keep track of number of cells that were actually coarsened
+    n_coarsened = 0
+
+    # Local function to adjust cell ids after some cells have been removed
+    function adjust_cell_ids!(cell_ids, coarsened_cell_id, count)
+        for (id, cell_id) in enumerate(cell_ids)
+            if cell_id > coarsened_cell_id
+                cell_ids[id] = cell_id - count
+            end
+        end
+    end
+
+    # Iterate backwards over cells to coarsen
+    while true
+        # Retrieve next cell or quit
+        if length(sorted_by_level) > 0
+            coarse_cell_id = pop!(sorted_by_level)
+        else
+            break
+        end
+
+        # Ensure that cell has children (violation is an error)
+        if !has_children(t, coarse_cell_id)
+            error("cell is leaf and cannot be coarsened to: $coarse_cell_id")
+        end
+
+        # Ensure that all child cells are leaf cells (violation is an error)
+        for child in 1:n_children_per_cell(t)
+            if has_child(t, coarse_cell_id, child)
+                if !is_leaf(t, t.child_ids[child, coarse_cell_id])
+                    error("cell $coarse_cell_id has child cell at position $child that is not a leaf cell")
+                end
+            end
+        end
+
+        # Check if coarse cell has refined neighbors that would prevent coarsening
+        skip = false
+        # Iterate over all children (which are to be removed)
+        for child in 1:n_children_per_cell(t)
+            # Continue if child does not exist
+            if !has_child(t, coarse_cell_id, child)
+                continue
+            end
+            child_id = t.child_ids[child, coarse_cell_id]
+
+            # Go over all neighbors of child cell. If it has a neighbor that is *not*
+            # a sibling and that is not a leaf cell, we cannot coarsen its parent
+            # without creating an unbalanced tree.
+            for direction in eachdirection(t)
+                # Continue if neighbor would be a sibling
+                if has_sibling(child, direction)
+                    continue
+                end
+
+                # Continue if child cell has no neighbor in that direction
+                if !has_neighbor(t, child_id, direction)
+                    continue
+                end
+                neighbor_id = t.neighbor_ids[direction, child_id]
+
+                if !has_children(t, neighbor_id)
+                    continue
+                end
+
+                # If neighbor is not a sibling, is existing, and has children, do not coarsen
+                skip = true
+                break
+            end
+        end
+        # Skip if a neighboring cell prevents coarsening
+        if skip
+            continue
+        end
+
+        # Flip sign of cell to be coarsened to such that we can easily find it
+        t.original_cell_ids[coarse_cell_id] = -t.original_cell_ids[coarse_cell_id]
+
+        # If a coarse cell has children that are all leaf cells, they must follow
+        # immediately due to depth-first ordering of the tree
+        count = n_children(t, coarse_cell_id)
+        @assert count==n_children_per_cell(t) "cell $coarse_cell_id does not have all child cells"
+        remove_shift!(t, coarse_cell_id + 1, coarse_cell_id + count)
+
+        # Take into account shifts in tree that alters cell ids
+        adjust_cell_ids!(sorted_by_level, coarse_cell_id, count)
+
+        # Keep track of number of coarsened cells
+        n_coarsened += 1
+    end
+
+    # Determine list of *original* cell ids that were coarsened to
+    # Note: original_cell_ids contains the cell_id *before* coarsening. At
+    # coarsening, the coarsened parent cell's original_cell_ids value has its sign flipped
+    # to easily find it now.
+    @views coarsened_original_cells = (-t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
+
+    # Check if count of coarsened cells matches information in original_cell_ids
+    @assert n_coarsened==length(coarsened_original_cells) ("Mismatch in number of coarsened cells")
+
+    return coarsened_original_cells
+end
+
+# Wrap single-cell coarsening such that `sort(...)` does not complain
+coarsen!(t::AbstractTree, cell_id::Int) = coarsen!(t::AbstractTree, [cell_id])
+
+# Coarsen all viable parent cells with coordinates in a given rectangular box
+function coarsen_box!(t::AbstractTree{NDIMS}, coordinates_min::AbstractArray{Float64},
+                      coordinates_max::AbstractArray{Float64}) where {NDIMS}
+    for dim in 1:NDIMS
+        @assert coordinates_min[dim]<coordinates_max[dim] "Minimum coordinates are not minimum."
+    end
+
+    # Find all leaf cells within box
+    leaves = filter_leaf_cells(t) do cell_id
+        return (all(coordinates_min .< cell_coordinates(t, cell_id)) &&
+                all(coordinates_max .> cell_coordinates(t, cell_id)))
+    end
+
+    # Get list of unique parent ids for all leaf cells
+    parent_ids = unique(t.parent_ids[leaves])
+
+    # Filter parent ids to be within box
+    parents = filter(parent_ids) do cell_id
+        return (all(coordinates_min .< cell_coordinates(t, cell_id)) &&
+                all(coordinates_max .> cell_coordinates(t, cell_id)))
+    end
+
+    # Coarsen cells
+    coarsen!(t, parents)
+end
+
+# Convenience method for 1D
+function coarsen_box!(t::AbstractTree{1}, coordinates_min::Real, coordinates_max::Real)
+    return coarsen_box!(t, [convert(Float64, coordinates_min)],
+                        [convert(Float64, coordinates_max)])
+end
+
+# Return coordinates of a child cell based on its relative position to the parent.
+function child_coordinates(::AbstractTree{NDIMS}, parent_coordinates,
+                           parent_length::Number, child::Int) where {NDIMS}
+    # Calculate length of child cells
+    child_length = parent_length / 2
+    return SVector(ntuple(d -> parent_coordinates[d] +
+                               child_sign(child, d) * child_length / 2, Val(NDIMS)))
+end
+
+# Reset range of cells to values that are prone to cause errors as soon as they are used.
+#
+# Rationale: If an invalid cell is accidentally used, we want to know it as soon as possible.
+# function invalidate!(t::AbstractTree, first::Int, last::Int) end
+invalidate!(t::AbstractTree, id::Int) = invalidate!(t, id, id)
+invalidate!(t::AbstractTree) = invalidate!(t, 1, length(t))
+
+# Delete connectivity with parents/children/neighbors before cells are erased
+function delete_connectivity!(t::AbstractTree, first::Int, last::Int)
+    @assert first > 0
+    @assert first <= last
+    @assert last <= t.capacity + 1
+
+    # Iterate over all cells
+    for cell_id in first:last
+        # Delete connectivity from parent cell
+        if has_parent(t, cell_id)
+            parent_id = t.parent_ids[cell_id]
+            for child in 1:n_children_per_cell(t)
+                if t.child_ids[child, parent_id] == cell_id
+                    t.child_ids[child, parent_id] = 0
+                    break
+                end
+            end
+        end
+
+        # Delete connectivity from child cells
+        for child in 1:n_children_per_cell(t)
+            if has_child(t, cell_id, child)
+                t.parent_ids[t._child_ids[child, cell_id]] = 0
+            end
+        end
+
+        # Delete connectivity from neighboring cells
+        for direction in eachdirection(t)
+            if has_neighbor(t, cell_id, direction)
+                t.neighbor_ids[opposite_direction(direction), t.neighbor_ids[direction, cell_id]] = 0
+            end
+        end
+    end
+end
+
+# Move connectivity with parents/children/neighbors after cells have been moved
+function move_connectivity!(t::AbstractTree, first::Int, last::Int, destination::Int)
+    @assert first > 0
+    @assert first <= last
+    @assert last <= t.capacity + 1
+    @assert destination > 0
+    @assert destination <= t.capacity + 1
+
+    # Strategy
+    # 1) Loop over moved cells (at target location)
+    # 2) Check if parent/children/neighbors connections are to a cell that was moved
+    #    a) if cell was moved: apply offset to current cell
+    #    b) if cell was not moved: go to connected cell and update connectivity there
+
+    offset = destination - first
+    has_moved(n) = (first <= n <= last)
+
+    for source in first:last
+        target = source + offset
+
+        # Update parent
+        if has_parent(t, target)
+            # Get parent cell
+            parent_id = t.parent_ids[target]
+            if has_moved(parent_id)
+                # If parent itself was moved, just update parent id accordingly
+                t.parent_ids[target] += offset
+            else
+                # If parent was not moved, update its corresponding child id
+                for child in 1:n_children_per_cell(t)
+                    if t.child_ids[child, parent_id] == source
+                        t.child_ids[child, parent_id] = target
+                    end
+                end
+            end
+        end
+
+        # Update children
+        for child in 1:n_children_per_cell(t)
+            if has_child(t, target, child)
+                # Get child cell
+                child_id = t.child_ids[child, target]
+                if has_moved(child_id)
+                    # If child itself was moved, just update child id accordingly
+                    t.child_ids[child, target] += offset
+                else
+                    # If child was not moved, update its parent id
+                    t.parent_ids[child_id] = target
+                end
+            end
+        end
+
+        # Update neighbors
+        for direction in eachdirection(t)
+            if has_neighbor(t, target, direction)
+                # Get neighbor cell
+                neighbor_id = t.neighbor_ids[direction, target]
+                if has_moved(neighbor_id)
+                    # If neighbor itself was moved, just update neighbor id accordingly
+                    t.neighbor_ids[direction, target] += offset
+                else
+                    # If neighbor was not moved, update its opposing neighbor id
+                    t.neighbor_ids[opposite_direction(direction), neighbor_id] = target
+                end
+            end
+        end
+    end
+end
+
+# Raw copy operation for ranges of cells.
+#
+# This method is used by the higher-level copy operations for AbstractContainer
+# function raw_copy!(target::AbstractTree, source::AbstractTree, first::Int, last::Int, destination::Int) end
+
+# Reset data structures by recreating all internal storage containers and invalidating all elements
+# function reset_data_structures!(t::AbstractTree{NDIMS}) where NDIMS end
+
 end # @muladd
