@@ -31,7 +31,7 @@ function get_elements_by_coordinates!(element_ids, coordinates,
     # Iterate over coordinates
     distances = zeros(eltype(mesh.corners), mesh.n_elements)
     indices = zeros(Int, mesh.n_elements, 2)
-    for index in 1:length(element_ids)
+    for index in eachindex(element_ids)
         # Grab the current point for which the element needs found
         point = SVector(coordinates[1, index],
                         coordinates[2, index])
@@ -77,7 +77,7 @@ function get_elements_by_coordinates!(element_ids, coordinates,
         # Loop through all the element candidates until we find a vector from the barycenter
         # to the surface that points in the same direction as the current `point` vector.
         # This then gives us the correct element.
-        for element in 1:length(candidates)
+        for element in eachindex(candidates)
             bary_center = SVector(bary_centers[1, candidates[element]],
                                   bary_centers[2, candidates[element]])
             # Vector pointing from the barycenter toward the minimal `surface_point`
@@ -118,7 +118,7 @@ function calc_minimum_surface_distance(point, node_coordinates,
     n = nnodes(dg)
     min_distance2 = Inf * ones(eltype(mesh.corners), length(mesh))
     indices = zeros(Int, length(mesh), 2)
-    for k in 1:length(mesh)
+    for k in eachindex(mesh)
         # used to ensure that only boundary points are used
         on_surface = MVector(false, false)
         for j in 1:n
@@ -153,7 +153,7 @@ function calc_interpolating_polynomials!(interpolating_polynomials, coordinates,
     # Helper array for a straight-sided quadrilateral element
     corners = zeros(eltype(mesh.corners), 4, 2)
 
-    for index in 1:length(element_ids)
+    for index in eachindex(element_ids)
         # Construct point
         x = SVector(ntuple(i -> coordinates[i, index], ndims(mesh)))
 
@@ -280,7 +280,7 @@ function record_state_at_points!(point_data, u, solution_variables,
     new_length = old_length + n_solution_variables
 
     # Loop over all points/elements that should be recorded
-    for index in 1:length(element_ids)
+    for index in eachindex(element_ids)
         # Extract data array and element id
         data = point_data[index]
         element_id = element_ids[index]
@@ -294,7 +294,7 @@ function record_state_at_points!(point_data, u, solution_variables,
             u_node = solution_variables(get_node_vars(u, equations, dg, i, j,
                                                       element_id), equations)
 
-            for v in 1:length(u_node)
+            for v in eachindex(u_node)
                 data[old_length + v] += (u_node[v]
                                          * interpolating_polynomials[i, 1, index]
                                          * interpolating_polynomials[j, 2, index])

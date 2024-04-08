@@ -60,7 +60,7 @@ end
 function start_mpi_send!(mpi_cache::MPICache, mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
 
-    for d in 1:length(mpi_cache.mpi_neighbor_ranks)
+    for d in eachindex(mpi_cache.mpi_neighbor_ranks)
         send_buffer = mpi_cache.mpi_send_buffers[d]
 
         for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[d])

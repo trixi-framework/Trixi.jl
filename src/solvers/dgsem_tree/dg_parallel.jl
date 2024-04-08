@@ -13,7 +13,7 @@ function init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars,
     n_small_elements = 2^(n_dims - 1)
     mpi_send_buffers = Vector{Vector{uEltype}}(undef, length(mpi_neighbor_interfaces))
     mpi_recv_buffers = Vector{Vector{uEltype}}(undef, length(mpi_neighbor_interfaces))
-    for index in 1:length(mpi_neighbor_interfaces)
+    for index in eachindex(mpi_neighbor_interfaces)
         mpi_send_buffers[index] = Vector{uEltype}(undef,
                                                   length(mpi_neighbor_interfaces[index]) *
                                                   data_size +

@@ -187,7 +187,7 @@ function iplot(pd::PlotData2DTriangulated;
     fig = Makie.Figure()
 
     # Set up options for the drop-down menu
-    menu_options = [zip(variable_names, 1:length(variable_names))...]
+    menu_options = [zip(variable_names, eachindex(variable_names))...]
     menu = Makie.Menu(fig, options = menu_options)
 
     # Initialize toggle switches for viewing the mesh

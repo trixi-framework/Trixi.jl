@@ -32,14 +32,14 @@ function SemidiscretizationCoupled(semis...)
 
     # Number of coefficients for each semidiscretization
     n_coefficients = zeros(Int, length(semis))
-    for i in 1:length(semis)
+    for i in eachindex(semis)
         _, equations, _, _ = mesh_equations_solver_cache(semis[i])
         n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
     end
 
     # Compute range of coefficients associated with each semidiscretization and allocate coupled BCs
     u_indices = Vector{UnitRange{Int}}(undef, length(semis))
-    for i in 1:length(semis)
+    for i in eachindex(semis)
         offset = sum(n_coefficients[1:(i - 1)]) + 1
         u_indices[i] = range(offset, length = n_coefficients[i])
 

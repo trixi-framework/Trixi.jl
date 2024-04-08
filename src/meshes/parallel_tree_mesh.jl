@@ -70,7 +70,7 @@ function partition!(mesh::ParallelTreeMesh; allow_coarsening = true)
         end
     end
 
-    @assert all(x -> x >= 0, mesh.tree.mpi_ranks[1:length(mesh.tree)])
+    @assert all(x -> x >= 0, mesh.tree.mpi_ranks[eachindex(mesh.tree)])
     @assert sum(mesh.n_cells_by_rank) == length(mesh.tree)
 
     return nothing
