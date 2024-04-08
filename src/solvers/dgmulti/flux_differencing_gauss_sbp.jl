@@ -136,8 +136,8 @@ end
 #! format: off
 # Interpolates values from volume Gauss nodes to face nodes on one element.
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
-                                                    A::TensorProductGaussFaceOperator{2, Interpolation},
-                                                    x_in::AbstractVector)
+                                                     A::TensorProductGaussFaceOperator{2, Interpolation},
+                                                     x_in::AbstractVector)
 #! format: on                                                     
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; nnodes_1d) = A
