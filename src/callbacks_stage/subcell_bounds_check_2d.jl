@@ -48,18 +48,20 @@
     if local_onesided
         for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
             key = Symbol(string(variable), "_", string(min_or_max))
-            deviation_threaded = idp_bounds_delta_local[key]
+            deviation = idp_bounds_delta_local[key]
             sign_ = min_or_max(1.0, -1.0)
-            @threaded for element in eachelement(solver, cache)
-                deviation = deviation_threaded[stride_size * Threads.threadid()]
+            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
                 for j in eachnode(solver), i in eachnode(solver)
                     v = variable(get_node_vars(u, equations, solver, i, j, element),
                                  equations)
+                    # Note: We always save the absolute deviations >= 0 and therefore use the
+                    # `max` operator for lower and upper bounds. The different directions of
+                    # upper and lower bounds are considered with `sign_`.
                     deviation = max(deviation,
                                     sign_ * (v - variable_bounds[key][i, j, element]))
                 end
-                deviation_threaded[stride_size * Threads.threadid()] = deviation
             end
+            idp_bounds_delta_local[key] = deviation
         end
     end
     if positivity
