@@ -5,13 +5,13 @@
 @muladd begin
 #! format: noindent
 
-struct FV{SurfaceFlux}
+struct FV{RealT <: Real, SurfaceFlux}
     order::Integer
     surface_flux::SurfaceFlux
 
-    function FV(; surface_flux = flux_central)
+    function FV(; RealT = Float64, surface_flux = flux_central)
         order = 1
-        new{typeof(surface_flux)}(order, surface_flux)
+        new{RealT, typeof(surface_flux)}(order, surface_flux)
     end
 end
 
@@ -39,7 +39,7 @@ end
 
 Base.summary(io::IO, solver::FV) = print(io, "FV(order=$(solver.order))")
 
-@inline Base.real(solver::FV) = Float64 # TODO
+@inline Base.real(solver::FV{RealT}) where {RealT} = RealT
 
 @inline ndofs(mesh, solver::FV, cache) = ncells(mesh)
 
