@@ -149,7 +149,7 @@ end
 function filter_leaf_cells(f, t::AbstractTree)
     filtered = Vector{Int}(undef, length(t))
     count = 0
-    for cell_id in eachindex(t)
+    for cell_id in 1:length(t)
         if is_leaf(t, cell_id) && f(cell_id)
             count += 1
             filtered[count] = cell_id
@@ -194,7 +194,7 @@ end
 
 # Store cell id in each cell to use for post-AMR analysis
 function reset_original_cell_ids!(t::AbstractTree)
-    t.original_cell_ids[eachindex(t)] .= eachindex(t)
+    t.original_cell_ids[1:length(t)] .= 1:length(t)
 end
 
 # Efficiently perform uniform refinement up to a given level (works only on mesh with a single cell)
@@ -250,7 +250,7 @@ function init_neighbors!(t::AbstractTree, max_level = maximum_level(t))
     # Initialize neighbors level by level
     for level in 1:max_level
         # Walk entire tree, starting from level 0 cell
-        for cell_id in eachindex(t)
+        for cell_id in 1:length(t)
             # Skip cells whose immediate children are already initialized *or* whose level is too high for this round
             if t.levels[cell_id] != level - 1
                 continue
@@ -379,7 +379,7 @@ function refine!(t::AbstractTree, cell_ids,
     # Note: original_cell_ids contains the cell_id *before* refinement. At
     # refinement, the refined cell's original_cell_ids value has its sign flipped
     # to easily find it now.
-    refined_original_cells = @views(-t.original_cell_ids[eachindex(t)][t.original_cell_ids[eachindex(t)] .< 0])
+    refined_original_cells = @views(-t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
 
     # Check if count of refinement cells matches information in original_cell_ids
     @assert refinement_count==length(refined_original_cells) ("Mismatch in number of refined cells")
@@ -605,7 +605,7 @@ function coarsen!(t::AbstractTree, cell_ids::AbstractArray{Int})
     # Note: original_cell_ids contains the cell_id *before* coarsening. At
     # coarsening, the coarsened parent cell's original_cell_ids value has its sign flipped
     # to easily find it now.
-    @views coarsened_original_cells = (-t.original_cell_ids[eachindex(t)][t.original_cell_ids[eachindex(t)] .< 0])
+    @views coarsened_original_cells = (-t.original_cell_ids[1:length(t)][t.original_cell_ids[1:length(t)] .< 0])
 
     # Check if count of coarsened cells matches information in original_cell_ids
     @assert n_coarsened==length(coarsened_original_cells) ("Mismatch in number of coarsened cells")
