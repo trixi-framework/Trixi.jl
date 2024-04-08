@@ -288,6 +288,8 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        adapt_to_mesh_level,
        iplot, iplot!
 
+export GmshFile, AbaqusFile
+
 function __init__()
     init_mpi()
 

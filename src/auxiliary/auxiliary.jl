@@ -370,4 +370,15 @@ function download(src_url, file_path)
 
     return file_path
 end
+
+abstract type MeshFile{NDIMS} end
+
+struct GmshFile{NDIMS} <: MeshFile{NDIMS}
+  path :: String
+end
+
+struct AbaqusFile{NDIMS} <: MeshFile{NDIMS}
+  path :: String
+end
+
 end # @muladd
