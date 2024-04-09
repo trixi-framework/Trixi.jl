@@ -476,18 +476,36 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_navierstokes_shearlayer_amr.jl"),
                         l2=[
-                            0.00526017743452336,
-                            0.4130430692895672,
-                            0.4310996183791349,
-                            1.1544344171604635,
+                            0.005155557460409018,
+                            0.4048446934219344,
+                            0.43040068852937047,
+                            1.1255130552079322,
                         ],
                         linf=[
-                            0.03492185879198495,
-                            1.392635891671335,
-                            1.357551616406459,
-                            8.713760873018146,
+                            0.03287305649809613,
+                            1.1656793717431393,
+                            1.3917196016246969,
+                            8.146587380114653,
                         ],
                         tspan=(0.0, 0.7))
+end
+
+@trixi_testset "TreeMesh2D: elixir_navierstokes_taylor_green_vortex_sutherland.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_navierstokes_taylor_green_vortex_sutherland.jl"),
+                        l2=[
+                            0.001452856280034929,
+                            0.0007538775539989481,
+                            0.0007538775539988681,
+                            0.011035506549989587,
+                        ],
+                        linf=[
+                            0.003291912841311362,
+                            0.002986462478096974,
+                            0.0029864624780958637,
+                            0.0231954665514138,
+                        ],
+                        tspan=(0.0, 1.0))
 end
 
 @trixi_testset "P4estMesh2D: elixir_advection_diffusion_periodic.jl" begin
@@ -688,6 +706,55 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
+
+@trixi_testset "elixir_navierstokes_NACA0012airfoil_mach08.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_NACA0012airfoil_mach08.jl"),
+                        l2=[0.000186486564226516,
+                            0.0005076712323400374,
+                            0.00038074588984354107,
+                            0.002128177239782089],
+                        linf=[0.5153387072802718,
+                            1.199362305026636,
+                            0.9077214424040279,
+                            5.666071182328691], tspan=(0.0, 0.001),
+                        initial_refinement_level=0,
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time steps after the restart.
+                        coverage_override=(maxiters = 10_000,))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode) # Just a placeholder in this case
+
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+
+    drag_p = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
+                           semi.cache)
+    lift_p = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
+                           semi.cache)
+
+    drag_f = Trixi.analyze(drag_coefficient_shear_force, du, u, tspan[2], mesh,
+                           equations, equations_parabolic, solver,
+                           semi.cache, semi.cache_parabolic)
+    lift_f = Trixi.analyze(lift_coefficient_shear_force, du, u, tspan[2], mesh,
+                           equations, equations_parabolic, solver,
+                           semi.cache, semi.cache_parabolic)
+
+    @test isapprox(drag_p, 0.17963843913309516, atol = 1e-13)
+    @test isapprox(lift_p, 0.26462588007949367, atol = 1e-13)
+
+    @test isapprox(drag_f, 1.5427441885921553, atol = 1e-13)
+    @test isapprox(lift_f, 0.005621910087395724, atol = 1e-13)
 end
 end
 

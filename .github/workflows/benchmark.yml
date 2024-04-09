@@ -21,7 +21,7 @@ jobs:
       - run: |
           git fetch --tags
           git branch --create-reflog main origin/main
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
