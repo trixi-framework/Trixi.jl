@@ -78,8 +78,8 @@ function create_tutorials(files)
     # Preprocessing introduction file: Generate tutorial numbers
     function preprocess_introduction(content)
         counter = 1
-        while occursin("# ### [Number: ", content)
-            content = replace(content, "# ### [Number:" => "# ### [$counter", count = 1)
+        while occursin("\$index", content)
+            content = replace(content, "\$index" => "$counter", count = 1)
             counter += 1
         end
         return content
