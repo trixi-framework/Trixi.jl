@@ -118,7 +118,7 @@ function calc_minimum_surface_distance(point, node_coordinates,
     n = nnodes(dg)
     min_distance2 = Inf * ones(eltype(mesh.corners), length(mesh))
     indices = zeros(Int, length(mesh), 2)
-    for k in eachindex(mesh)
+    for k in 1:length(mesh)
         # used to ensure that only boundary points are used
         on_surface = MVector(false, false)
         for j in 1:n
