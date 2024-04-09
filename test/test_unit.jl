@@ -284,7 +284,7 @@ end
     function MyContainer(data, capacity)
         c = MyContainer(Vector{Int}(undef, capacity + 1), capacity, length(data),
                         capacity + 1)
-        c.data[1:length(data)] .= data
+        c.data[eachindex(data)] .= data
         return c
     end
     MyContainer(data::AbstractArray) = MyContainer(data, length(data))
