@@ -75,11 +75,12 @@ function create_tutorials(files)
     end
 
     # Generate markdown file for introduction page
-    # Preprocessing introduction file: Generate tutorial numbers
+    # Preprocessing introduction file: Generate consecutive tutorial numbers by replacing
+    # each occurrence of `{index}` with an integer incremented by 1, starting at 1.
     function preprocess_introduction(content)
         counter = 1
-        while occursin("\$index", content)
-            content = replace(content, "\$index" => "$counter", count = 1)
+        while occursin("{index}", content)
+            content = replace(content, "{index}" => "$counter", count = 1)
             counter += 1
         end
         return content
