@@ -32,7 +32,7 @@ function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any, 4},
     outer_distance = 1.85
 
     # Iterate over all elements.
-    for element in 1:length(alpha)
+    for element in eachindex(alpha)
         # Calculate periodic distance between cell and center.
         # This requires an uncurved mesh!
         coordinates = SVector(0.5 * (cache.elements.node_coordinates[1, 1, 1, element] +
