@@ -63,7 +63,7 @@ struct DragCoefficientPressure{RealT <: Real}
     force_state::ForceState{RealT}
 end
 
-# Abstract base type used for dispatch of `analyze` for quantities 
+# Abstract base type used for dispatch of `analyze` for quantities
 # requiring gradients of the velocity field.
 abstract type VariableViscous end
 
@@ -175,7 +175,8 @@ function DragCoefficientShearStress(aoa, rhoinf, uinf, linf)
     return DragCoefficientShearStress(ForceState(psi_drag, rhoinf, uinf, linf))
 end
 
-function (lift_coefficient::LiftCoefficientPressure)(u, normal_direction, equations)
+function (lift_coefficient::LiftCoefficientPressure)(u, normal_direction, x, t,
+                                                     equations)
     p = pressure(u, equations)
     @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
     # Normalize as `normal_direction` is not necessarily a unit vector
@@ -183,7 +184,8 @@ function (lift_coefficient::LiftCoefficientPressure)(u, normal_direction, equati
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
 
-function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, equations)
+function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, x, t,
+                                                     equations)
     p = pressure(u, equations)
     @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
     # Normalize as `normal_direction` is not necessarily a unit vector
@@ -193,8 +195,8 @@ end
 
 # Compute the three components of the symmetric viscous stress tensor
 # (tau_11, tau_12, tau_22) based on the gradients of the velocity field.
-# This is required for drag and lift coefficients based on shear stress, 
-# as well as for the non-integrated quantities such as 
+# This is required for drag and lift coefficients based on shear stress,
+# as well as for the non-integrated quantities such as
 # skin friction coefficient (to be added).
 function viscous_stress_tensor(u, normal_direction, equations_parabolic,
                                gradients_1, gradients_2)
@@ -233,7 +235,7 @@ function viscous_stress_vector(u, normal_direction, equations_parabolic,
     return (visc_stress_vector_1, visc_stress_vector_2)
 end
 
-function (lift_coefficient::LiftCoefficientShearStress)(u, normal_direction,
+function (lift_coefficient::LiftCoefficientShearStress)(u, normal_direction, x, t,
                                                         equations_parabolic,
                                                         gradients_1, gradients_2)
     visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
@@ -243,7 +245,7 @@ function (lift_coefficient::LiftCoefficientShearStress)(u, normal_direction,
            (0.5 * rhoinf * uinf^2 * linf)
 end
 
-function (drag_coefficient::DragCoefficientShearStress)(u, normal_direction,
+function (drag_coefficient::DragCoefficientShearStress)(u, normal_direction, x, t,
                                                         equations_parabolic,
                                                         gradients_1, gradients_2)
     visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
@@ -283,10 +285,18 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                                                     i_node, j_node,
                                                     element)
 
+            # Coordinates at a boundary node
+            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
+                                element)
+
             # L2 norm of normal direction (contravariant_vector) is the surface element
             dS = weights[node_index] * norm(normal_direction)
-            # Integral over entire boundary surface
-            surface_integral += variable(u_node, normal_direction, equations) * dS
+
+            # Integral over entire boundary surface. Note, it is assumed that the
+            # `normal_direction` is normalized to be a normal vector within the
+            # function `variable` and the division of the normal scaling factor
+            # `norm(normal_direction)` is then accounted for with the `dS` quantity.
+            surface_integral += variable(u_node, normal_direction, x, t, equations) * dS
 
             i_node += i_node_step
             j_node += j_node_step
@@ -328,10 +338,14 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
             u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
                                          boundary)
             # Extract normal direction at nodes which points from the elements outwards,
-            # i.e., *into* the structure.                                         
+            # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
                                                     i_node, j_node,
                                                     element)
+
+            # Coordinates at a boundary node
+            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
+                                element)
 
             # L2 norm of normal direction (contravariant_vector) is the surface element
             dS = weights[node_index] * norm(normal_direction)
@@ -341,8 +355,12 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
             gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg, i_node,
                                         j_node, element)
 
-            # Integral over whole boundary surface
-            surface_integral += variable(u_node, normal_direction, equations_parabolic,
+            # Integral over whole boundary surface. Note, it is assumed that the
+            # `normal_direction` is normalized to be a normal vector within the
+            # function `variable` and the division of the normal scaling factor
+            # `norm(normal_direction)` is then accounted for with the `dS` quantity.
+            surface_integral += variable(u_node, normal_direction, x, t,
+                                         equations_parabolic,
                                          gradients_1, gradients_2) * dS
 
             i_node += i_node_step
