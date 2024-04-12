@@ -19,12 +19,12 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 periodicity = false)
 
 # Initialize density and pressure perturbation with a Gaussian bump
-# that splits and is advected with v - c and v + c.
+# that splits into radial waves which are advected with v - c and v + c.
 function initial_condition_gauss_wall(x, t, equations::LinearizedEulerEquations3D)
     v1_prime = 0.0
     v2_prime = 0.0
     v3_prime = 0.0
-    rho_prime = p_prime = 2 * exp(-(x[1] - 45)^2 / 25)
+    rho_prime = p_prime = 2 * exp(-((x[1] - 45)^2 + (x[2] - 45)^2) / 25)
     return SVector(rho_prime, v1_prime, v2_prime, v3_prime, p_prime)
 end
 initial_condition = initial_condition_gauss_wall
