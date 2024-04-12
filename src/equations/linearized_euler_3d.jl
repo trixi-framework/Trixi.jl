@@ -38,8 +38,7 @@ Linearized Euler equations in three space dimensions. The equations are given by
     \bar{\rho} v_3' + \bar{v_3} \rho ' \\ 
     \bar{v_3} v_1' \\ 
     \bar{v_3} v_2' \\ 
-    \bar{v_3} v_3' + 
-    \frac{p'}{\bar{\rho}} \\ 
+    \bar{v_3} v_3' + \frac{p'}{\bar{\rho}} \\ 
     \bar{v_3} p' + c^2 \bar{\rho} v_3'
 \end{pmatrix}
 =
