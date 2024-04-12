@@ -200,6 +200,7 @@ mutable struct PERK2Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
     # PERK2 stages:
     k1::uType
     k_higher::uType
+    t_stage::RealT
 end
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
@@ -211,9 +212,8 @@ function Base.getproperty(integrator::PERKIntegrator, field::Symbol)
     return getfield(integrator, field)
 end
 
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::PERK2;
-               dt, callback = nothing, kwargs...)
+function init(ode::ODEProblem, alg::PERK2;
+              dt, callback = nothing, kwargs...)
     u0 = copy(ode.u0)
     du = zero(u0)
     u_tmp = zero(u0)
@@ -229,7 +229,7 @@ function solve(ode::ODEProblem, alg::PERK2;
                                  (prob = ode,), ode.f, alg,
                                  PERKIntegratorOptions(callback, ode.tspan; kwargs...),
                                  false,
-                                 k1, k_higher)
+                                 k1, k_higher, t0)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -243,10 +243,33 @@ function solve(ode::ODEProblem, alg::PERK2;
         error("unsupported")
     end
 
-    solve!(integrator)
+    return integrator
 end
 
-function solve!(integrator::PERK2Integrator)
+# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
+function solve(ode::ODEProblem, alg::PERK2;
+               dt, callback = nothing, kwargs...)
+    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+
+    # Start actual solve
+    solve_steps!(integrator)
+end
+
+function solve_steps!(integrator::PERK2Integrator)
+    @unpack prob = integrator.sol
+
+    integrator.finalstep = false
+
+    @trixi_timeit timer() "main loop" while !integrator.finalstep
+        step!(integrator)
+    end # "main loop" timer
+
+    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
+                                  (prob.u0, integrator.u),
+                                  integrator.sol.prob)
+end
+
+function step!(integrator::PERK2Integrator)
     @unpack prob = integrator.sol
     @unpack alg = integrator
     t_end = last(prob.tspan)
@@ -254,87 +277,82 @@ function solve!(integrator::PERK2Integrator)
 
     integrator.finalstep = false
 
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        if isnan(integrator.dt)
-            error("time step size `dt` is NaN")
+    @assert !integrator.finalstep
+    if isnan(integrator.dt)
+        error("time step size `dt` is NaN")
+    end
+
+    # if the next iteration would push the simulation beyond the end time, set dt accordingly
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
+        integrator.dt = t_end - integrator.t
+        terminate!(integrator)
+    end
+
+    @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
+        # k1
+        integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
+        @threaded for i in eachindex(integrator.du)
+            integrator.k1[i] = integrator.du[i] * integrator.dt
         end
 
-        # if the next iteration would push the simulation beyond the end time, set dt accordingly
-        if integrator.t + integrator.dt > t_end ||
-           isapprox(integrator.t + integrator.dt, t_end)
-            integrator.dt = t_end - integrator.t
-            terminate!(integrator)
+        # Construct current state
+        @threaded for i in eachindex(integrator.du)
+            integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
+        end
+        # k2
+        integrator.f(integrator.du, integrator.u_tmp, prob.p,
+                     integrator.t + alg.c[2] * integrator.dt)
+
+        @threaded for i in eachindex(integrator.du)
+            integrator.k_higher[i] = integrator.du[i] * integrator.dt
         end
 
-        @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
-            # k1
-            integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
-            @threaded for i in eachindex(integrator.du)
-                integrator.k1[i] = integrator.du[i] * integrator.dt
-            end
-
+        # Higher stages
+        for stage in 3:(alg.num_stages)
             # Construct current state
             @threaded for i in eachindex(integrator.du)
-                integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
+                integrator.u_tmp[i] = integrator.u[i] +
+                                      alg.a_matrix[stage - 2, 1] *
+                                      integrator.k1[i] +
+                                      alg.a_matrix[stage - 2, 2] *
+                                      integrator.k_higher[i]
             end
-            # k2
+
             integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                         integrator.t + alg.c[2] * integrator.dt)
+                         integrator.t + alg.c[stage] * integrator.dt)
 
             @threaded for i in eachindex(integrator.du)
                 integrator.k_higher[i] = integrator.du[i] * integrator.dt
             end
-
-            # Higher stages
-            for stage in 3:alg.num_stages
-                # Construct current state
-                @threaded for i in eachindex(integrator.du)
-                    integrator.u_tmp[i] = integrator.u[i] +
-                                          alg.a_matrix[stage - 2, 1] *
-                                          integrator.k1[i] +
-                                          alg.a_matrix[stage - 2, 2] *
-                                          integrator.k_higher[i]
-                end
-
-                integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                             integrator.t + alg.c[stage] * integrator.dt)
-
-                @threaded for i in eachindex(integrator.du)
-                    integrator.k_higher[i] = integrator.du[i] * integrator.dt
-                end
-            end
-
-            @threaded for i in eachindex(integrator.u)
-                integrator.u[i] += alg.b1 * integrator.k1[i] +
-                                   alg.bS * integrator.k_higher[i]
-            end
-        end # PERK2 step
-
-        integrator.iter += 1
-        integrator.t += integrator.dt
-
-        @trixi_timeit timer() "Step-Callbacks" begin
-            # handle callbacks
-            if callbacks isa CallbackSet
-                foreach(callbacks.discrete_callbacks) do cb
-                    if cb.condition(integrator.u, integrator.t, integrator)
-                        cb.affect!(integrator)
-                    end
-                    return nothing
-                end
-            end
         end
 
-        # respect maximum number of iterations
-        if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-            @warn "Interrupted. Larger maxiters is needed."
-            terminate!(integrator)
+        @threaded for i in eachindex(integrator.u)
+            integrator.u[i] += alg.b1 * integrator.k1[i] +
+                               alg.bS * integrator.k_higher[i]
         end
-    end # "main loop" timer
+    end # PERK2 step
 
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
+    integrator.iter += 1
+    integrator.t += integrator.dt
+
+    @trixi_timeit timer() "Step-Callbacks" begin
+        # handle callbacks
+        if callbacks isa CallbackSet
+            foreach(callbacks.discrete_callbacks) do cb
+                if cb.condition(integrator.u, integrator.t, integrator)
+                    cb.affect!(integrator)
+                end
+                return nothing
+            end
+        end
+    end
+
+    # respect maximum number of iterations
+    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
+        @warn "Interrupted. Larger maxiters is needed."
+        terminate!(integrator)
+    end
 end
 
 # get a cache where the RHS can be stored
