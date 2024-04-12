@@ -8,7 +8,7 @@
 @doc raw"""
     LinearizedEulerEquations3D(v_mean_global, c_mean_global, rho_mean_global)
 
-Linearized Euler equations in two space dimensions. The equations are given by
+Linearized Euler equations in three space dimensions. The equations are given by
 ```math
 \partial_t
 \begin{pmatrix}
@@ -108,8 +108,8 @@ function boundary_condition_wall(u_inner, orientation, direction, x, t,
                                  equations::LinearizedEulerEquations3D)
     # Boundary state is equal to the inner state except for the velocity. For boundaries
     # in the -x/+x direction, we multiply the velocity in the x direction by -1.
-    # Similarly, for boundaries in the -y/+y direction, we multiply the velocity in the
-    # y direction by -1
+    # Similarly, for boundaries in the -y/+y or -z/+z direction, we multiply the
+    # velocity in the y or z direction by -1
     if direction in (1, 2) # x direction
         u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4],
                              u_inner[5])

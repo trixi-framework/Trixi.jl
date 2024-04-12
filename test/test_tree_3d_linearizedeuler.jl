@@ -6,7 +6,7 @@ include("test_trixi.jl")
 
 EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
 
-@testset "Linearized Euler Equations 2D" begin
+@testset "Linearized Euler Equations 3D" begin
 #! format: noindent
 
 @trixi_testset "elixir_linearizedeuler_gauss_wall.jl" begin
