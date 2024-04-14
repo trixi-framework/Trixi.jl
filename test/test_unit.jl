@@ -1536,6 +1536,42 @@ end
     end
 end
 
+@testset "Equivalent Wave Speed Estimates" begin
+    @timed_testset "Linearized Euler 3D" begin
+        equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, 0.7),
+                                               c_mean_global = 1.0,
+                                               rho_mean_global = 1.0)
+
+        normal_x = SVector(1.0, 0.0, 0.0)
+        normal_y = SVector(0.0, 1.0, 0.0)
+        normal_z = SVector(0.0, 0.0, 1.0)
+
+        u_ll = SVector(0.3, 0.5, -0.7, 0.1, 1.0)
+        u_rr = SVector(0.5, -0.2, 0.1, 0.2, 5.0)
+
+        @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ==
+              max_abs_speed_naive(u_ll, u_rr, normal_x, equations)
+        @test max_abs_speed_naive(u_ll, u_rr, 2, equations) ==
+              max_abs_speed_naive(u_ll, u_rr, normal_y, equations)
+        @test max_abs_speed_naive(u_ll, u_rr, 3, equations) ==
+              max_abs_speed_naive(u_ll, u_rr, normal_z, equations)
+
+        @test min_max_speed_naive(u_ll, u_rr, 1, equations) ==
+              min_max_speed_naive(u_ll, u_rr, normal_x, equations)
+        @test min_max_speed_naive(u_ll, u_rr, 2, equations) ==
+              min_max_speed_naive(u_ll, u_rr, normal_y, equations)
+        @test min_max_speed_naive(u_ll, u_rr, 3, equations) ==
+              min_max_speed_naive(u_ll, u_rr, normal_z, equations)
+
+        @test min_max_speed_davis(u_ll, u_rr, 1, equations) ==
+              min_max_speed_davis(u_ll, u_rr, normal_x, equations)
+        @test min_max_speed_davis(u_ll, u_rr, 2, equations) ==
+              min_max_speed_davis(u_ll, u_rr, normal_y, equations)
+        @test min_max_speed_davis(u_ll, u_rr, 3, equations) ==
+              min_max_speed_davis(u_ll, u_rr, normal_z, equations)
+    end
+end
+
 @testset "SimpleKronecker" begin
     N = 3
 
