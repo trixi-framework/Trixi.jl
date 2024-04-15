@@ -495,7 +495,7 @@ function cell2node(cell_centered_data)
     resolution_in, _ = size(first(cell_centered_data))
     resolution_out = resolution_in + 1
     node_centered_data = [Matrix{Float64}(undef, resolution_out, resolution_out)
-                          for _ in 1:length(cell_centered_data)]
+                          for _ in eachindex(cell_centered_data)]
 
     for (cell_data, node_data) in zip(cell_centered_data, node_centered_data)
         # Fill center with original data
@@ -1545,7 +1545,7 @@ end
 
 # Create an axis.
 function axis_curve(nodes_x, nodes_y, nodes_z, slice, point, n_points)
-    if n_points == nothing
+    if n_points === nothing
         n_points = 64
     end
     dimensions = length(point)
