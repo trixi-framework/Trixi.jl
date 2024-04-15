@@ -24,7 +24,7 @@ Linearized euler equations in one space dimension. The equations are given by
     0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and c is the speed of sound.
+The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and ``c`` is the speed of sound.
 The unknowns are the perturbation quantities of the acoustic velocity ``v_1'``, the pressure ``p'`` 
 and the density ``\rho'``.
 """

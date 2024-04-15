@@ -29,7 +29,7 @@ Linearized euler equations in two space dimensions. The equations are given by
     0 \\ 0 \\ 0 \\ 0
 \end{pmatrix}
 ```
-The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and c is the speed of sound.
+The bar ``\bar{(\cdot)}`` indicates uniform mean flow variables and ``c`` is the speed of sound.
 The unknowns are the acoustic velocities ``v' = (v_1', v_2')``, the pressure ``p'`` and the density ``\rho'``.
 """
 struct LinearizedEulerEquations2D{RealT <: Real} <:
