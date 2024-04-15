@@ -1,4 +1,5 @@
 
+using Convex
 using OrdinaryDiffEq
 using Trixi
 

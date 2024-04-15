@@ -10,7 +10,9 @@ else
 end
 
 # Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
-using Trixi
+using Trixi: PolynomialOptimizer
+
+import .PolynomialOptimizer: filter_eigvals, bisection, undo_normalization!
 
 using LinearAlgebra: eigvals
 using ECOS

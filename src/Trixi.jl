@@ -309,6 +309,12 @@ function __init__()
         end
     end
 
+    @static if !isdefined(Base, :get_extension)
+        @require Convex="f65535da-76fb-5f13-bab9-19810c17039a" begin
+            include("../ext/TrixiConvexExt.jl")
+        end
+    end
+
     # FIXME upstream. This is a hacky workaround for
     #       https://github.com/trixi-framework/Trixi.jl/issues/628
     #       https://github.com/trixi-framework/Trixi.jl/issues/1185

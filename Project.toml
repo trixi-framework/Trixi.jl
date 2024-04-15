@@ -6,7 +6,6 @@ version = "0.7.5-pre"
 [deps]
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
-Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
@@ -53,9 +52,11 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 
 [extensions]
 TrixiMakieExt = "Makie"
+TrixiConvexExt = "Convex"
 
 [compat]
 CodeTracking = "1.0.5"
@@ -109,3 +110,4 @@ julia = "1.8"
 
 [extras]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
