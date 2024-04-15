@@ -159,7 +159,7 @@ end
     return SVector(f1, f2, f3, f4, f5)
 end
 
-# Calculate 1D flux for a single point
+# Calculate 3D flux for a single point
 @inline function flux(u, normal_direction::AbstractVector,
                       equations::LinearizedEulerEquations3D)
     @unpack v_mean_global, c_mean_global, rho_mean_global = equations
