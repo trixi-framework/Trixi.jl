@@ -99,6 +99,13 @@ end
         u_modified!(integrator, false)
     end
 
+    # Check that all MHD semidiscretizations received a GLM clening speed update.
+    for (semi_index, semi) in enumerate(semis)
+        if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations && !(semi_index in semi_indices))
+            throw("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
+        end
+    end
+
     return nothing
 end
 
