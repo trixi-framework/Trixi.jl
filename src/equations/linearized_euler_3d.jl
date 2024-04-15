@@ -132,7 +132,7 @@ function boundary_condition_wall(u_inner, orientation, direction, x, t,
     return flux
 end
 
-# Calculate 1D flux for a single point
+# Calculate 3D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LinearizedEulerEquations3D)
     @unpack v_mean_global, c_mean_global, rho_mean_global = equations
     rho_prime, v1_prime, v2_prime, v3_prime, p_prime = u
