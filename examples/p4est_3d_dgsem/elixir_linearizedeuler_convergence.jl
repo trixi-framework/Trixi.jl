@@ -16,7 +16,7 @@ coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 
 # `initial_refinement_level` is provided here to allow for a 
 # convenient convergence test, see
-#  https://trixi-framework.github.io/Trixi.jl/stable/#Performing-a-convergence-analysis
+# https://trixi-framework.github.io/Trixi.jl/stable/#Performing-a-convergence-analysis
 trees_per_dimension = (4, 4, 4)
 mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                  coordinates_min = coordinates_min,
