@@ -11,7 +11,7 @@ jobs:
         os:
           - ubuntu-latest
         version:
-          - '1.9'
+          - '~1.11.0-0'
         arch:
           - x64
     steps:
