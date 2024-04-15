@@ -1549,26 +1549,44 @@ end
         u_ll = SVector(0.3, 0.5, -0.7, 0.1, 1.0)
         u_rr = SVector(0.5, -0.2, 0.1, 0.2, 5.0)
 
-        @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ==
-              max_abs_speed_naive(u_ll, u_rr, normal_x, equations)
-        @test max_abs_speed_naive(u_ll, u_rr, 2, equations) ==
-              max_abs_speed_naive(u_ll, u_rr, normal_y, equations)
-        @test max_abs_speed_naive(u_ll, u_rr, 3, equations) ==
-              max_abs_speed_naive(u_ll, u_rr, normal_z, equations)
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(max_abs_speed_naive(u_ll, u_rr, 1, equations),
+                                    max_abs_speed_naive(u_ll, u_rr, normal_x,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(max_abs_speed_naive(u_ll, u_rr, 2, equations),
+                                    max_abs_speed_naive(u_ll, u_rr, normal_y,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(max_abs_speed_naive(u_ll, u_rr, 3, equations),
+                                    max_abs_speed_naive(u_ll, u_rr, normal_z,
+                                                        equations)))
 
-        @test min_max_speed_naive(u_ll, u_rr, 1, equations) ==
-              min_max_speed_naive(u_ll, u_rr, normal_x, equations)
-        @test min_max_speed_naive(u_ll, u_rr, 2, equations) ==
-              min_max_speed_naive(u_ll, u_rr, normal_y, equations)
-        @test min_max_speed_naive(u_ll, u_rr, 3, equations) ==
-              min_max_speed_naive(u_ll, u_rr, normal_z, equations)
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 1, equations),
+                                    min_max_speed_naive(u_ll, u_rr, normal_x,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 2, equations),
+                                    min_max_speed_naive(u_ll, u_rr, normal_y,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 3, equations),
+                                    min_max_speed_naive(u_ll, u_rr, normal_z,
+                                                        equations)))
 
-        @test min_max_speed_davis(u_ll, u_rr, 1, equations) ==
-              min_max_speed_davis(u_ll, u_rr, normal_x, equations)
-        @test min_max_speed_davis(u_ll, u_rr, 2, equations) ==
-              min_max_speed_davis(u_ll, u_rr, normal_y, equations)
-        @test min_max_speed_davis(u_ll, u_rr, 3, equations) ==
-              min_max_speed_davis(u_ll, u_rr, normal_z, equations)
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 1, equations),
+                                    min_max_speed_davis(u_ll, u_rr, normal_x,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 2, equations),
+                                    min_max_speed_davis(u_ll, u_rr, normal_y,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 3, equations),
+                                    min_max_speed_davis(u_ll, u_rr, normal_z,
+                                                        equations)))
     end
 end
 
