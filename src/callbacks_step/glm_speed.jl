@@ -77,12 +77,24 @@ end
 
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
+    if (typeof(semi) <: SemidiscretizationCoupled) && (length(semi_indices) == 0)
+        throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
+    end
+
     # Make sure we can handle multiple semidiscretizationis in coupled simulations.
     if length(semi_indices) == 0
         semis = tuple(semi)
         semi_indices = (1)
     else
         semis = semi.semis
+    end
+
+    # Check that all MHD semidiscretizations received a GLM clening speed update.
+    for (semi_index, semi) in enumerate(semis)
+        if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
+            !(semi_index in semi_indices))
+            throw("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
+        end
     end
 
     for semi_index in semi_indices
@@ -97,13 +109,6 @@ end
 
         # avoid re-evaluating possible FSAL stages
         u_modified!(integrator, false)
-    end
-
-    # Check that all MHD semidiscretizations received a GLM clening speed update.
-    for (semi_index, semi) in enumerate(semis)
-        if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations && !(semi_index in semi_indices))
-            throw("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
-        end
     end
 
     return nothing
