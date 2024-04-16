@@ -242,6 +242,9 @@ macro threaded(expr)
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
     #=
+
+    # By using `Trixi.@batch` we allow users of Trixi.jl to use `@threaded` without having
+    # Polyester.jl in their namespace.
     return esc(quote
                    Trixi.@batch $(expr)
                end)
@@ -345,5 +348,28 @@ function register_error_hints()
     end
 
     return nothing
+end
+
+"""
+    Trixi.download(src_url, file_path)
+
+Download a file from given `src_url` to given `file_path` if
+`file_path` is not already a file. This function just returns
+`file_path`.
+This is a small wrapper of `Downloads.download(src_url, file_path)`
+that avoids race conditions when multiple MPI ranks are used.
+"""
+function download(src_url, file_path)
+    # Note that `mpi_isroot()` is also `true` if running
+    # in serial (without MPI).
+    if mpi_isroot()
+        isfile(file_path) || Downloads.download(src_url, file_path)
+    end
+
+    if mpi_isparallel()
+        MPI.Barrier(mpi_comm())
+    end
+
+    return file_path
 end
 end # @muladd

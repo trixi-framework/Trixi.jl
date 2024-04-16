@@ -138,11 +138,18 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
         # iterate until mesh does not change anymore
         has_changed = amr_callback(integrator,
                                    only_refine = amr_callback.adapt_initial_condition_only_refine)
+        iterations = 1
         while has_changed
             compute_coefficients!(integrator.u, t, semi)
             u_modified!(integrator, true)
             has_changed = amr_callback(integrator,
                                        only_refine = amr_callback.adapt_initial_condition_only_refine)
+            iterations = iterations + 1
+            if iterations > 10
+                @warn "AMR for initial condition did not settle within 10 iterations!\n" *
+                      "Consider adjusting thresholds or setting `adapt_initial_condition_only_refine`."
+                break
+            end
         end
     end
 
@@ -236,7 +243,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
-    for element in 1:length(lambda)
+    for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
             push!(to_refine, leaf_cell_ids[element])
@@ -300,7 +307,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         end
 
         # Extract only those parent cells for which all children should be coarsened
-        to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
+        to_coarsen = collect(eachindex(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
         # Finally, coarsen mesh
         coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh.tree,
@@ -388,7 +395,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
-    for element in 1:length(lambda)
+    for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
             push!(to_refine, leaf_cell_ids[element])
@@ -449,7 +456,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         end
 
         # Extract only those parent cells for which all children should be coarsened
-        to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
+        to_coarsen = collect(eachindex(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
         # Finally, coarsen mesh
         coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh.tree,
@@ -726,7 +733,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
     return has_changed
 end
 
-function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::SerialT8codeMesh,
+function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
                                      equations, dg::DG, cache, semi,
                                      t, iter;
                                      only_refine = false, only_coarsen = false,
@@ -754,29 +761,29 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::SerialT8codeMe
     @trixi_timeit timer() "adapt" begin
         difference = @trixi_timeit timer() "mesh" trixi_t8_adapt!(mesh, indicators)
 
-        @trixi_timeit timer() "solver" adapt!(u_ode, adaptor, mesh, equations, dg,
-                                              cache, difference)
+        # Store whether there were any cells coarsened or refined and perform load balancing.
+        has_changed = any(difference .!= 0)
+
+        # Check if mesh changed on other processes
+        if mpi_isparallel()
+            has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
+        end
+
+        if has_changed
+            @trixi_timeit timer() "solver" adapt!(u_ode, adaptor, mesh, equations, dg,
+                                                  cache, difference)
+        end
     end
 
-    # Store whether there were any cells coarsened or refined and perform load balancing.
-    has_changed = any(difference .!= 0)
-
-    # TODO: T8codeMesh for MPI not implemented yet.
-    # Check if mesh changed on other processes
-    # if mpi_isparallel()
-    #   has_changed = MPI.Allreduce!(Ref(has_changed), |, mpi_comm())[]
-    # end
-
     if has_changed
-        # TODO: T8codeMesh for MPI not implemented yet.
-        # if mpi_isparallel() && amr_callback.dynamic_load_balancing
-        #   @trixi_timeit timer() "dynamic load balancing" begin
-        #     global_first_quadrant = unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
-        #     old_global_first_quadrant = copy(global_first_quadrant)
-        #     partition!(mesh)
-        #     rebalance_solver!(u_ode, mesh, equations, dg, cache, old_global_first_quadrant)
-        #   end
-        # end
+        if mpi_isparallel() && amr_callback.dynamic_load_balancing
+            @trixi_timeit timer() "dynamic load balancing" begin
+                old_global_first_element_ids = get_global_first_element_ids(mesh)
+                partition!(mesh)
+                rebalance_solver!(u_ode, mesh, equations, dg, cache,
+                                  old_global_first_element_ids)
+            end
+        end
 
         reinitialize_boundaries!(semi.boundary_conditions, cache)
     end

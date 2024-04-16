@@ -347,8 +347,8 @@ end #hide #md
 # // labeling of the boundary parts
 #  Physical Line(1) = {4};      // Inflow. Label in Abaqus .inp file: PhysicalLine1
 #  Physical Line(2) = {2};      // Outflow. Label in Abaqus .inp file: PhysicalLine2
-#  Physical Line(3) = {1, 3};   // Airfoil. Label in Abaqus .inp file: PhysicalLine3
-#  Physical Line(4) = {5, 6};   //Upper and lower wall/farfield/... Label in Abaqus .inp file: PhysicalLine4
+#  Physical Line(3) = {1, 3};   // Upper and lower wall/farfield/... Label in Abaqus .inp file: PhysicalLine3
+#  Physical Line(4) = {5, 6};   // Airfoil. Label in Abaqus .inp file: PhysicalLine4
 # ```
 # which are crucial for the correct assignment of boundary conditions in `Trixi.jl`.
 # In particular, it is the responsibility of a user to keep track on the physical boundary names between the mesh generation and assignment of boundary condition functions in an elixir.
@@ -437,8 +437,8 @@ end #hide #md
 #
 # boundary_conditions = Dict(:PhysicalLine1 => boundary_condition_supersonic_inflow, # Left boundary
 #                            :PhysicalLine2 => boundary_condition_supersonic_outflow, # Right boundary
-#                            :PhysicalLine3 => boundary_condition_slip_wall, # Airfoil
-#                            :PhysicalLine4 => boundary_condition_supersonic_outflow) # Top and bottom boundary
+#                            :PhysicalLine3 => boundary_condition_supersonic_outflow, # Top and bottom boundary 
+#                            :PhysicalLine4 => boundary_condition_slip_wall) # Airfoil
 # 
 # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 #                                     boundary_conditions = boundary_conditions)

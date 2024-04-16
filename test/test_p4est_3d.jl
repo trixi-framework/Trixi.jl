@@ -535,6 +535,28 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_linearizedeuler_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_linearizedeuler_convergence.jl"),
+                        l2=[
+                            0.04452389418193219, 0.03688186699434862,
+                            0.03688186699434861, 0.03688186699434858,
+                            0.044523894181932186,
+                        ],
+                        linf=[
+                            0.2295447498696467, 0.058369658071546704,
+                            0.05836965807154648, 0.05836965807154648, 0.2295447498696468,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

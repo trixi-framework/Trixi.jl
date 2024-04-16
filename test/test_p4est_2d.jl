@@ -394,12 +394,12 @@ end
 @trixi_testset "elixir_euler_NACA6412airfoil_mach2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_NACA6412airfoil_mach2.jl"),
                         l2=[
-                            1.9752162683735258e-9, 3.150450205812513e-9,
-                            1.8885499402935914e-9, 7.273629602920966e-9,
+                            0.19107654776276498, 0.3545913719444839,
+                            0.18492730895077583, 0.817927213517244,
                         ],
                         linf=[
-                            6.007577890709825e-7, 1.005273289944597e-6,
-                            5.948514542597182e-7, 2.3111764217986774e-6,
+                            2.5397624311491946, 2.7075156425517917, 2.200980534211764,
+                            9.031153939238115,
                         ],
                         tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
@@ -530,6 +530,86 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
+
+@trixi_testset "elixir_euler_subsonic_cylinder.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_subsonic_cylinder.jl"),
+                        l2=[
+                            0.00011914390523852561,
+                            0.00010776028621724485,
+                            6.139954358305467e-5,
+                            0.0003067693731825959,
+                        ],
+                        linf=[
+                            0.1653075586200805,
+                            0.1868437275544909,
+                            0.09772818519679008,
+                            0.4311796171737692,
+                        ], tspan=(0.0, 0.001))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode) # Just a placeholder in this case
+
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+    drag = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
+                         semi.cache)
+    lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
+                         semi.cache)
+
+    @test isapprox(lift, -6.501138753497174e-15, atol = 1e-13)
+    @test isapprox(drag, 2.588589856781827, atol = 1e-13)
+end
+
+# Forces computation test in an AMR code
+@trixi_testset "elixir_euler_NACA0012airfoil_mach085.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_NACA0012airfoil_mach085.jl"),
+                        l2=[
+                            5.371568111383228e-7, 6.4158131303956445e-6,
+                            1.0324346542348325e-5, 0.0006348064933187732,
+                        ],
+                        linf=[
+                            0.0016263400091978443, 0.028471072159724428,
+                            0.02986133204785877, 1.9481060511014872,
+                        ],
+                        base_level=0, med_level=1, max_level=1,
+                        tspan=(0.0, 0.0001),
+                        adapt_initial_condition=false,
+                        adapt_initial_condition_only_refine=false,
+                        # With the default `maxiters = 1` in coverage tests,
+                        # the values for `drag` and `lift` below would differ.
+                        coverage_override=(maxiters = 100_000,))
+
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+
+    u_ode = copy(sol.u[end])
+    du_ode = zero(u_ode) # Just a placeholder in this case
+
+    u = Trixi.wrap_array(u_ode, semi)
+    du = Trixi.wrap_array(du_ode, semi)
+    drag = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
+                         semi.cache)
+    lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
+                         semi.cache)
+
+    @test isapprox(lift, 0.0262382560809345, atol = 1e-13)
+    @test isapprox(drag, 0.10898248971932244, atol = 1e-13)
 end
 end
 

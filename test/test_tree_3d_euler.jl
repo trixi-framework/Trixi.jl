@@ -25,7 +25,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
                             0.032179231640894645,
                             0.032179231640895534,
                             0.0655408023333299,
-                        ])
+                        ],
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time series to check against.
+                        coverage_override=(maxiters = 20,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -34,6 +37,38 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+    # Extra test to make sure the "TimeSeriesCallback" made correct data.
+    # Extracts data at all points from the first step of the time series and compares it to the 
+    # exact solution and an interpolated reference solution
+    point_data = [getindex(time_series.affect!.point_data[i], 1:5) for i in 1:3]
+    exact_data = [initial_condition_convergence_test(time_series.affect!.point_coordinates[:,
+                                                                                           i],
+                                                     time_series.affect!.time[1],
+                                                     equations) for i in 1:3]
+    ref_data = [
+        [
+            1.951156832316166,
+            1.952073047561595,
+            1.9520730475615966,
+            1.9520730475615953,
+            3.814390510967551,
+        ],
+        [
+            2.0506452262144363,
+            2.050727319703708,
+            2.0507273197037073,
+            2.0507273197037077,
+            4.203653999433724,
+        ],
+        [
+            2.046982357537558,
+            2.0463728824399654,
+            2.0463728824399654,
+            2.0463728824399645,
+            4.190033459318115,
+        ]]
+    @test point_data≈exact_data atol=1e-1
+    @test point_data ≈ ref_data
 end
 
 @trixi_testset "elixir_euler_convergence_pure_fv.jl" begin
@@ -92,18 +127,14 @@ end
 @trixi_testset "elixir_euler_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                         l2=[
-                            0.0003637241020254405,
-                            0.0003955570866382718,
-                            0.0003955570866383613,
-                            0.00039555708663834417,
-                            0.0007811613481640202,
+                            0.0003637241020254673, 0.00039555708663848046,
+                            0.00039555708663832644, 0.0003955570866385083,
+                            0.0007811613481643962,
                         ],
                         linf=[
-                            0.0024000660244674066,
-                            0.0029635410025339315,
-                            0.0029635410025292686,
-                            0.002963541002525938,
-                            0.007191437359396424,
+                            0.0024000660244567484, 0.002963541002521053,
+                            0.0029635410025201647, 0.002963541002522385,
+                            0.007191437359379549,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -462,6 +493,7 @@ end
                             2.397746252817731,
                         ],
                         maxiters=5, max_level=6,
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         coverage_override=(maxiters = 2, initial_refinement_level = 1,
                                            base_level = 1, max_level = 3))
     # Ensure that we do not have excessive memory allocations
