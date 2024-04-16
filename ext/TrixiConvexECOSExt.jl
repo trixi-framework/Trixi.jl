@@ -1,5 +1,5 @@
 # Package extension for adding Convex-based features to Trixi.jl
-module TrixiConvexExt
+module TrixiConvexECOSExt
 
 # Required for coefficient optimization in P-ERK scheme integrators
 if isdefined(Base, :get_extension)
