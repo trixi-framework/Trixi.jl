@@ -5,9 +5,8 @@
 using DelimitedFiles: readdlm
 using LinearAlgebra: eigvals
 using .PolynomialOptimizer
-import .PolynomialOptimizer: filter_eigvals, bisection, undo_normalization!
 
-#Fake change
+import .PolynomialOptimizer: filter_eigvals, undo_normalization!, bisection
 
 @muladd begin
 #! format: noindent

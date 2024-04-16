@@ -11,16 +11,29 @@ else
     using ..ECOS
 end
 
-# Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
-using Trixi: PolynomialOptimizer
-
-import .PolynomialOptimizer: filter_eigvals, bisection, undo_normalization!
-
+# Use other necessary libraries
 using LinearAlgebra: eigvals
 const MOI = Convex.MOI
 
+# Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
+using Trixi
+
+# Use additional symbols that are not exported
+using Trixi: PolynomialOptimizer
+
+# Import functions such that they can be extended with new methods
+import .PolynomialOptimizer: filter_eigvals, bisection, undo_normalization!
+
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
+
 function stability_polynomials(cons_order, num_stage_evals, num_eig_vals,
-                               normalized_powered_eigvals_scaled, pnoms, gamma::Variable)
+                               normalized_powered_eigvals_scaled, pnoms,
+                               gamma::Variable)
     # Initialize with zero'th order (z^0) coefficient
     for i in 1:num_eig_vals
         pnoms[i] = 1.0
@@ -87,13 +100,16 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
             dt_k = dt^k
             for i in 1:num_eig_vals
                 normalized_powered_eigvals_scaled[i, k] = dt_k *
-                                                          normalized_powered_eigvals[i, k]
+                                                          normalized_powered_eigvals[i,
+                                                                                     k]
             end
         end
 
         # Use last optimal values for gamma in (potentially) next iteration
-        problem = minimize(stability_polynomials(cons_order, num_stage_evals, num_eig_vals,
-                                                 normalized_powered_eigvals_scaled, pnoms,
+        problem = minimize(stability_polynomials(cons_order, num_stage_evals,
+                                                 num_eig_vals,
+                                                 normalized_powered_eigvals_scaled,
+                                                 pnoms,
                                                  gamma))
 
         Convex.solve!(problem,
@@ -123,5 +139,6 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
 
     return evaluate(gamma), dt
 end
+end # @muladd
 
-end # module
+end # module TrixiConvexECOSExt
