@@ -1216,7 +1216,7 @@ function fill_mesh_info_fv!(mesh::T8codeMesh, interfaces, boundaries,
                                                                         1
 
                         interfaces.faces[1, local_num_conform] = iface + 1
-                        interfaces.faces[2, local_num_conform] = dual_faces[1]
+                        interfaces.faces[2, local_num_conform] = dual_faces[1] + 1
 
                         # Local mortar.
                     elseif level < neighbor_level
