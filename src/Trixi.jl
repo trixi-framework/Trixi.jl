@@ -311,7 +311,9 @@ function __init__()
 
     @static if !isdefined(Base, :get_extension)
         @require Convex="f65535da-76fb-5f13-bab9-19810c17039a" begin
-            include("../ext/TrixiConvexExt.jl")
+            @require ECOS ="e2685f51-7e38-5353-a97d-a921fd2c8199" begin
+                include("../ext/TrixiConvexExt.jl")
+            end
         end
     end
 

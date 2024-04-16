@@ -4,9 +4,11 @@ module TrixiConvexExt
 # Required for coefficient optimization in P-ERK scheme integrators
 if isdefined(Base, :get_extension)
     using Convex
+    using ECOS
 else
     # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
     using ..Convex
+    using ..ECOS
 end
 
 # Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
@@ -15,8 +17,6 @@ using Trixi: PolynomialOptimizer
 import .PolynomialOptimizer: filter_eigvals, bisection, undo_normalization!
 
 using LinearAlgebra: eigvals
-using ECOS
-using Convex
 const MOI = Convex.MOI
 
 function stability_polynomials(cons_order, num_stage_evals, num_eig_vals,
