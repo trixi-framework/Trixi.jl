@@ -89,7 +89,7 @@ end
         semis = semi.semis
     end
 
-    # Check that all MHD semidiscretizations received a GLM clening speed update.
+    # Check that all MHD semidiscretizations received a GLM cleaning speed update.
     for (semi_index, semi) in enumerate(semis)
         if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
             !(semi_index in semi_indices))
