@@ -70,7 +70,8 @@ function Base.resize!(elements::T8codeFVElementContainer, capacity)
     resize!(elements.reconstruction_stencil, capacity)
 
     resize!(_reconstruction_gradient, n_dims * n_variables * capacity)
-    elements.reconstruction_gradient = unsafe_wrap(Array, pointer(_face_normals), (ndims, n_variables, capacity))
+    elements.reconstruction_gradient = unsafe_wrap(Array, pointer(_face_normals),
+                                                   (ndims, n_variables, capacity))
 
     return nothing
 end
@@ -109,15 +110,19 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
     reconstruction_stencil = Vector{Vector{Int}}(undef, nelements)
 
     _reconstruction_gradient = Vector{RealT}(undef, NDIMS * n_variables * nelements)
-    reconstruction_gradient = unsafe_wrap(Array, pointer(_reconstruction_gradient), (NDIMS, n_variables, nelements))
+    reconstruction_gradient = unsafe_wrap(Array, pointer(_reconstruction_gradient),
+                                          (NDIMS, n_variables, nelements))
 
     elements = T8codeFVElementContainer{NDIMS, RealT, uEltype}(level, volume, midpoint,
                                                                dx, num_faces,
                                                                face_midpoints,
                                                                face_areas, face_normals,
-                                                               reconstruction_stencil, reconstruction_gradient,
-                                                               _midpoint, _face_midpoints,
-                                                               _face_areas, _face_normals,
+                                                               reconstruction_stencil,
+                                                               reconstruction_gradient,
+                                                               _midpoint,
+                                                               _face_midpoints,
+                                                               _face_areas,
+                                                               _face_normals,
                                                                _reconstruction_gradient)
 
     init_elements!(elements, mesh, solver)
@@ -219,9 +224,12 @@ end
                 corner_coords = view(corners, :, corner, element)
                 # loop over all corners of `possible_stencil_neighbor`
                 for possible_corner in 1:num_faces[possible_stencil_neighbor]
-                    if corner_coords == view(corners, :, possible_corner, possible_stencil_neighbor)
-                        append!(reconstruction_stencil[element], possible_stencil_neighbor)
-                        append!(reconstruction_stencil[possible_stencil_neighbor], element)
+                    if corner_coords ==
+                       view(corners, :, possible_corner, possible_stencil_neighbor)
+                        append!(reconstruction_stencil[element],
+                                possible_stencil_neighbor)
+                        append!(reconstruction_stencil[possible_stencil_neighbor],
+                                element)
                     end
                 end
             end

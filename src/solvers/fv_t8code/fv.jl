@@ -159,7 +159,11 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
     @trixi_timeit timer() "exchange_solution!" exchange_solution!(u, mesh, equations,
                                                                   solver, cache)
 
-    @trixi_timeit timer() "calc gradient reconstruction" calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
+    @trixi_timeit timer() "gradient reconstruction" calc_gradient_reconstruction!(u,
+                                                                                  mesh,
+                                                                                  equations,
+                                                                                  solver,
+                                                                                  cache)
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
@@ -221,7 +225,8 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
 
     for element in eachelement(mesh, solver, cache)
         n_stencil_neighbors = length(reconstruction_stencil[element])
-        coordinates_element = get_node_coords(elements.midpoint, equations, solver, element)
+        coordinates_element = get_node_coords(elements.midpoint, equations, solver,
+                                              element)
 
         # Reset variables
         a = zero(eltype(u))
@@ -233,15 +238,19 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
         e .= zero(eltype(u))
         for i in 1:n_stencil_neighbors
             neighbor = reconstruction_stencil[element][i]
-            coordinates_neighbor = get_node_coords(elements.midpoint, equations, solver, neighbor)
+            coordinates_neighbor = get_node_coords(elements.midpoint, equations, solver,
+                                                   neighbor)
 
             a += (coordinates_neighbor[1] - coordinates_element[1])^2
-            b += (coordinates_neighbor[1] - coordinates_element[1]) * (coordinates_neighbor[2] - coordinates_element[2])
+            b += (coordinates_neighbor[1] - coordinates_element[1]) *
+                 (coordinates_neighbor[2] - coordinates_element[2])
             c += (coordinates_neighbor[2] - coordinates_element[2])^2
 
             for v in eachvariable(equations)
-                d[v] += (coordinates_neighbor[1] - coordinates_element[1]) * (u[v, neighbor] - u[v, element])
-                e[v] += (coordinates_neighbor[2] - coordinates_element[2]) * (u[v, neighbor] - u[v, element])
+                d[v] += (coordinates_neighbor[1] - coordinates_element[1]) *
+                        (u[v, neighbor] - u[v, element])
+                e[v] += (coordinates_neighbor[2] - coordinates_element[2]) *
+                        (u[v, neighbor] - u[v, element])
             end
         end
 
@@ -263,7 +272,7 @@ end
 
 function prolong2interfaces!(cache, mesh::T8codeMesh, equations, solver::FV)
     (; elements, interfaces, u_tmp) = cache
-    (; reconstruction_gradient) = elements
+    (; midpoint, face_midpoints, reconstruction_gradient) = elements
 
     for interface in eachinterface(solver, cache)
         element = interfaces.neighbor_ids[1, interface]
@@ -277,21 +286,26 @@ function prolong2interfaces!(cache, mesh::T8codeMesh, equations, solver::FV)
             face_element = interfaces.faces[1, interface]
             face_neighbor = interfaces.faces[2, interface]
 
-            face_midpoint_element = get_node_coords(elements.face_midpoints, equations, solver, face_element, element)
-            face_midpoint_neighbor = get_node_coords(elements.face_midpoints, equations, solver, face_neighbor, neighbor)
+            face_midpoint_element = get_node_coords(face_midpoints, equations, solver,
+                                                    face_element, element)
+            face_midpoint_neighbor = get_node_coords(face_midpoints, equations, solver,
+                                                     face_neighbor, neighbor)
 
-            midpoint_element = get_node_coords(elements.midpoint, equations, solver, element)
-            midpoint_neighbor = get_node_coords(elements.midpoint, equations, solver, neighbor)
+            midpoint_element = get_node_coords(midpoint, equations, solver, element)
+            midpoint_neighbor = get_node_coords(midpoint, equations, solver, neighbor)
 
             vector_element = face_midpoint_element .- midpoint_element
             vector_neighbor = face_midpoint_neighbor .- midpoint_neighbor
             for v in eachvariable(equations)
-                gradient_v_element = get_node_coords(reconstruction_gradient, equations, solver, v, element)
-                gradient_v_neighbor = get_node_coords(reconstruction_gradient, equations, solver, v, neighbor)
+                gradient_v_element = get_node_coords(reconstruction_gradient, equations,
+                                                     solver, v, element)
+                gradient_v_neighbor = get_node_coords(reconstruction_gradient,
+                                                      equations, solver, v, neighbor)
                 interfaces.u[1, v, interface] = u_tmp[element].u[v] +
                                                 dot(gradient_v_element, vector_element)
                 interfaces.u[2, v, interface] = u_tmp[neighbor].u[v] +
-                                                dot(gradient_v_neighbor, vector_neighbor)
+                                                dot(gradient_v_neighbor,
+                                                    vector_neighbor)
             end
         else
             error("Order $(solver.order) is not supported.")
