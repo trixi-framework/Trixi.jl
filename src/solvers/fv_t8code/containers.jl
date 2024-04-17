@@ -17,11 +17,15 @@ mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
     face_areas::Matrix{RealT}       # [face, element]
     face_normals::Array{RealT, 3}   # [dimension, face, element]
 
+    reconstruction_stencil::Vector{Vector{Int}} # Vector with elements inside reconstruction stencil per [element]
+    reconstruction_gradient::Array{RealT, 3}
+
     # internal `resize!`able storage
     _midpoint::Vector{RealT}
     _face_midpoints::Vector{RealT}
     _face_areas::Vector{RealT}
     _face_normals::Vector{RealT}
+    _reconstruction_gradient::Vector{RealT}
 end
 
 @inline Base.ndims(::T8codeFVElementContainer{NDIMS}) where {NDIMS} = NDIMS
@@ -37,9 +41,10 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(elements::T8codeFVElementContainer, capacity)
-    (; _midpoint, _face_midpoints, _face_areas, _face_normals) = interfaces
+    (; _midpoint, _face_midpoints, _face_areas, _face_normals, _reconstruction_gradient) = interfaces
 
     n_dims = ndims(elements)
+    n_variables = size(reconstruction_gradient, 2)
     max_number_faces = size(face_midpoints, 2)
 
     resize!(elements.level, capacity)
@@ -62,6 +67,11 @@ function Base.resize!(elements::T8codeFVElementContainer, capacity)
     elements.face_normals = unsafe_wrap(Array, pointer(_face_normals),
                                         (ndims, max_number_faces, capacity))
 
+    resize!(elements.reconstruction_stencil, capacity)
+
+    resize!(_reconstruction_gradient, n_dims * n_variables * capacity)
+    elements.reconstruction_gradient = unsafe_wrap(Array, pointer(_face_normals), (ndims, n_variables, capacity))
+
     return nothing
 end
 
@@ -75,6 +85,7 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
     @assert(t8_forest_is_committed(forest)==1)
 
     nelements = ncells(mesh)
+    n_variables = nvariables(equations)
     (; max_number_faces) = mesh
 
     level = Vector{Cint}(undef, nelements)
@@ -95,14 +106,19 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
     _face_normals = similar(_face_midpoints)
     face_normals = unsafe_wrap(Array, pointer(_face_normals), size(face_midpoints))
 
+    reconstruction_stencil = Vector{Vector{Int}}(undef, nelements)
+
+    _reconstruction_gradient = Vector{RealT}(undef, NDIMS * n_variables * nelements)
+    reconstruction_gradient = unsafe_wrap(Array, pointer(_reconstruction_gradient), (NDIMS, n_variables, nelements))
+
     elements = T8codeFVElementContainer{NDIMS, RealT, uEltype}(level, volume, midpoint,
                                                                dx, num_faces,
                                                                face_midpoints,
                                                                face_areas, face_normals,
-                                                               _midpoint,
-                                                               _face_midpoints,
-                                                               _face_areas,
-                                                               _face_normals)
+                                                               reconstruction_stencil, reconstruction_gradient,
+                                                               _midpoint, _face_midpoints,
+                                                               _face_areas, _face_normals,
+                                                               _reconstruction_gradient)
 
     init_elements!(elements, mesh, solver)
 
@@ -119,6 +135,8 @@ function init_elements!(elements, mesh::T8codeMesh, solver::FV)
 
     face_midpoint = Vector{Cdouble}(undef, 3) # Need NDIMS=3 for t8code API
     face_normal = Vector{Cdouble}(undef, 3) # Need NDIMS=3 for t8code API
+    corners = Array{Cdouble, 3}(undef, n_dims, mesh.max_number_faces, length(volume))
+    corner_node = Vector{Cdouble}(undef, n_dims)
 
     num_local_trees = t8_forest_get_num_local_trees(forest)
 
@@ -154,6 +172,9 @@ function init_elements!(elements, mesh::T8codeMesh, solver::FV)
 
             for iface in 1:num_faces[current_index]
                 # C++ is zero-indexed
+                t8_forest_element_coordinate(forest, itree, element, iface - 1,
+                                             @views(corner_node))
+
                 t8_forest_element_face_centroid(forest, itree, element, iface - 1,
                                                 face_midpoint)
 
@@ -164,12 +185,54 @@ function init_elements!(elements, mesh::T8codeMesh, solver::FV)
                 t8_forest_element_face_normal(forest, itree, element, iface - 1,
                                               face_normal)
                 for dim in 1:n_dims
+                    corners[dim, iface, current_index] = corner_node[dim]
                     face_midpoints[dim, iface, current_index] = face_midpoint[dim]
                     face_normals[dim, iface, current_index] = face_normal[dim]
                 end
             end
         end
     end
+
+    # Init stencil for reconstruction
+    if solver.order != 2
+        return nothing
+    end
+    init_reconstruction_stencil!(corners, elements)
+
+    return nothing
+end
+
+@inline function init_reconstruction_stencil!(corners, elements)
+    (; reconstruction_stencil, volume, num_faces) = elements
+
+    # Create empty vectors for every element
+    for element in eachindex(volume)
+        reconstruction_stencil[element] = []
+    end
+
+    # Add all stencil neighbors to list; including doubled elements
+    for element in eachindex(volume)
+        # loop over all elements with higher index
+        for possible_stencil_neighbor in (element + 1):length(volume)
+            # loop over all corners of `element`
+            for corner in 1:num_faces[element]
+                corner_coords = view(corners, :, corner, element)
+                # loop over all corners of `possible_stencil_neighbor`
+                for possible_corner in 1:num_faces[possible_stencil_neighbor]
+                    if corner_coords == view(corners, :, possible_corner, possible_stencil_neighbor)
+                        append!(reconstruction_stencil[element], possible_stencil_neighbor)
+                        append!(reconstruction_stencil[possible_stencil_neighbor], element)
+                    end
+                end
+            end
+        end
+    end
+
+    # Remove all doubled elements from vectors
+    for element in eachindex(volume)
+        reconstruction_stencil[element] = unique(reconstruction_stencil[element])
+    end
+    # TODO: How to handle periodic boundaries?
 
     return nothing
 end

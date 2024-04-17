@@ -15,6 +15,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
     # Linear scalar advection
     @trixi_testset "elixir_advection_basic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                            order=1,
                             l2=[0.1419061449384701],
                             linf=[0.2086802087402776])
 

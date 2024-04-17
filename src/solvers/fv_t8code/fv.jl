@@ -9,8 +9,7 @@ struct FV{RealT <: Real, SurfaceFlux}
     order::Integer
     surface_flux::SurfaceFlux
 
-    function FV(; RealT = Float64, surface_flux = flux_central)
-        order = 1
+    function FV(; order = 1, RealT = Float64, surface_flux = flux_central)
         new{RealT, typeof(surface_flux)}(order, surface_flux)
     end
 end
@@ -160,6 +159,8 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
     @trixi_timeit timer() "exchange_solution!" exchange_solution!(u, mesh, equations,
                                                                   solver, cache)
 
+    @trixi_timeit timer() "calc gradient reconstruction" calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
+
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, mesh, equations, solver)
@@ -194,8 +195,75 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
     return nothing
 end
 
+function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
+    if solver.order == 1
+        return nothing
+    elseif solver.order > 2
+        error("Order $(solver.order) is not supported yet!")
+    end
+
+    (; elements) = cache
+    (; reconstruction_stencil, reconstruction_gradient) = elements
+
+    # A         N x 2 Matrix, where N is the number of stencil neighbors
+    # A^T A     2 x 2 Matrix
+    # b         N     Vector
+    # A^T b     2     Vector
+
+    # Matrix/vector notation
+    # A^T A = [a b; b c]
+    # (A^T A)^-1 = determinant_factor * [c -b; -b, a]
+
+    # A^T b = [d; e]
+    # Note: A^T b depends on the variable v. Using structure [d/e, v]
+    d = zeros(eltype(u), size(u, 1))
+    e = zeros(eltype(u), size(u, 1))
+
+    for element in eachelement(mesh, solver, cache)
+        n_stencil_neighbors = length(reconstruction_stencil[element])
+        coordinates_element = get_node_coords(elements.midpoint, equations, solver, element)
+
+        # Reset variables
+        a = zero(eltype(u))
+        b = zero(eltype(u))
+        c = zero(eltype(u))
+        # A^T b = [d; e]
+        # Note: A^T b depends on the variable v. Using structure [d/e, v]
+        d .= zero(eltype(u))
+        e .= zero(eltype(u))
+        for i in 1:n_stencil_neighbors
+            neighbor = reconstruction_stencil[element][i]
+            coordinates_neighbor = get_node_coords(elements.midpoint, equations, solver, neighbor)
+
+            a += (coordinates_neighbor[1] - coordinates_element[1])^2
+            b += (coordinates_neighbor[1] - coordinates_element[1]) * (coordinates_neighbor[2] - coordinates_element[2])
+            c += (coordinates_neighbor[2] - coordinates_element[2])^2
+
+            for v in eachvariable(equations)
+                d[v] += (coordinates_neighbor[1] - coordinates_element[1]) * (u[v, neighbor] - u[v, element])
+                e[v] += (coordinates_neighbor[2] - coordinates_element[2]) * (u[v, neighbor] - u[v, element])
+            end
+        end
+
+        # Divide by determinant
+        AT_A_determinant = a * c - b^2
+        a *= 1 / AT_A_determinant
+        b *= 1 / AT_A_determinant
+        c *= 1 / AT_A_determinant
+
+        # Solving least square problem
+        for v in eachvariable(equations)
+            reconstruction_gradient[1, v, element] = c * d[v] - b * e[v]
+            reconstruction_gradient[2, v, element] = -b * d[v] + a * e[v]
+        end
+    end
+
+    return nothing
+end
+
 function prolong2interfaces!(cache, mesh::T8codeMesh, equations, solver::FV)
-    (; interfaces, u_tmp) = cache
+    (; elements, interfaces, u_tmp) = cache
+    (; reconstruction_gradient) = elements
 
     for interface in eachinterface(solver, cache)
         element = interfaces.neighbor_ids[1, interface]
@@ -204,6 +272,26 @@ function prolong2interfaces!(cache, mesh::T8codeMesh, equations, solver::FV)
             for v in eachvariable(equations)
                 interfaces.u[1, v, interface] = u_tmp[element].u[v]
                 interfaces.u[2, v, interface] = u_tmp[neighbor].u[v]
+            end
+        elseif solver.order == 2
+            face_element = interfaces.faces[1, interface]
+            face_neighbor = interfaces.faces[2, interface]
+
+            face_midpoint_element = get_node_coords(elements.face_midpoints, equations, solver, face_element, element)
+            face_midpoint_neighbor = get_node_coords(elements.face_midpoints, equations, solver, face_neighbor, neighbor)
+
+            midpoint_element = get_node_coords(elements.midpoint, equations, solver, element)
+            midpoint_neighbor = get_node_coords(elements.midpoint, equations, solver, neighbor)
+
+            vector_element = face_midpoint_element .- midpoint_element
+            vector_neighbor = face_midpoint_neighbor .- midpoint_neighbor
+            for v in eachvariable(equations)
+                gradient_v_element = get_node_coords(reconstruction_gradient, equations, solver, v, element)
+                gradient_v_neighbor = get_node_coords(reconstruction_gradient, equations, solver, v, neighbor)
+                interfaces.u[1, v, interface] = u_tmp[element].u[v] +
+                                                dot(gradient_v_element, vector_element)
+                interfaces.u[2, v, interface] = u_tmp[neighbor].u[v] +
+                                                dot(gradient_v_neighbor, vector_neighbor)
             end
         else
             error("Order $(solver.order) is not supported.")

@@ -45,16 +45,33 @@ mkdir(outdir)
 # end
 
 @trixi_testset "elixir_advection_basic.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                        l2=[0.1419061449384701],
-                        linf=[0.2086802087402776])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    @trixi_testset "first-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                            order=1,
+                            l2=[0.1419061449384701],
+                            linf=[0.2086802087402776])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+    @trixi_testset "second-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                            order=2,
+                            l2=[0.020331012873518642],
+                            linf=[0.05571209803860677])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 end
 
