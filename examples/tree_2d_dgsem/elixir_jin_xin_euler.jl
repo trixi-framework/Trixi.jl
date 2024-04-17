@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-epsilon_relaxation = 1.0e-5
+epsilon_relaxation = 5.0e-6
 a1 = a2 = a3 = a4 = 30.0
 b1 = b2 = b3 = b4 = 30.0
 
@@ -46,18 +46,16 @@ coordinates_min = (-1.0, -1.0)
 coordinates_max = ( 1.0,  1.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
+                initial_refinement_level=6,
                 n_cells_max=1_000_000)
 
-
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)#,source_terms=source_terms_JinXin_Relaxation)
-
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 3.7)
-#tspan = (0.0, 2.0)
+#tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -72,7 +70,7 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.1)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 collision_callback = LBMCollisionCallback()  
 

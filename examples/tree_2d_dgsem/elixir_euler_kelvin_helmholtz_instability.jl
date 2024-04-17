@@ -32,12 +32,12 @@ end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
 surface_flux = flux_lax_friedrichs
-volume_flux  = flux_ranocha
+volume_flux  = flux_central
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max=0.002,
-                                         alpha_min=0.0001,
+                                         alpha_max=0.000,
+                                         alpha_min=0.0000,
                                          alpha_smooth=true,
                                          variable=density_pressure)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
@@ -48,7 +48,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-1.0, -1.0)
 coordinates_max = ( 1.0,  1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
+                initial_refinement_level=6,
                 n_cells_max=100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -60,12 +60,12 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval=analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval=analysis_interval)
 
-save_solution = SaveSolutionCallback(interval=20,
+save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution=true,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
