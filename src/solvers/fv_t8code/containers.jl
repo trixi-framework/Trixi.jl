@@ -41,11 +41,11 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(elements::T8codeFVElementContainer, capacity)
-    (; _midpoint, _face_midpoints, _face_areas, _face_normals, _reconstruction_gradient) = interfaces
+    (; _midpoint, _face_midpoints, _face_areas, _face_normals, _reconstruction_gradient) = elements
 
     n_dims = ndims(elements)
-    n_variables = size(reconstruction_gradient, 2)
-    max_number_faces = size(face_midpoints, 2)
+    n_variables = size(elements.reconstruction_gradient, 2)
+    max_number_faces = size(elements.face_midpoints, 2)
 
     resize!(elements.level, capacity)
     resize!(elements.volume, capacity)
