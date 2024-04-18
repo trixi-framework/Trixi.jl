@@ -6,9 +6,9 @@
 #! format: noindent
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh}, output_directory,
-                        timestep = 0)
-    save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh}, output_directory;
+                        timestep = 0, system = "")
+    save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh); system = system)
 end
 
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
@@ -147,17 +147,27 @@ end
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
 function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
-                        mpi_parallel::False)
+                        mpi_parallel::False; system="")
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%06d", timestep)
+        if isempty(system)
+            filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+            p4est_filename = @sprintf("p4est_data_%06d", timestep)
+        else
+            filename = joinpath(output_directory, @sprintf("mesh_%06d_%s.h5", timestep, system))
+            p4est_filename = @sprintf("p4est_data_%06d_%s", timestep, system)
+        end
     else
-        filename = joinpath(output_directory, "mesh.h5")
-        p4est_filename = "p4est_data"
+        if isempty(system)
+            filename = joinpath(output_directory, "mesh.h5")
+            p4est_filename = "p4est_data"
+        else
+            filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system))
+            p4est_filename = @sprintf("p4est_data_%s", system)
+        end
     end
 
     p4est_file = joinpath(output_directory, p4est_filename)
