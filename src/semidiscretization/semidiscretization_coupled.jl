@@ -448,13 +448,27 @@ function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
     n_boundaries = 2 * ndims(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
 
-    for direction in 1:n_boundaries
-        boundary_condition = semi.boundary_conditions[direction]
+    # @autoinfiltrate
+    if !(typeof(semi.boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes)
+        for direction in 1:n_boundaries
+            boundary_condition = semi.boundary_conditions[direction]
+                
+            allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
+                                                equations,
+                                                solver)
+        end
+    else
+        # TODO: write this as loop.
+        boundary_condition = semi.boundary_conditions.boundary_dictionary[:x_neg]
+        allocate_coupled_boundary_condition(boundary_condition, 1, mesh, equations, solver)
+        boundary_condition = semi.boundary_conditions.boundary_dictionary[:x_pos]
+        allocate_coupled_boundary_condition(boundary_condition, 2, mesh, equations, solver)
+        boundary_condition = semi.boundary_conditions.boundary_dictionary[:y_neg]
+        allocate_coupled_boundary_condition(boundary_condition, 3, mesh, equations, solver)
+        boundary_condition = semi.boundary_conditions.boundary_dictionary[:y_pos]
+        allocate_coupled_boundary_condition(boundary_condition, 4, mesh, equations, solver)
+end
 
-        allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
-                                            equations,
-                                            solver)
-    end
 end
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
