@@ -6,8 +6,8 @@
 #! format: noindent
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh}, output_directory;
-                        timestep = 0, system = "")
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh}, output_directory,
+                        timestep = 0; system = "")
     save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh); system = system)
 end
 
@@ -181,6 +181,9 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["p4est_file"] = p4est_filename
+        attributes(file)["coordinates_min"] = mesh.coordinates_min
+        attributes(file)["coordinates_max"] = mesh.coordinates_max
+        attributes(file)["trees_per_dimension"] = mesh.trees_per_dimension
 
         file["tree_node_coordinates"] = mesh.tree_node_coordinates
         file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
@@ -255,9 +258,12 @@ function load_mesh(restart_file::AbstractString; n_cells_max = 0, RealT = Float6
 end
 
 function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
-    ndims, mesh_type = h5open(mesh_file, "r") do file
+    ndims, mesh_type, coordinates_min, coordinates_max, trees_per_dimension = h5open(mesh_file, "r") do file
         return read(attributes(file)["ndims"]),
-               read(attributes(file)["mesh_type"])
+               read(attributes(file)["mesh_type"]),
+               read(attributes(file)["coordinates_min"]),
+               read(attributes(file)["coordinates_max"]),
+               read(attributes(file)["trees_per_dimension"])
     end
 
     if mesh_type == "TreeMesh"
@@ -327,7 +333,8 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         p4est = load_p4est(p4est_file, Val(ndims))
 
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                                nodes, boundary_names, "", false, true)
+                                nodes, boundary_names, "", false, true,
+                                coordinates_min, coordinates_max, trees_per_dimension)
     else
         error("Unknown mesh type!")
     end
