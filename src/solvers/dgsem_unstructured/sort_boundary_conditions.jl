@@ -42,37 +42,39 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
     unique_names = unique(cache.boundaries.name)
 
-    if mpi_isparallel()
-        # Exchange of boundaries names
-        send_buffer = Vector{UInt8}(join(unique_names, "\0"))
-        push!(send_buffer, 0)
-        if mpi_isroot()
-            recv_buffer_length = MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
-            recv_buffer = Vector{UInt8}(undef, sum(recv_buffer_length))
-            MPI.Gatherv!(send_buffer, MPI.VBuffer(recv_buffer, recv_buffer_length),
-                         mpi_root(), mpi_comm())
-            all_names = unique(Symbol.(split(String(recv_buffer), "\0";
-                                             keepempty = false)))
-            for key in keys(boundary_dictionary)
-                if !(key in all_names)
-                    println(stderr,
-                            "ERROR: Key $(repr(key)) is not a valid boundary name. " *
-                            "Valid names are $all_names.")
-                    MPI.Abort(mpi_comm(), 1)
-                end
-            end
-        else
-            MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
-            MPI.Gatherv!(send_buffer, nothing, mpi_root(), mpi_comm())
-        end
-    else
-        for key in keys(boundary_dictionary)
-            if !(key in unique_names)
-                error("Key $(repr(key)) is not a valid boundary name. " *
-                      "Valid names are $unique_names.")
-            end
-        end
-    end
+#    @autoinfiltrate
+
+#    if mpi_isparallel()
+#        # Exchange of boundaries names
+#        send_buffer = Vector{UInt8}(join(unique_names, "\0"))
+#        push!(send_buffer, 0)
+#        if mpi_isroot()
+#            recv_buffer_length = MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
+#            recv_buffer = Vector{UInt8}(undef, sum(recv_buffer_length))
+#            MPI.Gatherv!(send_buffer, MPI.VBuffer(recv_buffer, recv_buffer_length),
+#                         mpi_root(), mpi_comm())
+#            all_names = unique(Symbol.(split(String(recv_buffer), "\0";
+#                                             keepempty = false)))
+#            for key in keys(boundary_dictionary)
+#                if !(key in all_names)
+#                    println(stderr,
+#                            "ERROR: Key $(repr(key)) is not a valid boundary name. " *
+#                            "Valid names are $all_names.")
+#                    MPI.Abort(mpi_comm(), 1)
+#                end
+#            end
+#        else
+#            MPI.Gather(length(send_buffer), mpi_root(), mpi_comm())
+#            MPI.Gatherv!(send_buffer, nothing, mpi_root(), mpi_comm())
+#        end
+#    else
+#        for key in keys(boundary_dictionary)
+#            if !(key in unique_names)
+#                error("Key $(repr(key)) is not a valid boundary name. " *
+#                      "Valid names are $unique_names.")
+#            end
+#        end
+#    end
 
     # Verify that each boundary has a boundary condition
     for name in unique_names
