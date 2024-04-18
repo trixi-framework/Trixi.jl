@@ -286,7 +286,7 @@ end
     function MyContainer(data, capacity)
         c = MyContainer(Vector{Int}(undef, capacity + 1), capacity, length(data),
                         capacity + 1)
-        c.data[1:length(data)] .= data
+        c.data[eachindex(data)] .= data
         return c
     end
     MyContainer(data::AbstractArray) = MyContainer(data, length(data))
@@ -1538,6 +1538,60 @@ end
     end
 end
 
+@testset "Equivalent Wave Speed Estimates" begin
+    @timed_testset "Linearized Euler 3D" begin
+        equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, 0.7),
+                                               c_mean_global = 1.0,
+                                               rho_mean_global = 1.0)
+
+        normal_x = SVector(1.0, 0.0, 0.0)
+        normal_y = SVector(0.0, 1.0, 0.0)
+        normal_z = SVector(0.0, 0.0, 1.0)
+
+        u_ll = SVector(0.3, 0.5, -0.7, 0.1, 1.0)
+        u_rr = SVector(0.5, -0.2, 0.1, 0.2, 5.0)
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(max_abs_speed_naive(u_ll, u_rr, 1, equations),
+                                    max_abs_speed_naive(u_ll, u_rr, normal_x,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(max_abs_speed_naive(u_ll, u_rr, 2, equations),
+                                    max_abs_speed_naive(u_ll, u_rr, normal_y,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(max_abs_speed_naive(u_ll, u_rr, 3, equations),
+                                    max_abs_speed_naive(u_ll, u_rr, normal_z,
+                                                        equations)))
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 1, equations),
+                                    min_max_speed_naive(u_ll, u_rr, normal_x,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 2, equations),
+                                    min_max_speed_naive(u_ll, u_rr, normal_y,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 3, equations),
+                                    min_max_speed_naive(u_ll, u_rr, normal_z,
+                                                        equations)))
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 1, equations),
+                                    min_max_speed_davis(u_ll, u_rr, normal_x,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 2, equations),
+                                    min_max_speed_davis(u_ll, u_rr, normal_y,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 3, equations),
+                                    min_max_speed_davis(u_ll, u_rr, normal_z,
+                                                        equations)))
+    end
+end
+
 @testset "SimpleKronecker" begin
     N = 3
 
@@ -1579,6 +1633,7 @@ end
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
 end
 
+
 @testset "PERK Single p2 Constructors" begin
     path_coeff_file = joinpath(examples_dir(), "tree_1d_dgsem/")
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
@@ -1608,6 +1663,45 @@ end
            0.2073723615813174 0.20171854750959173
            0.19137613735041836 0.26316931719503617
            0.13943312463511776 0.36056687536488224]
+end
+                            
+@testset "Sutherlands Law" begin
+    function mu(u, equations)
+        T_ref = 291.15
+
+        R_specific_air = 287.052874
+        T = R_specific_air * Trixi.temperature(u, equations)
+
+        C_air = 120.0
+        mu_ref_air = 1.827e-5
+
+        return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
+    end
+
+    function mu_control(u, equations, T_ref, R_specific, C, mu_ref)
+        T = R_specific * Trixi.temperature(u, equations)
+
+        return mu_ref * (T_ref + C) / (T + C) * (T / T_ref)^1.5
+    end
+
+    # Dry air (values from Wikipedia: https://de.wikipedia.org/wiki/Sutherland-Modell)
+    T_ref = 291.15
+    C = 120.0 # Sutherland's constant
+    R_specific = 287.052874
+    mu_ref = 1.827e-5
+    prandtl_number() = 0.72
+    gamma = 1.4
+
+    equations = CompressibleEulerEquations2D(gamma)
+    equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+                                                              Prandtl = prandtl_number())
+
+    # Flow at rest
+    u = prim2cons(SVector(1.0, 0.0, 0.0, 1.0), equations_parabolic)
+
+    # Comparison value from https://www.engineeringtoolbox.com/air-absolute-kinematic-viscosity-d_601.html at 18°C
+    @test isapprox(mu_control(u, equations_parabolic, T_ref, R_specific, C, mu_ref),
+                   1.803e-5, atol = 5e-8)
 end
 end
 

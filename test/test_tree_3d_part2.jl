@@ -22,6 +22,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Compressible Euler with self-gravity
     include("test_tree_3d_eulergravity.jl")
+
+    # Linearized Euler
+    include("test_tree_3d_linearizedeuler.jl")
 end
 
 @trixi_testset "Additional tests in 3D" begin

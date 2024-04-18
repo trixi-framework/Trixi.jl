@@ -120,7 +120,7 @@ integral = sum(nodes.^3 .* weights)
 x = Matrix{Float64}(undef, length(nodes), n_elements)
 for element in 1:n_elements
     x_l = coordinates_min + (element - 1) * dx + dx/2
-    for i in 1:length(nodes)
+    for i in eachindex(nodes)
         ξ = nodes[i] # nodes in [-1, 1]
         x[i, element] = x_l + dx/2 * ξ
     end
@@ -417,7 +417,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 x = Matrix{Float64}(undef, length(nodes), n_elements)
 for element in 1:n_elements
     x_l = -1 + (element - 1) * dx + dx/2
-    for i in 1:length(nodes) # basis points in [-1, 1]
+    for i in eachindex(nodes) # basis points in [-1, 1]
         ξ = nodes[i]
         x[i, element] = x_l + dx/2 * ξ
     end
