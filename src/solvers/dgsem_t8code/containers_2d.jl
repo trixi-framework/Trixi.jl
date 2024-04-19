@@ -4,6 +4,7 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
+#! format: off
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes.
 function calc_node_coordinates!(node_coordinates,
