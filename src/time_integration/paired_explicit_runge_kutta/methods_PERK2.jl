@@ -204,7 +204,6 @@ mutable struct PERK2Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
     # PERK2 stages:
     k1::uType
     k_higher::uType
-    t_stage::RealT
 end
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
