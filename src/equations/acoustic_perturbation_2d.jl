@@ -116,7 +116,9 @@ function initial_condition_constant(x, t, equations::AcousticPerturbationEquatio
     v2_prime = 0.0
     p_prime_scaled = 0.0
 
-    return SVector(v1_prime, v2_prime, p_prime_scaled, global_mean_vars(equations)...)
+    return SVector(map(v -> convert(eltype(x), v),
+                       (v1_prime, v2_prime, p_prime_scaled,
+                        global_mean_vars(equations)...)))
 end
 
 """
@@ -141,7 +143,7 @@ function initial_condition_convergence_test(x, t,
 
     prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
 
-    return prim2cons(prim, equations)
+    return map(v -> convert(eltype(x), v), prim2cons(prim, equations))
 end
 
 """
@@ -170,7 +172,7 @@ function source_terms_convergence_test(u, x, t,
 
     du4 = du5 = du6 = du7 = 0.0
 
-    return SVector(du1, du2, du3, du4, du5, du6, du7)
+    return SVector(map(v -> convert(eltype(u), v), (du1, du2, du3, du4, du5, du6, du7)))
 end
 
 """
@@ -185,7 +187,7 @@ function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2
 
     prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
 
-    return prim2cons(prim, equations)
+    return map(v -> convert(eltype(x), v), prim2cons(prim, equations))
 end
 
 """
@@ -216,7 +218,7 @@ function boundary_condition_wall(u_inner, orientation, direction, x, t,
         flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
     end
 
-    return flux
+    return flux # TODO: Check surface_flux_function
 end
 
 """
@@ -247,7 +249,7 @@ function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
     # calculate the boundary flux
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 
-    return flux
+    return map(v -> convert(eltype(u_inner), v), flux)
 end
 
 # Calculate 1D flux for a single point
@@ -346,7 +348,8 @@ end
                                   equations)
     diss = -0.5 * λ * (u_rr - u_ll)
     z = zero(eltype(u_ll))
-    return SVector(diss[1], diss[2], diss[3], z, z, z, z)
+    return SVector(v -> convert(eltype(u_ll), v),
+                   (diss[1], diss[2], diss[3], z, z, z, z))
 end
 
 @inline have_constant_speed(::AcousticPerturbationEquations2D) = False()
