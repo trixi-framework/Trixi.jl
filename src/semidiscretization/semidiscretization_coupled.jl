@@ -163,7 +163,14 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
     @trixi_timeit timer() "copy to coupled boundaries" begin
         foreach(semi.semis) do semi_
-            copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
+            boundary_conditions = semi_.boundary_conditions
+            # For p4est meshes we define the bundary conditions as ictionaries.
+            # But for the copt routine we need them as NamedTuple.
+            # Hence, the conversion here.
+            if typeof(boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes
+                boundary_conditions = NamedTuple{Tuple(keys(boundary_conditions.boundary_dictionary))}(values(boundary_conditions.boundary_dictionary))
+            end
+            copy_to_coupled_boundary!(boundary_conditions, u_ode, semi, semi_)
         end
     end
 
@@ -635,6 +642,7 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
                                                   equations_own)
 
             for i in eachindex(u_node_converted)
+                @autoinfiltrate
                 u_boundary[i, element_id, cell] = u_node_converted[i]
             end
 
