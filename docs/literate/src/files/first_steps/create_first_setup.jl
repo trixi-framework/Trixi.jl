@@ -19,8 +19,9 @@
 
 # The first step is to create and open a file with the .jl extension. You can do this with your
 # favorite text editor (if you do not have one, we recommend [VS Code](https://code.visualstudio.com/)).
-# In this file you will create your setup. Alternatively, you can execute each line of the
-# following code one by one in the Julia REPL. This will generate useful output for nearly every
+# In this file you will create your setup and the file can then be executed in Julia using, for example, `trixi_include()`.
+# Alternatively, you can execute each line of the following code one by one in the 
+# Julia REPL. This will generate useful output for nearly every
 # command and improve your comprehension of the process.
 
 # To be able to use functionalities of Trixi.jl, you always need to load Trixi.jl itself
@@ -68,7 +69,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # The solution in each of the recently defined mesh elements will be approximated by a polynomial
 # of degree `polydeg`. For more information about discontinuous Galerkin methods,
 # check out the [Introduction to DG methods](@ref scalar_linear_advection_1d) tutorial. Per default
-# `DGSEM` initializes the surface flux as central and the volume integral in the weak form.
+# `DGSEM` initializes the surface flux as central and uses no volume flux in the weak form.
 
 solver = DGSEM(polydeg=3)
 
@@ -116,7 +117,8 @@ end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_term_exp_sinpi)
-#
+# which leaves us with an ODE problem in time with a span from 0.0 to 1.0.
+# This approach is commonly referred to as the method of lines. 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
@@ -188,7 +190,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, ste
 # the ODE problem, the ODE solver and the callbacks to the `solve` function. Also, to use
 # `StepsizeCallback`, we must explicitly specify the initial trial time step `dt`, the selected
 # value is not important, because it will be overwritten by the `StepsizeCallback`. And there is no
-# need to save every step of the solution, we are only interested in the final result.
+# need to save every step of the solution, as we are only interested the output provided by 
+# our callback [`SaveSolutionCallback`](@ref).
 
 sol = solve(ode, SSPRK33(); dt = 1.0, save_everystep = false, callback = callbacks);
 

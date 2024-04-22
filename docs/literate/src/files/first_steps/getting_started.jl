@@ -32,8 +32,7 @@
 #   ```shell
 #   winget install julia -s msstore
 #   ```
-#   Note: This installation method requires the use of MS Store, therefore, an MS Store account
-#   is necessary to proceed.
+#   Note: For this installation an MS Store account is necessary to proceed.
 # - Verify the successful installation of Julia by executing the following command in the terminal:
 #   ```shell
 #   julia
@@ -73,15 +72,15 @@
 # - Open a terminal and start Julia.
 # - Execute the following commands to install all mentioned packages. Please note that the
 #   installation process involves downloading and precompiling the source code, which may take
-#   approximately 30 minutes.
+#   some time depending on your machine.
 #   ```julia
 #   import Pkg
 #   Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
 #   ```
-# - On Windows, the firewall may request for permission to install packages.
+# - On Windows, the firewall may request permission to install packages.
 
-# Now you have installed all these 
-# packages. [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) provides time
+# Besides Trixi.jl you have now installed two additional 
+# packages: [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) provides time
 # integration schemes used by Trixi.jl and [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 # can be used to directly visualize Trixi.jl results from the Julia REPL.
 
@@ -107,8 +106,7 @@
 
 # Let's execute a short two-dimensional problem setup. It approximates the solution of
 # the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
-# with a weak blast wave as the initial condition and periodic boundary conditions. The compressible
-# Euler equations describe the motion of an ideal gas.
+# with a weak blast wave as the initial condition and periodic boundary conditions. 
 
 # The compressible Euler equations in two spatial dimensions are given by
 # ```math
@@ -151,20 +149,24 @@
 using Trixi, OrdinaryDiffEq #hide #md
 trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
 
-# The solution was approximated over the [`TreeMesh`](@ref) using the `CarpenterKennedy2N54` ODE
+# The output contains a recap of the setup and various information about the course of the simulation.
+# For instance, the solution was approximated over the [`TreeMesh`](@ref) with 1024 effective cells using
+# the `CarpenterKennedy2N54` ODE
 # solver. Further details about the ODE solver can be found in the
 # [documentation of OrdinaryDiffEq.jl](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods)
 
 # To analyze the result of the computation, we can use the Plots.jl package and the function 
 # `plot(...)`, which creates a graphical representation of the solution. `sol` is a variable
-# defined in the executed example and it contains the solution at the final moment of the
-# simulation. `sol.u` holds the vector of values at each saved timestep, while `sol.t` holds the
+# defined in the executed example and it contains the solution after the simulation 
+# finishes. `sol.u` holds the vector of values at each saved timestep, while `sol.t` holds the
 # corresponding times for each saved timestep. In this instance, only two timesteps were saved: the
 # initial and final ones. The plot depicts the distribution of the weak blast wave at the final moment
 # of time, showing the density, velocities, and pressure of the ideal gas across a 2D domain.
 
 using Plots
 plot(sol)
+
+# ### Getting an existing setup file
 
 # To obtain a list of all Trixi.jl elixirs execute
 # [`get_examples`](@ref). It returns the paths to all example setups.
