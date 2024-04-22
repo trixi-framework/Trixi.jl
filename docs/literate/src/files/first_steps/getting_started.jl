@@ -19,10 +19,10 @@
 
 # Trixi.jl is compatible with the latest stable release of Julia. Additional details regarding Julia
 # support can be found in the [`README.md`](https://github.com/trixi-framework/Trixi.jl#installation)
-# file. The current default Julia installation is managed through `juliaup`. You may follow our
-# concise installation guidelines for Windows, Linux, and MacOS provided below. In the event of any
-# issues during the installation process, please consult the official
-# [Julia installation instruction](https://julialang.org/downloads/).
+# file. After installation, the current default Julia version can be managed through the command
+# line tool `juliaup`. You may follow our concise installation guidelines for Windows, Linux, and
+# MacOS provided below. In the event of any issues during the installation process, please consult
+# the official [Julia installation instruction](https://julialang.org/downloads/).
 
 
 # ### Windows
@@ -166,6 +166,7 @@ trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_eule
 using Plots
 plot(sol)
 
+
 # ### Getting an existing setup file
 
 # To obtain a list of all Trixi.jl elixirs execute
@@ -174,9 +175,6 @@ plot(sol)
 get_examples()
 
 # Editing an existing elixir is the best way to start your first own investigation using Trixi.jl.
-
-
-# ### Getting an existing setup file
 
 # To edit an existing elixir, you first have to find a suitable one and then copy it to a local
 # folder. Let's have a look at how to download the `elixir_euler_ec.jl` elixir used in the previous

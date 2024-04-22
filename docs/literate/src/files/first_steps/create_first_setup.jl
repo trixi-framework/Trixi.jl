@@ -112,13 +112,13 @@ function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation
 end
 
 # Now we collect all the information that is necessary to define a spatial discretization,
-# which leaves us with an ODE problem in time with a span from 0.0 to 1.0.
-# This approach is commonly referred to as the method of lines. 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_term_exp_sinpi)
+
 # which leaves us with an ODE problem in time with a span from 0.0 to 1.0.
 # This approach is commonly referred to as the method of lines. 
+
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
