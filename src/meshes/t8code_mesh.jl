@@ -33,6 +33,8 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                current_filename) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
 
+        @assert t8_forest_get_local_num_elements(forest) > 0 "Too many ranks to properly partition the mesh!"
+
         mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
                                                                                   is_parallel)
 

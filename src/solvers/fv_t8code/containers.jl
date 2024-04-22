@@ -104,8 +104,9 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
     _face_areas = Vector{RealT}(undef, max_number_faces * nelements)
     face_areas = unsafe_wrap(Array, pointer(_face_areas), (max_number_faces, nelements))
 
-    _face_normals = similar(_face_midpoints)
-    face_normals = unsafe_wrap(Array, pointer(_face_normals), size(face_midpoints))
+    _face_normals = Vector{RealT}(undef, NDIMS * max_number_faces * nelements)
+    face_normals = unsafe_wrap(Array, pointer(_face_normals),
+                               (NDIMS, max_number_faces, nelements))
 
     reconstruction_stencil = Vector{Vector{Int}}(undef, nelements)
 
