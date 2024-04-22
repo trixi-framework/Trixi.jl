@@ -227,8 +227,11 @@ volume_flux = flux_kennedy_gruber
 solver = DGSEM(polydeg = 5, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-trees_per_cube_face = (4, 4)
-mesh = Trixi.T8codeMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
+# For optimal results, use 4 lat lon levels and 8 layers here
+# Note that the first argument refers to the level of refinement, unlike in for p4est
+lat_lon_levels = 3
+layers = 4
+mesh = Trixi.T8codeMeshCubedSphere(lat_lon_levels, layers, 6.371229e6, 30000.0,
                                    polydeg = 5, initial_refinement_level = 0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
