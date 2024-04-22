@@ -47,11 +47,11 @@ function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
     a_matrix[:, 1] = c[3:end]
 
     cons_order = 2
-    filter_thres = 1e-12
+
     dtmax = tspan[2] - tspan[1]
     dteps = 1e-9
 
-    num_eig_vals, eig_vals = filter_eigvals(eig_vals, filter_thres)
+    num_eig_vals, eig_vals = filter_eigvals(eig_vals)
 
     mon_coeffs, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax, dteps,
                                    eig_vals)
@@ -232,7 +232,7 @@ function init(ode::ODEProblem, alg::PERK2;
                                  (prob = ode,), ode.f, alg,
                                  PERKIntegratorOptions(callback, ode.tspan; kwargs...),
                                  false,
-                                 k1, k_higher, t0)
+                                 k1, k_higher)
 
     # initialize callbacks
     if callback isa CallbackSet

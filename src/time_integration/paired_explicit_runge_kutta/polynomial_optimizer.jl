@@ -6,7 +6,7 @@ export filter_eigvals, undo_normalization!
 # implemented in TrixiConvexExt and only usable when user adds Convex
 export stability_polynomials, bisection
 
-function filter_eigvals(eig_vals, threshold)
+function filter_eigvals(eig_vals, threshold = 1e-12)
     filtered_eigvals_counter = 0
     filtered_eig_vals = Complex{Float64}[]
 

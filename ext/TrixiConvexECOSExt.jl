@@ -15,11 +15,8 @@ end
 using LinearAlgebra: eigvals
 const MOI = Convex.MOI
 
-# Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
-using Trixi
-
 # Use additional symbols that are not exported
-using Trixi: PolynomialOptimizer
+using Trixi: PolynomialOptimizer, @muladd
 
 # Import functions such that they can be extended with new methods
 import .PolynomialOptimizer: filter_eigvals, bisection, undo_normalization!
