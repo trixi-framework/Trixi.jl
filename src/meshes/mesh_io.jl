@@ -366,17 +366,18 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
 
     if mesh_type == "TreeMesh"
         if mpi_isroot()
-            n_cells = h5open(mesh_file, "r") do file
-                read(attributes(file)["n_cells"])
+            n_cells, capacity = h5open(mesh_file, "r") do file
+                return read(attributes(file)["n_cells"]),
+                       read(attributes(file)["capacity"])
             end
-            MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
             MPI.Bcast!(Ref(n_cells), mpi_root(), mpi_comm())
+            MPI.Bcast!(Ref(capacity), mpi_root(), mpi_comm())
         else
-            ndims_ = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
             n_cells = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+            capacity = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
         end
 
-        mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max))
+        mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
     elseif mesh_type == "P4estMesh"
         if mpi_isroot()
