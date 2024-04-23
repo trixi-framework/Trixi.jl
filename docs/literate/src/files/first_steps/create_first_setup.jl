@@ -19,7 +19,7 @@
 
 # The first step is to create and open a file with the .jl extension. You can do this with your
 # favorite text editor (if you do not have one, we recommend [VS Code](https://code.visualstudio.com/)).
-# In this file you will create your setup and the file can then be executed in Julia using, for example, `trixi_include()`.
+# In this file, you will create your setup. The file can then be executed in Julia using, for example, `trixi_include()`.
 # Alternatively, you can execute each line of the following code one by one in the 
 # Julia REPL. This will generate useful output for nearly every
 # command and improve your comprehension of the process.
@@ -68,8 +68,9 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # To approximate the solution of the defined model, we create a [`DGSEM`](@ref) solver.
 # The solution in each of the recently defined mesh elements will be approximated by a polynomial
 # of degree `polydeg`. For more information about discontinuous Galerkin methods,
-# check out the [Introduction to DG methods](@ref scalar_linear_advection_1d) tutorial. Per default
-# `DGSEM` initializes the surface flux as central and uses no volume flux in the weak form.
+# check out the [Introduction to DG methods](@ref scalar_linear_advection_1d) tutorial. By default,
+# in the weak formulation `DGSEM` initializes the surface flux as `flux_central` and uses the physical flux for
+# the volume integral.
 
 solver = DGSEM(polydeg=3)
 
@@ -116,7 +117,7 @@ end
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_term_exp_sinpi)
 
-# which leaves us with an ODE problem in time with a span from 0.0 to 1.0.
+# which leaves us with an ODE problem in time with a span from `0.0` to `1.0`.
 # This approach is commonly referred to as the method of lines. 
 
 tspan = (0.0, 1.0)
@@ -137,14 +138,14 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 # We also want to analyze the current state of the solution in regular intervals.
-# The [`AnalysisCallback`](@ref) outputs some useful statistical information during the solving
-# process every `interval` time steps.
+# The [`AnalysisCallback`](@ref) outputs some useful statistical information during the simulation
+# every `interval` time steps.
 
 analysis_callback = AnalysisCallback(semi, interval = 20)
 
-# To indicate that a simulation is still running by periodically printing information, such as the
-# current time, to the screen every `alive_interval` time steps, we utilize the inexpensive
-# [`AliveCallback`](@ref).
+# To indicate that a simulation is still running, we utilize the inexpensive [`AliveCallback`](@ref)
+# to periodically print information to the screen, such as the
+# current time, every `alive_interval` time steps.
 
 alive_callback = AliveCallback(alive_interval = 10)
 
@@ -222,8 +223,8 @@ using Plots
 # ```julia
 # plot(sol)
 # ```
-# Alternatively, you can configure the plot more precisely. Trixi.jl suggests a special structure
-# to extract the visualization data from the solution as a [`PlotData2D`](@ref) object.
+# Alternatively, you can configure the plot more precisely. Trixi.jl provides a special data type,
+# [`PlotData2D`](@ref), to extract the visualization data from the solution.
 
 pd = PlotData2D(sol);
 
@@ -232,7 +233,8 @@ pd = PlotData2D(sol);
 
 @show pd.variable_names;
 
-# Plot the variable named "scalar".
+# Plot the variable named "scalar" (which is the name of the variable for the
+# linear advection equation in Trixi.jl).
 
 plot(pd["scalar"])
 
