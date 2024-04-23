@@ -300,7 +300,7 @@ function step!(integrator::PERK2Integrator)
         end
 
         # Construct current state
-        @threaded for i in eachindex(integrator.du)
+        @threaded for i in eachindex(integrator.u)
             integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
         end
         # k2
@@ -314,7 +314,7 @@ function step!(integrator::PERK2Integrator)
         # Higher stages
         for stage in 3:(alg.num_stages)
             # Construct current state
-            @threaded for i in eachindex(integrator.du)
+            @threaded for i in eachindex(integrator.u)
                 integrator.u_tmp[i] = integrator.u[i] +
                                       alg.a_matrix[stage - 2, 1] *
                                       integrator.k1[i] +
