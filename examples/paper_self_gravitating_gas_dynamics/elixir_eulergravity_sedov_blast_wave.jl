@@ -85,7 +85,7 @@ function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, 
 end
 boundary_conditions = boundary_condition_sedov_self_gravity
 
-surface_flux = flux_hll
+surface_flux = FluxHLL(min_max_speed_naive)
 volume_flux = flux_chandrashekar
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)

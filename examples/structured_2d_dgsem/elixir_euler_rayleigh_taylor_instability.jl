@@ -69,7 +69,7 @@ mapping(xi, eta) = SVector(0.25 * 0.5 * (1.0 + xi), 0.5 * (1.0 + eta))
 
 num_elements_per_dimension = 32
 cells_per_dimension = (num_elements_per_dimension, num_elements_per_dimension * 4)
-mesh = StructuredMesh(cells_per_dimension, mapping)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
 
 initial_condition = initial_condition_rayleigh_taylor_instability
 boundary_conditions = (x_neg = boundary_condition_slip_wall,

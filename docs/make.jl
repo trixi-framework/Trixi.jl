@@ -28,19 +28,36 @@ DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true
 # as necessary
 # Based on: https://github.com/ranocha/SummationByPartsOperators.jl/blob/0206a74140d5c6eb9921ca5021cb7bf2da1a306d/docs/make.jl#L27-L41
 open(joinpath(@__DIR__, "src", "code_of_conduct.md"), "w") do io
-  # Point to source license file
-  println(io, """
-  ```@meta
-  EditURL = "https://github.com/trixi-framework/Trixi.jl/blob/main/CODE_OF_CONDUCT.md"
-  ```
-  """)
-  # Write the modified contents
-  println(io, "# [Code of Conduct](@id code-of-conduct)")
-  println(io, "")
-  for line in eachline(joinpath(dirname(@__DIR__), "CODE_OF_CONDUCT.md"))
-    line = replace(line, "[AUTHORS.md](AUTHORS.md)" => "[Authors](@ref)")
-    println(io, "> ", line)
-  end
+    # Point to source license file
+    println(io,
+            """
+            ```@meta
+            EditURL = "https://github.com/trixi-framework/Trixi.jl/blob/main/CODE_OF_CONDUCT.md"
+            ```
+            """)
+    # Write the modified contents
+    println(io, "# [Code of Conduct](@id code-of-conduct)")
+    println(io, "")
+    for line in eachline(joinpath(dirname(@__DIR__), "CODE_OF_CONDUCT.md"))
+        line = replace(line, "[AUTHORS.md](AUTHORS.md)" => "[Authors](@ref)")
+        println(io, "> ", line)
+    end
+end
+
+open(joinpath(@__DIR__, "src", "contributing.md"), "w") do io
+    # Point to source license file
+    println(io,
+            """
+            ```@meta
+            EditURL = "https://github.com/trixi-framework/Trixi.jl/blob/main/CONTRIBUTING.md"
+            ```
+            """)
+    # Write the modified contents
+    for line in eachline(joinpath(dirname(@__DIR__), "CONTRIBUTING.md"))
+      line = replace(line, "[LICENSE.md](LICENSE.md)" => "[License](@ref)")
+      line = replace(line, "[AUTHORS.md](AUTHORS.md)" => "[Authors](@ref)")
+      println(io, line)
+    end
 end
 
 # Create tutorials for the following files:
@@ -52,7 +69,7 @@ files = [
     # Topic: introduction
     "First steps in Trixi.jl" => [
         "Getting started" => ("first_steps", "getting_started.jl"),
-        "Create first setup" => ("first_steps", "create_first_setup.jl"),
+        "Create your first setup" => ("first_steps", "create_first_setup.jl"),
         "Changing Trixi.jl itself" => ("first_steps", "changing_trixi.jl"),
     ],
     "Behind the scenes of a simulation setup" => "behind_the_scenes_simulation_setup.jl",

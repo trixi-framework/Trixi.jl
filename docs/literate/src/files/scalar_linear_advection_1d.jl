@@ -115,12 +115,12 @@ integral = sum(nodes.^3 .* weights)
 # To approximate the solution, we need to get the polynomial coefficients $\{u_j^{Q_l}\}_{j=0}^N$
 # for every element $Q_l$.
 
-# After defining all nodes, we can implement the spatial coordinate $x$ and its initial value $u0$
+# After defining all nodes, we can implement the spatial coordinate $x$ and its initial value $u0 = u(t_0)$
 # for every node.
 x = Matrix{Float64}(undef, length(nodes), n_elements)
 for element in 1:n_elements
     x_l = coordinates_min + (element - 1) * dx + dx/2
-    for i in 1:length(nodes)
+    for i in eachindex(nodes)
         ξ = nodes[i] # nodes in [-1, 1]
         x[i, element] = x_l + dx/2 * ξ
     end
@@ -417,7 +417,7 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 x = Matrix{Float64}(undef, length(nodes), n_elements)
 for element in 1:n_elements
     x_l = -1 + (element - 1) * dx + dx/2
-    for i in 1:length(nodes) # basis points in [-1, 1]
+    for i in eachindex(nodes) # basis points in [-1, 1]
         ξ = nodes[i]
         x[i, element] = x_l + dx/2 * ξ
     end
