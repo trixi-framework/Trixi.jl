@@ -27,8 +27,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
-tspan = (0.0, 1.0)
+# Create ODE problem with time span from 0.0 to 20.0
+tspan = (0.0, 20.0)
 ode = semidiscretize(semi, tspan);
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
@@ -36,12 +36,13 @@ ode = semidiscretize(semi, tspan);
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100)
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 2.5)
 
-alive_callback = AliveCallback(alive_interval = 1)
+alive_callback = AliveCallback(alive_interval = analysis_interval)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
@@ -63,3 +64,5 @@ sol = Trixi.solve(ode, ode_algorithm,
 
 # Print the timer summary
 summary_callback()
+
+analysis_callback(sol)

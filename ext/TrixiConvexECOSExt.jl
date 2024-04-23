@@ -113,9 +113,9 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
                       # Parameters taken from default values for EiCOS
                       MOI.OptimizerWithAttributes(ECOS.Optimizer, "gamma" => 0.99,
                                                   "delta" => 2e-7,
-                                                  "feastol" => 1e-9, # 1e-9
-                                                  "abstol" => 1e-9, # 1e-9
-                                                  "reltol" => 1e-9, # 1e-9
+                                                  "feastol" => 1e-9,
+                                                  "abstol" => 1e-9,
+                                                  "reltol" => 1e-9,
                                                   "feastol_inacc" => 1e-4,
                                                   "abstol_inacc" => 5e-5,
                                                   "reltol_inacc" => 5e-5,
