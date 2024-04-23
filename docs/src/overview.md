@@ -64,6 +64,14 @@ different features on different mesh types.
 
 ᵃ: quad = quadrilateral, hex = hexahedron
 
+Note that except for [`TreeMesh`](@ref) all meshes are of *curvilinear* type, 
+which means that a (unit) vector normal to the interface (`normal_direction`) needs to be supplied to the 
+numerical flux function.
+You can check the [reference](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/) if a certain 
+numerical flux is implemented with a `normal_direction` 
+or if currently only the *cartesian* version (for [`TreeMesh`](@ref)) exists.
+In this case, you can still use this flux on curvilinear meshes by rotating it, see [`FluxRotated`](@ref).
+
 ## Time integration methods
 
 Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
