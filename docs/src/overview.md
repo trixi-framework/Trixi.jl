@@ -69,7 +69,7 @@ which means that a (unit) vector normal to the interface (`normal_direction`) ne
 numerical flux function.
 You can check the [reference](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/) if a certain 
 numerical flux is implemented with a `normal_direction` 
-or if currently only the *cartesian* version (for [`TreeMesh`](@ref)) exists.
+or if currently only the *Cartesian* version (for [`TreeMesh`](@ref)) exists.
 In this case, you can still use this flux on curvilinear meshes by rotating it, see [`FluxRotated`](@ref).
 
 ## Time integration methods
