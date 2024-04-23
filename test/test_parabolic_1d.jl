@@ -121,8 +121,8 @@ end
                         ],
                         linf=[
                             0.002996375101363302,
-                            0.002863904256059634,
-                            0.012691132946258676,
+                            0.0028639041695096433,
+                            0.012691132694550689,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -148,8 +148,8 @@ end
                         ],
                         linf=[
                             0.002754803146635787,
-                            0.0028567714697580906,
-                            0.012941794048176192,
+                            0.0028567713744625124,
+                            0.012941793784197131,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -168,14 +168,14 @@ end
                                                                                 mu = mu(),
                                                                                 Prandtl = prandtl_number()),
                         l2=[
-                            2.5278824700860636e-5,
-                            2.5540078777006958e-5,
-                            0.00012118655083858043,
+                            2.5278845598681636e-5,
+                            2.5540145802666872e-5,
+                            0.0001211867535580826,
                         ],
                         linf=[
-                            0.0001466387075579334,
-                            0.00019422427462629705,
-                            0.0009556446847707178,
+                            0.0001466387202588848,
+                            0.00019422419092429135,
+                            0.0009556449835592673,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
