@@ -7,10 +7,12 @@
 
 struct FV{RealT <: Real, SurfaceFlux}
     order::Integer
+    extended_reconstruction_stencil::Bool
     surface_flux::SurfaceFlux
 
-    function FV(; order = 1, RealT = Float64, surface_flux = flux_central)
-        new{RealT, typeof(surface_flux)}(order, surface_flux)
+    function FV(; order = 1, extended_reconstruction_stencil = false, RealT = Float64,
+                surface_flux = flux_central)
+        new{RealT, typeof(surface_flux)}(order, extended_reconstruction_stencil, surface_flux)
     end
 end
 
@@ -144,9 +146,39 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
     # Temporary solution array to allow exchange between MPI ranks.
     u_tmp = init_solution!(mesh, equations)
 
+    # Initialize reconstruction stencil
+    if !solver.extended_reconstruction_stencil
+        init_reconstruction_stencil!(elements, interfaces, boundaries, solver)
+    end
+
     cache = (; elements, interfaces, boundaries, u_tmp)
 
     return cache
+end
+
+function init_reconstruction_stencil!(elements, interfaces, boundaries, solver)
+    if solver.order != 2
+        return nothing
+    end
+    (; reconstruction_stencil) = elements
+    (; neighbor_ids) = interfaces
+
+    # Create empty vectors for every element
+    for element in eachindex(reconstruction_stencil)
+        reconstruction_stencil[element] = []
+    end
+
+    for interface in axes(neighbor_ids, 2)
+        element1 = neighbor_ids[1, interface]
+        element2 = neighbor_ids[2, interface]
+
+        append!(reconstruction_stencil[element1], element2)
+        if element1 != element2
+            append!(reconstruction_stencil[element2], element1)
+        end
+    end
+
+    return nothing
 end
 
 function rhs!(du, u, t, mesh::T8codeMesh, equations,

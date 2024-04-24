@@ -14,33 +14,48 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
 @testset "Examples 2D" begin
     # Linear scalar advection
     @trixi_testset "elixir_advection_basic.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                            order=1,
-                            l2=[0.1419061449384701],
-                            linf=[0.2086802087402776])
-
-        # @testset "error-based step size control" begin
-        #     Trixi.mpi_isroot() && println("-"^100)
-        #     Trixi.mpi_isroot() &&
-        #         println("elixir_advection_basic.jl with error-based step size control")
-
-        #     sol = solve(ode, RDPK3SpFSAL35(); abstol = 1.0e-4, reltol = 1.0e-4,
-        #                 ode_default_options()..., callback = callbacks)
-        #     summary_callback()
-        #     errors = analysis_callback(sol)
-        #     if Trixi.mpi_isroot()
-        #         @test errors.l2≈[3.3022040342579066e-5] rtol=1.0e-4
-        #         @test errors.linf≈[0.00011787417954578494] rtol=1.0e-4
-        #     end
-        # end
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @trixi_testset "first-order FV" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                                order=1,
+                                l2=[0.1419061449384701],
+                                linf=[0.2086802087402776])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        @trixi_testset "second-order FV, extended reconstruction stencil" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                                order=2,
+                                l2=[0.020331012873518642],
+                                linf=[0.05571209803860677])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        @trixi_testset "second-order FV, reconstruction stencil" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                                order=2,
+                                extended_reconstruction_stencil=false,
+                                l2=[0.03765756683850177],
+                                linf=[0.11085421337338475])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
         end
     end
 

@@ -200,15 +200,17 @@ function init_elements!(elements, mesh::T8codeMesh, solver::FV)
     end
 
     # Init stencil for reconstruction
-    if solver.order != 2
-        return nothing
+    if solver.extended_reconstruction_stencil
+        init_extended_reconstruction_stencil!(corners, elements, solver)
     end
-    init_reconstruction_stencil!(corners, elements)
 
     return nothing
 end
 
-@inline function init_reconstruction_stencil!(corners, elements)
+@inline function init_extended_reconstruction_stencil!(corners, elements, solver)
+    if solver.order != 2
+        return nothing
+    end
     (; reconstruction_stencil, volume, num_faces) = elements
 
     # Create empty vectors for every element
