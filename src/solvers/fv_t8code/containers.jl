@@ -248,9 +248,9 @@ end
                                 element)
                         push!(reconstruction_distance[neighbor], -distance)
 
-                    # elseif # TODO: Handle periodic boundaries; Something like:
-                    #     distance = (face_midpoint_element .- midpoint_element) .+
-                    #                (midpoint_neighbor .- face_midpoint_neighbor)
+                        # elseif # TODO: Handle periodic boundaries; Something like:
+                        #     distance = (face_midpoint_element .- midpoint_element) .+
+                        #                (midpoint_neighbor .- face_midpoint_neighbor)
                     end
                 end
             end
