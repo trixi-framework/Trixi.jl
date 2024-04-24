@@ -1276,7 +1276,7 @@ end
         0.5011914484393387,
         0.8829127712445113,
         0.43024132987932817,
-        0.7560616633050348,
+        0.7560616633050348
     ]
 
     equations = CompressibleEulerEquations2D(1.4)
@@ -1433,7 +1433,7 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 1.0),
             SVector(1.5, -0.2, 0.1, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc
         ]
 
         for f_std in fluxes
@@ -1457,7 +1457,7 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
             SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc
         ]
 
         for f_std in fluxes
@@ -1496,7 +1496,7 @@ end
             flux_central,
             flux_hindenlang_gassner,
             FluxHLL(min_max_speed_davis),
-            flux_hlle,
+            flux_hlle
         ]
 
         for f_std in fluxes
@@ -1523,7 +1523,7 @@ end
             flux_central,
             flux_hindenlang_gassner,
             FluxHLL(min_max_speed_davis),
-            flux_hlle,
+            flux_hlle
         ]
 
         for f_std in fluxes
@@ -1633,7 +1633,6 @@ end
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
 end
 
-
 @testset "PERK Single p2 Constructors" begin
     path_coeff_file = joinpath(examples_dir(), "tree_1d_dgsem/")
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
@@ -1664,7 +1663,7 @@ end
            0.19137613735041836 0.26316931719503617
            0.13943312463511776 0.36056687536488224]
 end
-                            
+
 @testset "Sutherlands Law" begin
     function mu(u, equations)
         T_ref = 291.15
