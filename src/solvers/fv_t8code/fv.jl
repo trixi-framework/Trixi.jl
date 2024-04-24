@@ -233,7 +233,7 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
         b = zero(eltype(u))
         c = zero(eltype(u))
         # A^T b = [d; e]
-        # Note: A^T b depends on the variable v. Using structure [d/e, v]
+        # Note: A^T b depends on the variable v. Using vectors with d[v] and e[v]
         d .= zero(eltype(u))
         e .= zero(eltype(u))
         for i in 1:n_stencil_neighbors
@@ -346,13 +346,28 @@ function calc_interface_flux!(du, mesh::T8codeMesh,
 end
 
 function prolong2boundaries!(cache, mesh::T8codeMesh, equations, solver::FV)
-    (; boundaries, u_tmp) = cache
+    (; elements, boundaries, u_tmp) = cache
+    (; midpoint, face_midpoints, reconstruction_gradient) = elements
 
     for boundary in eachboundary(solver, cache)
         element = boundaries.neighbor_ids[boundary]
         if solver.order == 1
             for v in eachvariable(equations)
                 boundaries.u[v, boundary] = u_tmp[element].u[v]
+            end
+        elseif solver.order == 2
+            face_element = boundaries.faces[boundary]
+
+            face_midpoint_element = get_node_coords(face_midpoints, equations, solver,
+                                                    face_element, element)
+
+            midpoint_element = get_node_coords(midpoint, equations, solver, element)
+
+            vector_element = face_midpoint_element .- midpoint_element
+            for v in eachvariable(equations)
+                gradient_v_element = get_node_coords(reconstruction_gradient, equations,
+                                                     solver, v, element)
+                boundaries.u[v, boundary] = u_tmp[element].u[v] + dot(gradient_v_element, vector_element)
             end
         else
             error("Order $(solver.order) is not supported.")
