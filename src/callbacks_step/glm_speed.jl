@@ -24,7 +24,7 @@ may change at any time.
 struct GlmSpeedCallback{RealT <: Real}
     glm_scale::RealT
     cfl::RealT
-    semi_indices::Tuple
+    semi_indices::Vector{Int}
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:GlmSpeedCallback})
