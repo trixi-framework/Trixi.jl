@@ -273,17 +273,16 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
             neighbor = reconstruction_stencil[element][i]
             coordinates_neighbor = get_node_coords(elements.midpoint, equations, solver,
                                                    neighbor)
+            # TODO: How to handle periodic boundaries
+            coordinates_difference = coordinates_neighbor .- coordinates_element
 
-            a += (coordinates_neighbor[1] - coordinates_element[1])^2
-            b += (coordinates_neighbor[1] - coordinates_element[1]) *
-                 (coordinates_neighbor[2] - coordinates_element[2])
-            c += (coordinates_neighbor[2] - coordinates_element[2])^2
+            a += coordinates_difference[1]^2
+            b += coordinates_difference[1] * coordinates_difference[2]
+            c += coordinates_difference[2]^2
 
             for v in eachvariable(equations)
-                d[v] += (coordinates_neighbor[1] - coordinates_element[1]) *
-                        (u[v, neighbor] - u[v, element])
-                e[v] += (coordinates_neighbor[2] - coordinates_element[2]) *
-                        (u[v, neighbor] - u[v, element])
+                d[v] += coordinates_difference[1] * (u[v, neighbor] - u[v, element])
+                e[v] += coordinates_difference[2] * (u[v, neighbor] - u[v, element])
             end
         end
 
