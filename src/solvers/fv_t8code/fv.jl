@@ -12,7 +12,8 @@ struct FV{RealT <: Real, SurfaceFlux}
 
     function FV(; order = 1, extended_reconstruction_stencil = false, RealT = Float64,
                 surface_flux = flux_central)
-        new{RealT, typeof(surface_flux)}(order, extended_reconstruction_stencil, surface_flux)
+        new{RealT, typeof(surface_flux)}(order, extended_reconstruction_stencil,
+                                         surface_flux)
     end
 end
 
@@ -399,7 +400,8 @@ function prolong2boundaries!(cache, mesh::T8codeMesh, equations, solver::FV)
             for v in eachvariable(equations)
                 gradient_v_element = get_node_coords(reconstruction_gradient, equations,
                                                      solver, v, element)
-                boundaries.u[v, boundary] = u_tmp[element].u[v] + dot(gradient_v_element, vector_element)
+                boundaries.u[v, boundary] = u_tmp[element].u[v] +
+                                            dot(gradient_v_element, vector_element)
             end
         else
             error("Order $(solver.order) is not supported.")
