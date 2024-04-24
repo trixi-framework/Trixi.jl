@@ -54,7 +54,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = ())
+function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Vector([1]))
     @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
     glm_speed_callback = GlmSpeedCallback(glm_scale, cfl, semi_indices)
@@ -74,27 +74,28 @@ function (glm_speed_callback::GlmSpeedCallback)(u, t, integrator)
     return true
 end
 
-# This method is called as callback after the StepsizeCallback during the time integration.
-@inline function (glm_speed_callback::GlmSpeedCallback)(integrator)
-    dt = get_proposed_dt(integrator)
-    semi = integrator.p
-
+function update_cleaning_speed!(semi, glm_speed_callback, dt)
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
-    if (typeof(semi) <: SemidiscretizationCoupled) && (length(semi_indices) == 0)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+    # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
+    c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
+
+    # c_h is proportional to its own time step divided by the complete MHD time step
+    equations.c_h = glm_scale * c_h_deltat / dt
+end
+
+function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled, glm_speed_callback, dt)
+    @unpack glm_scale, cfl, semi_indices = glm_speed_callback
+
+    if length(semi_indices) == 0
         throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
     end
 
-    # Make sure we can handle multiple semidiscretizationis in coupled simulations.
-    if length(semi_indices) == 0
-        semis = tuple(semi)
-        semi_indices = (1)
-    else
-        semis = semi.semis
-    end
-
+#     @autoinfiltrate
     # Check that all MHD semidiscretizations received a GLM cleaning speed update.
-    for (semi_index, semi) in enumerate(semis)
+    for (semi_index, semi) in enumerate(semi_coupled.semis)
         if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
             !(semi_index in semi_indices))
             throw("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
@@ -102,7 +103,7 @@ end
     end
 
     for semi_index in semi_indices
-        semi = semis[semi_index]
+        semi = semi_coupled.semis[semi_index]
         mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
@@ -111,6 +112,14 @@ end
         # c_h is proportional to its own time step divided by the complete MHD time step
         equations.c_h = glm_scale * c_h_deltat / dt
     end
+end
+
+# This method is called as callback after the StepsizeCallback during the time integration.
+@inline function (glm_speed_callback::GlmSpeedCallback)(integrator)
+    dt = get_proposed_dt(integrator)
+    semi = integrator.p
+
+    update_cleaning_speed!(semi, glm_speed_callback, dt)
 
     # avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
