@@ -247,6 +247,11 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
         end
     end
 
+    # Calculate source terms
+    @trixi_timeit timer() "source terms" begin
+        calc_sources!(du, u, t, source_terms, mesh, equations, solver, cache)
+    end
+
     return nothing
 end
 
@@ -502,6 +507,25 @@ function calc_boundary_flux!(du, cache, t, boundary_condition::BC, boundary_inde
         for v in eachvariable(equations)
             flux_ = elements.face_areas[face, element] * flux[v]
             du[v, element] -= flux_
+        end
+    end
+
+    return nothing
+end
+
+function calc_sources!(du, u, t, source_terms::Nothing, mesh::T8codeMesh,
+                       equations::AbstractEquations, solver::FV, cache)
+    return nothing
+end
+
+function calc_sources!(du, u, t, source_terms, mesh::T8codeMesh,
+                       equations::AbstractEquations, solver::FV, cache)
+    @threaded for element in eachelement(mesh, solver, cache)
+        u_local = get_node_vars(u, equations, solver, element)
+        x_local = get_node_coords(cache.elements.midpoint, equations, solver, element)
+        du_local = source_terms(u_local, x_local, t, equations)
+        for v in eachvariable(equations)
+            du[v, element] += du_local[v]
         end
     end
 

@@ -119,6 +119,57 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_source_terms.jl" begin
+    @trixi_testset "first-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                            order=1,
+                            l2=[
+                                0.059376731961878,
+                                0.019737707470047838,
+                                0.019737707470047747,
+                                0.09982550390697936,
+                            ],
+                            linf=[
+                                0.08501451493301548,
+                                0.029105783468157398,
+                                0.029105783468157842,
+                                0.1451756151490775,
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+    @trixi_testset "second-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                            order=2,
+                            l2=[
+                                0.010837449943690536,
+                                0.005590075861862033,
+                                0.0055900758618617746,
+                                0.015718276021607858,
+                            ],
+                            linf=[
+                                0.019824129856828243,
+                                0.011179348522895705,
+                                0.011179348522897037,
+                                0.029674951836654806,
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+end
+
 @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave.jl"),
