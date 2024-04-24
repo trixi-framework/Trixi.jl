@@ -48,7 +48,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         setup = [
             "GLM wave speed scaling" => glm_speed_callback.glm_scale,
             "Expected CFL number" => glm_speed_callback.cfl,
-            "Coupled semis indices" => glm_speed_callback.semi_indices,
+            "Selected semidiscretizations" => glm_speed_callback.semi_indices,
         ]
         summary_box(io, "GlmSpeedCallback", setup)
     end
