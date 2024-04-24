@@ -40,7 +40,7 @@ Examples can be seen in `examples/structured_2d_dgsem/elixir_advection_coupled.j
 
 When simulating an MHD system and the [`GlmSpeedCallback`](@ref) is required,
 we need to specify for which semidiscretization we need the GLM speed updated.
-This can be done with an additional parameter called `semi_indices` which
+This can be done with an additional parameter called `semi_indices`, which
 is a tuple containing the semidiscretization indices for all systems
 that require the GLM speed updated.
 
