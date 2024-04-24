@@ -77,8 +77,8 @@ mkdir(outdir)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                             order=2,
                             extended_reconstruction_stencil=false,
-                            l2=[0.03765756683850177],
-                            linf=[0.11085421337338475])
+                            l2=[0.013669404880134087],
+                            linf=[0.03455999303991164])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let

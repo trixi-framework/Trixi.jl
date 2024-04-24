@@ -17,7 +17,8 @@ mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
     face_areas::Matrix{RealT}       # [face, element]
     face_normals::Array{RealT, 3}   # [dimension, face, element]
 
-    reconstruction_stencil::Vector{Vector{Int}} # Vector with elements inside reconstruction stencil per [element]
+    reconstruction_stencil::Vector{Vector{Int}}             # Reconstruction stencil vector with neighbors per [element]
+    reconstruction_distance::Vector{Vector{Vector{RealT}}}  # Reconstruction stencil vector with distances per [element]
     reconstruction_gradient::Array{RealT, 3}
 
     # internal `resize!`able storage
@@ -68,6 +69,7 @@ function Base.resize!(elements::T8codeFVElementContainer, capacity)
                                         (ndims, max_number_faces, capacity))
 
     resize!(elements.reconstruction_stencil, capacity)
+    resize!(elements.reconstruction_distance, capacity)
 
     resize!(_reconstruction_gradient, n_dims * n_variables * capacity)
     elements.reconstruction_gradient = unsafe_wrap(Array, pointer(_face_normals),
@@ -109,6 +111,7 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
                                (NDIMS, max_number_faces, nelements))
 
     reconstruction_stencil = Vector{Vector{Int}}(undef, nelements)
+    reconstruction_distance = Vector{Vector{Array{RealT, NDIMS}}}(undef, nelements)
 
     _reconstruction_gradient = Vector{RealT}(undef, NDIMS * n_variables * nelements)
     reconstruction_gradient = unsafe_wrap(Array, pointer(_reconstruction_gradient),
@@ -119,6 +122,7 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
                                                                face_midpoints,
                                                                face_areas, face_normals,
                                                                reconstruction_stencil,
+                                                               reconstruction_distance,
                                                                reconstruction_gradient,
                                                                _midpoint,
                                                                _face_midpoints,
@@ -211,11 +215,13 @@ end
     if solver.order != 2
         return nothing
     end
-    (; reconstruction_stencil, volume, num_faces) = elements
+    (; reconstruction_stencil, reconstruction_distance) = elements
+    (; volume, num_faces) = elements
 
     # Create empty vectors for every element
     for element in eachindex(volume)
         reconstruction_stencil[element] = []
+        reconstruction_distance[element] = []
     end
 
     # Add all stencil neighbors to list; including doubled elements
@@ -229,10 +235,22 @@ end
                 for possible_corner in 1:num_faces[possible_stencil_neighbor]
                     if corner_coords ==
                        view(corners, :, possible_corner, possible_stencil_neighbor)
+                        neighbor = possible_stencil_neighbor
+
+                        midpoint_element = view(elements.midpoint, :, element)
+                        midpoint_neighbor = view(elements.midpoint, :, neighbor)
+
+                        distance = midpoint_neighbor .- midpoint_element
                         append!(reconstruction_stencil[element],
                                 possible_stencil_neighbor)
+                        push!(reconstruction_distance[element], distance)
                         append!(reconstruction_stencil[possible_stencil_neighbor],
                                 element)
+                        push!(reconstruction_distance[neighbor], -distance)
+
+                    # elseif # TODO: Handle periodic boundaries; Something like:
+                    #     distance = (face_midpoint_element .- midpoint_element) .+
+                    #                (midpoint_neighbor .- face_midpoint_neighbor)
                     end
                 end
             end
@@ -241,9 +259,14 @@ end
 
     # Remove all doubled elements from vectors
     for element in eachindex(volume)
-        reconstruction_stencil[element] = unique(reconstruction_stencil[element])
+        for i in length(reconstruction_stencil[element]):-1:1
+            neighbor = reconstruction_stencil[element][i]
+            if neighbor in reconstruction_stencil[element][1:i-1]
+                popat!(reconstruction_stencil[element], i)
+                popat!(reconstruction_distance[element], i)
+            end
+        end
     end
-    # TODO: How to handle periodic boundaries?
 
     return nothing
 end

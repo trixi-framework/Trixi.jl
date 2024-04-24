@@ -149,7 +149,7 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
 
     # Initialize reconstruction stencil
     if !solver.extended_reconstruction_stencil
-        init_reconstruction_stencil!(elements, interfaces, boundaries, solver)
+        init_reconstruction_stencil!(elements, interfaces, boundaries, equations, solver)
     end
 
     cache = (; elements, interfaces, boundaries, u_tmp)
@@ -157,26 +157,38 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
     return cache
 end
 
-function init_reconstruction_stencil!(elements, interfaces, boundaries, solver)
+function init_reconstruction_stencil!(elements, interfaces, boundaries, equations, solver)
     if solver.order != 2
         return nothing
     end
-    (; reconstruction_stencil) = elements
-    (; neighbor_ids) = interfaces
+    (; reconstruction_stencil, reconstruction_distance, face_midpoints) = elements
+    (; neighbor_ids, faces) = interfaces
 
     # Create empty vectors for every element
     for element in eachindex(reconstruction_stencil)
         reconstruction_stencil[element] = []
+        reconstruction_distance[element] = []
     end
 
     for interface in axes(neighbor_ids, 2)
         element1 = neighbor_ids[1, interface]
         element2 = neighbor_ids[2, interface]
+        midpoint_element1 = get_node_coords(elements.midpoint, equations, solver, element1)
+        midpoint_element2 = get_node_coords(elements.midpoint, equations, solver, element2)
+        face_midpoint_element1 = get_node_coords(face_midpoints, equations, solver, faces[1, interface], element1)
+        face_midpoint_element2 = get_node_coords(face_midpoints, equations, solver, faces[2, interface], element2)
 
-        append!(reconstruction_stencil[element1], element2)
-        if element1 != element2
-            append!(reconstruction_stencil[element2], element1)
+        # How to handle periodic boundaries?
+        if isapprox(face_midpoint_element1, face_midpoint_element2)
+            distance = midpoint_element2 .- midpoint_element1
+        else
+            distance = (face_midpoint_element1 .- midpoint_element1) .+
+                       (midpoint_element2 .- face_midpoint_element2)
         end
+        append!(reconstruction_stencil[element1], element2)
+        push!(reconstruction_distance[element1], distance)
+        append!(reconstruction_stencil[element2], element1)
+        push!(reconstruction_distance[element2], -distance)
     end
 
     return nothing
@@ -240,7 +252,7 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
     end
 
     (; elements) = cache
-    (; reconstruction_stencil, reconstruction_gradient) = elements
+    (; reconstruction_stencil, reconstruction_distance, reconstruction_gradient) = elements
 
     # A         N x 2 Matrix, where N is the number of stencil neighbors
     # A^T A     2 x 2 Matrix
@@ -258,8 +270,6 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
 
     for element in eachelement(mesh, solver, cache)
         n_stencil_neighbors = length(reconstruction_stencil[element])
-        coordinates_element = get_node_coords(elements.midpoint, equations, solver,
-                                              element)
 
         # Reset variables
         a = zero(eltype(u))
@@ -271,18 +281,14 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
         e .= zero(eltype(u))
         for i in 1:n_stencil_neighbors
             neighbor = reconstruction_stencil[element][i]
-            coordinates_neighbor = get_node_coords(elements.midpoint, equations, solver,
-                                                   neighbor)
-            # TODO: How to handle periodic boundaries
-            coordinates_difference = coordinates_neighbor .- coordinates_element
-
-            a += coordinates_difference[1]^2
-            b += coordinates_difference[1] * coordinates_difference[2]
-            c += coordinates_difference[2]^2
+            distance = reconstruction_distance[element][i]
+            a += distance[1]^2
+            b += distance[1] * distance[2]
+            c += distance[2]^2
 
             for v in eachvariable(equations)
-                d[v] += coordinates_difference[1] * (u[v, neighbor] - u[v, element])
-                e[v] += coordinates_difference[2] * (u[v, neighbor] - u[v, element])
+                d[v] += distance[1] * (u[v, neighbor] - u[v, element])
+                e[v] += distance[2] * (u[v, neighbor] - u[v, element])
             end
         end
 
