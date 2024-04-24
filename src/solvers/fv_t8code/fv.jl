@@ -149,7 +149,8 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
 
     # Initialize reconstruction stencil
     if !solver.extended_reconstruction_stencil
-        init_reconstruction_stencil!(elements, interfaces, boundaries, equations, solver)
+        init_reconstruction_stencil!(elements, interfaces, boundaries,
+                                     equations, solver)
     end
 
     cache = (; elements, interfaces, boundaries, u_tmp)
@@ -157,7 +158,8 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
     return cache
 end
 
-function init_reconstruction_stencil!(elements, interfaces, boundaries, equations, solver)
+function init_reconstruction_stencil!(elements, interfaces, boundaries,
+                                      equations, solver)
     if solver.order != 2
         return nothing
     end
@@ -173,10 +175,14 @@ function init_reconstruction_stencil!(elements, interfaces, boundaries, equation
     for interface in axes(neighbor_ids, 2)
         element1 = neighbor_ids[1, interface]
         element2 = neighbor_ids[2, interface]
-        midpoint_element1 = get_node_coords(elements.midpoint, equations, solver, element1)
-        midpoint_element2 = get_node_coords(elements.midpoint, equations, solver, element2)
-        face_midpoint_element1 = get_node_coords(face_midpoints, equations, solver, faces[1, interface], element1)
-        face_midpoint_element2 = get_node_coords(face_midpoints, equations, solver, faces[2, interface], element2)
+        midpoint_element1 = get_node_coords(elements.midpoint, equations, solver,
+                                            element1)
+        midpoint_element2 = get_node_coords(elements.midpoint, equations, solver,
+                                            element2)
+        face_midpoint_element1 = get_node_coords(face_midpoints, equations, solver,
+                                                 faces[1, interface], element1)
+        face_midpoint_element2 = get_node_coords(face_midpoints, equations, solver,
+                                                 faces[2, interface], element2)
 
         # How to handle periodic boundaries?
         if isapprox(face_midpoint_element1, face_midpoint_element2)

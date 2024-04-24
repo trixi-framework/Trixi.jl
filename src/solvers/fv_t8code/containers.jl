@@ -261,7 +261,7 @@ end
     for element in eachindex(volume)
         for i in length(reconstruction_stencil[element]):-1:1
             neighbor = reconstruction_stencil[element][i]
-            if neighbor in reconstruction_stencil[element][1:i-1]
+            if neighbor in reconstruction_stencil[element][1:(i - 1)]
                 popat!(reconstruction_stencil[element], i)
                 popat!(reconstruction_distance[element], i)
             end
