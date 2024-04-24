@@ -195,7 +195,7 @@ end
                                                                                 Prandtl = prandtl_number(),
                                                                                 gradient_variables = GradientVariablesEntropy()),
                         l2=[
-                            2.4593501090944024e-5,
+                            2.4593521887223632e-5,
                             2.3928212900127102e-5,
                             0.00011252332663824173,
                         ],
