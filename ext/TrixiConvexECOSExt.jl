@@ -72,7 +72,7 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
     # Construct stability polynomial for each eigenvalue
     pnoms = ones(Complex{Float64}, num_eig_vals, 1)
 
-    # Init datastructure for results
+    # Init datastructure for monomial coefficients
     gamma = Variable(num_stage_evals - cons_order)
 
     normalized_powered_eigvals = zeros(Complex{Float64}, num_eig_vals, num_stage_evals)
@@ -89,6 +89,7 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
 
     println("Start optimization of stability polynomial \n")
 
+    # Bisection on timestep
     while dtmax - dtmin > dteps
         dt = 0.5 * (dtmax + dtmin)
 
