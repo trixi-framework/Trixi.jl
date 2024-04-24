@@ -8,10 +8,9 @@ initial_condition = initial_condition_convergence_test
 
 solver = FV(order = 2, surface_flux = flux_lax_friedrichs)
 
-mesh_function = Trixi.cmesh_new_periodic_hybrid
-# mesh_function = Trixi.cmesh_new_periodic_quad
-# mesh_function = Trixi.cmesh_new_periodic_tri
-cmesh = mesh_function(Trixi.mpi_comm())
+cmesh = Trixi.cmesh_new_periodic_hybrid()
+# cmesh = Trixi.cmesh_quad(periodicity = (true, true))
+# cmesh = Trixi.cmesh_new_periodic_tri()
 mesh = T8codeMesh(cmesh, solver,
                   initial_refinement_level = 3)
 

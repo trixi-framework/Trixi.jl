@@ -34,11 +34,10 @@ initial_condition = initial_condition_kelvin_helmholtz_instability
 solver = FV(surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
-# mesh_function = Trixi.cmesh_new_periodic_hybrid
-# mesh_function = Trixi.cmesh_new_periodic_quad
-# mesh_function = Trixi.cmesh_new_periodic_tri
-mesh_function = Trixi.cmesh_new_periodic_tri2
-cmesh = mesh_function(Trixi.mpi_comm())
+# cmesh = Trixi.cmesh_new_periodic_hybrid()
+# cmesh = Trixi.cmesh_new_periodic_quad()
+# cmesh = Trixi.cmesh_new_periodic_tri()
+cmesh = Trixi.cmesh_new_periodic_tri2()
 mesh = T8codeMesh(cmesh, solver, initial_refinement_level = initial_refinement_level)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

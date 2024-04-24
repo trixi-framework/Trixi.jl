@@ -11,7 +11,7 @@ initial_condition = initial_condition_gauss
 solver = FV(surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
-cmesh = Trixi.cmesh_new_periodic_hybrid(Trixi.mpi_comm())
+cmesh = Trixi.cmesh_new_periodic_hybrid()
 mesh = T8codeMesh(cmesh, solver, initial_refinement_level = initial_refinement_level)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

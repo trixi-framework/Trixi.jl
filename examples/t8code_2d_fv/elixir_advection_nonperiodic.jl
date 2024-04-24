@@ -20,7 +20,7 @@ boundary_conditions = Dict(:all => boundary_condition)
 solver = FV(surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 5
-cmesh = Trixi.cmesh_new_periodic_quad_nonperiodic(Trixi.mpi_comm())
+cmesh = Trixi.cmesh_quad(periodicity = (false, false))
 mesh = T8codeMesh(cmesh, solver, initial_refinement_level = initial_refinement_level)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
