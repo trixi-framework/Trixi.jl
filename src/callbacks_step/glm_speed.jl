@@ -95,7 +95,6 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled, glm_spe
         throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
     end
 
-#     @autoinfiltrate
     # Check that all MHD semidiscretizations received a GLM cleaning speed update.
     for (semi_index, semi) in enumerate(semi_coupled.semis)
         if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
