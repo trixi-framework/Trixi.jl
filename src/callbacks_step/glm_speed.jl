@@ -113,6 +113,8 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled, glm_spe
         # c_h is proportional to its own time step divided by the complete MHD time step
         equations.c_h = glm_scale * c_h_deltat / dt
     end
+    
+    return semi_coupled
 end
 
 # This method is called as callback after the StepsizeCallback during the time integration.
