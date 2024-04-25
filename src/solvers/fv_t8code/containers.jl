@@ -429,11 +429,6 @@ struct T8codeSolutionContainer{NVARS}
     end
 end
 
-function get_variable_wrapped(vec, equations, face_or_variable)
-    return SVector(ntuple(@inline(idx->vec[ndims(equations) * (face_or_variable - 1) + idx]),
-                          Val(ndims(equations))))
-end
-
 function exchange_solution!(u, mesh, equations, solver, cache)
     (; u_tmp) = cache
     for element in eachelement(mesh, solver, cache)
