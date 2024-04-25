@@ -647,10 +647,8 @@ function T8codeMeshCubedSphere(lat_lon_levels_per_face_dimension, layers, inner_
                                    mpi_comm())
 
     num_trees = t8_cmesh_get_num_trees(cmesh)
-    # TODO: Init?!
     boundary_names = fill(Symbol("---"), 2 * NDIMS, num_trees)
     for itree in 1:num_trees
-        # TODO: z-direction == radial direction in each tree?
         boundary_names[5, itree] = :inside
         boundary_names[6, itree] = :outside
     end
