@@ -120,6 +120,8 @@ end
     dt = get_proposed_dt(integrator)
     semi = integrator.p
 
+    # Call the appropriate update function (this indirection allows to specialize on,
+    # e.g., the semidiscretization type)
     update_cleaning_speed!(semi, glm_speed_callback, dt)
 
     # avoid re-evaluating possible FSAL stages
