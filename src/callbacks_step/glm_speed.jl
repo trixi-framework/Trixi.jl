@@ -54,7 +54,7 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Vector([1]))
+function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Int[])
     @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
     glm_speed_callback = GlmSpeedCallback(glm_scale, cfl, semi_indices)
