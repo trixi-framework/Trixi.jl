@@ -99,7 +99,7 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled, glm_spe
     for (semi_index, semi) in enumerate(semi_coupled.semis)
         if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
             !(semi_index in semi_indices))
-            throw("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
+            error("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
         end
     end
 
