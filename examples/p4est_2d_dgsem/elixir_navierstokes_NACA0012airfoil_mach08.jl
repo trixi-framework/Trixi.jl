@@ -1,7 +1,6 @@
 using Downloads: download
 using OrdinaryDiffEq
 using Trixi
-
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
@@ -15,7 +14,7 @@ using Trixi
 #   Structured and Unstructured Grid Methods (2016)
 #   [https://ntrs.nasa.gov/citations/20160003623] (https://ntrs.nasa.gov/citations/20160003623)
 # - Deep Ray, Praveen Chandrashekar (2017)
-#   An entropy stable finite volume scheme for the 
+#   An entropy stable finite volume scheme for the
 #   two dimensional Navier–Stokes equations on triangular grids
 #   [DOI:10.1016/j.amc.2017.07.020](https://doi.org/10.1016/j.amc.2017.07.020)
 
@@ -142,6 +141,18 @@ lift_coefficient_shear_force = AnalysisSurfaceIntegral(semi, force_boundary_name
                                                                                   u_inf(equations),
                                                                                   l_inf()))
 
+
+# TODO - Should these two be moved to a different callback to avoid printing "Dummy Value" so often?
+# This will be fixed if the "Dummy Callback" is somehow not printed at all.
+# Can this be done by overloading on `pretty_form_utf`?
+friction_coefficient = AnalysisSurface(semi, force_boundary_names,
+                                       SurfaceFrictionCoefficient(rho_inf(), u_inf(equations), l_inf()))
+
+pressure_coefficient = AnalysisSurface(semi, force_boundary_names,
+                                       SurfacePressureCoefficient(p_inf(), rho_inf(),
+                                       u_inf(equations),
+                                       l_inf()))
+
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
                                      save_analysis = true,
@@ -149,7 +160,9 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_integrals = (drag_coefficient,
                                                            lift_coefficient,
                                                            drag_coefficient_shear_force,
-                                                           lift_coefficient_shear_force))
+                                                           lift_coefficient_shear_force,
+                                                           friction_coefficient,
+                                                           pressure_coefficient))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 

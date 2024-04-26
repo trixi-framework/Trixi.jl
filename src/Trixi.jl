@@ -42,6 +42,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
 using Downloads: Downloads
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
+using DelimitedFiles: writedlm
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
@@ -263,8 +264,9 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled,
-       AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure,
-       DragCoefficientShearStress, LiftCoefficientShearStress
+       AnalysisSurface, AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure,
+       DragCoefficientShearStress, LiftCoefficientShearStress, SurfacePressureCoefficient, SurfaceFrictionCoefficient
+
 
 export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
