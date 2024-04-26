@@ -5,26 +5,25 @@
 # introduction to the idea and implementation of subcell shock capturing approaches in Trixi.jl,
 # which is also based on the DGSEM scheme in flux differencing formulation.
 # Trixi.jl contains the a-posteriori invariant domain-preserving (IDP) limiter which was
-# introduced by [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.1016/j.compfluid.2022.105627)
-# and [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876). It is a flux-corrected
-# transport-type (FCT) limiter and is implemented using [`SubcellLimiterIDP`](@ref) and
-# [`VolumeIntegralSubcellLimiting`](@ref).
+# introduced by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) and
+# [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.1016/j.compfluid.2022.105627).
+# It is a flux-corrected transport-type (FCT) limiter and is implemented using [`SubcellLimiterIDP`](@ref)
+# and [`VolumeIntegralSubcellLimiting`](@ref).
 # Since it is an a-posteriori limiter you have to apply a correction stage after each Runge-Kutta
 # stage. This is done by passing the stage callback [`SubcellLimiterIDPCorrection`](@ref) to the
 # time integration method.
 
 # ## Time integration method
 # As mentioned before, the IDP limiting is an a-posteriori limiter. Its limiting process
-# guarantees the target bounds for a simple Euler evolution. To still achieve a high-order
-# approximation, the implementation uses strong-stability preserving (SSP) Runge-Kutta method
-# which can be written as convex combination of these forward Euler steps.
+# guarantees the target bounds for an explicit (forward) Euler time step. To still achieve a
+# high-order approximation, the implementation uses strong-stability preserving (SSP) Runge-Kutta
+# methods, which can be written as convex combinations of forward Euler steps.
 #-
-# Due to this functionality of the limiting procedure the correcting stage and therefore the stage
-# callbacks has to be applied to the solution after the forward Euler step and before further
-# computation. Unfortunately, the `solve(...)` routines of
-# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), which is normally used in
-# Trixi.jl for the time integration, does not support calculations via callback at this point
-# in the simulation.
+# Since IDP/FCT limiting procedure operates on independent forward Euler steps, its
+# a-posteriori correction stage is implemented as a stage callback that is triggered after each
+# forward Euler step in an SSP Runge-Kutta method. Unfortunately, the `solve(...)` routines in
+# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), typically employed for time
+# integration in Trixi.jl, do not support this type of stage callback.
 #-
 # Therefore, subcell limiting with the IDP limiter requires the use of a Trixi-intern
 # time integration SSPRK method called with
@@ -41,19 +40,19 @@
 
 # # [IDP Limiting](@id IDPLimiter)
 # The implementation of the invariant domain preserving (IDP) limiting approach ([`SubcellLimiterIDP`](@ref))
-# is based on [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.101/j.compfluid.2022.105627)
-# and [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876).
+# is based on [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) and
+# [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.101/j.compfluid.2022.105627).
 # It supports several types of limiting which are enabled by passing parameters individually.
 
 # ### Global bounds
-# First, there is the use of global bounds. If enabled, they enforce physical admissibility
-# conditions, such as non-negativity of variables.
-# This can be done for conservative variables, where the limiter is of a one-sided Zalesak-type, and
-# general non-linear variables, where a Newton-bisection algorithm is used to enforce the bounds.
+# If enabled, the global bounds enforce physical admissibility conditions, such as non-negativity
+# of variables. This can be done for conservative variables, where the limiter is of a one-sided
+# Zalesak-type, and general non-linear variables, where a Newton-bisection algorithm is used to
+# enforce the bounds.
 
 # #### Conservative variables
 # The procedure to enforce global bounds for a conservative variables is as follows:
-# If you want to guarantee non-negativity for the density of compressible Euler equations,
+# If you want to guarantee non-negativity for the density of the compressible Euler equations,
 # you pass the specific quantity name of the conservative variable.
 using Trixi
 equations = CompressibleEulerEquations2D(1.4)
@@ -62,7 +61,7 @@ equations = CompressibleEulerEquations2D(1.4)
 positivity_variables_cons = ["rho"]
 
 # The quantity names are passed as a vector to allow several quantities.
-# This is for instance used if you want to limit the density of two different components using
+# This is used, for instance, if you want to limit the density of two different components using
 # the multicomponent compressible Euler equations.
 equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
                                                        gas_constants = (0.287, 1.578))
@@ -74,18 +73,19 @@ positivity_variables_cons = ["rho1", "rho2"]
 positivity_variables_cons = ["rho" * string(i) for i in eachcomponent(equations)]
 
 # #### Non-linear variables
-# To allow limitation for all possible non-linear variables including on-the-fly defined ones,
-# you directly pass function here.
-# For instance, if you want to enforce non-negativity for the pressure, do as follows.
+# To allow limitation for all possible non-linear variables, including variables defined
+# on-the-fly, you can directly pass the function that computes the quantity for which you want
+# to enforce positivity. For instance, if you want to enforce non-negativity for the pressure,
+# do as follows.
 positivity_variables_nonlinear = [pressure]
 
 # ### Local bounds
 # Second, Trixi.jl supports the limiting with local bounds for conservative variables. They
-# allow to avoid spurious  oscillations within the global bounds and to improve the
+# allow to avoid spurious oscillations within the global bounds and to improve the
 # shock-capturing capabilities of the method. The corresponding numerical admissibility
 # conditions are frequently formulated as local maximum or minimum principles.
-# There are different option to choose local bounds. We calculate them using the low-order FV
-# solution.
+# The local bounds are computed using the maximum and minimum values of all local neighboring
+# nodes. Within this calculation we use the low-order FV solution values for each node.
 
 # As for the limiting with global bounds you are passing the quantity names of the conservative
 # variables you want to limit. So, to limit the density with lower and upper local bounds pass
@@ -123,8 +123,8 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
 end
 initial_condition = initial_condition_blast_wave;
 
-# Since the surface integral is equal for both the DG and the subcell FV method, only the volume
-# integral divides between the two methods.
+# Since the surface integral is equal for both the DG and the subcell FV method, the limiting is
+# applied only in the volume integral.
 #-
 # Note, that the DG method is based on the flux differencing formulation. Hence, you have to use a
 # two-point flux, such as [`flux_ranocha`](@ref), [`flux_shima_etal`](@ref), [`flux_chandrashekar`](@ref)
@@ -133,9 +133,9 @@ surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 
-# The actual limiter is implemented within [`SubcellLimiterIDP`](@ref). It always requires the
+# The limiter is implemented within [`SubcellLimiterIDP`](@ref). It always requires the
 # parameters `equations` and `basis`. With additional parameters (described [above](@ref IDPLimiter)
-# or listed in the docstring) you can specify and enabled the wanted limiting options.
+# or listed in the docstring) you can specify and enable additional limiting options.
 # Here, the simulation should contain local limiting for the density using lower and upper bounds.
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_minmax_variables_cons = ["rho"])
@@ -206,8 +206,8 @@ plot(sol)
 # approach using the [`SaveSolutionCallback`](@ref), [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
 # and [ParaView](https://www.paraview.org/download/). More details about this procedure
 # can be found in the [visualization documentation](@ref visualization).
-# Unfortunately, the support for subcell limiting data is not yet merge into the main branch
-# of Trixi2Vtk but lies in the branch `bennibolm/node-variables`.
+# Unfortunately, the support for subcell limiting data is not yet merged into the main branch
+# of Trixi2Vtk but lies in the branch [`bennibolm/node-variables`](https://github.com/bennibolm/Trixi2Vtk.jl/tree/node-variables).
 #-
 # With that implementation and the standard procedure used for Trixi2Vtk you get the following
 # dropdown menu in ParaView.
@@ -217,32 +217,31 @@ plot(sol)
 # The resulting visualization of the density and the limiting parameter then looks like this.
 # ![blast_wave_paraview](https://github.com/trixi-framework/Trixi.jl/assets/74359358/e5808bed-c8ab-43bf-af7a-050fe43dd630)
 
-# You can see that the limiting coefficient does not lie in the interval [0,1], what actually was
-# expected due to its calculation.
+# You can see that the limiting coefficient does not lie in the interval [0,1] because Trixi2Vtk
+# interpolates all quantities to regular nodes by default.
 # TODO: Did I write something about this calculation?
-# This is due to the reconstruction functionality which is defaultly enabled in Trixi2Vtk.
-# You can disabled it with `reinterpolate=false` within the call of `trixi2vtk(...)` and get the
-# following visualization.
+# You can disable this functionality with `reinterpolate=false` within the call of `trixi2vtk(...)`
+# and get the following visualization.
 # ![blast_wave_paraview_reinterpolate=false](https://github.com/trixi-framework/Trixi.jl/assets/74359358/39274f18-0064-469c-b4da-bac4b843e116)
 
 
 # ## Bounds checking
 # Subcell limiting is based on the fulfillment of target bounds - either global or local.
-# Although the implementation is correct there are some cases where these bounds are not met.
-# On the one hand, the deviations could be in machine precision which is not problematic.
-# On the other hand, the target bound can be exceeded by larger deviations. Mostly, this is due
-# to too large time step sizes and can be easily fixed by reducing the CFL number.
-# Rarely, the larger deviations come from the use of specific boundary condition of source terms.
+# Although the implementation works and has been thoroughly tested, there are some cases where
+# these bounds are not met.
+# For instance, the deviations could be in machine precision, which is not problematic.
+# Larger deviations can be cause by too large time-step sizes (which can be easily fixed by
+# reducing the CFL number), specific boundary conditions or source terms.
 #-
-# In all this cases the exceeded bounds are not too problematic. Though, it is reasonable to
-# monitor them. Because of that Trixi.jl supports a bounds checking routine implemented using
-# the stage callback [`BoundsCheckCallback`](@ref). It checks all target bounds for fulfillment
+# In many cases, it is reasonable to monitor the bounds deviations.
+# Because of that, Trixi.jl supports a bounds checking routine implemented using the stage
+# callback [`BoundsCheckCallback`](@ref). It checks all target bounds for fulfillment
 # in every RK stage. If added to the tuple of stage callbacks like
 # ````julia
 # stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 # ````
 # and passed to the time integration method, a summary is added to the final console output.
-# For the given example this summary shows that all bounds are met at all times.
+# For the given example, this summary shows that all bounds are met at all times.
 # ````
 # ────────────────────────────────────────────────────────────────────────────────────────────────────
 # Maximum deviation from bounds:
@@ -253,9 +252,9 @@ plot(sol)
 # ────────────────────────────────────────────────────────────────────────────────────────────────────
 # ````
 
-# Moreover, it is also possible to monitor the deviations due to the simulations. To do that use
-# the parameter `save_errors = true` and the current deviations are written to `deviations.txt`
-# in `output_directory` every `interval` time steps.
+# Moreover, it is also possible to monitor the bounds deviations incurred during the simulations.
+# To do that use the parameter `save_errors = true`, such that the instant deviations are written
+# to `deviations.txt` in `output_directory` every `interval` time steps.
 # ````julia
 # BoundsCheckCallback(save_errors = true, output_directory = "out", interval = 100)
 # ````
