@@ -184,7 +184,7 @@ M = diagm(weights)
 # ```
 # With an exact integration the mass matrix would be dense. Choosing numerical integrating and quadrature
 # with the exact same nodes (collocation) leads to the sparse and diagonal mass matrix $M$. This
-# is called mass lumping and has the big advantage of an easy invertation of the matrix.
+# is called mass lumping and has the big advantage of an easy inversion of the matrix.
 
 # #### Term II:
 # We use spatial partial integration for the second term:
