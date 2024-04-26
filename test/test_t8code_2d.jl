@@ -30,6 +30,12 @@ mkdir(outdir)
     end
 end
 
+@trixi_testset "test load mesh from path" begin
+    @test_throws "Unknown file extension: .unknown_ext" begin
+        mesh = T8codeMesh(touch("dummy.unknown_ext"), 2)
+    end
+end
+
 @trixi_testset "test check_for_negative_volumes" begin
     @test_warn "Discovered negative volumes" begin
         # Unstructured mesh with six cells which have left-handed node ordering.
@@ -39,6 +45,17 @@ end
 
         # This call should throw a warning about negative volumes detected.
         mesh = T8codeMesh(mesh_file, 2)
+    end
+end
+
+@trixi_testset "test t8code mesh from p4est connectivity" begin
+    @test begin
+        # Here we use the connectivity constructor from `P4est.jl` since the
+        # method dispatch works only on `Ptr{p4est_connectivity}` which
+        # actually is `Ptr{P4est.LibP4est.p4est_connectivity}`.
+        conn = Trixi.P4est.LibP4est.p4est_connectivity_new_brick(2, 3, 1, 1)
+        mesh = T8codeMesh(conn)
+        all(size(mesh.tree_node_coordinates) .== (2, 2, 2, 6))
     end
 end
 

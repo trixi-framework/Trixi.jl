@@ -13,6 +13,17 @@ isdir(outdir) && rm(outdir, recursive = true)
 mkdir(outdir)
 
 @testset "T8codeMesh3D" begin
+    @trixi_testset "test t8code mesh from p8est connectivity" begin
+        @test begin
+            # Here we use the connectivity constructor from `P4est.jl` since the
+            # method dispatch works only on `Ptr{p8est_connectivity}` which
+            # actually is `Ptr{P4est.LibP4est.p8est_connectivity}`.
+            conn = Trixi.P4est.LibP4est.p8est_connectivity_new_brick(2, 3, 4, 1, 1, 1)
+            mesh = T8codeMesh(conn)
+            all(size(mesh.tree_node_coordinates) .== (3, 2, 2, 2, 24))
+        end
+    end
+
     # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_advection_basic.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
