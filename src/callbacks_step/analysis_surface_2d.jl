@@ -157,7 +157,8 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
             u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
                                          boundary)
 
-            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node, element)
+            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
+                                element)
             var = variable(u_node, equations)
 
             coord_array[global_node_index, 1] = x[1]
@@ -221,7 +222,8 @@ function analyze(surface_variable::AnalysisSurface{Variable},
             u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
                                          boundary)
 
-            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node, element)
+            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
+                                element)
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
@@ -258,7 +260,6 @@ varname(::Any) = @assert false "Surface variable name not assigned" # This makes
 varname(pressure_coefficient::SurfacePressureCoefficient) = "Cp"
 varname(friction_coefficient::SurfaceFrictionCoefficient) = "Cf"
 
-
 # AnalysisCallback prints to screen and needs these. TODO - Can it be turned off?
 function pretty_form_ascii(::AnalysisSurface{<:SurfacePressureCoefficient{<:Any}})
     "Dummy value"
@@ -273,6 +274,4 @@ end
 function pretty_form_utf(::AnalysisSurface{<:SurfaceFrictionCoefficient{<:Any}})
     "Dummy value"
 end
-
-
 end # muladd

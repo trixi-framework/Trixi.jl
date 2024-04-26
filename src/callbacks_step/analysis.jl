@@ -699,7 +699,8 @@ include("analysis_dg3d_parallel.jl")
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
 # Note that this needs to be included after `analysis_surface_integral_2d.jl` to
 # have `VariableViscous` available.
-function analyze(quantity::Union{AnalysisSurfaceIntegral{Variable}, AnalysisSurface{Variable}},
+function analyze(quantity::Union{AnalysisSurfaceIntegral{Variable},
+                                 AnalysisSurface{Variable}},
                  du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic) where {
                                                                      Variable <:
