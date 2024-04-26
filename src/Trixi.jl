@@ -160,7 +160,7 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterEquationsQuasi1D,
-       LinearizedEulerEquations1D, LinearizedEulerEquations2D,
+       LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D
 
@@ -262,7 +262,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled,
-       AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure
+       AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure,
+       DragCoefficientShearStress, LiftCoefficientShearStress
 
 export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
