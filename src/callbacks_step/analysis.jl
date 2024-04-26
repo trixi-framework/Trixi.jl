@@ -26,8 +26,8 @@ or `extra_analysis_errors = (:conservation_error,)`.
 If you want to omit the computation (to safe compute-time) of the [`default_analysis_errors`](@ref), specify
 `analysis_errors = Symbol[]`.
 Note: `default_analysis_errors` are `:l2_error` and `:linf_error` for all equations.
-If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e., 
-without `:l2_error, :linf_error` you need to specify 
+If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e.,
+without `:l2_error, :linf_error` you need to specify
 `analysis_errors = [:conservation_error]` instead of `extra_analysis_errors = [:conservation_error]`.
 
 Further scalar functions `func` in `extra_analysis_integrals` are applied to the numerical
@@ -690,15 +690,16 @@ end # @muladd
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
 include("analysis_surface_integral_2d.jl")
+include("analysis_surface_2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
 
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
-# Note that this needs to be included after `analysis_surface_integral_2d.jl` to 
+# Note that this needs to be included after `analysis_surface_integral_2d.jl` to
 # have `VariableViscous` available.
-function analyze(quantity::AnalysisSurfaceIntegral{Variable},
+function analyze(quantity::Union{AnalysisSurfaceIntegral{Variable}, AnalysisSurface{Variable}},
                  du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic) where {
                                                                      Variable <:
