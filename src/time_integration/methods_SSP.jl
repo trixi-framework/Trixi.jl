@@ -102,7 +102,7 @@ end
 
 """
     add_tstop!(integrator::SimpleIntegratorSSP, t)
-Add a time stop during the time integration process. 
+Add a time stop during the time integration process.
 This function is called after the periodic SaveSolutionCallback to specify the next stop to save the solution.
 """
 function add_tstop!(integrator::SimpleIntegratorSSP, t)
@@ -232,7 +232,7 @@ function solve!(integrator::SimpleIntegratorSSP)
         end
     end
 
-    # Empty the tstops array. 
+    # Empty the tstops array.
     # This cannot be done in terminate!(integrator::SimpleIntegratorSSP) because DiffEqCallbacks.PeriodicCallbackAffect would return at error.
     extract_all!(integrator.opts.tstops)
 
@@ -280,12 +280,14 @@ function modify_dt_for_tstops!(integrator::SimpleIntegratorSSP)
             integrator.dt = integrator.tdir *
                             min(abs(integrator.dt), abs(tdir_tstop - tdir_t)) # step! to the end
         elseif iszero(integrator.dtcache) && integrator.dtchangeable
-            integrator.dt = integrator.tdir * abs(tdir_tstop - tdir_t)
+            integrator.dt = integrator.tdir *
+                            min(abs(integrator.dt), abs(tdir_tstop - tdir_t)) # step! to the end
         elseif integrator.dtchangeable && !integrator.force_stepfail
             # always try to step! with dtcache, but lower if a tstop
             # however, if force_stepfail then don't set to dtcache, and no tstop worry
             integrator.dt = integrator.tdir *
-                            min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
+                            min(abs(integrator.dt), abs(integrator.dtcache),
+                                abs(tdir_tstop - tdir_t)) # step! to the end
         end
     end
 end
