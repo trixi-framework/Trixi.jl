@@ -99,22 +99,6 @@ mkdir(outdir)
         end
     end
 
-    # This test differs from the one in `test_p4est_3d.jl` in the latitudinal and
-    # longitudinal dimensions.
-    @trixi_testset "elixir_advection_cubed_sphere.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cubed_sphere.jl"),
-                            l2=[0.002006918015656413],
-                            linf=[0.027655117058380085])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
     # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
@@ -279,39 +263,6 @@ mkdir(outdir)
                             tspan=(0.0, 0.3),
                             coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
         # Ensure that we do not have excessive memory allocations 
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
-    # This test is identical to the one in `test_p4est_3d.jl` besides minor
-    # deviations in the expected error norms.
-    @trixi_testset "elixir_euler_baroclinic_instability.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_baroclinic_instability.jl"),
-                            l2=[
-                                6.725093801700048e-7,
-                                0.00021710076010951073,
-                                0.0004386796338203878,
-                                0.00020836270267103122,
-                                0.07601887903440395,
-                            ],
-                            linf=[
-                                1.9107530539574924e-5,
-                                0.02980358831035801,
-                                0.048476331898047564,
-                                0.02200137344113612,
-                                4.848310144356219,
-                            ],
-                            tspan=(0.0, 1e2),
-                            # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                            abstol=1.0e-9, reltol=1.0e-9,
-                            coverage_override=(lat_lon_levels = 0, layers = 1, polydeg = 3)) # Prevent long compile time in CI
-        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
