@@ -113,15 +113,15 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v1
-      - uses: julia-actions/julia-buildpkg@v1
-        env:
-          PYTHON: ""
       - name: Configure new T8code.jl version environment
         shell: julia --project="." --color=yes {0}
         run: |
           using Pkg
           Pkg.add(PackageSpec(url="https://github.com/DLR-AMR/T8code.jl", rev="bump-to-t8code-2.0.0"))
           Pkg.instantiate()
+      - uses: julia-actions/julia-buildpkg@v1
+        env:
+          PYTHON: ""
       - name: Run tests without coverage
         uses: julia-actions/julia-runtest@v1
         with:
