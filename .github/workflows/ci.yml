@@ -105,10 +105,6 @@ jobs:
             os: windows-latest
             arch: x64
             trixi_test: threaded
-          - version: '1.9'
-            os: macos-14
-            arch: arm64
-            trixi_test: threaded
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
