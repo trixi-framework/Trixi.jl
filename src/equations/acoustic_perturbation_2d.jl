@@ -350,7 +350,7 @@ end
                                                               equations::AcousticPerturbationEquations2D)
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
-    
+
     RealT = eltype(u_ll)
     diss = -convert(RealT, 0.5) * λ * (u_rr - u_ll)
     z = zero(RealT)
