@@ -89,7 +89,6 @@ Base.axes(mesh::StructuredMeshView, i) = Base.OneTo(size(mesh, i))
 function calc_node_coordinates!(node_coordinates, element,
                                 cell_x, cell_y, mapping,
                                 mesh::StructuredMeshView{2},
-                                # basis::LobattoLegendreBasis)
                                 basis)
     @unpack nodes = basis
 
