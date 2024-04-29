@@ -86,8 +86,6 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
     normalized_powered_eigvals_scaled = zeros(Complex{Float64}, num_eig_vals,
                                               num_stage_evals)
 
-    println("Start optimization of stability polynomial \n")
-
     # Bisection on timestep
     while dtmax - dtmin > dteps
         dt = 0.5 * (dtmax + dtmin)
@@ -131,7 +129,6 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
             dtmax = dt
         end
     end
-    println("Concluded stability polynomial optimization \n")
 
     return evaluate(gamma), dt
 end
