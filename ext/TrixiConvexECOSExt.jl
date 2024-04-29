@@ -3,17 +3,16 @@ module TrixiConvexECOSExt
 
 # Required for coefficient optimization in P-ERK scheme integrators
 if isdefined(Base, :get_extension)
-    using Convex
+    using Convex: MOI, solve!, Variable, minimize, evaluate
     using ECOS
 else
     # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-    using ..Convex
+    using ..Convex: MOI, solve!, Variable, minimize, evaluate
     using ..ECOS
 end
 
 # Use other necessary libraries
 using LinearAlgebra: eigvals
-const MOI = Convex.MOI
 
 # Use additional symbols that are not exported
 using Trixi: @muladd
@@ -110,7 +109,7 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
                                                  pnoms,
                                                  gamma))
 
-        Convex.solve!(problem,
+        solve!(problem,
                       # Parameters taken from default values for EiCOS
                       MOI.OptimizerWithAttributes(ECOS.Optimizer, "gamma" => 0.99,
                                                   "delta" => 2e-7,
