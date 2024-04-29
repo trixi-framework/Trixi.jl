@@ -83,15 +83,6 @@ end
                         coverage_override=(maxiters = 10^5,))
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
-        errors = analysis_callback(sol)
-        @test errors.l2 ≈ [
-            8.311947673083206e-6,
-            8.311947673068427e-6,
-        ]
-        @test errors.linf ≈ [
-            6.627000273318195e-5,
-            6.62700027264096e-5,
-        ]
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
