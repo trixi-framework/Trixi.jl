@@ -83,8 +83,7 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
         end
     end
 
-    normalized_powered_eigvals_scaled = zeros(Complex{Float64}, num_eig_vals,
-                                              num_stage_evals)
+    normalized_powered_eigvals_scaled = similar(normalized_powered_eigvals)
 
     # Bisection on timestep
     while dtmax - dtmin > dteps
