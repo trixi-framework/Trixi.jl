@@ -1,23 +1,22 @@
 # implemented here
-function filter_eigvals(eig_vals, threshold = 1e-12)
-    filtered_eigvals_counter = 0
-    filtered_eig_vals = Complex{Float64}[]
+function filter_eigvals(eigvals, threshold = 1e-12)
 
-    for eig_val in eig_vals
+    filtered_eigvals = Complex{Float64}[]
+
+    for eig_val in eigvals
         # Filter out eigenvalues with positive real parts, those with negative imaginary parts due to eigenvalues' symmetry
         # around real axis, or the eigenvalues that are too small.
-        if real(eig_val) > 0 || imag(eig_val) < 0 || abs(eig_val) < threshold
-            filtered_eigvals_counter += 1
-        else
-            push!(filtered_eig_vals, eig_val)
+        if real(eig_val) < 0 && imag(eig_val) > 0 && abs(eig_val) >= threshold
+            push!(filtered_eigvals, eig_val)
         end
     end
 
-    println("$filtered_eigvals_counter eigenvalue(s) are not passed on because " *
+    filtered_eigvals_count = length(eigvals) - length(filtered_eigvals)
+    println("$filtered_eigvals_count eigenvalue(s) are not passed on because " *
             "they either are in magnitude smaller than $threshold, have positive " *
             "real parts, or have negative imaginary parts.\n")
 
-    return length(filtered_eig_vals), filtered_eig_vals
+    return length(filtered_eigvals), filtered_eigvals
 end
 
 function undo_normalization!(cons_order, num_stage_evals, gamma_opt)
