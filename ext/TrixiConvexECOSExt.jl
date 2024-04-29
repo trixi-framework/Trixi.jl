@@ -63,7 +63,8 @@ and partial differential equations.
 Optimal stability polynomials for numerical integration of initial value problems
 [DOI: 10.2140/camcos.2012.7.247](https://doi.org/10.2140/camcos.2012.7.247)
 """
-function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_vals)
+function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_vals,
+                   verbose)
     dtmin = 0.0
     dt = -1.0
     abs_p = -1.0
@@ -84,6 +85,10 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
     end
 
     normalized_powered_eigvals_scaled = similar(normalized_powered_eigvals)
+
+    if verbose
+        println("Start optimization of stability polynomial \n")
+    end
 
     # Bisection on timestep
     while dtmax - dtmin > dteps
@@ -127,6 +132,10 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
         else
             dtmax = dt
         end
+    end
+
+    if verbose
+        println("Concluded stability polynomial optimization \n")
     end
 
     return evaluate(gamma), dt

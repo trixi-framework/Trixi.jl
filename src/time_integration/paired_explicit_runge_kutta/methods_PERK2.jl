@@ -28,7 +28,7 @@ function compute_a_coeffs(num_stage_evals, bc_factors, mon_coeffs)
 end
 
 function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
-                                       bS, c_end)
+                                       bS, c_end, verbose)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
@@ -48,10 +48,10 @@ function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
     dtmax = tspan[2] - tspan[1]
     dteps = 1e-9
 
-    num_eig_vals, eig_vals = filter_eigvals(eig_vals)
+    num_eig_vals, eig_vals = filter_eig_vals(eig_vals, verbose)
 
     mon_coeffs, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax, dteps,
-                                   eig_vals)
+                                   eig_vals, verbose)
     mon_coeffs = undo_normalization!(cons_order, num_stages, mon_coeffs)
 
     num_mon_coeffs = length(mon_coeffs)
@@ -130,14 +130,16 @@ mutable struct PERK2 <: PERKSingle
     end
 
     # Constructor that calculates the coefficients with polynomial optimizer from a semidiscretization
-    function PERK2(num_stages, tspan, semi::AbstractSemidiscretization, bS = 1.0,
+    function PERK2(num_stages, tspan, semi::AbstractSemidiscretization, verbose = false,
+                   bS = 1.0,
                    c_end = 0.5)
         eig_vals = eigvals(jacobian_ad_forward(semi))
         newPERK2 = new(num_stages)
 
         newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages,
                                                                       eig_vals, tspan,
-                                                                      bS, c_end)
+                                                                      bS, c_end,
+                                                                      verbose)
 
         newPERK2.b1 = one(bS) - bS
         newPERK2.bS = bS
@@ -146,13 +148,15 @@ mutable struct PERK2 <: PERKSingle
     end
 
     # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
-    function PERK2(num_stages, tspan, eig_vals::Vector{ComplexF64}, bS = 1.0,
+    function PERK2(num_stages, tspan, eig_vals::Vector{ComplexF64}, verbose = false,
+                   bS = 1.0,
                    c_end = 0.5)
         newPERK2 = new(num_stages)
 
         newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages,
                                                                       eig_vals, tspan,
-                                                                      bS, c_end)
+                                                                      bS, c_end,
+                                                                      verbose)
 
         newPERK2.b1 = one(bS) - bS
         newPERK2.bS = bS
