@@ -84,11 +84,12 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt)
 
     # c_h is proportional to its own time step divided by the complete MHD time step
     equations.c_h = glm_scale * c_h_deltat / dt
-    
+
     return semi
 end
 
-function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled, glm_speed_callback, dt)
+function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
+                                glm_speed_callback, dt)
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
     if length(semi_indices) == 0
@@ -113,7 +114,7 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled, glm_spe
         # c_h is proportional to its own time step divided by the complete MHD time step
         equations.c_h = glm_scale * c_h_deltat / dt
     end
-    
+
     return semi_coupled
 end
 
