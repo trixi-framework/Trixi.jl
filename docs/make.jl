@@ -69,7 +69,7 @@ files = [
     # Topic: introduction
     "First steps in Trixi.jl" => [
         "Getting started" => ("first_steps", "getting_started.jl"),
-        "Create first setup" => ("first_steps", "create_first_setup.jl"),
+        "Create your first setup" => ("first_steps", "create_first_setup.jl"),
         "Changing Trixi.jl itself" => ("first_steps", "changing_trixi.jl"),
     ],
     "Behind the scenes of a simulation setup" => "behind_the_scenes_simulation_setup.jl",
