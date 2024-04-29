@@ -1,11 +1,4 @@
-module PolynomialOptimizer
-
 # implemented here
-export filter_eigvals, undo_normalization!
-
-# implemented in TrixiConvexExt and only usable when user adds Convex
-export stability_polynomials, bisection
-
 function filter_eigvals(eig_vals, threshold = 1e-12)
     filtered_eigvals_counter = 0
     filtered_eig_vals = Complex{Float64}[]
@@ -34,8 +27,8 @@ function undo_normalization!(cons_order, num_stage_evals, gamma_opt)
     return gamma_opt
 end
 
+# Add function definitions here such that they can be exported from Trixi.jl and extended in the
+# TrixiConvexECOSExt package extension or by the Convex and ECOS-specific code loaded by Requires.jl
 function stability_polynomials end
 
 function bisection end
-
-end # module PolynomialOptimizer

@@ -16,10 +16,10 @@ using LinearAlgebra: eigvals
 const MOI = Convex.MOI
 
 # Use additional symbols that are not exported
-using Trixi: PolynomialOptimizer, @muladd
+using Trixi: @muladd
 
 # Import functions such that they can be extended with new methods
-import .PolynomialOptimizer: filter_eigvals, bisection, undo_normalization!
+import Trixi: stability_polynomials, bisection
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,

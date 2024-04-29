@@ -4,9 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 using DelimitedFiles: readdlm
 using LinearAlgebra: eigvals
-using .PolynomialOptimizer
-
-import .PolynomialOptimizer: filter_eigvals, undo_normalization!, bisection
 
 @muladd begin
 #! format: noindent

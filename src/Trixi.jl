@@ -278,7 +278,7 @@ export trixi_include, examples_dir, get_examples, default_example,
 
 export ode_norm, ode_unstable_check
 
-export PERK2
+#export PERK2
 
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
@@ -290,6 +290,9 @@ export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        adapt_to_mesh_level,
        iplot, iplot!
+
+# PERK-related exports
+export stability_polynomials, bisection
 
 function __init__()
     init_mpi()
