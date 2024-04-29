@@ -34,21 +34,32 @@
 # Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher)
 # [`Trixi.SimpleSSPRK33`](@ref) is implemented.
 
-# TODO: Some comments about
-# - parameters of Newton method (max_iterations_newton = 10, newton_tolerances = (1.0e-12, 1.0e-14), gamma_constant_newton = 2 * ndims(equations)))
-# - positivity_correction_factor (Maybe show calculation of bounds, also of local bounds)
-
 # # [IDP Limiting](@id IDPLimiter)
 # The implementation of the invariant domain preserving (IDP) limiting approach ([`SubcellLimiterIDP`](@ref))
 # is based on [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) and
 # [Rueda-Ramírez, Pazner, Gassner (2022)](https://doi.org/10.101/j.compfluid.2022.105627).
 # It supports several types of limiting which are enabled by passing parameters individually.
 
-# ### Global bounds
+# ### [Global bounds](@id global_bounds)
 # If enabled, the global bounds enforce physical admissibility conditions, such as non-negativity
 # of variables. This can be done for conservative variables, where the limiter is of a one-sided
 # Zalesak-type, and general non-linear variables, where a Newton-bisection algorithm is used to
 # enforce the bounds.
+
+# The Newton-bisection algorithm is an iterative method and requires some parameters.
+# It uses a fixed maximum number of iteration steps (`max_iterations_newton = 10`) and
+# relative/absolute tolerances (`newton_tolerances = (1.0e-12, 1.0e-14)`). The given values are
+# sufficient in most cases and therefore used as default. Additionally, there is the parameter
+# `gamma_constant_newton` which approximately scales the flux into one
+# to all directions. Here, one can use basically always the default of `2 * ndims(equations)`.
+
+# Very small non-negative values can be an issue as well. That's why we use an additional
+# correction factor in the calculation of the global bounds,
+# ```math
+# u^{new} \geq \beta * u^{FV}.
+# ```
+# By default, $\beta$ (named `positivity_correction_factor`) is set to `0.1` which works properly
+# in most of the tested setups.
 
 # #### Conservative variables
 # The procedure to enforce global bounds for a conservative variables is as follows:
@@ -219,7 +230,6 @@ plot(sol)
 
 # You can see that the limiting coefficient does not lie in the interval [0,1] because Trixi2Vtk
 # interpolates all quantities to regular nodes by default.
-# TODO: Did I write something about this calculation?
 # You can disable this functionality with `reinterpolate=false` within the call of `trixi2vtk(...)`
 # and get the following visualization.
 # ![blast_wave_paraview_reinterpolate=false](https://github.com/trixi-framework/Trixi.jl/assets/74359358/39274f18-0064-469c-b4da-bac4b843e116)
@@ -231,7 +241,9 @@ plot(sol)
 # these bounds are not met.
 # For instance, the deviations could be in machine precision, which is not problematic.
 # Larger deviations can be cause by too large time-step sizes (which can be easily fixed by
-# reducing the CFL number), specific boundary conditions or source terms.
+# reducing the CFL number), specific boundary conditions or source terms. Insufficient parameters
+# for the Newton-bisection algorithm can also be a reason when limiting non-linear variables.
+# There are described [above](@ref global_bounds).
 #-
 # In many cases, it is reasonable to monitor the bounds deviations.
 # Because of that, Trixi.jl supports a bounds checking routine implemented using the stage
