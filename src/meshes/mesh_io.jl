@@ -299,7 +299,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         mesh = UnstructuredMesh2D(mesh_filename; RealT = RealT,
                                   periodicity = periodicity_,
                                   unsaved_changes = false)
-        mesh.current_filename = mesh_file                                  
+        mesh.current_filename = mesh_file
     elseif mesh_type == "P4estMesh"
         p4est_filename, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
