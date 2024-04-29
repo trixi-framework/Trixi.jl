@@ -1,5 +1,6 @@
 
 using Convex
+using ECOS
 using OrdinaryDiffEq
 using Trixi
 

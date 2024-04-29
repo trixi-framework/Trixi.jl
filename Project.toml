@@ -56,7 +56,7 @@ ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
 
 [extensions]
 TrixiMakieExt = "Makie"
-TrixiConvexECOSExt = "Convex"
+TrixiConvexECOSExt = ["Convex", "ECOS"]
 
 [compat]
 CodeTracking = "1.0.5"

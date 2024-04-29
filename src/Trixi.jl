@@ -314,9 +314,6 @@ function __init__()
         end
     end
 
-    # Julia 1.9's feature extension doesn't support multiple dependencies yet. However, 
-    # this code block enables older Julia versions using Requires.jl to execute `TrixiConvexECOSExt`
-    # only when users add both Convex and ECOS.
     @static if !isdefined(Base, :get_extension)
         @require Convex="f65535da-76fb-5f13-bab9-19810c17039a" begin
             @require ECOS="e2685f51-7e38-5353-a97d-a921fd2c8199" begin
