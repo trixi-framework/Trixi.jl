@@ -593,13 +593,8 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
                                                                                                              boundary_symbols)
     end
 
-    if typeof(connectivity) <: Ptr{p4est_connectivity}
-        cmesh = t8_cmesh_new_from_p4est(connectivity, mpi_comm(), 0)
-    elseif typeof(connectivity) <: Ptr{p8est_connectivity}
-        cmesh = t8_cmesh_new_from_p8est(connectivity, mpi_comm(), 0)
-    else
-        throw("`connectivity` is not of type `Ptr{p*est_connectivity}`.")
-    end
+    cmesh = t8_cmesh_new_from_connectivity(connectivity, mpi_comm())
+    p4est_connectivity_destroy(connectivity)
 
     do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()
@@ -610,9 +605,12 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
                              boundary_names, "")
 end
 
-struct adapt_callback_passthrough
-    adapt_callback::Function
-    user_data::Any
+function t8_cmesh_new_from_connectivity(connectivity::Ptr{p4est_connectivity}, comm)
+    return t8_cmesh_new_from_p4est(connectivity, comm, 0)
+end
+
+function t8_cmesh_new_from_connectivity(connectivity::Ptr{p8est_connectivity}, comm)
+    return t8_cmesh_new_from_p8est(connectivity, comm, 0)
 end
 
 """
@@ -657,8 +655,11 @@ function T8codeMeshCubedSphere(lat_lon_levels_per_face_dimension, layers, inner_
         boundary_names[5, itree] = :inside
         boundary_names[6, itree] = :outside
     end
+end
 
-    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg)
+struct adapt_callback_passthrough
+    adapt_callback::Function
+    user_data::Any
 end
 
 # Callback function prototype to decide for refining and coarsening.
