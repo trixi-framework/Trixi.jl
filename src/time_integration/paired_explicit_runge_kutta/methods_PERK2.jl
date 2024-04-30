@@ -140,7 +140,8 @@ function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString
     return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
 
-# Constructor that calculates the coefficients with polynomial optimizer from a semidiscretization
+# Constructor that calculates the coefficients with polynomial optimizer from a
+# semidiscretization
 function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization,
                            verbose = false,
                            bS = 1.0,
@@ -157,7 +158,8 @@ function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization,
     return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
 
-# Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
+# Constructor that calculates the coefficients with polynomial optimizer from a
+# list of eigenvalues
 function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64},
                            verbose = false,
                            bS = 1.0,
