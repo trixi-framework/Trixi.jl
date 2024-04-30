@@ -6,7 +6,7 @@
 #! format: noindent
 
 # This file contains callbacks that are performed on the surface like computation of
-# surface forces
+# pointwise surface forces.
 
 """
     AnalysisSurface{Semidiscretization, Variable}(semi,
