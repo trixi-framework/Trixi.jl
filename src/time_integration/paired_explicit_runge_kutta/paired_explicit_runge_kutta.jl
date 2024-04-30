@@ -12,6 +12,6 @@ include("methods_PERK2.jl")
 # extension or by the Convex and ECOS-specific code loaded by Requires.jl
 function filter_eig_vals end
 function undo_normalization! end
-function stability_polynomials end
+function stability_polynomials! end
 function bisect_stability_polynomial end
 end # @muladd

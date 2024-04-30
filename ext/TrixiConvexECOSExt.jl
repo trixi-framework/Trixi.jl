@@ -18,7 +18,7 @@ using LinearAlgebra: eigvals
 using Trixi: @muladd
 
 # Import functions such that they can be extended with new methods
-import Trixi: filter_eig_vals, undo_normalization!, stability_polynomials,
+import Trixi: filter_eig_vals, undo_normalization!, stability_polynomials!,
               bisect_stability_polynomial
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
@@ -64,9 +64,11 @@ end
 # Compute stability polynomials for paired explicit Runge-Kutta up to specified consistency
 # order, including contributions from free coefficients for higher orders, and
 # return the maximum absolute value
-function stability_polynomials(consistency_order, num_stage_evals, num_eig_vals,
-                               normalized_powered_eigvals_scaled, pnoms,
-                               gamma)
+function stability_polynomials!(pnoms, consistency_order, num_stage_evals,
+                                normalized_powered_eigvals_scaled,
+                                gamma)
+    num_eig_vals = length(pnoms)
+
     # Initialize with zero'th order (z^0) coefficient
     for i in 1:num_eig_vals
         pnoms[i] = 1.0
@@ -88,7 +90,7 @@ function stability_polynomials(consistency_order, num_stage_evals, num_eig_vals,
     return maximum(abs(pnoms))
 end
 
-"""
+#=
 bisection()
 
 The following structures and methods provide a simplified implementation to 
@@ -99,7 +101,7 @@ and partial differential equations.
 - Ketcheson and Ahmadia (2012).
 Optimal stability polynomials for numerical integration of initial value problems
 [DOI: 10.2140/camcos.2012.7.247](https://doi.org/10.2140/camcos.2012.7.247)
-"""
+=#
 
 # Perform bisection to optimize timestep for stability of the polynomial
 function bisect_stability_polynomial(consistency_order, num_eig_vals, num_stage_evals,
@@ -146,11 +148,10 @@ function bisect_stability_polynomial(consistency_order, num_eig_vals, num_stage_
         end
 
         # Use last optimal values for gamma in (potentially) next iteration
-        problem = minimize(stability_polynomials(consistency_order, num_stage_evals,
-                                                 num_eig_vals,
-                                                 normalized_powered_eigvals_scaled,
-                                                 pnoms,
-                                                 gamma))
+        problem = minimize(stability_polynomials!(pnoms, consistency_order,
+                                                  num_stage_evals,
+                                                  normalized_powered_eigvals_scaled,
+                                                  gamma))
 
         solve!(problem,
                # Parameters taken from default values for EiCOS
