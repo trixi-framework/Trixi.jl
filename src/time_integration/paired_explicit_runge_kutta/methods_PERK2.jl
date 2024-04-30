@@ -10,15 +10,15 @@ using LinearAlgebra: eigvals
 
 # Abstract base type for both single/standalone and multi-level 
 # PERK (Paired-Explicit Runge-Kutta) time integration schemes
-abstract type AbstractPairedExplicitRungeKutta end
+abstract type AbstractPairedExplicitRK end
 # Abstract base type for single/standalone PERK time integration schemes
-abstract type AbstractPairedExplicitRungeKuttaSingle <: AbstractPairedExplicitRungeKutta end
+abstract type AbstractPairedExplicitRKSingle <: AbstractPairedExplicitRK end
 
-function compute_a_coeffs(num_stage_evals, bc_factors, mon_coeffs)
-    a_coeffs = copy(mon_coeffs)
+function compute_a_coeffs(num_stage_evals, stage_scaling_factors, monomial_coeffs)
+    a_coeffs = copy(monomial_coeffs)
 
     for stage in 1:(num_stage_evals - 2)
-        a_coeffs[stage] /= bc_factors[stage]
+        a_coeffs[stage] /= stage_scaling_factors[stage]
         for prev_stage in 1:(stage - 1)
             a_coeffs[stage] /= a_coeffs[prev_stage]
         end
@@ -27,7 +27,7 @@ function compute_a_coeffs(num_stage_evals, bc_factors, mon_coeffs)
     return reverse(a_coeffs)
 end
 
-function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
+function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                        bS, c_end, verbose)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
@@ -35,7 +35,7 @@ function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
     for k in 2:num_stages
         c[k] = c_end * (k - 1) / (num_stages - 1)
     end
-    bc_factors = bS * reverse(c[2:(end - 1)])
+    stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     coeffs_max = num_stages - 2
@@ -50,14 +50,16 @@ function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals, verbose)
 
-    mon_coeffs, dt_opt = bisection(consistency_order, num_eig_vals, num_stages, dtmax,
-                                   dteps,
-                                   eig_vals, verbose)
-    mon_coeffs = undo_normalization!(consistency_order, num_stages, mon_coeffs)
+    monomial_coeffs, dt_opt = bisection(consistency_order, num_eig_vals, num_stages,
+                                        dtmax,
+                                        dteps,
+                                        eig_vals, verbose)
+    monomial_coeffs = undo_normalization!(consistency_order, num_stages,
+                                          monomial_coeffs)
 
-    num_mon_coeffs = length(mon_coeffs)
-    @assert num_mon_coeffs == coeffs_max
-    A = compute_a_coeffs(num_stages, bc_factors, mon_coeffs)
+    num_monomial_coeffs = length(monomial_coeffs)
+    @assert num_monomial_coeffs == coeffs_max
+    A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
 
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
@@ -65,7 +67,8 @@ function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
     return a_matrix, c
 end
 
-function compute_PERK2_butcher_tableau(num_stages, base_path_mon_coeffs::AbstractString,
+function compute_PairedExplicitRK2_butcher_tableau(num_stages,
+                                       base_path_monomial_coeffs::AbstractString,
                                        bS, c_end)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
@@ -73,7 +76,7 @@ function compute_PERK2_butcher_tableau(num_stages, base_path_mon_coeffs::Abstrac
     for k in 2:num_stages
         c[k] = c_end * (k - 1) / (num_stages - 1)
     end
-    bc_factors = bS * reverse(c[2:(end - 1)])
+    stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     coeffs_max = num_stages - 2
@@ -81,13 +84,14 @@ function compute_PERK2_butcher_tableau(num_stages, base_path_mon_coeffs::Abstrac
     a_matrix = zeros(coeffs_max, 2)
     a_matrix[:, 1] = c[3:end]
 
-    path_mon_coeffs = base_path_mon_coeffs * "gamma_" * string(num_stages) * ".txt"
-    @assert isfile(path_mon_coeffs) "Couldn't find file"
-    mon_coeffs = readdlm(path_mon_coeffs, Float64)
-    num_mon_coeffs = size(mon_coeffs, 1)
+    path_monomial_coeffs = base_path_monomial_coeffs * "gamma_" * string(num_stages) *
+                           ".txt"
+    @assert isfile(path_monomial_coeffs) "Couldn't find file"
+    monomial_coeffs = readdlm(path_monomial_coeffs, Float64)
+    num_monomial_coeffs = size(monomial_coeffs, 1)
 
-    @assert num_mon_coeffs == coeffs_max
-    A = compute_a_coeffs(num_stages, bc_factors, mon_coeffs)
+    @assert num_monomial_coeffs == coeffs_max
+    A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
 
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
@@ -96,7 +100,7 @@ function compute_PERK2_butcher_tableau(num_stages, base_path_mon_coeffs::Abstrac
 end
 
 """
-    PERK2()
+    PairedExplicitRK2()
 
 The following structures and methods provide a minimal implementation of
 the second-order paired explicit Runge-Kutta (PERK) method
@@ -106,7 +110,7 @@ optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solve
   Paired explicit Runge-Kutta schemes for stiff systems of equations
   [DOI: 10.1016/j.jcp.2019.05.014](https://doi.org/10.1016/j.jcp.2019.05.014)
 """
-mutable struct PERK2 <: PERKSingle
+mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     const num_stages::Int
 
     a_matrix::Matrix{Float64}
@@ -114,58 +118,50 @@ mutable struct PERK2 <: PERKSingle
     b1::Float64
     bS::Float64
     c_end::Float64
-end # struct PERK2
+end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
-function PERK2(num_stages, base_path_mon_coeffs::AbstractString, bS = 1.0,
+function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, bS = 1.0,
                c_end = 0.5)
-    a_matrix, c = compute_PERK2_butcher_tableau(num_stages,
-                                                base_path_mon_coeffs,
+    a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
+                                                base_path_monomial_coeffs,
                                                 bS, c_end)
 
-    b1 = one(bS) - bS
+    b1 = 1.0 - bS
 
-    newPERK2 = PERK2(num_stages, a_matrix, c, b1, bS, c_end)
-
-    return newPERK2
+    return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a semidiscretization
-function PERK2(num_stages, tspan, semi::AbstractSemidiscretization, verbose = false,
+function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization, verbose = false,
                bS = 1.0,
                c_end = 0.5)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
-    a_matrix, c = compute_PERK2_butcher_tableau(num_stages,
+    a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                 eig_vals, tspan,
                                                 bS, c_end,
                                                 verbose)
 
-    b1 = one(bS) - bS
+    b1 = 1.0 - bS
 
-    newPERK2 = PERK2(num_stages, a_matrix, c, b1, bS, c_end)
-
-    return newPERK2
+    return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
-function PERK2(num_stages, tspan, eig_vals::Vector{ComplexF64}, verbose = false,
+function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64}, verbose = false,
                bS = 1.0,
                c_end = 0.5)
-    a_matrix, c = compute_PERK2_butcher_tableau(num_stages,
+    a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                 eig_vals, tspan,
                                                 bS, c_end,
                                                 verbose)
 
-    b1 = one(bS) - bS
-
-    newPERK2 = PERK2(num_stages, a_matrix, c, b1, bS, c_end)
-
-    return newPERK2
+    return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
-mutable struct PERKIntegratorOptions{Callback}
+mutable struct PairedExplicitRKOptions{Callback}
     callback::Callback # callbacks; used in Trixi
     adaptive::Bool # whether the algorithm is adaptive; ignored
     dtmax::Float64 # ignored
@@ -173,20 +169,21 @@ mutable struct PERKIntegratorOptions{Callback}
     tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
-function PERKIntegratorOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    PERKIntegratorOptions{typeof(callback)}(callback, false, Inf, maxiters,
+function PairedExplicitRKOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
+    PairedExplicitRKOptions{typeof(callback)}(callback, false, Inf, maxiters,
                                             [last(tspan)])
 end
 
-abstract type PERKIntegrator end
-abstract type PERKSingleIntegrator <: PERKIntegrator end
+abstract type PairedExplicitRK end
+abstract type AbstractPairedExplicitRKSingleIntegrator <: PairedExplicitRK end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
-mutable struct PERK2Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
-                               PERKIntegratorOptions} <: PERKSingleIntegrator
+mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
+                               PairedExplicitRKOptions} <:
+               AbstractPairedExplicitRKSingleIntegrator
     u::uType
     du::uType
     u_tmp::uType
@@ -198,15 +195,15 @@ mutable struct PERK2Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
     sol::Sol # faked
     f::F
     alg::Alg # This is our own class written above; Abbreviation for ALGorithm
-    opts::PERKIntegratorOptions
+    opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
-    # PERK2 stages:
+    # PairedExplicitRK2 stages:
     k1::uType
     k_higher::uType
 end
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::PERKIntegrator, field::Symbol)
+function Base.getproperty(integrator::PairedExplicitRK, field::Symbol)
     if field === :stats
         return (naccept = getfield(integrator, :iter),)
     end
@@ -214,22 +211,22 @@ function Base.getproperty(integrator::PERKIntegrator, field::Symbol)
     return getfield(integrator, field)
 end
 
-function init(ode::ODEProblem, alg::PERK2;
+function init(ode::ODEProblem, alg::PairedExplicitRK2;
               dt, callback = nothing, kwargs...)
     u0 = copy(ode.u0)
     du = zero(u0)
     u_tmp = zero(u0)
 
-    # PERK2 stages
+    # PairedExplicitRK2 stages
     k1 = zero(u0)
     k_higher = zero(u0)
 
     t0 = first(ode.tspan)
     iter = 0
 
-    integrator = PERK2Integrator(u0, du, u_tmp, t0, dt, zero(dt), iter, ode.p,
+    integrator = PairedExplicitRK2Integrator(u0, du, u_tmp, t0, dt, zero(dt), iter, ode.p,
                                  (prob = ode,), ode.f, alg,
-                                 PERKIntegratorOptions(callback, ode.tspan; kwargs...),
+                                 PairedExplicitRKOptions(callback, ode.tspan; kwargs...),
                                  false,
                                  k1, k_higher)
 
@@ -249,7 +246,7 @@ function init(ode::ODEProblem, alg::PERK2;
 end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::PERK2;
+function solve(ode::ODEProblem, alg::PairedExplicitRK2;
                dt, callback = nothing, kwargs...)
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
@@ -257,7 +254,7 @@ function solve(ode::ODEProblem, alg::PERK2;
     solve_steps!(integrator)
 end
 
-function solve_steps!(integrator::PERK2Integrator)
+function solve_steps!(integrator::PairedExplicitRK2Integrator)
     @unpack prob = integrator.sol
 
     integrator.finalstep = false
@@ -271,7 +268,7 @@ function solve_steps!(integrator::PERK2Integrator)
                                   integrator.sol.prob)
 end
 
-function step!(integrator::PERK2Integrator)
+function step!(integrator::PairedExplicitRK2Integrator)
     @unpack prob = integrator.sol
     @unpack alg = integrator
     t_end = last(prob.tspan)
@@ -333,7 +330,7 @@ function step!(integrator::PERK2Integrator)
             integrator.u[i] += alg.b1 * integrator.k1[i] +
                                alg.bS * integrator.k_higher[i]
         end
-    end # PERK2 step
+    end # PairedExplicitRK2 step
 
     integrator.iter += 1
     integrator.t += integrator.dt
@@ -358,29 +355,29 @@ function step!(integrator::PERK2Integrator)
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::PERKIntegrator) = integrator.du
-get_tmp_cache(integrator::PERKIntegrator) = (integrator.u_tmp,)
+get_du(integrator::PairedExplicitRK) = integrator.du
+get_tmp_cache(integrator::PairedExplicitRK) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::PERKIntegrator, ::Bool) = false
+u_modified!(integrator::PairedExplicitRK, ::Bool) = false
 
 # used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::PERKIntegrator, dt)
+function set_proposed_dt!(integrator::PairedExplicitRK, dt)
     integrator.dt = dt
 end
 
-function get_proposed_dt(integrator::PERKIntegrator)
+function get_proposed_dt(integrator::PairedExplicitRK)
     return integrator.dt
 end
 
 # stop the time integration
-function terminate!(integrator::PERKIntegrator)
+function terminate!(integrator::PairedExplicitRK)
     integrator.finalstep = true
     empty!(integrator.opts.tstops)
 end
 
 # used for AMR (Adaptive Mesh Refinement)
-function Base.resize!(integrator::PERK2Integrator, new_size)
+function Base.resize!(integrator::PairedExplicitRK2Integrator, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
