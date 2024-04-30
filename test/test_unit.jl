@@ -1634,7 +1634,7 @@ end
 end
 
 @testset "PERK Single p2 Constructors" begin
-    path_coeff_file = joinpath(examples_dir(), "tree_1d_dgsem/")
+    path_coeff_file = mktempdir()
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
                    joinpath(path_coeff_file, "gamma_6.txt"))
 
