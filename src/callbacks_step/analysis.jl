@@ -43,7 +43,8 @@ evaluating the computational performance, such as the total runtime, the perform
 (time/DOF/rhs!), the time spent in garbage collection (GC), or the current memory usage (alloc'd
 memory).
 """
-mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals,
+mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, AnalysisPointwise,
+                                InitialStateIntegrals,
                                 Cache}
     start_time::Float64
     start_time_last_analysis::Float64
@@ -56,6 +57,7 @@ mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegra
     analyzer::Analyzer
     analysis_errors::Vector{Symbol}
     analysis_integrals::AnalysisIntegrals
+    analysis_pointwise::AnalysisPointwise
     initial_state_integrals::InitialStateIntegrals
     cache::Cache
 end
@@ -79,6 +81,9 @@ function Base.show(io::IO, ::MIME"text/plain",
         end
         for (idx, integral) in enumerate(analysis_callback.analysis_integrals)
             push!(setup, "│ integral " * string(idx) => integral)
+        end
+        for (idx, quantity) in enumerate(analysis_callback.analysis_pointwise)
+            push!(setup, "│ quantity " * string(idx) => quantity)
         end
         push!(setup,
               "save analysis to file" => analysis_callback.save_analysis ? "yes" : "no")
@@ -109,6 +114,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           extra_analysis_integrals = (),
                           analysis_integrals = union(default_analysis_integrals(equations),
                                                      extra_analysis_integrals),
+                          analysis_pointwise = (),
                           RealT = real(solver),
                           uEltype = eltype(cache.elements),
                           kwargs...)
@@ -132,6 +138,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                                          analysis_filename,
                                          analyzer,
                                          analysis_errors, Tuple(analysis_integrals),
+                                         Tuple(analysis_pointwise),
                                          SVector(ntuple(_ -> zero(uEltype),
                                                         Val(nvariables(equations)))),
                                          cache_analysis)
@@ -158,7 +165,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
 
     analysis_callback = cb.affect!
     analysis_callback.initial_state_integrals = initial_state_integrals
-    @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
+    @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals, analysis_pointwise = analysis_callback
 
     if save_analysis && mpi_isroot()
         mkpath(output_directory)
@@ -200,6 +207,10 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
             end
 
             for quantity in analysis_integrals
+                @printf(io, "   %-14s", pretty_form_ascii(quantity))
+            end
+
+            for quantity in analysis_pointwise
                 @printf(io, "   %-14s", pretty_form_ascii(quantity))
             end
 
@@ -368,7 +379,7 @@ end
 # This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
 # and serves as a function barrier. Additionally, it makes the code easier to profile and optimize.
 function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
-    @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
+    @unpack analyzer, analysis_errors, analysis_integrals, analysis_pointwise = analysis_callback
     cache_analysis = analysis_callback.cache
     _, equations, _, _ = mesh_equations_solver_cache(semi)
 
@@ -486,6 +497,8 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
 
     # additional integrals
     analyze_integrals(analysis_integrals, io, du, u, t, semi)
+    # additional pointwise quantities
+    analyze_pointwise(analysis_pointwise, du, u, t, semi)
 
     return nothing
 end
@@ -603,6 +616,26 @@ end
 
 # terminate the type-stable iteration over tuples
 function analyze_integrals(analysis_integrals::Tuple{}, io, du, u, t, semi)
+    nothing
+end
+
+# Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
+function analyze_pointwise(analysis_quantities::NTuple{N, Any}, du, u, t,
+                           semi) where {N}
+
+    # Extract the first analysis integral and process it; keep the remaining to be processed later
+    quantity = first(analysis_quantities)
+    remaining_quantities = Base.tail(analysis_quantities)
+
+    analyze(quantity, du, u, t, semi)
+
+    # Recursively call this method with the unprocessed integrals
+    analyze_pointwise(remaining_quantities, du, u, t, semi)
+    return nothing
+end
+
+# terminate the type-stable iteration over tuples
+function analyze_pointwise(analysis_quantities::Tuple{}, du, u, t, semi)
     nothing
 end
 

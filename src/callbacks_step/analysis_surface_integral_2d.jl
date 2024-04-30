@@ -48,7 +48,7 @@ struct AnalysisSurfaceIntegral{Variable}
     end
 end
 
-struct ForceState{RealT <: Real}
+struct FlowStateDirectional{RealT <: Real}
     psi::Tuple{RealT, RealT} # Unit vector normal or parallel to freestream
     rhoinf::RealT
     uinf::RealT
@@ -56,11 +56,11 @@ struct ForceState{RealT <: Real}
 end
 
 struct LiftCoefficientPressure{RealT <: Real}
-    force_state::ForceState{RealT}
+    flow_state::FlowStateDirectional{RealT}
 end
 
 struct DragCoefficientPressure{RealT <: Real}
-    force_state::ForceState{RealT}
+    flow_state::FlowStateDirectional{RealT}
 end
 
 # Abstract base type used for dispatch of `analyze` for quantities
@@ -68,11 +68,11 @@ end
 abstract type VariableViscous end
 
 struct LiftCoefficientShearStress{RealT <: Real} <: VariableViscous
-    force_state::ForceState{RealT}
+    flow_state::FlowStateDirectional{RealT}
 end
 
 struct DragCoefficientShearStress{RealT <: Real} <: VariableViscous
-    force_state::ForceState{RealT}
+    flow_state::FlowStateDirectional{RealT}
 end
 
 """
@@ -99,7 +99,7 @@ function LiftCoefficientPressure(aoa, rhoinf, uinf, linf)
     # One could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same
     # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa))
-    return LiftCoefficientPressure(ForceState(psi_lift, rhoinf, uinf, linf))
+    return LiftCoefficientPressure(FlowStateDirectional(psi_lift, rhoinf, uinf, linf))
 end
 
 """
@@ -122,7 +122,7 @@ which stores the boundary information and semidiscretization.
 function DragCoefficientPressure(aoa, rhoinf, uinf, linf)
     # `psi_drag` is the unit vector tangent to the freestream direction
     psi_drag = (cos(aoa), sin(aoa))
-    return DragCoefficientPressure(ForceState(psi_drag, rhoinf, uinf, linf))
+    return DragCoefficientPressure(FlowStateDirectional(psi_drag, rhoinf, uinf, linf))
 end
 
 """
@@ -149,7 +149,8 @@ function LiftCoefficientShearStress(aoa, rhoinf, uinf, linf)
     # One could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same
     # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa))
-    return LiftCoefficientShearStress(ForceState(psi_lift, rhoinf, uinf, linf))
+    return LiftCoefficientShearStress(FlowStateDirectional(psi_lift, rhoinf, uinf,
+                                                           linf))
 end
 
 """
@@ -172,13 +173,14 @@ which stores the boundary information and semidiscretization.
 function DragCoefficientShearStress(aoa, rhoinf, uinf, linf)
     # `psi_drag` is the unit vector tangent to the freestream direction
     psi_drag = (cos(aoa), sin(aoa))
-    return DragCoefficientShearStress(ForceState(psi_drag, rhoinf, uinf, linf))
+    return DragCoefficientShearStress(FlowStateDirectional(psi_drag, rhoinf, uinf,
+                                                           linf))
 end
 
 function (lift_coefficient::LiftCoefficientPressure)(u, normal_direction, x, t,
                                                      equations)
     p = pressure(u, equations)
-    @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
+    @unpack psi, rhoinf, uinf, linf = lift_coefficient.flow_state
     # Normalize as `normal_direction` is not necessarily a unit vector
     n = dot(normal_direction, psi) / norm(normal_direction)
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
@@ -187,7 +189,7 @@ end
 function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, x, t,
                                                      equations)
     p = pressure(u, equations)
-    @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
+    @unpack psi, rhoinf, uinf, linf = drag_coefficient.flow_state
     # Normalize as `normal_direction` is not necessarily a unit vector
     n = dot(normal_direction, psi) / norm(normal_direction)
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
@@ -240,7 +242,7 @@ function (lift_coefficient::LiftCoefficientShearStress)(u, normal_direction, x, 
                                                         gradients_1, gradients_2)
     visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                gradients_1, gradients_2)
-    @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
+    @unpack psi, rhoinf, uinf, linf = lift_coefficient.flow_state
     return (visc_stress_vector[1] * psi[1] + visc_stress_vector[2] * psi[2]) /
            (0.5 * rhoinf * uinf^2 * linf)
 end
@@ -250,7 +252,7 @@ function (drag_coefficient::DragCoefficientShearStress)(u, normal_direction, x, 
                                                         gradients_1, gradients_2)
     visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                gradients_1, gradients_2)
-    @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
+    @unpack psi, rhoinf, uinf, linf = drag_coefficient.flow_state
     return (visc_stress_vector[1] * psi[1] + visc_stress_vector[2] * psi[2]) /
            (0.5 * rhoinf * uinf^2 * linf)
 end

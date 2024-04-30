@@ -48,13 +48,19 @@ struct AnalysisSurface{Variable}
     end
 end
 
+struct FlowState{RealT <: Real}
+    rhoinf::RealT
+    uinf::RealT
+    linf::RealT
+end
+
 struct SurfacePressureCoefficient{RealT <: Real}
     pinf::RealT # Free stream pressure
-    force_state::ForceState{RealT}
+    flow_state::FlowState{RealT}
 end
 
 struct SurfaceFrictionCoefficient{RealT <: Real} <: VariableViscous
-    force_state::ForceState{RealT}
+    flow_state::FlowState{RealT}
 end
 
 """
@@ -75,8 +81,7 @@ which stores the boundary information and semidiscretization.
 - `linf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
 function SurfacePressureCoefficient(pinf, rhoinf, uinf, linf)
-    psi = (zero(pinf), zero(pinf)) # Dummy value/placeholder, will not be used
-    return SurfacePressureCoefficient(pinf, ForceState(psi, rhoinf, uinf, linf))
+    return SurfacePressureCoefficient(pinf, FlowState(rhoinf, uinf, linf))
 end
 
 """
@@ -96,14 +101,13 @@ which stores the boundary information and semidiscretization.
 - `linf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
 function SurfaceFrictionCoefficient(rhoinf, uinf, linf)
-    psi = (zero(rhoinf), zero(rhoinf)) # Dummy value/placeholder, will not be used
-    return SurfaceFrictionCoefficient(ForceState(psi, rhoinf, uinf, linf))
+    return SurfaceFrictionCoefficient(FlowState(rhoinf, uinf, linf))
 end
 
 function (pressure_coefficient::SurfacePressureCoefficient)(u, equations)
     p = pressure(u, equations)
     @unpack pinf = pressure_coefficient
-    @unpack rhoinf, uinf, linf = pressure_coefficient.force_state
+    @unpack rhoinf, uinf, linf = pressure_coefficient.flow_state
     return (p - pinf) / (0.5 * rhoinf * uinf^2 * linf)
 end
 
@@ -112,7 +116,7 @@ function (surface_friction::SurfaceFrictionCoefficient)(u, normal_direction, x, 
                                                         gradients_1, gradients_2)
     visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                gradients_1, gradients_2)
-    @unpack psi, rhoinf, uinf, linf = surface_friction.force_state
+    @unpack rhoinf, uinf, linf = surface_friction.flow_state
 
     # Normalize as `normal_direction` is not necessarily a unit vector
     n = normal_direction / norm(normal_direction)
@@ -134,10 +138,9 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
     n_nodes = nnodes(dg)
     n_elements = length(indices)
 
-    coord_array = Array{real(dg)}(undef, n_elements * n_nodes, dim)   # physical coordinates of indices
-    variable_array = Array{real(dg)}(undef, n_elements * n_nodes, 1) # variable values at indices
+    coords = Matrix{real(dg)}(undef, n_elements * n_nodes, dim) # physical coordinates of indices
+    variables = Vector{real(dg)}(undef, n_elements * n_nodes) # variable values at indices
 
-    # TODO - Can variable_array be a vector?
     # TODO - Decide whether to save element mean values too
 
     index_range = eachnode(dg)
@@ -161,21 +164,20 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
                                 element)
             var = variable(u_node, equations)
 
-            coord_array[global_node_index, 1] = x[1]
-            coord_array[global_node_index, 2] = x[2]
-            variable_array[global_node_index, 1] = var
+            coords[global_node_index, 1] = x[1]
+            coords[global_node_index, 2] = x[2]
+            variables[global_node_index] = var
             i_node += i_node_step
             j_node += j_node_step
             global_node_index += 1
         end
     end
-    # TODO - Sort coord_array, variable_array increasing x?
+    # TODO - Sort coords, variables increasing x?
     mkpath("out")
     t_trunc = @sprintf("%.3f", t)
-    filename = varname(variable) * t_trunc * ".txt"
+    filename = varname(variable) * "_" * t_trunc * ".txt"
     # TODO - Should we start with a bigger array and avoid hcat?
-    writedlm(joinpath("out", filename), hcat(coord_array, variable_array))
-    return 0.0 # A dummy value is needed by an analysis callback. TODO - Can this be avoided?
+    writedlm(joinpath("out", filename), hcat(coords, variables))
 end
 
 function analyze(surface_variable::AnalysisSurface{Variable},
@@ -193,10 +195,9 @@ function analyze(surface_variable::AnalysisSurface{Variable},
     n_nodes = nnodes(dg)
     n_elements = length(indices)
 
-    coord_array = Array{real(dg)}(undef, n_elements * n_nodes, dim)   # physical coordinates of indices
-    variable_array = Array{real(dg)}(undef, n_elements * n_nodes, 1) # variable values at indices
+    coords = Matrix{real(dg)}(undef, n_elements * n_nodes, dim) # physical coordinates of indices
+    variables = Vector{real(dg)}(undef, n_elements * n_nodes) # variable values at indices
 
-    # TODO - Should variable_array be a vector?
     # TODO - Decide whether to save element mean values too
 
     # Additions for parabolic
@@ -239,39 +240,37 @@ function analyze(surface_variable::AnalysisSurface{Variable},
             var = variable(u_node, normal_direction, x, t, equations_parabolic,
                            gradients_1, gradients_2)
 
-            coord_array[global_node_index, 1] = x[1]
-            coord_array[global_node_index, 2] = x[2]
-            variable_array[global_node_index, 1] = var
+            coords[global_node_index, 1] = x[1]
+            coords[global_node_index, 2] = x[2]
+            variables[global_node_index] = var
             i_node += i_node_step
             j_node += j_node_step
             global_node_index += 1
         end
     end
-    # TODO - Sort coord_array, variable_array increasing x?
+    # TODO - Sort coords, variables increasing x?
     mkpath("out")
     t_trunc = @sprintf("%.3f", t)
-    filename = varname(variable) * t_trunc * ".txt"
+    filename = varname(variable) * "_" * t_trunc * ".txt"
     # TODO - Should we start with a bigger array and avoid hcat?
-    writedlm(joinpath("out", filename), hcat(coord_array, variable_array))
-    return 0.0 # A dummy value is needed by an analysis callback. TODO - Can this be avoided?
+    writedlm(joinpath("out", filename), hcat(coords, variables))
 end
 
 varname(::Any) = @assert false "Surface variable name not assigned" # This makes sure default behaviour is not overwriting
-varname(pressure_coefficient::SurfacePressureCoefficient) = "Cp"
-varname(friction_coefficient::SurfaceFrictionCoefficient) = "Cf"
+varname(pressure_coefficient::SurfacePressureCoefficient) = "CP_x"
+varname(friction_coefficient::SurfaceFrictionCoefficient) = "CF_x"
 
-# AnalysisCallback prints to screen and needs these. TODO - Can it be turned off?
 function pretty_form_ascii(::AnalysisSurface{<:SurfacePressureCoefficient{<:Any}})
-    "Dummy value"
+    "CP(x)"
 end
 function pretty_form_utf(::AnalysisSurface{<:SurfacePressureCoefficient{<:Any}})
-    "Dummy value"
+    "CP(x)"
 end
 
 function pretty_form_ascii(::AnalysisSurface{<:SurfaceFrictionCoefficient{<:Any}})
-    "Dummy value"
+    "CF(x)"
 end
 function pretty_form_utf(::AnalysisSurface{<:SurfaceFrictionCoefficient{<:Any}})
-    "Dummy value"
+    "CF(x)"
 end
 end # muladd
