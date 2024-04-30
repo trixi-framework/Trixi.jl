@@ -18,7 +18,8 @@ using LinearAlgebra: eigvals
 using Trixi: @muladd
 
 # Import functions such that they can be extended with new methods
-import Trixi: stability_polynomials, bisection
+import Trixi: filter_eig_vals, undo_normalization!, stability_polynomials,
+              bisect_stability_polynomial
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -27,6 +28,42 @@ import Trixi: stability_polynomials, bisection
 @muladd begin
 #! format: noindent
 
+# Filter out eigenvalues with positive real parts, those with negative imaginary
+# parts due to eigenvalues' symmetry around the real axis, or the eigenvalues
+# that are smaller than a specified threshold.
+function filter_eig_vals(eig_vals, verbose, threshold = 1e-12)
+    filtered_eig_vals = Complex{Float64}[]
+
+    for eig_val in eig_vals
+        if real(eig_val) < 0 && imag(eig_val) > 0 && abs(eig_val) >= threshold
+            push!(filtered_eig_vals, eig_val)
+        end
+    end
+
+    filtered_eig_vals_count = length(eig_vals) - length(filtered_eig_vals)
+
+    if verbose
+        println("$filtered_eig_vals_count eigenvalue(s) are not passed on because " *
+                "they either are in magnitude smaller than $threshold, have positive " *
+                "real parts, or have negative imaginary parts.\n")
+    end
+
+    return length(filtered_eig_vals), filtered_eig_vals
+end
+
+# Undo normalization of stability polynomial coefficients by index factorial
+# relative to consistency order.
+function undo_normalization!(consistency_order, num_stage_evals, gamma_opt)
+    for k in (consistency_order + 1):num_stage_evals
+        gamma_opt[k - consistency_order] = gamma_opt[k - consistency_order] /
+                                           factorial(k)
+    end
+    return gamma_opt
+end
+
+# Compute stability polynomials for paired explicit Runge-Kutta up to specified consistency
+# order, including contributions from free coefficients for higher orders, and
+# return the maximum absolute value
 function stability_polynomials(consistency_order, num_stage_evals, num_eig_vals,
                                normalized_powered_eigvals_scaled, pnoms,
                                gamma)
@@ -63,9 +100,12 @@ and partial differential equations.
 Optimal stability polynomials for numerical integration of initial value problems
 [DOI: 10.2140/camcos.2012.7.247](https://doi.org/10.2140/camcos.2012.7.247)
 """
-function bisection(consistency_order, num_eig_vals, num_stage_evals, dtmax, dteps,
-                   eig_vals,
-                   verbose)
+
+# Perform bisection to optimize timestep for stability of the polynomial
+function bisect_stability_polynomial(consistency_order, num_eig_vals, num_stage_evals,
+                                     dtmax, dteps,
+                                     eig_vals,
+                                     verbose)
     dtmin = 0.0
     dt = -1.0
     abs_p = -1.0

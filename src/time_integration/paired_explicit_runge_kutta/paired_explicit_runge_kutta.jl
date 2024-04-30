@@ -5,7 +5,13 @@
 @muladd begin
 #! format: noindent
 
-include("polynomial_optimizer.jl")
-
 include("methods_PERK2.jl")
+
+# Add definitions of functions related to polynomial optimization by Convex and ECOS here
+# such that hey can be exported from Trixi.jl and extended in the TrixiConvexECOSExt package
+# extension or by the Convex and ECOS-specific code loaded by Requires.jl
+function filter_eig_vals end
+function undo_normalization! end
+function stability_polynomials end
+function bisect_stability_polynomial end
 end # @muladd

@@ -28,7 +28,7 @@ function compute_a_coeffs(num_stage_evals, stage_scaling_factors, monomial_coeff
 end
 
 function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
-                                       bS, c_end, verbose)
+                                                   bS, c_end, verbose)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
@@ -50,10 +50,11 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals, verbose)
 
-    monomial_coeffs, dt_opt = bisection(consistency_order, num_eig_vals, num_stages,
-                                        dtmax,
-                                        dteps,
-                                        eig_vals, verbose)
+    monomial_coeffs, dt_opt = bisect_stability_polynomial(consistency_order,
+                                                          num_eig_vals, num_stages,
+                                                          dtmax,
+                                                          dteps,
+                                                          eig_vals, verbose)
     monomial_coeffs = undo_normalization!(consistency_order, num_stages,
                                           monomial_coeffs)
 
@@ -68,8 +69,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
 end
 
 function compute_PairedExplicitRK2_butcher_tableau(num_stages,
-                                       base_path_monomial_coeffs::AbstractString,
-                                       bS, c_end)
+                                                   base_path_monomial_coeffs::AbstractString,
+                                                   bS, c_end)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
@@ -121,11 +122,12 @@ mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
 end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
-function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, bS = 1.0,
-               c_end = 0.5)
+function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
+                           bS = 1.0,
+                           c_end = 0.5)
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
-                                                base_path_monomial_coeffs,
-                                                bS, c_end)
+                                                            base_path_monomial_coeffs,
+                                                            bS, c_end)
 
     b1 = 1.0 - bS
 
@@ -133,15 +135,16 @@ function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a semidiscretization
-function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization, verbose = false,
-               bS = 1.0,
-               c_end = 0.5)
+function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization,
+                           verbose = false,
+                           bS = 1.0,
+                           c_end = 0.5)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
-                                                eig_vals, tspan,
-                                                bS, c_end,
-                                                verbose)
+                                                            eig_vals, tspan,
+                                                            bS, c_end,
+                                                            verbose)
 
     b1 = 1.0 - bS
 
@@ -149,13 +152,14 @@ function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization, 
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
-function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64}, verbose = false,
-               bS = 1.0,
-               c_end = 0.5)
+function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64},
+                           verbose = false,
+                           bS = 1.0,
+                           c_end = 0.5)
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
-                                                eig_vals, tspan,
-                                                bS, c_end,
-                                                verbose)
+                                                            eig_vals, tspan,
+                                                            bS, c_end,
+                                                            verbose)
 
     return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
@@ -171,7 +175,7 @@ end
 
 function PairedExplicitRKOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
     PairedExplicitRKOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                            [last(tspan)])
+                                              [last(tspan)])
 end
 
 abstract type PairedExplicitRK end
@@ -182,7 +186,7 @@ abstract type AbstractPairedExplicitRKSingleIntegrator <: PairedExplicitRK end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
 mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
-                               PairedExplicitRKOptions} <:
+                                           PairedExplicitRKOptions} <:
                AbstractPairedExplicitRKSingleIntegrator
     u::uType
     du::uType
@@ -224,11 +228,14 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
     t0 = first(ode.tspan)
     iter = 0
 
-    integrator = PairedExplicitRK2Integrator(u0, du, u_tmp, t0, dt, zero(dt), iter, ode.p,
-                                 (prob = ode,), ode.f, alg,
-                                 PairedExplicitRKOptions(callback, ode.tspan; kwargs...),
-                                 false,
-                                 k1, k_higher)
+    integrator = PairedExplicitRK2Integrator(u0, du, u_tmp, t0, dt, zero(dt), iter,
+                                             ode.p,
+                                             (prob = ode,), ode.f, alg,
+                                             PairedExplicitRKOptions(callback,
+                                                                     ode.tspan;
+                                                                     kwargs...),
+                                             false,
+                                             k1, k_higher)
 
     # initialize callbacks
     if callback isa CallbackSet

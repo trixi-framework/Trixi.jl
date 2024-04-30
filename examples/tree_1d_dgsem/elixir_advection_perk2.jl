@@ -53,7 +53,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# Construct second order Paired Explicit Runge Kutta method with 6 stages for given simulation setup.
+# Construct second order paired explicit Runge-Kutta method with 6 stages for given simulation setup.
 # Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
 # in calculating the polynomial coefficients in the ODE algorithm.
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
