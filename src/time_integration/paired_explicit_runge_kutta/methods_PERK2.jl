@@ -50,7 +50,8 @@ function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals, verbose)
 
-    mon_coeffs, dt_opt = bisection(consistency_order, num_eig_vals, num_stages, dtmax, dteps,
+    mon_coeffs, dt_opt = bisection(consistency_order, num_eig_vals, num_stages, dtmax,
+                                   dteps,
                                    eig_vals, verbose)
     mon_coeffs = undo_normalization!(consistency_order, num_stages, mon_coeffs)
 
@@ -113,57 +114,55 @@ mutable struct PERK2 <: PERKSingle
     b1::Float64
     bS::Float64
     c_end::Float64
-
-    # Constructor that reads the coefficients from a file
-    function PERK2(num_stages, base_path_mon_coeffs::AbstractString, bS = 1.0,
-                   c_end = 0.5)
-        newPERK2 = new(num_stages)
-
-        newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages,
-                                                                      base_path_mon_coeffs,
-                                                                      bS, c_end)
-
-        newPERK2.b1 = one(bS) - bS
-        newPERK2.bS = bS
-        newPERK2.c_end = c_end
-        return newPERK2
-    end
-
-    # Constructor that calculates the coefficients with polynomial optimizer from a semidiscretization
-    function PERK2(num_stages, tspan, semi::AbstractSemidiscretization, verbose = false,
-                   bS = 1.0,
-                   c_end = 0.5)
-        eig_vals = eigvals(jacobian_ad_forward(semi))
-        newPERK2 = new(num_stages)
-
-        newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages,
-                                                                      eig_vals, tspan,
-                                                                      bS, c_end,
-                                                                      verbose)
-
-        newPERK2.b1 = one(bS) - bS
-        newPERK2.bS = bS
-        newPERK2.c_end = c_end
-        return newPERK2
-    end
-
-    # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
-    function PERK2(num_stages, tspan, eig_vals::Vector{ComplexF64}, verbose = false,
-                   bS = 1.0,
-                   c_end = 0.5)
-        newPERK2 = new(num_stages)
-
-        newPERK2.a_matrix, newPERK2.c = compute_PERK2_butcher_tableau(num_stages,
-                                                                      eig_vals, tspan,
-                                                                      bS, c_end,
-                                                                      verbose)
-
-        newPERK2.b1 = one(bS) - bS
-        newPERK2.bS = bS
-        newPERK2.c_end = c_end
-        return newPERK2
-    end
 end # struct PERK2
+
+# Constructor that reads the coefficients from a file
+function PERK2(num_stages, base_path_mon_coeffs::AbstractString, bS = 1.0,
+               c_end = 0.5)
+    a_matrix, c = compute_PERK2_butcher_tableau(num_stages,
+                                                base_path_mon_coeffs,
+                                                bS, c_end)
+
+    b1 = one(bS) - bS
+
+    newPERK2 = PERK2(num_stages, a_matrix, c, b1, bS, c_end)
+
+    return newPERK2
+end
+
+# Constructor that calculates the coefficients with polynomial optimizer from a semidiscretization
+function PERK2(num_stages, tspan, semi::AbstractSemidiscretization, verbose = false,
+               bS = 1.0,
+               c_end = 0.5)
+    eig_vals = eigvals(jacobian_ad_forward(semi))
+
+    a_matrix, c = compute_PERK2_butcher_tableau(num_stages,
+                                                eig_vals, tspan,
+                                                bS, c_end,
+                                                verbose)
+
+    b1 = one(bS) - bS
+
+    newPERK2 = PERK2(num_stages, a_matrix, c, b1, bS, c_end)
+
+    return newPERK2
+end
+
+# Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
+function PERK2(num_stages, tspan, eig_vals::Vector{ComplexF64}, verbose = false,
+               bS = 1.0,
+               c_end = 0.5)
+    a_matrix, c = compute_PERK2_butcher_tableau(num_stages,
+                                                eig_vals, tspan,
+                                                bS, c_end,
+                                                verbose)
+
+    b1 = one(bS) - bS
+
+    newPERK2 = PERK2(num_stages, a_matrix, c, b1, bS, c_end)
+
+    return newPERK2
+end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
 mutable struct PERKIntegratorOptions{Callback}
