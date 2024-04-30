@@ -299,6 +299,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         mesh = UnstructuredMesh2D(mesh_filename; RealT = RealT,
                                   periodicity = periodicity_,
                                   unsaved_changes = false)
+        mesh.current_filename = mesh_file
     elseif mesh_type == "P4estMesh"
         p4est_filename, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
@@ -317,7 +318,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         p4est = load_p4est(p4est_file, Val(ndims))
 
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                                nodes, boundary_names, "", false, true)
+                                nodes, boundary_names, mesh_file, false, true)
     else
         error("Unknown mesh type!")
     end
@@ -405,7 +406,7 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
         p4est = load_p4est(p4est_file, Val(ndims_))
 
         mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
-                                 nodes, boundary_names, "", false, true)
+                                 nodes, boundary_names, mesh_file, false, true)
     else
         error("Unknown mesh type!")
     end
