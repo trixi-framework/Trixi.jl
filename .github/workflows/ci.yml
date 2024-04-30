@@ -111,8 +111,6 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - run: julia -e 'using Pkg; Pkg.Registry.add(url="https://github.com/DLR-AMR/T8code.jl", rev="bump-to-t8code-2.0.0"))'
-          shell: bash
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
