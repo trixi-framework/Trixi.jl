@@ -14,6 +14,8 @@ abstract type AbstractPairedExplicitRK end
 # Abstract base type for single/standalone PERK time integration schemes
 abstract type AbstractPairedExplicitRKSingle <: AbstractPairedExplicitRK end
 
+# Compute the coefficients of the A matrix in the Butcher tableau using
+# stage scaling factors and monomial coefficients
 function compute_a_coeffs(num_stage_evals, stage_scaling_factors, monomial_coeffs)
     a_coeffs = copy(monomial_coeffs)
 
@@ -27,6 +29,8 @@ function compute_a_coeffs(num_stage_evals, stage_scaling_factors, monomial_coeff
     return reverse(a_coeffs)
 end
 
+# Compute the Butcher tableau for a paired explicit Runge-Kutta method order 2
+# using a list of eigenvalues
 function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                    bS, c_end, verbose)
 
@@ -68,6 +72,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     return a_matrix, c
 end
 
+# Compute the Butcher tableau for a paired explicit Runge-Kutta method order 2
+# using provided monomial coefficients file
 function compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                    base_path_monomial_coeffs::AbstractString,
                                                    bS, c_end)
