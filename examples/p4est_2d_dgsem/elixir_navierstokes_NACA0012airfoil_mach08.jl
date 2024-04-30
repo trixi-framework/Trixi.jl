@@ -161,8 +161,8 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_integrals = (drag_coefficient,
                                                            lift_coefficient,
                                                            drag_coefficient_shear_force,
-                                                           lift_coefficient_shear_force,
-                                                           friction_coefficient,
+                                                           lift_coefficient_shear_force),
+                                     analysis_pointwise = (friction_coefficient,
                                                            pressure_coefficient))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
