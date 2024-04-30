@@ -59,6 +59,16 @@ end
     end
 end
 
+@trixi_testset "test t8code mesh from ABAQUS HOHQMesh file" begin
+    @test begin
+        # Unstructured ABAQUS mesh file created with HOHQMesh..
+        file_path = Trixi.download("https://gist.githubusercontent.com/jmark/9e0da4306e266617eeb19bc56b0e7feb/raw/e6856e1deb648a807f6bb6d6dcacff9e55d94e2a/round_2d_tank.inp",
+          joinpath(EXAMPLES_DIR, "round_2d_tank.inp"))
+        mesh = T8codeMesh(AbaqusFile{2}(file_path))
+        all(size(mesh.tree_node_coordinates) .== (2, 4, 4, 340))
+    end
+end
+
 @trixi_testset "elixir_advection_basic.jl" begin
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),

@@ -593,13 +593,8 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
                                                                                                              boundary_symbols)
     end
 
-    if typeof(connectivity) <: Ptr{p4est_connectivity}
-        cmesh = t8_cmesh_new_from_p4est(connectivity, mpi_comm(), 0)
-    elseif typeof(connectivity) <: Ptr{p8est_connectivity}
-        cmesh = t8_cmesh_new_from_p8est(connectivity, mpi_comm(), 0)
-    else
-        throw("`connectivity` is not of type `Ptr{p*est_connectivity}`.")
-    end
+    cmesh = t8_cmesh_new_from_connectivity(connectivity, mpi_comm())
+    p4est_connectivity_destroy(connectivity)
 
     do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()
@@ -608,6 +603,14 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
 
     return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
                              boundary_names, "")
+end
+
+function t8_cmesh_new_from_connectivity(connectivity::Ptr{p4est_connectivity}, comm)
+    return t8_cmesh_new_from_p4est(connectivity, comm, 0)
+end
+
+function t8_cmesh_new_from_connectivity(connectivity::Ptr{p8est_connectivity}, comm)
+    return t8_cmesh_new_from_p8est(connectivity, comm, 0)
 end
 
 struct adapt_callback_passthrough
