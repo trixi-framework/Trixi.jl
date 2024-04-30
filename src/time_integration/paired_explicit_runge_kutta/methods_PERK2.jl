@@ -43,16 +43,16 @@ function compute_PERK2_butcher_tableau(num_stages, eig_vals, tspan,
     a_matrix = zeros(coeffs_max, 2)
     a_matrix[:, 1] = c[3:end]
 
-    cons_order = 2
+    consistency_order = 2
 
     dtmax = tspan[2] - tspan[1]
     dteps = 1e-9
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals, verbose)
 
-    mon_coeffs, dt_opt = bisection(cons_order, num_eig_vals, num_stages, dtmax, dteps,
+    mon_coeffs, dt_opt = bisection(consistency_order, num_eig_vals, num_stages, dtmax, dteps,
                                    eig_vals, verbose)
-    mon_coeffs = undo_normalization!(cons_order, num_stages, mon_coeffs)
+    mon_coeffs = undo_normalization!(consistency_order, num_stages, mon_coeffs)
 
     num_mon_coeffs = length(mon_coeffs)
     @assert num_mon_coeffs == coeffs_max

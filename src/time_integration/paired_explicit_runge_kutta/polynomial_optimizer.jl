@@ -21,9 +21,9 @@ function filter_eig_vals(eig_vals, verbose, threshold = 1e-12)
     return length(filtered_eig_vals), filtered_eig_vals
 end
 
-function undo_normalization!(cons_order, num_stage_evals, gamma_opt)
-    for k in (cons_order + 1):num_stage_evals
-        gamma_opt[k - cons_order] = gamma_opt[k - cons_order] / factorial(k)
+function undo_normalization!(consistency_order, num_stage_evals, gamma_opt)
+    for k in (consistency_order + 1):num_stage_evals
+        gamma_opt[k - consistency_order] = gamma_opt[k - consistency_order] / factorial(k)
     end
     return gamma_opt
 end

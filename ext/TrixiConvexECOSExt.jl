@@ -27,7 +27,7 @@ import Trixi: stability_polynomials, bisection
 @muladd begin
 #! format: noindent
 
-function stability_polynomials(cons_order, num_stage_evals, num_eig_vals,
+function stability_polynomials(consistency_order, num_stage_evals, num_eig_vals,
                                normalized_powered_eigvals_scaled, pnoms,
                                gamma)
     # Initialize with zero'th order (z^0) coefficient
@@ -35,16 +35,16 @@ function stability_polynomials(cons_order, num_stage_evals, num_eig_vals,
         pnoms[i] = 1.0
     end
 
-    # First `cons_order` terms of the exponential
-    for k in 1:cons_order
+    # First `consistency_order` terms of the exponential
+    for k in 1:consistency_order
         for i in 1:num_eig_vals
             pnoms[i] += normalized_powered_eigvals_scaled[i, k]
         end
     end
 
     # Contribution from free coefficients
-    for k in (cons_order + 1):num_stage_evals
-        pnoms += gamma[k - cons_order] * normalized_powered_eigvals_scaled[:, k]
+    for k in (consistency_order + 1):num_stage_evals
+        pnoms += gamma[k - consistency_order] * normalized_powered_eigvals_scaled[:, k]
     end
 
     # For optimization only the maximum is relevant
@@ -63,7 +63,8 @@ and partial differential equations.
 Optimal stability polynomials for numerical integration of initial value problems
 [DOI: 10.2140/camcos.2012.7.247](https://doi.org/10.2140/camcos.2012.7.247)
 """
-function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_vals,
+function bisection(consistency_order, num_eig_vals, num_stage_evals, dtmax, dteps,
+                   eig_vals,
                    verbose)
     dtmin = 0.0
     dt = -1.0
@@ -73,7 +74,7 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
     pnoms = ones(Complex{Float64}, num_eig_vals, 1)
 
     # Init datastructure for monomial coefficients
-    gamma = Variable(num_stage_evals - cons_order)
+    gamma = Variable(num_stage_evals - consistency_order)
 
     normalized_powered_eigvals = zeros(Complex{Float64}, num_eig_vals, num_stage_evals)
 
@@ -105,7 +106,7 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
         end
 
         # Use last optimal values for gamma in (potentially) next iteration
-        problem = minimize(stability_polynomials(cons_order, num_stage_evals,
+        problem = minimize(stability_polynomials(consistency_order, num_stage_evals,
                                                  num_eig_vals,
                                                  normalized_powered_eigvals_scaled,
                                                  pnoms,
@@ -127,7 +128,7 @@ function bisection(cons_order, num_eig_vals, num_stage_evals, dtmax, dteps, eig_
 
         abs_p = problem.optval
 
-        if abs_p < 1.0
+        if abs_p < 1
             dtmin = dt
         else
             dtmax = dt
