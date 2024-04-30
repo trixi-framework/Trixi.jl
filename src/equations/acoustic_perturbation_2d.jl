@@ -112,10 +112,9 @@ A constant initial condition where the state variables are zero and the mean flo
 Uses the global mean values from `equations`.
 """
 function initial_condition_constant(x, t, equations::AcousticPerturbationEquations2D)
-    RealT = eltype(x)
-    v1_prime = zero(RealT)
-    v2_prime = zero(RealT)
-    p_prime_scaled = zero(RealT)
+    v1_prime = 0
+    v2_prime = 0
+    p_prime_scaled = 0
 
     return SVector(v1_prime, v2_prime, p_prime_scaled, global_mean_vars(equations)...)
 end
@@ -182,9 +181,8 @@ end
 A Gaussian pulse in a constant mean flow. Uses the global mean values from `equations`.
 """
 function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2D)
-    RealT = eltype(x)
-    v1_prime = zero(RealT)
-    v2_prime = zero(RealT)
+    v1_prime = 0
+    v2_prime = 0
     p_prime = exp(-4 * (x[1]^2 + x[2]^2))
 
     prim = SVector(v1_prime, v2_prime, p_prime, global_mean_vars(equations)...)
@@ -261,14 +259,13 @@ end
     v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
     # Calculate flux for conservative state variables
-    RealT = eltype(u)
     if orientation == 1
         f1 = v1_mean * v1_prime + v2_mean * v2_prime +
              c_mean^2 * p_prime_scaled / rho_mean
-        f2 = zero(RealT)
+        f2 = 0
         f3 = rho_mean * v1_prime + v1_mean * p_prime_scaled
     else
-        f1 = zero(RealT)
+        f1 = 0
         f2 = v1_mean * v1_prime + v2_mean * v2_prime +
              c_mean^2 * p_prime_scaled / rho_mean
         f3 = rho_mean * v2_prime + v2_mean * p_prime_scaled
@@ -277,7 +274,7 @@ end
     # The rest of the state variables are actually variable coefficients, hence the flux should be
     # zero. See https://github.com/trixi-framework/Trixi.jl/issues/358#issuecomment-784828762
     # for details.
-    f4 = f5 = f6 = f7 = zero(RealT)
+    f4 = f5 = f6 = f7 = 0
 
     return SVector(f1, f2, f3, f4, f5, f6, f7)
 end
@@ -318,8 +315,7 @@ end
     # The rest of the state variables are actually variable coefficients, hence the flux should be
     # zero. See https://github.com/trixi-framework/Trixi.jl/issues/358#issuecomment-784828762
     # for details.
-    RealT = eltype(u)
-    f4 = f5 = f6 = f7 = zero(RealT)
+    f4 = f5 = f6 = f7 = 0
 
     return SVector(f1, f2, f3, f4, f5, f6, f7)
 end
@@ -350,10 +346,8 @@ end
                                                               equations::AcousticPerturbationEquations2D)
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
-
-    RealT = eltype(u_ll)
-    diss = -convert(RealT, 0.5) * λ * (u_rr - u_ll)
-    z = zero(RealT)
+    diss = -0.5f0 * λ * (u_rr - u_ll)
+    z = 0
 
     return SVector(diss[1], diss[2], diss[3], z, z, z, z)
 end
