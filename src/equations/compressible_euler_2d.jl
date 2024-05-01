@@ -552,7 +552,7 @@ end
 end
 
 """
-    flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+flux_chandrashekar(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
 
 Entropy conserving two-point flux by
 - Chandrashekar (2013)
@@ -594,6 +594,38 @@ Entropy conserving two-point flux by
         f4 = f1 * 0.5 * (1 / (equations.gamma - 1) / beta_mean - velocity_square_avg) +
              f2 * v1_avg + f3 * v2_avg
     end
+
+    return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_chandrashekar(u_ll, u_rr, normal_direction::AbstractVector,
+                                    equations::CompressibleEulerEquations2D)
+    # Unpack left and right state
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+    beta_ll = 0.5 * rho_ll / p_ll
+    beta_rr = 0.5 * rho_rr / p_rr
+    specific_kin_ll = 0.5 * (v1_ll^2 + v2_ll^2)
+    specific_kin_rr = 0.5 * (v1_rr^2 + v2_rr^2)
+
+    # Compute the necessary mean values
+    rho_avg = 0.5 * (rho_ll + rho_rr)
+    rho_mean = ln_mean(rho_ll, rho_rr)
+    beta_mean = ln_mean(beta_ll, beta_rr)
+    beta_avg = 0.5 * (beta_ll + beta_rr)
+    v1_avg = 0.5 * (v1_ll + v1_rr)
+    v2_avg = 0.5 * (v2_ll + v2_rr)
+    p_mean = 0.5 * rho_avg / beta_avg
+    velocity_square_avg = specific_kin_ll + specific_kin_rr
+
+    # Multiply with average of normal velocities
+    f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+    f2 = f1 * v1_avg + p_mean * normal_direction[1]
+    f3 = f1 * v2_avg + p_mean * normal_direction[2]
+    f4 = f1 * 0.5 * (1 / (equations.gamma - 1) / beta_mean - velocity_square_avg) +
+         f2 * v1_avg + f3 * v2_avg
 
     return SVector(f1, f2, f3, f4)
 end
