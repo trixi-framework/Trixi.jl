@@ -552,7 +552,7 @@ end
 end
 
 """
-flux_chandrashekar(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
+    flux_chandrashekar(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
 
 Entropy conserving two-point flux by
 - Chandrashekar (2013)
