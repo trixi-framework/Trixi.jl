@@ -5,6 +5,7 @@
 @muladd begin
 #! format: noindent
 
+# Basic implementation of the second-order paired explicit Runge-Kutta (PERK) method
 include("methods_PERK2.jl")
 
 # Add definitions of functions related to polynomial optimization by Convex and ECOS here
