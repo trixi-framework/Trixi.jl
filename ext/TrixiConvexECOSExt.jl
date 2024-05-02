@@ -91,8 +91,6 @@ function stability_polynomials!(pnoms, consistency_order, num_stage_evals,
 end
 
 #=
-bisection()
-
 The following structures and methods provide a simplified implementation to 
 discover optimal stability polynomial for a given set of `eig_vals`
 These are designed for the one-step (i.e., Runge-Kutta methods) integration of initial value ordinary 
@@ -105,8 +103,7 @@ Optimal stability polynomials for numerical integration of initial value problem
 
 # Perform bisection to optimize timestep for stability of the polynomial
 function bisect_stability_polynomial(consistency_order, num_eig_vals, num_stage_evals,
-                                     dtmax, dteps,
-                                     eig_vals,
+                                     dtmax, dteps, eig_vals,
                                      verbose)
     dtmin = 0.0
     dt = -1.0

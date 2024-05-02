@@ -278,8 +278,6 @@ export trixi_include, examples_dir, get_examples, default_example,
 
 export ode_norm, ode_unstable_check
 
-#export PERK2
-
 export convergence_test, jacobian_fd, jacobian_ad_forward, linear_structure
 
 export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
@@ -291,7 +289,7 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        adapt_to_mesh_level,
        iplot, iplot!
 
-# Paired Explicit RK-related exports
+# Paired Explicit RK (PERK) related exports
 export filter_eig_vals, undo_normalization!, stability_polynomials!,
        ebisect_stability_polynomial
 
