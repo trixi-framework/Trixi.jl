@@ -145,7 +145,7 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     t = first(ode.tspan)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
-    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, zero(dt), iter, ode.p,
+    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, dt, iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...),
@@ -253,12 +253,12 @@ u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
 
 # used by adaptive timestepping algorithms in DiffEq
 function set_proposed_dt!(integrator::SimpleIntegratorSSP, dt)
-    integrator.dt = dt
+    (integrator.dt = dt; integrator.dtcache = dt)
 end
 
 # used by adaptive timestepping algorithms in DiffEq
 function get_proposed_dt(integrator::SimpleIntegratorSSP)
-    return integrator.dt
+    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
 end
 
 # stop the time integration
@@ -280,14 +280,12 @@ function modify_dt_for_tstops!(integrator::SimpleIntegratorSSP)
             integrator.dt = integrator.tdir *
                             min(abs(integrator.dt), abs(tdir_tstop - tdir_t)) # step! to the end
         elseif iszero(integrator.dtcache) && integrator.dtchangeable
-            integrator.dt = integrator.tdir *
-                            min(abs(integrator.dt), abs(tdir_tstop - tdir_t)) # step! to the end
+            integrator.dt = integrator.tdir * min(abs(tdir_tstop - tdir_t)) # step! to the end
         elseif integrator.dtchangeable && !integrator.force_stepfail
             # always try to step! with dtcache, but lower if a tstop
             # however, if force_stepfail then don't set to dtcache, and no tstop worry
             integrator.dt = integrator.tdir *
-                            min(abs(integrator.dt), abs(integrator.dtcache),
-                                abs(tdir_tstop - tdir_t)) # step! to the end
+                            min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
         end
     end
 end
