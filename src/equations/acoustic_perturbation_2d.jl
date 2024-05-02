@@ -130,7 +130,7 @@ function initial_condition_convergence_test(x, t,
     RealT = eltype(x)
     a = 1
     c = 2
-    L = 2
+    L = convert(RealT, 2)
     f = 2 / L
     A = convert(RealT, 0.2)
     omega = 2 * convert(RealT, pi) * f
@@ -158,7 +158,7 @@ function source_terms_convergence_test(u, x, t,
     RealT = eltype(u)
     a = 1
     c = 2
-    L = 2
+    L = convert(RealT, 2)
     f = 2 / L
     A = convert(RealT, 0.2)
     omega = 2 * convert(RealT, pi) * f
@@ -170,7 +170,7 @@ function source_terms_convergence_test(u, x, t,
     du3 = A * omega * co * (2 * c_mean^2 * rho_mean + 2 * c * tmp + 2 * A * tmp * si) /
           c_mean^2
 
-    du4 = du5 = du6 = du7 = zero(RealT)
+    du4 = du5 = du6 = du7 = 0
 
     return SVector(du1, du2, du3, du4, du5, du6, du7)
 end
