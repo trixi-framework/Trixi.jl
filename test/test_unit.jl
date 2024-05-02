@@ -1638,7 +1638,7 @@ end
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
                    joinpath(path_coeff_file, "gamma_6.txt"))
 
-    ode_algorithm = PERK2(6, path_coeff_file)
+    ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
 
     @test ode_algorithm.a_matrix == [0.12405417889682908 0.07594582110317093
            0.16178873711001726 0.13821126288998273
@@ -1650,7 +1650,7 @@ end
 
     eig_vals = readdlm(joinpath(path_coeff_file, "spectrum_2d.txt"), ComplexF64)
     tspan = (0.0, 1.0)
-    ode_algorithm = PERK2(12, tspan, vec(eig_vals))
+    ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
 
     @test ode_algorithm.a_matrix == [0.06460030228718522 0.026308788621905697
            0.09476728053612687 0.04159635582750947
