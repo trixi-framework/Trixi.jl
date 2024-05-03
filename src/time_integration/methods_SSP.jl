@@ -185,14 +185,14 @@ function solve!(integrator::SimpleIntegratorSSP)
             error("time step size `dt` is NaN")
         end
 
+        modify_dt_for_tstops!(integrator)
+
         # if the next iteration would push the simulation beyond the end time, set dt accordingly
         if integrator.t + integrator.dt > t_end ||
            isapprox(integrator.t + integrator.dt, t_end)
             integrator.dt = t_end - integrator.t
             terminate!(integrator)
         end
-
-        modify_dt_for_tstops!(integrator)
 
         @. integrator.r0 = integrator.u
         for stage in eachindex(alg.c)
