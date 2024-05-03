@@ -28,7 +28,7 @@ using Trixi: Trixi, filter_eig_vals, undo_normalization!, bisect_stability_polyn
 # Filter out eigenvalues with positive real parts, those with negative imaginary
 # parts due to eigenvalues' symmetry around the real axis, or the eigenvalues
 # that are smaller than a specified threshold.
-function Trixi.filter_eig_vals(eig_vals, verbose, threshold = 1e-12)
+function Trixi.filter_eig_vals(eig_vals, verbose = false, threshold = 1e-12)
     filtered_eig_vals = Complex{Float64}[]
 
     for eig_val in eig_vals
@@ -102,7 +102,7 @@ Optimal stability polynomials for numerical integration of initial value problem
 function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
                                            num_stage_evals,
                                            dtmax, dteps, eig_vals,
-                                           verbose)
+                                           verbose = false)
     dtmin = 0.0
     dt = -1.0
     abs_p = -1.0
