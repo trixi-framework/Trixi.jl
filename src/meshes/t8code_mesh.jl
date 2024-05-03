@@ -127,7 +127,7 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
                                                     ntuple(_ -> length(nodes), NDIMS)...,
                                                     num_trees)
 
-    coords_ref = Vector{Cdouble}(undef, 3)
+    coords_ref = Vector{Float64}(undef, 3)
 
     # Calculate node coordinates of reference mesh.
     if NDIMS == 2
