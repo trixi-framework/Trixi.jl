@@ -41,7 +41,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     end
     stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
-    # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
+    # - 2 Since first entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     coeffs_max = num_stages - 2
 
     a_matrix = zeros(coeffs_max, 2)
