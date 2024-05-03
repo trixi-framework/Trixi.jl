@@ -508,7 +508,7 @@ end
 Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`).
 
-To create a curved unstructured mesh `T8codeMesh` two strategies are available:
+To create a curved unstructured `T8codeMesh` two strategies are available:
 
 - `HOHQMesh Abaqus`: High-order, curved boundary information created by
                      [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl) is
