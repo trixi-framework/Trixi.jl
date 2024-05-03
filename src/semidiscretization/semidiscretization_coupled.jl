@@ -391,9 +391,6 @@ BoundaryConditionCoupled(2, (:begin, :i_backwards), Float64, fun)
 # Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
 BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
 ```
-
-!!! warning "Experimental code"
-    This is an experimental feature and can change any time.
 """
 mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indices,
                                         CouplingConverter}
@@ -436,10 +433,11 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
                                                         equations)
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
-    u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
-                                                                   surface_node_indices...,
-                                                                   cell_indices...],
-                                Val(nvariables(equations))))
+    # u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
+    #                                                                surface_node_indices...,
+    #                                                                cell_indices...],
+    #                             Val(nvariables(equations))))
+    u_boundary = u_inner .* 0.0 .+ 1.0
 
     # Calculate boundary flux
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
@@ -451,11 +449,34 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
     return flux
 end
 
+# flux_ = boundary_condition(flux_inner, u_inner, normal_direction, x, t, surface_flux, equations)
+# (::BoundaryConditionCoupled{2, 3, …})(::SVector{1, Float64}, ::SVector{2, Float64}, ::SVector{2, Float64}, ::Float64, ::FluxLaxFriedrichs{typeof(max_abs_speed_naive)}, ::LinearScalarAdvectionEquation2D{Float64})
+function (boundary_condition::BoundaryConditionCoupled)(u_inner, normal_direction,
+                                                        x, t, surface_flux_function,
+                                                        equations)
+    # @autoinfiltrate
+    # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
+    # but we don't have a solver here
+    # @autoinfiltrate
+    u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
+                                                                   1...,
+                                                                   1...],
+                                Val(nvariables(equations))))
+
+    # Calculate boundary flux
+    # if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+    # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    #     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    # end
+
+    return flux
+end
+
 function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
     n_boundaries = 2 * ndims(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
 
-    # @autoinfiltrate
     if !(typeof(semi.boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes)
         for direction in 1:n_boundaries
             boundary_condition = semi.boundary_conditions[direction]
@@ -642,7 +663,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
                                                   equations_own)
 
             for i in eachindex(u_node_converted)
-                @autoinfiltrate
                 u_boundary[i, element_id, cell] = u_node_converted[i]
             end
 
@@ -662,7 +682,7 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
-                                                  mesh::StructuredMesh, equations,
+                                                  mesh::Union{StructuredMesh, P4estMesh}, equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
