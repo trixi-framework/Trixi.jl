@@ -143,8 +143,7 @@ end
 # semidiscretization
 function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization,
                            verbose = false,
-                           bS = 1.0,
-                           c_end = 0.5)
+                           bS = 1.0, c_end = 0.5)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
