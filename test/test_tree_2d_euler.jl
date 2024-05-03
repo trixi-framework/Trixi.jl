@@ -235,6 +235,37 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_shockcapturing_subcell.jl (fixed time step)" begin
+    # Testing local SSP method without stepsize callback
+    # Additionally, tests combination with SaveSolutionCallback using time interval
+    save_solution = SaveSolutionCallback(dt = 0.1 + 1.0e-8)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shockcapturing_subcell.jl"),
+                        dt=3.0e-3,
+                        tspan=(0.0, 0.25),
+                        callbacks = CallbackSet(summary_callback, save_solution, analysis_callback),
+                        l2=[
+                            0.05621775473787103,
+                            0.06928809243501848,
+                            0.0692880359352759,
+                            0.6200493251265817,
+                        ],
+                        linf=[
+                            0.29610606271773776,
+                            0.6493038217288114,
+                            0.6493038571824573,
+                            3.077005817249576,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         l2=[
