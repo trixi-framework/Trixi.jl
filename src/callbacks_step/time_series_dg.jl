@@ -9,7 +9,7 @@
 function save_time_series_file(time_series_callback,
                                mesh::Union{TreeMesh, UnstructuredMesh2D},
                                equations, dg::DG)
-    @unpack (interval, solution_variables, variable_names,
+    @unpack (interval, variable_names,
     output_directory, filename, point_coordinates,
     point_data, time, step) = time_series_callback
     n_points = length(point_data)
