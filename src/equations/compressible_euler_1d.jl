@@ -72,7 +72,7 @@ function initial_condition_convergence_test(x, t,
     RealT = eltype(x)
     c = 2
     A = convert(RealT, 0.1)
-    L = convert(RealT, 2)
+    L = convert(RealT, 2) # since we divide by L below
     f = 1 / L
     ω = 2 * convert(RealT, pi) * f
     ini = c + A * sin(ω * (x[1] - t))
@@ -97,7 +97,7 @@ Source terms used for convergence tests in combination with
     RealT = eltype(u)
     c = 2
     A = convert(RealT, 0.1)
-    L = convert(RealT, 2)
+    L = convert(RealT, 2) # since we divide by L below
     f = 1 / L
     ω = 2 * convert(RealT, pi) * f
     γ = equations.gamma
