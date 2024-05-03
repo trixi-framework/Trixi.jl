@@ -129,8 +129,7 @@ end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
 function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
-                           bS = 1.0,
-                           c_end = 0.5)
+                           bS = 1.0, c_end = 0.5)
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             base_path_monomial_coeffs,
                                                             bS, c_end)
