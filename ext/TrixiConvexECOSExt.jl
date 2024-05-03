@@ -18,8 +18,7 @@ using LinearAlgebra: eigvals
 using Trixi: @muladd
 
 # Import functions such that they can be extended with new methods
-import Trixi: filter_eig_vals, undo_normalization!, stability_polynomials!,
-              bisect_stability_polynomial
+import Trixi: filter_eig_vals, undo_normalization!, bisect_stability_polynomial
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
