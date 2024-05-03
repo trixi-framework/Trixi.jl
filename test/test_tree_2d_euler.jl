@@ -238,11 +238,11 @@ end
 @trixi_testset "elixir_euler_shockcapturing_subcell.jl (fixed time step)" begin
     # Testing local SSP method without stepsize callback
     # Additionally, tests combination with SaveSolutionCallback using time interval
-    save_solution = SaveSolutionCallback(dt = 0.1 + 1.0e-8)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shockcapturing_subcell.jl"),
                         dt=3.0e-3,
                         tspan=(0.0, 0.25),
+                        save_solution=SaveSolutionCallback(dt=0.1+1.0e-8),
                         callbacks=CallbackSet(summary_callback, save_solution,
                                               analysis_callback, alive_callback),
                         l2=[
