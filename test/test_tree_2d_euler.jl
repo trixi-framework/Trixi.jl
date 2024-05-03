@@ -244,7 +244,7 @@ end
                         dt=3.0e-3,
                         tspan=(0.0, 0.25),
                         callbacks=CallbackSet(summary_callback, save_solution,
-                                              analysis_callback),
+                                              analysis_callback, alive_callback),
                         l2=[
                             0.05621775473787103,
                             0.06928809243501848,
