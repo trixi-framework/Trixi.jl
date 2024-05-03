@@ -354,8 +354,8 @@ Entropy conserving two-point flux by
 
     # Compute the necessary mean values
     rho_avg = 0.5f0 * (rho_ll + rho_rr)
-    rho_mean = ln_mean(rho_ll, rho_rr) # TODO: Modify ln_mean() from math.jl
-    beta_mean = ln_mean(beta_ll, beta_rr) # TODO: Modify ln_mean() from math.jl
+    rho_mean = ln_mean(rho_ll, rho_rr)
+    beta_mean = ln_mean(beta_ll, beta_rr)
     beta_avg = 0.5f0 * (beta_ll + beta_rr)
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     p_mean = 0.5f0 * rho_avg / beta_avg
@@ -392,12 +392,12 @@ See also
     rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
 
     # Compute the necessary mean values
-    rho_mean = ln_mean(rho_ll, rho_rr) # TODO: Modify ln_mean() from math.jl
+    rho_mean = ln_mean(rho_ll, rho_rr)
     # Algebraically equivalent to `inv_ln_mean(rho_ll / p_ll, rho_rr / p_rr)`
     # in exact arithmetic since
     #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
     #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
-    inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll) # TODO: Modify inv_ln_mean() from math.jl
+    inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     p_avg = 0.5f0 * (p_ll + p_rr)
     velocity_square_avg = 0.5f0 * (v1_ll * v1_rr)
