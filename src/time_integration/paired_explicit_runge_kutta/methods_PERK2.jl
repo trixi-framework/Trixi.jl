@@ -160,8 +160,7 @@ end
 # list of eigenvalues
 function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64},
                            verbose = false,
-                           bS = 1.0,
-                           c_end = 0.5)
+                           bS = 1.0, c_end = 0.5)
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             eig_vals, tspan,
                                                             bS, c_end,
