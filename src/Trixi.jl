@@ -289,9 +289,6 @@ export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
        adapt_to_mesh_level,
        iplot, iplot!
 
-# Paired Explicit RK (PERK) related exports
-export filter_eig_vals, undo_normalization!, bisect_stability_polynomial
-
 function __init__()
     init_mpi()
 

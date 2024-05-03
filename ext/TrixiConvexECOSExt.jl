@@ -14,11 +14,9 @@ end
 # Use other necessary libraries
 using LinearAlgebra: eigvals
 
-# Use additional symbols that are not exported
-using Trixi: @muladd
-
-# Import functions such that they can be extended with new methods
-import Trixi: filter_eig_vals, undo_normalization!, bisect_stability_polynomial
+# Use functions that are to be extended and additional symbols that are not exported
+using Trixi: Trixi, filter_eig_vals, undo_normalization!, bisect_stability_polynomial,
+             @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -30,7 +28,7 @@ import Trixi: filter_eig_vals, undo_normalization!, bisect_stability_polynomial
 # Filter out eigenvalues with positive real parts, those with negative imaginary
 # parts due to eigenvalues' symmetry around the real axis, or the eigenvalues
 # that are smaller than a specified threshold.
-function filter_eig_vals(eig_vals, verbose, threshold = 1e-12)
+function Trixi.filter_eig_vals(eig_vals, verbose, threshold = 1e-12)
     filtered_eig_vals = Complex{Float64}[]
 
     for eig_val in eig_vals
@@ -52,7 +50,7 @@ end
 
 # Undo normalization of stability polynomial coefficients by index factorial
 # relative to consistency order.
-function undo_normalization!(consistency_order, num_stage_evals, gamma_opt)
+function Trixi.undo_normalization!(consistency_order, num_stage_evals, gamma_opt)
     for k in (consistency_order + 1):num_stage_evals
         gamma_opt[k - consistency_order] = gamma_opt[k - consistency_order] /
                                            factorial(k)
@@ -101,9 +99,10 @@ Optimal stability polynomials for numerical integration of initial value problem
 =#
 
 # Perform bisection to optimize timestep for stability of the polynomial
-function bisect_stability_polynomial(consistency_order, num_eig_vals, num_stage_evals,
-                                     dtmax, dteps, eig_vals,
-                                     verbose)
+function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
+                                           num_stage_evals,
+                                           dtmax, dteps, eig_vals,
+                                           verbose)
     dtmin = 0.0
     dt = -1.0
     abs_p = -1.0
