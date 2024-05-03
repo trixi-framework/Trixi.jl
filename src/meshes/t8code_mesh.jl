@@ -520,7 +520,7 @@ To create a curved unstructured `T8codeMesh` two strategies are available:
                      conditions can be set at each named boundary on a given tree.
 
 - `Standard Abaqus`: By default, with `mapping=nothing` and `polydeg=1`, this creates a
-                     straight-sided from the information parsed from the `meshfile`. If a mapping
+                     straight-sided mesh from the information parsed from the `meshfile`. If a mapping
                      function is specified then it computes the mapped tree coordinates via polynomial
                      interpolants with degree `polydeg`. The mesh created by this function will only
                      have one boundary `:all` if `boundary_symbols` is not specified.
