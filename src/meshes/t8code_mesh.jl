@@ -570,7 +570,7 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
     # Read in the Header of the meshfile to determine which constructor is appropriate.
     header = open(meshfile.path, "r") do io
         readline(io) # Header of the Abaqus file; discarded
-        readline(io) # Readin the actual header information
+        readline(io) # Read in the actual header information
     end
 
     # Check if the meshfile was generated using HOHQMesh.
