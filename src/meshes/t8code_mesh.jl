@@ -545,7 +545,7 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 `initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
 
 # Arguments
-- `meshfile::AbaqusFile{NDIMS}`: Abaqus mesh file object of dimension NDIMS and give `path` to the file.
+- `meshfile::AbaqusFile{NDIMS}`: Abaqus mesh file object of dimension NDIMS and given `path` to the file.
 
 # Optional Keyword Arguments
 - `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
