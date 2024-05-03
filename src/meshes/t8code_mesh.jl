@@ -101,7 +101,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
 end
 
 """
-    T8codeMesh(forest, boundary_names; polydeg, mapping=identity)
+    T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = 1, mapping=identity)
 
 Create a 'T8codeMesh'.
 
