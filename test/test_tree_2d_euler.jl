@@ -240,22 +240,22 @@ end
     # Additionally, tests combination with SaveSolutionCallback using time interval
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shockcapturing_subcell.jl"),
-                        dt=3.0e-3,
+                        dt=2.0e-3,
                         tspan=(0.0, 0.25),
-                        save_solution=SaveSolutionCallback(dt=0.1+1.0e-8),
+                        save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8),
                         callbacks=CallbackSet(summary_callback, save_solution,
                                               analysis_callback, alive_callback),
                         l2=[
-                            0.05621775473787103,
-                            0.06928809243501848,
-                            0.0692880359352759,
-                            0.6200493251265817,
+                            0.05624855363458103,
+                            0.06931288786158463,
+                            0.06931283188960778,
+                            0.6200535829842072,
                         ],
                         linf=[
-                            0.29610606271773776,
-                            0.6493038217288114,
-                            0.6493038571824573,
-                            3.077005817249576,
+                            0.29029967648805566,
+                            0.6494728865862608,
+                            0.6494729363533714,
+                            3.0949621505674787,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
