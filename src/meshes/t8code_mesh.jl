@@ -106,9 +106,9 @@ end
 Create a 'T8codeMesh'.
 
 # Arguments
-- 'forest': Pointer to a committed forest.
-- 'boundary_names': List of boundary names.
-- 'polydeg::Integer': Polynomial degree used to store the geometry of the mesh.
+- `forest`: Pointer to a committed forest.
+- `boundary_names`: List of boundary names.
+- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
 - `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
