@@ -10,8 +10,8 @@
 
 """
     AnalysisSurface{Semidiscretization, Variable}(semi,
-                                                          boundary_symbol_or_boundary_symbols,
-                                                          variable)
+                                                  boundary_symbol_or_boundary_symbols,
+                                                  variable)
 
 This struct is used to compute pointwise surface values of a quantity of interest `variable`
 alongside the boundary/boundaries associated with particular name(s) given in `boundary_symbol`
