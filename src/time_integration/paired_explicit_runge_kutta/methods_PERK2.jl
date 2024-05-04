@@ -166,7 +166,9 @@ function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64},
                                                             eig_vals, tspan,
                                                             bS, c_end,
                                                             verbose)
-
+                                                            
+    b1 = 1.0 - bS
+    
     return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
 
