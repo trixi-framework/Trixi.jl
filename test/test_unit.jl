@@ -1658,6 +1658,9 @@ end
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
 
+    # A temporary line exist to print out hardware-specific optimized values of a_matrix
+    println(ode_algorithm.a_matrix)
+
     @test ode_algorithm.a_matrix == [0.06460030228718522 0.026308788621905697
            0.09476728053612687 0.04159635582750947
            0.12338555995285924 0.058432621865322575
