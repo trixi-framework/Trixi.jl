@@ -5,6 +5,10 @@ using Trixi
 
 using DelimitedFiles: readdlm
 
+# Use Convex and ECOS to load the extension that extends functions for testing
+# PERK Single p2 Constructors
+using Convex, ECOS
+
 include("test_trixi.jl")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
