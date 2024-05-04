@@ -7,11 +7,6 @@
 
 # Basic implementation of the second-order paired explicit Runge-Kutta (PERK) method
 include("methods_PERK2.jl")
-
-# Add definitions of functions related to polynomial optimization by Convex and ECOS here
-# such that hey can be exported from Trixi.jl and extended in the TrixiConvexECOSExt package
-# extension or by the Convex and ECOS-specific code loaded by Requires.jl
-function filter_eig_vals end
-function undo_normalization! end
-function bisect_stability_polynomial end
+# Define all of the functions necessary for polynomial optimizations
+include("polynomial_optimizer.jl")
 end # @muladd

@@ -15,8 +15,7 @@ end
 using LinearAlgebra: eigvals
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, filter_eig_vals, undo_normalization!, bisect_stability_polynomial,
-             @muladd
+using Trixi: Trixi, undo_normalization!, bisect_stability_polynomial, @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -24,29 +23,6 @@ using Trixi: Trixi, filter_eig_vals, undo_normalization!, bisect_stability_polyn
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
-
-# Filter out eigenvalues with positive real parts, those with negative imaginary
-# parts due to eigenvalues' symmetry around the real axis, or the eigenvalues
-# that are smaller than a specified threshold.
-function Trixi.filter_eig_vals(eig_vals, verbose = false, threshold = 1e-12)
-    filtered_eig_vals = Complex{Float64}[]
-
-    for eig_val in eig_vals
-        if real(eig_val) < 0 && imag(eig_val) > 0 && abs(eig_val) >= threshold
-            push!(filtered_eig_vals, eig_val)
-        end
-    end
-
-    filtered_eig_vals_count = length(eig_vals) - length(filtered_eig_vals)
-
-    if verbose
-        println("$filtered_eig_vals_count eigenvalue(s) are not passed on because " *
-                "they either are in magnitude smaller than $threshold, have positive " *
-                "real parts, or have negative imaginary parts.\n")
-    end
-
-    return length(filtered_eig_vals), filtered_eig_vals
-end
 
 # Undo normalization of stability polynomial coefficients by index factorial
 # relative to consistency order.
