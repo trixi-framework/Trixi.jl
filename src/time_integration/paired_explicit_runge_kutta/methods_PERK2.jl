@@ -91,8 +91,9 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
     a_matrix = zeros(coeffs_max, 2)
     a_matrix[:, 1] = c[3:end]
 
-    path_monomial_coeffs = base_path_monomial_coeffs * "gamma_" * string(num_stages) *
-                           ".txt"
+    path_monomial_coeffs = joinpath(base_path_monomial_coeffs, "gamma_" * string(num_stages) * ".txt")
+
+    println(path_monomial_coeffs)
     @assert isfile(path_monomial_coeffs) "Couldn't find file"
     monomial_coeffs = readdlm(path_monomial_coeffs, Float64)
     num_monomial_coeffs = size(monomial_coeffs, 1)
