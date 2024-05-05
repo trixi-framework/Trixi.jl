@@ -30,7 +30,7 @@ struct AnalysisSurface{Variable}
     variable::Variable # Quantity of interest, like lift or drag
     output_directory::String
 
-    function AnalysisSurface(semi, boundary_symbol, variable, 
+    function AnalysisSurface(semi, boundary_symbol, variable,
                              output_directory = "out")
         @unpack boundary_symbol_indices = semi.boundary_conditions
         indices = boundary_symbol_indices[boundary_symbol]
@@ -176,7 +176,8 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
         end
     end
     # TODO - Sort coords, values increasing x?
-    save_pointwise_file(surface_variable.output_directory, varname(variable), coords, values, t, iter)
+    save_pointwise_file(surface_variable.output_directory, varname(variable), coords,
+                        values, t, iter)
 end
 
 function analyze(surface_variable::AnalysisSurface{Variable},
@@ -248,7 +249,8 @@ function analyze(surface_variable::AnalysisSurface{Variable},
         end
     end
     # TODO - Sort coords, values increasing x?
-    save_pointwise_file(surface_variable.output_directory, varname(variable), coords, values, t, iter)
+    save_pointwise_file(surface_variable.output_directory, varname(variable), coords,
+                        values, t, iter)
 end
 
 varname(::Any) = @assert false "Surface variable name not assigned" # This makes sure default behaviour is not overwriting
