@@ -751,9 +751,10 @@ end
 function analyze(quantity::Union{AnalysisSurfaceIntegral{Variable},
                                  AnalysisSurface{Variable}},
                  du, u, t,
-                 semi::SemidiscretizationHyperbolicParabolic, iter) where {
-                                                                     Variable <:
-                                                                     VariableViscous}
+                 semi::SemidiscretizationHyperbolicParabolic,
+                 iter) where {
+                              Variable <:
+                              VariableViscous}
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
