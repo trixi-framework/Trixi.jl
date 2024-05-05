@@ -28,18 +28,17 @@ name `:Airfoil` in 2D.
 struct AnalysisSurface{Variable}
     indices::Vector{Int} # Indices in `boundary_condition_indices` where quantity of interest is computed
     variable::Variable # Quantity of interest, like lift or drag
-    interval::Int
     output_directory::String
 
-    function AnalysisSurface(semi, boundary_symbol, variable, interval, 
+    function AnalysisSurface(semi, boundary_symbol, variable, 
                              output_directory = "out")
         @unpack boundary_symbol_indices = semi.boundary_conditions
         indices = boundary_symbol_indices[boundary_symbol]
 
-        return new{typeof(variable)}(indices, variable, interval, output_directory)
+        return new{typeof(variable)}(indices, variable, output_directory)
     end
 
-    function AnalysisSurface(semi, boundary_symbols::Vector{Symbol}, variable, interval,
+    function AnalysisSurface(semi, boundary_symbols::Vector{Symbol}, variable,
                              output_directory = "out")
         @unpack boundary_symbol_indices = semi.boundary_conditions
         indices = Vector{Int}()
@@ -48,7 +47,7 @@ struct AnalysisSurface{Variable}
         end
         sort!(indices)
 
-        return new{typeof(variable)}(indices, variable, interval, output_directory)
+        return new{typeof(variable)}(indices, variable, output_directory)
     end
 end
 
@@ -131,7 +130,7 @@ end
 
 function analyze(surface_variable::AnalysisSurface, du, u, t,
                  mesh::P4estMesh{2},
-                 equations, dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache, iter)
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
@@ -177,18 +176,14 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
         end
     end
     # TODO - Sort coords, values increasing x?
-    mkpath("out")
-    t_trunc = @sprintf("%.3f", t)
-    filename = varname(variable) * "_" * t_trunc * ".txt"
-    # TODO - Should we start with a bigger array and avoid hcat?
-    writedlm(joinpath("out", filename), hcat(coords, values))
+    save_pointwise_file(surface_variable.output_directory, varname(variable), coords, values, t, iter)
 end
 
 function analyze(surface_variable::AnalysisSurface{Variable},
                  du, u, t, mesh::P4estMesh{2},
                  equations, equations_parabolic,
                  dg::DGSEM, cache,
-                 cache_parabolic) where {Variable <: VariableViscous}
+                 cache_parabolic, iter) where {Variable <: VariableViscous}
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
@@ -253,31 +248,27 @@ function analyze(surface_variable::AnalysisSurface{Variable},
         end
     end
     # TODO - Sort coords, values increasing x?
-    mkpath("out")
-    t_trunc = @sprintf("%.3f", t)
-    filename = varname(variable) * "_" * t_trunc * ".txt"
-    # TODO - Should we start with a bigger array and avoid hcat?
-    writedlm(joinpath("out", filename), hcat(coords, values))
+    save_pointwise_file(surface_variable.output_directory, varname(variable), coords, values, t, iter)
 end
 
 varname(::Any) = @assert false "Surface variable name not assigned" # This makes sure default behaviour is not overwriting
 varname(pressure_coefficient::SurfacePressureCoefficient) = "CP_x"
 varname(friction_coefficient::SurfaceFrictionCoefficient) = "CF_x"
 
-function save_pointwise_file(output_directory, varname, coords, values, t)
+function save_pointwise_file(output_directory, varname, coords, values, t, iter)
     n_points = length(values)
 
-    h5open(joinpath(output_directory, varname) * ".h5", "w") do file
+    filename = joinpath(output_directory, varname) * @sprintf("_%06d.h5", iter)
+
+    h5open(filename, "w") do file
         # Add context information as attributes
         attributes(file)["n_points"] = n_points
-        attributes(file)["interval"] = interval
-        attributes(file)["variable_name"] = collect(varname)
+        attributes(file)["variable_name"] = varname
 
         file["time"] = t
+        file["timestep"] = iter
         file["point_coordinates"] = coords
-        for p in 1:n_points
-            file["point_data_$p"] = values[p]
-        end
+        file["values"] = values
     end
 end
 

@@ -350,8 +350,8 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
         u = wrap_array(u_ode, mesh, equations, solver, cache)
         du = wrap_array(du_ode, mesh, equations, solver, cache)
-        # Compute l2_error, linf_error
-        analysis_callback(io, du, u, u_ode, t, semi)
+        # Compute l2_error, linf_error among other quantities
+        analysis_callback(io, du, u, u_ode, t, semi, iter)
 
         mpi_println("─"^100)
         mpi_println()
@@ -378,7 +378,7 @@ end
 
 # This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
 # and serves as a function barrier. Additionally, it makes the code easier to profile and optimize.
-function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
+function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi, iter)
     @unpack analyzer, analysis_errors, analysis_integrals, analysis_pointwise = analysis_callback
     cache_analysis = analysis_callback.cache
     _, equations, _, _ = mesh_equations_solver_cache(semi)
@@ -498,7 +498,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     # additional integrals
     analyze_integrals(analysis_integrals, io, du, u, t, semi)
     # additional pointwise quantities
-    analyze_pointwise(analysis_pointwise, du, u, t, semi)
+    analyze_pointwise(analysis_pointwise, du, u, t, semi, iter)
 
     return nothing
 end
@@ -621,21 +621,21 @@ end
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
 function analyze_pointwise(analysis_quantities::NTuple{N, Any}, du, u, t,
-                           semi) where {N}
+                           semi, iter) where {N}
 
     # Extract the first analysis integral and process it; keep the remaining to be processed later
     quantity = first(analysis_quantities)
     remaining_quantities = Base.tail(analysis_quantities)
 
-    analyze(quantity, du, u, t, semi)
+    analyze(quantity, du, u, t, semi, iter)
 
     # Recursively call this method with the unprocessed integrals
-    analyze_pointwise(remaining_quantities, du, u, t, semi)
+    analyze_pointwise(remaining_quantities, du, u, t, semi, iter)
     return nothing
 end
 
 # terminate the type-stable iteration over tuples
-function analyze_pointwise(analysis_quantities::Tuple{}, du, u, t, semi)
+function analyze_pointwise(analysis_quantities::Tuple{}, du, u, t, semi, iter)
     nothing
 end
 
@@ -659,6 +659,10 @@ end
 function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     analyze(quantity, du, u, t, mesh, equations, solver, cache)
+end
+function analyze(quantity, du, u, t, semi::AbstractSemidiscretization, iter)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    analyze(quantity, du, u, t, mesh, equations, solver, cache, iter)
 end
 function analyze(quantity, du, u, t, mesh, equations, solver, cache)
     integrate(quantity, u, mesh, equations, solver, cache, normalize = true)
@@ -743,4 +747,16 @@ function analyze(quantity::Union{AnalysisSurfaceIntegral{Variable},
     cache_parabolic = semi.cache_parabolic
     analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
             cache_parabolic)
+end
+function analyze(quantity::Union{AnalysisSurfaceIntegral{Variable},
+                                 AnalysisSurface{Variable}},
+                 du, u, t,
+                 semi::SemidiscretizationHyperbolicParabolic, iter) where {
+                                                                     Variable <:
+                                                                     VariableViscous}
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+            cache_parabolic, iter)
 end
