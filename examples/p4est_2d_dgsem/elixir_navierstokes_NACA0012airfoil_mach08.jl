@@ -141,9 +141,6 @@ lift_coefficient_shear_force = AnalysisSurfaceIntegral(semi, force_boundary_name
                                                                                   u_inf(equations),
                                                                                   l_inf()))
 
-# TODO - Should these two be moved to a different callback to avoid printing "Dummy Value" so often?
-# This will be fixed if the "Dummy Callback" is somehow not printed at all.
-# Can this be done by overloading on `pretty_form_utf`?
 friction_coefficient = AnalysisSurface(semi, force_boundary_names,
                                        SurfaceFrictionCoefficient(rho_inf(),
                                                                   u_inf(equations),
