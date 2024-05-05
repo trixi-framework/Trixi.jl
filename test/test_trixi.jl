@@ -156,6 +156,8 @@ macro test_nowarn_mod(expr, additional_ignore_content = String[])
                                      r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n",
                                      # NOTE: These warnings arose from Julia 1.10 onwards
                                      r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
+                                     # Warnings from third party packages
+                                     r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
                                      r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n"]
                 append!(ignore_content, $additional_ignore_content)
                 for pattern in ignore_content
