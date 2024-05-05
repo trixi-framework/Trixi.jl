@@ -42,7 +42,6 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
 using Downloads: Downloads
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
-using DelimitedFiles: writedlm
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
