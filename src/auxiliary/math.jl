@@ -151,10 +151,12 @@ Given ε = 1.0e-4, we use the following algorithm.
   [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
 @inline function ln_mean(x, y)
+    RealT = eltype(x)
     epsilon_f2 = 1.0e-4
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
-        return (x + y) / @evalpoly(f2, 2, 2/3, 2/5, 2/7)
+        return (x + y) / @evalpoly(f2, 2, convert(RealT, 2 / 3), convert(RealT, 2 / 5),
+                         convert(RealT, 2 / 7))
     else
         return (y - x) / log(y / x)
     end
@@ -171,10 +173,12 @@ logarithmic mean is needed, by replacing a (slow) division by a (fast)
 multiplication.
 """
 @inline function inv_ln_mean(x, y)
+    RealT = eltype(x)
     epsilon_f2 = 1.0e-4
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
-        return @evalpoly(f2, 2, 2/3, 2/5, 2/7) / (x + y)
+        return @evalpoly(f2, 2, convert(RealT, 2 / 3), convert(RealT, 2 / 5),
+                         convert(RealT, 2 / 7)) / (x + y)
     else
         return log(y / x) / (y - x)
     end
