@@ -50,8 +50,10 @@
 # It uses a fixed maximum number of iteration steps (`max_iterations_newton = 10`) and
 # relative/absolute tolerances (`newton_tolerances = (1.0e-12, 1.0e-14)`). The given values are
 # sufficient in most cases and therefore used as default. Additionally, there is the parameter
-# `gamma_constant_newton` which approximately scales the flux into one
-# to all directions. Here, one can use basically always the default of `2 * ndims(equations)`.
+# `gamma_constant_newton`, which can be used to scale the antidiffusive flux for the computation
+# of the blending coefficients of nonlinear variables. The default value is `2 * ndims(equations)`,
+# as it was shown by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) [Section 4.2.2.]
+# that this value guarantees the fulfillment of bounds for a forward-Euler increment.
 
 # Very small non-negative values can be an issue as well. That's why we use an additional
 # correction factor in the calculation of the global bounds,
@@ -68,7 +70,7 @@
 using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
-# The quantity name of the density is `rho` shich is how we enable its limiting.
+# The quantity name of the density is `rho` which is how we enable its limiting.
 positivity_variables_cons = ["rho"]
 
 # The quantity names are passed as a vector to allow several quantities.
@@ -142,17 +144,17 @@ initial_condition = initial_condition_blast_wave;
 # or [`flux_kennedy_gruber`](@ref), for the DG volume flux.
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(3)
 
 # The limiter is implemented within [`SubcellLimiterIDP`](@ref). It always requires the
 # parameters `equations` and `basis`. With additional parameters (described [above](@ref IDPLimiter)
 # or listed in the docstring) you can specify and enable additional limiting options.
 # Here, the simulation should contain local limiting for the density using lower and upper bounds.
+basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_minmax_variables_cons = ["rho"])
 
 # The initialized limiter is passed to `VolumeIntegralSubcellLimiting` in addition to the volume
-# volume fluxes of the low-order and high-order scheme.
+# fluxes of the low-order and high-order scheme.
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -195,12 +197,11 @@ callbacks = CallbackSet(summary_callback,
 # As explained above, the IDP limiter works a-posteriori and requires the additional use of a
 # correction stage implemented with the stage callback [`SubcellLimiterIDPCorrection`](@ref).
 # This callback is passed within a tuple to the time integration method.
-#-
+stage_callbacks = (SubcellLimiterIDPCorrection(),)
+
 # Moreover, as mentioned before as well, simulations with subcell limiting require a Trixi-intern
 # SSPRK time integration methods with passed stage callbacks and a Trixi-intern `Trixi.solve(...)`
 # routine.
-stage_callbacks = (SubcellLimiterIDPCorrection(),)
-
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
