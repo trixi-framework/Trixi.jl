@@ -144,27 +144,30 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
     fill_mesh_info_fv!(mesh, interfaces, boundaries,
                        mesh.boundary_names)
 
-    # Temporary solution array to allow exchange between MPI ranks.
-    u_tmp = init_solution!(mesh, equations)
+    # Data structure for exchange between MPI ranks.
+    communication_data = init_communication_data!(mesh, equations)
+    exchange_domain_data!(communication_data, elements, mesh, equations, solver)
 
     # Initialize reconstruction stencil
     if !solver.extended_reconstruction_stencil
         init_reconstruction_stencil!(elements, interfaces, boundaries,
-                                     equations, solver)
+                                     communication_data, mesh, equations, solver)
     end
 
-    cache = (; elements, interfaces, boundaries, u_tmp)
+    cache = (; elements, interfaces, boundaries, communication_data)
 
     return cache
 end
 
 function init_reconstruction_stencil!(elements, interfaces, boundaries,
-                                      equations, solver)
+                                      communication_data,
+                                      mesh, equations, solver)
     if solver.order != 2
         return nothing
     end
-    (; reconstruction_stencil, reconstruction_distance, face_midpoints) = elements
+    (; reconstruction_stencil, reconstruction_distance) = elements
     (; neighbor_ids, faces) = interfaces
+    (; domain_data) = communication_data
 
     # Create empty vectors for every element
     for element in eachindex(reconstruction_stencil)
@@ -175,14 +178,13 @@ function init_reconstruction_stencil!(elements, interfaces, boundaries,
     for interface in axes(neighbor_ids, 2)
         element1 = neighbor_ids[1, interface]
         element2 = neighbor_ids[2, interface]
-        midpoint_element1 = get_node_coords(elements.midpoint, equations, solver,
-                                            element1)
-        midpoint_element2 = get_node_coords(elements.midpoint, equations, solver,
-                                            element2)
-        face_midpoint_element1 = get_node_coords(face_midpoints, equations, solver,
-                                                 faces[1, interface], element1)
-        face_midpoint_element2 = get_node_coords(face_midpoints, equations, solver,
-                                                 faces[2, interface], element2)
+        face_element1 = faces[1, interface]
+        face_element2 = faces[2, interface]
+
+        midpoint_element1 = domain_data[element1].midpoint
+        midpoint_element2 = domain_data[element2].midpoint
+        face_midpoint_element1 = domain_data[element1].face_midpoints[face_element1]
+        face_midpoint_element2 = domain_data[element2].face_midpoints[face_element2]
 
         # How to handle periodic boundaries?
         if isapprox(face_midpoint_element1, face_midpoint_element2)
@@ -193,8 +195,11 @@ function init_reconstruction_stencil!(elements, interfaces, boundaries,
         end
         append!(reconstruction_stencil[element1], element2)
         push!(reconstruction_distance[element1], distance)
-        append!(reconstruction_stencil[element2], element1)
-        push!(reconstruction_distance[element2], -distance)
+        # only if element2 is local element
+        if element2 <= ncells(mesh)
+            append!(reconstruction_stencil[element2], element1)
+            push!(reconstruction_distance[element2], -distance)
+        end
     end
 
     return nothing
@@ -207,8 +212,10 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
     @trixi_timeit timer() "reset ∂u/∂t" du.=zero(eltype(du))
 
     # Exchange solution between MPI ranks
-    @trixi_timeit timer() "exchange_solution!" exchange_solution!(u, mesh, equations,
-                                                                  solver, cache)
+    @trixi_timeit timer() "exchange_solution_data!" exchange_solution_data!(u, mesh,
+                                                                            equations,
+                                                                            solver,
+                                                                            cache)
 
     @trixi_timeit timer() "gradient reconstruction" calc_gradient_reconstruction!(u,
                                                                                   mesh,
@@ -262,8 +269,9 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
         error("Order $(solver.order) is not supported yet!")
     end
 
-    (; elements) = cache
+    (; elements, communication_data) = cache
     (; reconstruction_stencil, reconstruction_distance, reconstruction_gradient) = elements
+    (; solution_data) = communication_data
 
     # A         N x 2 Matrix, where N is the number of stencil neighbors
     # A^T A     2 x 2 Matrix
@@ -298,8 +306,10 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
             c += distance[2]^2
 
             for v in eachvariable(equations)
-                d[v] += distance[1] * (u[v, neighbor] - u[v, element])
-                e[v] += distance[2] * (u[v, neighbor] - u[v, element])
+                d[v] += distance[1] *
+                        (solution_data[neighbor].u[v] - solution_data[element].u[v])
+                e[v] += distance[2] *
+                        (solution_data[neighbor].u[v] - solution_data[element].u[v])
             end
         end
 
@@ -316,43 +326,41 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
         end
     end
 
+    exchange_gradient_data!(reconstruction_gradient, mesh, equations, solver, cache)
+
     return nothing
 end
 
 function prolong2interfaces!(cache, mesh::T8codeMesh, equations, solver::FV)
-    (; elements, interfaces, u_tmp) = cache
-    (; midpoint, face_midpoints, reconstruction_gradient) = elements
+    (; interfaces, communication_data) = cache
+    (; solution_data, domain_data, gradient_data) = communication_data
 
     for interface in eachinterface(solver, cache)
         element = interfaces.neighbor_ids[1, interface]
         neighbor = interfaces.neighbor_ids[2, interface]
         if solver.order == 1
             for v in eachvariable(equations)
-                interfaces.u[1, v, interface] = u_tmp[element].u[v]
-                interfaces.u[2, v, interface] = u_tmp[neighbor].u[v]
+                interfaces.u[1, v, interface] = solution_data[element].u[v]
+                interfaces.u[2, v, interface] = solution_data[neighbor].u[v]
             end
         elseif solver.order == 2
             face_element = interfaces.faces[1, interface]
             face_neighbor = interfaces.faces[2, interface]
 
-            face_midpoint_element = get_node_coords(face_midpoints, equations, solver,
-                                                    face_element, element)
-            face_midpoint_neighbor = get_node_coords(face_midpoints, equations, solver,
-                                                     face_neighbor, neighbor)
+            face_midpoint_element = domain_data[element].face_midpoints[face_element]
+            face_midpoint_neighbor = domain_data[neighbor].face_midpoints[face_neighbor]
 
-            midpoint_element = get_node_coords(midpoint, equations, solver, element)
-            midpoint_neighbor = get_node_coords(midpoint, equations, solver, neighbor)
+            midpoint_element = domain_data[element].midpoint
+            midpoint_neighbor = domain_data[neighbor].midpoint
 
             vector_element = face_midpoint_element .- midpoint_element
             vector_neighbor = face_midpoint_neighbor .- midpoint_neighbor
             for v in eachvariable(equations)
-                gradient_v_element = get_node_coords(reconstruction_gradient, equations,
-                                                     solver, v, element)
-                gradient_v_neighbor = get_node_coords(reconstruction_gradient,
-                                                      equations, solver, v, neighbor)
-                interfaces.u[1, v, interface] = u_tmp[element].u[v] +
+                gradient_v_element = gradient_data[element].reconstruction_gradient[v]
+                gradient_v_neighbor = gradient_data[neighbor].reconstruction_gradient[v]
+                interfaces.u[1, v, interface] = solution_data[element].u[v] +
                                                 dot(gradient_v_element, vector_element)
-                interfaces.u[2, v, interface] = u_tmp[neighbor].u[v] +
+                interfaces.u[2, v, interface] = solution_data[neighbor].u[v] +
                                                 dot(gradient_v_neighbor,
                                                     vector_neighbor)
             end
@@ -395,14 +403,15 @@ function calc_interface_flux!(du, mesh::T8codeMesh,
 end
 
 function prolong2boundaries!(cache, mesh::T8codeMesh, equations, solver::FV)
-    (; elements, boundaries, u_tmp) = cache
+    (; elements, boundaries, communication_data) = cache
+    (; solution_data) = communication_data
     (; midpoint, face_midpoints, reconstruction_gradient) = elements
 
     for boundary in eachboundary(solver, cache)
         element = boundaries.neighbor_ids[boundary]
         if solver.order == 1
             for v in eachvariable(equations)
-                boundaries.u[v, boundary] = u_tmp[element].u[v]
+                boundaries.u[v, boundary] = solution_data[element].u[v]
             end
         elseif solver.order == 2
             face_element = boundaries.faces[boundary]
@@ -416,7 +425,7 @@ function prolong2boundaries!(cache, mesh::T8codeMesh, equations, solver::FV)
             for v in eachvariable(equations)
                 gradient_v_element = get_node_coords(reconstruction_gradient, equations,
                                                      solver, v, element)
-                boundaries.u[v, boundary] = u_tmp[element].u[v] +
+                boundaries.u[v, boundary] = solution_data[element].u[v] +
                                             dot(gradient_v_element, vector_element)
             end
         else

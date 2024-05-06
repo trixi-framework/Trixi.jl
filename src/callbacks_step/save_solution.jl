@@ -266,8 +266,9 @@ function save_solution_file(u, time, dt, timestep,
                             @sprintf("solution_%s_%06d.h5", system, timestep))
     end
     MPI.Barrier(MPI.COMM_WORLD)
-    Trixi.exchange_solution!(u, mesh, equations, solver, cache)
-    Trixi.output_data_to_vtu(mesh, equations, solver, cache.u_tmp, filename)
+    Trixi.exchange_solution_data!(u, mesh, equations, solver, cache)
+    Trixi.output_data_to_vtu(mesh, equations, solver,
+                             cache.communication_data.solution_data, filename)
 
     return filename
 end

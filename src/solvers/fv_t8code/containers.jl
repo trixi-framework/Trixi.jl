@@ -383,7 +383,7 @@ function init_boundaries(mesh::T8codeMesh, equations, solver::FV, uEltype)
     return boundaries
 end
 
-function init_solution!(mesh::T8codeMesh, equations)
+function init_communication_data!(mesh::T8codeMesh, equations)
     (; forest) = mesh
     # Check that the forest is a committed.
     @assert(t8_forest_is_committed(forest)==1)
@@ -395,11 +395,21 @@ function init_solution!(mesh::T8codeMesh, equations)
 
     # Build an array of our data that is as long as the number of elements plus
     # the number of ghosts.
-    u_tmp = Vector{T8codeSolutionContainer{nvariables(equations)}}(undef,
-                                                                   num_local_elements +
-                                                                   num_ghost_elements)
+    solution_data = Vector{T8codeSolutionContainer{nvariables(equations)}}(undef,
+                                                                           num_local_elements +
+                                                                           num_ghost_elements)
 
-    return u_tmp
+    domain_data = Vector{T8codeReconstructionContainer{ndims(equations),
+                                                       mesh.max_number_faces}}(undef,
+                                                                               num_local_elements +
+                                                                               num_ghost_elements)
+
+    gradient_data = Vector{T8codeGradientContainer{ndims(equations),
+                                                   nvariables(equations)}}(undef,
+                                                                           num_local_elements +
+                                                                           num_ghost_elements)
+
+    return (; solution_data, domain_data, gradient_data)
 end
 
 # Each process has computed the data entries for its local elements. In order
@@ -429,14 +439,74 @@ struct T8codeSolutionContainer{NVARS}
     end
 end
 
-function exchange_solution!(u, mesh, equations, solver, cache)
-    (; u_tmp) = cache
+function exchange_solution_data!(u, mesh, equations, solver, cache)
+    (; solution_data) = cache.communication_data
     for element in eachelement(mesh, solver, cache)
-        u_tmp[element] = T8codeSolutionContainer(Tuple(get_node_vars(u, equations,
-                                                                     solver,
-                                                                     element)))
+        solution_data[element] = T8codeSolutionContainer(Tuple(get_node_vars(u,
+                                                                             equations,
+                                                                             solver,
+                                                                             element)))
     end
-    exchange_ghost_data(mesh, u_tmp)
+    exchange_ghost_data(mesh, solution_data)
+
+    return nothing
+end
+
+struct T8codeGradientContainer{NDIMS, NVARS}
+    reconstruction_gradient::NTuple{NVARS, SVector{NDIMS, Cdouble}}
+
+    function T8codeGradientContainer(reconstruction_gradient)
+        new{length(reconstruction_gradient[1]), length(reconstruction_gradient)}(reconstruction_gradient)
+    end
+end
+
+function exchange_gradient_data!(reconstruction_gradient, mesh, equations, solver,
+                                 cache)
+    (; gradient_data) = cache.communication_data
+    for element in eachelement(mesh, solver, cache)
+        gradient_data[element] = T8codeGradientContainer(ntuple(v -> get_node_coords(reconstruction_gradient,
+                                                                                     equations,
+                                                                                     solver,
+                                                                                     v,
+                                                                                     element),
+                                                                Val(nvariables(equations))))
+    end
+    exchange_ghost_data(mesh, gradient_data)
+
+    return nothing
+end
+
+struct T8codeReconstructionContainer{NDIMS, NFACES}
+    midpoint::SVector{NDIMS, Cdouble}
+    face_midpoints::NTuple{NFACES, SVector{NDIMS, Cdouble}}
+
+    function T8codeReconstructionContainer(midpoint, face_midpoints)
+        new{length(midpoint), length(face_midpoints)}(midpoint, face_midpoints)
+    end
+end
+
+function exchange_domain_data!(communication_data, elements, mesh, equations, solver)
+    (; domain_data) = communication_data
+    (; midpoint, face_midpoints, num_faces) = elements
+    for element in 1:ncells(mesh)
+        face_midpoints_tuple = []
+        for face in 1:(num_faces[element])
+            push!(face_midpoints_tuple,
+                  get_node_coords(face_midpoints, equations, solver, face, element))
+        end
+        for i in (num_faces[element] + 1):(mesh.max_number_faces)
+            push!(face_midpoints_tuple,
+                  SVector{ndims(equations)}(zeros(eltype(midpoint), ndims(equations))))
+        end
+        face_midpoints_tuple_ = NTuple{mesh.max_number_faces,
+                                       eltype(face_midpoints_tuple)}(face_midpoints_tuple)
+        domain_data[element] = T8codeReconstructionContainer(get_node_coords(midpoint,
+                                                                             equations,
+                                                                             solver,
+                                                                             element),
+                                                             face_midpoints_tuple_)
+    end
+    exchange_ghost_data(mesh, domain_data)
 
     return nothing
 end
