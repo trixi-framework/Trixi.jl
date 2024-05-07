@@ -400,7 +400,7 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
-    rm("out/deviations.txt", force = true)
+    rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
@@ -419,7 +419,7 @@ end
                         initial_refinement_level=4,
                         coverage_override=(maxiters = 6,),
                         save_errors=true)
-    lines = readlines("out/deviations.txt")
+    lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] == "# iter, simu_time, rho_min, rho_max"
     cmd = string(Base.julia_cmd())
     coverage = occursin("--code-coverage", cmd) &&
