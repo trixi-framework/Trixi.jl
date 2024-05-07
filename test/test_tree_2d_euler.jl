@@ -235,6 +235,38 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_shockcapturing_subcell.jl (fixed time step)" begin
+    # Testing local SSP method without stepsize callback
+    # Additionally, tests combination with SaveSolutionCallback using time interval
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shockcapturing_subcell.jl"),
+                        dt=2.0e-3,
+                        tspan=(0.0, 0.25),
+                        save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8),
+                        callbacks=CallbackSet(summary_callback, save_solution,
+                                              analysis_callback, alive_callback),
+                        l2=[
+                            0.05624855363458103,
+                            0.06931288786158463,
+                            0.06931283188960778,
+                            0.6200535829842072,
+                        ],
+                        linf=[
+                            0.29029967648805566,
+                            0.6494728865862608,
+                            0.6494729363533714,
+                            3.0949621505674787,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         l2=[
@@ -372,16 +404,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.4328635350273501,
-                            0.15011135840723572,
-                            0.15011135840723572,
-                            0.616129927549474,
+                            0.432804941135901,
+                            0.15009019787510924,
+                            0.15009019787510922,
+                            0.6160764058367757,
                         ],
                         linf=[
-                            1.6145297181778906,
-                            0.8614006163026988,
-                            0.8614006163026972,
-                            6.450225090647602,
+                            1.6122663996643651,
+                            0.8612394422674909,
+                            0.8612394422674919,
+                            6.449588561676761,
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
