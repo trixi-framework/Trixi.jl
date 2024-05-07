@@ -234,6 +234,8 @@ for human readability.
 - Experimental support for finite difference (FD) summation-by-parts (SBP) methods via
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
 - New support for modal DG and SBP-DG methods on triangular and tetrahedral meshes via [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl)
+- New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
+  method with [Convex.jl] and [ECOS.jl](https://github.com/trixi-framework/Trixi.jl/pull/1908)
 
 #### Changed
 
