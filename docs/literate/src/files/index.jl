@@ -57,6 +57,18 @@
 # equations.
 
 #src Note to developers: Use "{ index }" (but without spaces, see next line) to enable automatic indexing
+# ### [{index} Subcell limiting with the IDP Limiter](@ref subcell_shock_capturing)
+#-
+# Trixi.jl features a subcell-wise limiting strategy utilizing an Invariant Domain-Preserving (IDP)
+# approach. This IDP approach computes a blending factor that balances the high-order
+# discontinuous Galerkin (DG) method with a low-order subcell finite volume (FV) method for each
+# node within an element. This localized approach minimizes the application of dissipation,
+# resulting in less limiting compared to the element-wise strategy. Additionally, the framework
+# supports both local bounds, which are primarily used for shock capturing, and global bounds.
+# The application of global bounds ensures the minimal necessary limiting to meet physical
+# admissibility conditions, such as ensuring the non-negativity of variables.
+
+#src Note to developers: Use "{ index }" (but without spaces, see next line) to enable automatic indexing
 # ### [{index} Non-periodic boundary conditions](@ref non_periodic_boundaries)
 #-
 # Thus far, all examples used periodic boundaries. In Trixi.jl, you can also set up a simulation with
