@@ -235,7 +235,7 @@ for human readability.
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
 - New support for modal DG and SBP-DG methods on triangular and tetrahedral meshes via [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl)
 - New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
-  method with [Convex.jl] and [ECOS.jl](https://github.com/trixi-framework/Trixi.jl/pull/1908)
+  method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([PR #1908](https://github.com/trixi-framework/Trixi.jl/pull/1908))
 
 #### Changed
 
