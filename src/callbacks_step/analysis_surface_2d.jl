@@ -21,7 +21,7 @@ surface friction coefficient [`SurfaceFrictionCoefficient`](@ref) of e.g. an air
 name `:Airfoil` in 2D.
 
 - `semi::Semidiscretization`: Passed in to retrieve boundary condition information
-- `boundary_symbol_or_boundary_symbols::Symbol|Vector{Symbol}`: Name(s) of the boundary/boundaries
+- `boundary_symbol_or_boundary_symbols::Symbol|Vector{Symbol}`: Name(s) of the boundary/boundaries stored as symbol(s)
   where the quantity of interest is computed
 - `variable::Variable`: Quantity of interest, like lift or drag
 """
