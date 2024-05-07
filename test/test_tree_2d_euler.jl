@@ -424,7 +424,10 @@ end
     cmd = string(Base.julia_cmd())
     coverage = occursin("--code-coverage", cmd) &&
                !occursin("--code-coverage=none", cmd)
-    if !coverage
+    if coverage
+        # Run with coverage takes 1 time step.
+        @test startswith(lines[end], "1")
+    else
         # Run without coverage takes 96 time steps.
         @test startswith(lines[end], "96")
     end
