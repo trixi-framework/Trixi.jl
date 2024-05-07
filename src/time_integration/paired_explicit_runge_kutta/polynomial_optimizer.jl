@@ -1,7 +1,7 @@
 # Filter out eigenvalues with positive real parts, those with negative imaginary
 # parts due to eigenvalues' symmetry around the real axis, or the eigenvalues
 # that are smaller than a specified threshold.
-function filter_eig_vals(eig_vals, verbose = false, threshold = 1e-12)
+function filter_eig_vals(eig_vals, threshold = 1e-12; verbose = false)
     filtered_eig_vals = Complex{Float64}[]
 
     for eig_val in eig_vals

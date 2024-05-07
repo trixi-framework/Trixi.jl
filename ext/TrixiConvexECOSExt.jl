@@ -26,7 +26,7 @@ using Trixi: Trixi, undo_normalization!, bisect_stability_polynomial, @muladd
 
 # Undo normalization of stability polynomial coefficients by index factorial
 # relative to consistency order.
-function Trixi.undo_normalization!(consistency_order, num_stage_evals, gamma_opt)
+function Trixi.undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
     for k in (consistency_order + 1):num_stage_evals
         gamma_opt[k - consistency_order] = gamma_opt[k - consistency_order] /
                                            factorial(k)
@@ -77,7 +77,7 @@ Optimal stability polynomials for numerical integration of initial value problem
 # Perform bisection to optimize timestep for stability of the polynomial
 function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
                                            num_stage_evals,
-                                           dtmax, dteps, eig_vals,
+                                           dtmax, dteps, eig_vals;
                                            verbose = false)
     dtmin = 0.0
     dt = -1.0
