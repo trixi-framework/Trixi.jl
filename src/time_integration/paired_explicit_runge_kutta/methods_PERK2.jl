@@ -32,8 +32,7 @@ end
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 2
 # using a list of eigenvalues
 function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
-                                                   bS, c_end, verbose)
-
+                                                   bS, c_end; verbose = false)
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
     for k in 2:num_stages
@@ -52,13 +51,13 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     dtmax = tspan[2] - tspan[1]
     dteps = 1e-9
 
-    num_eig_vals, eig_vals = filter_eig_vals(eig_vals, verbose)
+    num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
 
     monomial_coeffs, dt_opt = bisect_stability_polynomial(consistency_order,
                                                           num_eig_vals, num_stages,
                                                           dtmax,
                                                           dteps,
-                                                          eig_vals, verbose)
+                                                          eig_vals; verbose)
     monomial_coeffs = undo_normalization!(consistency_order, num_stages,
                                           monomial_coeffs)
 
@@ -135,39 +134,39 @@ function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString
                                                             base_path_monomial_coeffs,
                                                             bS, c_end)
 
-    b1 = 1.0 - bS
+    b1 = 1 - bS
 
     return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a
 # semidiscretization
-function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization,
+function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                            verbose = false,
                            bS = 1.0, c_end = 0.5)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             eig_vals, tspan,
-                                                            bS, c_end,
+                                                            bS, c_end;
                                                             verbose)
 
-    b1 = 1.0 - bS
+    b1 = 1 - bS
 
     return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a
 # list of eigenvalues
-function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64},
+function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false,
                            bS = 1.0, c_end = 0.5)
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             eig_vals, tspan,
-                                                            bS, c_end,
+                                                            bS, c_end;
                                                             verbose)
 
-    b1 = 1.0 - bS
+    b1 = 1 - bS
 
     return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
 end
