@@ -150,13 +150,15 @@ end
 end
 
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{1, Interpolation},
+                                                     A::TensorProductGaussFaceOperator{1,
+                                                                                       Interpolation},
                                                      x::AbstractVector)
     mul!(out, A.interp_matrix_gauss_to_face_1d, x)
 end
 
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
-                                                     A::TensorProductGaussFaceOperator{1, <:Projection},
+                                                     A::TensorProductGaussFaceOperator{1,
+                                                                                       <:Projection},
                                                      x::AbstractVector)
     mul!(out, A.interp_matrix_gauss_to_face_1d', x)
     @. out *= A.inv_volume_weights_1d

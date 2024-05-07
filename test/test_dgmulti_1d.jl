@@ -30,10 +30,11 @@ isdir(outdir) && rm(outdir, recursive = true)
 end
 
 @trixi_testset "elixir_burgers_gauss_shock_capturing.jl " begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_gauss_shock_capturing.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_burgers_gauss_shock_capturing.jl"),
                         cells_per_dimension=(8,), tspan=(0.0, 0.1),
-                        l2 = [0.445804588167854], 
-                        linf = [0.74780611426038])
+                        l2=[0.445804588167854],
+                        linf=[0.74780611426038])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
