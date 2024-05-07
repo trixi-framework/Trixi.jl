@@ -18,6 +18,8 @@
 # guarantees the target bounds for an explicit (forward) Euler time step. To still achieve a
 # high-order approximation, the implementation uses strong-stability preserving (SSP) Runge-Kutta
 # methods, which can be written as convex combinations of forward Euler steps.
+# As such, they preserve the convexity of convex functions and functionals, such as the TVD
+# semi-norm and the maximum principle in 1D, for instance.
 #-
 # Since IDP/FCT limiting procedure operates on independent forward Euler steps, its
 # a-posteriori correction stage is implemented as a stage callback that is triggered after each
@@ -43,8 +45,8 @@
 # ### [Global bounds](@id global_bounds)
 # If enabled, the global bounds enforce physical admissibility conditions, such as non-negativity
 # of variables. This can be done for conservative variables, where the limiter is of a one-sided
-# Zalesak-type, and general non-linear variables, where a Newton-bisection algorithm is used to
-# enforce the bounds.
+# Zalesak-type ([Zalesak, 1979](https://doi.org/10.1016/0021-9991(79)90051-2)), and general
+# non-linear variables, where a Newton-bisection algorithm is used to enforce the bounds.
 
 # The Newton-bisection algorithm is an iterative method and requires some parameters.
 # It uses a fixed maximum number of iteration steps (`max_iterations_newton = 10`) and
@@ -93,12 +95,13 @@ positivity_variables_cons = ["rho" * string(i) for i in eachcomponent(equations)
 positivity_variables_nonlinear = [pressure]
 
 # ### Local bounds
-# Second, Trixi.jl supports the limiting with local bounds for conservative variables. They
-# allow to avoid spurious oscillations within the global bounds and to improve the
-# shock-capturing capabilities of the method. The corresponding numerical admissibility
-# conditions are frequently formulated as local maximum or minimum principles.
-# The local bounds are computed using the maximum and minimum values of all local neighboring
-# nodes. Within this calculation we use the low-order FV solution values for each node.
+# Second, Trixi.jl supports the limiting with local bounds for conservative variables using a
+# two-sided Zalesak-type limiter ([Zalesak, 1979](https://doi.org/10.1016/0021-9991(79)90051-2)).
+# They allow to avoid spurious oscillations within the global bounds and to improve the
+# shock-capturing capabilities of the method. The corresponding numerical admissibility conditions
+# are frequently formulated as local maximum or minimum principles. The local bounds are computed
+# using the maximum and minimum values of all local neighboring nodes. Within this calculation we
+# use the low-order FV solution values for each node.
 
 # As for the limiting with global bounds you are passing the quantity names of the conservative
 # variables you want to limit. So, to limit the density with lower and upper local bounds pass
@@ -106,10 +109,10 @@ positivity_variables_nonlinear = [pressure]
 local_minmax_variables_cons = ["rho"]
 
 # ## Exemplary simulation
-# How to set up a simulation using the IDP limiting becomes clearer when lokking at a exemplary
+# How to set up a simulation using the IDP limiting becomes clearer when looking at an exemplary
 # setup. This will be a simplified version of `tree_2d_dgsem/elixir_euler_blast_wave_sc_subcell.jl`.
 # Since the setup is mostly very similar to a pure DGSEM setup as in
-# `tree_2d_dgsem/elixir_euler_blast_wave.jl`, the equivalent parts are without any explanation
+# `tree_2d_dgsem/elixir_euler_blast_wave.jl`, the equivalent parts are used without any explanation
 # here.
 using OrdinaryDiffEq
 using Trixi
@@ -162,7 +165,6 @@ volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
 # Then, the volume integral is passed to `solver` as it is done for the standard flux-differencing
 # DG scheme or the element-wise limiting.
 solver = DGSEM(basis, surface_flux, volume_integral)
-
 #-
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
