@@ -619,17 +619,17 @@ function analyze_integrals(analysis_integrals::Tuple{}, io, du, u, t, semi)
     nothing
 end
 
-# Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
+# Iterate over tuples of pointwise analysis quantities in a type-stable way using "lispy tuple programming".
 function analyze_pointwise(analysis_quantities::NTuple{N, Any}, du, u, t,
                            semi, iter) where {N}
 
-    # Extract the first analysis integral and process it; keep the remaining to be processed later
+    # Extract the first pointwise analysis quantity and process it; keep the remaining to be processed later
     quantity = first(analysis_quantities)
     remaining_quantities = Base.tail(analysis_quantities)
 
     analyze(quantity, du, u, t, semi, iter)
 
-    # Recursively call this method with the unprocessed integrals
+    # Recursively call this method with the unprocessed pointwise analysis quantities
     analyze_pointwise(remaining_quantities, du, u, t, semi, iter)
     return nothing
 end
