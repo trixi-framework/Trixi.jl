@@ -4,11 +4,11 @@ module TrixiConvexECOSExt
 # Required for coefficient optimization in P-ERK scheme integrators
 if isdefined(Base, :get_extension)
     using Convex: MOI, solve!, Variable, minimize, evaluate
-    using ECOS
+    using ECOS: Optimizer
 else
     # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
     using ..Convex: MOI, solve!, Variable, minimize, evaluate
-    using ..ECOS
+    using ..ECOS: Optimizer
 end
 
 # Use other necessary libraries
@@ -126,7 +126,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
 
         solve!(problem,
                # Parameters taken from default values for EiCOS
-               MOI.OptimizerWithAttributes(ECOS.Optimizer, "gamma" => 0.99,
+               MOI.OptimizerWithAttributes(Optimizer, "gamma" => 0.99,
                                            "delta" => 2e-7,
                                            "feastol" => 1e-9,
                                            "abstol" => 1e-9,
