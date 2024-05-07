@@ -12,13 +12,11 @@ volume_flux = flux_ec
 polydeg = 3
 basis = DGMultiBasis(Line(), polydeg, approximation_type = GaussSBP())
 
-indicator_function(u, ::InviscidBurgersEquation1D) = u[1]
-
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 0.5,
                                          alpha_min = 0.001,
                                          alpha_smooth = true,
-                                         variable = indicator_function)
+                                         variable = first)
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
