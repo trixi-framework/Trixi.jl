@@ -1887,9 +1887,9 @@ end
 end
 
 # Transformation from conservative variables u to entropy vector ds_0/du,
-# using the specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
+# using the modified specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
 # Note: This is *not* the "conventional" specific entropy s = ln(p / rho^(gamma)).
-@inline function cons2entropy_spec(u, equations::CompressibleEulerEquations2D)
+@inline function cons2entropy_guermond_etal(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
     v1 = rho_v1 / rho
@@ -2018,8 +2018,9 @@ end
     return cons2entropy(u, equations)
 end
 
-# Calculate specific entropy for conservative variable u
-@inline function entropy_spec(u, equations::CompressibleEulerEquations2D)
+# Calculate the modified specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
+# Note: This is *not* the "conventional" specific entropy s = ln(p / rho^(gamma)).
+@inline function entropy_guermond_etal(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
     # Modified specific entropy from Guermond et al. (2019)
@@ -2029,9 +2030,9 @@ end
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function gradient_conservative(::typeof(entropy_spec),
+@inline function gradient_conservative(::typeof(entropy_guermond_etal),
                                        u, equations::CompressibleEulerEquations2D)
-    return cons2entropy_spec(u, equations)
+    return cons2entropy_guermond_etal(u, equations)
 end
 
 # Default entropy is the mathematical entropy
