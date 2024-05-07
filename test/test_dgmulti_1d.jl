@@ -29,6 +29,21 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
+@trixi_testset "elixir_burgers_gauss_shock_capturing.jl " begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_gauss_shock_capturing.jl"),
+                        cells_per_dimension=(8,), tspan=(0.0, 0.1),
+                        l2 = [0.445804588167854], 
+                        linf = [0.74780611426038])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_flux_diff.jl " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
                         cells_per_dimension=(16,),
