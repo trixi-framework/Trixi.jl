@@ -33,7 +33,7 @@ end
 # using a list of eigenvalues
 function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                    bS, c_end; verbose = false)
-    # c Vector form Butcher Tableau (defines timestep per stage)
+    # c Vector from Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
     for k in 2:num_stages
         c[k] = c_end * (k - 1) / (num_stages - 1)
