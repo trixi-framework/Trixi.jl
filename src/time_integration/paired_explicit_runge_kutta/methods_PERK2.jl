@@ -58,8 +58,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                           dtmax,
                                                           dteps,
                                                           eig_vals; verbose)
-    monomial_coeffs = undo_normalization!(consistency_order, num_stages,
-                                          monomial_coeffs)
+    monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
+                                          num_stages)
 
     num_monomial_coeffs = length(monomial_coeffs)
     @assert num_monomial_coeffs == coeffs_max
