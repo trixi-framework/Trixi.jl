@@ -12,6 +12,8 @@ for human readability.
 - Implementation of 1D Linearized Euler Equations.
 - New analysis callback for 2D `P4estMesh` to compute integrated quantities along a boundary surface, e.g., pressure lift and drag coefficients.
 - Optional tuple parameter for `GlmSpeedCallback` called `semi_indices` to specify for which semidiscretization of a `SemidiscretizationCoupled` we need to update the GLM speed.
+- New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
+  method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([PR #1908](https://github.com/trixi-framework/Trixi.jl/pull/1908))
 
 ## Changes when updating to v0.7 from v0.6.x
 
@@ -234,8 +236,6 @@ for human readability.
 - Experimental support for finite difference (FD) summation-by-parts (SBP) methods via
   [SummationByPartsOperators.jl](https://github.com/ranocha/SummationByPartsOperators.jl)
 - New support for modal DG and SBP-DG methods on triangular and tetrahedral meshes via [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl)
-- New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
-  method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([PR #1908](https://github.com/trixi-framework/Trixi.jl/pull/1908))
 
 #### Changed
 
