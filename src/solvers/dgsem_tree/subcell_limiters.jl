@@ -101,11 +101,11 @@ function SubcellLimiterIDP(equations::AbstractEquations, basis;
     local_onesided_variables_nonlinear_ = Tuple{Function, Function}[]
     for (variable, min_or_max) in local_onesided_variables_nonlinear
         if min_or_max === Base.max
-            push!(local_onesided_variables_nonlinear_, tuple(variable, max))
+            push!(local_onesided_variables_nonlinear_, (variable, max))
         elseif min_or_max === Base.min
-            push!(local_onesided_variables_nonlinear_, tuple(variable, min))
+            push!(local_onesided_variables_nonlinear_, (variable, min))
         elseif min_or_max === Trixi.max || min_or_max === Trixi.min
-            push!(local_onesided_variables_nonlinear_, tuple(variable, min_or_max))
+            push!(local_onesided_variables_nonlinear_, (variable, min_or_max))
         else
             error("Parameter $min_or_max is not a valid input. Use `max` or `min` instead.")
         end
