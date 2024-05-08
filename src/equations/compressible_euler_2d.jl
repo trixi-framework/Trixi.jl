@@ -173,6 +173,7 @@ function initial_condition_weak_blast_wave(x, t,
     sin_phi, cos_phi = sincos(phi)
 
     # Calculate primitive variables
+    RealT = eltype(x)
     rho = r > 0.5f0 ? 1 : convert(RealT, 1.1691)
     v1 = r > 0.5f0 ? 0 : convert(RealT, 0.1882) * cos_phi
     v2 = r > 0.5f0 ? 0 : convert(RealT, 0.1882) * sin_phi
