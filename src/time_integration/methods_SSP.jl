@@ -88,7 +88,7 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
     t::RealT
     tdir::RealT
     dt::RealT # current time step
-    dtcache::RealT # ignored
+    dtcache::RealT # manually set time step
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
@@ -102,7 +102,7 @@ end
 
 """
     add_tstop!(integrator::SimpleIntegratorSSP, t)
-Add a time stop during the time integration process. 
+Add a time stop during the time integration process.
 This function is called after the periodic SaveSolutionCallback to specify the next stop to save the solution.
 """
 function add_tstop!(integrator::SimpleIntegratorSSP, t)
@@ -145,7 +145,7 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     t = first(ode.tspan)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
-    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, zero(dt), iter, ode.p,
+    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, dt, iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...),
@@ -185,14 +185,14 @@ function solve!(integrator::SimpleIntegratorSSP)
             error("time step size `dt` is NaN")
         end
 
+        modify_dt_for_tstops!(integrator)
+
         # if the next iteration would push the simulation beyond the end time, set dt accordingly
         if integrator.t + integrator.dt > t_end ||
            isapprox(integrator.t + integrator.dt, t_end)
             integrator.dt = t_end - integrator.t
             terminate!(integrator)
         end
-
-        modify_dt_for_tstops!(integrator)
 
         @. integrator.r0 = integrator.u
         for stage in eachindex(alg.c)
@@ -232,7 +232,7 @@ function solve!(integrator::SimpleIntegratorSSP)
         end
     end
 
-    # Empty the tstops array. 
+    # Empty the tstops array.
     # This cannot be done in terminate!(integrator::SimpleIntegratorSSP) because DiffEqCallbacks.PeriodicCallbackAffect would return at error.
     extract_all!(integrator.opts.tstops)
 
@@ -253,12 +253,12 @@ u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
 
 # used by adaptive timestepping algorithms in DiffEq
 function set_proposed_dt!(integrator::SimpleIntegratorSSP, dt)
-    integrator.dt = dt
+    (integrator.dt = dt; integrator.dtcache = dt)
 end
 
 # used by adaptive timestepping algorithms in DiffEq
 function get_proposed_dt(integrator::SimpleIntegratorSSP)
-    return integrator.dt
+    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
 end
 
 # stop the time integration
