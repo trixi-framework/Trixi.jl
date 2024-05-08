@@ -31,8 +31,10 @@ mkdir(outdir)
 end
 
 @trixi_testset "test load mesh from path" begin
-    @test_throws "Unknown file extension: .unknown_ext" begin
-        mesh = T8codeMesh(touch("dummy.unknown_ext"), 2)
+    mktempdir() do path
+        @test_throws "Unknown file extension: .unknown_ext" begin
+            mesh = T8codeMesh(touch(joinpath(path, "dummy.unknown_ext")), 2)
+        end
     end
 end
 
