@@ -160,8 +160,8 @@ makedocs(
                         "TrixiBase.jl" => "reference-trixibase.md",
                         "Trixi2Vtk.jl" => "reference-trixi2vtk.md"
                        ],
-        "Authors" => "authors.md",
         "Changelog" => "changelog.md",
+        "Authors" => "authors.md",
         "Contributing" => "contributing.md",
         "Code of Conduct" => "code_of_conduct.md",
         "License" => "license.md",
