@@ -43,7 +43,7 @@ function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
 
     save_errors = callback.save_errors && (callback.interval > 0) &&
                   (stage == length(alg.c)) &&
-                  (iter % callback.interval == 0 ||         # Every `interval` time steps
+                  ((iter + 1) % callback.interval == 0 ||   # Every `interval` time steps
                    integrator.finalstep ||                  # Planned last time step
                    (iter + 1) >= integrator.opts.maxiters)  # Maximum iterations reached
     if save_errors
