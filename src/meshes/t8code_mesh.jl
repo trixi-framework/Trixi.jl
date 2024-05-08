@@ -209,6 +209,8 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
                 t8_geometry_evaluate(cmesh, itree - 1, coords_ref, 1,
                                      @view(tree_node_coordinates[:, i, j, k, itree]))
             end
+        else
+            throw(ArgumentError("$NDIMS dimensions are not supported."))
         end
     end
 
