@@ -425,8 +425,8 @@ end
     coverage = occursin("--code-coverage", cmd) &&
                !occursin("--code-coverage=none", cmd)
     if coverage
-        # Run with coverage takes 6 time steps but only saves after the first.
-        @test startswith(lines[end], "1")
+        # Run with coverage takes 6 time steps.
+        @test startswith(lines[end], "6")
     else
         # Run without coverage takes 89 time steps.
         @test startswith(lines[end], "89")
