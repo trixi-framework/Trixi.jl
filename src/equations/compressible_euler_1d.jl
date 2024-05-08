@@ -165,9 +165,9 @@ function initial_condition_weak_blast_wave(x, t,
     cos_phi = x_norm > 0 ? 1 : -1
 
     # Calculate primitive variables
-    rho = r > 0.5 ? 1 : convert(RealT, 1.1691)
-    v1 = r > 0.5 ? 0 : convert(RealT, 0.1882) * cos_phi
-    p = r > 0.5 ? 1 : convert(RealT, 1.245)
+    rho = r > 0.5f0 ? 1 : convert(RealT, 1.1691)
+    v1 = r > 0.5f0 ? 0 : convert(RealT, 0.1882) * cos_phi
+    p = r > 0.5f0 ? 1 : convert(RealT, 1.245)
 
     return prim2cons(SVector(rho, v1, p), equations)
 end
