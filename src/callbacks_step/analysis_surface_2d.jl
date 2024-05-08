@@ -253,9 +253,6 @@ function analyze(surface_variable::AnalysisSurface{Variable},
     coords = coords[sorting_indices, :]
     values = values[sorting_indices]
 
-    println(size(coords))
-    println(size(values))
-
     save_pointwise_file(surface_variable.output_directory, varname(variable), coords,
                         values, t, iter)
 end
