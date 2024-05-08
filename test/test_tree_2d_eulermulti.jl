@@ -83,7 +83,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
                             save_errors=true)
         lines = readlines(joinpath("out", "deviations.txt"))
         @test lines[1] == "# iter, simu_time, rho1_min, rho2_min"
-        @test startswith(lines[end], "1")
+        @test startswith(lines[end], "15")
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
