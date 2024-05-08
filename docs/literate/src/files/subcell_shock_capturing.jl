@@ -106,7 +106,7 @@ positivity_variables_nonlinear = [pressure]
 # As for the limiting with global bounds you are passing the quantity names of the conservative
 # variables you want to limit. So, to limit the density with lower and upper local bounds pass
 # the following.
-local_minmax_variables_cons = ["rho"]
+local_twosided_variables_cons = ["rho"]
 
 # ## Exemplary simulation
 # How to set up a simulation using the IDP limiting becomes clearer when looking at an exemplary
@@ -154,7 +154,7 @@ volume_flux = flux_ranocha
 # Here, the simulation should contain local limiting for the density using lower and upper bounds.
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                local_minmax_variables_cons = ["rho"])
+                                local_twosided_variables_cons = ["rho"])
 
 # The initialized limiter is passed to `VolumeIntegralSubcellLimiting` in addition to the volume
 # fluxes of the low-order and high-order scheme.
