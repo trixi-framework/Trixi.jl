@@ -138,7 +138,7 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
     rho = 1 + convert(RealT, 0.98) * sinpi(2 * (x[1] - t * v1))
     rho_v1 = rho * v1
     p = 20
-    rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * v1^2
+    rho_e = p / (equations.gamma - 1) + 0.5f0 * rho * v1^2
     return SVector(rho, rho_v1, rho_e)
 end
 
@@ -864,8 +864,9 @@ Compactly summarized:
     beta = sqrt(0.5f0 * (equations.gamma - 1) / equations.gamma)
 
     # Estimate the edges of the Riemann fan (with positivity conservation)
-    SsL = min(v_roe - c_roe, v_ll - beta * c_ll, 0)
-    SsR = max(v_roe + c_roe, v_rr + beta * c_rr, 0)
+    RealT = eltype(u_ll)
+    SsL = min(v_roe - c_roe, v_ll - beta * c_ll, zero(RealT))
+    SsR = max(v_roe + c_roe, v_rr + beta * c_rr, zero(RealT))
 
     return SsL, SsR
 end
