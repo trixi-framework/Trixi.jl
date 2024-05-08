@@ -35,6 +35,7 @@
 # There is a default example for this mesh type that can be executed by
 
 using Trixi
+rm("out", force = true, recursive = true) #hide #md
 redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi_include(default_example_unstructured())
 end #hide #md
