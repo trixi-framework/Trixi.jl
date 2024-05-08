@@ -467,7 +467,7 @@ function T8codeMesh(filepath::String, NDIMS; kwargs...)
         return T8codeMesh(AbaqusFile{NDIMS}(filepath); kwargs...)
     end
 
-    throw("Unknown file extension: " * file_extension)
+    throw(ArgumentError("Unknown file extension: " * file_extension))
 end
 
 """
