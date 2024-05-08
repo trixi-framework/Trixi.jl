@@ -8,10 +8,10 @@ for human readability.
 
 #### Added
 - Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D` and extension
-  to 1D and 3D on `TreeMesh`.
-- Implementation of 1D Linearized Euler Equations.
-- New analysis callback for 2D `P4estMesh` to compute integrated quantities along a boundary surface, e.g., pressure lift and drag coefficients.
-- Optional tuple parameter for `GlmSpeedCallback` called `semi_indices` to specify for which semidiscretization of a `SemidiscretizationCoupled` we need to update the GLM speed.
+  to 1D and 3D on `TreeMesh` ([#1855], [#1873]).
+- Implementation of 1D Linearized Euler Equations ([#1867]).
+- New analysis callback for 2D `P4estMesh` to compute integrated quantities along a boundary surface, e.g., pressure lift and drag coefficients ([#1812]).
+- Optional tuple parameter for `GlmSpeedCallback` called `semi_indices` to specify for which semidiscretization of a `SemidiscretizationCoupled` we need to update the GLM speed ([#1835]).
 
 ## Changes when updating to v0.7 from v0.6.x
 
@@ -189,9 +189,8 @@ for human readability.
 #### Added
 
 - Experimental support for artificial neural network-based indicators for shock capturing and
-  adaptive mesh refinement ([#632](https://github.com/trixi-framework/Trixi.jl/pull/632))
-- Experimental support for direct-hybrid aeroacoustics simulations
-  ([#712](https://github.com/trixi-framework/Trixi.jl/pull/712))
+  adaptive mesh refinement ([#632])
+- Experimental support for direct-hybrid aeroacoustics simulations ([#712])
 - Implementation of shallow water equations in 2D
 - Experimental support for interactive visualization with [Makie.jl](https://makie.juliaplots.org/)
 
@@ -227,7 +226,7 @@ for human readability.
   - acoustic perturbation equations
   - Lattice-Boltzmann equations
 - Composable `FluxPlusDissipation` and `FluxLaxFriedrichs()`, `FluxHLL()` with adaptable
-  wave speed estimates were added in [#493](https://github.com/trixi-framework/Trixi.jl/pull/493)
+  wave speed estimates were added in [#493]
 - New structured, curvilinear, conforming mesh type `StructuredMesh`
 - New unstructured, curvilinear, conforming mesh type `UnstructuredMesh2D` in 2D
 - New unstructured, curvilinear, adaptive (non-conforming) mesh type `P4estMesh` in 2D and 3D
@@ -240,13 +239,13 @@ for human readability.
 - `flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations2D)` and
   `flux_lax_friedrichs(u_ll, u_rr, orientation, equations::LatticeBoltzmannEquations3D)`
   were actually using the logic of `flux_godunov`. Thus, they were renamed accordingly
-  in [#493](https://github.com/trixi-framework/Trixi.jl/pull/493). This is considered a bugfix
+  in [#493]. This is considered a bugfix
   (released in Trixi.jl v0.3.22).
 - The required Julia version is updated to v1.6.
 
 #### Deprecated
 
-- `calcflux` → `flux` ([#463](https://github.com/trixi-framework/Trixi.jl/pull/463))
+- `calcflux` → `flux` ([#463])
 - `flux_upwind` → `flux_godunov`
 - `flux_hindenlang` → `flux_hindenlang_gassner`
 - Providing the keyword argument `solution_variables` of `SaveSolutionCallback`
@@ -258,6 +257,6 @@ for human readability.
   only a single two-point numerical flux for nonconservative is deprecated. The new
   interface is described in a tutorial. Now, a tuple of two numerical fluxes of the
   form `(conservative_flux, nonconservative_flux)` needs to be passed for
-  nonconservative equations, see [#657](https://github.com/trixi-framework/Trixi.jl/pull/657).
+  nonconservative equations, see [#657].
 
 #### Removed
