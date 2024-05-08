@@ -15,6 +15,7 @@ TrixiBase = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
 
 [compat]
 CairoMakie = "0.6, 0.7, 0.8, 0.9, 0.10, 0.11"
+Changelog = "1.1"
 Documenter = "1"
 ForwardDiff = "0.10"
 HOHQMesh = "0.1, 0.2"
