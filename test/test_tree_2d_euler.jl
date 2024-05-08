@@ -420,16 +420,16 @@ end
                         coverage_override=(maxiters = 6,),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
-    @test lines[1] == "# iter, simu_time, rho_min, rho_max"
+    @test lines[1] == "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min"
     cmd = string(Base.julia_cmd())
     coverage = occursin("--code-coverage", cmd) &&
                !occursin("--code-coverage=none", cmd)
     if coverage
-        # Run with coverage takes 1 time step.
+        # Run with coverage takes 6 time steps but only saves after the first.
         @test startswith(lines[end], "1")
     else
-        # Run without coverage takes 96 time steps.
-        @test startswith(lines[end], "96")
+        # Run without coverage takes 89 time steps.
+        @test startswith(lines[end], "89")
     end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
