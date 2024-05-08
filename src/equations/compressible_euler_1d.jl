@@ -864,9 +864,8 @@ Compactly summarized:
     beta = sqrt(0.5f0 * (equations.gamma - 1) / equations.gamma)
 
     # Estimate the edges of the Riemann fan (with positivity conservation)
-    RealT = eltype(u_ll)
-    SsL = min(v_roe - c_roe, v_ll - beta * c_ll, zero(RealT))
-    SsR = max(v_roe + c_roe, v_rr + beta * c_rr, zero(RealT))
+    SsL = min(v_roe - c_roe, v_ll - beta * c_ll, 0)
+    SsR = max(v_roe + c_roe, v_rr + beta * c_rr, 0)
 
     return SsL, SsR
 end

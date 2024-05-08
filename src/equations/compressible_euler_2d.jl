@@ -1791,13 +1791,12 @@ of the numerical flux.
     beta = sqrt(0.5f0 * (equations.gamma - 1) / equations.gamma)
 
     # Estimate the edges of the Riemann fan (with positivity conservation)
-    RealT = eltype(u_ll)
     if orientation == 1 # x-direction
-        SsL = min(v1_roe - c_roe, v1_ll - beta * c_ll, zero(RealT))
-        SsR = max(v1_roe + c_roe, v1_rr + beta * c_rr, zero(RealT))
+        SsL = min(v1_roe - c_roe, v1_ll - beta * c_ll, 0)
+        SsR = max(v1_roe + c_roe, v1_rr + beta * c_rr, 0)
     elseif orientation == 2 # y-direction
-        SsL = min(v2_roe - c_roe, v2_ll - beta * c_ll, zero(RealT))
-        SsR = max(v2_roe + c_roe, v2_rr + beta * c_rr, zero(RealT))
+        SsL = min(v2_roe - c_roe, v2_ll - beta * c_ll, 0)
+        SsR = max(v2_roe + c_roe, v2_rr + beta * c_rr, 0)
     end
 
     return SsL, SsR
@@ -1855,9 +1854,8 @@ of the numerical flux.
     beta = sqrt(0.5f0 * (equations.gamma - 1) / equations.gamma)
 
     # Estimate the edges of the Riemann fan (with positivity conservation)
-    RealT = eltype(u_ll)
-    SsL = min(v_roe - c_roe, v_dot_n_ll - beta * c_ll, zero(RealT))
-    SsR = max(v_roe + c_roe, v_dot_n_rr + beta * c_rr, zero(RealT))
+    SsL = min(v_roe - c_roe, v_dot_n_ll - beta * c_ll, 0)
+    SsR = max(v_roe + c_roe, v_dot_n_rr + beta * c_rr, 0)
 
     return SsL, SsR
 end
