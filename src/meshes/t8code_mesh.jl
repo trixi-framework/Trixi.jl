@@ -101,17 +101,19 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
 end
 
 """
-    T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = 1, mapping=identity)
+    T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = 1, mapping = nothing)
 
-Create a 'T8codeMesh'.
+Main mesh constructor for the `T8codeMesh` wrapping around a given t8code
+`forest` object. This constructor is typically called by other `T8codeMesh`
+constructors.
 
 # Arguments
-- `forest`: Pointer to a committed forest.
+- `forest`: Pointer to a t8code forest.
 - `boundary_names`: List of boundary names.
 - `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
-- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
+- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
 """
 function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polydeg = 1,
@@ -121,35 +123,35 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
     nodes = 0.5 .* (basis.nodes .+ 1.0)
 
     cmesh = t8_forest_get_cmesh(forest)
-    num_trees = t8_forest_get_num_global_trees(forest)
+    number_of_trees = t8_forest_get_num_global_trees(forest)
 
     tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
                                                     ntuple(_ -> length(nodes), NDIMS)...,
-                                                    num_trees)
+                                                    number_of_trees)
 
-    coords_ref = Vector{Float64}(undef, 3)
+    reference_coordinates = Vector{Float64}(undef, 3)
 
     # Calculate node coordinates of reference mesh.
     if NDIMS == 2
-        num_corners = 4 # quadrilateral
+        number_of_corners = 4 # quadrilateral
 
         # Testing for negative element volumes.
-        verts = zeros(3, num_corners)
-        for itree in 1:num_trees
-            veptr = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
+        vertices = zeros(3, number_of_corners)
+        for itree in 1:number_of_trees
+            vertices_pointer = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
 
-            # Note, `verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))`
-            # sometimes does not work since `veptr` is not necessarily properly
+            # Note, `vertices = unsafe_wrap(Array, vertices_pointer, (3, 1 << NDIMS))`
+            # sometimes does not work since `vertices_pointer` is not necessarily properly
             # aligned to 8 bytes.
-            for icorner in 1:num_corners
-                verts[1, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 1)
-                verts[2, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 2)
+            for icorner in 1:number_of_corners
+                vertices[1, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 1)
+                vertices[2, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 2)
             end
 
             # Check if tree's node ordering is right-handed or print a warning.
-            let z = zero(eltype(verts)), o = one(eltype(verts))
-                u = verts[:, 2] - verts[:, 1]
-                v = verts[:, 3] - verts[:, 1]
+            let z = zero(eltype(vertices)), o = one(eltype(vertices))
+                u = vertices[:, 2] - vertices[:, 1]
+                v = vertices[:, 3] - vertices[:, 1]
                 w = [z, z, o]
 
                 # Triple product gives signed volume of spanned parallelepiped.
@@ -162,36 +164,36 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
 
             # Query geometry data from t8code.
             for j in eachindex(nodes), i in eachindex(nodes)
-                coords_ref[1] = nodes[i]
-                coords_ref[2] = nodes[j]
-                coords_ref[3] = 0.0
-                t8_geometry_evaluate(cmesh, itree - 1, coords_ref, 1,
+                reference_coordinates[1] = nodes[i]
+                reference_coordinates[2] = nodes[j]
+                reference_coordinates[3] = 0.0
+                t8_geometry_evaluate(cmesh, itree - 1, reference_coordinates, 1,
                                      @view(tree_node_coordinates[:, i, j, itree]))
             end
         end
 
     elseif NDIMS == 3
-        num_corners = 8 # hexahedron
+        number_of_corners = 8 # hexahedron
 
         # Testing for negative element volumes.
-        verts = zeros(3, num_corners)
-        for itree in 1:num_trees
-            veptr = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
+        vertices = zeros(3, number_of_corners)
+        for itree in 1:number_of_trees
+            vertices_pointer = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
 
-            # Note, `verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))`
-            # sometimes does not work since `veptr` is not necessarily properly
+            # Note, `vertices = unsafe_wrap(Array, vertices_pointer, (3, 1 << NDIMS))`
+            # sometimes does not work since `vertices_pointer` is not necessarily properly
             # aligned to 8 bytes.
-            for icorner in 1:num_corners
-                verts[1, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 1)
-                verts[2, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 2)
-                verts[3, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 3)
+            for icorner in 1:number_of_corners
+                vertices[1, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 1)
+                vertices[2, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 2)
+                vertices[3, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 3)
             end
 
             # Check if tree's node ordering is right-handed or print a warning.
-            let z = zero(eltype(verts))
-                u = verts[:, 2] - verts[:, 1]
-                v = verts[:, 3] - verts[:, 1]
-                w = verts[:, 5] - verts[:, 1]
+            let z = zero(eltype(vertices))
+                u = vertices[:, 2] - vertices[:, 1]
+                v = vertices[:, 3] - vertices[:, 1]
+                w = vertices[:, 5] - vertices[:, 1]
 
                 # Triple product gives signed volume of spanned parallelepiped.
                 vol = dot(cross(u, v), w)
@@ -203,15 +205,15 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
 
             # Query geometry data from t8code.
             for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
-                coords_ref[1] = nodes[i]
-                coords_ref[2] = nodes[j]
-                coords_ref[3] = nodes[k]
-                t8_geometry_evaluate(cmesh, itree - 1, coords_ref, 1,
+                reference_coordinates[1] = nodes[i]
+                reference_coordinates[2] = nodes[j]
+                reference_coordinates[3] = nodes[k]
+                t8_geometry_evaluate(cmesh, itree - 1, reference_coordinates, 1,
                                      @view(tree_node_coordinates[:, i, j, k, itree]))
             end
-        else
-            throw(ArgumentError("$NDIMS dimensions are not supported."))
         end
+    else
+        throw(ArgumentError("$NDIMS dimensions are not supported."))
     end
 
     # Apply user defined mapping.
@@ -427,6 +429,15 @@ function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
     cmesh = t8_cmesh_new_from_p8est(conn, mpi_comm(), 0)
 
     return T8codeMesh(cmesh; kwargs...)
+end
+
+# Convenience types for multiple dispatch. Only used in this file.
+struct GmshFile{NDIMS}
+    path::String
+end
+
+struct AbaqusFile{NDIMS}
+    path::String
 end
 
 """
