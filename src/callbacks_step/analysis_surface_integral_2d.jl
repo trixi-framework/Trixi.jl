@@ -18,7 +18,7 @@ the boundary/boundaries associated with particular name(s) given in `boundary_sy
 or `boundary_symbols`.
 For instance, this can be used to compute the lift [`LiftCoefficientPressure`](@ref) or
 drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil with the boundary
-name `:Airfoil` in 2D.
+symbol `:Airfoil` in 2D.
 
 - `semi::Semidiscretization`: Passed in to retrieve boundary condition information
 - `boundary_symbol_or_boundary_symbols::Symbol|Vector{Symbol}`: Name(s) of the boundary/boundaries
