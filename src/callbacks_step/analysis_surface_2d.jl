@@ -144,8 +144,6 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
     coords = Matrix{real(dg)}(undef, n_elements * n_nodes, dim) # physical coordinates of indices
     values = Vector{real(dg)}(undef, n_elements * n_nodes) # variable values at indices
 
-    # TODO - Decide whether to save element mean values too
-
     index_range = eachnode(dg)
 
     global_node_index = 1 # Keeps track of solution point number on the surface
@@ -175,7 +173,11 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
             global_node_index += 1
         end
     end
-    # TODO - Sort coords, values increasing x?
+    # Sort with ascending x
+    sorting_indices = sortperm(coords[:, 1])
+    coords = coords[sorting_indices, :]
+    values = values[sorting_indices]
+
     save_pointwise_file(surface_variable.output_directory, varname(variable), coords,
                         values, t, iter)
 end
@@ -197,8 +199,6 @@ function analyze(surface_variable::AnalysisSurface{Variable},
 
     coords = Matrix{real(dg)}(undef, n_elements * n_nodes, dim) # physical coordinates of indices
     values = Vector{real(dg)}(undef, n_elements * n_nodes) # variable values at indices
-
-    # TODO - Decide whether to save element mean values too
 
     # Additions for parabolic
     @unpack viscous_container = cache_parabolic
@@ -248,7 +248,14 @@ function analyze(surface_variable::AnalysisSurface{Variable},
             global_node_index += 1
         end
     end
-    # TODO - Sort coords, values increasing x?
+    # Sort with ascending x
+    sorting_indices = sortperm(coords[:, 1])
+    coords = coords[sorting_indices, :]
+    values = values[sorting_indices]
+
+    println(size(coords))
+    println(size(values))
+
     save_pointwise_file(surface_variable.output_directory, varname(variable), coords,
                         values, t, iter)
 end
