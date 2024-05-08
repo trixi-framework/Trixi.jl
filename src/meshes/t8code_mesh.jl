@@ -436,7 +436,7 @@ by the file extension.
 
 # Arguments
 - `filepath::String`: path to a Gmsh or Abaqus mesh file.
-- `NDIMS`: Mesh file dimension: `2` or `3`.
+- `ndims`: Mesh file dimension: `2` or `3`.
 
 # Optional Keyword Arguments
 - `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
@@ -449,7 +449,7 @@ by the file extension.
 - `RealT::Type`: The type that should be used for coordinates.
 - `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
 """
-function T8codeMesh(filepath::String, NDIMS; kwargs...)
+function T8codeMesh(filepath::String, ndims; kwargs...)
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
     @assert isfile(filepath)
 
@@ -458,11 +458,11 @@ function T8codeMesh(filepath::String, NDIMS; kwargs...)
     file_extension = lowercase(meshfile_suffix)
 
     if file_extension == ".msh"
-        return T8codeMesh(GmshFile{NDIMS}(filepath); kwargs...)
+        return T8codeMesh(GmshFile{ndims}(filepath); kwargs...)
     end
 
     if file_extension == ".inp"
-        return T8codeMesh(AbaqusFile{NDIMS}(filepath); kwargs...)
+        return T8codeMesh(AbaqusFile{ndims}(filepath); kwargs...)
     end
 
     throw("Unknown file extension: " * file_extension)
