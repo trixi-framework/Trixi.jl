@@ -274,7 +274,7 @@ function save_pointwise_file(output_directory, varname, coords, values, t, iter)
         file["time"] = t
         file["timestep"] = iter
         file["point_coordinates"] = coords
-        file["values"] = values
+        file["point_data"] = values
     end
 end
 
