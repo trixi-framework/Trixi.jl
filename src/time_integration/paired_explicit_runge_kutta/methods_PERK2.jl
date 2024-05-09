@@ -151,14 +151,7 @@ function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                            bS = 1.0, c_end = 0.5)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
-    a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
-                                                            eig_vals, tspan,
-                                                            bS, c_end;
-                                                            verbose)
-
-    b1 = 1 - bS
-
-    return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
+    return PairedExplicitRK2(num_stages, tspan, eig_vals; verbose, bS, c_end)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a
