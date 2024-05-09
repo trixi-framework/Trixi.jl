@@ -7,7 +7,8 @@ using DelimitedFiles: readdlm
 
 # Use Convex and ECOS to load the extension that extends functions for testing
 # PERK Single p2 Constructors
-using Convex, ECOS
+using Convex: Convex
+using ECOS: Optimizer
 
 include("test_trixi.jl")
 
@@ -552,7 +553,7 @@ end
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
 
         total_energy = energy_total(cons_vars, equations)
-        @test total_energy ≈ Trixi.entropy(cons_vars, equations)
+        @test total_energy ≈ entropy(cons_vars, equations)
 
         # test tuple args
         cons_vars = prim2cons((H, v1, b), equations)
@@ -566,7 +567,7 @@ end
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
 
         total_energy = energy_total(cons_vars, equations)
-        @test total_energy ≈ Trixi.entropy(cons_vars, equations)
+        @test total_energy ≈ entropy(cons_vars, equations)
 
         # test tuple args
         cons_vars = prim2cons((H, v1, v2, b), equations)
@@ -579,7 +580,7 @@ end
         entropy_vars = cons2entropy(cons_vars, equations)
 
         total_energy = energy_total(cons_vars, equations)
-        @test Trixi.entropy(cons_vars, equations) ≈ a * total_energy
+        @test entropy(cons_vars, equations) ≈ a * total_energy
     end
 end
 
