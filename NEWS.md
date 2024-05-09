@@ -13,7 +13,7 @@ for human readability.
 - New analysis callback for 2D `P4estMesh` to compute integrated quantities along a boundary surface, e.g., pressure lift and drag coefficients.
 - Optional tuple parameter for `GlmSpeedCallback` called `semi_indices` to specify for which semidiscretization of a `SemidiscretizationCoupled` we need to update the GLM speed.
 - New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
-  method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([PR #1908](https://github.com/trixi-framework/Trixi.jl/pull/1908))
+  method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([PR #1908])
 
 ## Changes when updating to v0.7 from v0.6.x
 
