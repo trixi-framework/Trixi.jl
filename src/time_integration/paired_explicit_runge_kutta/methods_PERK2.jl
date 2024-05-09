@@ -107,7 +107,12 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
 end
 
 """
-    PairedExplicitRK2()
+    PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
+                      bS = 1.0, c_end = 0.5)
+    PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
+                      verbose = false, bS = 1.0, c_end = 0.5)
+    PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
+                      verbose = false, bS = 1.0, c_end = 0.5)
 
 The following structures and methods provide a minimal implementation of
 the second-order paired explicit Runge-Kutta (PERK) method
