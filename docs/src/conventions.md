@@ -110,16 +110,41 @@ based on the following rules.
 ## Numeric types and type stability
 In Trixi.jl, `Float32` and `Float64` types are fully supported. We ensure the type stability of these numeric types throughout the development process. Below are some guidelines to apply in various scenarios.
 
-- Some real numbers can be represented exactly in machine (e.g., `0.25`, `0.5`, `1/2`) and we prefer to use `Float32` type of them to achieve a concise way of possible type promotion. 
+- **Exact floating-point numbers**: Some real numbers can be represented exactly in machine (e.g., `0.25`, `0.5`, `1/2`) and we prefer to use `Float32` type of them to achieve a concise way of possible type promotion. For example,
+  ```julia
+  # Assume we have `0.25`, `0.5`, `1/2` in function
+  0.25f0, 0.5f0, 0.5f0 # corresponding numbers
+  ```
 
-- For the real numbers that fail to be represented in machine (e.g., `0.1`, `1/3`, `pi`), we can use `convert` to make them consistent with the type of function input. A typical use would be `convert(0.1, RealT)` and here we assign a numeric type to the `RealT` before calling it.
+- **Non-exact floating-point numbers**: For real numbers that cannot be exactly represented in machine precision (e.g., `0.1`, `1/3`, `pi`), use the `convert` function to make them consistent with the type of the function input. For example, 
+  ```julia
+  # Assume we are handling `pi` in function
+  function foo(input1, input2, input3, ...)
+    RealT = eletype(input1) # good practice to always use the first input to extract numeric type
+    # ...
+    c1 = convert(RealT, pi) * c2 # sample operation
+    # ...
+  end
+  ```
 
-- **Exact floating-point numbers**: Some real numbers can be represented exactly in machine (e.g., `0.25`, `0.5`, `1/2`) and we prefer to use `Float32` type of them to achieve a concise way of possible type promotion.
+- **Integer numbers**: Integers need special consideration. Using functions like `convert` (as mentioned above), `zero`, and `one` to change integers to a specific type or keeping them in integer format is feasible in most cases. We should balance code readability and consistency while maintaining type stability. Here are some examples to guide our developers.
+  ```julia
+  # The first example - `SVector`, keep code consistency within `SVector`
+  SVector(0, 0, 0)
+  SVector(zero(RealT), zero(RealT), zero(RealT))
+  Svector(one(RealT), one(RealT), one(RealT))
 
-- **Non-exact floating-point numbers**:
-  For real numbers that cannot be exactly represented in machine precision (e.g., `0.1`, `1/3`, `pi`), use the `convert` function to make them consistent with the type of the function input.
+  # The second example - inner functions, keep them type-stable as well
+  function foo(input1, input2, input3, ...)
+  RealT = eletype(input1) # good practice to always use the first input to extract numeric type
+  # ...
+  c1 = c2 > 0.5f0 ? one(RealT) : convert(RealT, 0.1)
+  # ...
+  end 
 
-  - **Example Usage**: To convert a number like `0.1` to match the type `RealT`, use the following syntax, ensuring that `RealT` is assigned to the appropriate numeric type before calling the `convert` function:
-    ```julia
-    convert(RealT, 0.1)
-    ```
+  # The third example - some operations (like `/`, `sprt`, `inv`, and so on)
+  c1 = convert(RealT, 4) # suppose we get RealT before
+  c2 = 1 / c1
+  c3 = sprt(c1)
+  c4 = inv(c1)
+  ```
