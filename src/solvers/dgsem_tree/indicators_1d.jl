@@ -197,38 +197,39 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 3},
     return alpha
 end
 
-function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{1}, basis::LobattoLegendreBasis)
-  alpha = Vector{real(basis)}()
-  return (; alpha, basis.weights)
+function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{1},
+                      basis::LobattoLegendreBasis)
+    alpha = Vector{real(basis)}()
+    return (; alpha, basis.weights)
 end
 
-function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquations{1}, dg::DGSEM, cache)
-  cache = create_cache(typ, equations, dg.basis)
+function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquations{1},
+                      dg::DGSEM, cache)
+    cache = create_cache(typ, equations, dg.basis)
 end
 
-function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any,3},
+function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 3},
                                            mesh, equations, dg::DGSEM, cache;
                                            kwargs...)
-  @unpack alpha, weights = indicator_clamp.cache
-  resize!(alpha, nelements(dg, cache))
+    @unpack alpha, weights = indicator_clamp.cache
+    resize!(alpha, nelements(dg, cache))
 
-  @threaded for element in eachelement(dg, cache)
-    mean = zero(real(dg.basis))
+    @threaded for element in eachelement(dg, cache)
+        mean = zero(real(dg.basis))
 
-    for i in eachnode(dg)
-      u_local = get_node_vars(u, equations, dg, i, element)
-      mean += indicator_clamp.variable(u_local, equations) * weights[i]
+        for i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, element)
+            mean += indicator_clamp.variable(u_local, equations) * weights[i]
+        end
+        mean *= 0.5
+
+        if indicator_clamp.min <= mean <= indicator_clamp.max
+            alpha[element] = 1.0
+        else
+            alpha[element] = -1.0
+        end
     end
-    mean *= 0.5
 
-    if indicator_clamp.min <= mean <= indicator_clamp.max
-      alpha[element] =  1.0
-    else
-      alpha[element] = -1.0
-    end
-  end
-
-  return alpha
+    return alpha
 end
-
 end # @muladd

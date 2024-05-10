@@ -264,42 +264,47 @@ end
 A simple indicator returning 1.0 when the element average of `variable` lies within [min,max].
 Returns -1.0 otherwise.
 """
-struct IndicatorClamp{RealT<:Real, Variable, Cache<:NamedTuple} <: AbstractIndicator
-  min::RealT
-  max::RealT
-  variable::Variable
-  cache::Cache
+struct IndicatorClamp{RealT <: Real, Variable, Cache <: NamedTuple} <: AbstractIndicator
+    min::RealT
+    max::RealT
+    variable::Variable
+    cache::Cache
 end
 
-function IndicatorClamp(equations::AbstractEquations, basis; min = 0.0, max = 1.0, variable)
-  cache = create_cache(IndicatorClamp, equations, basis)
-  IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max, variable, cache)
+function IndicatorClamp(equations::AbstractEquations, basis; min = 0.0, max = 1.0,
+                        variable)
+    cache = create_cache(IndicatorClamp, equations, basis)
+    IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max, variable,
+                                                                 cache)
 end
 
-function IndicatorClamp(semi::AbstractSemidiscretization; min = 0.0, max = 1.0, variable)
-  cache = create_cache(IndicatorClamp, semi)
-  return IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max, variable, cache)
+function IndicatorClamp(semi::AbstractSemidiscretization; min = 0.0, max = 1.0,
+                        variable)
+    cache = create_cache(IndicatorClamp, semi)
+    return IndicatorClamp{typeof(min), typeof(variable), typeof(cache)}(min, max,
+                                                                        variable, cache)
 end
 
 function Base.show(io::IO, indicator::IndicatorClamp)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  print(io, "IndicatorClamp(")
-  print(io, "min=", indicator.min, ", max=", indicator.max, ", variable=", indicator.variable, ")")
+    print(io, "IndicatorClamp(")
+    print(io, "min=", indicator.min, ", max=", indicator.max, ", variable=",
+          indicator.variable, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorClamp)
-  @nospecialize indicator # reduce precompilation time
+    @nospecialize indicator # reduce precompilation time
 
-  if get(io, :compact, false)
-    show(io, indicator)
-  else
-    setup = [
-             "indicator variable" => indicator.variable,
-             "min" => indicator.min,
-             "max" => indicator.max,
-            ]
-    summary_box(io, "IndicatorClamp", setup)
-  end
+    if get(io, :compact, false)
+        show(io, indicator)
+    else
+        setup = [
+            "indicator variable" => indicator.variable,
+            "min" => indicator.min,
+            "max" => indicator.max,
+        ]
+        summary_box(io, "IndicatorClamp", setup)
+    end
 end
 end # @muladd

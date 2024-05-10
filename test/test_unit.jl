@@ -427,7 +427,7 @@ end
     indicator_max = IndicatorMax("variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_max)
 
-    indicator_clamp = IndicatorClamp(0.0, 1.0, "variable", (; cache=nothing))
+    indicator_clamp = IndicatorClamp(0.0, 1.0, "variable", (; cache = nothing))
     @test_nowarn show(stdout, indicator_clamp)
 end
 
