@@ -508,6 +508,10 @@ include("linearized_euler_3d.jl")
 abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
               AbstractEquations{NDIMS, NVARS} end
 
+abstract type AbstractThreeEquationsEquations{NDIMS, NVARS} <: 
+              AbstractEquations{NDIMS, NVARS} end
+include("three_equations_2d.jl")
+
 # Lighthill-Witham-Richards (LWR) traffic flow model
 abstract type AbstractTrafficFlowLWREquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end

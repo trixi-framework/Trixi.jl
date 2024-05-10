@@ -162,6 +162,7 @@ export AcousticPerturbationEquations2D,
        ShallowWaterEquationsQuasi1D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
        PolytropicEulerEquations2D,
+       ThreeEquations2D,
        TrafficFlowLWREquations1D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
@@ -187,6 +188,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxHydrostaticReconstruction,
+       flux_nonconservative_ThreeEquations_well,
        FluxUpwind
 
 export splitting_steger_warming, splitting_vanleer_haenel,
@@ -218,7 +220,7 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity, global_mean_vars,
-       equilibrium_distribution, waterheight_pressure
+       equilibrium_distribution, waterheight_pressure, alpha_rho
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
        cross_helicity,
        enstrophy
@@ -270,7 +272,7 @@ export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
 
 export ControllerThreeLevel, ControllerThreeLevelCombined,
-       IndicatorLöhner, IndicatorLoehner, IndicatorMax
+       IndicatorLöhner, IndicatorLoehner, IndicatorMax, IndicatorClamp
 
 export PositivityPreservingLimiterZhangShu
 
