@@ -70,6 +70,30 @@ end
     end
 end
 
+@trixi_testset "elixir_advection_meshview.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_meshview.jl"),
+                        l2=[
+                            8.311947673083206e-6,
+                            8.311947673068427e-6,
+                        ],
+                        linf=[
+                            6.627000273318195e-5,
+                            6.62700027264096e-5,
+                        ],
+                        coverage_override=(maxiters = 10^5,))
+
+    @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+end
+
 @trixi_testset "elixir_advection_extended.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[4.220397559713772e-6],

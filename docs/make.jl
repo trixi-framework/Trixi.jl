@@ -1,5 +1,6 @@
 using Documenter
 import Pkg
+using Changelog: Changelog
 
 # Fix for https://github.com/trixi-framework/Trixi.jl/issues/668
 if (get(ENV, "CI", nothing) != "true") && (get(ENV, "TRIXI_DOC_DEFAULT_ENVIRONMENT", nothing) != "true")
@@ -99,6 +100,14 @@ files = [
     ]
 tutorials = create_tutorials(files)
 
+# Create changelog
+Changelog.generate(
+    Changelog.Documenter(),                    # output type
+    joinpath(@__DIR__, "..", "NEWS.md"),       # input file
+    joinpath(@__DIR__, "src", "changelog.md"); # output file
+    repo = "trixi-framework/Trixi.jl",         # default repository for links
+)
+
 # Make documentation
 makedocs(
     # Specify modules for which docstrings should be shown
@@ -151,6 +160,7 @@ makedocs(
                         "TrixiBase.jl" => "reference-trixibase.md",
                         "Trixi2Vtk.jl" => "reference-trixi2vtk.md"
                        ],
+        "Changelog" => "changelog.md",
         "Authors" => "authors.md",
         "Contributing" => "contributing.md",
         "Code of Conduct" => "code_of_conduct.md",
