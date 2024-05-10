@@ -316,7 +316,8 @@ function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep =
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
         if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh, output_directory, system = i)
+            mesh.current_filename = save_mesh_file(mesh, output_directory; system = i,
+                                                   timestep = timestep)
             mesh.unsaved_changes = false
         end
     end
@@ -630,7 +631,9 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
-                                                  mesh::StructuredMesh, equations,
+                                                  mesh::Union{StructuredMesh,
+                                                              StructuredMeshView},
+                                                  equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
@@ -662,7 +665,8 @@ end
     end
 end
 
-function get_boundary_indices(element, orientation, mesh::StructuredMesh{2})
+function get_boundary_indices(element, orientation,
+                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}})
     cartesian_indices = CartesianIndices(size(mesh))
     if orientation == 1
         # Get index of element in y-direction
