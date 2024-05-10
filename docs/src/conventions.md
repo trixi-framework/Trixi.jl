@@ -106,3 +106,5 @@ based on the following rules.
 - `wrap_array` should be used as default option. `wrap_array_native` should only
   be used when necessary, e.g., to avoid additional overhead when interfacing
   with external C libraries such as HDF5, MPI, or visualization.
+
+# Numerical Types and Stability
