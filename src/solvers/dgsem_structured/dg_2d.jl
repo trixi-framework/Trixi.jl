@@ -100,7 +100,7 @@ end
 
 @inline function flux_differencing_kernel!(du, u,
                                            element,
-                                           mesh::Union{StructuredMesh{2},
+					   mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
                                            nonconservative_terms::False, equations,
@@ -157,7 +157,7 @@ end
 
 @inline function flux_differencing_kernel!(du, u,
                                            element,
-                                           mesh::Union{StructuredMesh{2},
+					   mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
                                            nonconservative_terms::True, equations,
@@ -226,7 +226,7 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+		mesh::Union{StructuredMesh{2}, StructuredMeshView{2}, UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
                               nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
@@ -296,7 +296,7 @@ end
 # Calculate the finite volume fluxes inside curvilinear elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               u::AbstractArray{<:Any, 4},
-                              mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+			      mesh::Union{StructuredMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
                               nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
@@ -388,7 +388,7 @@ end
 end
 
 function calc_interface_flux!(cache, u,
-                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
+		mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                               nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
     @unpack elements = cache
@@ -475,7 +475,7 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
-                                      mesh::StructuredMesh{2},
+				     mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                                       nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache)
     # See comment on `calc_interface_flux!` with `nonconservative_terms::False`
