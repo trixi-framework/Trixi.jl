@@ -1,5 +1,6 @@
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+Changelog = "5217a498-cd5d-4ec6-b8c2-9b85a09b6e3e"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 HOHQMesh = "e4f4c7b8-17cb-445a-93c5-f69190ed6c8c"
@@ -14,6 +15,7 @@ TrixiBase = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
 
 [compat]
 CairoMakie = "0.6, 0.7, 0.8, 0.9, 0.10, 0.11"
+Changelog = "1.1"
 Documenter = "1"
 ForwardDiff = "0.10"
 HOHQMesh = "0.1, 0.2"
