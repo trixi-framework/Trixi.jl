@@ -41,7 +41,7 @@ following naming conventions:
   use these indices.
 
 
-# Keywords in elixirs
+## Keywords in elixirs
 
 Trixi.jl is distributed with several examples in the form of elixirs, small
 Julia scripts containing everything to set up and run a simulation. Working
@@ -61,9 +61,9 @@ can only perform simple replacements. Some standard variables names are
 Moreover, [`convergence_test`](@ref) requires that the spatial resolution is
 set via the keywords
 - `initial_refinement_level`
-  (an integer, e.g. for the [`TreeMesh`](@ref) and the [`P4estMesh`](@ref)) or
+  (an integer, e.g., for the [`TreeMesh`](@ref) and the [`P4estMesh`](@ref)) or
 - `cells_per_dimension`
-  (a tuple of integers, one per spatial dimension, e.g. for the [`StructuredMesh`](@ref)
+  (a tuple of integers, one per spatial dimension, e.g., for the [`StructuredMesh`](@ref)
   and the [`DGMultiMesh`](@ref)).
 
 
@@ -101,10 +101,25 @@ based on the following rules.
   (or `wrap_array_native(u_ode, semi)`) for further processing.
 - When some solution is passed together with the `mesh, equations, solver, cache, ...`,
   it is already wrapped via `wrap_array` (or `wrap_array_native`).
-- Exceptions of this rule are possible, e.g. for AMR, but must be documented in
+- Exceptions of this rule are possible, e.g., for AMR, but must be documented in
   the code.
 - `wrap_array` should be used as default option. `wrap_array_native` should only
   be used when necessary, e.g., to avoid additional overhead when interfacing
   with external C libraries such as HDF5, MPI, or visualization.
 
-# Numerical Types and Stability
+## Numeric types and type stability
+In Trixi.jl, `Float32` and `Float64` types are fully supported. We ensure the type stability of these numeric types throughout the development process. Below are some guidelines to apply in various scenarios.
+
+- Some real numbers can be represented exactly in machine (e.g., `0.25`, `0.5`, `1/2`) and we prefer to use `Float32` type of them to achieve a concise way of possible type promotion. 
+
+- For the real numbers that fail to be represented in machine (e.g., `0.1`, `1/3`, `pi`), we can use `convert` to make them consistent with the type of function input. A typical use would be `convert(0.1, RealT)` and here we assign a numeric type to the `RealT` before calling it.
+
+- **Exact floating-point numbers**: Some real numbers can be represented exactly in machine (e.g., `0.25`, `0.5`, `1/2`) and we prefer to use `Float32` type of them to achieve a concise way of possible type promotion.
+
+- **Non-exact floating-point numbers**:
+  For real numbers that cannot be exactly represented in machine precision (e.g., `0.1`, `1/3`, `pi`), use the `convert` function to make them consistent with the type of the function input.
+
+  - **Example Usage**: To convert a number like `0.1` to match the type `RealT`, use the following syntax, ensuring that `RealT` is assigned to the appropriate numeric type before calling the `convert` function:
+    ```julia
+    convert(RealT, 0.1)
+    ```
