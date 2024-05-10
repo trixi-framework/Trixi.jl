@@ -294,15 +294,11 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
 
     do_partition = 0
     if NDIMS == 2
-        conn = T8code.Libt8.p4est_connectivity_new_brick(trees_per_dimension...,
-                                                         periodicity...)
-        cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), do_partition)
-        T8code.Libt8.p4est_connectivity_destroy(conn)
+        cmesh = t8_cmesh_new_brick_2d(trees_per_dimension..., periodicity...,
+                                      sc_MPI_COMM_WORLD)
     elseif NDIMS == 3
-        conn = T8code.Libt8.p8est_connectivity_new_brick(trees_per_dimension...,
-                                                         periodicity...)
-        cmesh = t8_cmesh_new_from_p8est(conn, mpi_comm(), do_partition)
-        T8code.Libt8.p8est_connectivity_destroy(conn)
+        cmesh = t8_cmesh_new_brick_3d(trees_per_dimension..., periodicity...,
+                                      sc_MPI_COMM_WORLD)
     end
 
     do_face_ghost = mpi_isparallel()
@@ -332,7 +328,7 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
         end
     end
 
-    # Note, `p*est_connectivity_new_brick` converts a domain of `[0,nx] x [0,ny] x ....`.
+    # Note, `t8_cmesh_new_brick_*d` converts a domain of `[0,nx] x [0,ny] x ....`.
     # Hence, transform mesh coordinates to reference space [-1,1]^NDIMS before applying user defined mapping.
     mapping_(xyz...) = mapping((x * 2.0 / tpd - 1.0 for (x, tpd) in zip(xyz,
                                                                         trees_per_dimension))...)

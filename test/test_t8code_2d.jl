@@ -57,6 +57,7 @@ end
         # actually is `Ptr{P4est.LibP4est.p4est_connectivity}`.
         conn = Trixi.P4est.LibP4est.p4est_connectivity_new_brick(2, 3, 1, 1)
         mesh = T8codeMesh(conn)
+        Trixi.p4est_connectivity_destroy(conn)
         all(size(mesh.tree_node_coordinates) .== (2, 2, 2, 6))
     end
 end
