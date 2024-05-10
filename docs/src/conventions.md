@@ -138,14 +138,14 @@ In Trixi.jl, `Float32` and `Float64` types are fully supported. We ensure the ty
   function foo(input1, input2, input3, ...)
   RealT = eletype(input1) # good practice to always use the first input to extract numeric type
   # ...
-  c1 = c2 > 0.5f0 ? one(RealT) : convert(RealT, 0.1)
+  c1 = c2 > 0.5f0 ? one(RealT) : convert(RealT, 0.1) # make type-stable
   # ...
   end 
 
-  # The third example - some operations (like `/`, `sprt`, `inv`, and so on)
+  # The third example - some operations (e.g., `/`, `sprt`, `inv`), convert them definitely
   c1 = convert(RealT, 4) # suppose we get RealT before
   c2 = 1 / c1
   c3 = sprt(c1)
   c4 = inv(c1)
   ```
-  In general, for integer numbers, our developers should apply a case-by-case strategy to maintain type stability. 
+  In general, in the case of integer numbers, our developers should apply a case-by-case strategy to maintain type stability. 
