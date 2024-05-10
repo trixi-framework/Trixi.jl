@@ -97,7 +97,10 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::StructuredMesh, output_directory; system = "")
+# Note: the `timestep` argument is needed for compatibility with the method for
+# `StructuredMeshView`
+function save_mesh_file(mesh::StructuredMesh, output_directory; system = "",
+                        timestep = 0)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
@@ -256,7 +259,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         end
         mesh = TreeMesh(SerialTree{ndims}, max(n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
-    elseif mesh_type == "StructuredMesh"
+    elseif mesh_type in ("StructuredMesh", "StructuredMeshView")
         size_, mapping_as_string = h5open(mesh_file, "r") do file
             return read(attributes(file)["size"]),
                    read(attributes(file)["mapping"])
