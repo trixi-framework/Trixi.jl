@@ -5,113 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# This file collects all methods that have been updated to work with parabolic systems of equations
-#
-# assumptions: parabolic terms are of the form div(f(u, grad(u))) and
-# will be discretized first order form as follows:
-#               1. compute grad(u)
-#               2. compute f(u, grad(u))
-#               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
-# boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::TreeMesh{3},
-                        equations_parabolic::AbstractEquationsParabolic,
-                        initial_condition, boundary_conditions_parabolic, source_terms,
-                        dg::DG, parabolic_scheme, cache, cache_parabolic)
-    @unpack u_transformed, gradients, flux_viscous = cache_parabolic
-
-    # Convert conservative variables to a form more suitable for viscous flux calculations
-    @trixi_timeit timer() "transform variables" begin
-        transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache, cache_parabolic)
-    end
-
-    # Compute the gradients of the transformed variables
-    @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
-                       boundary_conditions_parabolic, dg, cache, cache_parabolic)
-    end
-
-    # Compute and store the viscous fluxes
-    @trixi_timeit timer() "calculate viscous fluxes" begin
-        calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh,
-                             equations_parabolic, dg, cache, cache_parabolic)
-    end
-
-    # The remainder of this function is essentially a regular rhs! for parabolic
-    # equations (i.e., it computes the divergence of the viscous fluxes)
-    #
-    # OBS! In `calc_viscous_fluxes!`, the viscous flux values at the volume nodes of each element have
-    # been computed and stored in `fluxes_viscous`. In the following, we *reuse* (abuse) the
-    # `interfaces` and `boundaries` containers in `cache_parabolic` to interpolate and store the
-    # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
-    # is done in the hyperbolic operator). That is, `interfaces.u`/`boundaries.u` store *viscous flux values*
-    # and *not the solution*.  The advantage is that a) we do not need to allocate more storage, b) we
-    # do not need to recreate the existing data structure only with a different name, and c) we do not
-    # need to interpolate solutions *and* gradients to the surfaces.
-
-    # TODO: parabolic; reconsider current data structure reuse strategy
-
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache)
-    end
-
-    # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                             equations_parabolic, dg, cache_parabolic)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache_parabolic, t,
-                                       boundary_conditions_parabolic,
-                                       mesh, equations_parabolic,
-                                       dg.surface_integral, dg)
-    end
-
-    # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, flux_viscous, mesh, equations_parabolic,
-                         dg.mortar, dg.surface_integral, dg)
-    end
-
-    # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                          equations_parabolic,
-                          dg.mortar, dg.surface_integral, dg, cache)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations_parabolic,
-                               dg.surface_integral, dg, cache_parabolic)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache_parabolic)
-    end
-
-    return nothing
-end
-
 # Transform solution variables prior to taking the gradient
 # (e.g., conservative to primitive variables). Defaults to doing nothing.
 # TODO: can we avoid copying data?
@@ -338,7 +231,8 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
     return nothing
 end
 
-function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed,
+function calc_viscous_fluxes!(flux_viscous,
+                              gradients, u_transformed,
                               mesh::Union{TreeMesh{3}, P4estMesh{3}},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic)
@@ -452,10 +346,8 @@ function calc_boundary_flux_gradients!(cache, t,
                                               6, firsts[6], lasts[6])
 end
 
-function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{
-                                                                                      <:Any,
-                                                                                      5
-                                                                                      },
+function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{<:Any,
+                                                                                      5},
                                                    t,
                                                    boundary_condition,
                                                    equations_parabolic::AbstractEquationsParabolic,
@@ -544,10 +436,8 @@ function calc_boundary_flux_divergence!(cache, t,
                                                 dg, cache,
                                                 6, firsts[6], lasts[6])
 end
-function calc_boundary_flux_by_direction_divergence!(surface_flux_values::AbstractArray{
-                                                                                        <:Any,
-                                                                                        5
-                                                                                        },
+function calc_boundary_flux_by_direction_divergence!(surface_flux_values::AbstractArray{<:Any,
+                                                                                        5},
                                                      t,
                                                      boundary_condition,
                                                      equations_parabolic::AbstractEquationsParabolic,
@@ -596,13 +486,17 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
     return nothing
 end
 
+# `cache` is the hyperbolic cache, i.e., in particular not `cache_parabolic`.
+# This is because mortar handling is done in the (hyperbolic) `cache`.
+# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since 
+#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and 
+# hyperbolic-parabolic systems.
 function prolong2mortars!(cache,
-                          flux_viscous::Tuple{AbstractArray, AbstractArray,
-                                              AbstractArray},
+                          flux_viscous::Vector{Array{uEltype, 5}},
                           mesh::TreeMesh{3},
                           equations_parabolic::AbstractEquationsParabolic,
                           mortar_l2::LobattoLegendreMortarL2,
-                          surface_integral, dg::DGSEM)
+                          surface_integral, dg::DGSEM) where {uEltype <: Real}
     # temporary buffer for projections
     @unpack fstar_tmp1_threaded = cache
 
@@ -1099,21 +993,18 @@ function create_cache_parabolic(mesh::TreeMesh{3},
     elements = init_elements(leaf_cell_ids, mesh, equations_hyperbolic, dg.basis, RealT,
                              uEltype)
 
-    n_vars = nvariables(equations_hyperbolic)
-    n_nodes = nnodes(elements)
-    n_elements = nelements(elements)
-    u_transformed = Array{uEltype}(undef, n_vars, n_nodes, n_nodes, n_nodes, n_elements)
-    gradients = ntuple(_ -> similar(u_transformed), ndims(mesh))
-    flux_viscous = ntuple(_ -> similar(u_transformed), ndims(mesh))
-
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
     boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
 
     # mortars = init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)
 
+    viscous_container = init_viscous_container_3d(nvariables(equations_hyperbolic),
+                                                  nnodes(elements), nelements(elements),
+                                                  uEltype)
+
     # cache = (; elements, interfaces, boundaries, mortars)
-    cache = (; elements, interfaces, boundaries, gradients, flux_viscous, u_transformed)
+    cache = (; elements, interfaces, boundaries, viscous_container)
 
     # Add specialized parts of the cache required to compute the mortars etc.
     # cache = (;cache..., create_cache(mesh, equations_parabolic, dg.mortar, uEltype)...)
@@ -1125,8 +1016,9 @@ end
 # This is because the parabolic fluxes are assumed to be of the form
 #   `du/dt + df/dx = dg/dx + source(x,t)`,
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
-function apply_jacobian_parabolic!(du, mesh::Union{TreeMesh{3}, P4estMesh{3}},
-                                   equations::AbstractEquationsParabolic, dg::DG, cache)
+function apply_jacobian_parabolic!(du, mesh::TreeMesh{3},
+                                   equations::AbstractEquationsParabolic,
+                                   dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in eachelement(dg, cache)

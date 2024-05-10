@@ -55,14 +55,22 @@ different features on different mesh types.
 | Element type                                                 | line, square, cube |     line, quadᵃ, hexᵃ    |             quadᵃ            |     quadᵃ, hexᵃ     |    simplex, quadᵃ, hexᵃ    |
 | Adaptive mesh refinement                                     |          ✅         |             ❌            |               ❌              |          ✅          |               ❌            | [`AMRCallback`](@ref)
 | Solver type                                                  |   [`DGSEM`](@ref)  |      [`DGSEM`](@ref)     |        [`DGSEM`](@ref)       |   [`DGSEM`](@ref)   |       [`DGMulti`](@ref)    |
-| Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitraryᵇ   |
+| Domain                                                       |      hypercube     |     mapped hypercube     |           arbitrary          |      arbitrary      |       arbitrary    |
 | Weak form                                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | [`VolumeIntegralWeakForm`](@ref)
 | Flux differencing                                            |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | [`VolumeIntegralFluxDifferencing`](@ref)
 | Shock capturing                                              |          ✅         |             ✅            |               ✅              |          ✅          |               ❌            | [`VolumeIntegralShockCapturingHG`](@ref)
 | Nonconservative equations                                    |          ✅         |             ✅            |               ✅              |          ✅          |               ✅            | e.g., GLM MHD or shallow water equations
+| Parabolic terms                                              |          ✅         |             ✅            |               ❌              |          ✅          |               ✅            | e.g., [`CompressibleNavierStokesDiffusion2D`](@ref)
 
 ᵃ: quad = quadrilateral, hex = hexahedron
-ᵇ: curved meshes supported for `SBP` and `GaussSBP` approximation types for `VolumeIntegralFluxDifferencing` solvers on quadrilateral and hexahedral `DGMultiMesh`es (non-conservative terms not yet supported)
+
+Note that except for [`TreeMesh`](@ref) all meshes are of *curvilinear* type, 
+which means that a (unit) vector normal to the interface (`normal_direction`) needs to be supplied to the 
+numerical flux function.
+You can check the [reference](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/) if a certain 
+numerical flux is implemented with a `normal_direction` 
+or if currently only the *Cartesian* version (for [`TreeMesh`](@ref)) exists.
+In this case, you can still use this flux on curvilinear meshes by rotating it, see [`FluxRotated`](@ref).
 
 ## Time integration methods
 

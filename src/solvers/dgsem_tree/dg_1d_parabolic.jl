@@ -290,10 +290,8 @@ function calc_boundary_flux_gradients!(cache, t,
                                               2, firsts[2], lasts[2])
 end
 
-function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{
-                                                                                      <:Any,
-                                                                                      3
-                                                                                      },
+function calc_boundary_flux_by_direction_gradient!(surface_flux_values::AbstractArray{<:Any,
+                                                                                      3},
                                                    t,
                                                    boundary_condition,
                                                    equations_parabolic::AbstractEquationsParabolic,
@@ -358,10 +356,8 @@ function calc_boundary_flux_divergence!(cache, t,
                                                 dg, cache,
                                                 2, firsts[2], lasts[2])
 end
-function calc_boundary_flux_by_direction_divergence!(surface_flux_values::AbstractArray{
-                                                                                        <:Any,
-                                                                                        3
-                                                                                        },
+function calc_boundary_flux_by_direction_divergence!(surface_flux_values::AbstractArray{<:Any,
+                                                                                        3},
                                                      t,
                                                      boundary_condition,
                                                      equations_parabolic::AbstractEquationsParabolic,
@@ -535,13 +531,13 @@ function create_cache_parabolic(mesh::TreeMesh{1},
     elements = init_elements(leaf_cell_ids, mesh, equations_hyperbolic, dg.basis, RealT,
                              uEltype)
 
-    viscous_container = init_viscous_container(nvariables(equations_hyperbolic),
-                                               nnodes(elements), nelements(elements),
-                                               uEltype)
-
     interfaces = init_interfaces(leaf_cell_ids, mesh, elements)
 
     boundaries = init_boundaries(leaf_cell_ids, mesh, elements)
+
+    viscous_container = init_viscous_container_1d(nvariables(equations_hyperbolic),
+                                                  nnodes(elements), nelements(elements),
+                                                  uEltype)
 
     cache = (; elements, interfaces, boundaries, viscous_container)
 

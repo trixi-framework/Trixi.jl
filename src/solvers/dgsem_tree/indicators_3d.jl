@@ -101,7 +101,8 @@ end
     alpha[element] = min(alpha_max, alpha_element)
 end
 
-function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}}, alpha, alpha_tmp, dg,
+function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, alpha,
+                          alpha_tmp, dg,
                           cache)
 
     # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
@@ -234,6 +235,7 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
                                        kwargs...)
     @unpack alpha, indicator_threaded = indicator_max.cache
     resize!(alpha, nelements(dg, cache))
+    indicator_variable = indicator_max.variable
 
     @threaded for element in eachelement(dg, cache)
         indicator = indicator_threaded[Threads.threadid()]
@@ -241,7 +243,7 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
         # Calculate indicator variables at Gauss-Lobatto nodes
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, k, element)
-            indicator[i, j, k] = indicator_max.variable(u_local, equations)
+            indicator[i, j, k] = indicator_variable(u_local, equations)
         end
 
         alpha[element] = maximum(indicator)
@@ -251,9 +253,7 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
 end
 
 function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{3}, basis::LobattoLegendreBasis)
-
   alpha = Vector{real(basis)}()
-
   return (; alpha, basis.weights)
 end
 

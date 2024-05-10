@@ -30,6 +30,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["n_cells"] = n_cells
+        attributes(file)["capacity"] = mesh.tree.capacity
         attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
         attributes(file)["minimum_level"] = minimum_level(mesh.tree)
         attributes(file)["maximum_level"] = maximum_level(mesh.tree)
@@ -73,6 +74,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["n_cells"] = n_cells
+        attributes(file)["capacity"] = mesh.tree.capacity
         attributes(file)["n_leaf_cells"] = count_leaf_cells(mesh.tree)
         attributes(file)["minimum_level"] = minimum_level(mesh.tree)
         attributes(file)["maximum_level"] = maximum_level(mesh.tree)
@@ -95,7 +97,10 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::StructuredMesh, output_directory; system = "")
+# Note: the `timestep` argument is needed for compatibility with the method for
+# `StructuredMeshView`
+function save_mesh_file(mesh::StructuredMesh, output_directory; system = "",
+                        timestep = 0)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
@@ -249,12 +254,12 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
     end
 
     if mesh_type == "TreeMesh"
-        n_cells = h5open(mesh_file, "r") do file
-            return read(attributes(file)["n_cells"])
+        capacity = h5open(mesh_file, "r") do file
+            return read(attributes(file)["capacity"])
         end
-        mesh = TreeMesh(SerialTree{ndims}, max(n_cells, n_cells_max))
+        mesh = TreeMesh(SerialTree{ndims}, max(n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
-    elseif mesh_type == "StructuredMesh"
+    elseif mesh_type in ("StructuredMesh", "StructuredMeshView")
         size_, mapping_as_string = h5open(mesh_file, "r") do file
             return read(attributes(file)["size"]),
                    read(attributes(file)["mapping"])
@@ -263,32 +268,27 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         size = Tuple(size_)
 
         # TODO: `@eval` is evil
-        # A temporary workaround to evaluate the code that defines the domain mapping in a local scope.
-        # This prevents errors when multiple restart elixirs are executed in one session, where one
-        # defines `mapping` as a variable, while the other defines it as a function.
         #
         # This should be replaced with something more robust and secure,
         # see https://github.com/trixi-framework/Trixi.jl/issues/541).
-        expr = Meta.parse(mapping_as_string)
-        if expr.head == :toplevel
-            expr.head = :block
-        end
-
         if ndims == 1
-            mapping = @eval function (xi)
-                $expr
+            mapping = eval(Meta.parse("""function (xi)
+                $mapping_as_string
                 mapping(xi)
             end
+            """))
         elseif ndims == 2
-            mapping = @eval function (xi, eta)
-                $expr
+            mapping = eval(Meta.parse("""function (xi, eta)
+                $mapping_as_string
                 mapping(xi, eta)
             end
+            """))
         else # ndims == 3
-            mapping = @eval function (xi, eta, zeta)
-                $expr
+            mapping = eval(Meta.parse("""function (xi, eta, zeta)
+                $mapping_as_string
                 mapping(xi, eta, zeta)
             end
+            """))
         end
 
         mesh = StructuredMesh(size, mapping; RealT = RealT, unsaved_changes = false,
@@ -302,6 +302,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         mesh = UnstructuredMesh2D(mesh_filename; RealT = RealT,
                                   periodicity = periodicity_,
                                   unsaved_changes = false)
+        mesh.current_filename = mesh_file
     elseif mesh_type == "P4estMesh"
         p4est_filename, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
@@ -320,7 +321,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         p4est = load_p4est(p4est_file, Val(ndims))
 
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                                nodes, boundary_names, "", false, true)
+                                nodes, boundary_names, mesh_file, false, true)
     else
         error("Unknown mesh type!")
     end
@@ -408,7 +409,7 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
         p4est = load_p4est(p4est_file, Val(ndims_))
 
         mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
-                                 nodes, boundary_names, "", false, true)
+                                 nodes, boundary_names, mesh_file, false, true)
     else
         error("Unknown mesh type!")
     end

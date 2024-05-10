@@ -501,6 +501,11 @@ function calc_mortar_flux!(surface_flux_values,
         # copying in the correct orientation
         u_buffer = cache.u_threaded[Threads.threadid()]
 
+        # in calc_interface_flux!, the interface flux is computed once over each 
+        # interface using the normal from the "primary" element. The result is then 
+        # passed back to the "secondary" element, flipping the sign to account for the 
+        # change in the normal direction. For mortars, this sign flip occurs in 
+        # "mortar_fluxes_to_elements!" instead.
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache,
                                    mortar, fstar, u_buffer)

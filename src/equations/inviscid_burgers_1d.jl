@@ -168,6 +168,7 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::InviscidBurgersEquation1D) = u
+@inline entropy2cons(u, equation::InviscidBurgersEquation1D) = u
 
 # Calculate entropy for a conservative state `cons`
 @inline entropy(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2

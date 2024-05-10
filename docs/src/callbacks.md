@@ -30,6 +30,11 @@ An example elixir using AMR can be found at [`examples/tree_2d_dgsem/elixir_adve
 The [`AnalysisCallback`](@ref) can be used to analyze the numerical solution, e.g. calculate
 errors or user-specified integrals, and print the results to the screen. The results can also be
 saved in a file. An example can be found at [`examples/tree_2d_dgsem/elixir_euler_vortex.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_vortex.jl).
+Note that the errors (e.g. `L2 error` or `Linf error`) are computed with respect to the initial condition.
+The percentage of the simulation time refers to the ratio of the current time and the final time, i.e. it does
+not consider the maximal number of iterations. So the simulation could finish before 100% are reached.
+Note that, e.g., due to AMR or smaller time step sizes, the simulation can actually take longer than
+the percentage indicates.
 In [Performance metrics of the `AnalysisCallback`](@ref performance-metrics) you can find a detailed
 description of the different performance metrics the `AnalysisCallback` computes.
 
