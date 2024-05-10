@@ -148,3 +148,4 @@ In Trixi.jl, `Float32` and `Float64` types are fully supported. We ensure the ty
   c3 = sprt(c1)
   c4 = inv(c1)
   ```
+  In general, for integer numbers, our developers should apply a case-by-case strategy to maintain type stability. 
