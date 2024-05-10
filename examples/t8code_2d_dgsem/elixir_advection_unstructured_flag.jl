@@ -30,13 +30,8 @@ mapping_flag = Trixi.transfinite_mapping(faces)
 mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
                            joinpath(@__DIR__, "square_unstructured_2.inp"))
 
-# INP mesh files are only support by p4est. Hence, we
-# create a p4est connecvity object first from which
-# we can create a t8code mesh.
-conn = Trixi.read_inp_p4est(mesh_file, Val(2))
-
-mesh = T8codeMesh(conn, polydeg = 3,
-                  mapping = mapping_flag,
+mesh = T8codeMesh(mesh_file, 2;
+                  mapping = mapping_flag, polydeg = 3,
                   initial_refinement_level = 2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
