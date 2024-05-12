@@ -40,7 +40,6 @@ basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
-                                spec_entropy = false,
                                 bar_states = true)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;

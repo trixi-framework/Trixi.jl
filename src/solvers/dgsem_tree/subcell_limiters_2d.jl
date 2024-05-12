@@ -53,22 +53,19 @@ function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSE
         elements = eachelement(dg, semi.cache)
     end
 
-    if limiter.local_minmax
-        @trixi_timeit timer() "local min/max limiting" idp_local_minmax!(alpha, limiter,
-                                                                         u, t, dt, semi,
-                                                                         elements)
+    if limiter.local_twosided
+        @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,
+                                                                   u, t, dt, semi,
+                                                                   elements)
     end
     if limiter.positivity
         @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,
                                                            semi, elements)
     end
-    if limiter.spec_entropy
-        @trixi_timeit timer() "spec_entropy" idp_spec_entropy!(alpha, limiter, u, t,
-                                                               dt, semi, mesh, elements)
-    end
-    if limiter.math_entropy
-        @trixi_timeit timer() "math_entropy" idp_math_entropy!(alpha, limiter, u, t,
-                                                               dt, semi, mesh, elements)
+    if limiter.local_onesided
+        @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha, limiter,
+                                                                   u, t, dt, semi,
+                                                                   elements)
     end
 
     # Calculate alpha1 and alpha2
@@ -197,44 +194,48 @@ end
     return nothing
 end
 
-@inline function calc_bounds_onesided!(var_minmax, minmax, typeminmax, variable, u, t,
-                                       semi)
+@inline function calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
+        # Reset bounds
         for j in eachnode(dg), i in eachnode(dg)
-            var_minmax[i, j, element] = typeminmax(eltype(var_minmax))
+            if min_or_max === max
+                var_minmax[i, j, element] = typemin(eltype(var_minmax))
+            else
+                var_minmax[i, j, element] = typemax(eltype(var_minmax))
+            end
         end
 
         # Calculate bounds at Gauss-Lobatto nodes using u
         for j in eachnode(dg), i in eachnode(dg)
             var = variable(get_node_vars(u, equations, dg, i, j, element), equations)
-            var_minmax[i, j, element] = minmax(var_minmax[i, j, element], var)
+            var_minmax[i, j, element] = min_or_max(var_minmax[i, j, element], var)
 
             if i > 1
-                var_minmax[i - 1, j, element] = minmax(var_minmax[i - 1, j, element],
-                                                       var)
+                var_minmax[i - 1, j, element] = min_or_max(var_minmax[i - 1, j,
+                                                                      element], var)
             end
             if i < nnodes(dg)
-                var_minmax[i + 1, j, element] = minmax(var_minmax[i + 1, j, element],
-                                                       var)
+                var_minmax[i + 1, j, element] = min_or_max(var_minmax[i + 1, j,
+                                                                      element], var)
             end
             if j > 1
-                var_minmax[i, j - 1, element] = minmax(var_minmax[i, j - 1, element],
-                                                       var)
+                var_minmax[i, j - 1, element] = min_or_max(var_minmax[i, j - 1,
+                                                                      element], var)
             end
             if j < nnodes(dg)
-                var_minmax[i, j + 1, element] = minmax(var_minmax[i, j + 1, element],
-                                                       var)
+                var_minmax[i, j + 1, element] = min_or_max(var_minmax[i, j + 1,
+                                                                      element], var)
             end
         end
     end
 
     # Values at element boundary
-    calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, semi, mesh)
+    calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t, semi, mesh)
 end
 
-@inline function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t,
+@inline function calc_bounds_onesided_interface!(var_minmax, min_or_max, variable, u, t,
                                                  semi, mesh::TreeMesh2D)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; boundary_conditions) = semi
@@ -257,10 +258,10 @@ end
             var_right = variable(get_node_vars(u, equations, dg, index_right..., right),
                                  equations)
 
-            var_minmax[index_right..., right] = minmax(var_minmax[index_right...,
-                                                                  right], var_left)
-            var_minmax[index_left..., left] = minmax(var_minmax[index_left..., left],
-                                                     var_right)
+            var_minmax[index_right..., right] = min_or_max(var_minmax[index_right...,
+                                                                      right], var_left)
+            var_minmax[index_left..., left] = min_or_max(var_minmax[index_left...,
+                                                                    left], var_right)
         end
     end
 
@@ -290,8 +291,8 @@ end
                                                index..., element)
             var_outer = variable(u_outer, equations)
 
-            var_minmax[index..., element] = minmax(var_minmax[index..., element],
-                                                   var_outer)
+            var_minmax[index..., element] = min_or_max(var_minmax[index..., element],
+                                                       var_outer)
         end
     end
 
@@ -299,20 +300,20 @@ end
 end
 
 ###############################################################################
-# Local minimum/maximum limiting
+# Local two-sided limiting of conservative variables
 
-@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, elements)
+@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi, elements)
     mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
-    for variable in limiter.local_minmax_variables_cons
-        idp_local_minmax!(alpha, limiter, u, t, dt, semi, mesh, elements, variable)
+    for variable in limiter.local_twosided_variables_cons
+        idp_local_twosided!(alpha, limiter, u, t, dt, semi, mesh, elements, variable)
     end
 
     return nothing
 end
 
-@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi, mesh::TreeMesh{2},
-                                   elements, variable)
+@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi, mesh::TreeMesh{2},
+                                     elements, variable)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -326,17 +327,17 @@ end
     @threaded for element in elements
         inverse_jacobian = cache.elements.inverse_jacobian[element]
         for j in eachnode(dg), i in eachnode(dg)
-            idp_local_minmax_inner!(alpha, inverse_jacobian, u, dt, dg, cache, variable,
-                                    var_min, var_max, i, j, element)
+            idp_local_twosided_inner!(alpha, inverse_jacobian, u, dt, dg, cache,
+                                      variable, var_min, var_max, i, j, element)
         end
     end
 
     return nothing
 end
 
-@inline function idp_local_minmax!(alpha, limiter, u, t, dt, semi,
-                                   mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                                   elements, variable)
+@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi,
+                                     mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                                     elements, variable)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -350,8 +351,8 @@ end
     @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
-            idp_local_minmax_inner!(alpha, inverse_jacobian, u, dt, dg, cache, variable,
-                                    var_min, var_max, i, j, element)
+            idp_local_twosided_inner!(alpha, inverse_jacobian, u, dt, dg, cache,
+                                      variable, var_min, var_max, i, j, element)
         end
     end
 
@@ -359,8 +360,8 @@ end
 end
 
 # Function barrier to dispatch outer function by mesh type
-@inline function idp_local_minmax_inner!(alpha, inverse_jacobian, u, dt, dg, cache,
-                                         variable, var_min, var_max, i, j, element)
+@inline function idp_local_twosided_inner!(alpha, inverse_jacobian, u, dt, dg, cache,
+                                           variable, var_min, var_max, i, j, element)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
 
@@ -409,16 +410,27 @@ end
     return nothing
 end
 
-###############################################################################
-# Local minimum limiting of specific entropy
+##############################################################################
+# Local one-sided limiting of nonlinear variables
 
-@inline function idp_spec_entropy!(alpha, limiter, u, t, dt, semi, mesh::TreeMesh{2},
-                                   elements)
+@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi, elements)
+    mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
+    for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+        idp_local_onesided!(alpha, limiter, u, t, dt, semi, mesh, elements,
+                            variable, min_or_max)
+    end
+
+    return nothing
+end
+
+@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi, mesh::TreeMesh{2},
+                                     elements, variable, min_or_max)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    s_min = variable_bounds[:spec_entropy_min]
+    var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
     if !limiter.bar_states
-        calc_bounds_onesided!(s_min, min, typemax, entropy_spec, u, t, semi)
+        calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
     end
 
     # Perform Newton's bisection method to find new alpha
@@ -426,24 +438,26 @@ end
         inverse_jacobian = cache.elements.inverse_jacobian[element]
         for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
-            newton_loops_alpha!(alpha, s_min[i, j, element], u_local, inverse_jacobian,
-                                i, j, element, dt, equations, dg, cache, limiter,
-                                entropy_spec, initial_check_entropy_spec_newton_idp,
-                                final_check_standard_newton_idp)
+            newton_loops_alpha!(alpha, var_minmax[i, j, element], u_local,
+                                i, j, element, variable, min_or_max,
+                                initial_check_local_onesided_newton_idp,
+                                final_check_local_onesided_newton_idp, inverse_jacobian,
+                                dt, equations, dg, cache, limiter)
         end
     end
 
     return nothing
 end
 
-@inline function idp_spec_entropy!(alpha, limiter, u, t, dt, semi,
-                                   mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                                   elements)
+@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi,
+                                     mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                                     elements,
+                                     variable, min_or_max)
     _, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    s_min = variable_bounds[:spec_entropy_min]
+    var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
     if !limiter.bar_states
-        calc_bounds_onesided!(s_min, min, typemax, entropy_spec, u, t, semi)
+        calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
     end
 
     # Perform Newton's bisection method to find new alpha
@@ -451,62 +465,11 @@ end
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
             u_local = get_node_vars(u, equations, dg, i, j, element)
-            newton_loops_alpha!(alpha, s_min[i, j, element], u_local, inverse_jacobian,
-                                i, j, element, dt, equations, dg, cache, limiter,
-                                entropy_spec, initial_check_entropy_spec_newton_idp,
-                                final_check_standard_newton_idp)
-        end
-    end
-
-    return nothing
-end
-
-###############################################################################
-# Local maximum limiting of mathematical entropy
-
-@inline function idp_math_entropy!(alpha, limiter, u, t, dt, semi, mesh::TreeMesh{2},
-                                   elements)
-    _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    s_max = variable_bounds[:math_entropy_max]
-    if !limiter.bar_states
-        calc_bounds_onesided!(s_max, max, typemin, entropy_math, u, t, semi)
-    end
-
-    # Perform Newton's bisection method to find new alpha
-    @threaded for element in elements
-        inverse_jacobian = cache.elements.inverse_jacobian[element]
-        for j in eachnode(dg), i in eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, j, element)
-            newton_loops_alpha!(alpha, s_max[i, j, element], u_local, inverse_jacobian,
-                                i, j, element, dt, equations, dg, cache, limiter,
-                                entropy_math, initial_check_entropy_math_newton_idp,
-                                final_check_standard_newton_idp)
-        end
-    end
-
-    return nothing
-end
-
-@inline function idp_math_entropy!(alpha, limiter, u, t, dt, semi,
-                                   mesh::Union{StructuredMesh{2}, P4estMesh{2}},
-                                   elements)
-    _, equations, dg, cache = mesh_equations_solver_cache(semi)
-    (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
-    s_max = variable_bounds[:math_entropy_max]
-    if !limiter.bar_states
-        calc_bounds_onesided!(s_max, max, typemin, entropy_math, u, t, semi)
-    end
-
-    # Perform Newton's bisection method to find new alpha
-    @threaded for element in elements
-        for j in eachnode(dg), i in eachnode(dg)
-            inverse_jacobian = cache.elements.inverse_jacobian[i, j, element]
-            u_local = get_node_vars(u, equations, dg, i, j, element)
-            newton_loops_alpha!(alpha, s_max[i, j, element], u_local, inverse_jacobian,
-                                i, j, element, dt, equations, dg, cache, limiter,
-                                entropy_math, initial_check_entropy_math_newton_idp,
-                                final_check_standard_newton_idp)
+            newton_loops_alpha!(alpha, var_minmax[i, j, element], u_local,
+                                i, j, element, variable, min_or_max,
+                                initial_check_local_onesided_newton_idp,
+                                final_check_local_onesided_newton_idp, inverse_jacobian,
+                                dt, equations, dg, cache, limiter)
         end
     end
 
@@ -602,8 +565,8 @@ end
     end
 
     # Compute bound
-    if limiter.local_minmax &&
-       variable in limiter.local_minmax_variables_cons &&
+    if limiter.local_twosided &&
+       variable in limiter.local_twosided_variables_cons &&
        var_min[i, j, element] >= positivity_correction_factor * var
         # Local limiting is more restrictive that positivity limiting
         # => Skip positivity limiting for this node
@@ -699,10 +662,10 @@ end
     var_min[i, j, element] = limiter.positivity_correction_factor * var
 
     # Perform Newton's bisection method to find new alpha
-    newton_loops_alpha!(alpha, var_min[i, j, element], u_local, inverse_jacobian, i, j,
-                        element, dt, equations, dg, cache, limiter, variable,
-                        initial_check_nonnegative_newton_idp,
-                        final_check_nonnegative_newton_idp)
+    newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element, variable,
+                        min, initial_check_nonnegative_newton_idp,
+                        final_check_nonnegative_newton_idp, inverse_jacobian,
+                        dt, equations, dg, cache, limiter)
 
     return nothing
 end
@@ -710,9 +673,10 @@ end
 ###############################################################################
 # Newton-bisection method
 
-@inline function newton_loops_alpha!(alpha, bound, u, inverse_jacobian, i, j, element,
-                                     dt, equations, dg, cache, limiter,
-                                     variable, initial_check, final_check)
+@inline function newton_loops_alpha!(alpha, bound, u, i, j, element, variable,
+                                     min_or_max, initial_check, final_check,
+                                     inverse_jacobian, dt, equations, dg, cache,
+                                     limiter)
     (; inverse_weights) = dg.basis
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
 
@@ -722,37 +686,38 @@ end
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1_R, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
-                 equations, dt, limiter, antidiffusive_flux)
+    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+                 final_check, equations, dt, limiter, antidiffusive_flux)
 
     # positive xi direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
                          inverse_weights[i] *
                          get_node_vars(antidiffusive_flux1_L, equations, dg, i + 1, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
-                 equations, dt, limiter, antidiffusive_flux)
+    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+                 final_check, equations, dt, limiter, antidiffusive_flux)
 
     # negative eta direction
     antidiffusive_flux = gamma_constant_newton * inverse_jacobian * inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2_R, equations, dg, i, j,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
-                 equations, dt, limiter, antidiffusive_flux)
+    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+                 final_check, equations, dt, limiter, antidiffusive_flux)
 
     # positive eta direction
     antidiffusive_flux = -gamma_constant_newton * inverse_jacobian *
                          inverse_weights[j] *
                          get_node_vars(antidiffusive_flux2_L, equations, dg, i, j + 1,
                                        element)
-    newton_loop!(alpha, bound, u, i, j, element, variable, initial_check, final_check,
-                 equations, dt, limiter, antidiffusive_flux)
+    newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max, initial_check,
+                 final_check, equations, dt, limiter, antidiffusive_flux)
 
     return nothing
 end
 
-@inline function newton_loop!(alpha, bound, u, i, j, element, variable, initial_check,
-                              final_check, equations, dt, limiter, antidiffusive_flux)
+@inline function newton_loop!(alpha, bound, u, i, j, element, variable, min_or_max,
+                              initial_check, final_check, equations, dt, limiter,
+                              antidiffusive_flux)
     newton_reltol, newton_abstol = limiter.newton_tolerances
 
     beta = 1 - alpha[i, j, element]
@@ -766,7 +731,7 @@ end
     if isvalid(u_curr, equations)
         goal = goal_function_newton_idp(variable, bound, u_curr, equations)
 
-        initial_check(bound, goal, newton_abstol) && return nothing
+        initial_check(min_or_max, bound, goal, newton_abstol) && return nothing
     end
 
     # Newton iterations
@@ -801,7 +766,7 @@ end
 
             # Check new beta for condition and update bounds
             goal = goal_function_newton_idp(variable, bound, u_curr, equations)
-            if initial_check(bound, goal, newton_abstol)
+            if initial_check(min_or_max, bound, goal, newton_abstol)
                 # New beta fulfills condition
                 beta_L = beta
             else
@@ -834,26 +799,25 @@ end
     end
 
     new_alpha = 1 - beta
-    if alpha[i, j, element] > new_alpha + newton_abstol
-        error("Alpha is getting smaller. old: $(alpha[i, j, element]), new: $new_alpha")
-    else
-        alpha[i, j, element] = new_alpha
-    end
+    alpha[i, j, element] = new_alpha
 
     return nothing
 end
 
 ### Auxiliary routines for Newton's bisection method ###
 # Initial checks
-@inline function initial_check_entropy_spec_newton_idp(bound, goal, newton_abstol)
+@inline function initial_check_local_onesided_newton_idp(::typeof(min), bound,
+                                                         goal, newton_abstol)
     goal <= max(newton_abstol, abs(bound) * newton_abstol)
 end
 
-@inline function initial_check_entropy_math_newton_idp(bound, goal, newton_abstol)
+@inline function initial_check_local_onesided_newton_idp(::typeof(max), bound,
+                                                         goal, newton_abstol)
     goal >= -max(newton_abstol, abs(bound) * newton_abstol)
 end
 
-@inline initial_check_nonnegative_newton_idp(bound, goal, newton_abstol) = goal <= 0
+@inline initial_check_nonnegative_newton_idp(min_or_max, bound, goal, newton_abstol) = goal <=
+                                                                                       0
 
 # Goal and d(Goal)d(u) function
 @inline goal_function_newton_idp(variable, bound, u, equations) = bound -
@@ -864,10 +828,12 @@ end
 end
 
 # Final checks
-@inline function final_check_standard_newton_idp(bound, goal, newton_abstol)
+# final check for one-sided local limiting
+@inline function final_check_local_onesided_newton_idp(bound, goal, newton_abstol)
     abs(goal) < max(newton_abstol, abs(bound) * newton_abstol)
 end
 
+# final check for nonnegativity limiting
 @inline function final_check_nonnegative_newton_idp(bound, goal, newton_abstol)
     (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end

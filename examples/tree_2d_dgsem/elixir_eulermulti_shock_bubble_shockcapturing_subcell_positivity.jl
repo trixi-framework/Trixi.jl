@@ -90,7 +90,6 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                                              for i in eachcomponent(equations)],
                                 positivity_variables_nonlinear = [],
                                 positivity_correction_factor = 0.1,
-                                spec_entropy = false,
                                 bar_states = false)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;

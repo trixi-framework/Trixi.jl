@@ -284,6 +284,38 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_shockcapturing_subcell.jl (fixed time step)" begin
+    # Testing local SSP method without stepsize callback
+    # Additionally, tests combination with SaveSolutionCallback using time interval
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shockcapturing_subcell.jl"),
+                        dt=2.0e-3,
+                        tspan=(0.0, 0.25),
+                        save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8),
+                        callbacks=CallbackSet(summary_callback, save_solution,
+                                              analysis_callback, alive_callback),
+                        l2=[
+                            0.05624855363458103,
+                            0.06931288786158463,
+                            0.06931283188960778,
+                            0.6200535829842072,
+                        ],
+                        linf=[
+                            0.29029967648805566,
+                            0.6494728865862608,
+                            0.6494729363533714,
+                            3.0949621505674787,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         l2=[
@@ -365,16 +397,16 @@ end
 @trixi_testset "elixir_euler_blast_wave_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.30785094769124677,
-                            0.17599603017990473,
-                            0.17594201496603085,
-                            0.614120201076276,
+                            0.30783113348004093,
+                            0.17597018114974242,
+                            0.17594406844552404,
+                            0.6141151469952726,
                         ],
                         linf=[
-                            1.2971828380703805,
-                            1.1057475500114755,
-                            1.105770653844522,
-                            2.4364101844067916,
+                            1.297252661541156,
+                            1.105840523330678,
+                            1.1058680103852032,
+                            2.434846187265568,
                         ],
                         tspan=(0.0, 0.5),
                         initial_refinement_level=4,
@@ -393,16 +425,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
                         l2=[
-                            0.32211935909459755,
-                            0.17984734129031393,
-                            0.17983517637561672,
-                            0.6136858672602447,
+                            0.3221177942225801,
+                            0.1798478357478982,
+                            0.1798364616438908,
+                            0.6136884131056267,
                         ],
                         linf=[
-                            1.3435940880493509,
-                            1.1748248970276045,
-                            1.1745481442875036,
-                            2.421529617190895,
+                            1.343766644801395,
+                            1.1749593109683463,
+                            1.1747613085307178,
+                            2.4216006041018785,
                         ],
                         tspan=(0.0, 0.5),
                         initial_refinement_level=4,

@@ -678,7 +678,7 @@ end
 end
 
 """
-    flux_chandrashekar(u_ll, u_rr, orientation, equations::CompressibleEulerEquations2D)
+    flux_chandrashekar(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerEquations2D)
 
 Entropy conserving two-point flux by
 - Chandrashekar (2013)
@@ -720,6 +720,38 @@ Entropy conserving two-point flux by
         f4 = f1 * 0.5 * (1 / (equations.gamma - 1) / beta_mean - velocity_square_avg) +
              f2 * v1_avg + f3 * v2_avg
     end
+
+    return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_chandrashekar(u_ll, u_rr, normal_direction::AbstractVector,
+                                    equations::CompressibleEulerEquations2D)
+    # Unpack left and right state
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+    beta_ll = 0.5 * rho_ll / p_ll
+    beta_rr = 0.5 * rho_rr / p_rr
+    specific_kin_ll = 0.5 * (v1_ll^2 + v2_ll^2)
+    specific_kin_rr = 0.5 * (v1_rr^2 + v2_rr^2)
+
+    # Compute the necessary mean values
+    rho_avg = 0.5 * (rho_ll + rho_rr)
+    rho_mean = ln_mean(rho_ll, rho_rr)
+    beta_mean = ln_mean(beta_ll, beta_rr)
+    beta_avg = 0.5 * (beta_ll + beta_rr)
+    v1_avg = 0.5 * (v1_ll + v1_rr)
+    v2_avg = 0.5 * (v2_ll + v2_rr)
+    p_mean = 0.5 * rho_avg / beta_avg
+    velocity_square_avg = specific_kin_ll + specific_kin_rr
+
+    # Multiply with average of normal velocities
+    f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+    f2 = f1 * v1_avg + p_mean * normal_direction[1]
+    f3 = f1 * v2_avg + p_mean * normal_direction[2]
+    f4 = f1 * 0.5 * (1 / (equations.gamma - 1) / beta_mean - velocity_square_avg) +
+         f2 * v1_avg + f3 * v2_avg
 
     return SVector(f1, f2, f3, f4)
 end
@@ -1980,9 +2012,10 @@ end
     return SVector(w1, w2, w3, w4)
 end
 
-# Transformation from conservative variables u to entropy vector dSdu,
-# S = -rho*s/(gamma-1), s=ln(p)-gamma*ln(rho)
-@inline function cons2entropy_spec(u, equations::CompressibleEulerEquations2D)
+# Transformation from conservative variables u to entropy vector ds_0/du,
+# using the modified specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
+# Note: This is *not* the "conventional" specific entropy s = ln(p / rho^(gamma)).
+@inline function cons2entropy_guermond_etal(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
     v1 = rho_v1 / rho
@@ -1996,13 +2029,6 @@ end
     w2 = -rho_v1 * inv_rho_gammap1
     w3 = -rho_v2 * inv_rho_gammap1
     w4 = (1 / rho)^equations.gamma
-
-    # The derivative vector for other specific entropy
-    # sp = 1.0/(gammam1 * (rho_e - 0.5 * rho * v_square)
-    # w1 = gammam1 * 0.5 * v_square * sp - gamma / rho
-    # w2 = -gammam1 * v1 * sp
-    # w3 = -gammam1 * v2 * sp
-    # w4 = gammam1 * sp
 
     return SVector(w1, w2, w3, w4)
 end
@@ -2113,28 +2139,26 @@ end
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function variable_derivative(::typeof(entropy_math),
-                                     u, equations::CompressibleEulerEquations2D)
+@inline function gradient_conservative(::typeof(entropy_math),
+                                       u, equations::CompressibleEulerEquations2D)
     return cons2entropy(u, equations)
 end
 
-# Calculate specific entropy for conservative variable u
-@inline function entropy_spec(u, equations::CompressibleEulerEquations2D)
+# Calculate the modified specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
+# Note: This is *not* the "conventional" specific entropy s = ln(p / rho^(gamma)).
+@inline function entropy_guermond_etal(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
     # Modified specific entropy from Guermond et al. (2019)
     s = (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho) * (1 / rho)^equations.gamma
 
-    # Other specific entropy
-    # rho_sp = rho/((equations.gamma - 1.0) * (rho_e - 0.5 * rho * v_square))
-    # s = log(p) - (equaions.gamma + 1) * log(rho)
     return s
 end
 
 # Transformation from conservative variables u to d(s)/d(u)
-@inline function variable_derivative(::typeof(entropy_spec),
-                                     u, equations::CompressibleEulerEquations2D)
-    return cons2entropy_spec(u, equations)
+@inline function gradient_conservative(::typeof(entropy_guermond_etal),
+                                       u, equations::CompressibleEulerEquations2D)
+    return cons2entropy_guermond_etal(u, equations)
 end
 
 # Default entropy is the mathematical entropy

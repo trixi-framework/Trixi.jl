@@ -866,9 +866,9 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; bar_states1, bar_states2) = limiter.cache.container_bar_states
 
-    # state variables
-    if limiter.local_minmax
-        for v in limiter.local_minmax_variables_cons
+    # Local two-sided limiting for conservative variables
+    if limiter.local_twosided
+        for v in limiter.local_twosided_variables_cons
             v_string = string(v)
             var_min = variable_bounds[Symbol(v_string, "_min")]
             var_max = variable_bounds[Symbol(v_string, "_max")]
@@ -907,78 +907,54 @@ end
             end
         end
     end
-    # Specific Entropy
-    if limiter.spec_entropy
-        s_min = variable_bounds[:spec_entropy_min]
-        @threaded for element in eachelement(dg, cache)
-            for j in eachnode(dg), i in eachnode(dg)
-                s_min[i, j, element] = typemax(eltype(s_min))
-            end
-            # FV solution at node (i, j)
-            for j in eachnode(dg), i in eachnode(dg)
-                s = entropy_spec(get_node_vars(u, equations, dg, i, j, element),
-                                 equations)
-                s_min[i, j, element] = min(s_min[i, j, element], s)
-                # TODO: Add source term!
-            end
-            # xi direction: subcell face between (i-1, j) and (i, j)
-            for j in eachnode(dg), i in 1:(nnodes(dg) + 1)
-                s = entropy_spec(get_node_vars(bar_states1, equations, dg, i, j,
-                                               element), equations)
-                if i <= nnodes(dg)
-                    s_min[i, j, element] = min(s_min[i, j, element], s)
+    # Local two-sided limiting for non-linear variables
+    if limiter.local_onesided
+        for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+            var_minmax = variable_bounds[Symbol(string(variable), "_",
+                                                string(min_or_max))]
+            @threaded for element in eachelement(dg, cache)
+                for j in eachnode(dg), i in eachnode(dg)
+                    if min_or_max === max
+                        var_minmax[i, j, element] = typemin(eltype(var_minmax))
+                    else
+                        var_minmax[i, j, element] = typemax(eltype(var_minmax))
+                    end
                 end
-                if i > 1
-                    s_min[i - 1, j, element] = min(s_min[i - 1, j, element], s)
+                # FV solution at node (i, j)
+                for j in eachnode(dg), i in eachnode(dg)
+                    var = variable(get_node_vars(u, equations, dg, i, j, element),
+                                   equations)
+                    var_minmax[i, j, element] = min_or_max(var_minmax[i, j, element],
+                                                           var)
+                    # TODO: Add source term!
                 end
-            end
-            # eta direction: subcell face between (i, j-1) and (i, j)
-            for j in 1:(nnodes(dg) + 1), i in eachnode(dg)
-                s = entropy_spec(get_node_vars(bar_states2, equations, dg, i, j,
-                                               element), equations)
-                if j <= nnodes(dg)
-                    s_min[i, j, element] = min(s_min[i, j, element], s)
+                # xi direction: subcell face between (i-1, j) and (i, j)
+                for j in eachnode(dg), i in 1:(nnodes(dg) + 1)
+                    var = variable(get_node_vars(bar_states1, equations, dg, i, j,
+                                                 element), equations)
+                    if i <= nnodes(dg)
+                        var_minmax[i, j, element] = min_or_max(var_minmax[i, j,
+                                                                          element], var)
+                    end
+                    if i > 1
+                        var_minmax[i - 1, j, element] = min_or_max(var_minmax[i - 1, j,
+                                                                              element],
+                                                                   var)
+                    end
                 end
-                if j > 1
-                    s_min[i, j - 1, element] = min(s_min[i, j - 1, element], s)
-                end
-            end
-        end
-    end
-    # Mathematical entropy
-    if limiter.math_entropy
-        s_max = variable_bounds[:math_entropy_max]
-        @threaded for element in eachelement(dg, cache)
-            for j in eachnode(dg), i in eachnode(dg)
-                s_max[i, j, element] = typemin(eltype(s_max))
-            end
-            # FV solution at node (i, j)
-            for j in eachnode(dg), i in eachnode(dg)
-                s = entropy_math(get_node_vars(u, equations, dg, i, j, element),
-                                 equations)
-                s_max[i, j, element] = max(s_max[i, j, element], s)
-                # TODO: Add source term!
-            end
-            # xi direction: subcell face between (i-1, j) and (i, j)
-            for j in eachnode(dg), i in 1:(nnodes(dg) + 1)
-                s = entropy_math(get_node_vars(bar_states1, equations, dg, i, j,
-                                               element), equations)
-                if i <= nnodes(dg)
-                    s_max[i, j, element] = max(s_max[i, j, element], s)
-                end
-                if i > 1
-                    s_max[i - 1, j, element] = max(s_max[i - 1, j, element], s)
-                end
-            end
-            # eta direction: subcell face between (i, j-1) and (i, j)
-            for j in 1:(nnodes(dg) + 1), i in eachnode(dg)
-                s = entropy_math(get_node_vars(bar_states2, equations, dg, i, j,
-                                               element), equations)
-                if j <= nnodes(dg)
-                    s_max[i, j, element] = max(s_max[i, j, element], s)
-                end
-                if j > 1
-                    s_max[i, j - 1, element] = max(s_max[i, j - 1, element], s)
+                # eta direction: subcell face between (i, j-1) and (i, j)
+                for j in 1:(nnodes(dg) + 1), i in eachnode(dg)
+                    var = variable(get_node_vars(bar_states2, equations, dg, i, j,
+                                                 element), equations)
+                    if j <= nnodes(dg)
+                        var_minmax[i, j, element] = min_or_max(var_minmax[i, j,
+                                                                          element], var)
+                    end
+                    if j > 1
+                        var_minmax[i, j - 1, element] = min_or_max(var_minmax[i, j - 1,
+                                                                              element],
+                                                                   var)
+                    end
                 end
             end
         end

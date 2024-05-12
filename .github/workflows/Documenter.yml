@@ -34,9 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
-          version: '1.9'
+          version: '1.10'
           show-versioninfo: true
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1

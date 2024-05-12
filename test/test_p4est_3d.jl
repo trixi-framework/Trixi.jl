@@ -313,6 +313,35 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_ec.jl (flux_chandrashekar)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+                        l2=[
+                            0.010368548525287055,
+                            0.006216054794583285,
+                            0.006020401857347216,
+                            0.006019175682769779,
+                            0.026228080232814154,
+                        ],
+                        linf=[
+                            0.3169376449662026,
+                            0.28950510175646726,
+                            0.4402523227566396,
+                            0.4869168122387365,
+                            0.7999141641954051,
+                        ],
+                        tspan=(0.0, 0.2),
+                        volume_flux=flux_chandrashekar,
+                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[
@@ -526,6 +555,28 @@ end
                         tspan=(0.0, 0.04),
                         coverage_override=(maxiters = 6, initial_refinement_level = 1,
                                            base_level = 1, max_level = 2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_linearizedeuler_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_linearizedeuler_convergence.jl"),
+                        l2=[
+                            0.04452389418193219, 0.03688186699434862,
+                            0.03688186699434861, 0.03688186699434858,
+                            0.044523894181932186,
+                        ],
+                        linf=[
+                            0.2295447498696467, 0.058369658071546704,
+                            0.05836965807154648, 0.05836965807154648, 0.2295447498696468,
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -17,7 +17,6 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
                                 positivity_correction_factor = 0.1,
-                                spec_entropy = false,
                                 max_iterations_newton = 10,
                                 newton_tolerances = (1.0e-12, 1.0e-14),
                                 bar_states = true,
