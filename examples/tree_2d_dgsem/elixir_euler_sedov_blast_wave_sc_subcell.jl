@@ -45,7 +45,6 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
                                                                        min)],
-                                smoothness_indicator = false,
                                 bar_states = true)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
