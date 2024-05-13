@@ -347,6 +347,9 @@ function SimpleKronecker(NDIMS, A, eltype_A = eltype(A))
     return SimpleKronecker{NDIMS, typeof(A), typeof(tmp_storage)}(A, tmp_storage)
 end
 
+# fall back to mul! for a 1D Kronecker product
+LinearAlgebra.mul!(b, A_kronecker::SimpleKronecker{1}, x) = mul!(b, A_kronecker.A, x)
+
 # Computes `b = kron(A, A) * x` in an optimized fashion
 function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{2}, x_in)
     @unpack A = A_kronecker
