@@ -141,7 +141,7 @@ function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString
 
     b1 = 1 - bS
 
-    return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
+    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, c_end)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a
@@ -166,7 +166,7 @@ function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
 
     b1 = 1 - bS
 
-    return PairedExplicitRK2(num_stages, a_matrix, c, b1, bS, c_end)
+    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, c_end)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
