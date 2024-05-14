@@ -387,12 +387,44 @@ function P4estMesh{NDIMS}(meshfile::String;
                             p4est_partition_allow_for_coarsening)
 end
 
+# Wrapper for `p4est_connectivity_from_hohqmesh_abaqus`. The latter is used
+# by `T8codeMesh`, too.
+function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
+                                         n_dimensions, RealT)
+    connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_hohqmesh_abaqus(meshfile,
+                                                                                                         initial_refinement_level,
+                                                                                                         n_dimensions,
+                                                                                                         RealT)
+
+    p4est = new_p4est(connectivity, initial_refinement_level)
+
+    return p4est, tree_node_coordinates, nodes, boundary_names
+end
+
+# Wrapper for `p4est_connectivity_from_standard_abaqus`. The latter is used
+# by `T8codeMesh`, too.
+function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
+                                         initial_refinement_level, n_dimensions, RealT,
+                                         boundary_symbols)
+    connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_standard_abaqus(meshfile,
+                                                                                                         mapping,
+                                                                                                         polydeg,
+                                                                                                         initial_refinement_level,
+                                                                                                         n_dimensions,
+                                                                                                         RealT,
+                                                                                                         boundary_symbols)
+
+    p4est = new_p4est(connectivity, initial_refinement_level)
+
+    return p4est, tree_node_coordinates, nodes, boundary_names
+end
+
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. High-order boundary curve information as well as
 # the boundary names on each tree are provided by the `meshfile` created by
 # [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl).
-function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
-                                         n_dimensions, RealT)
+function p4est_connectivity_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
+                                                 n_dimensions, RealT)
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
@@ -440,18 +472,17 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
         file_idx += 1
     end
 
-    p4est = new_p4est(connectivity, initial_refinement_level)
-
-    return p4est, tree_node_coordinates, nodes, boundary_names
+    return connectivity, tree_node_coordinates, nodes, boundary_names
 end
 
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. The tree node coordinates are computed according to
 # the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
 # names are given the name `:all`.
-function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
-                                         initial_refinement_level, n_dimensions, RealT,
-                                         boundary_symbols)
+function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
+                                                 initial_refinement_level, n_dimensions,
+                                                 RealT,
+                                                 boundary_symbols)
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
@@ -474,8 +505,6 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
     calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices,
                                 tree_to_vertex)
 
-    p4est = new_p4est(connectivity, initial_refinement_level)
-
     if boundary_symbols === nothing
         # There's no simple and generic way to distinguish boundaries without any information given.
         # Name all of them :all.
@@ -495,7 +524,7 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
                                            Val(n_dimensions))
     end
 
-    return p4est, tree_node_coordinates, nodes, boundary_names
+    return connectivity, tree_node_coordinates, nodes, boundary_names
 end
 
 function parse_elements(meshfile, n_trees, n_dims)
