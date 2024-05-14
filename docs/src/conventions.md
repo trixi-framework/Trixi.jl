@@ -108,49 +108,55 @@ based on the following rules.
   with external C libraries such as HDF5, MPI, or visualization.
 
 ## Numeric types and type stability
-In Trixi.jl, `Float32` and `Float64` types are fully supported. We ensure the type stability of these numeric types throughout the development process. Below are some guidelines to apply in various scenarios.
+In Trixi.jl, we use generic programming to support custom data types to store the numerical simulation data, including standard floating point types and automatic differentiation types.
+Specifically, `Float32` and `Float64` types are fully supported, including the ability to run Trixi.jl on hardware that only supports `Float32` types.
+We ensure the type stability of these numeric types throughout the development process.
+Below are some guidelines to apply in various scenarios.
 
 - **Exact floating-point numbers**: Some real numbers can be represented exactly in machine (e.g., `0.25`, `0.5`, `1/2`) and we prefer to use `Float32` type of them to achieve a concise way of possible type promotion. For example,
-  ```julia
-  # Assume we have `0.25`, `0.5`, `1/2` in function
-  0.25f0, 0.5f0, 0.5f0 # corresponding numbers
-  ```
+```julia
+# Assume we have `0.25`, `0.5`, `1/2` in function
+0.25f0, 0.5f0, 0.5f0 # corresponding numbers
 
-- **Non-exact floating-point numbers**: For real numbers that cannot be exactly represented in machine precision (e.g., `0.1`, `1/3`, `pi`), use the `convert` function to make them consistent with the type of the function input. For example, 
-  ```julia
-  # Assume we are handling `pi` in function
-  function foo(..., input, ...)
-    RealT = eltype(input) # see **notes** below
-    # ...
-    c1 = convert(RealT, pi) * c2 # sample operation
-    # ...
-  end
-  ```
+### Non-exact floating-point numbers
 
-- **Integer numbers**: Integers need special consideration. Using functions like `convert` (as mentioned above), `zero`, and `one` to change integers to a specific type or keeping them in integer format is feasible in most cases. We should balance code readability and consistency while maintaining type stability. Here are some examples to guide our developers.
-  ```julia
-  # The first example - `SVector`, keep code consistency within `SVector`
-  SVector(0, 0, 0)
-  SVector(zero(RealT), zero(RealT), zero(RealT))
-  Svector(one(RealT), one(RealT), one(RealT))
-
-  # The second example - inner functions, keep them type-stable as well
-  function foo(..., input, ...)
+For real numbers that cannot be exactly represented in machine precision (e.g., `0.1`, `1/3`, `pi`), use the `convert` function to make them consistent with the type of the function input. For example, 
+```julia
+# Assume we are handling `pi` in function
+function foo(..., input, ...)
   RealT = eltype(input) # see **notes** below
   # ...
-  c1 = c2 > 0.5f0 ? one(RealT) : convert(RealT, 0.1) # make type-stable
+  c1 = convert(RealT, pi) * c2 # sample operation
   # ...
-  end 
+end
+```
 
-  # The third example - some operations (e.g., `/`, `sqrt`, `inv`), convert them definitely
-  c1 = convert(RealT, 4) # suppose we get RealT before
-  c2 = 1 / c1
-  c3 = sqrt(c1)
-  c4 = inv(c1)
-  ```
-  In general, in the case of integer numbers, our developers should apply a case-by-case strategy to maintain type stability. 
+### Integer numbers
 
-  **Notes:** 
-  1. If the function gets a local pointwise vector of the solution variables `u` such as `flux(u, equations)`, use `u` to determine the real type `eltype(u)`.
-  2. If `u` is not passed as an argument but a vector of coordinates `x` such as `initial_condition(x, t, equations)`, use `eltype(x)` instead.
-  3. Choose an appropriate argument to determine the real type otherwise.
+Integers need special consideration. Using functions like `convert` (as mentioned above), `zero`, and `one` to change integers to a specific type or keeping them in integer format is feasible in most cases. We aim to balance code readability and consistency while maintaining type stability. Here are some examples to guide our developers.
+```julia
+# The first example - `SVector`, keep code consistency within `SVector`
+SVector(0, 0, 0)
+SVector(zero(RealT), zero(RealT), zero(RealT))
+Svector(one(RealT), one(RealT), one(RealT))
+
+# The second example - inner functions, keep them type-stable as well
+function foo(..., input, ...)
+RealT = eltype(input) # see **notes** below
+# ...
+c1 = c2 > 0.5f0 ? one(RealT) : convert(RealT, 0.1) # make type-stable
+# ...
+end 
+
+# The third example - some operations (e.g., `/`, `sqrt`, `inv`), convert them definitely
+c1 = convert(RealT, 4) # suppose we get RealT before
+c2 = 1 / c1
+c3 = sqrt(c1)
+c4 = inv(c1)
+```
+In general, in the case of integer numbers, our developers should apply a case-by-case strategy to maintain type stability. 
+
+### Notes
+1. If the function gets a local pointwise vector of the solution variables `u` such as `flux(u, equations)`, use `u` to determine the real type `eltype(u)`.
+2. If `u` is not passed as an argument but a vector of coordinates `x` such as `initial_condition(x, t, equations)`, use `eltype(x)` instead.
+3. Choose an appropriate argument to determine the real type otherwise.
