@@ -139,8 +139,6 @@ function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString
                                                             base_path_monomial_coeffs,
                                                             bS, c_end)
 
-    b1 = 1 - bS
-
     return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, c_end)
 end
 
@@ -163,8 +161,6 @@ function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                                                             eig_vals, tspan,
                                                             bS, c_end;
                                                             verbose)
-
-    b1 = 1 - bS
 
     return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, c_end)
 end
