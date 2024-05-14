@@ -119,8 +119,8 @@ In Trixi.jl, `Float32` and `Float64` types are fully supported. We ensure the ty
 - **Non-exact floating-point numbers**: For real numbers that cannot be exactly represented in machine precision (e.g., `0.1`, `1/3`, `pi`), use the `convert` function to make them consistent with the type of the function input. For example, 
   ```julia
   # Assume we are handling `pi` in function
-  function foo(input1, input2, input3, ...)
-    RealT = eletype(input1) # good practice to always use the first input to extract numeric type
+  function foo(..., input, ...)
+    RealT = eltype(input) # see **notes** below
     # ...
     c1 = convert(RealT, pi) * c2 # sample operation
     # ...
@@ -135,17 +135,22 @@ In Trixi.jl, `Float32` and `Float64` types are fully supported. We ensure the ty
   Svector(one(RealT), one(RealT), one(RealT))
 
   # The second example - inner functions, keep them type-stable as well
-  function foo(input1, input2, input3, ...)
-  RealT = eletype(input1) # good practice to always use the first input to extract numeric type
+  function foo(..., input, ...)
+  RealT = eltype(input) # see **notes** below
   # ...
   c1 = c2 > 0.5f0 ? one(RealT) : convert(RealT, 0.1) # make type-stable
   # ...
   end 
 
-  # The third example - some operations (e.g., `/`, `sprt`, `inv`), convert them definitely
+  # The third example - some operations (e.g., `/`, `sqrt`, `inv`), convert them definitely
   c1 = convert(RealT, 4) # suppose we get RealT before
   c2 = 1 / c1
-  c3 = sprt(c1)
+  c3 = sqrt(c1)
   c4 = inv(c1)
   ```
   In general, in the case of integer numbers, our developers should apply a case-by-case strategy to maintain type stability. 
+
+  **Notes:** 
+  1. If the function gets a local pointwise vector of the solution variables `u` such as `flux(u, equations)`, use `u` to determine the real type `eltype(u)`.
+  2. If `u` is not passed as an argument but a vector of coordinates `x` such as `initial_condition(x, t, equations)`, use `eltype(x)` instead.
+  3. Choose an appropriate argument to determine the real type otherwise.
