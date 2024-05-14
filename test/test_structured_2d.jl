@@ -475,6 +475,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_source_terms_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_sc_subcell.jl"),
+                        l2=[
+                            0.00816012943805366,
+                            0.008658255997419217,
+                            0.00935190284719103,
+                            0.027757019482291357,
+                        ],
+                        linf=[
+                            0.02722563220635177,
+                            0.040734034380730755,
+                            0.03819407626402338,
+                            0.08080649141597318,
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
 @trixi_testset "elixir_euler_source_terms_waving_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_waving_flag.jl"),
@@ -522,6 +548,33 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+# Changing because of disabled bar states
+@trixi_testset "elixir_euler_free_stream_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_sc_subcell.jl"),
+                        l2=[
+                            1.4663777294625118e-15,
+                            2.320054900530864e-14,
+                            3.487555722563465e-14,
+                            2.008802099296406e-14,
+                        ],
+                        linf=[
+                            2.3092638912203256e-14,
+                            2.0623780461193064e-13,
+                            2.6795232699328153e-13,
+                            2.362554596402333e-13,
+                        ],
+                        atol=7.0e-13)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
     end
 end
 

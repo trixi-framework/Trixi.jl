@@ -5,8 +5,9 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::VolumeIntegralSubcellLimiting, dg::DG, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                      equations, volume_integral::VolumeIntegralSubcellLimiting,
+                      dg::DG, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                          dg, uEltype)
@@ -56,7 +57,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{2},
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
@@ -70,8 +71,8 @@ function calc_volume_integral!(du, u,
     end
 end
 
-@inline function subcell_limiting_kernel!(du, u,
-                                          element, mesh::TreeMesh{2},
+@inline function subcell_limiting_kernel!(du, u, element,
+                                          mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                           nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
