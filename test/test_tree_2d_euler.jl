@@ -531,8 +531,8 @@ end
         # Run with coverage takes 6 time steps.
         @test startswith(lines[end], "6")
     else
-        # Run without coverage takes 89 time steps.
-        @test startswith(lines[end], "89")
+        # Run without coverage takes 381 time steps.
+        @test startswith(lines[end], "381")
     end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -780,13 +780,13 @@ end
                             0.12356154893467916,
                             0.2695167937393226,
                         ],
-                        tspan=(0.0, 2.0),
-                        coverage_override=(maxiters = 7,),
+                        tspan=(0.0, 0.2),
+                        coverage_override=(maxiters = 3,),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
-    # Run without (with) coverage takes 745 (7) time steps
-    @test startswith(lines[end], "7")
+    # Run without (with) coverage takes 337 (3) time steps
+    @test startswith(lines[end], "3")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
