@@ -157,11 +157,11 @@ function initial_condition_weak_blast_wave(x, t,
     theta = iszero(r) ? zero(RealT) : acos(z_norm / r)
 
     # Calculate primitive variables
-    rho = r > 0.5f0 ? 1 : convert(RealT, 1.1691)
-    v1 = r > 0.5f0 ? 0 : convert(RealT, 0.1882) * cos(phi) * sin(theta)
-    v2 = r > 0.5f0 ? 0 : convert(RealT, 0.1882) * sin(phi) * sin(theta)
-    v3 = r > 0.5f0 ? 0 : convert(RealT, 0.1882) * cos(theta)
-    p = r > 0.5f0 ? 1 : convert(RealT, 1.245)
+    rho = r > 0.5f0 ? one(RealT) : convert(RealT, 1.1691)
+    v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(phi) * sin(theta)
+    v2 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * sin(phi) * sin(theta)
+    v3 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(theta)
+    p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
 
     return prim2cons(SVector(rho, v1, v2, v3, p), equations)
 end
@@ -351,11 +351,11 @@ Should be used together with [`TreeMesh`](@ref).
     # get the appropriate normal vector from the orientation
     RealT = eltype(u_inner)
     if orientation == 1
-        normal_direction = SVector(one(RealT), 0, 0)
+        normal_direction = SVector(one(RealT), zero(RealT), zero(RealT))
     elseif orientation == 2
-        normal_direction = SVector(zero(RealT), 1, 0)
+        normal_direction = SVector(zero(RealT), one(RealT), zero(RealT))
     else # orientation == 3
-        normal_direction = SVector(zero(RealT), 0, 1)
+        normal_direction = SVector(zero(RealT), zero(RealT), one(RealT))
     end
 
     # compute and return the flux using `boundary_condition_slip_wall` routine above
