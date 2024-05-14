@@ -49,7 +49,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     consistency_order = 2
 
     dtmax = tspan[2] - tspan[1]
-    dteps = 1e-9
+    dteps = 1e-9 # Hyperparameter of the optimization, might be too large for systems requiring very small timesteps
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
 
