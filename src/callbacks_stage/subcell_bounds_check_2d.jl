@@ -109,7 +109,7 @@ end
     (; idp_bounds_delta_local) = limiter.cache
 
     # Print to output file
-    open("$output_directory/deviations.txt", "a") do f
+    open(joinpath(output_directory, "deviations.txt"), "a") do f
         print(f, iter, ", ", time)
         if local_twosided
             for v in limiter.local_twosided_variables_cons
@@ -121,8 +121,7 @@ end
         if local_onesided
             for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
                 key = Symbol(string(variable), "_", string(min_or_max))
-                print(f, ", ",
-                      idp_bounds_delta_local[key])
+                print(f, ", ", idp_bounds_delta_local[key])
             end
         end
         if positivity

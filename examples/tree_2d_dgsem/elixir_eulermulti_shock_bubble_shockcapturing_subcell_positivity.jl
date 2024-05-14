@@ -136,10 +136,9 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-output_directory = "out"
 stage_callbacks = (SubcellLimiterIDPCorrection(),
-                   BoundsCheckCallback(save_errors = true, interval = 100,
-                                       output_directory = output_directory))
+                   BoundsCheckCallback(save_errors = false, interval = 100))
+# `interval` is used when calling this elixir in the tests with `save_errors=true`.
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
