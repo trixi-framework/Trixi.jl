@@ -545,7 +545,7 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_MCL.jl" begin
-    rm("out/deviations.txt", force = true)
+    rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_MCL.jl"),
                         l2=[
                             0.4740321851943766,
@@ -562,12 +562,20 @@ end
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
                         coverage_override=(maxiters = 6,),
-                        save_errors=true,
-                        output_directory="out")
-    lines = readlines("out/deviations.txt")
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] ==
           "# iter, simu_time, rho_min, rho_max, rho_v1_min, rho_v1_max, rho_v2_min, rho_v2_max, rho_e_min, rho_e_max, pressure_min"
-    @test startswith(lines[end], "349") || startswith(lines[end], "1")
+    cmd = string(Base.julia_cmd())
+    coverage = occursin("--code-coverage", cmd) &&
+               !occursin("--code-coverage=none", cmd)
+    if coverage
+        # Run with coverage takes 6 time steps.
+        @test startswith(lines[end], "6")
+    else
+        # Run without coverage takes 349 time steps.
+        @test startswith(lines[end], "349")
+    end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
