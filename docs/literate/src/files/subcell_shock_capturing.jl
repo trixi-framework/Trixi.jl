@@ -111,7 +111,7 @@ local_twosided_variables_cons = ["rho"]
 
 # To limit non-linear variables locally, pass the variable function combined with the requested
 # bound (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified
-# specific entropy by Guermond et al. use
+# specific entropy [`Trixi.entropy_guermond_etal`](@ref), use
 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]
 
 # ## Exemplary simulation
