@@ -108,15 +108,19 @@ based on the following rules.
   with external C libraries such as HDF5, MPI, or visualization.
 
 ## Numeric types and type stability
+
 In Trixi.jl, we use generic programming to support custom data types to store the numerical simulation data, including standard floating point types and automatic differentiation types.
 Specifically, `Float32` and `Float64` types are fully supported, including the ability to run Trixi.jl on hardware that only supports `Float32` types.
 We ensure the type stability of these numeric types throughout the development process.
 Below are some guidelines to apply in various scenarios.
 
-- **Exact floating-point numbers**: Some real numbers can be represented exactly in machine (e.g., `0.25`, `0.5`, `1/2`) and we prefer to use `Float32` type of them to achieve a concise way of possible type promotion. For example,
+### Exact floating-point numbers
+
+Some real numbers can be represented exactly in machine (e.g., `0.25`, `0.5`, `1/2`) and we prefer to use `Float32` type of them to achieve a concise way of possible type promotion. For example,
 ```julia
 # Assume we have `0.25`, `0.5`, `1/2` in function
 0.25f0, 0.5f0, 0.5f0 # corresponding numbers
+```
 
 ### Non-exact floating-point numbers
 
