@@ -2030,8 +2030,18 @@ end
     return cons2entropy(u, equations)
 end
 
-# Calculate the modified specific entropy of Guermond et al. (2019): s_0 = p * rho^(-gamma) / (gamma-1).
-# Note: This is *not* the "conventional" specific entropy s = ln(p / rho^(gamma)).
+@doc raw"""
+    entropy_guermond_etal(u, equations::CompressibleEulerEquations2D)
+
+Calculate the modified specific entropy of Guermond et al. (2019):
+```math
+s_0 = p * \rho^{-\gamma} / (\gamma-1).
+```
+Note: This is *not* the "conventional" specific entropy ``s = ln(p / \rho^\gamma)``.
+- Guermond at al. (2019)
+  Invariant domain preserving discretization-independent schemes and convex limiting for hyperbolic systems.
+  [DOI: 10.1016/j.cma.2018.11.036](https://doi.org/10.1016/j.cma.2018.11.036)
+"""
 @inline function entropy_guermond_etal(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
 
