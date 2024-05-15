@@ -96,7 +96,8 @@ positivity_variables_nonlinear = [pressure]
 
 # ### Local bounds
 # Second, Trixi.jl supports the limiting with local bounds for conservative variables using a
-# two-sided Zalesak-type limiter ([Zalesak, 1979](https://doi.org/10.1016/0021-9991(79)90051-2)).
+# two-sided Zalesak-type limiter ([Zalesak, 1979](https://doi.org/10.1016/0021-9991(79)90051-2))
+# and for general non-linear variables using a one-sided Newton-bisection algorithm.
 # They allow to avoid spurious oscillations within the global bounds and to improve the
 # shock-capturing capabilities of the method. The corresponding numerical admissibility conditions
 # are frequently formulated as local maximum or minimum principles. The local bounds are computed
@@ -107,6 +108,11 @@ positivity_variables_nonlinear = [pressure]
 # variables you want to limit. So, to limit the density with lower and upper local bounds pass
 # the following.
 local_twosided_variables_cons = ["rho"]
+
+# To limit non-linear variables locally, pass the variable function combined with the requested
+# bound (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified
+# specific entropy [`Trixi.entropy_guermond_etal`](@ref), use
+local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]
 
 # ## Exemplary simulation
 # How to set up a simulation using the IDP limiting becomes clearer when looking at an exemplary
