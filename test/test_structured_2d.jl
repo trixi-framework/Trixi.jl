@@ -475,7 +475,7 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_source_terms_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_source_terms_sc_subcell.jl (global bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_sc_subcell.jl"),
                         l2=[
@@ -489,6 +489,37 @@ end
                             0.00037635704053817776,
                             0.0007278708058917616,
                             0.001550366737408826,
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
+@trixi_testset "elixir_euler_source_terms_sc_subcell.jl (local bounds)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_sc_subcell.jl"),
+                        positivity_variables_cons = [],
+                        positivity_variables_nonlinear = [],
+                        local_twosided_variables_cons=["rho"],
+                        local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal, min)],
+                        cfl=0.5,
+                        l2=[
+                            0.007788373240296921,
+                            0.006564114774853376,
+                            0.008411575110395622,
+                            0.023360113470962406,
+                        ],
+                        linf=[
+                            0.033816852778793205,
+                            0.03938807720446702,
+                            0.044093017726981376,
+                            0.08006777547232469,
                         ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
