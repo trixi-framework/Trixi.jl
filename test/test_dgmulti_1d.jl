@@ -73,7 +73,6 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shu_osher_gauss_shock_capturing.jl"),
                         cells_per_dimension=(64,), tspan=(0.0, 1.0),
-                        # division by sqrt(2.0) corresponds to normalization by the square root of the size of the domain
                         l2=[
                             1.7177729727131328,
                             6.191308529732632,
