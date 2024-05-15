@@ -69,7 +69,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
                                     dg, boundary_conditions = boundary_conditions)
 
-tspan = (0.0, 2.0)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 ###############################################################################
@@ -90,4 +90,4 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # ###############################################################################
 # # run the simulation
 
-sol = solve(ode, SSPRK43(), adaptive = true, callback = callbacks, save_everystep = true)
+sol = solve(ode, SSPRK43(), adaptive = true, callback = callbacks, save_everystep = false)
