@@ -116,11 +116,16 @@ Below are some guidelines to apply in various scenarios.
 
 ### Exact floating-point numbers
 
-Some real numbers can be represented exactly in machine (e.g., `0.25`, `0.5`, `1/2`) and we prefer to use `Float32` type of them to achieve a concise way of possible type promotion. For example,
+Some real numbers can be represented exactly as both `Float64` and `Float32` values (e.g., `0.25`, `0.5`, `1/2`). We prefer to use `Float32` type for these numbers to achieve a concise way of possible type promotion. For example,
 ```julia
 # Assume we have `0.25`, `0.5`, `1/2` in function
 0.25f0, 0.5f0, 0.5f0 # corresponding numbers
 ```
+Generally, this equivalence is true for integer multiples of powers of two. That is, numbers that can be written as ``m 2^n``, where ``m, n \in \mathbb{Z}``, and where ``m`` and ``n`` are such that the result is representable as a [single precision floating point](https://en.wikipedia.org/wiki/Single-precision_floating-point_format) value. If a decimal value `v` is exactly representable in `Float32`, the expression
+```julia
+Float32(v) == v
+```
+will evaluate to `true`.
 
 ### Non-exact floating-point numbers
 
