@@ -80,7 +80,7 @@ end
                                       mesh::Union{StructuredMesh, StructuredMeshView,
                                                   UnstructuredMesh2D, P4estMesh,
                                                   T8codeMesh},
-                                      indices..., element)
+                                      element, indices...)
     return inverse_jacobian[indices..., element]
 end
 

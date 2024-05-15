@@ -26,7 +26,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         total_volume = zero(eltype(u))
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             volume_jacobian = abs(inv(get_inverse_jacobian(inverse_jacobian, mesh,
-                                                           i, j, k, element)))
+                                                           element, i, j, k)))
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
             u_mean += u_node * weights[i] * weights[j] * weights[k] * volume_jacobian
             total_volume += weights[i] * weights[j] * weights[k] * volume_jacobian
