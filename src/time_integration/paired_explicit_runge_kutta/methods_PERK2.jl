@@ -121,6 +121,21 @@ optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solve
 - Brian Vermeire (2019).
   Paired explicit Runge-Kutta schemes for stiff systems of equations
   [DOI: 10.1016/j.jcp.2019.05.014](https://doi.org/10.1016/j.jcp.2019.05.014)
+
+Parameters:
+- num_stages (Int): Number of stages in the PERK method.
+- base_path_monomial_coeffs (AbstractString): Path to a file containing 
+  monomial coefficients of the stability polynomial of PERK method.
+  This should be in a format of "YOUR_PATH/gamma_{num_stages}.txt".
+- tspan: Time span of the simulation.
+- semi (AbstractSemidiscretization): Semidiscretization setup.
+- eig_vals (Vector{ComplexF64}): Eigenvalues of the ODEProblem after the
+  equation has been semidiscretized.
+- verbose (Bool, optional): Verbosity flag, default is false.
+- bS (Float64, optional): Value of b in the Butcher tableau at b_s, when 
+  s in the number of stages, default is 1.0.
+- c_end (Float64, optional): Value of c in the Butcher tableau at c_s, when
+  s in the number of stages, default is 0.5.
 """
 mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     const num_stages::Int
