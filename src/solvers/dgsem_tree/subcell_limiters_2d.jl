@@ -492,8 +492,7 @@ end
 end
 
 @inline function idp_positivity_conservative!(alpha, limiter, u, dt, semi,
-                                              mesh::Union{StructuredMesh{2},
-                                                          P4estMesh{2}},
+                                              mesh::StructuredMesh{2},
                                               variable)
     _, _, dg, cache = mesh_equations_solver_cache(semi)
 
