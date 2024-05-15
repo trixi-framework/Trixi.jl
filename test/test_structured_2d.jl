@@ -504,10 +504,11 @@ end
 @trixi_testset "elixir_euler_source_terms_sc_subcell.jl (local bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_sc_subcell.jl"),
-                        positivity_variables_cons = [],
-                        positivity_variables_nonlinear = [],
+                        positivity_variables_cons=[],
+                        positivity_variables_nonlinear=[],
                         local_twosided_variables_cons=["rho"],
-                        local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal, min)],
+                        local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal,
+                                                             min)],
                         cfl=0.5,
                         l2=[
                             0.007788373240296921,
