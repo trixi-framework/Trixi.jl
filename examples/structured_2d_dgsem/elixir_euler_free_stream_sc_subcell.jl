@@ -14,8 +14,9 @@ volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                positivity_variables_cons = ["rho"],
-                                positivity_variables_nonlinear = [pressure])
+                                local_twosided_variables_cons = ["rho"],
+                                local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
+                                                                       min)])
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -61,12 +62,12 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 10000,
+save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.9)
+stepsize_callback = StepsizeCallback(cfl = 0.7)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
