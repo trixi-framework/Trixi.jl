@@ -43,7 +43,7 @@ function volume_jacobian(element, mesh::TreeMesh, cache)
 end
 
 @inline function get_inverse_jacobian(inverse_jacobian, mesh::TreeMesh,
-                                      element, indices...)
+                                      indices..., element)
     return inverse_jacobian[element]
 end
 
