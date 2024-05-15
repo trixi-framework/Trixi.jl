@@ -259,13 +259,14 @@ end
     v1_mean, v2_mean, c_mean, rho_mean = cons2mean(u, equations)
 
     # Calculate flux for conservative state variables
+    RealT = eltype(u)
     if orientation == 1
         f1 = v1_mean * v1_prime + v2_mean * v2_prime +
              c_mean^2 * p_prime_scaled / rho_mean
-        f2 = 0
+        f2 = zero(RealT)
         f3 = rho_mean * v1_prime + v1_mean * p_prime_scaled
     else
-        f1 = 0
+        f1 = zero(RealT)
         f2 = v1_mean * v1_prime + v2_mean * v2_prime +
              c_mean^2 * p_prime_scaled / rho_mean
         f3 = rho_mean * v2_prime + v2_mean * p_prime_scaled
