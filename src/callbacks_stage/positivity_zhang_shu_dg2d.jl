@@ -7,6 +7,8 @@
 
 function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{2}, equations, dg::DGSEM, cache)
+    @unpack weights = dg.basis
+
     @threaded for element in eachelement(dg, cache)
         # determine minimum value
         value_min = typemax(eltype(u))
@@ -19,7 +21,16 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         value_min < threshold || continue
 
         # compute mean value
-        u_mean = calc_element_mean_value(u, element, mesh, equations, dg, cache)
+        u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
+        total_volume = zero(real(mesh))
+        for j in eachnode(dg), i in eachnode(dg)
+            volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            u_mean += u_node * weights[i] * weights[j] * volume_jacobian
+            total_volume += weights[i] * weights[j] * volume_jacobian
+        end
+        # normalize with the total volume
+        u_mean = u_mean / total_volume
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
@@ -33,39 +44,5 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
     end
 
     return nothing
-end
-
-function calc_element_mean_value(u, element, mesh::TreeMesh{2}, equations, dg::DGSEM,
-                                 cache)
-    @unpack weights = dg.basis
-
-    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
-    for j in eachnode(dg), i in eachnode(dg)
-        u_node = get_node_vars(u, equations, dg, i, j, element)
-        u_mean += u_node * weights[i] * weights[j]
-    end
-
-    # note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
-    return u_mean / 2^ndims(mesh)
-end
-
-function calc_element_mean_value(u, element,
-                                 mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                             UnstructuredMesh2D, P4estMesh{2},
-                                             T8codeMesh{2}},
-                                 equations, dg::DGSEM, cache)
-    @unpack weights = dg.basis
-
-    u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
-    total_volume = zero(real(mesh))
-    for j in eachnode(dg), i in eachnode(dg)
-        jacobian_node = abs(inv(cache.elements.inverse_jacobian[i, j, element]))
-        u_node = get_node_vars(u, equations, dg, i, j, element)
-        u_mean += u_node * weights[i] * weights[j] * jacobian_node
-        total_volume += weights[i] * weights[j] * jacobian_node
-    end
-
-    # normalize with the total volume
-    return u_mean / total_volume
 end
 end # @muladd
