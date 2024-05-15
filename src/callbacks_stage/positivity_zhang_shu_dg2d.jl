@@ -35,7 +35,8 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
     return nothing
 end
 
-function calc_element_mean_value(u, element, mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
+function calc_element_mean_value(u, element, mesh::TreeMesh{2}, equations, dg::DGSEM,
+                                 cache)
     @unpack weights = dg.basis
 
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
@@ -52,7 +53,7 @@ function calc_element_mean_value(u, element,
                                  mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                              UnstructuredMesh2D, P4estMesh{2},
                                              T8codeMesh{2}},
-                                  equations, dg::DGSEM, cache)
+                                 equations, dg::DGSEM, cache)
     @unpack weights = dg.basis
 
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
