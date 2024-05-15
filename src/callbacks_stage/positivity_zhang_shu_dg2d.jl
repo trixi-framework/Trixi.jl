@@ -19,7 +19,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
         value_min < threshold || continue
 
         # compute mean value
-        u_mean = mean_value_element(u, element, mesh, equations, dg, cache)
+        u_mean = calc_element_mean_value(u, element, mesh, equations, dg, cache)
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
@@ -35,7 +35,8 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
     return nothing
 end
 
-function mean_value_element(u, element, mesh::TreeMesh{2}, equations, dg::DGSEM, cache)
+function calc_element_mean_value(u, element, mesh::TreeMesh{2}, equations, dg::DGSEM,
+                                 cache)
     @unpack weights = dg.basis
 
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
@@ -48,11 +49,11 @@ function mean_value_element(u, element, mesh::TreeMesh{2}, equations, dg::DGSEM,
     return u_mean / 2^ndims(mesh)
 end
 
-function mean_value_element(u, element,
-                            mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                        UnstructuredMesh2D, P4estMesh{2},
-                                        T8codeMesh{2}},
-                            equations, dg::DGSEM, cache)
+function calc_element_mean_value(u, element,
+                                 mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                             UnstructuredMesh2D, P4estMesh{2},
+                                             T8codeMesh{2}},
+                                 equations, dg::DGSEM, cache)
     @unpack weights = dg.basis
 
     u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
