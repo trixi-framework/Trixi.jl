@@ -1,8 +1,8 @@
 using Trixi
 using OrdinaryDiffEq
 
-γ_gas = 1.4
-equations = CompressibleEulerEquations1D(γ_gas)
+gamma_gas = 1.4
+equations = CompressibleEulerEquations1D(gamma_gas)
 
 ###############################################################################
 # setup the GSBP DG discretization that uses the Gauss operators from 
@@ -10,30 +10,31 @@ equations = CompressibleEulerEquations1D(γ_gas)
 # [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
 # Shu-Osher initial condition for 1D compressible Euler equations
-# Example 8, https://www.sciencedirect.com/science/article/pii/0021999189902222
+# Example 8 from Shu, Osher (1989).
+# [https://doi.org/10.1016/0021-9991(89)90222-2](https://doi.org/10.1016/0021-9991(89)90222-2)
 function initial_condition_shu_osher(x, t, equations::CompressibleEulerEquations1D)
     x0 = -4
-    
-    rho_left = 27/7
-    v_left = 4*sqrt(35)/9
-    p_left = 31/3
-    
+
+    rho_left = 27 / 7
+    v_left = 4 * sqrt(35) / 9
+    p_left = 31 / 3
+
     # Replaced v_right = 0 to v_right = 0.1 to avoid positivity issues.
     v_right = 0.1
     p_right = 1.0
-    
-    rho = ifelse(x[1] > x0, 1 + 1/5*sin(5*x[1]), rho_left)
+
+    rho = ifelse(x[1] > x0, 1 + 1 / 5 * sin(5 * x[1]), rho_left)
     v = ifelse(x[1] > x0, v_right, v_left)
     p = ifelse(x[1] > x0, p_right, p_left)
 
-    return prim2cons(SVector(rho + 0.1*rand(), v + 0.1*rand(), p + 0.1*rand()), equations)
+    return prim2cons(SVector(rho + 0.1 * rand(), v + 0.1 * rand(), p + 0.1 * rand()),
+                     equations)
 end
 
 initial_condition = initial_condition_shu_osher
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-
 
 polydeg = 3
 basis = DGMultiBasis(Line(), polydeg, approximation_type = GaussSBP())
@@ -51,7 +52,6 @@ dg = DGMulti(basis,
              surface_integral = SurfaceIntegralWeakForm(surface_flux),
              volume_integral = volume_integral)
 
-
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :entire_boundary => boundary_condition)
 
@@ -66,7 +66,7 @@ mesh = DGMultiMesh(dg, cells_per_dimension,
 ###############################################################################
 #  setup the semidiscretization and ODE problem
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, 
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
                                     dg, boundary_conditions = boundary_conditions)
 
 tspan = (0.0, 2.0)
@@ -86,10 +86,6 @@ stepsize_callback = StepsizeCallback(cfl = 0.1)
 
 # collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
-
-# For future work, add PositivityPreservingLimiterZhangShu for DGMulti with Gauss nodes
-# stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
-#                                                      variables=(Trixi.density, pressure))
 
 # ###############################################################################
 # # run the simulation
