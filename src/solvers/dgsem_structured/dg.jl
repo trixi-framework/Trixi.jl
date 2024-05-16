@@ -80,8 +80,8 @@ end
                                       mesh::Union{StructuredMesh, StructuredMeshView,
                                                   UnstructuredMesh2D, P4estMesh,
                                                   T8codeMesh},
-                                      element, indices...)
-    return inverse_jacobian[indices..., element]
+                                      indices...)
+    return inverse_jacobian[indices...]
 end
 
 include("containers.jl")
