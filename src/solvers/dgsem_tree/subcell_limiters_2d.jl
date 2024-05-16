@@ -294,7 +294,6 @@ end
     calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
 
     @threaded for element in eachelement(dg, semi.cache)
-        inverse_jacobian = cache.elements.inverse_jacobian[element]
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
@@ -476,6 +475,7 @@ end
 
 @inline function idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+    (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
@@ -484,17 +484,18 @@ end
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
+
+            # Compute bound
             u_local = get_node_vars(u, equations, dg, i, j, element)
             var = variable(u_local, equations)
             if var < 0
-                error("Safe low-order method produces negative value for conservative variable $variable. Try a smaller time step.")
+                error("Safe low-order method produces negative value for variable $variable. Try a smaller time step.")
             end
-            var_min[i, j, element] = limiter.positivity_correction_factor * var
+            var_min[i, j, element] = positivity_correction_factor * var
 
             # Perform Newton's bisection method to find new alpha
             newton_loops_alpha!(alpha, var_min[i, j, element], u_local, i, j, element,
-                                variable,
-                                min, initial_check_nonnegative_newton_idp,
+                                variable, min, initial_check_nonnegative_newton_idp,
                                 final_check_nonnegative_newton_idp, inverse_jacobian,
                                 dt, equations, dg, cache, limiter)
         end
