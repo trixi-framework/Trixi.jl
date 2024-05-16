@@ -1,13 +1,11 @@
 
 using OrdinaryDiffEq
 using Trixi
-using Plots, LinearAlgebra
-
 
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-equations = MaxwellEquation1D()
+equations = MaxwellEquations1D()
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
@@ -19,37 +17,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 30_000) # set maximum capacity of tree data structure
 
-eps0 = 8.8541878128e-12
-inv_eps0() = 1.0 / eps0
-
-function source_terms_current(u, x, t, equations)
-  s = - inv_eps0() * 0.0
-
-  return SVector(s, 0.0)
-end
-
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver, source_terms = source_terms_current)
-
-J = jacobian_ad_forward(semi)
-
-Eigenvalues = eigvals(J)
-
-# Complex conjugate eigenvalues have same modulus
-Eigenvalues = Eigenvalues[imag(Eigenvalues) .>= 0]
-
-# Sometimes due to numerical issues some eigenvalues have positive real part, which is erronous (for hyperbolic eqs)
-Eigenvalues = Eigenvalues[real(Eigenvalues) .< 0]
-
-EigValsReal = real(Eigenvalues)
-EigValsImag = imag(Eigenvalues)
-
-println(minimum(EigValsReal))
-println(maximum(EigValsImag))
-
-#plotdata = nothing
-#plotdata = Plots.scatter(EigValsReal, EigValsImag, label = "Spectrum")
-#display(plotdata)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

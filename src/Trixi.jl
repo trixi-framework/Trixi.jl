@@ -163,7 +163,7 @@ export AcousticPerturbationEquations2D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D,
-       MaxwellEquation1D
+       MaxwellEquations1D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
