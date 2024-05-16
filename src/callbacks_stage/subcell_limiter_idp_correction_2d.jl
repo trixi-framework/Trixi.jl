@@ -5,59 +5,39 @@
 @muladd begin
 #! format: noindent
 
-function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations, dg, cache)
-    @threaded for element in eachelement(dg, cache)
-        # Sign switch as in apply_jacobian!
-        inverse_jacobian = -cache.elements.inverse_jacobian[element]
+function perform_idp_correction!(u, dt, mesh, equations, dg, cache)
+    @unpack inverse_weights = dg.basis
+    @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
+    @unpack alpha1, alpha2 = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
 
-        for j in eachnode(dg), i in eachnode(dg)
-            perform_idp_correction_inner!(u, dt, inverse_jacobian, equations, dg, cache,
-                                          i, j, element)
-        end
-    end
-
-    return nothing
-end
-
-function perform_idp_correction!(u, dt, mesh::StructuredMesh{2}, equations, dg, cache)
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             # Sign switch as in apply_jacobian!
-            inverse_jacobian = -cache.elements.inverse_jacobian[i, j, element]
+            inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
+                                                     mesh, i, j, element)
 
-            perform_idp_correction_inner!(u, dt, inverse_jacobian, equations, dg, cache,
-                                          i, j, element)
+            # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
+            alpha_flux1 = (1 - alpha1[i, j, element]) *
+                          get_node_vars(antidiffusive_flux1_R, equations, dg,
+                                        i, j, element)
+            alpha_flux1_ip1 = (1 - alpha1[i + 1, j, element]) *
+                              get_node_vars(antidiffusive_flux1_L, equations, dg,
+                                            i + 1, j, element)
+            alpha_flux2 = (1 - alpha2[i, j, element]) *
+                          get_node_vars(antidiffusive_flux2_R, equations, dg,
+                                        i, j, element)
+            alpha_flux2_jp1 = (1 - alpha2[i, j + 1, element]) *
+                              get_node_vars(antidiffusive_flux2_L, equations, dg,
+                                            i, j + 1, element)
+
+            for v in eachvariable(equations)
+                u[v, i, j, element] += dt * inverse_jacobian *
+                                       (inverse_weights[i] *
+                                        (alpha_flux1_ip1[v] - alpha_flux1[v]) +
+                                        inverse_weights[j] *
+                                        (alpha_flux2_jp1[v] - alpha_flux2[v]))
+            end
         end
-    end
-
-    return nothing
-end
-
-# Function barrier to dispatch outer function by mesh type
-@inline function perform_idp_correction_inner!(u, dt, inverse_jacobian, equations, dg,
-                                               cache, i, j, element)
-    (; inverse_weights) = dg.basis
-    (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
-    (; alpha1, alpha2) = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
-
-    # Note: antidiffusive_flux1[v, i, xi, element] = antidiffusive_flux2[v, xi, i, element] = 0 for all i in 1:nnodes and xi in {1, nnodes+1}
-    alpha_flux1 = (1 - alpha1[i, j, element]) *
-                  get_node_vars(antidiffusive_flux1_R, equations, dg, i, j, element)
-    alpha_flux1_ip1 = (1 - alpha1[i + 1, j, element]) *
-                      get_node_vars(antidiffusive_flux1_L, equations, dg, i + 1, j,
-                                    element)
-    alpha_flux2 = (1 - alpha2[i, j, element]) *
-                  get_node_vars(antidiffusive_flux2_R, equations, dg, i, j, element)
-    alpha_flux2_jp1 = (1 - alpha2[i, j + 1, element]) *
-                      get_node_vars(antidiffusive_flux2_L, equations, dg, i, j + 1,
-                                    element)
-
-    for v in eachvariable(equations)
-        u[v, i, j, element] += dt * inverse_jacobian *
-                               (inverse_weights[i] *
-                                (alpha_flux1_ip1[v] - alpha_flux1[v]) +
-                                inverse_weights[j] *
-                                (alpha_flux2_jp1[v] - alpha_flux2[v]))
     end
 
     return nothing
