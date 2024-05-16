@@ -27,7 +27,7 @@ function initial_condition_shu_osher(x, t, equations::CompressibleEulerEquations
     v = ifelse(x[1] > x0, v_right, v_left)
     p = ifelse(x[1] > x0, p_right, p_left)
 
-    return prim2cons(SVector(rho + 0.1 * rand(), v + 0.1 * rand(), p + 0.1 * rand()),
+    return prim2cons(SVector(rho, v, p),
                      equations)
 end
 

@@ -74,14 +74,14 @@ end
                                  "elixir_euler_shu_osher_gauss_shock_capturing.jl"),
                         cells_per_dimension=(64,), tspan=(0.0, 1.0),
                         l2=[
-                            1.7230050593423594,
-                            6.204579343295488,
-                            22.325237178310008,
+                            1.673813320412685,
+                            5.980737909458242,
+                            21.587822949251173,
                         ],
                         linf=[
-                            3.277421123498497,
-                            11.068440811631563,
-                            39.07359562953883,
+                            3.1388039126918064,
+                            10.630952212105246,
+                            37.682826521024865,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
