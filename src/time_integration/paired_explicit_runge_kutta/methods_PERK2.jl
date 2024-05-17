@@ -126,7 +126,7 @@ end
     - `bS` (`Float64`, optional): Value of b in the Butcher tableau at b_s, when 
       s is the number of stages, default is 1.0.
     - `cS` (`Float64`, optional): Value of c in the Butcher tableau at c_s, when
-      s in the number of stages, default is 0.5.
+      s is the number of stages, default is 0.5.
 
 The following structures and methods provide a minimal implementation of
 the second-order paired explicit Runge-Kutta (PERK) method
