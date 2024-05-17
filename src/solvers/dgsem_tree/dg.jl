@@ -44,7 +44,8 @@ end
 
 @inline function get_inverse_jacobian(inverse_jacobian, mesh::TreeMesh,
                                       indices...)
-    return inverse_jacobian[last(indices)]
+    element = last(indices)
+    return inverse_jacobian[element]
 end
 
 # Indicators used for shock-capturing and AMR
