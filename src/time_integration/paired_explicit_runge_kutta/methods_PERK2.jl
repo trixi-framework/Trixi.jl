@@ -120,7 +120,7 @@ end
       The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
     - tspan: Time span of the simulation.
     - semi (AbstractSemidiscretization): Semidiscretization setup.
-    - eig_vals (Vector{ComplexF64}): Eigenvalues of the ODEProblem after the
+    - eig_vals (Vector{ComplexF64}): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
       equation has been semidiscretized.
     - verbose (Bool, optional): Verbosity flag, default is false.
     - bS (Float64, optional): Value of b in the Butcher tableau at b_s, when 
