@@ -124,7 +124,7 @@ end
       equation has been semidiscretized.
     - `verbose` (`Bool`, optional): Verbosity flag, default is false.
     - `bS` (`Float64`, optional): Value of b in the Butcher tableau at b_s, when 
-      s in the number of stages, default is 1.0.
+      s is the number of stages, default is 1.0.
     - `cS` (`Float64`, optional): Value of c in the Butcher tableau at c_s, when
       s in the number of stages, default is 0.5.
 
