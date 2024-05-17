@@ -32,11 +32,11 @@ end
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 2
 # using a list of eigenvalues
 function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
-                                                   bS, c_end; verbose = false)
+                                                   bS, cS; verbose = false)
     # c Vector from Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
     for k in 2:num_stages
-        c[k] = c_end * (k - 1) / (num_stages - 1)
+        c[k] = cS * (k - 1) / (num_stages - 1)
     end
     stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
@@ -75,12 +75,12 @@ end
 # using provided monomial coefficients file
 function compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                    base_path_monomial_coeffs::AbstractString,
-                                                   bS, c_end)
+                                                   bS, cS)
 
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
     for k in 2:num_stages
-        c[k] = c_end * (k - 1) / (num_stages - 1)
+        c[k] = cS * (k - 1) / (num_stages - 1)
     end
     stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
@@ -108,11 +108,11 @@ end
 
 """
     PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
-                      bS = 1.0, c_end = 0.5)
+                      bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
-                      verbose = false, bS = 1.0, c_end = 0.5)
+                      verbose = false, bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
-                      verbose = false, bS = 1.0, c_end = 0.5)
+                      verbose = false, bS = 1.0, cS = 0.5)
     Parameters:
     - num_stages (Int): Number of stages in the PERK method.
     - base_path_monomial_coeffs (AbstractString): Path to a file containing 
@@ -125,7 +125,7 @@ end
     - verbose (Bool, optional): Verbosity flag, default is false.
     - bS (Float64, optional): Value of b in the Butcher tableau at b_s, when 
       s in the number of stages, default is 1.0.
-    - c_end (Float64, optional): Value of c in the Butcher tableau at c_s, when
+    - cS (Float64, optional): Value of c in the Butcher tableau at c_s, when
       s in the number of stages, default is 0.5.
 
 The following structures and methods provide a minimal implementation of
@@ -143,40 +143,40 @@ mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     c::Vector{Float64}
     b1::Float64
     bS::Float64
-    c_end::Float64
+    cS::Float64
 end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
 function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
-                           bS = 1.0, c_end = 0.5)
+                           bS = 1.0, cS = 0.5)
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             base_path_monomial_coeffs,
-                                                            bS, c_end)
+                                                            bS, cS)
 
-    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, c_end)
+    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a
 # semidiscretization
 function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                            verbose = false,
-                           bS = 1.0, c_end = 0.5)
+                           bS = 1.0, cS = 0.5)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
-    return PairedExplicitRK2(num_stages, tspan, eig_vals; verbose, bS, c_end)
+    return PairedExplicitRK2(num_stages, tspan, eig_vals; verbose, bS, cS)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a
 # list of eigenvalues
 function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false,
-                           bS = 1.0, c_end = 0.5)
+                           bS = 1.0, cS = 0.5)
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             eig_vals, tspan,
-                                                            bS, c_end;
+                                                            bS, cS;
                                                             verbose)
 
-    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, c_end)
+    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
