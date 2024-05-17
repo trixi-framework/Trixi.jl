@@ -117,7 +117,7 @@ end
     - num_stages (Int): Number of stages in the PERK method.
     - base_path_monomial_coeffs (AbstractString): Path to a file containing 
       monomial coefficients of the stability polynomial of PERK method.
-      This should be in a format of "YOUR_PATH/gamma_{num_stages}.txt".
+      The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
     - tspan: Time span of the simulation.
     - semi (AbstractSemidiscretization): Semidiscretization setup.
     - eig_vals (Vector{ComplexF64}): Eigenvalues of the ODEProblem after the
