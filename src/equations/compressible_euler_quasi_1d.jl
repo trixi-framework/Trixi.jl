@@ -240,17 +240,17 @@ Further details are available in the paper:
     #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
     #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
     inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
-    v1_avg = 0.5f0 * (v1_ll + v1_rr)
-    a_v1_avg = 0.5f0 * (a_ll * v1_ll + a_rr * v1_rr)
-    p_avg = 0.5f0 * (p_ll + p_rr)
-    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr)
+    v1_avg = 0.5 * (v1_ll + v1_rr)
+    a_v1_avg = 0.5 * (a_ll * v1_ll + a_rr * v1_rr)
+    p_avg = 0.5 * (p_ll + p_rr)
+    velocity_square_avg = 0.5 * (v1_ll * v1_rr)
 
     # Calculate fluxes
     # Ignore orientation since it is always "1" in 1D
     f1 = rho_mean * a_v1_avg
     f2 = rho_mean * a_v1_avg * v1_avg
     f3 = f1 * (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
-         0.5f0 * (p_ll * a_rr * v1_rr + p_rr * a_ll * v1_ll)
+         0.5 * (p_ll * a_rr * v1_rr + p_rr * a_ll * v1_ll)
 
     return SVector(f1, f2, f3, zero(eltype(u_ll)))
 end
