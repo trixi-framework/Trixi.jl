@@ -114,18 +114,18 @@ end
     PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                       verbose = false, bS = 1.0, cS = 0.5)
     Parameters:
-    - num_stages (Int): Number of stages in the PERK method.
-    - base_path_monomial_coeffs (AbstractString): Path to a file containing 
+    - `num_stages` (`Int`): Number of stages in the PERK method.
+    - `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
       monomial coefficients of the stability polynomial of PERK method.
       The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
-    - tspan: Time span of the simulation.
-    - semi (AbstractSemidiscretization): Semidiscretization setup.
-    - eig_vals (Vector{ComplexF64}): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
+    - `tspan`: Time span of the simulation.
+    - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
+    -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
       equation has been semidiscretized.
-    - verbose (Bool, optional): Verbosity flag, default is false.
-    - bS (Float64, optional): Value of b in the Butcher tableau at b_s, when 
+    - `verbose` (`Bool`, optional): Verbosity flag, default is false.
+    - `bS` (`Float64`, optional): Value of b in the Butcher tableau at b_s, when 
       s in the number of stages, default is 1.0.
-    - cS (Float64, optional): Value of c in the Butcher tableau at c_s, when
+    - `cS` (`Float64`, optional): Value of c in the Butcher tableau at c_s, when
       s in the number of stages, default is 0.5.
 
 The following structures and methods provide a minimal implementation of
