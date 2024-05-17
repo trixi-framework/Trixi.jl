@@ -78,18 +78,19 @@ A smooth initial condition used for convergence tests in combination with
 """
 function initial_condition_convergence_test(x, t,
                                             equations::CompressibleEulerEquationsQuasi1D)
+    RealT = eltype(x)
     c = 2
-    A = 0.1
-    L = 2
+    A = convert(RealT, 0.1)
+    L = convert(RealT, 2)
     f = 1 / L
-    ω = 2 * pi * f
+    ω = 2 * convert(RealT, pi) * f
     ini = c + A * sin(ω * (x[1] - t))
 
     rho = ini
-    v1 = 1.0
+    v1 = 1
     e = ini^2 / rho
-    p = (equations.gamma - 1) * (e - 0.5 * rho * v1^2)
-    a = 1.5 - 0.5 * cos(x[1] * pi)
+    p = (equations.gamma - 1) * (e - 0.5f0 * rho * v1^2)
+    a = 1.5f0 - 0.5f0 * cos(x[1] * convert(RealT, pi))
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
