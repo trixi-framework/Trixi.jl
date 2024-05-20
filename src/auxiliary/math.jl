@@ -160,7 +160,8 @@ Given ε = 1.0e-4, we use the following algorithm.
     end
 end
 
-# TODO: Performance tuning for `ln_mean` (Float32), please find below
+# TODO: This may need some performance tuning, e.g., to optimize the
+#       cutoff value `epsilon_f2` or the number of terms in the Taylor expansion
 @inline function ln_mean(x::Float32, y::Float32)
     epsilon_f2 = 1.0f-4 # cut-off value to be changed for Float32
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
@@ -192,7 +193,8 @@ multiplication.
     end
 end
 
-# TODO: Performance tuning for `inv_ln_mean` (Float32), please find below
+# TODO: This may need some performance tuning, e.g., to optimize the
+#       cutoff value `epsilon_f2` or the number of terms in the Taylor expansion
 @inline function inv_ln_mean(x::Float32, y::Float32)
     epsilon_f2 = 1.0f-4 # cut-off value to be changed for Float32
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
