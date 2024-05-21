@@ -1,6 +1,7 @@
 using Downloads: download
 using OrdinaryDiffEq
 using Trixi
+
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
