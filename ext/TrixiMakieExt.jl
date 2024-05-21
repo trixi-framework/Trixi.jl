@@ -262,7 +262,7 @@ function iplot(pd::PlotData2DTriangulated;
 
     # On OSX, shift-command-4 for screenshots triggers a constant "up-zoom".
     # To avoid this, we remap up-zoom to the right shift button instead.
-    Makie.cameracontrols(ax.scene).attributes[:up_key][] = Makie.Keyboard.right_shift
+    Makie.cameracontrols(ax.scene).controls[:up_key][] = Makie.Keyboard.right_shift
 
     # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
     fig
