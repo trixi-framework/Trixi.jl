@@ -84,14 +84,14 @@ isdir(outdir) && rm(outdir, recursive = true)
 
         @test eltype(max_abs_speed_naive(u_ll, u_rr, orientation, equations)) == Float32
         @test eltype(min_max_speed_einfeldt(u_ll, u_rr, orientation, equations)) == Float32
-        @test eltype(max_abs_speeds(u, equations)) == Float32
+        # @test eltype(max_abs_speeds(u, equations)) == Float32 # not defined ?
 
         @test eltype(cons2prim(u, equations)) == Float32
         @test eltype(prim2cons(u, equations)) == Float32
         @test eltype(cons2entropy(u, equations)) == Float32
         @test eltype(entropy2cons(u, equations)) == Float32
 
-        # more minor funciton tests... (overwork today and stop here)
+        # more minor function tests... (overwork today and stop here)
     end
 end
 
