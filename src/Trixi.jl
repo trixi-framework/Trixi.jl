@@ -52,7 +52,6 @@ using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
 using MuladdMacro: @muladd
-using Octavian: Octavian, matmul!
 using Polyester: Polyester, @batch # You know, the cheapest threads you can find...
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
