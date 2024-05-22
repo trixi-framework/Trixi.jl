@@ -23,7 +23,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
 ode = semidiscretize(semi, (0.0, 1e-8));
 
 summary_callback = SummaryCallback()
