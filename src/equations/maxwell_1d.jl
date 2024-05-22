@@ -38,10 +38,10 @@ function MaxwellEquations1D(c::Real = 299792458)
 end
 
 function varnames(::typeof(cons2cons), ::MaxwellEquations1D)
-  ("E", "B")
+    ("E", "B")
 end
 function varnames(::typeof(cons2prim), ::MaxwellEquations1D)
-  ("E", "B")
+    ("E", "B")
 end
 
 """
@@ -55,14 +55,11 @@ function initial_condition_convergence_test(x, t, equations::MaxwellEquations1D)
 
     sin_char_pos = sin(2 * pi * char_pos)
 
-    E = - c * sin_char_pos
+    E = -c * sin_char_pos
     B = sin_char_pos
 
     return SVector(E, B)
 end
-
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::MaxwellEquations1D)
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer,

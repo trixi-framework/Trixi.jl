@@ -20,11 +20,11 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # Excite the electric field which causes a standing wave 
 # The solution is an undamped exchange between electric and magnetic energy            
 function initial_condition_E_excitation(x, t, equations::MaxwellEquations1D)
-  c = equations.speed_of_light[1]
-  E = - c * sin(2 * pi * x[1])
-  B = 0.0
+    c = equations.speed_of_light[1]
+    E = -c * sin(2 * pi * x[1])
+    B = 0.0
 
-  return SVector(E, B)
+    return SVector(E, B)
 end
 
 initial_condition = initial_condition_E_excitation
