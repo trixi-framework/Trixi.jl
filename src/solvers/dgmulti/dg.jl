@@ -22,6 +22,12 @@ end
 # out <- out + A * x
 mul_by_accum!(A) = mul_by_accum!(A, One())
 
+# specialize for SBP operators since `matmul!` doesn't work for `UniformScaling` types.
+struct MulByUniformScaling end
+struct MulByAccumUniformScaling end
+mul_by!(A::UniformScaling) = MulByUniformScaling()
+mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
+
 # StructArray fallback
 @inline function apply_to_each_field(f::F, args::Vararg{Any, N}) where {F, N}
     StructArrays.foreachfield(f, args...)
