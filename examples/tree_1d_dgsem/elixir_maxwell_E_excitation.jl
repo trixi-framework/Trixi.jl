@@ -7,7 +7,7 @@ using Trixi
 
 equations = MaxwellEquations1D()
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = 0.0
 coordinates_max = 1.0
@@ -17,6 +17,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 30_000) # set maximum capacity of tree data structure
 
+# Excite the electric field which causes a standing wave 
+# The solution is an undamped exchange between electric and magnetic energy            
 function initial_condition_E_excitation(x, t, equations::MaxwellEquations1D)
   c = equations.speed_of_light[1]
   E = - c * sin(2 * pi * x[1])
@@ -31,8 +33,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1e-9));
+ode = semidiscretize(semi, (0.0, 1e-7));
 
 summary_callback = SummaryCallback()
 
@@ -54,6 +55,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
 
 # Print the timer summary
 summary_callback()
-
-using Plots
-plot(sol)
