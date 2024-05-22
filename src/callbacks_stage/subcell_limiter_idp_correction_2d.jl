@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function perform_idp_correction!(u, dt, mesh, equations, dg, cache)
+function perform_idp_correction!(u, dt, mesh::AbstractMesh{2}, equations, dg, cache)
     @unpack inverse_weights = dg.basis
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     @unpack alpha1, alpha2 = dg.volume_integral.limiter.cache.subcell_limiter_coefficients

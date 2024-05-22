@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+function create_cache(mesh::AbstractMesh{2},
                       equations, volume_integral::VolumeIntegralSubcellLimiting,
                       dg::DG, uEltype)
     cache = create_cache(mesh, equations,
@@ -57,7 +57,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}},
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                               mesh::Union{TreeMesh, StructuredMesh},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
@@ -392,7 +392,7 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh,
+                                         u, mesh::AbstractMesh{2},
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
@@ -430,7 +430,7 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh,
+                                         u, mesh::AbstractMesh{2},
                                          nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes

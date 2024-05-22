@@ -504,8 +504,8 @@ end
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (global bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        positivity_variables_cons = ["rho"],
-                        positivity_variables_nonlinear = [pressure],
+                        positivity_variables_cons=["rho"],
+                        positivity_variables_nonlinear=[pressure],
                         local_twosided_variables_cons=[],
                         local_onesided_variables_nonlinear=[],
                         l2=[
