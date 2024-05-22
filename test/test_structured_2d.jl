@@ -475,20 +475,20 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_source_terms_sc_subcell.jl (global bounds)" begin
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (local bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_source_terms_sc_subcell.jl"),
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            7.939813971944535e-5,
-                            3.6805976512737965e-5,
-                            7.50142174035037e-5,
-                            0.0001576144969663713,
+                            0.6337774834710513,
+                            0.30377119245852724,
+                            0.3111372568571772,
+                            1.2976221893997268,
                         ],
                         linf=[
-                            0.0007421863054295486,
-                            0.00037635704053817776,
-                            0.0007278708058917616,
-                            0.001550366737408826,
+                            2.2064877103138207,
+                            1.541067099687334,
+                            1.5487587769900337,
+                            6.271271639873466,
                         ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
@@ -501,26 +501,24 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_source_terms_sc_subcell.jl (local bounds)" begin
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (global bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_source_terms_sc_subcell.jl"),
-                        positivity_variables_cons=[],
-                        positivity_variables_nonlinear=[],
-                        local_twosided_variables_cons=["rho"],
-                        local_onesided_variables_nonlinear=[(Trixi.entropy_guermond_etal,
-                                                             min)],
-                        cfl=0.5,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        positivity_variables_cons = ["rho"],
+                        positivity_variables_nonlinear = [pressure],
+                        local_twosided_variables_cons=[],
+                        local_onesided_variables_nonlinear=[],
                         l2=[
-                            0.007788374804566746,
-                            0.006564110929038488,
-                            0.00841157867996223,
-                            0.023360113888099734,
+                            0.7869912572385168,
+                            0.39170886758882073,
+                            0.39613257454431977,
+                            1.2951760266455101,
                         ],
                         linf=[
-                            0.033816854019882214,
-                            0.03938807953377843,
-                            0.044093017726981376,
-                            0.08006778793724179,
+                            5.156044534854053,
+                            3.6261667239538986,
+                            3.1807681416546085,
+                            6.3028422220287235,
                         ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations

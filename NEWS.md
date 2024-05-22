@@ -13,6 +13,7 @@ for human readability.
 - New analysis callback for 2D `P4estMesh` to compute integrated quantities along a boundary surface, e.g., pressure lift and drag coefficients ([#1812]).
 - Optional tuple parameter for `GlmSpeedCallback` called `semi_indices` to specify for which semidiscretization of a `SemidiscretizationCoupled` we need to update the GLM speed ([#1835]).
 - Subcell local one-sided limiting support for nonlinear variables in 2D for `TreeMesh` ([#1792]).
+- Add subcell limiting support for `StructuredMesh` ([#1946]).
 
 ## Changes when updating to v0.7 from v0.6.x
 
