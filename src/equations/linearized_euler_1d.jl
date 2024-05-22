@@ -8,7 +8,7 @@
 @doc raw"""
     LinearizedEulerEquations1D(v_mean_global, c_mean_global, rho_mean_global)
 
-Linearized euler equations in one space dimension. The equations are given by
+Linearized Euler equations in one space dimension. The equations are given by
 ```math
 \partial_t
 \begin{pmatrix}

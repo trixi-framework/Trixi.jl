@@ -6,9 +6,8 @@
 #! format: noindent
 
 @inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
-                              limiter::SubcellLimiterIDP,
-                              time, iter, output_directory, save_errors)
-    (; local_minmax, positivity) = solver.volume_integral.limiter
+                              limiter::SubcellLimiterIDP)
+    (; local_twosided, positivity, local_onesided) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta_local, idp_bounds_delta_global) = limiter.cache
 
@@ -20,8 +19,8 @@
     # `@batch` here to allow a possible redefinition of `@threaded` without creating errors here.
     # See also https://github.com/trixi-framework/Trixi.jl/pull/1888#discussion_r1537785293.
 
-    if local_minmax
-        for v in limiter.local_minmax_variables_cons
+    if local_twosided
+        for v in limiter.local_twosided_variables_cons
             v_string = string(v)
             key_min = Symbol(v_string, "_min")
             key_max = Symbol(v_string, "_max")
@@ -45,9 +44,28 @@
             idp_bounds_delta_local[key_max] = deviation_max
         end
     end
+    if local_onesided
+        for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+            key = Symbol(string(variable), "_", string(min_or_max))
+            deviation = idp_bounds_delta_local[key]
+            sign_ = min_or_max(1.0, -1.0)
+            @batch reduction=(max, deviation) for element in eachelement(solver, cache)
+                for j in eachnode(solver), i in eachnode(solver)
+                    v = variable(get_node_vars(u, equations, solver, i, j, element),
+                                 equations)
+                    # Note: We always save the absolute deviations >= 0 and therefore use the
+                    # `max` operator for lower and upper bounds. The different directions of
+                    # upper and lower bounds are considered with `sign_`.
+                    deviation = max(deviation,
+                                    sign_ * (v - variable_bounds[key][i, j, element]))
+                end
+            end
+            idp_bounds_delta_local[key] = deviation
+        end
+    end
     if positivity
         for v in limiter.positivity_variables_cons
-            if v in limiter.local_minmax_variables_cons
+            if v in limiter.local_twosided_variables_cons
                 continue
             end
             key = Symbol(string(v), "_min")
@@ -82,35 +100,47 @@
                                            idp_bounds_delta_local[key])
     end
 
-    if save_errors
-        # Print to output file
-        open("$output_directory/deviations.txt", "a") do f
-            print(f, iter, ", ", time)
-            if local_minmax
-                for v in limiter.local_minmax_variables_cons
-                    v_string = string(v)
-                    print(f, ", ", idp_bounds_delta_local[Symbol(v_string, "_min")],
-                          ", ", idp_bounds_delta_local[Symbol(v_string, "_max")])
-                end
+    return nothing
+end
+
+@inline function save_bounds_check_errors(output_directory, u, time, iter, equations,
+                                          limiter::SubcellLimiterIDP)
+    (; local_twosided, positivity, local_onesided) = limiter
+    (; idp_bounds_delta_local) = limiter.cache
+
+    # Print to output file
+    open(joinpath(output_directory, "deviations.txt"), "a") do f
+        print(f, iter, ", ", time)
+        if local_twosided
+            for v in limiter.local_twosided_variables_cons
+                v_string = string(v)
+                print(f, ", ", idp_bounds_delta_local[Symbol(v_string, "_min")],
+                      ", ", idp_bounds_delta_local[Symbol(v_string, "_max")])
             end
-            if positivity
-                for v in limiter.positivity_variables_cons
-                    if v in limiter.local_minmax_variables_cons
-                        continue
-                    end
-                    print(f, ", ", idp_bounds_delta_local[Symbol(string(v), "_min")])
-                end
-                for variable in limiter.positivity_variables_nonlinear
-                    print(f, ", ",
-                          idp_bounds_delta_local[Symbol(string(variable), "_min")])
-                end
+        end
+        if local_onesided
+            for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+                key = Symbol(string(variable), "_", string(min_or_max))
+                print(f, ", ", idp_bounds_delta_local[key])
             end
-            println(f)
         end
-        # Reset local maximum deviations
-        for (key, _) in idp_bounds_delta_local
-            idp_bounds_delta_local[key] = zero(eltype(idp_bounds_delta_local[key]))
+        if positivity
+            for v in limiter.positivity_variables_cons
+                if v in limiter.local_twosided_variables_cons
+                    continue
+                end
+                print(f, ", ", idp_bounds_delta_local[Symbol(string(v), "_min")])
+            end
+            for variable in limiter.positivity_variables_nonlinear
+                print(f, ", ", idp_bounds_delta_local[Symbol(string(variable), "_min")])
+            end
         end
+        println(f)
+    end
+
+    # Reset local maximum deviations
+    for (key, _) in idp_bounds_delta_local
+        idp_bounds_delta_local[key] = zero(eltype(idp_bounds_delta_local[key]))
     end
 
     return nothing

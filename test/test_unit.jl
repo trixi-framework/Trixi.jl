@@ -416,8 +416,9 @@ end
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1, "cache", 1,
-                                    (1.0, 1.0), 1.0)
+    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
+                                    true, [(Trixi.entropy_guermond_etal, min)], "cache",
+                                    1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))
@@ -1431,7 +1432,8 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 1.0),
             SVector(1.5, -0.2, 0.1, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle,
+            flux_hllc, flux_chandrashekar,
         ]
 
         for f_std in fluxes
@@ -1455,7 +1457,8 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
             SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle,
+            flux_hllc, flux_chandrashekar,
         ]
 
         for f_std in fluxes
@@ -1533,6 +1536,60 @@ end
                       f_std(u_ll, u_rr, normal_direction, equations)
             end
         end
+    end
+end
+
+@testset "Equivalent Wave Speed Estimates" begin
+    @timed_testset "Linearized Euler 3D" begin
+        equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, 0.7),
+                                               c_mean_global = 1.0,
+                                               rho_mean_global = 1.0)
+
+        normal_x = SVector(1.0, 0.0, 0.0)
+        normal_y = SVector(0.0, 1.0, 0.0)
+        normal_z = SVector(0.0, 0.0, 1.0)
+
+        u_ll = SVector(0.3, 0.5, -0.7, 0.1, 1.0)
+        u_rr = SVector(0.5, -0.2, 0.1, 0.2, 5.0)
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(max_abs_speed_naive(u_ll, u_rr, 1, equations),
+                                    max_abs_speed_naive(u_ll, u_rr, normal_x,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(max_abs_speed_naive(u_ll, u_rr, 2, equations),
+                                    max_abs_speed_naive(u_ll, u_rr, normal_y,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(max_abs_speed_naive(u_ll, u_rr, 3, equations),
+                                    max_abs_speed_naive(u_ll, u_rr, normal_z,
+                                                        equations)))
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 1, equations),
+                                    min_max_speed_naive(u_ll, u_rr, normal_x,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 2, equations),
+                                    min_max_speed_naive(u_ll, u_rr, normal_y,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 3, equations),
+                                    min_max_speed_naive(u_ll, u_rr, normal_z,
+                                                        equations)))
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 1, equations),
+                                    min_max_speed_davis(u_ll, u_rr, normal_x,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 2, equations),
+                                    min_max_speed_davis(u_ll, u_rr, normal_y,
+                                                        equations)))
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 3, equations),
+                                    min_max_speed_davis(u_ll, u_rr, normal_z,
+                                                        equations)))
     end
 end
 
