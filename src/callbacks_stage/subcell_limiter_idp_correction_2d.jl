@@ -6,7 +6,7 @@
 #! format: noindent
 
 function perform_idp_correction!(u, dt,
-                                 mesh::::Union{TreeMesh{2}, StructuredMesh{2}},
+                                 mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                  equations, dg, cache)
     @unpack inverse_weights = dg.basis
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
