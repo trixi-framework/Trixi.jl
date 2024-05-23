@@ -5,8 +5,7 @@
 @muladd begin
 #! format: noindent
 
-@inline function check_bounds(u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
-                              equations, solver, cache,
+@inline function check_bounds(u, equations, solver, cache,
                               limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -104,7 +103,7 @@
     return nothing
 end
 
-@inline function save_bounds_check_errors(output_directory, u, time, iter, equations,
+@inline function save_bounds_check_errors(output_directory, time, iter, equations,
                                           limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = limiter
     (; idp_bounds_delta_local) = limiter.cache
