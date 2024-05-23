@@ -47,6 +47,12 @@ function volume_jacobian(element, mesh::TreeMesh, cache)
     return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
 end
 
+@inline function get_inverse_jacobian(inverse_jacobian, mesh::TreeMesh,
+                                      indices...)
+    element = last(indices)
+    return inverse_jacobian[element]
+end
+
 # Indicators used for shock-capturing and AMR
 include("indicators.jl")
 include("indicators_1d.jl")

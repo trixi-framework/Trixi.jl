@@ -3,6 +3,13 @@ module TestUnit
 using Test
 using Trixi
 
+using DelimitedFiles: readdlm
+
+# Use Convex and ECOS to load the extension that extends functions for testing
+# PERK Single p2 Constructors
+using Convex: Convex
+using ECOS: Optimizer
+
 include("test_trixi.jl")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
@@ -1636,6 +1643,39 @@ end
     mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = false)
 
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
+end
+
+@testset "PERK Single p2 Constructors" begin
+    path_coeff_file = mktempdir()
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
+                   joinpath(path_coeff_file, "gamma_6.txt"))
+
+    ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
+
+    @test isapprox(ode_algorithm.a_matrix,
+                   [0.12405417889682908 0.07594582110317093
+                    0.16178873711001726 0.13821126288998273
+                    0.16692313960864164 0.2330768603913584
+                    0.12281292901258256 0.37718707098741744], atol = 1e-13)
+
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/c7a89eaaa857e87dde055f78eae9b94a/raw/2937f8872ffdc08e0dcf444ee35f9ebfe18735b0/Spectrum_2D_IsentropicVortex_CEE.txt",
+                   joinpath(path_coeff_file, "spectrum_2d.txt"))
+
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum_2d.txt"), ComplexF64)
+    tspan = (0.0, 1.0)
+    ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
+
+    @test isapprox(ode_algorithm.a_matrix,
+                   [0.06453812656705388 0.02637096434203703
+                    0.09470601372266194 0.04165762264097442
+                    0.12332877820057538 0.05848940361760645
+                    0.1498701503275483 0.07740257694517898
+                    0.173421149536068 0.09930612319120471
+                    0.19261978147927503 0.12556203670254315
+                    0.2052334022622969 0.15840296137406676
+                    0.2073489042901963 0.2017420048007128
+                    0.19135142349998963 0.2631940310454649
+                    0.13942836392940833 0.3605716360705917], atol = 1e-13)
 end
 
 @testset "Sutherlands Law" begin

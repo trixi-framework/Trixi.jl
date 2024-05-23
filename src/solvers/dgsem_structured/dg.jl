@@ -76,6 +76,14 @@ end
     end
 end
 
+@inline function get_inverse_jacobian(inverse_jacobian,
+                                      mesh::Union{StructuredMesh, StructuredMeshView,
+                                                  UnstructuredMesh2D, P4estMesh,
+                                                  T8codeMesh},
+                                      indices...)
+    return inverse_jacobian[indices...]
+end
+
 include("containers.jl")
 include("dg_1d.jl")
 include("dg_2d.jl")
