@@ -400,6 +400,7 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
@@ -416,7 +417,20 @@ end
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
+                        coverage_override=(maxiters = 6,),
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] == "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min"
+    cmd = string(Base.julia_cmd())
+    coverage = occursin("--code-coverage", cmd) &&
+               !occursin("--code-coverage=none", cmd)
+    if coverage
+        # Run with coverage takes 6 time steps.
+        @test startswith(lines[end], "6")
+    else
+        # Run without coverage takes 89 time steps.
+        @test startswith(lines[end], "89")
+    end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -614,6 +628,7 @@ end
 end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
                         l2=[
@@ -628,7 +643,13 @@ end
                             0.5822547982757897,
                             0.7300051017382696,
                         ],
-                        tspan=(0.0, 2.0))
+                        tspan=(0.0, 2.0),
+                        coverage_override=(maxiters = 7,),
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
+    # Run without (with) coverage takes 745 (7) time steps
+    @test startswith(lines[end], "7")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
