@@ -14,6 +14,7 @@ for human readability.
 - Subcell local one-sided limiting support for nonlinear variables in 2D for `TreeMesh` ([#1792]).
 - New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
   method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#1908])
+- Add subcell limiting support for `StructuredMesh` ([#1946]).
 
 ## Changes when updating to v0.7 from v0.6.x
 
