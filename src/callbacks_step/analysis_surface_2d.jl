@@ -141,7 +141,7 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
     n_nodes = nnodes(dg)
     n_elements = length(indices)
 
-    coords = Matrix{real(dg)}(undef, n_elements * n_nodes, dim) # physical coordinates of indices
+    coordinates = Matrix{real(dg)}(undef, n_elements * n_nodes, dim) # physical coordinates of indices
     values = Vector{real(dg)}(undef, n_elements * n_nodes) # variable values at indices
 
     index_range = eachnode(dg)
@@ -150,7 +150,6 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
     for boundary in indices
         element = boundaries.neighbor_ids[boundary]
         node_indices = boundaries.node_indices[boundary]
-        direction = indices2direction(node_indices)
 
         i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
         j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
@@ -161,24 +160,21 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
             u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
                                          boundary)
 
-            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
-                                element)
+            x = get_node_coordinates(node_coordinates, equations, dg, i_node, j_node,
+                                     element)
             value = variable(u_node, equations)
 
-            coords[global_node_index, 1] = x[1]
-            coords[global_node_index, 2] = x[2]
+            coordinates[global_node_index, 1] = x[1]
+            coordinates[global_node_index, 2] = x[2]
             values[global_node_index] = value
             i_node += i_node_step
             j_node += j_node_step
             global_node_index += 1
         end
     end
-    # Sort with ascending x
-    sorting_indices = sortperm(coords[:, 1])
-    coords = coords[sorting_indices, :]
-    values = values[sorting_indices]
 
-    save_pointwise_file(surface_variable.output_directory, varname(variable), coords,
+    save_pointwise_file(surface_variable.output_directory, varname(variable),
+                        coordinates,
                         values, t, iter)
 end
 
@@ -197,7 +193,7 @@ function analyze(surface_variable::AnalysisSurface{Variable},
     n_nodes = nnodes(dg)
     n_elements = length(indices)
 
-    coords = Matrix{real(dg)}(undef, n_elements * n_nodes, dim) # physical coordinates of indices
+    coordinates = Matrix{real(dg)}(undef, n_elements * n_nodes, dim) # physical coordinates of indices
     values = Vector{real(dg)}(undef, n_elements * n_nodes) # variable values at indices
 
     # Additions for parabolic
@@ -223,8 +219,8 @@ function analyze(surface_variable::AnalysisSurface{Variable},
             u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
                                          boundary)
 
-            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
-                                element)
+            x = get_node_coordinates(node_coordinates, equations, dg, i_node, j_node,
+                                     element)
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
@@ -240,20 +236,17 @@ function analyze(surface_variable::AnalysisSurface{Variable},
             value = variable(u_node, normal_direction, x, t, equations_parabolic,
                              gradients_1, gradients_2)
 
-            coords[global_node_index, 1] = x[1]
-            coords[global_node_index, 2] = x[2]
+            coordinates[global_node_index, 1] = x[1]
+            coordinates[global_node_index, 2] = x[2]
             values[global_node_index] = value
             i_node += i_node_step
             j_node += j_node_step
             global_node_index += 1
         end
     end
-    # Sort with ascending x
-    sorting_indices = sortperm(coords[:, 1])
-    coords = coords[sorting_indices, :]
-    values = values[sorting_indices]
 
-    save_pointwise_file(surface_variable.output_directory, varname(variable), coords,
+    save_pointwise_file(surface_variable.output_directory, varname(variable),
+                        coordinates,
                         values, t, iter)
 end
 
@@ -261,7 +254,7 @@ varname(::Any) = @assert false "Surface variable name not assigned" # This makes
 varname(pressure_coefficient::SurfacePressureCoefficient) = "CP_x"
 varname(friction_coefficient::SurfaceFrictionCoefficient) = "CF_x"
 
-function save_pointwise_file(output_directory, varname, coords, values, t, iter)
+function save_pointwise_file(output_directory, varname, coordinates, values, t, iter)
     n_points = length(values)
 
     filename = joinpath(output_directory, varname) * @sprintf("_%06d.h5", iter)
@@ -273,7 +266,7 @@ function save_pointwise_file(output_directory, varname, coords, values, t, iter)
 
         file["time"] = t
         file["timestep"] = iter
-        file["point_coordinates"] = coords
+        file["point_coordinates"] = coordinates
         file["point_data"] = values
     end
 end
