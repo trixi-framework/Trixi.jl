@@ -626,6 +626,62 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (local bounds)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        l2=[
+                            0.6337774834710513,
+                            0.30377119245852724,
+                            0.3111372568571772,
+                            1.2976221893997268,
+                        ],
+                        linf=[
+                            2.2064877103138207,
+                            1.541067099687334,
+                            1.5487587769900337,
+                            6.271271639873466,
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (global bounds)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        positivity_variables_cons=["rho"],
+                        positivity_variables_nonlinear=[pressure],
+                        local_twosided_variables_cons=[],
+                        local_onesided_variables_nonlinear=[],
+                        l2=[
+                            0.7869912572385168,
+                            0.39170886758882073,
+                            0.39613257454431977,
+                            1.2951760266455101,
+                        ],
+                        linf=[
+                            5.156044534854053,
+                            3.6261667239538986,
+                            3.1807681416546085,
+                            6.3028422220287235,
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
 @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
