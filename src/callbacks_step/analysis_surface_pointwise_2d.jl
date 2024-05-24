@@ -163,7 +163,7 @@ function analyze(surface_variable::AnalysisSurfacePointwise, du, u, t,
                                          boundary)
 
             x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
-                                     element)
+                                element)
             value = variable(u_node, equations)
 
             coordinates[global_node_index, 1] = x[1]
@@ -222,7 +222,7 @@ function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
                                          boundary)
 
             x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
-                                     element)
+                                element)
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
