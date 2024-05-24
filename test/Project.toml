@@ -19,7 +19,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [compat]
 Aqua = "0.8"
 CairoMakie = "0.10"
-Convex = "0.15.4"
+Convex = "0.15.4, 0.16"
 DelimitedFiles = "1"
 Downloads = "1"
 ECOS = "1.1.2"
