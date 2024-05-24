@@ -468,7 +468,7 @@ end
                var_min[i, j, element] >= positivity_correction_factor * var
                 # Local limiting is more restrictive that positivity limiting
                 # => Skip positivity limiting for this node
-                return nothing
+                continue
             end
             var_min[i, j, element] = positivity_correction_factor * var
 
