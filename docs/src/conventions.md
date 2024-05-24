@@ -41,7 +41,7 @@ following naming conventions:
   use these indices.
 
 
-# Keywords in elixirs
+## Keywords in elixirs
 
 Trixi.jl is distributed with several examples in the form of elixirs, small
 Julia scripts containing everything to set up and run a simulation. Working
@@ -61,9 +61,9 @@ can only perform simple replacements. Some standard variables names are
 Moreover, [`convergence_test`](@ref) requires that the spatial resolution is
 set via the keywords
 - `initial_refinement_level`
-  (an integer, e.g. for the [`TreeMesh`](@ref) and the [`P4estMesh`](@ref)) or
+  (an integer, e.g., for the [`TreeMesh`](@ref) and the [`P4estMesh`](@ref)) or
 - `cells_per_dimension`
-  (a tuple of integers, one per spatial dimension, e.g. for the [`StructuredMesh`](@ref)
+  (a tuple of integers, one per spatial dimension, e.g., for the [`StructuredMesh`](@ref)
   and the [`DGMultiMesh`](@ref)).
 
 
@@ -101,8 +101,71 @@ based on the following rules.
   (or `wrap_array_native(u_ode, semi)`) for further processing.
 - When some solution is passed together with the `mesh, equations, solver, cache, ...`,
   it is already wrapped via `wrap_array` (or `wrap_array_native`).
-- Exceptions of this rule are possible, e.g. for AMR, but must be documented in
+- Exceptions of this rule are possible, e.g., for AMR, but must be documented in
   the code.
 - `wrap_array` should be used as default option. `wrap_array_native` should only
   be used when necessary, e.g., to avoid additional overhead when interfacing
   with external C libraries such as HDF5, MPI, or visualization.
+
+## Numeric types and type stability
+
+In Trixi.jl, we use generic programming to support custom data types to store the numerical simulation data, including standard floating point types and automatic differentiation types.
+Specifically, `Float32` and `Float64` types are fully supported, including the ability to run Trixi.jl on hardware that only supports `Float32` types.
+We ensure the type stability of these numeric types throughout the development process.
+Below are some guidelines to apply in various scenarios.
+
+### Exact floating-point numbers
+
+Some real numbers can be represented exactly as both `Float64` and `Float32` values (e.g., `0.25`, `0.5`, `1/2`). We prefer to use `Float32` type for these numbers to achieve a concise way of possible type promotion. For example,
+```julia
+# Assume we have `0.25`, `0.5`, `1/2` in function
+0.25f0, 0.5f0, 0.5f0 # corresponding numbers
+```
+Generally, this equivalence is true for integer multiples of powers of two. That is, numbers that can be written as ``m 2^n``, where ``m, n \in \mathbb{Z}``, and where ``m`` and ``n`` are such that the result is representable as a [single precision floating point](https://en.wikipedia.org/wiki/Single-precision_floating-point_format) value. If a decimal value `v` is exactly representable in `Float32`, the expression
+```julia
+Float32(v) == v
+```
+will evaluate to `true`.
+
+### Non-exact floating-point numbers
+
+For real numbers that cannot be exactly represented in machine precision (e.g., `0.1`, `1/3`, `pi`), use the `convert` function to make them consistent with the type of the function input. For example, 
+```julia
+# Assume we are handling `pi` in function
+function foo(..., input, ...)
+  RealT = eltype(input) # see **notes** below
+  # ...
+  c1 = convert(RealT, pi) * c2 # sample operation
+  # ...
+end
+```
+
+### Integer numbers
+
+Integers need special consideration. Using functions like `convert` (as mentioned above), `zero`, and `one` to change integers to a specific type or keeping them in integer format is feasible in most cases. We aim to balance code readability and consistency while maintaining type stability. Here are some examples to guide our developers.
+```julia
+# The first example - `SVector`, keep code consistency within `SVector`
+SVector(0, 0, 0)
+SVector(zero(RealT), zero(RealT), zero(RealT))
+Svector(one(RealT), one(RealT), one(RealT))
+
+# The second example - inner functions, keep them type-stable as well
+function foo(..., input, ...)
+RealT = eltype(input) # see **notes** below
+# ...
+c1 = c2 > 0.5f0 ? one(RealT) : convert(RealT, 0.1) # make type-stable
+# ...
+end 
+
+# The third example - some operations (e.g., `/`, `sqrt`, `inv`), convert them definitely
+c1 = convert(RealT, 4) # suppose we get RealT before
+c2 = 1 / c1
+c3 = sqrt(c1)
+c4 = inv(c1)
+```
+In general, in the case of integer numbers, our developers should apply a case-by-case strategy to maintain type stability. 
+
+### Notes
+1. If the function gets a local pointwise vector of the solution variables `u` such as `flux(u, equations)`, use `u` to determine the real type `eltype(u)`.
+2. If `u` is not passed as an argument but a vector of coordinates `x` such as `initial_condition(x, t, equations)`, use `eltype(x)` instead.
+3. Choose an appropriate argument to determine the real type otherwise.

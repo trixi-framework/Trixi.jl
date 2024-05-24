@@ -71,8 +71,8 @@ end
 
 Compute the surface pressure coefficient
 ```math
-C_p \\coloneqq \\frac{ p - p_{p_\\infty}}
-                        {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
+C_p \\coloneqq \\frac{p - p_{p_\\infty}}
+                     {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
 ```
 based on the pressure distribution along a boundary.
 Supposed to be used in conjunction with [`AnalysisSurface`](@ref)
@@ -92,8 +92,8 @@ SurfaceFrictionCoefficient(rhoinf, uinf, linf)
 
 Compute the surface skin friction coefficient
 ```math
-C_f \\coloneqq \\frac{\\boldsymbol (\\tau_w  \\boldsymbol n) \\cdot \\boldsymbol b^\\perp}
-                        {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
+C_f \\coloneqq \\frac{\\boldsymbol \\tau_w  \\boldsymbol n^\\perp}
+                     {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
 ```
 based on the wall shear stress vector ``\\tau_w`` along a boundary.
 Supposed to be used in conjunction with [`AnalysisSurface`](@ref)
@@ -274,7 +274,7 @@ function save_pointwise_file(output_directory, varname, coords, values, t, iter)
         file["time"] = t
         file["timestep"] = iter
         file["point_coordinates"] = coords
-        file["values"] = values
+        file["point_data"] = values
     end
 end
 
