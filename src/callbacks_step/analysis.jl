@@ -83,7 +83,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             push!(setup, "│ integral " * string(idx) => integral)
         end
         for (idx, quantity) in enumerate(analysis_callback.analysis_pointwise)
-            push!(setup, "│ quantity " * string(idx) => quantity)
+            push!(setup, "│ pointwise " * string(idx) => quantity)
         end
         push!(setup,
               "save analysis to file" => analysis_callback.save_analysis ? "yes" : "no")
