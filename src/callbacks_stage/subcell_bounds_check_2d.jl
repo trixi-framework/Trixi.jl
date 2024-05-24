@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-@inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
+@inline function check_bounds(u::AbstractArray{<:Any, 4},
+                              equations, solver, cache,
                               limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
@@ -103,7 +104,7 @@
     return nothing
 end
 
-@inline function save_bounds_check_errors(output_directory, u, time, iter, equations,
+@inline function save_bounds_check_errors(output_directory, time, iter, equations,
                                           limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = limiter
     (; idp_bounds_delta_local) = limiter.cache
@@ -145,7 +146,8 @@ end
     return nothing
 end
 
-@inline function check_bounds(u, mesh::AbstractMesh{2}, equations, solver, cache,
+@inline function check_bounds(u::AbstractArray{<:Any, 4},
+                              equations, solver, cache,
                               limiter::SubcellLimiterMCL)
     (; var_min, var_max) = limiter.cache.subcell_limiter_coefficients
     (; bar_states1, bar_states2, lambda1, lambda2) = limiter.cache.container_bar_states
@@ -625,14 +627,14 @@ end
     return nothing
 end
 
-@inline function save_bounds_check_errors(output_directory, u, time, iter, equations,
+@inline function save_bounds_check_errors(output_directory, time, iter, equations,
                                           limiter::SubcellLimiterMCL)
     (; mcl_bounds_delta_local) = limiter.cache
 
     n_vars = nvariables(equations)
 
     # Print errors to output file
-    open("$output_directory/deviations.txt", "a") do f
+    open(joinpath(output_directory, "deviations.txt"), "a") do f
         print(f, iter, ", ", time)
         for v in eachvariable(equations)
             print(f, ", ", mcl_bounds_delta_local[1, v], ", ",

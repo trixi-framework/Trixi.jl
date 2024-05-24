@@ -508,7 +508,9 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh,
+                                         u,
+                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                     P4estMesh{2}},
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
@@ -546,7 +548,9 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh,
+                                         u,
+                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                     P4estMesh{2}},
                                          nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes

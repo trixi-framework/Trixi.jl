@@ -38,7 +38,7 @@ function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
     (; t, iter, alg) = integrator
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    @trixi_timeit timer() "check_bounds" check_bounds(u, mesh, equations, solver, cache,
+    @trixi_timeit timer() "check_bounds" check_bounds(u, equations, solver, cache,
                                                       solver.volume_integral)
 
     save_errors = callback.save_errors && (callback.interval > 0) &&
@@ -48,20 +48,20 @@ function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
                    (iter + 1) >= integrator.opts.maxiters)  # Maximum iterations reached
     if save_errors
         @trixi_timeit timer() "save_errors" save_bounds_check_errors(callback.output_directory,
-                                                                     u, t, iter + 1,
+                                                                     t, iter + 1,
                                                                      equations,
                                                                      solver.volume_integral)
     end
 end
 
-@inline function check_bounds(u, mesh, equations, solver, cache,
+@inline function check_bounds(u, equations, solver, cache,
                               volume_integral::VolumeIntegralSubcellLimiting)
-    check_bounds(u, mesh, equations, solver, cache, volume_integral.limiter)
+    check_bounds(u, equations, solver, cache, volume_integral.limiter)
 end
 
-@inline function save_bounds_check_errors(output_directory, u, t, iter, equations,
+@inline function save_bounds_check_errors(output_directory, t, iter, equations,
                                           volume_integral::VolumeIntegralSubcellLimiting)
-    save_bounds_check_errors(output_directory, u, t, iter, equations,
+    save_bounds_check_errors(output_directory, t, iter, equations,
                              volume_integral.limiter)
 end
 
