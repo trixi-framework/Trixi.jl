@@ -167,6 +167,7 @@ function analyze(surface_variable::AnalysisSurfacePointwise, du, u, t,
             coordinates[global_node_index, 1] = x[1]
             coordinates[global_node_index, 2] = x[2]
             values[global_node_index] = value
+
             i_node += i_node_step
             j_node += j_node_step
             global_node_index += 1
@@ -202,7 +203,6 @@ function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
 
     gradients_x, gradients_y = gradients
 
-    surface_integral = zero(eltype(u))
     index_range = eachnode(dg)
     global_node_index = 1 # Keeps track of solution point number on the surface
     for boundary in indices
@@ -239,6 +239,7 @@ function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
             coordinates[global_node_index, 1] = x[1]
             coordinates[global_node_index, 2] = x[2]
             values[global_node_index] = value
+
             i_node += i_node_step
             j_node += j_node_step
             global_node_index += 1
