@@ -472,22 +472,40 @@ end
 end
 
 """
-    get_boundary_outer_state(boundary_condition::BoundaryConditionDirichlet,
-                             cache, t, equations, dg, indices...)
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::BoundaryConditionDirichlet,
+                             orientation_or_normal, direction,
+                             mesh, equations, dg, cache, indices...)
 For subcell limiting, the calculation of local bounds for non-periodic domains require the boundary
 outer state. This function returns the boundary value at time `t` and for node with spatial
-indices `indices`.
+indices `indices` at the boundary with `orientation_or_normal` and `direction`.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-@inline function get_boundary_outer_state(boundary_condition::BoundaryConditionDirichlet,
-                                          cache, t, equations, dg, indices...)
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::BoundaryConditionDirichlet,
+                                          orientation_or_normal, direction,
+                                          mesh, equations, dg, cache, indices...)
     (; node_coordinates) = cache.elements
 
     x = get_node_coords(node_coordinates, equations, dg, indices...)
     u_outer = boundary_condition.boundary_value_function(x, t, equations)
 
     return u_outer
+end
+
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          normal_direction::AbstractVector, direction,
+                                          mesh, equations::CompressibleEulerEquations2D,
+                                          dg, cache, indices...)
+    factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
+    u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
+
+    return SVector(u_inner[1],
+                   u_inner[2] - 2.0 * u_normal[1],
+                   u_inner[3] - 2.0 * u_normal[2],
+                   u_inner[4])
 end
 end # @muladd

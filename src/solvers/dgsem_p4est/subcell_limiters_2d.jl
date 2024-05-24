@@ -76,14 +76,17 @@ end
 
 @inline function calc_bounds_twosided_interface_inner!(var_min, var_max, variable, u, t,
                                                        boundary_conditions::BoundaryConditionPeriodic,
-                                                       mesh, equations, dg, cache)
+                                                       mesh::P4estMesh{2},
+                                                       equations, dg, cache)
     return nothing
 end
 
 @inline function calc_bounds_twosided_interface_inner!(var_min, var_max, variable, u, t,
                                                        boundary_conditions,
-                                                       mesh, equations, dg, cache)
+                                                       mesh::P4estMesh{2},
+                                                       equations, dg, cache)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
+    (; contravariant_vectors) = cache.elements
 
     (; boundaries) = cache
     index_range = eachnode(dg)
@@ -92,6 +95,7 @@ end
         for boundary in boundary_indices[i]
             element = boundaries.neighbor_ids[boundary]
             node_indices = boundaries.node_indices[boundary]
+            direction = indices2direction(node_indices)
 
             i_node_start, i_node_step = index_to_start_step_2d(node_indices[1],
                                                                index_range)
@@ -101,7 +105,15 @@ end
             i_node = i_node_start
             j_node = j_node_start
             for i in eachnode(dg)
-                u_outer = get_boundary_outer_state(boundary_condition, cache, t, equations, dg,
+                normal_direction = get_normal_direction(direction,
+                                                        contravariant_vectors,
+                                                        i_node, j_node, element)
+
+                u_inner = get_node_vars(u, equations, dg, i_node, j_node, element)
+
+                u_outer = get_boundary_outer_state(u_inner, t, boundary_condition,
+                                                   normal_direction, direction,
+                                                   mesh, equations, dg, cache,
                                                    i_node, j_node, element)
                 var_outer = u_outer[variable]
 
@@ -186,14 +198,17 @@ end
 @inline function calc_bounds_onesided_interface_inner!(var_minmax, minmax, variable, u,
                                                        t,
                                                        boundary_conditions::BoundaryConditionPeriodic,
-                                                       mesh, equations, dg, cache)
+                                                       mesh::P4estMesh{2},
+                                                       equations, dg, cache)
     return nothing
 end
 
 @inline function calc_bounds_onesided_interface_inner!(var_minmax, minmax, variable, u,
                                                        t, boundary_conditions,
-                                                       mesh, equations, dg, cache)
+                                                       mesh::P4estMesh{2},
+                                                       equations, dg, cache)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
+    (; contravariant_vectors) = cache.elements
 
     (; boundaries) = cache
     index_range = eachnode(dg)
@@ -202,6 +217,7 @@ end
         for boundary in boundary_indices[i]
             element = boundaries.neighbor_ids[boundary]
             node_indices = boundaries.node_indices[boundary]
+            direction = indices2direction(node_indices)
 
             i_node_start, i_node_step = index_to_start_step_2d(node_indices[1],
                                                                index_range)
@@ -211,7 +227,15 @@ end
             i_node = i_node_start
             j_node = j_node_start
             for node in eachnode(dg)
-                u_outer = get_boundary_outer_state(boundary_condition, cache, t, equations, dg,
+                normal_direction = get_normal_direction(direction,
+                                                        contravariant_vectors,
+                                                        i_node, j_node, element)
+
+                u_inner = get_node_vars(u, equations, dg, i_node, j_node, element)
+
+                u_outer = get_boundary_outer_state(u_inner, t, boundary_condition,
+                                                   normal_direction, direction,
+                                                   mesh, equations, dg, cache,
                                                    i_node, j_node, element)
                 var_outer = variable(u_outer, equations)
 
