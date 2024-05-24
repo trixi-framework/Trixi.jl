@@ -216,5 +216,78 @@ end
     return nothing
 end
 
+@inline function save_bounds_check_errors(output_directory, time, iter, equations,
+                                          limiter::SubcellLimiterIDP)
+    (; local_twosided, positivity, local_onesided) = limiter
+    (; idp_bounds_delta_local) = limiter.cache
+
+    # Print to output file
+    open(joinpath(output_directory, "deviations.txt"), "a") do f
+        print(f, iter, ", ", time)
+        if local_twosided
+            for v in limiter.local_twosided_variables_cons
+                v_string = string(v)
+                print(f, ", ", idp_bounds_delta_local[Symbol(v_string, "_min")],
+                      ", ", idp_bounds_delta_local[Symbol(v_string, "_max")])
+            end
+        end
+        if local_onesided
+            for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+                key = Symbol(string(variable), "_", string(min_or_max))
+                print(f, ", ", idp_bounds_delta_local[key])
+            end
+        end
+        if positivity
+            for v in limiter.positivity_variables_cons
+                if v in limiter.local_twosided_variables_cons
+                    continue
+                end
+                print(f, ", ", idp_bounds_delta_local[Symbol(string(v), "_min")])
+            end
+            for variable in limiter.positivity_variables_nonlinear
+                print(f, ", ", idp_bounds_delta_local[Symbol(string(variable), "_min")])
+            end
+        end
+        println(f)
+    end
+    # Reset local maximum deviations
+    for (key, _) in idp_bounds_delta_local
+        idp_bounds_delta_local[key] = zero(eltype(idp_bounds_delta_local[key]))
+    end
+
+    return nothing
+end
+
+@inline function save_bounds_check_errors(output_directory, time, iter, equations,
+                                          limiter::SubcellLimiterMCL)
+    (; mcl_bounds_delta_local) = limiter.cache
+
+    n_vars = nvariables(equations)
+
+    # Print errors to output file
+    open(joinpath(output_directory, "deviations.txt"), "a") do f
+        print(f, iter, ", ", time)
+        for v in eachvariable(equations)
+            print(f, ", ", mcl_bounds_delta_local[1, v], ", ",
+                  mcl_bounds_delta_local[2, v])
+        end
+        if limiter.positivity_limiter_pressure
+            print(f, ", ", mcl_bounds_delta_local[1, n_vars + 1])
+        end
+        println(f)
+    end
+
+    # Reset mcl_bounds_delta_local
+    for v in eachvariable(equations)
+        mcl_bounds_delta_local[1, v] = zero(eltype(mcl_bounds_delta_local))
+        mcl_bounds_delta_local[2, v] = zero(eltype(mcl_bounds_delta_local))
+    end
+    if limiter.positivity_limiter_pressure
+        mcl_bounds_delta_local[1, n_vars + 1] = zero(eltype(mcl_bounds_delta_local))
+    end
+
+    return nothing
+end
+
 include("subcell_bounds_check_2d.jl")
 end # @muladd
