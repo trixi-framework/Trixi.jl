@@ -9,7 +9,7 @@
 # pointwise surface forces.
 
 """
-    AnalysisSurface{Semidiscretization, Variable}(semi,
+    AnalysisSurfacePointwise{Semidiscretization, Variable}(semi,
                                                   boundary_symbol_or_boundary_symbols,
                                                   variable)
 
@@ -25,21 +25,21 @@ symbol `:Airfoil` in 2D.
   where the quantity of interest is computed
 - `variable::Variable`: Quantity of interest, like lift or drag
 """
-struct AnalysisSurface{Variable}
+struct AnalysisSurfacePointwise{Variable}
     indices::Vector{Int} # Indices in `boundary_condition_indices` where quantity of interest is computed
     variable::Variable # Quantity of interest, like lift or drag
     output_directory::String
 
-    function AnalysisSurface(semi, boundary_symbol, variable,
-                             output_directory = "out")
+    function AnalysisSurfacePointwise(semi, boundary_symbol, variable,
+                                      output_directory = "out")
         @unpack boundary_symbol_indices = semi.boundary_conditions
         indices = boundary_symbol_indices[boundary_symbol]
 
         return new{typeof(variable)}(indices, variable, output_directory)
     end
 
-    function AnalysisSurface(semi, boundary_symbols::Vector{Symbol}, variable,
-                             output_directory = "out")
+    function AnalysisSurfacePointwise(semi, boundary_symbols::Vector{Symbol}, variable,
+                                      output_directory = "out")
         @unpack boundary_symbol_indices = semi.boundary_conditions
         indices = Vector{Int}()
         for name in boundary_symbols
@@ -75,7 +75,7 @@ C_p \\coloneqq \\frac{p - p_{p_\\infty}}
                      {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
 ```
 based on the pressure distribution along a boundary.
-Supposed to be used in conjunction with [`AnalysisSurface`](@ref)
+Supposed to be used in conjunction with [`AnalysisSurfacePointwise`](@ref)
 which stores the boundary information and semidiscretization.
 
 - `pinf::Real`: Free-stream pressure
@@ -96,7 +96,7 @@ C_f \\coloneqq \\frac{\\boldsymbol \\tau_w  \\boldsymbol n^\\perp}
                      {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
 ```
 based on the wall shear stress vector ``\\tau_w`` along a boundary.
-Supposed to be used in conjunction with [`AnalysisSurface`](@ref)
+Supposed to be used in conjunction with [`AnalysisSurfacePointwise`](@ref)
 which stores the boundary information and semidiscretization.
 
 - `rhoinf::Real`: Free-stream density
@@ -128,7 +128,7 @@ function (surface_friction::SurfaceFrictionCoefficient)(u, normal_direction, x, 
            (0.5 * rhoinf * uinf^2 * linf)
 end
 
-function analyze(surface_variable::AnalysisSurface, du, u, t,
+function analyze(surface_variable::AnalysisSurfacePointwise, du, u, t,
                  mesh::P4estMesh{2},
                  equations, dg::DGSEM, cache, iter)
     @unpack boundaries = cache
@@ -178,7 +178,7 @@ function analyze(surface_variable::AnalysisSurface, du, u, t,
                         values, t, iter)
 end
 
-function analyze(surface_variable::AnalysisSurface{Variable},
+function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
                  du, u, t, mesh::P4estMesh{2},
                  equations, equations_parabolic,
                  dg::DGSEM, cache,
@@ -271,17 +271,17 @@ function save_pointwise_file(output_directory, varname, coordinates, values, t, 
     end
 end
 
-function pretty_form_ascii(::AnalysisSurface{<:SurfacePressureCoefficient{<:Any}})
+function pretty_form_ascii(::AnalysisSurfacePointwise{<:SurfacePressureCoefficient{<:Any}})
     "CP(x)"
 end
-function pretty_form_utf(::AnalysisSurface{<:SurfacePressureCoefficient{<:Any}})
+function pretty_form_utf(::AnalysisSurfacePointwise{<:SurfacePressureCoefficient{<:Any}})
     "CP(x)"
 end
 
-function pretty_form_ascii(::AnalysisSurface{<:SurfaceFrictionCoefficient{<:Any}})
+function pretty_form_ascii(::AnalysisSurfacePointwise{<:SurfaceFrictionCoefficient{<:Any}})
     "CF(x)"
 end
-function pretty_form_utf(::AnalysisSurface{<:SurfaceFrictionCoefficient{<:Any}})
+function pretty_form_utf(::AnalysisSurfacePointwise{<:SurfaceFrictionCoefficient{<:Any}})
     "CF(x)"
 end
 end # muladd

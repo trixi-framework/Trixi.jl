@@ -142,12 +142,12 @@ lift_coefficient_shear_force = AnalysisSurfaceIntegral(semi, force_boundary_name
                                                                                   u_inf(equations),
                                                                                   l_inf()))
 
-friction_coefficient = AnalysisSurface(semi, force_boundary_names,
+friction_coefficient = AnalysisSurfacePointwise(semi, force_boundary_names,
                                        SurfaceFrictionCoefficient(rho_inf(),
                                                                   u_inf(equations),
                                                                   l_inf()))
 
-pressure_coefficient = AnalysisSurface(semi, force_boundary_names,
+pressure_coefficient = AnalysisSurfacePointwise(semi, force_boundary_names,
                                        SurfacePressureCoefficient(p_inf(), rho_inf(),
                                                                   u_inf(equations),
                                                                   l_inf()))

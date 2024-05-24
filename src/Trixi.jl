@@ -263,7 +263,7 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled,
-       AnalysisSurface, AnalysisSurfaceIntegral,
+       AnalysisSurfacePointwise, AnalysisSurfaceIntegral,
        DragCoefficientPressure, LiftCoefficientPressure,
        DragCoefficientShearStress, LiftCoefficientShearStress,
        SurfacePressureCoefficient, SurfaceFrictionCoefficient
