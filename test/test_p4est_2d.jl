@@ -417,6 +417,35 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_supersonic_cylinder_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
+                        l2=[
+                            0.015466841022730252,
+                            0.03600922630088367,
+                            0.015878652267752248,
+                            0.110079216354667,
+                        ],
+                        linf=[
+                            1.0395768373252534,
+                            2.719048905991146,
+                            1.7721776753141663,
+                            7.80524735051412,
+                        ],
+                        tspan=(0.0, 0.001),
+                        skip_coverage=true)
+    if @isdefined sol # Skipped in coverage run
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        end
+    end
+end
+
 @trixi_testset "elixir_euler_NACA6412airfoil_mach2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_NACA6412airfoil_mach2.jl"),
                         l2=[
