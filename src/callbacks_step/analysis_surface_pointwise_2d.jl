@@ -162,7 +162,7 @@ function analyze(surface_variable::AnalysisSurfacePointwise, du, u, t,
             u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
                                          boundary)
 
-            x = get_node_coordinates(node_coordinates, equations, dg, i_node, j_node,
+            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
                                      element)
             value = variable(u_node, equations)
 
@@ -221,7 +221,7 @@ function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
             u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
                                          boundary)
 
-            x = get_node_coordinates(node_coordinates, equations, dg, i_node, j_node,
+            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
                                      element)
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
