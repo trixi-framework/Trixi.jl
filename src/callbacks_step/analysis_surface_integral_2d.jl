@@ -231,29 +231,31 @@ function viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                    gradients_1, gradients_2)
 
     # Viscous stress vector: Stress tensor * normal vector
-    visc_stress_vector_1 = tau_11 * n_normal[1] + tau_12 * n_normal[2]
-    visc_stress_vector_2 = tau_12 * n_normal[1] + tau_22 * n_normal[2]
+    viscous_stress_vector_1 = tau_11 * n_normal[1] + tau_12 * n_normal[2]
+    viscous_stress_vector_2 = tau_12 * n_normal[1] + tau_22 * n_normal[2]
 
-    return (visc_stress_vector_1, visc_stress_vector_2)
+    return (viscous_stress_vector_1, viscous_stress_vector_2)
 end
 
 function (lift_coefficient::LiftCoefficientShearStress)(u, normal_direction, x, t,
                                                         equations_parabolic,
                                                         gradients_1, gradients_2)
-    visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
-                                               gradients_1, gradients_2)
+    viscous_stress_vector = viscous_stress_vector(u, normal_direction,
+                                                  equations_parabolic,
+                                                  gradients_1, gradients_2)
     @unpack psi, rhoinf, uinf, linf = lift_coefficient.flow_state
-    return (visc_stress_vector[1] * psi[1] + visc_stress_vector[2] * psi[2]) /
+    return (viscous_stress_vector[1] * psi[1] + viscous_stress_vector[2] * psi[2]) /
            (0.5 * rhoinf * uinf^2 * linf)
 end
 
 function (drag_coefficient::DragCoefficientShearStress)(u, normal_direction, x, t,
                                                         equations_parabolic,
                                                         gradients_1, gradients_2)
-    visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
-                                               gradients_1, gradients_2)
+    viscous_stress_vector = viscous_stress_vector(u, normal_direction,
+                                                  equations_parabolic,
+                                                  gradients_1, gradients_2)
     @unpack psi, rhoinf, uinf, linf = drag_coefficient.flow_state
-    return (visc_stress_vector[1] * psi[1] + visc_stress_vector[2] * psi[2]) /
+    return (viscous_stress_vector[1] * psi[1] + viscous_stress_vector[2] * psi[2]) /
            (0.5 * rhoinf * uinf^2 * linf)
 end
 

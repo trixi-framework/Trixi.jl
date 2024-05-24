@@ -117,14 +117,15 @@ end
 function (surface_friction::SurfaceFrictionCoefficient)(u, normal_direction, x, t,
                                                         equations_parabolic,
                                                         gradients_1, gradients_2)
-    visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
-                                               gradients_1, gradients_2)
+    viscous_stress_vector = viscous_stress_vector(u, normal_direction,
+                                                  equations_parabolic,
+                                                  gradients_1, gradients_2)
     @unpack rhoinf, uinf, linf = surface_friction.flow_state
 
     # Normalize as `normal_direction` is not necessarily a unit vector
     n = normal_direction / norm(normal_direction)
     n_perp = (-n[2], n[1])
-    return (visc_stress_vector[1] * n_perp[1] + visc_stress_vector[2] * n_perp[2]) /
+    return (viscous_stress_vector[1] * n_perp[1] + viscous_stress_vector[2] * n_perp[2]) /
            (0.5 * rhoinf * uinf^2 * linf)
 end
 
