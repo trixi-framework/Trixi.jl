@@ -318,6 +318,12 @@ function __init__()
         end
     end
 
+    @static if !isdefined(Base, :get_extension)
+        @require NLsolve="2774e3e8-f4cf-5e23-947b-6d7e65073b56" begin
+            include("../ext/TrixiNLsolveExt.jl")
+        end
+    end
+
     # FIXME upstream. This is a hacky workaround for
     #       https://github.com/trixi-framework/Trixi.jl/issues/628
     #       https://github.com/trixi-framework/Trixi.jl/issues/1185

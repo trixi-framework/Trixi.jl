@@ -53,10 +53,12 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
+NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 
 [extensions]
 TrixiMakieExt = "Makie"
 TrixiConvexECOSExt = ["Convex", "ECOS"]
+TrixiNLsolveExt = "NLsolve"
 
 [compat]
 CodeTracking = "1.0.5"
@@ -79,6 +81,7 @@ LoopVectorization = "0.12.151"
 MPI = "0.20"
 Makie = "0.19, 0.20"
 MuladdMacro = "0.2.2"
+NLsolve = "4.5.1"
 Octavian = "0.3.21"
 OffsetArrays = "1.12"
 P4est = "0.4.9"
@@ -112,3 +115,4 @@ julia = "1.8"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
+NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
