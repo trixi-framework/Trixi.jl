@@ -1907,11 +1907,11 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v_square = v1^2 + v2^2
-    inv_rho_gammap1 = (1 / rho)^(equations.gamma + 1.0)
+    inv_rho_gammap1 = (1 / rho)^(equations.gamma + 1)
 
     # The derivative vector for the modified specific entropy of Guermond et al.
     w1 = inv_rho_gammap1 *
-         (0.5 * rho * (equations.gamma + 1.0) * v_square - equations.gamma * rho_e)
+         (0.5f0 * rho * (equations.gamma + 1) * v_square - equations.gamma * rho_e)
     w2 = -rho_v1 * inv_rho_gammap1
     w3 = -rho_v2 * inv_rho_gammap1
     w4 = (1 / rho)^equations.gamma
@@ -2046,7 +2046,7 @@ Note: This is *not* the "conventional" specific entropy ``s = ln(p / \rho^\gamma
     rho, rho_v1, rho_v2, rho_e = u
 
     # Modified specific entropy from Guermond et al. (2019)
-    s = (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho) * (1 / rho)^equations.gamma
+    s = (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho) * (1 / rho)^equations.gamma
 
     return s
 end
