@@ -234,8 +234,7 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
     k_s1::uType # Required for custom third order version of PairedExplicitRK3
 end
 
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::PairedExplicitRK3;
+function init(ode::ODEProblem, alg::PairedExplicitRK3;
                dt, callback = nothing, kwargs...)
     u0 = copy(ode.u0)
     du = zero(u0)
@@ -270,10 +269,33 @@ function solve(ode::ODEProblem, alg::PairedExplicitRK3;
         error("unsupported")
     end
 
-    solve!(integrator)
+    return integrator
 end
 
-function solve!(integrator::PairedExplicitRK3Integrator)
+# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
+function solve(ode::ODEProblem, alg::PairedExplicitRK3;
+    dt, callback = nothing, kwargs...)
+    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+
+    # Start actual solve
+    solve_steps!(integrator)
+end
+
+function solve_steps!(integrator::PairedExplicitRK3Integrator)
+    @unpack prob = integrator.sol
+
+    integrator.finalstep = false
+
+    @trixi_timeit timer() "main loop" while !integrator.finalstep
+    step!(integrator)
+    end # "main loop" timer
+
+    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
+                                  (prob.u0, integrator.u),
+                                  integrator.sol.prob)
+end
+
+function step!(integrator::PairedExplicitRK3Integrator)
     @unpack prob = integrator.sol
     @unpack alg = integrator
     t_end = last(prob.tspan)
@@ -370,10 +392,6 @@ function solve!(integrator::PairedExplicitRK3Integrator)
             terminate!(integrator)
         end
     end # "main loop" timer
-
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
 end
 
 # used for AMR (Adaptive Mesh Refinement)
