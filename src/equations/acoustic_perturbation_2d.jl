@@ -130,8 +130,8 @@ function initial_condition_convergence_test(x, t,
     RealT = eltype(x)
     a = 1
     c = 2
-    L = convert(RealT, 2) # since we divide by L below
-    f = 2 / L
+    L = 2
+    f = 2.0f0 / L
     A = convert(RealT, 0.2)
     omega = 2 * convert(RealT, pi) * f
     init = c + A * sin(omega * (x[1] + x[2] - a * t))
@@ -158,8 +158,8 @@ function source_terms_convergence_test(u, x, t,
     RealT = eltype(u)
     a = 1
     c = 2
-    L = convert(RealT, 2) # since we divide by L below
-    f = 2 / L
+    L = 2
+    f = 2.0f0 / L
     A = convert(RealT, 0.2)
     omega = 2 * convert(RealT, pi) * f
 
