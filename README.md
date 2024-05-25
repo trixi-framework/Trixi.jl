@@ -19,6 +19,21 @@
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
 
+***
+**Trixi.jl at JuliaCon 2024**<br/>
+At this year's JuliaCon, we will be present with several contributions from the Trixi Framework
+ecosystem:
+
+* [Julia for Particle-Based Multiphysics with TrixiParticles.jl](https://pretalx.com/juliacon2024/talk/TPFF8L/),<br/>
+  10th July 2024, 11:30–12:00 (Europe/Amsterdam), Function (4.1)
+* [Towards Aerodynamic Simulations in Julia with Trixi.jl](https://pretalx.com/juliacon2024/talk/XH8KBG/),<br/>
+  10th July 2024, 15:00am–15:30pm (Europe/Amsterdam), While Loop (4.2)
+* [libtrixi: serving legacy codes in earth system modeling with fresh Julia CFD](https://pretalx.com/juliacon2024/talk/JBKVGF/),<br/>
+  12th July 2024, 14:00am–17:00pm (Europe/Amsterdam), Function (4.1)
+
+We are looking forward to seeing you there ♥️
+***
+
 **Trixi.jl** is a numerical simulation framework for conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
