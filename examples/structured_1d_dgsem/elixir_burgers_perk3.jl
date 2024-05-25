@@ -53,4 +53,4 @@ sol = Trixi.solve(ode, ode_algorithm,
 
 # Print the timer summary
 summary_callback()
-analysis_callback(sol)
+

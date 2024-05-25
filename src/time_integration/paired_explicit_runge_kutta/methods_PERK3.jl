@@ -61,7 +61,8 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
     return c_eq
 end
 
-function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan, eig_vals::Vector{ComplexF64};
+function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
+                                                   eig_vals::Vector{ComplexF64};
                                                    verbose = false, c_s2)
     # Initialize array of c
     c = compute_c_coeff_SSP33(num_stages, c_s2)
@@ -104,8 +105,9 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan, eig_vals::
     return a_matrix, c, dt_opt
 end
 
-function compute_PairedExplicitRK3_butcher_tableau(num_stages, base_path_monomial_coeffs::AbstractString,
-                                       c_s2)
+function compute_PairedExplicitRK3_butcher_tableau(num_stages,
+                                                   base_path_monomial_coeffs::AbstractString,
+                                                   c_s2)
 
     # Initialize array of c
     c = compute_c_coeff_SSP33(num_stages, c_s2)
@@ -118,7 +120,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, base_path_monomia
 
     # TODO: update this to work with CI mktempdir()
     path_monomial_coeffs = base_path_monomial_coeffs * "a_" * string(num_stages) * "_" *
-                      string(num_stages) * ".txt"
+                           string(num_stages) * ".txt"
     @assert isfile(path_monomial_coeffs) "Couldn't find file"
     A = readdlm(path_monomial_coeffs, Float64)
     num_monomial_coeffs = size(A, 1)
@@ -156,20 +158,20 @@ mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
     dt_opt::Float64
 end # struct PairedExplicitRK3
 
- # Constructor for previously computed A Coeffs
- function PairedExplicitRK3(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt;
-    c_s2 = 1.0)
-
+# Constructor for previously computed A Coeffs
+function PairedExplicitRK3(num_stages, base_path_monomial_coeffs::AbstractString,
+                           dt_opt;
+                           c_s2 = 1.0)
     a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
-                                                        base_path_monomial_coeffs;
-                                                        c_s2)
+                                                            base_path_monomial_coeffs;
+                                                            c_s2)
 
     return PairedExplicitRK3(num_stages, a_matrix, c, dt_opt)
 end
 
 # Constructor that computes Butcher matrix A coefficients from a semidiscretization
 function PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
-    verbose = false, c_s2 = 1.0)
+                           verbose = false, c_s2 = 1.0)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     return PairedExplicitRK3(num_stages, tspan, eig_vals; verbose, c_s2)
@@ -177,8 +179,7 @@ end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
 function PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
-    verbose = false, c_s2 = 1.0)
-
+                           verbose = false, c_s2 = 1.0)
     a_matrix, c, dt_opt = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                                     tspan,
                                                                     eig_vals;
@@ -186,14 +187,13 @@ function PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
     return PairedExplicitRK3(num_stages, a_matrix, c, dt_opt)
 end
 
-
-
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
 mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
-                               PairedExplicitRKOptions} <: AbstractPairedExplicitRKSingleIntegrator
+                                           PairedExplicitRKOptions} <:
+               AbstractPairedExplicitRKSingleIntegrator
     u::uType
     du::uType
     u_tmp::uType
@@ -228,11 +228,14 @@ function solve(ode::ODEProblem, alg::PairedExplicitRK3;
     t0 = first(ode.tspan)
     iter = 0
 
-    integrator = PairedExplicitRK3Integrator(u0, du, u_tmp, t0, dt, zero(dt), iter, ode.p,
-                                 (prob = ode,), ode.f, alg,
-                                 PairedExplicitRKOptions(callback, ode.tspan; kwargs...),
-                                 false,
-                                 k1, k_higher, k_s1)
+    integrator = PairedExplicitRK3Integrator(u0, du, u_tmp, t0, dt, zero(dt), iter,
+                                             ode.p,
+                                             (prob = ode,), ode.f, alg,
+                                             PairedExplicitRKOptions(callback,
+                                                                     ode.tspan;
+                                                                     kwargs...),
+                                             false,
+                                             k1, k_higher, k_s1)
 
     # initialize callbacks
     if callback isa CallbackSet
