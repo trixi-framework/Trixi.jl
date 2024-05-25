@@ -209,7 +209,7 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
     t::RealT
     tdir::RealT
     dt::RealT # current time step
-    dtcache::RealT # ignored
+    dtcache::RealT # manually set time step
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked

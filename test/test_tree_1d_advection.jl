@@ -101,7 +101,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_perk2.jl"),
                         dt=2.0e-3,
                         tspan=(0.0, 20.0),
-                        callbacks=CallbackSet(summary_callback, analysis_callback, alive_callback),
+                        callbacks=CallbackSet(summary_callback, analysis_callback,
+                                              alive_callback),
                         l2=[0.0009216013945593388],
                         linf=[0.0013117593609404121])
     # Ensure that we do not have excessive memory allocations
