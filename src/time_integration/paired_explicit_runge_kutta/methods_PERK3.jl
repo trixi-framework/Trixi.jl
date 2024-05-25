@@ -235,7 +235,7 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK3;
-               dt, callback = nothing, kwargs...)
+              dt, callback = nothing, kwargs...)
     u0 = copy(ode.u0)
     du = zero(u0)
     u_tmp = zero(u0)
@@ -274,7 +274,7 @@ end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
 function solve(ode::ODEProblem, alg::PairedExplicitRK3;
-    dt, callback = nothing, kwargs...)
+               dt, callback = nothing, kwargs...)
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
     # Start actual solve
@@ -287,7 +287,7 @@ function solve_steps!(integrator::PairedExplicitRK3Integrator)
     integrator.finalstep = false
 
     @trixi_timeit timer() "main loop" while !integrator.finalstep
-    step!(integrator)
+        step!(integrator)
     end # "main loop" timer
 
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
