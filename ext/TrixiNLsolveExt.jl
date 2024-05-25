@@ -10,10 +10,10 @@ else
 end
 
 # Use functions and additional symbols that are not exported
-using Trixi: Trixi, @muladd, PairedExplicitRK3_butcher_tableau_objective_function
+using Trixi: Trixi, PairedExplicitRK3_butcher_tableau_objective_function, @muladd
 
 # Use functions that are to be extended
-using Trixi: Trixi, solve_a_unknown
+using Trixi: Trixi, solve_a_unknown!
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -22,11 +22,11 @@ using Trixi: Trixi, solve_a_unknown
 @muladd begin
 #! format: noindent
 
-# TODO: edit the comment this function
-# Define the new function that includes the nlsolve features
-function Trixi.solve_a_unknown(num_stages, monomial_coeffs, c_s2, c; verbose)
+# Find the values of a in the Butcher tableau by solving a system of
+# non-linear equations
+function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
+                                verbose)
     is_sol_valid = false
-    a_unknown = zeros(num_stages)
 
     # Define the objective_function
     function objective_function(x)

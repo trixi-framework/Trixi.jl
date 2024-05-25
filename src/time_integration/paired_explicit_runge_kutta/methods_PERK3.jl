@@ -8,7 +8,7 @@ using DelimitedFiles: readdlm
 #! format: noindent
 
 # Initialize Butcher array abscissae c for PairedExplicitRK3 based on SSPRK33 base method
-function compute_c_coeff_SSP33(num_stages, c_s2)
+function compute_c_coeffs_SSP33(num_stages, cS2)
     c = zeros(num_stages)
 
     # Last timesteps as for SSPRK33
@@ -17,21 +17,23 @@ function compute_c_coeff_SSP33(num_stages, c_s2)
 
     # Linear increasing timestep for remainder
     for i in 2:(num_stages - 2)
-        c[i] = c_s2 * (i - 1) / (num_stages - 3)
+        c[i] = cS2 * (i - 1) / (num_stages - 3)
     end
 
     return c
 end
 
+# Compute residuals for nonlinear equations to match a stability polynomial with given coefficients,
+# in order to find A matrix in the Butcher-Tableau
 function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_stages,
                                                               num_stage_evals,
-                                                              monomial_coeffs, c_s2)
-    c_ts = compute_c_coeff_SSP33(num_stages, c_s2) # ts = timestep
+                                                              monomial_coeffs, cS2)
+    c_ts = compute_c_coeffs_SSP33(num_stages, cS2) # ts = timestep
 
     # Equality Constraint array that ensures that the stability polynomial computed from 
     # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
     # optimized stability polynomial.
-    c_eq = zeros(num_stage_evals - 2) # Add equality constraint that c_s2 is equal to 1
+    c_eq = zeros(num_stage_evals - 2) # Add equality constraint that cS2 is equal to 1
     # Both terms should be present
     for i in 1:(num_stage_evals - 4)
         term1 = a_unknown[num_stage_evals - 1]
@@ -61,11 +63,13 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
     return c_eq
 end
 
+# Compute the Butcher tableau for a paired explicit Runge-Kutta method order 3
+# using a list of eigenvalues
 function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
                                                    eig_vals::Vector{ComplexF64};
-                                                   verbose = false, c_s2)
+                                                   verbose = false, cS2)
     # Initialize array of c
-    c = compute_c_coeff_SSP33(num_stages, c_s2)
+    c = compute_c_coeffs_SSP33(num_stages, cS2)
 
     # Initialize the array of our solution
     a_unknown = zeros(num_stages)
@@ -89,13 +93,11 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
         monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
                                               num_stages)
 
-        # Call function that use the library NLsolve to solve the nonlinear system
-        a_unknown = solve_a_unknown(num_stages, monomial_coeffs, c_s2, c; verbose)
+        # Solve the nonlinear system of equations from monomial coefficient and
+        # Butcher array abscissae c to find Butcher matrix A 
+        a_unknown = solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, cS2, c;
+                                     verbose)
     end
-
-    # For debugging purpose
-    println("a_unknown")
-    println(a_unknown[3:end])
 
     a_matrix = zeros(num_stages - 2, 2)
     a_matrix[:, 1] = c[3:end]
@@ -105,12 +107,14 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     return a_matrix, c, dt_opt
 end
 
+# Compute the Butcher tableau for a paired explicit Runge-Kutta method order 3
+# using provided file containing A matrix from Butcher-Tableau
 function compute_PairedExplicitRK3_butcher_tableau(num_stages,
-                                                   base_path_monomial_coeffs::AbstractString,
-                                                   c_s2)
+                                                   base_path_a_matrix::AbstractString,
+                                                   cS2)
 
     # Initialize array of c
-    c = compute_c_coeff_SSP33(num_stages, c_s2)
+    c = compute_c_coeffs_SSP33(num_stages, cS2)
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     coeffs_max = num_stages - 2
@@ -119,7 +123,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     a_matrix[:, 1] = c[3:end]
 
     # TODO: update this to work with CI mktempdir()
-    path_monomial_coeffs = base_path_monomial_coeffs * "a_" * string(num_stages) * "_" *
+    path_monomial_coeffs = base_path_a_matrix * "a_" * string(num_stages) * "_" *
                            string(num_stages) * ".txt"
     @assert isfile(path_monomial_coeffs) "Couldn't find file"
     A = readdlm(path_monomial_coeffs, Float64)
@@ -129,17 +133,34 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
 
-    println("A matrix: ")
-    display(a_matrix)
-    println()
-
     return a_matrix, c
 end
 
-"""
-    PairedExplicitRK3()
+@doc raw"""
+    PairedExplicitRK3(num_stages, base_path_a_matrix::AbstractString,
+                      dt_opt;
+                      cS2 = 1.0)
+    PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
+                      verbose = false, cS2 = 1.0)
+    PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
+                      verbose = false, cS2 = 1.0)
+
+    Parameters:
+    - `num_stages` (`Int`): Number of stages in the PERK method.
+    - `base_path_a_matrix` (`AbstractString`): Path to a file containing 
+      monomial coefficients of the stability polynomial of PERK method.
+      The coefficients should be stored in a text file at `joinpath(base_path_a_matrix, "a_$(num_stages).txt")` and separated by line breaks.
+    - `tspan`: Time span of the simulation.
+    - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
+    -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
+      equation has been semidiscretized.
+    - `verbose` (`Bool`, optional): Verbosity flag, default is false.
+    - `cS2` (`Float64`, optional): Value of c in the Butcher tableau at c_{s-2}, when
+      s is the number of stages, default is 1.0.
+
 The following structures and methods provide a implementation of
 the third-order paired explicit Runge-Kutta method
+
 optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solver).
 The original paper is
 - Nasab, Vermeire (2022)
@@ -159,31 +180,31 @@ mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
 end # struct PairedExplicitRK3
 
 # Constructor for previously computed A Coeffs
-function PairedExplicitRK3(num_stages, base_path_monomial_coeffs::AbstractString,
+function PairedExplicitRK3(num_stages, base_path_a_matrix::AbstractString,
                            dt_opt;
-                           c_s2 = 1.0)
+                           cS2 = 1.0)
     a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
-                                                            base_path_monomial_coeffs;
-                                                            c_s2)
+                                                            base_path_a_matrix;
+                                                            cS2)
 
     return PairedExplicitRK3(num_stages, a_matrix, c, dt_opt)
 end
 
 # Constructor that computes Butcher matrix A coefficients from a semidiscretization
 function PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
-                           verbose = false, c_s2 = 1.0)
+                           verbose = false, cS2 = 1.0)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
-    return PairedExplicitRK3(num_stages, tspan, eig_vals; verbose, c_s2)
+    return PairedExplicitRK3(num_stages, tspan, eig_vals; verbose, cS2)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
 function PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
-                           verbose = false, c_s2 = 1.0)
+                           verbose = false, cS2 = 1.0)
     a_matrix, c, dt_opt = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                                     tspan,
                                                                     eig_vals;
-                                                                    verbose, c_s2)
+                                                                    verbose, cS2)
     return PairedExplicitRK3(num_stages, a_matrix, c, dt_opt)
 end
 

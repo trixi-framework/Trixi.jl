@@ -14,5 +14,5 @@ include("polynomial_optimizer.jl")
 # Add definitions of functions related to polynomial optimization by NLsolve here
 # such that hey can be exported from Trixi.jl and extended in the TrixiConvexECOSExt package
 # extension or by the NLsolve-specific code loaded by Requires.jl
-function solve_a_unknown end
+function solve_a_unknown! end
 end # @muladd
