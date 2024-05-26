@@ -58,6 +58,21 @@ end
     end
 end
 
+
+@trixi_testset "elixir_burgers_perk3.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
+                        l2=[8.120426329330083e-8],
+                        linf=[4.906376900315479e-7])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[3.67478226e-01, 3.49491179e-01, 8.08910759e-01],
