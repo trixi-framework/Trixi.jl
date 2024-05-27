@@ -142,6 +142,7 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
     index_range = eachnode(dg)
     index_end = last(index_range)
 
+    # Calc bounds at interfaces and periodic boundaries
     for interface in eachinterface(dg, cache)
         # Get element and side index information on the primary element
         primary_element = neighbor_ids[1, interface]
@@ -190,25 +191,25 @@ function calc_bounds_onesided_interface!(var_minmax, minmax, variable, u, t, sem
         end
     end
 
-    calc_bounds_onesided_interface_inner!(var_minmax, minmax, variable, u, t,
-                                          boundary_conditions,
-                                          mesh, equations, dg, cache)
+    # Calc bounds at physical boundaries
+    calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
+                                   boundary_conditions,
+                                   mesh, equations, dg, cache)
 
     return nothing
 end
 
-@inline function calc_bounds_onesided_interface_inner!(var_minmax, minmax, variable, u,
-                                                       t,
-                                                       boundary_conditions::BoundaryConditionPeriodic,
-                                                       mesh::P4estMesh{2},
-                                                       equations, dg, cache)
+@inline function calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
+                                                boundary_conditions::BoundaryConditionPeriodic,
+                                                mesh::P4estMesh{2},
+                                                equations, dg, cache)
     return nothing
 end
 
-@inline function calc_bounds_onesided_interface_inner!(var_minmax, minmax, variable, u,
-                                                       t, boundary_conditions,
-                                                       mesh::P4estMesh{2},
-                                                       equations, dg, cache)
+@inline function calc_bounds_onesided_boundary!(var_minmax, minmax, variable, u, t,
+                                                boundary_conditions,
+                                                mesh::P4estMesh{2},
+                                                equations, dg, cache)
     (; boundary_condition_types, boundary_indices) = boundary_conditions
     (; contravariant_vectors) = cache.elements
 
