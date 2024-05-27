@@ -261,7 +261,6 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     @unpack weights = dg.basis
 
     @unpack variable, boundary_symbols = surface_variable
-
     @unpack boundary_symbol_indices = semi.boundary_conditions
     indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
@@ -316,7 +315,6 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
     @unpack weights = dg.basis
 
     @unpack variable, boundary_symbols = surface_variable
-
     @unpack boundary_symbol_indices = semi.boundary_conditions
     indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
