@@ -103,8 +103,8 @@ end
                         tspan=(0.0, 20.0),
                         callbacks=CallbackSet(summary_callback, analysis_callback,
                                               alive_callback),
-                        l2=[0.0009216013945593388],
-                        linf=[0.0013117593609404121])
+                        l2=[9.886273701409754e-6],
+                        linf=[3.729460562740261e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
