@@ -92,7 +92,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_nonlinear = [pressure],
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
                                                                        min)],
-                                max_iterations_newton = 100)
+                                max_iterations_newton = 50) # Default value of 10 iterations is too low to fulfill bounds.
 # Variable for global limiting (`positivity_variables_cons`) is overwritten and used in the tests.
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
