@@ -16,8 +16,9 @@ isdir(outdir) && rm(outdir, recursive = true)
             v_mean_global = (zero(RealT), zero(RealT))
             c_mean_global = one(RealT)
             rho_mean_global = one(RealT)
-            equations = AcousticPerturbationEquations2D(v_mean_global, c_mean_global,
-                                                        rho_mean_global)
+            equations = @inferred AcousticPerturbationEquations2D(v_mean_global, 
+                                                                  c_mean_global,
+                                                                  rho_mean_global)
 
             x = SVector(zero(RealT), zero(RealT))
             t = zero(RealT)
@@ -32,12 +33,12 @@ isdir(outdir) && rm(outdir, recursive = true)
             surface_flux_function = flux_lax_friedrichs
             dissipation = DissipationLocalLaxFriedrichs()
 
-            @test eltype(initial_condition_constant(x, t, equations)) == RealT
-            @test eltype(initial_condition_convergence_test(x, t, equations)) == RealT
-            @test eltype(initial_condition_gauss(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_gauss(x, t, equations)) == RealT
 
-            @test eltype(source_terms_convergence_test(u, x, t, equations)) == RealT
-            @test eltype(source_terms_convergence_test(u, x, t, equations)) == RealT
+            @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) == RealT
+            @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) == RealT
 
             for orientation in orientations
                 for direction in directions
@@ -48,7 +49,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                     surface_flux_function,
                                                                     equations)) == RealT
                     else
-                        @test eltype(boundary_condition_wall(u_inner, orientation,
+                        @test eltype(@inferred boundary_condition_wall(u_inner, orientation,
                                                              direction, x, t,
                                                              surface_flux_function,
                                                              equations)) == RealT
@@ -63,34 +64,34 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                  surface_flux_function,
                                                                  equations)) == RealT
             else
-                @test eltype(boundary_condition_slip_wall(u_inner, normal_direction, x, t,
+                @test eltype(@inferred boundary_condition_slip_wall(u_inner, normal_direction, x, t,
                                                           surface_flux_function, equations)) ==
                       RealT
             end
 
-            @test eltype(flux(u, normal_direction, equations)) == RealT
-            @test eltype(max_abs_speed_naive(u_ll, u_rr, normal_direction, equations)) ==
+            @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+            @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
-            @test eltype(dissipation(u_ll, u_rr, normal_direction, equations)) == RealT
+            @test eltype(@inferred dissipation(u_ll, u_rr, normal_direction, equations)) == RealT
 
             for orientation in orientations
-                @test eltype(flux(u, orientation, equations)) == RealT
-                @test eltype(max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                       RealT
-                @test eltype(dissipation(u_ll, u_rr, orientation, equations)) == RealT
+                @test eltype(@inferred dissipation(u_ll, u_rr, orientation, equations)) == RealT
             end
 
-            @test eltype(max_abs_speeds(u, equations)) == RealT
-            @test eltype(cons2prim(u, equations)) == RealT
-            @test eltype(prim2cons(u, equations)) == RealT
-            @test eltype(cons2entropy(u, equations)) == RealT
+            @test eltype(@inferred max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred prim2cons(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
         end
     end
 
     @timed_testset "Compressible Euler 1D" begin
         for RealT in (Float32, Float64)
             # set gamma = 2 for the coupling convergence test
-            equations = CompressibleEulerEquations1D(RealT(2))
+            equations = @inferred CompressibleEulerEquations1D(RealT(2))
 
             x = SVector(zero(RealT))
             t = zero(RealT)
@@ -101,32 +102,32 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             surface_flux_function = flux_lax_friedrichs
 
-            @test eltype(initial_condition_constant(x, t, equations)) == RealT
-            @test eltype(initial_condition_convergence_test(x, t, equations)) == RealT
-            @test eltype(initial_condition_density_wave(x, t, equations)) == RealT
-            @test eltype(initial_condition_weak_blast_wave(x, t, equations)) == RealT
-            @test eltype(initial_condition_eoc_test_coupled_euler_gravity(x, t, equations)) ==
+            @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_density_wave(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_eoc_test_coupled_euler_gravity(x, t, equations)) ==
                   RealT
 
-            @test eltype(source_terms_convergence_test(u, x, t, equations)) == RealT
+            @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) == RealT
 
             for direction in directions
-                @test eltype(boundary_condition_slip_wall(u_inner, orientation, direction,
+                @test eltype(@inferred boundary_condition_slip_wall(u_inner, orientation, direction,
                                                           x, t,
                                                           surface_flux_function, equations)) ==
                       RealT
             end
 
-            @test eltype(flux(u, orientation, equations)) == RealT
-            @test eltype(flux_shima_etal(u_ll, u_rr, orientation, equations)) == RealT
-            @test eltype(flux_kennedy_gruber(u_ll, u_rr, orientation, equations)) == RealT
-            @test eltype(flux_hllc(u_ll, u_rr, orientation, equations)) == RealT
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+            @test eltype(@inferred flux_shima_etal(u_ll, u_rr, orientation, equations)) == RealT
+            @test eltype(@inferred flux_kennedy_gruber(u_ll, u_rr, orientation, equations)) == RealT
+            @test eltype(@inferred flux_hllc(u_ll, u_rr, orientation, equations)) == RealT
             if RealT == Float32
                 # check `ln_mean` (test broken)
                 @test_broken eltype(flux_chandrashekar(u_ll, u_rr, orientation, equations)) ==
                              RealT
             else
-                @test eltype(flux_chandrashekar(u_ll, u_rr, orientation, equations)) ==
+                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation, equations)) ==
                       RealT
             end
             if RealT == Float32
@@ -134,39 +135,39 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test_broken eltype(flux_ranocha(u_ll, u_rr, orientation, equations)) ==
                              RealT
             else
-                @test eltype(flux_ranocha(u_ll, u_rr, orientation, equations)) == RealT
+                @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) == RealT
             end
 
-            @test eltype(eltype(splitting_steger_warming(u, orientation, equations))) ==
+            @test eltype(eltype(@inferred splitting_steger_warming(u, orientation, equations))) ==
                   RealT
-            @test eltype(eltype(splitting_vanleer_haenel(u, orientation, equations))) ==
+            @test eltype(eltype(@inferred splitting_vanleer_haenel(u, orientation, equations))) ==
                   RealT
-            @test eltype(eltype(splitting_coirier_vanleer(u, orientation, equations))) ==
-                  RealT
-
-            @test eltype(max_abs_speed_naive(u_ll, u_rr, orientation, equations)) == RealT
-            @test eltype(min_max_speed_naive(u_ll, u_rr, orientation, equations)) == RealT
-            @test eltype(min_max_speed_davis(u_ll, u_rr, orientation, equations)) == RealT
-            @test eltype(min_max_speed_einfeldt(u_ll, u_rr, orientation, equations)) ==
+            @test eltype(eltype(@inferred splitting_coirier_vanleer(u, orientation, equations))) ==
                   RealT
 
-            @test eltype(max_abs_speeds(u, equations)) == RealT
-            @test eltype(cons2prim(u, equations)) == RealT
-            @test eltype(prim2cons(u, equations)) == RealT
-            @test eltype(cons2entropy(u, equations)) == RealT
-            @test eltype(entropy2cons(u, equations)) == RealT
-            @test eltype(density(u, equations)) == RealT
-            @test eltype(pressure(u, equations)) == RealT
-            @test eltype(density_pressure(u, equations)) == RealT
-            @test eltype(entropy(cons, equations)) == RealT
-            @test eltype(energy_internal(cons, equations)) == RealT
+            @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) == RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation, equations)) == RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation, equations)) == RealT
+            @test eltype(@inferred min_max_speed_einfeldt(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+
+            @test eltype(@inferred max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred prim2cons(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test eltype(@inferred entropy2cons(u, equations)) == RealT
+            @test eltype(@inferred density(u, equations)) == RealT
+            @test eltype(@inferred pressure(u, equations)) == RealT
+            @test eltype(@inferred density_pressure(u, equations)) == RealT
+            @test eltype(@inferred entropy(cons, equations)) == RealT
+            @test eltype(@inferred energy_internal(cons, equations)) == RealT
         end
     end
 
     @timed_testset "Compressible Euler 2D" begin
         for RealT in (Float32, Float64)
             # set gamma = 2 for the coupling convergence test\
-            equations = CompressibleEulerEquations2D(RealT(2))
+            equations = @inferred CompressibleEulerEquations2D(RealT(2))
 
             x = SVector(zero(RealT), zero(RealT))
             t = zero(RealT)
@@ -179,41 +180,41 @@ isdir(outdir) && rm(outdir, recursive = true)
             surface_flux_function = flux_lax_friedrichs
             flux_lmars = FluxLMARS(340)
 
-            @test eltype(initial_condition_constant(x, t, equations)) == RealT
-            @test eltype(initial_condition_convergence_test(x, t, equations)) == RealT
-            @test eltype(initial_condition_density_wave(x, t, equations)) == RealT
-            @test eltype(initial_condition_weak_blast_wave(x, t, equations)) == RealT
-            @test eltype(initial_condition_eoc_test_coupled_euler_gravity(x, t, equations)) ==
+            @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_density_wave(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_eoc_test_coupled_euler_gravity(x, t, equations)) ==
                   RealT
 
-            @test eltype(source_terms_convergence_test(u, x, t, equations)) == RealT
-            @test eltype(source_terms_eoc_test_coupled_euler_gravity(u, x, t, equations)) ==
+            @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) == RealT
+            @test eltype(@inferred source_terms_eoc_test_coupled_euler_gravity(u, x, t, equations)) ==
                   RealT
-            @test eltype(source_terms_eoc_test_euler(u, x, t, equations)) ==
+            @test eltype(@inferred source_terms_eoc_test_euler(u, x, t, equations)) ==
                   RealT
 
             for orientation in orientations
                 for direction in directions
-                    @test eltype(boundary_condition_slip_wall(u_inner, orientation,
+                    @test eltype(@inferred boundary_condition_slip_wall(u_inner, orientation,
                                                               direction, x, t,
                                                               surface_flux_function,
                                                               equations)) == RealT
                 end
             end
 
-            @test eltype(flux(u, normal_direction, equations)) == RealT
-            @test eltype(flux_shima_etal(u_ll, u_rr, normal_direction, equations)) == RealT
-            @test eltype(flux_kennedy_gruber(u_ll, u_rr, normal_direction, equations)) ==
+            @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_shima_etal(u_ll, u_rr, normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_kennedy_gruber(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
-            @test eltype(flux_lmars(u_ll, u_rr, normal_direction, equations)) == RealT
-            @test eltype(flux_hllc(u_ll, u_rr, normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_lmars(u_ll, u_rr, normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_hllc(u_ll, u_rr, normal_direction, equations)) == RealT
             if RealT == Float32
                 # check `ln_mean` (test broken)
                 @test_broken eltype(flux_chandrashekar(u_ll, u_rr, normal_direction,
                                                        equations)) ==
                              RealT
             else
-                @test eltype(flux_chandrashekar(u_ll, u_rr, normal_direction, equations)) ==
+                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, normal_direction, equations)) ==
                       RealT
             end
             if RealT == Float32
@@ -221,39 +222,39 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test_broken eltype(flux_ranocha(u_ll, u_rr, normal_direction, equations)) ==
                              RealT
             else
-                @test eltype(flux_ranocha(u_ll, u_rr, normal_direction, equations)) == RealT
+                @test eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction, equations)) == RealT
             end
 
-            @test eltype(eltype(splitting_drikakis_tsangaris(u, normal_direction,
+            @test eltype(eltype(@inferred splitting_drikakis_tsangaris(u, normal_direction,
                                                              equations))) == RealT
-            @test eltype(eltype(splitting_vanleer_haenel(u, normal_direction, equations))) ==
+            @test eltype(eltype(@inferred splitting_vanleer_haenel(u, normal_direction, equations))) ==
                   RealT
-            @test eltype(eltype(splitting_lax_friedrichs(u, normal_direction, equations))) ==
+            @test eltype(eltype(@inferred splitting_lax_friedrichs(u, normal_direction, equations))) ==
                   RealT
 
-            @test eltype(max_abs_speed_naive(u_ll, u_rr, normal_direction, equations)) ==
+            @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
-            @test eltype(min_max_speed_naive(u_ll, u_rr, normal_direction, equations)) ==
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
-            @test eltype(min_max_speed_davis(u_ll, u_rr, normal_direction, equations)) ==
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
-            @test eltype(min_max_speed_einfeldt(u_ll, u_rr, normal_direction, equations)) ==
+            @test eltype(@inferred min_max_speed_einfeldt(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
 
             for orientation in orientations
-                @test eltype(flux(u, orientation, equations)) == RealT
-                @test eltype(flux_shima_etal(u_ll, u_rr, orientation, equations)) == RealT
-                @test eltype(flux_kennedy_gruber(u_ll, u_rr, orientation, equations)) ==
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_shima_etal(u_ll, u_rr, orientation, equations)) == RealT
+                @test eltype(@inferred flux_kennedy_gruber(u_ll, u_rr, orientation, equations)) ==
                       RealT
-                @test eltype(flux_lmars(u_ll, u_rr, orientation, equations)) == RealT
-                @test eltype(flux_hllc(u_ll, u_rr, orientation, equations)) == RealT
+                @test eltype(@inferred flux_lmars(u_ll, u_rr, orientation, equations)) == RealT
+                @test eltype(@inferred flux_hllc(u_ll, u_rr, orientation, equations)) == RealT
                 if RealT == Float32
                     # check `ln_mean` (test broken)
                     @test_broken eltype(flux_chandrashekar(u_ll, u_rr, orientation,
                                                            equations)) ==
                                  RealT
                 else
-                    @test eltype(flux_chandrashekar(u_ll, u_rr, orientation, equations)) ==
+                    @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation, equations)) ==
                           RealT
                 end
                 if RealT == Float32
@@ -261,37 +262,37 @@ isdir(outdir) && rm(outdir, recursive = true)
                     @test_broken eltype(flux_ranocha(u_ll, u_rr, orientation, equations)) ==
                                  RealT
                 else
-                    @test eltype(flux_ranocha(u_ll, u_rr, orientation, equations)) == RealT
+                    @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) == RealT
                 end
 
-                @test eltype(eltype(splitting_steger_warming(u, orientation, equations))) ==
+                @test eltype(eltype(@inferred splitting_steger_warming(u, orientation, equations))) ==
                       RealT
-                @test eltype(eltype(splitting_drikakis_tsangaris(u, orientation, equations))) ==
+                @test eltype(eltype(@inferred splitting_drikakis_tsangaris(u, orientation, equations))) ==
                       RealT
-                @test eltype(eltype(splitting_vanleer_haenel(u, orientation, equations))) ==
+                @test eltype(eltype(@inferred splitting_vanleer_haenel(u, orientation, equations))) ==
                       RealT
-                @test eltype(eltype(splitting_lax_friedrichs(u, orientation, equations))) ==
+                @test eltype(eltype(@inferred splitting_lax_friedrichs(u, orientation, equations))) ==
                       RealT
 
-                @test eltype(max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                       RealT
-                @test eltype(min_max_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation, equations)) ==
                       RealT
-                @test eltype(min_max_speed_davis(u_ll, u_rr, orientation, equations)) ==
+                @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation, equations)) ==
                       RealT
-                @test eltype(min_max_speed_einfeldt(u_ll, u_rr, orientation, equations)) ==
+                @test eltype(@inferred min_max_speed_einfeldt(u_ll, u_rr, orientation, equations)) ==
                       RealT
             end
 
-            @test eltype(max_abs_speeds(u, equations)) == RealT
-            @test eltype(cons2prim(u, equations)) == RealT
-            @test eltype(prim2cons(u, equations)) == RealT
-            @test eltype(cons2entropy(u, equations)) == RealT
-            @test eltype(entropy2cons(u, equations)) == RealT
-            # @test eltype(cons2entropy_guermond_etal(u, equations)) == RealT
-            @test eltype(density(u, equations)) == RealT
-            @test eltype(pressure(u, equations)) == RealT
-            @test eltype(density_pressure(u, equations)) == RealT
+            @test eltype(@inferred max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred prim2cons(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test eltype(@inferred entropy2cons(u, equations)) == RealT
+            # TODO: Not implemented @test eltype(cons2entropy_guermond_etal(u, equations)) == RealT
+            @test eltype(@inferred density(u, equations)) == RealT
+            @test eltype(@inferred pressure(u, equations)) == RealT
+            @test eltype(@inferred density_pressure(u, equations)) == RealT
         end
     end
 end
