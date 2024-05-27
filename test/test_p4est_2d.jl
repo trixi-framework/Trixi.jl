@@ -587,9 +587,9 @@ end
     u = Trixi.wrap_array(u_ode, semi)
     du = Trixi.wrap_array(du_ode, semi)
     drag = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
-                         semi.cache)
+                         semi.cache, semi)
     lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
-                         semi.cache)
+                         semi.cache, semi)
 
     @test isapprox(lift, -6.501138753497174e-15, atol = 1e-13)
     @test isapprox(drag, 2.588589856781827, atol = 1e-13)
@@ -630,9 +630,9 @@ end
     u = Trixi.wrap_array(u_ode, semi)
     du = Trixi.wrap_array(du_ode, semi)
     drag = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
-                         semi.cache)
+                         semi.cache, semi)
     lift = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
-                         semi.cache)
+                         semi.cache, semi)
 
     @test isapprox(lift, 0.0262382560809345, atol = 1e-13)
     @test isapprox(drag, 0.10898248971932244, atol = 1e-13)
