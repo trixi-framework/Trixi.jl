@@ -1591,6 +1591,25 @@ end
                                     min_max_speed_davis(u_ll, u_rr, normal_z,
                                                         equations)))
     end
+
+    @timed_testset "Maxwell 1D" begin
+        equations = MaxwellEquations1D()
+
+        u_values_left = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+
+        u_values_right = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+        for u_ll in u_values_left, u_rr in u_values_right
+            @test all(isapprox(x, y)
+                      for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 1, equations),
+                                        min_max_speed_davis(u_ll, u_rr, 1, equations)))
+        end
+    end
 end
 
 @testset "SimpleKronecker" begin
