@@ -417,21 +417,53 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_supersonic_cylinder_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_supersonic_cylinder_sc_subcell.jl (local bounds)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
                         l2=[
-                            0.015466841022730252,
-                            0.03600922630088367,
-                            0.015878652267752248,
-                            0.110079216354667,
+                            0.021490242942173995,
+                            0.04678007146027517,
+                            0.023795244531465923,
+                            0.15503574471595202,
                         ],
                         linf=[
-                            1.0395768373252534,
-                            2.719048905991146,
-                            1.7721776753141663,
-                            7.80524735051412,
+                            2.482158065894805,
+                            4.033162559166201,
+                            4.5479716677067055,
+                            20.120840042586096,
                         ],
+                        tspan=(0.0, 0.001),
+                        skip_coverage=true)
+    if @isdefined sol # Skipped in coverage run
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+        end
+    end
+end
+
+@trixi_testset "elixir_euler_supersonic_cylinder_sc_subcell.jl (global bounds)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
+                        l2=[
+                            0.02854011156088337,
+                            0.05615460526798698,
+                            0.03759119651153147,
+                            0.21526475873763073,
+                        ],
+                        linf=[
+                            4.150786862995657,
+                            5.344776733839819,
+                            8.223606248483948,
+                            37.790797271724294,
+                        ],
+                        positivity_variables_cons=["rho"],
+                        local_twosided_variables_cons=[],
+                        local_onesided_variables_nonlinear=[],
                         tspan=(0.0, 0.001),
                         skip_coverage=true)
     if @isdefined sol # Skipped in coverage run
