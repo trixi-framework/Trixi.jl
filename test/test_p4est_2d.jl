@@ -421,18 +421,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
                         l2=[
-                            0.015007133039325582,
-                            0.03465121389205919,
-                            0.015757689523652123,
-                            0.10715466129496767,
+                            0.11085871642738523,
+                            0.23309913280891245,
+                            0.13505351590735631,
+                            0.7932048494255269,
                         ],
                         linf=[
-                            0.9575256034456019,
-                            2.463993349171073,
-                            1.6734253879173293,
-                            7.194813759795071,
+                            2.9808773737943564,
+                            4.209364526217892,
+                            6.265341002817672,
+                            24.077904874883338,
                         ],
-                        tspan=(0.0, 0.001),
+                        tspan=(0.0, 0.02),
                         skip_coverage=true)
     if @isdefined sol # Skipped in coverage run
         # Ensure that we do not have excessive memory allocations
@@ -450,21 +450,21 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
                         l2=[
-                            0.016816094963821863,
-                            0.03682299790255152,
-                            0.01796136505965851,
-                            0.11878803798875663,
+                            0.13167198973212654,
+                            0.26658859586562494,
+                            0.18186299623323463,
+                            0.9914829475339015,
                         ],
                         linf=[
-                            1.2582432298283592,
-                            2.6387740105984916,
-                            2.125494866777031,
-                            9.288442175763036,
+                            4.329349201376818,
+                            7.932651440186227,
+                            9.793956948717527,
+                            47.76393673962326,
                         ],
                         positivity_variables_cons=["rho"],
                         local_twosided_variables_cons=[],
                         local_onesided_variables_nonlinear=[],
-                        tspan=(0.0, 0.001),
+                        tspan=(0.0, 0.02),
                         skip_coverage=true)
     if @isdefined sol # Skipped in coverage run
         # Ensure that we do not have excessive memory allocations
