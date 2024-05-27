@@ -42,6 +42,12 @@ function volume_jacobian(element, mesh::TreeMesh, cache)
     return inv(cache.elements.inverse_jacobian[element])^ndims(mesh)
 end
 
+@inline function get_inverse_jacobian(inverse_jacobian, mesh::TreeMesh,
+                                      indices...)
+    element = last(indices)
+    return inverse_jacobian[element]
+end
+
 # Indicators used for shock-capturing and AMR
 include("indicators.jl")
 include("indicators_1d.jl")
@@ -54,8 +60,8 @@ include("containers.jl")
 # Dimension-agnostic parallel setup
 include("dg_parallel.jl")
 
-# Helper struct for parabolic AMR
-include("container_viscous_1d.jl")
+# Helper structs for parabolic AMR
+include("containers_viscous.jl")
 
 # 1D DG implementation
 include("dg_1d.jl")

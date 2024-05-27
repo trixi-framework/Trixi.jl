@@ -465,24 +465,13 @@ function calc_boundary_flux!(cache, t, boundary_conditions::BoundaryConditionPer
     nothing
 end
 
-# "lispy tuple programming" instead of for loop for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions, mesh,
                              have_nonconservative_terms, equations, dg::DGMulti)
-
-    # peel off first boundary condition
-    calc_single_boundary_flux!(cache, t, first(boundary_conditions),
-                               first(keys(boundary_conditions)),
-                               mesh, have_nonconservative_terms, equations, dg)
-
-    # recurse on the remainder of the boundary conditions
-    calc_boundary_flux!(cache, t, Base.tail(boundary_conditions),
-                        mesh, have_nonconservative_terms, equations, dg)
-end
-
-# terminate recursion
-function calc_boundary_flux!(cache, t, boundary_conditions::NamedTuple{(), Tuple{}},
-                             mesh, have_nonconservative_terms, equations, dg::DGMulti)
-    nothing
+    for (key, value) in zip(keys(boundary_conditions), boundary_conditions)
+        calc_single_boundary_flux!(cache, t, value,
+                                   key,
+                                   mesh, have_nonconservative_terms, equations, dg)
+    end
 end
 
 function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, mesh,

@@ -6,9 +6,6 @@ Creates a wall-type boundary conditions for the compressible Navier-Stokes equat
 The fields `boundary_condition_velocity` and `boundary_condition_heat_flux` are intended
 to be boundary condition types such as the `NoSlip` velocity boundary condition and the
 `Adiabatic` or `Isothermal` heat boundary condition.
-
-!!! warning "Experimental feature"
-    This is an experimental feature and may change in future releases.
 """
 struct BoundaryConditionNavierStokesWall{V, H}
     boundary_condition_velocity::V
@@ -52,9 +49,6 @@ struct Adiabatic{F}
 end
 
 """
-!!! warning "Experimental code"
-    This code is experimental and may be changed or removed in any future release.
-
 `GradientVariablesPrimitive` and `GradientVariablesEntropy` are gradient variable type parameters
 for `CompressibleNavierStokesDiffusion1D`. By default, the gradient variables are set to be
 `GradientVariablesPrimitive`. Specifying `GradientVariablesEntropy` instead uses the entropy variable
@@ -68,3 +62,17 @@ Under `GradientVariablesEntropy`, the Navier-Stokes discretization is provably e
 """
 struct GradientVariablesPrimitive end
 struct GradientVariablesEntropy end
+
+"""
+    dynamic_viscosity(u, equations)
+
+Wrapper for the dynamic viscosity that calls
+`dynamic_viscosity(u, equations.mu, equations)`, which dispatches on the type of 
+`equations.mu`. 
+For constant `equations.mu`, i.e., `equations.mu` is of `Real`-type it is returned directly.
+In all other cases, `equations.mu` is assumed to be a function with arguments
+`u` and `equations` and is called with these arguments.
+"""
+dynamic_viscosity(u, equations) = dynamic_viscosity(u, equations.mu, equations)
+dynamic_viscosity(u, mu::Real, equations) = mu
+dynamic_viscosity(u, mu::T, equations) where {T} = mu(u, equations)

@@ -25,22 +25,25 @@ end
 @inline function Trixi.flux_ec(u_ll, u_rr, orientation::Integer, ::KPPEquation2D)
     # The tolerance of 1e-12 is based on experience and somewhat arbitrarily chosen
     if abs(u_ll[1] - u_rr[1]) < 1e-12
-        return 0.5 * (flux(u_ll, orientation, KPPEquation2D()) + flux(u_rr, orientation, KPPEquation2D()))
+        return 0.5 * (flux(u_ll, orientation, KPPEquation2D()) +
+                flux(u_rr, orientation, KPPEquation2D()))
     else
         factor = 1.0 / (u_rr[1] - u_ll[1])
         if orientation == 1
-            return SVector(factor*(-cos(u_rr[1]) + cos(u_ll[1])))
+            return SVector(factor * (-cos(u_rr[1]) + cos(u_ll[1])))
         else
-            return SVector(factor*(sin(u_rr[1]) - sin(u_ll[1])))
+            return SVector(factor * (sin(u_rr[1]) - sin(u_ll[1])))
         end
     end
 end
 
 # Wavespeeds
 @inline wavespeed(::KPPEquation2D) = 1.0
-@inline Trixi.max_abs_speeds(u, equation::KPPEquation2D) = (wavespeed(equation), wavespeed(equation))
+@inline Trixi.max_abs_speeds(u, equation::KPPEquation2D) = (wavespeed(equation),
+                                                            wavespeed(equation))
 @inline Trixi.max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::KPPEquation2D) = wavespeed(equation)
-@inline Trixi.max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equation::KPPEquation2D) = wavespeed(equation) * norm(normal_direction)
+@inline Trixi.max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equation::KPPEquation2D) = wavespeed(equation) *
+                                                                                                           norm(normal_direction)
 
 # Compute entropy: we use the square entropy
 @inline Trixi.entropy(u::Real, ::KPPEquation2D) = 0.5 * u^2
@@ -74,24 +77,25 @@ volume_flux = flux_ec
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 shock_indicator = IndicatorHennemannGassner(equation, basis,
-                                            alpha_max=0.5,
-                                            alpha_min=0.001,
-                                            alpha_smooth=true,
-                                            variable=first)
+                                            alpha_max = 0.5,
+                                            alpha_min = 0.001,
+                                            alpha_smooth = true,
+                                            variable = first)
 volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
-                                                 volume_flux_dg=volume_flux,
-                                                 volume_flux_fv=surface_flux)
-solver = DGSEM(polydeg=polydeg, surface_flux=surface_flux, volume_integral=volume_integral)
+                                                 volume_flux_dg = volume_flux,
+                                                 volume_flux_fv = surface_flux)
+solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
+               volume_integral = volume_integral)
 
 ###############################################################################
 # Set up the tree mesh (initially a Cartesian grid of [-2,2]^2)
 coordinates_min = (-2.0, -2.0)
-coordinates_max = ( 2.0,  2.0)
+coordinates_max = (2.0, 2.0)
 
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=6,
-                periodicity=true,
-                n_cells_max=500_000)
+                initial_refinement_level = 6,
+                periodicity = true,
+                n_cells_max = 500_000)
 
 ###############################################################################
 # Create the semi discretization object
@@ -100,23 +104,24 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_kpp, solve
 ###############################################################################
 # Set up adaptive mesh refinement
 amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max=1.0,
-                                          alpha_min=0.0001,
-                                          alpha_smooth=false,
-                                          variable=first)
+                                          alpha_max = 1.0,
+                                          alpha_min = 0.0001,
+                                          alpha_smooth = false,
+                                          variable = first)
 
 max_refinement_level = 8
 
 amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, shock_indicator,
-                                              base_level=2,
-                                              med_level=0, med_threshold=0.0003,
-                                              max_level=max_refinement_level, max_threshold=0.003,
-                                              max_threshold_secondary=shock_indicator.alpha_max)
+                                              base_level = 2,
+                                              med_level = 0, med_threshold = 0.0003,
+                                              max_level = max_refinement_level,
+                                              max_threshold = 0.003,
+                                              max_threshold_secondary = shock_indicator.alpha_max)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval=1,
-                           adapt_initial_condition=true,
-                           adapt_initial_condition_only_refine=true)
+                           interval = 1,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -125,14 +130,14 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_callback = AnalysisCallback(semi, interval=200)
+analysis_callback = AnalysisCallback(semi, interval = 200)
 
-alive_callback = AliveCallback(analysis_interval=200)
+alive_callback = AliveCallback(analysis_interval = 200)
 
-save_solution = SaveSolutionCallback(interval=200,
-                                     save_initial_solution=true,
-                                     save_final_solution=true,
-                                     solution_variables=cons2cons)
+save_solution = SaveSolutionCallback(interval = 200,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2cons)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -140,6 +145,6 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(); ode_default_options()..., callback=callbacks)
+sol = solve(ode, SSPRK43(); ode_default_options()..., callback = callbacks)
 
 summary_callback() # Print the timer summary

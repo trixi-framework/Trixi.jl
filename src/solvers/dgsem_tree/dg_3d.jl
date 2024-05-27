@@ -36,13 +36,15 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                  T8codeMesh{3}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing,
                       dg::DG, uEltype)
     NamedTuple()
 end
 
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                  T8codeMesh{3}},
                       equations,
                       volume_integral::VolumeIntegralShockCapturingHG, dg::DG, uEltype)
     element_ids_dg = Int[]
@@ -79,8 +81,8 @@ function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
             fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded)
 end
 
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
-                      equations,
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                  T8codeMesh{3}}, equations,
                       volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
                       uEltype)
     A4dp1_x = Array{uEltype, 4}
@@ -112,7 +114,8 @@ end
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+function create_cache(mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                  T8codeMesh{3}},
                       equations, mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal compare performance of different types
     A3d = Array{uEltype, 3}
@@ -140,7 +143,7 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{3}, P4estMesh{3}}, equations,
+              mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
@@ -209,8 +212,8 @@ function rhs!(du, u, t,
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}
-                                           },
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -223,6 +226,13 @@ function calc_volume_integral!(du, u,
     return nothing
 end
 
+#=
+`weak_form_kernel!` is only implemented for conserved terms as 
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+see `flux_differencing_kernel!`.
+This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
+See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
+=#
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::TreeMesh{3},
                                    nonconservative_terms::False, equations,
@@ -257,8 +267,8 @@ end
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}
-                                           },
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
@@ -371,8 +381,8 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}
-                                           },
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
@@ -430,7 +440,8 @@ function calc_volume_integral!(du, u,
 end
 
 @inline function fv_kernel!(du, u,
-                            mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+                            mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                        T8codeMesh{3}},
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache

@@ -51,11 +51,11 @@ function SemidiscretizationEulerAcoustics(semi_acoustics::SemiAcoustics,
                                           semi_euler::SemiEuler;
                                           source_region = x -> true,
                                           weights = x -> 1.0) where
-    {Mesh,
-     SemiAcoustics <:
-     SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
-     SemiEuler <:
-     SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations}}
+         {Mesh,
+          SemiAcoustics <:
+          SemidiscretizationHyperbolic{Mesh, <:AbstractAcousticPerturbationEquations},
+          SemiEuler <:
+          SemidiscretizationHyperbolic{Mesh, <:AbstractCompressibleEulerEquations}}
     cache = create_cache(SemidiscretizationEulerAcoustics, source_region, weights,
                          mesh_equations_solver_cache(semi_acoustics)...)
 
@@ -103,7 +103,7 @@ function precompute_weights(source_region, weights, coupled_element_ids, equatio
                                     (nnodes(dg), nnodes(dg),
                                      length(coupled_element_ids)))
 
-    @threaded for k in 1:length(coupled_element_ids)
+    @threaded for k in eachindex(coupled_element_ids)
         element = coupled_element_ids[k]
         for j in eachnode(dg), i in eachnode(dg)
             x = get_node_coords(cache.elements.node_coordinates, equations, dg, i, j,
@@ -197,7 +197,7 @@ function add_acoustic_source_terms!(du_acoustics, acoustic_source_terms, source_
                                     coupled_element_ids, mesh::TreeMesh{2}, equations,
                                     dg::DGSEM,
                                     cache)
-    @threaded for k in 1:length(coupled_element_ids)
+    @threaded for k in eachindex(coupled_element_ids)
         element = coupled_element_ids[k]
 
         for j in eachnode(dg), i in eachnode(dg)

@@ -144,6 +144,13 @@ function calc_volume_integral!(du, u,
     return nothing
 end
 
+#=
+`weak_form_kernel!` is only implemented for conserved terms as 
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+see `flux_differencing_kernel!`.
+This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
+See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
+=#
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                    nonconservative_terms::False, equations,

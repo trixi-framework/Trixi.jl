@@ -42,6 +42,18 @@ Common choices of the `conversion_function` are [`cons2cons`](@ref) and
 """
 function varnames end
 
+# Return the index of `varname` in `varnames(solution_variables, equations)` if available.
+# Otherwise, throw an error.
+function get_variable_index(varname, equations;
+                            solution_variables = cons2cons)
+    index = findfirst(==(varname), varnames(solution_variables, equations))
+    if isnothing(index)
+        throw(ArgumentError("$varname is no valid variable."))
+    end
+
+    return index
+end
+
 # Add methods to show some information on systems of equations.
 function Base.show(io::IO, equations::AbstractEquations)
     # Since this is not performance-critical, we can use `@nospecialize` to reduce latency.
@@ -208,6 +220,24 @@ struct BoundaryConditionNeumann{B}
     boundary_normal_flux_function::B
 end
 
+"""
+    NonConservativeLocal()
+
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric".
+When the argument `nonconservative_type` is of type `NonConservativeLocal`,
+the function returns the local part of the non-conservative term.
+"""
+struct NonConservativeLocal end
+
+"""
+    NonConservativeSymmetric()
+
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * symmetric".
+When the argument `nonconservative_type` is of type `NonConservativeSymmetric`,
+the function returns the symmetric part of the non-conservative term.
+"""
+struct NonConservativeSymmetric end
+
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)
@@ -220,9 +250,24 @@ example of equations with nonconservative terms.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = False()
+"""
+    n_nonconservative_terms(equations)
+
+Number of nonconservative terms in the form local * symmetric for a particular equation.
+This function needs to be specialized only if equations with nonconservative terms are
+combined with certain solvers (e.g., subcell limiting).
+"""
+function n_nonconservative_terms end
 have_constant_speed(::AbstractEquations) = False()
 
+"""
+    default_analysis_errors(equations)
+
+Default analysis errors (`:l2_error` and `:linf_error`) used by the
+[`AnalysisCallback`](@ref).
+"""
 default_analysis_errors(::AbstractEquations) = (:l2_error, :linf_error)
+
 """
     default_analysis_integrals(equations)
 
@@ -331,6 +376,12 @@ of the correct length `nvariables(equations)`.
 """
 function energy_internal end
 
+# Default implementation of gradient for `variable`. Used for subcell limiting.
+# Implementing a gradient function for a specific variable improves the performance.
+@inline function gradient_conservative(variable, u, equations)
+    return ForwardDiff.gradient(x -> variable(x, equations), u)
+end
+
 ####################################################################################################
 # Include files with actual implementations for different systems of equations.
 
@@ -354,8 +405,6 @@ abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("shallow_water_1d.jl")
 include("shallow_water_2d.jl")
-include("shallow_water_two_layer_1d.jl")
-include("shallow_water_two_layer_2d.jl")
 include("shallow_water_quasi_1d.jl")
 
 # CompressibleEulerEquations
@@ -364,12 +413,18 @@ abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
 include("compressible_euler_1d.jl")
 include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
+include("compressible_euler_quasi_1d.jl")
 
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <:
               AbstractEquations{NDIMS, NVARS} end
 include("compressible_euler_multicomponent_1d.jl")
 include("compressible_euler_multicomponent_2d.jl")
+
+# PolytropicEulerEquations
+abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("polytropic_euler_2d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,
@@ -446,13 +501,21 @@ include("acoustic_perturbation_2d.jl")
 # Linearized Euler equations
 abstract type AbstractLinearizedEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
+include("linearized_euler_1d.jl")
 include("linearized_euler_2d.jl")
+include("linearized_euler_3d.jl")
 
-abstract type AbstractEquationsParabolic{NDIMS, NVARS} <:
+abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
               AbstractEquations{NDIMS, NVARS} end
+
+# Lighthill-Witham-Richards (LWR) traffic flow model
+abstract type AbstractTrafficFlowLWREquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("traffic_flow_lwr_1d.jl")
 
 # Jin Xin Relaxation type equation (Compressible Euler variant)
 abstract type AbstractJinXinEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("jin_xin_compressible_euler_2d.jl")
+
 end # @muladd
