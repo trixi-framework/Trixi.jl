@@ -30,8 +30,6 @@ struct AnalysisSurfaceIntegral{Variable}
     boundary_symbols::Tuple{Vararg{Symbol}} # Name(s) of the boundary/boundaries
 
     function AnalysisSurfaceIntegral(semi, boundary_symbols, variable)
-        @unpack boundary_symbol_indices = semi.boundary_conditions
-
         return new{typeof(variable)}(variable, boundary_symbols)
     end
 end
