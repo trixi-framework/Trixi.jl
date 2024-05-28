@@ -246,7 +246,7 @@ function get_boundary_indices(boundary_symbols, boundary_symbol_indices)
     for name in boundary_symbols
         append!(indices, boundary_symbol_indices[name])
     end
-    sort!(indices)
+    sort!(indices) # Try to achieve some data locality by sorting
 
     return indices
 end
