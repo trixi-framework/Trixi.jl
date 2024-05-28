@@ -31,7 +31,8 @@ initial_condition = Trixi.InitialConditionJinXin(initial_condition_kelvin_helmho
 #initial_condition = Trixi.InitialConditionJinXin(initial_condition_density_wave)
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg)
-solver = DGSEM(basis, Trixi.flux_upwind)
+# solver = DGSEM(basis, Trixi.flux_upwind)
+solver = DGSEM(basis, Trixi.flux_upwind, VolumeIntegralWeakFormProjection())
 #solver = DGSEM(polydeg = 3, surface_flux = Trixi.flux_upwind)
 
 #surface_flux = Trixi.flux_upwind

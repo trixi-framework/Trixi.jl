@@ -229,6 +229,63 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
+function calc_volume_integral!(du, u,
+                               mesh::Union{TreeMesh{2}},
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralWeakFormProjection,
+                               dg::DGSEM, cache)
+    # prepare local storage for projection
+    @unpack interpolate_N_to_M, project_M_to_N = dg.basis
+    nnodes_,nnodes_projection = size(project_M_to_N)
+    nVars = size(u, 1)
+    RealT = real(dg)
+    u_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    w_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    f_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    g_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    cache_projection = (; u_N, w_N, f_N, g_N, u_M, w_M, f_M, g_M)
+
+    @threaded for element in eachelement(dg, cache)
+        weak_form_kernel_projection!(du, u, element, mesh,
+                                     nonconservative_terms, equations,
+                                     dg, cache, cache_projection)
+    end
+
+    return nothing
+end
+
+@inline function weak_form_kernel_projection!(du, u,
+                                              element, mesh::TreeMesh{2},
+                                              nonconservative_terms::False, equations,
+                                              dg::DGSEM, cache, cache_projection)
+    # true * [some floating point value] == [exactly the same floating point value]
+    # This can (hopefully) be optimized away due to constant propagation.
+    @unpack derivative_dhat = dg.basis
+
+    # Calculate volume terms in one element
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+
+        flux1 = flux(u_node, 1, equations)
+        for ii in eachnode(dg)
+            multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1,
+                                       equations, dg, ii, j, element)
+        end
+
+        flux2 = flux(u_node, 2, equations)
+        for jj in eachnode(dg)
+            multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux2,
+                                       equations, dg, i, jj, element)
+        end
+    end
+
+    return nothing
+end
+
 # flux differencing volume integral. For curved meshes averaging of the
 # mapping terms, stored in `cache.elements.contravariant_vectors`, is peeled apart
 # from the evaluation of the physical fluxes in each Cartesian direction
