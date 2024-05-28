@@ -61,9 +61,11 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompr
             nVars = nvariables(eq_relax)
             RealT = real(dg)
             u_N = zeros(RealT, nVars, nnodes_, nnodes_)
+            w_N = zeros(RealT, nVars, nnodes_, nnodes_)
             f_N = zeros(RealT, nVars, nnodes_, nnodes_)
             g_N = zeros(RealT, nVars, nnodes_, nnodes_)
             u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+            w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
             f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
             g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
 
@@ -79,9 +81,22 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompr
         end
         # bring elemtn u_N to grid (M+1)x(M+1)
         multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N)
-        # compute nodal values of conservative f,g on the M grid
+        
+        # compute nodal values of entropy variables w on the M grid
         for j in 1:nnodes_projection, i in 1:nnodes_projection
             u_cons = get_node_vars(u_M, eq_relax, dg, i, j)
+            w_ij   = cons2entropy(u_cons,eq_relax) 
+            set_node_vars!(w_M,w_ij,eq_relax,dg,i,j)
+        end
+        # compute projection of w with M values down to N
+        multiply_dimensionwise!(w_N,project_M_to_N,w_M)
+        # use w now to compute new u on grid M
+        multiply_dimensionwise!(w_M,interpolate_N_to_M,w_N)
+
+        # compute nodal values of conservative f,g on the M grid
+        for j in 1:nnodes_projection, i in 1:nnodes_projection
+            w_ij = get_node_vars(w_M, eq_relax, dg, i, j)
+            u_cons = entropy2cons(w_ij, eq_relax)
             f_cons = flux(u_cons,1,eq_relax)
             set_node_vars!(f_M,f_cons,eq_relax,dg,i,j)
             g_cons = flux(u_cons,2,eq_relax)
