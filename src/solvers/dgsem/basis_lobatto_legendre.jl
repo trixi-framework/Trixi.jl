@@ -20,7 +20,8 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
                             BoundaryMatrix <: AbstractMatrix{RealT},
                             DerivativeMatrix <: AbstractMatrix{RealT},
                             Matrix_MxN <: AbstractMatrix{RealT},
-                            Matrix_NxM <: AbstractMatrix{RealT}} <:
+                            Matrix_NxM <: AbstractMatrix{RealT},
+                            Matrix_MxM <: AbstractMatrix{RealT}} <:
        AbstractBasisSBP{RealT}
     nodes::VectorT
     weights::VectorT
@@ -37,6 +38,7 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     # L2 projection operators
     interpolate_N_to_M::Matrix_MxN # interpolates from N nodes to M nodes
     project_M_to_N::Matrix_NxM # compute projection via Legendre modes, cut off modes at N, back to N nodes
+    filter_modal_to_N::Matrix_MxM # compute modal filter via Legendre modes, cut off modes at N, leave it at M nodes
 end
 
 function LobattoLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integer = 2 * polydeg)
@@ -78,15 +80,17 @@ function LobattoLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integ
     interpolate_N_to_M_ = polynomial_interpolation_matrix(nodes_, nodes_projection) 
     interpolate_N_to_M = Matrix{RealT}(interpolate_N_to_M_)
 
-    project_M_to_N_ = calc_projection_matrix(nodes_projection, nodes_)
+    project_M_to_N_,filter_modal_to_N_ = calc_projection_matrix(nodes_projection, nodes_)
     project_M_to_N  = Matrix{RealT}(project_M_to_N_)
+    filter_modal_to_N  = Matrix{RealT}(filter_modal_to_N_)
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
                                 typeof(boundary_interpolation),
                                 typeof(derivative_matrix),
                                 typeof(interpolate_N_to_M),
-                                typeof(project_M_to_N)}(nodes, weights,
+                                typeof(project_M_to_N),
+                                typeof(filter_modal_to_N)}(nodes, weights,
                                                         inverse_weights,
                                                         inverse_vandermonde_legendre,
                                                         boundary_interpolation,
@@ -95,7 +99,8 @@ function LobattoLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integ
                                                         derivative_split_transpose,
                                                         derivative_dhat,
                                                         interpolate_N_to_M,
-                                                        project_M_to_N)
+                                                        project_M_to_N,
+                                                        filter_modal_to_N)
 end
 
 LobattoLegendreBasis(polydeg::Integer; polydeg_projection::Integer = 2 * polydeg) = LobattoLegendreBasis(Float64, polydeg; polydeg_projection)
@@ -811,8 +816,9 @@ function calc_projection_matrix(nodes_in,nodes_out)
     filter_matrix[j,j] = 1
   end
   interpolate_M_to_N = polynomial_interpolation_matrix(nodes_in, nodes_out)
+  filter_modal = vandermonde_in * filter_matrix * inverse_vandermonde_in
   projection_matrix = interpolate_M_to_N * vandermonde_in * filter_matrix * inverse_vandermonde_in
-  return projection_matrix
+  return projection_matrix, filter_modal
 end
 
 end # @muladd

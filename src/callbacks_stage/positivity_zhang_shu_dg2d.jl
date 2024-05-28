@@ -56,7 +56,7 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompr
             eq_relax = equations.equations_relaxation
 
             # prepare local storage for projection
-            @unpack interpolate_N_to_M, project_M_to_N = dg.basis
+            @unpack interpolate_N_to_M, project_M_to_N, filter_modal_to_N = dg.basis
             nnodes_,nnodes_projection = size(project_M_to_N)
             nVars = nvariables(eq_relax)
             RealT = real(dg)
@@ -65,9 +65,14 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompr
             f_N = zeros(RealT, nVars, nnodes_, nnodes_)
             g_N = zeros(RealT, nVars, nnodes_, nnodes_)
             u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+            w_M_raw = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
             w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
             f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
             g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+
+            tmp_MxM = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+            tmp_MxN = zeros(RealT, nVars, nnodes_projection, nnodes_)
+            tmp_NxM = zeros(RealT, nVars, nnodes_, nnodes_projection)
 
  #@threaded for element in eachelement(dg, cache)
   for element in eachelement(dg, cache)
@@ -80,18 +85,20 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompr
             end
         end
         # bring elemtn u_N to grid (M+1)x(M+1)
-        multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N)
+        multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N,tmp_MxN)
         
         # compute nodal values of entropy variables w on the M grid
         for j in 1:nnodes_projection, i in 1:nnodes_projection
             u_cons = get_node_vars(u_M, eq_relax, dg, i, j)
             w_ij   = cons2entropy(u_cons,eq_relax) 
-            set_node_vars!(w_M,w_ij,eq_relax,dg,i,j)
+            set_node_vars!(w_M_raw,w_ij,eq_relax,dg,i,j)
         end
         # compute projection of w with M values down to N
-        multiply_dimensionwise!(w_N,project_M_to_N,w_M)
-        # use w now to compute new u on grid M
-        multiply_dimensionwise!(w_M,interpolate_N_to_M,w_N)
+        multiply_dimensionwise!(w_M,filter_modal_to_N,w_M_raw,tmp_MxM)
+
+        #multiply_dimensionwise!(w_N,project_M_to_N,w_M)
+        #multiply_dimensionwise!(w_M,interpolate_N_to_M,w_N)
+
 
         # compute nodal values of conservative f,g on the M grid
         for j in 1:nnodes_projection, i in 1:nnodes_projection
@@ -103,8 +110,8 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompr
             set_node_vars!(g_M,g_cons,eq_relax,dg,i,j)
         end
         # compute projection of f with M values down to N, same for g
-        multiply_dimensionwise!(f_N,project_M_to_N,f_M)
-        multiply_dimensionwise!(g_N,project_M_to_N,g_M)
+        multiply_dimensionwise!(f_N,project_M_to_N,f_M,tmp_NxM)
+        multiply_dimensionwise!(g_N,project_M_to_N,g_M,tmp_NxM)
         #@assert nnodes_projection == nnodes(dg) 
         #for j in 1:nnodes_projection, i in 1:nnodes_projection
         #    u_cons = get_node_vars(u_N, eq_relax, dg, i, j)

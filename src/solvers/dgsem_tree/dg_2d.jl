@@ -237,31 +237,72 @@ function calc_volume_integral!(du, u,
     # prepare local storage for projection
     @unpack interpolate_N_to_M, project_M_to_N = dg.basis
     nnodes_,nnodes_projection = size(project_M_to_N)
-    nVars = size(u, 1)
+    nVars = nvariables(equations)
     RealT = real(dg)
-    u_N = zeros(RealT, nVars, nnodes_, nnodes_)
-    w_N = zeros(RealT, nVars, nnodes_, nnodes_)
-    f_N = zeros(RealT, nVars, nnodes_, nnodes_)
-    g_N = zeros(RealT, nVars, nnodes_, nnodes_)
-    u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
-    w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
-    f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
-    g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
-    cache_projection = (; u_N, w_N, f_N, g_N, u_M, w_M, f_M, g_M)
+    u_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
+    w_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
+    f_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
+    g_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
+    u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
+    w_M_raw = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                     
+    w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
+    f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
+    g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
+                                                                                            
+    tmp_MxM = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                     
+    tmp_MxN = zeros(RealT, nVars, nnodes_projection, nnodes_)                               
+    tmp_NxM = zeros(RealT, nVars, nnodes_, nnodes_projection)                               
 
     @threaded for element in eachelement(dg, cache)
-        weak_form_kernel_projection!(du, u, element, mesh,
+        # get element u_N
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            for v in eachvariable(equations)
+                u_N[v,i,j] = u_node[v]
+            end
+        end
+        # bring elemtn u_N to grid (M+1)x(M+1)
+        multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N,tmp_MxN)
+     
+        # compute nodal values of entropy variables w on the M grid
+        for j in 1:nnodes_projection, i in 1:nnodes_projection
+            u_cons = get_node_vars(u_M, equations, dg, i, j)
+            w_ij   = cons2entropy(u_cons,equations)
+            set_node_vars!(w_M_raw,w_ij,equations,dg,i,j)
+        end
+        # compute projection of w with M values down to N
+        multiply_dimensionwise!(w_M,filter_modal_to_N,w_M_raw,tmp_MxM)
+     
+        #multiply_dimensionwise!(w_N,project_M_to_N,w_M)
+        #multiply_dimensionwise!(w_M,interpolate_N_to_M,w_N)
+     
+     
+        # compute nodal values of conservative f,g on the M grid
+        for j in 1:nnodes_projection, i in 1:nnodes_projection
+            w_ij = get_node_vars(w_M, equations, dg, i, j)
+            u_cons = entropy2cons(w_ij, equations)
+            f_cons = flux(u_cons,1,equations)
+            set_node_vars!(f_M,f_cons,equations,dg,i,j)
+            g_cons = flux(u_cons,2,equations)
+            set_node_vars!(g_M,g_cons,equations,dg,i,j)
+        end
+        # compute projection of f with M values down to N, same for g
+        multiply_dimensionwise!(f_N,project_M_to_N,f_M,tmp_NxM)
+        multiply_dimensionwise!(g_N,project_M_to_N,g_M,tmp_NxM)
+
+
+        weak_form_kernel_projection!(du, u,f_N, g_N, element, mesh,
                                      nonconservative_terms, equations,
-                                     dg, cache, cache_projection)
+                                     dg, cache)
     end
 
     return nothing
 end
 
-@inline function weak_form_kernel_projection!(du, u,
+@inline function weak_form_kernel_projection!(du, u, f_N, g_N,
                                               element, mesh::TreeMesh{2},
                                               nonconservative_terms::False, equations,
-                                              dg::DGSEM, cache, cache_projection)
+                                              dg::DGSEM, cache)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_dhat = dg.basis
@@ -270,13 +311,13 @@ end
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
-        flux1 = flux(u_node, 1, equations)
+        flux1 = get_node_vars(f_N, equations, dg, i,j)
         for ii in eachnode(dg)
             multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1,
                                        equations, dg, ii, j, element)
         end
 
-        flux2 = flux(u_node, 2, equations)
+        flux2 = get_node_vars(g_N, equations, dg, i,j)
         for jj in eachnode(dg)
             multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux2,
                                        equations, dg, i, jj, element)
