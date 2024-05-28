@@ -29,7 +29,9 @@ struct AnalysisSurfaceIntegral{Variable, NBoundaries}
     variable::Variable # Quantity of interest, like lift or drag
     boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
 
-    function AnalysisSurfaceIntegral(semi, boundary_symbols::NTuple{NBoundaries, Symbol}, variable) where NBoundaries
+    function AnalysisSurfaceIntegral(semi,
+                                     boundary_symbols::NTuple{NBoundaries, Symbol},
+                                     variable) where {NBoundaries}
         return new{typeof(variable), NBoundaries}(variable, boundary_symbols)
     end
 end
