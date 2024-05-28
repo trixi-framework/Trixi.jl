@@ -163,7 +163,7 @@ export AcousticPerturbationEquations2D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D,
-       JinXinCompressibleEulerEquations2D
+       JinXinEquations
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
@@ -210,7 +210,7 @@ export boundary_condition_do_nothing,
        BoundaryConditionCoupled
 
 export initial_condition_convergence_test, source_terms_convergence_test
-export source_terms_harmonic, source_terms_JinXin_Relaxation
+export source_terms_harmonic#, source_terms_JinXin_Relaxation
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic,
        boundary_condition_poisson_nonperiodic
 export initial_condition_eoc_test_coupled_euler_gravity,
