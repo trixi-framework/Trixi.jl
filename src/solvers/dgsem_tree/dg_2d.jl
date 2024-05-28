@@ -113,6 +113,12 @@ function rhs!(du, u, t,
               mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+    # Copy u for safekeeping
+    u_original = similar(u)
+    u_original .= u
+
+    calc_entropy_projection!(u, u_original, mesh, equations, dg, cache)
+
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
@@ -175,7 +181,53 @@ function rhs!(du, u, t,
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
 
+    u .= u_original
+
     return nothing
+end
+
+function calc_entropy_projection!(u_projected, u, mesh, equations, dg, cache)
+    # prepare local storage for projection
+    @unpack interpolate_N_to_M, project_M_to_N = dg.basis
+    nnodes_,nnodes_projection = size(project_M_to_N)
+    nVars = nvariables(equations)
+    RealT = real(dg)
+    u_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    w_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+
+    tmp_MxN = zeros(RealT, nVars, nnodes_projection, nnodes_)
+    tmp_NxM = zeros(RealT, nVars, nnodes_, nnodes_projection)
+
+    @threaded for element in eachelement(dg, cache)
+        # get element u_N
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            for v in eachvariable(equations)
+                u_N[v,i,j] = u_node[v]
+            end
+        end
+        # bring elemtn u_N to grid (M+1)x(M+1)
+        multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N,tmp_MxN)
+     
+        # compute nodal values of entropy variables w on the M grid
+        for j in 1:nnodes_projection, i in 1:nnodes_projection
+            u_cons = get_node_vars(u_M, equations, dg, i, j)
+            w_ij   = cons2entropy(u_cons,equations)
+            set_node_vars!(w_M,w_ij,equations,dg,i,j)
+        end
+
+        # compute projection of w with M values down to N
+        multiply_dimensionwise!(w_N, project_M_to_N ,w_M, tmp_NxM)
+     
+        # compute nodal values of conservative variables from the projected entropy variables
+        for j in eachnode(dg), i in eachnode(dg)
+            w_ij = get_node_vars(w_N, equations, dg, i, j)
+            u_cons = entropy2cons(w_ij, equations)
+            set_node_vars!(u_projected, u_cons, equations, dg, i, j, element)
+        end
+    end
 end
 
 function calc_volume_integral!(du, u,
@@ -257,26 +309,14 @@ function calc_volume_integral!(du, u,
         # get element u_N
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
+            w_ij   = cons2entropy(u_node, equations)
             for v in eachvariable(equations)
-                u_N[v,i,j] = u_node[v]
+                w_N[v,i,j] = w_ij[v]
             end
         end
         # bring elemtn u_N to grid (M+1)x(M+1)
-        multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N,tmp_MxN)
-     
-        # compute nodal values of entropy variables w on the M grid
-        for j in 1:nnodes_projection, i in 1:nnodes_projection
-            u_cons = get_node_vars(u_M, equations, dg, i, j)
-            w_ij   = cons2entropy(u_cons,equations)
-            set_node_vars!(w_M_raw,w_ij,equations,dg,i,j)
-        end
-        # compute projection of w with M values down to N
-        multiply_dimensionwise!(w_M,filter_modal_to_N,w_M_raw,tmp_MxM)
-     
-        #multiply_dimensionwise!(w_N,project_M_to_N,w_M)
-        #multiply_dimensionwise!(w_M,interpolate_N_to_M,w_N)
-     
-     
+        multiply_dimensionwise!(w_M, interpolate_N_to_M, w_N, tmp_MxN)
+
         # compute nodal values of conservative f,g on the M grid
         for j in 1:nnodes_projection, i in 1:nnodes_projection
             w_ij = get_node_vars(w_M, equations, dg, i, j)
@@ -289,7 +329,6 @@ function calc_volume_integral!(du, u,
         # compute projection of f with M values down to N, same for g
         multiply_dimensionwise!(f_N,project_M_to_N,f_M,tmp_NxM)
         multiply_dimensionwise!(g_N,project_M_to_N,g_M,tmp_NxM)
-
 
         weak_form_kernel_projection!(du, u,f_N, g_N, element, mesh,
                                      nonconservative_terms, equations,
