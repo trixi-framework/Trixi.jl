@@ -33,8 +33,9 @@ end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
 surface_flux = flux_lax_friedrichs
-polydeg = 3
-basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg)
+# polydeg = 3
+polydeg = 10
+basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 3)
 #indicator_sc = IndicatorHennemannGassner(equations, basis,
 #                                         alpha_max = 0.000,
 #                                         alpha_min = 0.0000,
@@ -44,7 +45,8 @@ basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg)
 #volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 #                                                 volume_flux_dg = volume_flux,
 #                                                 volume_flux_fv = surface_flux)
-volume_integral = VolumeIntegralWeakFormProjection()
+# volume_integral = VolumeIntegralWeakFormProjection()
+volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)
@@ -72,7 +74,8 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+# stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 1.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

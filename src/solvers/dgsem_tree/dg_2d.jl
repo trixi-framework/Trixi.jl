@@ -116,8 +116,20 @@ function rhs!(du, u, t,
     # Copy u for safekeeping
     u_original = similar(u)
     u_original .= u
+    u_filter_cons = similar(u)
+    u_filter_prim = similar(u)
 
-    calc_entropy_projection!(u, u_original, mesh, equations, dg, cache)
+    # calc_entropy_projection!(u, u_original, mesh, equations, dg, cache)
+    # calc_filter!(u, u_original, cons2entropy, entropy2cons, mesh, equations, dg, cache)
+    # calc_filter!(u, u_original, cons2cons, cons2cons, mesh, equations, dg, cache)
+    # calc_filter!(u, u_original, cons2prim, prim2cons, mesh, equations, dg, cache)
+    calc_filter!(u_filter_cons, u, cons2cons, cons2cons, mesh, equations, dg, cache)
+    calc_filter!(u_filter_prim, u, cons2prim, prim2cons, mesh, equations, dg, cache)
+
+    u .= u_filter_cons
+    @. u_filter_prim[4, ..] = u_filter_prim[4, ..] - 0.5 * (u_filter_prim[2, ..]^2 + u_filter_prim[3, ..]^2) / u_filter_prim[1, ..]
+    @. u[4, ..] = 0.5 * (u_filter_cons[2, ..]^2 + u_filter_cons[3, ..]^2) / u_filter_cons[1, ..] + u_filter_prim[4, ..]# / (equations.gamma - 1.0)
+    # @autoinfiltrate
 
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
@@ -181,7 +193,7 @@ function rhs!(du, u, t,
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
 
-    u .= u_original
+    # u .= u_original
 
     return nothing
 end
@@ -226,6 +238,39 @@ function calc_entropy_projection!(u_projected, u, mesh, equations, dg, cache)
             w_ij = get_node_vars(w_N, equations, dg, i, j)
             u_cons = entropy2cons(w_ij, equations)
             set_node_vars!(u_projected, u_cons, equations, dg, i, j, element)
+        end
+    end
+end
+
+function calc_filter!(u_filtered, u, cons2filter, filter2cons, mesh, equations, dg, cache)
+    # prepare local storage for projection
+    @unpack filter_modal_to_cutoff = dg.basis
+    nnodes_ = nnodes(dg)
+    nVars = nvariables(equations)
+    RealT = real(dg)
+    w_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    w_N_filtered = zeros(RealT, nVars, nnodes_, nnodes_)
+
+    tmp_NxN = zeros(RealT, nVars, nnodes_, nnodes_)
+
+    @threaded for element in eachelement(dg, cache)
+        # convert u to entropy variables
+        for j in eachnode(dg), i in eachnode(dg)
+            u_cons = get_node_vars(u, equations, dg, i, j, element)
+            w_ij   = cons2filter(u_cons, equations)
+            for v in eachvariable(equations)
+                w_N[v,i,j] = w_ij[v]
+            end
+        end
+
+        # filter entropy variables
+        multiply_dimensionwise!(w_N_filtered, filter_modal_to_cutoff, w_N, tmp_NxN)
+     
+        # compute nodal values of conservative variables from the projected entropy variables
+        for j in eachnode(dg), i in eachnode(dg)
+            w_ij = get_node_vars(w_N_filtered, equations, dg, i, j)
+            u_cons = filter2cons(w_ij, equations)
+            set_node_vars!(u_filtered, u_cons, equations, dg, i, j, element)
         end
     end
 end

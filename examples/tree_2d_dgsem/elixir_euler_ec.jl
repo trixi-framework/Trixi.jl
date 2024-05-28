@@ -13,9 +13,10 @@ initial_condition = initial_condition_weak_blast_wave
 #               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 #
 surface_flux = flux_ranocha
-polydeg = 1
-basis = LobattoLegendreBasis(polydeg; polydeg_projection = 4 * polydeg)
-volume_integral = VolumeIntegralWeakFormProjection()
+polydeg = 6
+basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 1)
+# volume_integral = VolumeIntegralWeakFormProjection()
+volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)

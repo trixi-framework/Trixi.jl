@@ -239,9 +239,9 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                              UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
                  equations, dg::DG, cache)
-    u_original = similar(u)
-    u_original .= u
-    calc_entropy_projection!(u, u_original, mesh, equations, dg, cache)
+    # u_original = similar(u)
+    # u_original .= u
+    # calc_entropy_projection!(u, u_original, mesh, equations, dg, cache)
 
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     result = integrate_via_indices(u, mesh, equations, dg, cache,
@@ -251,7 +251,7 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
         dot(cons2entropy(u_node, equations), du_node)
     end
 
-    u .= u_original
+    # u .= u_original
     return result
 end
 

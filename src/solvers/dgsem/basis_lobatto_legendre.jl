@@ -39,9 +39,10 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     interpolate_N_to_M::Matrix_MxN # interpolates from N nodes to M nodes
     project_M_to_N::Matrix_NxM # compute projection via Legendre modes, cut off modes at N, back to N nodes
     filter_modal_to_N::Matrix_MxM # compute modal filter via Legendre modes, cut off modes at N, leave it at M nodes
+    filter_modal_to_cutoff::DerivativeMatrix # compute modal cutoff filter via Legendre modes, cut off modes at polydeg_cutoff
 end
 
-function LobattoLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integer = 2 * polydeg)
+function LobattoLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integer = 2 * polydeg, polydeg_cutoff::Integer = div(polydeg + 1, 2) - 1)
     nnodes_ = polydeg + 1
 
     # compute everything using `Float64` by default
@@ -84,6 +85,11 @@ function LobattoLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integ
     project_M_to_N  = Matrix{RealT}(project_M_to_N_)
     filter_modal_to_N  = Matrix{RealT}(filter_modal_to_N_)
 
+    nnodes_cutoff = polydeg_cutoff + 1
+    nodes_cutoff, weights_cutoff = gauss_lobatto_nodes_weights(nnodes_cutoff)
+    _, filter_modal_to_cutoff_ = calc_projection_matrix(nodes_, nodes_cutoff)
+    filter_modal_to_cutoff  = Matrix{RealT}(filter_modal_to_cutoff_)
+
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
                                 typeof(boundary_interpolation),
@@ -100,10 +106,11 @@ function LobattoLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integ
                                                         derivative_dhat,
                                                         interpolate_N_to_M,
                                                         project_M_to_N,
-                                                        filter_modal_to_N)
+                                                        filter_modal_to_N,
+                                                        filter_modal_to_cutoff)
 end
 
-LobattoLegendreBasis(polydeg::Integer; polydeg_projection::Integer = 2 * polydeg) = LobattoLegendreBasis(Float64, polydeg; polydeg_projection)
+LobattoLegendreBasis(polydeg::Integer; polydeg_projection::Integer = 2 * polydeg, polydeg_cutoff::Integer = div(polydeg + 1, 2) - 1) = LobattoLegendreBasis(Float64, polydeg; polydeg_projection, polydeg_cutoff)
 
 function Base.show(io::IO, basis::LobattoLegendreBasis)
     @nospecialize basis # reduce precompilation time
