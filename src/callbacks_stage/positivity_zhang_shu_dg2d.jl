@@ -67,32 +67,43 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompr
             f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
             g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
 
- @threaded for element in eachelement(dg, cache)
-
+ #@threaded for element in eachelement(dg, cache)
+  for element in eachelement(dg, cache)
        
         # get element u_N
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
             for v in eachvariable(eq_relax)
-              u_N[v,i,j] = u_node[v]
+                u_N[v,i,j] = u_node[v]
             end
         end
-
-        # compute projection of f,g
-        for j in eachnode(dg), i in eachnode(dg)
-          u_cons = u_N[:,i,j]
-          f_N[:,i,j] = flux(u_cons,1,eq_relax)
-          g_N[:,i,j] = flux(u_cons,2,eq_relax)
+        # bring elemtn u_N to grid (M+1)x(M+1)
+        multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N)
+        # compute nodal values of conservative f,g on the M grid
+        for j in 1:nnodes_projection, i in 1:nnodes_projection
+            u_cons = get_node_vars(u_M, eq_relax, dg, i, j)
+            f_cons = flux(u_cons,1,eq_relax)
+            set_node_vars!(f_M,f_cons,eq_relax,dg,i,j)
+            g_cons = flux(u_cons,2,eq_relax)
+            set_node_vars!(g_M,g_cons,eq_relax,dg,i,j)
         end
-        
+        # compute projection of f with M values down to N, same for g
+        multiply_dimensionwise!(f_N,project_M_to_N,f_M)
+        multiply_dimensionwise!(g_N,project_M_to_N,g_M)
+        #@assert nnodes_projection == nnodes(dg) 
+        #for j in 1:nnodes_projection, i in 1:nnodes_projection
+        #    u_cons = get_node_vars(u_N, eq_relax, dg, i, j)
+        #    f_cons = flux(u_cons,1,eq_relax)
+        #    set_node_vars!(f_N,f_cons,eq_relax,dg,i,j)
+        #    g_cons = flux(u_cons,2,eq_relax)
+        #    set_node_vars!(g_N,g_cons,eq_relax,dg,i,j)
+        #end
+
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
             # compute compressible Euler fluxes
-            u_cons = SVector(u_node[1], u_node[2], u_node[3], u_node[4])
-            #vu = f_N[:,i,j] #flux(u_cons,1,eq_relax)
-            #wu = g_N[:,i,j] #flux(u_cons,2,eq_relax)
-            vu = flux(u_cons,1,eq_relax)
-            wu = flux(u_cons,2,eq_relax)
+            vu = get_node_vars(f_N,eq_relax,dg,i,j)
+            wu = get_node_vars(g_N,eq_relax,dg,i,j)
             # compute relaxation terms
             du1 = u_node[1]
             du2 = u_node[2]

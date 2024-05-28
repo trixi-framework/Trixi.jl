@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-epsilon_relaxation = 5.0e-6
+epsilon_relaxation = 5.0e-7
 a1 = a2 = a3 = a4 = 30.0
 b1 = b2 = b3 = b4 = 30.0
 
@@ -29,7 +29,10 @@ end
 #initial_condition = initial_condition_constant
 initial_condition = Trixi.InitialConditionJinXin(initial_condition_kelvin_helmholtz_instability)
 #initial_condition = Trixi.InitialConditionJinXin(initial_condition_density_wave)
-solver = DGSEM(polydeg=3, surface_flux=Trixi.flux_upwind)
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg)
+solver = DGSEM(basis, Trixi.flux_upwind)
+#solver = DGSEM(polydeg = 3, surface_flux = Trixi.flux_upwind)
 
 #surface_flux = Trixi.flux_upwind
 #volume_flux  = flux_central
