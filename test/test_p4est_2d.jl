@@ -443,7 +443,7 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_supersonic_cylinder_sc_subcell.jl (local bounds)" begin
+@trixi_testset "elixir_euler_supersonic_cylinder_sc_subcell.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
                         l2=[
@@ -458,49 +458,14 @@ end
                             6.265341002817672,
                             24.077904874883338,
                         ],
-                        tspan=(0.0, 0.02),
-                        skip_coverage=true)
-    if @isdefined sol # Skipped in coverage run
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-        end
-    end
-end
-
-@trixi_testset "elixir_euler_supersonic_cylinder_sc_subcell.jl (global bounds)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_supersonic_cylinder_sc_subcell.jl"),
-                        l2=[
-                            0.13167198973212654,
-                            0.26658859586562494,
-                            0.18186299623323463,
-                            0.9914829475339015,
-                        ],
-                        linf=[
-                            4.329349201376818,
-                            7.932651440186227,
-                            9.793956948717527,
-                            47.76393673962326,
-                        ],
-                        positivity_variables_cons=["rho"],
-                        local_twosided_variables_cons=[],
-                        local_onesided_variables_nonlinear=[],
-                        tspan=(0.0, 0.02),
-                        skip_coverage=true)
-    if @isdefined sol # Skipped in coverage run
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-        end
+                        tspan=(0.0, 0.02))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
