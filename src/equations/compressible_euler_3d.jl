@@ -418,17 +418,18 @@ end
     return SVector(f1, f2, f3, f4, f5)
 end
 
-@inline function flux(u, normal::AbstractVector,
+@inline function flux(u, normal_direction::AbstractVector,
                       equations::CompressibleEulerEquations3D)
     rho_e = last(u)
     rho, v1, v2, v3, p = cons2prim(u, equations)
 
-    v_normal = v1 * normal[1] + v2 * normal[2] + v3 * normal[3]
+    v_normal = v1 * normal_direction[1] + v2 * normal_direction[2] +
+               v3 * normal_direction[3]
     rho_v_normal = rho * v_normal
     f1 = rho_v_normal
-    f2 = rho_v_normal * v1 + p * normal[1]
-    f3 = rho_v_normal * v2 + p * normal[2]
-    f4 = rho_v_normal * v3 + p * normal[3]
+    f2 = rho_v_normal * v1 + p * normal_direction[1]
+    f3 = rho_v_normal * v2 + p * normal_direction[2]
+    f4 = rho_v_normal * v3 + p * normal_direction[3]
     f5 = (rho_e + p) * v_normal
     return SVector(f1, f2, f3, f4, f5)
 end
