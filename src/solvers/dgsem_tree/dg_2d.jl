@@ -117,18 +117,18 @@ function rhs!(du, u, t,
     u_original = similar(u)
     u_original .= u
     u_filter_cons = similar(u)
-    u_filter_prim = similar(u)
+    # u_filter_prim = similar(u)
 
     # calc_entropy_projection!(u, u_original, mesh, equations, dg, cache)
     # calc_filter!(u, u_original, cons2entropy, entropy2cons, mesh, equations, dg, cache)
     # calc_filter!(u, u_original, cons2cons, cons2cons, mesh, equations, dg, cache)
     # calc_filter!(u, u_original, cons2prim, prim2cons, mesh, equations, dg, cache)
     calc_filter!(u_filter_cons, u, cons2cons, cons2cons, mesh, equations, dg, cache)
-    calc_filter!(u_filter_prim, u, cons2prim, prim2cons, mesh, equations, dg, cache)
+    #calc_filter!(u_filter_prim, u, cons2prim, prim2cons, mesh, equations, dg, cache)
 
     u .= u_filter_cons
-    @. u_filter_prim[4, ..] = u_filter_prim[4, ..] - 0.5 * (u_filter_prim[2, ..]^2 + u_filter_prim[3, ..]^2) / u_filter_prim[1, ..]
-    @. u[4, ..] = 0.5 * (u_filter_cons[2, ..]^2 + u_filter_cons[3, ..]^2) / u_filter_cons[1, ..] + u_filter_prim[4, ..]# / (equations.gamma - 1.0)
+    #@. u_filter_prim[4, ..] = u_filter_prim[4, ..] - 0.5 * (u_filter_prim[2, ..]^2 + u_filter_prim[3, ..]^2) / u_filter_prim[1, ..]
+    #@. u[4, ..] = 0.5 * (u_filter_cons[2, ..]^2 + u_filter_cons[3, ..]^2) / u_filter_cons[1, ..] + u_filter_prim[4, ..]# / (equations.gamma - 1.0)
     # @autoinfiltrate
 
     # Reset du
