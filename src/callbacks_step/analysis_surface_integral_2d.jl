@@ -21,16 +21,16 @@ drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil with the b
 name `:Airfoil` in 2D.
 
 - `semi::Semidiscretization`: Passed in to retrieve boundary condition information
-- `boundary_symbols::Tuple{Vararg{Symbol}}`: Name(s) of the boundary/boundaries
+- `boundary_symbols::NTuple{NBoundaries, Symbol}`: Name(s) of the boundary/boundaries
   where the quantity of interest is computed
 - `variable::Variable`: Quantity of interest, like lift or drag
 """
-struct AnalysisSurfaceIntegral{Variable}
+struct AnalysisSurfaceIntegral{Variable, NBoundaries}
     variable::Variable # Quantity of interest, like lift or drag
-    boundary_symbols::Tuple{Vararg{Symbol}} # Name(s) of the boundary/boundaries
+    boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
 
-    function AnalysisSurfaceIntegral(semi, boundary_symbols, variable)
-        return new{typeof(variable)}(variable, boundary_symbols)
+    function AnalysisSurfaceIntegral(semi, boundary_symbols::NTuple{NBoundaries, Symbol}, variable) where NBoundaries
+        return new{typeof(variable), NBoundaries}(variable, boundary_symbols)
     end
 end
 
