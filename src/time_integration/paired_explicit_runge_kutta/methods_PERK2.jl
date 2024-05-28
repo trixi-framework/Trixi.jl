@@ -180,17 +180,25 @@ function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
-mutable struct PairedExplicitRKOptions{Callback}
+mutable struct PairedExplicitRKOptions{Callback, TStops}
     callback::Callback # callbacks; used in Trixi
     adaptive::Bool # whether the algorithm is adaptive
     dtmax::Float64 # ignored
     maxiters::Int # maximal number of time steps
-    tstops::Vector{Float64} # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
+    tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
 end
 
 function PairedExplicitRKOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    PairedExplicitRKOptions{typeof(callback)}(callback, false, Inf, maxiters,
-                                              [last(tspan)])
+    tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
+    # We add last(tspan) to make sure that the time integration stops at the end time
+    push!(tstops_internal, last(tspan))
+    # We add 2 * last(tspan) because add_tstop!(integrator, t) is only called by DiffEqCallbacks.jl if tstops contains a time that is larger than t
+    # (https://github.com/SciML/DiffEqCallbacks.jl/blob/025dfe99029bd0f30a2e027582744528eb92cd24/src/iterative_and_periodic.jl#L92)
+    push!(tstops_internal, 2 * last(tspan))
+    PairedExplicitRKOptions{typeof(callback), typeof(tstops_internal)}(callback,
+                                                                       false, Inf,
+                                                                       maxiters,
+                                                                       tstops_internal)
 end
 
 abstract type PairedExplicitRK end
@@ -420,7 +428,6 @@ end
 # stop the time integration
 function terminate!(integrator::PairedExplicitRK)
     integrator.finalstep = true
-    empty!(integrator.opts.tstops)
 end
 
 """
