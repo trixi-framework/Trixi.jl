@@ -61,7 +61,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
     end
 
     @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl" begin
-        rm("out/deviations.txt", force = true)
+        rm(joinpath("out", "deviations.txt"), force = true)
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_eulermulti_shock_bubble_shockcapturing_subcell_positivity.jl"),
                             l2=[
@@ -80,9 +80,10 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
                             ],
                             initial_refinement_level=3,
                             tspan=(0.0, 0.001),
-                            output_directory="out")
-        lines = readlines("out/deviations.txt")
+                            save_errors=true)
+        lines = readlines(joinpath("out", "deviations.txt"))
         @test lines[1] == "# iter, simu_time, rho1_min, rho2_min"
+        # Runs with and without coverage take 1 and 15 time steps.
         @test startswith(lines[end], "1")
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)

@@ -235,6 +235,38 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_shockcapturing_subcell.jl (fixed time step)" begin
+    # Testing local SSP method without stepsize callback
+    # Additionally, tests combination with SaveSolutionCallback using time interval
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shockcapturing_subcell.jl"),
+                        dt=2.0e-3,
+                        tspan=(0.0, 0.25),
+                        save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8),
+                        callbacks=CallbackSet(summary_callback, save_solution,
+                                              analysis_callback, alive_callback),
+                        l2=[
+                            0.05624855363458103,
+                            0.06931288786158463,
+                            0.06931283188960778,
+                            0.6200535829842072,
+                        ],
+                        linf=[
+                            0.29029967648805566,
+                            0.6494728865862608,
+                            0.6494729363533714,
+                            3.0949621505674787,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         l2=[
@@ -317,16 +349,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
                         l2=[
-                            0.3517507570120483,
-                            0.19252291020146015,
-                            0.19249751956580294,
-                            0.618717827188004,
+                            0.3221177942225801,
+                            0.1798478357478982,
+                            0.1798364616438908,
+                            0.6136884131056267,
                         ],
                         linf=[
-                            1.6699566795772216,
-                            1.3608007992899402,
-                            1.361864507190922,
-                            2.44022884092527,
+                            1.343766644801395,
+                            1.1749593109683463,
+                            1.1747613085307178,
+                            2.4216006041018785,
                         ],
                         tspan=(0.0, 0.5),
                         initial_refinement_level=4,
@@ -368,23 +400,37 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.432804941135901,
-                            0.15009019787510924,
-                            0.15009019787510922,
-                            0.6160764058367757,
+                            0.41444427153173785,
+                            0.1460669409661223,
+                            0.14606693069201596,
+                            0.6168046457461059,
                         ],
                         linf=[
-                            1.6122663996643651,
-                            0.8612394422674909,
-                            0.8612394422674919,
-                            6.449588561676761,
+                            1.5720584643579567,
+                            0.7946656826861964,
+                            0.7946656525739751,
+                            6.455520291414711,
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
+                        coverage_override=(maxiters = 6,),
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] == "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min"
+    cmd = string(Base.julia_cmd())
+    coverage = occursin("--code-coverage", cmd) &&
+               !occursin("--code-coverage=none", cmd)
+    if coverage
+        # Run with coverage takes 6 time steps.
+        @test startswith(lines[end], "6")
+    else
+        # Run without coverage takes 89 time steps.
+        @test startswith(lines[end], "89")
+    end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -582,6 +628,7 @@ end
 end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
                         l2=[
@@ -596,7 +643,13 @@ end
                             0.5822547982757897,
                             0.7300051017382696,
                         ],
-                        tspan=(0.0, 2.0))
+                        tspan=(0.0, 2.0),
+                        coverage_override=(maxiters = 7,),
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
+    # Run without (with) coverage takes 745 (7) time steps
+    @test startswith(lines[end], "7")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

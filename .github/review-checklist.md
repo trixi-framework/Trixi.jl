@@ -19,7 +19,7 @@ This checklist is meant to assist creators of PRs (to let them know what reviewe
 - [ ] Relevant publications are referenced in docstrings (see [example](https://github.com/trixi-framework/Trixi.jl/blob/7f83a1a938eecd9b841efe215a6e482e67cfdcc1/src/equations/compressible_euler_2d.jl#L601-L615) for formatting).
 - [ ] Inline comments are used to document longer or unusual code sections.
 - [ ] Comments describe intent ("why?") and not just functionality ("what?").
-- [ ] If the PR introduces a significant change or new feature, it is documented in `NEWS.md`.
+- [ ] If the PR introduces a significant change or new feature, it is documented in `NEWS.md` with its PR number.
 
 #### Testing
 - [ ] The PR passes all tests.

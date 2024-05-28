@@ -3,6 +3,13 @@ module TestUnit
 using Test
 using Trixi
 
+using DelimitedFiles: readdlm
+
+# Use Convex and ECOS to load the extension that extends functions for testing
+# PERK Single p2 Constructors
+using Convex: Convex
+using ECOS: Optimizer
+
 include("test_trixi.jl")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
@@ -416,8 +423,9 @@ end
     indicator_hg = IndicatorHennemannGassner(1.0, 0.0, true, "variable", "cache")
     @test_nowarn show(stdout, indicator_hg)
 
-    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1, "cache", 1,
-                                    (1.0, 1.0), 1.0)
+    limiter_idp = SubcellLimiterIDP(true, [1], true, [1], ["variable"], 0.1,
+                                    true, [(Trixi.entropy_guermond_etal, min)], "cache",
+                                    1, (1.0, 1.0), 1.0)
     @test_nowarn show(stdout, limiter_idp)
 
     indicator_loehner = IndicatorLöhner(1.0, "variable", (; cache = nothing))
@@ -1431,7 +1439,8 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 1.0),
             SVector(1.5, -0.2, 0.1, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle,
+            flux_hllc, flux_chandrashekar,
         ]
 
         for f_std in fluxes
@@ -1455,7 +1464,8 @@ end
         u_values = [SVector(1.0, 0.5, -0.7, 0.1, 1.0),
             SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
-            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle, flux_hllc,
+            FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle,
+            flux_hllc, flux_chandrashekar,
         ]
 
         for f_std in fluxes
@@ -1629,6 +1639,39 @@ end
     mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = false)
 
     @test mesh.boundary_faces[:entire_boundary] == [1, 2]
+end
+
+@testset "PERK Single p2 Constructors" begin
+    path_coeff_file = mktempdir()
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
+                   joinpath(path_coeff_file, "gamma_6.txt"))
+
+    ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
+
+    @test isapprox(ode_algorithm.a_matrix,
+                   [0.12405417889682908 0.07594582110317093
+                    0.16178873711001726 0.13821126288998273
+                    0.16692313960864164 0.2330768603913584
+                    0.12281292901258256 0.37718707098741744], atol = 1e-13)
+
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/c7a89eaaa857e87dde055f78eae9b94a/raw/2937f8872ffdc08e0dcf444ee35f9ebfe18735b0/Spectrum_2D_IsentropicVortex_CEE.txt",
+                   joinpath(path_coeff_file, "spectrum_2d.txt"))
+
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum_2d.txt"), ComplexF64)
+    tspan = (0.0, 1.0)
+    ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
+
+    @test isapprox(ode_algorithm.a_matrix,
+                   [0.06453812656711647 0.02637096434197444
+                    0.09470601372274887 0.041657622640887494
+                    0.12332877820069793 0.058489403617483886
+                    0.14987015032771522 0.07740257694501203
+                    0.1734211495362651 0.0993061231910076
+                    0.19261978147948638 0.1255620367023318
+                    0.20523340226247055 0.1584029613738931
+                    0.20734890429023528 0.20174200480067384
+                    0.1913514234997008 0.26319403104575373
+                    0.13942836392866081 0.3605716360713392], atol = 1e-13)
 end
 
 @testset "Sutherlands Law" begin

@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -38,25 +37,46 @@ function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEq
 end
 initial_condition = initial_condition_sedov_blast_wave
 
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = (x_neg = boundary_condition,
+                       x_pos = boundary_condition,
+                       y_neg = boundary_condition,
+                       y_pos = boundary_condition)
+
 surface_flux = flux_lax_friedrichs
-volume_flux = flux_chandrashekar
-basis = LobattoLegendreBasis(3)
+volume_flux = flux_ranocha
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
-                                                                       min)])
+                                                                       min)],
+                                max_iterations_newton = 40, # Default value of 10 iterations is too low to fulfill bounds.
+                                positivity_variables_cons = [],
+                                positivity_variables_nonlinear = [])
+# Variables for global limiting (`positivity_variables_cons` and
+# `positivity_variables_nonlinear`) are overwritten and used in the tests.
+
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-2.0, -2.0)
-coordinates_max = (2.0, 2.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
-                n_cells_max = 100_000)
+# Get the curved quad mesh from a mapping function
+# Mapping as described in https://arxiv.org/abs/2012.12040
+function mapping(xi, eta)
+    y = eta + 0.125 * (cos(1.5 * pi * xi) * cos(0.5 * pi * eta))
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+    x = xi + 0.125 * (cos(0.5 * pi * xi) * cos(2 * pi * y))
+
+    return SVector(x, y)
+end
+
+cells_per_dimension = (16, 16)
+mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -66,28 +86,27 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 1000
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 1000,
+save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.6)
+stepsize_callback = StepsizeCallback(cfl = 0.7)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        stepsize_callback,
-                        save_solution)
+                        save_solution,
+                        stepsize_callback)
+
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(),
-                   BoundsCheckCallback(save_errors = false, interval = 100))
-# `interval` is used when calling this elixir in the tests with `save_errors=true`.
+stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
