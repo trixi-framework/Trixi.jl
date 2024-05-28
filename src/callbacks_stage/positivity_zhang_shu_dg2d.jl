@@ -55,12 +55,42 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompr
             factor =1.0/ (eps + dt_)
             eq_relax = equations.equations_relaxation
 
+            # prepare local storage for projection
+            @unpack interpolate_N_to_M, project_M_to_N = dg.basis
+            nnodes_,nnodes_projection = size(project_M_to_N)
+            nVars = nvariables(eq_relax)
+            RealT = real(dg)
+            u_N = zeros(RealT, nVars, nnodes_, nnodes_)
+            f_N = zeros(RealT, nVars, nnodes_, nnodes_)
+            g_N = zeros(RealT, nVars, nnodes_, nnodes_)
+            u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+            f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+            g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+
  @threaded for element in eachelement(dg, cache)
+
+       
+        # get element u_N
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
+            for v in eachvariable(eq_relax)
+              u_N[v,i,j] = u_node[v]
+            end
+        end
 
+        # compute projection of f,g
+        for j in eachnode(dg), i in eachnode(dg)
+          u_cons = u_N[:,i,j]
+          f_N[:,i,j] = flux(u_cons,1,eq_relax)
+          g_N[:,i,j] = flux(u_cons,2,eq_relax)
+        end
+        
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
             # compute compressible Euler fluxes
             u_cons = SVector(u_node[1], u_node[2], u_node[3], u_node[4])
+            #vu = f_N[:,i,j] #flux(u_cons,1,eq_relax)
+            #wu = g_N[:,i,j] #flux(u_cons,2,eq_relax)
             vu = flux(u_cons,1,eq_relax)
             wu = flux(u_cons,2,eq_relax)
             # compute relaxation terms

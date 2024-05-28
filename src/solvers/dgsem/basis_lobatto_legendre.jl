@@ -18,7 +18,9 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
                             VectorT <: AbstractVector{RealT},
                             InverseVandermondeLegendre <: AbstractMatrix{RealT},
                             BoundaryMatrix <: AbstractMatrix{RealT},
-                            DerivativeMatrix <: AbstractMatrix{RealT}} <:
+                            DerivativeMatrix <: AbstractMatrix{RealT},
+                            Matrix_MxN <: AbstractMatrix{RealT},
+                            Matrix_NxM <: AbstractMatrix{RealT}} <:
        AbstractBasisSBP{RealT}
     nodes::VectorT
     weights::VectorT
@@ -32,9 +34,12 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     derivative_split_transpose::DerivativeMatrix # transpose of `derivative_split`
     derivative_dhat::DerivativeMatrix # weak form matrix "dhat",
     # negative adjoint wrt the SBP dot product
+    # L2 projection operators
+    interpolate_N_to_M::Matrix_MxN # interpolates from N nodes to M nodes
+    project_M_to_N::Matrix_NxM # compute projection via Legendre modes, cut off modes at N, back to N nodes
 end
 
-function LobattoLegendreBasis(RealT, polydeg::Integer)
+function LobattoLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integer = 2 * polydeg)
     nnodes_ = polydeg + 1
 
     # compute everything using `Float64` by default
@@ -67,20 +72,33 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
     derivative_dhat = Matrix{RealT}(derivative_dhat_)
 
+    # L2 projection operators
+    nnodes_projection = polydeg_projection + 1
+    nodes_projection, weights_projection = gauss_lobatto_nodes_weights(nnodes_projection)
+    interpolate_N_to_M_ = polynomial_interpolation_matrix(nodes_, nodes_projection) 
+    interpolate_N_to_M = Matrix{RealT}(interpolate_N_to_M_)
+
+    project_M_to_N_ = calc_projection_matrix(nodes_projection, nodes_)
+    project_M_to_N  = Matrix{RealT}(project_M_to_N_)
+
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
                                 typeof(boundary_interpolation),
-                                typeof(derivative_matrix)}(nodes, weights,
-                                                           inverse_weights,
-                                                           inverse_vandermonde_legendre,
-                                                           boundary_interpolation,
-                                                           derivative_matrix,
-                                                           derivative_split,
-                                                           derivative_split_transpose,
-                                                           derivative_dhat)
+                                typeof(derivative_matrix),
+                                typeof(interpolate_N_to_M),
+                                typeof(project_M_to_N)}(nodes, weights,
+                                                        inverse_weights,
+                                                        inverse_vandermonde_legendre,
+                                                        boundary_interpolation,
+                                                        derivative_matrix,
+                                                        derivative_split,
+                                                        derivative_split_transpose,
+                                                        derivative_dhat,
+                                                        interpolate_N_to_M,
+                                                        project_M_to_N)
 end
 
-LobattoLegendreBasis(polydeg::Integer) = LobattoLegendreBasis(Float64, polydeg)
+LobattoLegendreBasis(polydeg::Integer; polydeg_projection::Integer = 2 * polydeg) = LobattoLegendreBasis(Float64, polydeg; polydeg_projection)
 
 function Base.show(io::IO, basis::LobattoLegendreBasis)
     @nospecialize basis # reduce precompilation time
@@ -780,4 +798,21 @@ function vandermonde_legendre(nodes, N)
     return vandermonde, inverse_vandermonde
 end
 vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
+
+function calc_projection_matrix(nodes_in,nodes_out)
+  # nodes_in are size M>N
+  nnodes_in=length(nodes_in)
+  polydeg_in = nnodes_in - 1
+  # nodes_out are size N
+  nnodes_out = length(nodes_out)
+  vandermonde_in,inverse_vandermonde_in = vandermonde_legendre(nodes_in,polydeg_in)
+  filter_matrix = zeros(nnodes_in,nnodes_in)
+  for j in 1:nnodes_out
+    filter_matrix[j,j] = 1
+  end
+  interpolate_M_to_N = polynomial_interpolation_matrix(nodes_in, nodes_out)
+  projection_matrix = interpolate_M_to_N * vandermonde_in * filter_matrix * inverse_vandermonde_in
+  return projection_matrix
+end
+
 end # @muladd
