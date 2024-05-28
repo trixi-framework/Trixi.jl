@@ -7,12 +7,14 @@ for human readability.
 ## Changes in the v0.7 lifecycle
 
 #### Added
-- Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D` and extension
-  to 1D and 3D on `TreeMesh` ([#1855], [#1873]).
+- Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D` and extension to 1D and 3D on `TreeMesh` ([#1855], [#1873]).
 - Implementation of 1D Linearized Euler Equations ([#1867]).
 - New analysis callback for 2D `P4estMesh` to compute integrated quantities along a boundary surface, e.g., pressure lift and drag coefficients ([#1812]).
 - Optional tuple parameter for `GlmSpeedCallback` called `semi_indices` to specify for which semidiscretization of a `SemidiscretizationCoupled` we need to update the GLM speed ([#1835]).
 - Subcell local one-sided limiting support for nonlinear variables in 2D for `TreeMesh` ([#1792]).
+- New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
+  method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#1908])
+- Add subcell limiting support for `StructuredMesh` ([#1946]).
 
 ## Changes when updating to v0.7 from v0.6.x
 
