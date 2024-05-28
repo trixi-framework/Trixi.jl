@@ -235,7 +235,7 @@ function calc_volume_integral!(du, u,
                                volume_integral::VolumeIntegralWeakFormProjection,
                                dg::DGSEM, cache)
     # prepare local storage for projection
-    @unpack interpolate_N_to_M, project_M_to_N = dg.basis
+    @unpack interpolate_N_to_M, project_M_to_N, filter_modal_to_N = dg.basis
     nnodes_,nnodes_projection = size(project_M_to_N)
     nVars = nvariables(equations)
     RealT = real(dg)

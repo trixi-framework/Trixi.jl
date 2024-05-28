@@ -8,9 +8,15 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_weak_blast_wave
 
-volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+#volume_flux = flux_ranocha
+#solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
+#               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+#
+surface_flux = flux_ranocha
+polydeg = 1
+basis = LobattoLegendreBasis(polydeg; polydeg_projection = 4 * polydeg)
+volume_integral = VolumeIntegralWeakFormProjection()
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
