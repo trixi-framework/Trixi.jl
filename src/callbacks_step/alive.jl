@@ -67,8 +67,7 @@ function (alive_callback::AliveCallback)(u, t, integrator)
     #    (total #steps)       (#accepted steps)
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
-    return alive_interval > 0 && ((integrator.stats.naccept % alive_interval == 0 &&
-             !(integrator.stats.naccept == 0 && integrator.iter > 0) &&
+    return alive_interval > 0 && ((integrator.stats.naccept % alive_interval == 0  &&
              (analysis_interval == 0 ||
               integrator.stats.naccept % analysis_interval != 0)) ||
             isfinished(integrator))
