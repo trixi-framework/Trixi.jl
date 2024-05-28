@@ -4,7 +4,6 @@
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
-#! format: off
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes
 function calc_node_coordinates!(node_coordinates,
@@ -44,17 +43,28 @@ function calc_node_coordinates!(node_coordinates,
             t8_element_vertex_reference_coords(eclass_scheme, element, 0,
                                                pointer(element_coords))
 
-            nodes_out_x = (2 * (element_length * 0.5 * (nodes .+ 1) .+ element_coords[1]) .- 1)
-            nodes_out_y = (2 * (element_length * 0.5 * (nodes .+ 1) .+ element_coords[2]) .- 1)
-            nodes_out_z = (2 * (element_length * 0.5 * (nodes .+ 1) .+ element_coords[3]) .- 1)
+            nodes_out_x = (2 *
+                           (element_length * 0.5 * (nodes .+ 1) .+ element_coords[1]) .-
+                           1)
+            nodes_out_y = (2 *
+                           (element_length * 0.5 * (nodes .+ 1) .+ element_coords[2]) .-
+                           1)
+            nodes_out_z = (2 *
+                           (element_length * 0.5 * (nodes .+ 1) .+ element_coords[3]) .-
+                           1)
 
-            polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x, baryweights_in)
-            polynomial_interpolation_matrix!(matrix2, mesh.nodes, nodes_out_y, baryweights_in)
-            polynomial_interpolation_matrix!(matrix3, mesh.nodes, nodes_out_z, baryweights_in)
+            polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x,
+                                             baryweights_in)
+            polynomial_interpolation_matrix!(matrix2, mesh.nodes, nodes_out_y,
+                                             baryweights_in)
+            polynomial_interpolation_matrix!(matrix3, mesh.nodes, nodes_out_z,
+                                             baryweights_in)
 
-            multiply_dimensionwise!(view(node_coordinates, :, :, :, :, current_index += 1),
+            multiply_dimensionwise!(view(node_coordinates, :, :, :, :,
+                                         current_index += 1),
                                     matrix1, matrix2, matrix3,
-                                    view(mesh.tree_node_coordinates, :, :, :, :, global_itree + 1), tmp1)
+                                    view(mesh.tree_node_coordinates, :, :, :, :,
+                                         global_itree + 1), tmp1)
         end
     end
 

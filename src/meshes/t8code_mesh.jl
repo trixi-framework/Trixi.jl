@@ -668,6 +668,8 @@ function T8codeMeshCubedSphere(lat_lon_levels_per_face_dimension, layers, inner_
         boundary_names[5, itree] = :inside
         boundary_names[6, itree] = :outside
     end
+
+    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg)
 end
 
 struct adapt_callback_passthrough
