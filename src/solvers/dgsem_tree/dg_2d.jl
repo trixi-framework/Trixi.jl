@@ -113,6 +113,24 @@ function rhs!(du, u, t,
               mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+    # Copy u for safekeeping
+    #u_original = similar(u)
+    #u_original .= u
+    u_filter_cons = similar(u)
+    u_filter_prim = similar(u)
+
+    # calc_entropy_projection!(u, u_original, mesh, equations, dg, cache)
+    #calc_filter!(u, u, cons2entropy, entropy2cons, mesh, equations, dg, cache)
+    # calc_filter!(u, u, cons2cons, cons2cons, mesh, equations, dg, cache)
+    calc_filter!(u, u, cons2prim, prim2cons, mesh, equations, dg, cache)
+    #calc_filter!(u_filter_cons, u, cons2cons, cons2cons, mesh, equations, dg, cache)
+    #calc_filter!(u_filter_prim, u, cons2prim, prim2cons, mesh, equations, dg, cache)
+
+    #u .= u_filter_cons
+    #@. u_filter_prim[4, ..] = u_filter_prim[4, ..] - 0.5 * (u_filter_prim[2, ..]^2 + u_filter_prim[3, ..]^2) / u_filter_prim[1, ..]
+    #@. u[4, ..] = 0.5 * (u_filter_cons[2, ..]^2 + u_filter_cons[3, ..]^2) / u_filter_cons[1, ..] + u_filter_prim[4, ..]# / (equations.gamma - 1.0)
+    # @autoinfiltrate
+
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
@@ -175,7 +193,86 @@ function rhs!(du, u, t,
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
 
+    # u .= u_original
+
     return nothing
+end
+
+function calc_entropy_projection!(u_projected, u, mesh, equations, dg, cache)
+    # prepare local storage for projection
+    @unpack interpolate_N_to_M, project_M_to_N = dg.basis
+    nnodes_,nnodes_projection = size(project_M_to_N)
+    nVars = nvariables(equations)
+    RealT = real(dg)
+    u_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    w_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+
+    tmp_MxN = zeros(RealT, nVars, nnodes_projection, nnodes_)
+    tmp_NxM = zeros(RealT, nVars, nnodes_, nnodes_projection)
+
+    @threaded for element in eachelement(dg, cache)
+        # get element u_N
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            for v in eachvariable(equations)
+                u_N[v,i,j] = u_node[v]
+            end
+        end
+        # bring elemtn u_N to grid (M+1)x(M+1)
+        multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N,tmp_MxN)
+     
+        # compute nodal values of entropy variables w on the M grid
+        for j in 1:nnodes_projection, i in 1:nnodes_projection
+            u_cons = get_node_vars(u_M, equations, dg, i, j)
+            w_ij   = cons2entropy(u_cons,equations)
+            set_node_vars!(w_M,w_ij,equations,dg,i,j)
+        end
+
+        # compute projection of w with M values down to N
+        multiply_dimensionwise!(w_N, project_M_to_N ,w_M, tmp_NxM)
+     
+        # compute nodal values of conservative variables from the projected entropy variables
+        for j in eachnode(dg), i in eachnode(dg)
+            w_ij = get_node_vars(w_N, equations, dg, i, j)
+            u_cons = entropy2cons(w_ij, equations)
+            set_node_vars!(u_projected, u_cons, equations, dg, i, j, element)
+        end
+    end
+end
+
+function calc_filter!(u_filtered, u, cons2filter, filter2cons, mesh, equations, dg, cache)
+    # prepare local storage for projection
+    @unpack filter_modal_to_cutoff = dg.basis
+    nnodes_ = nnodes(dg)
+    nVars = nvariables(equations)
+    RealT = eltype(u)
+    w_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    w_N_filtered = zeros(RealT, nVars, nnodes_, nnodes_)
+
+    tmp_NxN = zeros(RealT, nVars, nnodes_, nnodes_)
+
+    @threaded for element in eachelement(dg, cache)
+        # convert u to entropy variables
+        for j in eachnode(dg), i in eachnode(dg)
+            u_cons = get_node_vars(u, equations, dg, i, j, element)
+            w_ij   = cons2filter(u_cons, equations)
+            for v in eachvariable(equations)
+                w_N[v,i,j] = w_ij[v]
+            end
+        end
+
+        # filter entropy variables
+        multiply_dimensionwise!(w_N_filtered, filter_modal_to_cutoff, w_N, tmp_NxN)
+     
+        # compute nodal values of conservative variables from the projected entropy variables
+        for j in eachnode(dg), i in eachnode(dg)
+            w_ij = get_node_vars(w_N_filtered, equations, dg, i, j)
+            u_cons = filter2cons(w_ij, equations)
+            set_node_vars!(u_filtered, u_cons, equations, dg, i, j, element)
+        end
+    end
 end
 
 function calc_volume_integral!(du, u,
@@ -235,33 +332,61 @@ function calc_volume_integral!(du, u,
                                volume_integral::VolumeIntegralWeakFormProjection,
                                dg::DGSEM, cache)
     # prepare local storage for projection
-    @unpack interpolate_N_to_M, project_M_to_N = dg.basis
+    @unpack interpolate_N_to_M, project_M_to_N, filter_modal_to_N = dg.basis
     nnodes_,nnodes_projection = size(project_M_to_N)
-    nVars = size(u, 1)
+    nVars = nvariables(equations)
     RealT = real(dg)
-    u_N = zeros(RealT, nVars, nnodes_, nnodes_)
-    w_N = zeros(RealT, nVars, nnodes_, nnodes_)
-    f_N = zeros(RealT, nVars, nnodes_, nnodes_)
-    g_N = zeros(RealT, nVars, nnodes_, nnodes_)
-    u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
-    w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
-    f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
-    g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
-    cache_projection = (; u_N, w_N, f_N, g_N, u_M, w_M, f_M, g_M)
+    u_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
+    w_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
+    f_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
+    g_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
+    u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
+    w_M_raw = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                     
+    w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
+    f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
+    g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
+                                                                                            
+    tmp_MxM = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                     
+    tmp_MxN = zeros(RealT, nVars, nnodes_projection, nnodes_)                               
+    tmp_NxM = zeros(RealT, nVars, nnodes_, nnodes_projection)                               
 
     @threaded for element in eachelement(dg, cache)
-        weak_form_kernel_projection!(du, u, element, mesh,
+        # get element u_N
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            w_ij   = cons2entropy(u_node, equations)
+            for v in eachvariable(equations)
+                w_N[v,i,j] = w_ij[v]
+            end
+        end
+        # bring elemtn u_N to grid (M+1)x(M+1)
+        multiply_dimensionwise!(w_M, interpolate_N_to_M, w_N, tmp_MxN)
+
+        # compute nodal values of conservative f,g on the M grid
+        for j in 1:nnodes_projection, i in 1:nnodes_projection
+            w_ij = get_node_vars(w_M, equations, dg, i, j)
+            u_cons = entropy2cons(w_ij, equations)
+            f_cons = flux(u_cons,1,equations)
+            set_node_vars!(f_M,f_cons,equations,dg,i,j)
+            g_cons = flux(u_cons,2,equations)
+            set_node_vars!(g_M,g_cons,equations,dg,i,j)
+        end
+        # compute projection of f with M values down to N, same for g
+        multiply_dimensionwise!(f_N,project_M_to_N,f_M,tmp_NxM)
+        multiply_dimensionwise!(g_N,project_M_to_N,g_M,tmp_NxM)
+
+        weak_form_kernel_projection!(du, u,f_N, g_N, element, mesh,
                                      nonconservative_terms, equations,
-                                     dg, cache, cache_projection)
+                                     dg, cache)
     end
 
     return nothing
 end
 
-@inline function weak_form_kernel_projection!(du, u,
+@inline function weak_form_kernel_projection!(du, u, f_N, g_N,
                                               element, mesh::TreeMesh{2},
                                               nonconservative_terms::False, equations,
-                                              dg::DGSEM, cache, cache_projection)
+                                              dg::DGSEM, cache)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
     @unpack derivative_dhat = dg.basis
@@ -270,13 +395,13 @@ end
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
-        flux1 = flux(u_node, 1, equations)
+        flux1 = get_node_vars(f_N, equations, dg, i,j)
         for ii in eachnode(dg)
             multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1,
                                        equations, dg, ii, j, element)
         end
 
-        flux2 = flux(u_node, 2, equations)
+        flux2 = get_node_vars(g_N, equations, dg, i,j)
         for jj in eachnode(dg)
             multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux2,
                                        equations, dg, i, jj, element)
@@ -595,7 +720,7 @@ end
 end
 
 function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
+                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG{<:LobattoLegendreBasis})
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -615,6 +740,43 @@ function prolong2interfaces!(cache, u,
             for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg), left_element]
                 interfaces_u[2, v, i, interface] = u[v, i, 1, right_element]
+            end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2interfaces!(cache, u,
+                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG{<:GaussLegendreBasis})
+    @unpack interfaces = cache
+    @unpack orientations, neighbor_ids = interfaces
+    @unpack boundary_interpolation, weights = dg.basis
+    interfaces_u = interfaces.u
+
+    @threaded for interface in eachinterface(dg, cache)
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
+
+        if orientations[interface] == 1
+            # interface in x-direction
+            for j in eachnode(dg), v in eachvariable(equations)
+                interfaces_u[1, v, j, interface] = 0
+                interfaces_u[2, v, j, interface] = 0
+                for ii in eachnode(dg)
+                    interfaces_u[1, v, j, interface] += u[v, ii, j, left_element] * weights[ii] * boundary_interpolation[ii, 2]
+                    interfaces_u[2, v, j, interface] += u[v, ii, j, right_element] * weights[ii] * boundary_interpolation[ii, 1]
+                end
+            end
+        else # if orientations[interface] == 2
+            # interface in y-direction
+            for i in eachnode(dg), v in eachvariable(equations)
+                interfaces_u[1, v, i, interface] = 0
+                interfaces_u[2, v, i, interface] = 0
+                for jj in eachnode(dg)
+                    interfaces_u[1, v, i, interface] += u[v, i, jj, left_element] * weights[jj] * boundary_interpolation[jj, 2]
+                    interfaces_u[2, v, i, interface] += u[v, i, jj, right_element] * weights[jj] * boundary_interpolation[jj, 1]
+                end
             end
         end
     end
@@ -1146,7 +1308,7 @@ function calc_surface_integral!(du, u,
                                 mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                             StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
-                                dg::DG, cache)
+                                dg::DG{<:LobattoLegendreBasis}, cache)
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
@@ -1178,6 +1340,51 @@ function calc_surface_integral!(du, u,
                 du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
                                                  surface_flux_values[v, l, 4, element] *
                                                  factor_2)
+            end
+        end
+    end
+
+    return nothing
+end
+
+function calc_surface_integral!(du, u,
+                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                            StructuredMeshView{2}},
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::DG{<:GaussLegendreBasis}, cache)
+    @unpack boundary_interpolation = dg.basis
+    @unpack surface_flux_values = cache.elements
+
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # Access the factors only once before beginning the loop to increase performance.
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg)
+            for v in eachvariable(equations)
+                for ii in eachnode(dg)
+                    # surface at -x
+                    du[v, ii, l, element] = (du[v, ii, l, element] -
+                                             surface_flux_values[v, l, 1, element] *
+                                             boundary_interpolation[ii, 1])
+
+                    # surface at +x
+                    du[v, ii, l, element] = (du[v, ii, l, element] +
+                                             surface_flux_values[v, l, 2, element] *
+                                             boundary_interpolation[ii, 2])
+                end
+
+                for jj in eachnode(dg)
+                    # surface at -y
+                    du[v, l, jj, element] = (du[v, l, jj, element] -
+                                             surface_flux_values[v, l, 3, element] *
+                                             boundary_interpolation[jj, 1])
+
+                    # surface at +y
+                    du[v, l, jj, element] = (du[v, l, jj, element] +
+                                             surface_flux_values[v, l, 4, element] *
+                                             boundary_interpolation[jj, 2])
+                end
             end
         end
     end

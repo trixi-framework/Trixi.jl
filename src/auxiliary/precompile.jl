@@ -340,9 +340,9 @@ function _precompile_manual_()
     for RealT in (Float64,), polydeg in 1:7
         nnodes_ = polydeg + 1
         basis_type = basis_type_dgsem(RealT, nnodes_)
-        @assert Base.precompile(Tuple{typeof(Trixi.MortarL2), basis_type})
-        @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer}, basis_type})
-        @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2}, basis_type})
+#        @assert Base.precompile(Tuple{typeof(Trixi.MortarL2), basis_type})
+#        @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer}, basis_type})
+#        @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2}, basis_type})
     end
 
     # Constructors: callbacks

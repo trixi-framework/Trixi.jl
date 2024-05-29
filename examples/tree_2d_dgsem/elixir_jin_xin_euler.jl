@@ -30,10 +30,12 @@ end
 #initial_condition = initial_condition_constant
 initial_condition = Trixi.InitialConditionJinXin(initial_condition_kelvin_helmholtz_instability)
 #initial_condition = Trixi.InitialConditionJinXin(initial_condition_density_wave)
-polydeg = 3
-basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg)
+polydeg = 5
+polydeg_cutoff = 3 
+basis = LobattoLegendreBasis(polydeg; polydeg_projection = 1 * polydeg, polydeg_cutoff = polydeg_cutoff)
 # solver = DGSEM(basis, Trixi.flux_upwind)
-solver = DGSEM(basis, Trixi.flux_upwind, VolumeIntegralWeakFormProjection())
+#solver = DGSEM(basis, Trixi.flux_upwind, VolumeIntegralWeakFormProjection())
+solver = DGSEM(basis, Trixi.flux_upwind, VolumeIntegralWeakForm())
 #solver = DGSEM(polydeg = 3, surface_flux = Trixi.flux_upwind)
 
 #surface_flux = Trixi.flux_upwind
