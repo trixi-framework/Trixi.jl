@@ -64,7 +64,7 @@ jobs:
           - threaded
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
@@ -72,7 +72,7 @@ jobs:
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-downgrade-compat@v1
         with:
-          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DiffEqBase
+          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DiffEqBase,DelimitedFiles
           projects: ., test
       - uses: julia-actions/julia-buildpkg@v1
         env:

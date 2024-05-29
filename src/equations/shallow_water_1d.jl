@@ -551,7 +551,7 @@ end
     h = waterheight(u, equations)
     v = velocity(u, equations)
 
-    c = equations.gravity * sqrt(h)
+    c = sqrt(equations.gravity * h)
     return (abs(v) + c,)
 end
 

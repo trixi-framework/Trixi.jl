@@ -99,7 +99,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             save_everystep=false, saveat=visnodes, callback=callbacks);
 
 using Plots
-@gif for step in 1:length(sol.u)
+@gif for step in eachindex(sol.u)
     plot(sol.u[step], semi, ylim=(-1.5, 1.5), legend=true, label="approximation", title="time t=$(round(sol.t[step], digits=5))")
     scatter!([0.0], [sum(boundary_condition(SVector(0.0), sol.t[step], equations))], label="boundary condition")
 end

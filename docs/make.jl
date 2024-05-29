@@ -1,5 +1,6 @@
 using Documenter
 import Pkg
+using Changelog: Changelog
 
 # Fix for https://github.com/trixi-framework/Trixi.jl/issues/668
 if (get(ENV, "CI", nothing) != "true") && (get(ENV, "TRIXI_DOC_DEFAULT_ENVIRONMENT", nothing) != "true")
@@ -69,7 +70,7 @@ files = [
     # Topic: introduction
     "First steps in Trixi.jl" => [
         "Getting started" => ("first_steps", "getting_started.jl"),
-        "Create first setup" => ("first_steps", "create_first_setup.jl"),
+        "Create your first setup" => ("first_steps", "create_first_setup.jl"),
         "Changing Trixi.jl itself" => ("first_steps", "changing_trixi.jl"),
     ],
     "Behind the scenes of a simulation setup" => "behind_the_scenes_simulation_setup.jl",
@@ -77,6 +78,7 @@ files = [
     "Introduction to DG methods" => "scalar_linear_advection_1d.jl",
     "DGSEM with flux differencing" => "DGSEM_FluxDiff.jl",
     "Shock capturing with flux differencing and stage limiter" => "shock_capturing.jl",
+    "Subcell limiting with the IDP Limiter" => "subcell_shock_capturing.jl",
     "Non-periodic boundaries" => "non_periodic_boundaries.jl",
     "DG schemes via `DGMulti` solver" => "DGMulti_1.jl",
     "Other SBP schemes (FD, CGSEM) via `DGMulti` solver" => "DGMulti_2.jl",
@@ -97,6 +99,14 @@ files = [
     "Custom semidiscretizations" => "custom_semidiscretization.jl",
     ]
 tutorials = create_tutorials(files)
+
+# Create changelog
+Changelog.generate(
+    Changelog.Documenter(),                    # output type
+    joinpath(@__DIR__, "..", "NEWS.md"),       # input file
+    joinpath(@__DIR__, "src", "changelog.md"); # output file
+    repo = "trixi-framework/Trixi.jl",         # default repository for links
+)
 
 # Make documentation
 makedocs(
@@ -150,6 +160,7 @@ makedocs(
                         "TrixiBase.jl" => "reference-trixibase.md",
                         "Trixi2Vtk.jl" => "reference-trixi2vtk.md"
                        ],
+        "Changelog" => "changelog.md",
         "Authors" => "authors.md",
         "Contributing" => "contributing.md",
         "Code of Conduct" => "code_of_conduct.md",

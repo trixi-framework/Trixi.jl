@@ -9,11 +9,11 @@
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
 """
     AnalysisCallback(semi; interval=0,
-                           save_analysis=false,
-                           output_directory="out",
-                           analysis_filename="analysis.dat",
-                           extra_analysis_errors=Symbol[],
-                           extra_analysis_integrals=())
+                            save_analysis=false,
+                            output_directory="out",
+                            analysis_filename="analysis.dat",
+                            extra_analysis_errors=Symbol[],
+                            extra_analysis_integrals=())
 
 Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in
@@ -26,8 +26,8 @@ or `extra_analysis_errors = (:conservation_error,)`.
 If you want to omit the computation (to safe compute-time) of the [`default_analysis_errors`](@ref), specify
 `analysis_errors = Symbol[]`.
 Note: `default_analysis_errors` are `:l2_error` and `:linf_error` for all equations.
-If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e., 
-without `:l2_error, :linf_error` you need to specify 
+If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e.,
+without `:l2_error, :linf_error` you need to specify
 `analysis_errors = [:conservation_error]` instead of `extra_analysis_errors = [:conservation_error]`.
 
 Further scalar functions `func` in `extra_analysis_integrals` are applied to the numerical
@@ -119,9 +119,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
     condition = (u, t, integrator) -> interval > 0 &&
-        ((integrator.stats.naccept % interval == 0 &&
-          !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
-         isfinished(integrator))
+        (integrator.stats.naccept % interval == 0 || isfinished(integrator))
 
     analyzer = SolutionAnalyzer(solver; kwargs...)
     cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache,
@@ -634,9 +632,7 @@ pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
 
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
-# precomputed gradients are available. For now only implemented for the `enstrophy`
-#!!! warning "Experimental code"
-#    This code is experimental and may be changed or removed in any future release.
+# precomputed gradients are available.
 function analyze(quantity::typeof(enstrophy), du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
@@ -691,6 +687,23 @@ end # @muladd
 # specialized implementations specific to some solvers
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
+include("analysis_surface_integral_2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
+
+# Special analyze for `SemidiscretizationHyperbolicParabolic` such that
+# precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
+# Note that this needs to be included after `analysis_surface_integral_2d.jl` to
+# have `VariableViscous` available.
+function analyze(quantity::AnalysisSurfaceIntegral{Variable},
+                 du, u, t,
+                 semi::SemidiscretizationHyperbolicParabolic) where {
+                                                                     Variable <:
+                                                                     VariableViscous}
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+            cache_parabolic)
+end
