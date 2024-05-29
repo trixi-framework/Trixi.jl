@@ -312,7 +312,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *
-                    @sprintf("% 14d", nelementsglobal(solver, cache)))
+                    @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
 
         # Level information (only show for AMR)
         print_amr_information(integrator.opts.callback, mesh, solver, cache)

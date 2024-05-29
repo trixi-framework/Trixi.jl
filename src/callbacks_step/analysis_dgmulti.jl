@@ -185,11 +185,11 @@ end
 SolutionAnalyzer(rd::RefElemData) = rd
 
 nelements(mesh::DGMultiMesh, ::DGMulti, other_args...) = mesh.md.num_elements
-function nelementsglobal(::DGMulti, other_args...)
+function nelementsglobal(mesh::DGMultiMesh, solver::DGMulti, cache)
     if mpi_isparallel()
         error("`nelementsglobal` is not implemented for `DGMultiMesh` when used in parallel with MPI")
     else
-        return mesh.md.num_elements
+        return ndofs(mesh, solver, cache)
     end
 end
 function ndofsglobal(mesh::DGMultiMesh, solver::DGMulti, cache)

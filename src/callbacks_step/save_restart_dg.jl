@@ -126,7 +126,7 @@ function save_restart_file_parallel(u, time, dt, timestep,
         attributes(file)["equations"] = get_name(equations)
         attributes(file)["polydeg"] = polydeg(dg)
         attributes(file)["n_vars"] = nvariables(equations)
-        attributes(file)["n_elements"] = nelementsglobal(dg, cache)
+        attributes(file)["n_elements"] = nelementsglobal(mesh, dg, cache)
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
         attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
@@ -239,7 +239,7 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
         if read(attributes(file)["polydeg"]) != polydeg(dg)
             error("restart mismatch: polynomial degree in solver differs from value in restart file")
         end
-        if read(attributes(file)["n_elements"]) != nelementsglobal(dg, cache)
+        if read(attributes(file)["n_elements"]) != nelementsglobal(mesh, dg, cache)
             error("restart mismatch: number of elements in solver differs from value in restart file")
         end
 
