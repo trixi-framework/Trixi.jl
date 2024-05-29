@@ -504,7 +504,8 @@ function print_amr_information(callbacks, mesh, solver, cache)
     end
 
     # Get local element count per level
-    elements_per_level = get_elements_per_level(min_level, max_level, mesh, solver, cache)
+    elements_per_level = get_elements_per_level(min_level, max_level, mesh, solver,
+                                                cache)
 
     # Sum up across all ranks
     MPI.Reduce!(elements_per_level, +, mpi_root(), mpi_comm())
