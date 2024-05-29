@@ -267,7 +267,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     # and the number of local degrees of freedom
     # OBS! This computation must happen *after* the PID computation above, since `take!(...)`
     #      will reset the number of calls to `rhs!`
-    runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofsglobal(semi)
+    runtime_relative = 1.0e-9 * take!(semi.performance_counter) / ndofs(semi)
 
     # Compute the total time spent in garbage collection since the analysis callback has been
     # initialized, in seconds
