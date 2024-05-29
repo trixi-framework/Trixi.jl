@@ -32,12 +32,7 @@ end
 mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/a075f8ec39a67fa9fad8f6f84342cbca/raw/a7206a02ed3a5d3cadacd8d9694ac154f9151db7/square_unstructured_1.inp",
                            joinpath(@__DIR__, "square_unstructured_1.inp"))
 
-# INP mesh files are only support by p4est. Hence, we
-# create a p4est connecvity object first from which
-# we can create a t8code mesh.
-conn = Trixi.read_inp_p4est(mesh_file, Val(2))
-
-mesh = T8codeMesh(conn, polydeg = 3,
+mesh = T8codeMesh(mesh_file, 2; polydeg = 3,
                   mapping = mapping,
                   initial_refinement_level = 1)
 

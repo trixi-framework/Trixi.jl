@@ -225,7 +225,8 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
-export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, T8codeMesh
+export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
+       T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
@@ -306,6 +307,14 @@ function __init__()
     @static if !isdefined(Base, :get_extension)
         @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
             include("../ext/TrixiMakieExt.jl")
+        end
+    end
+
+    @static if !isdefined(Base, :get_extension)
+        @require Convex="f65535da-76fb-5f13-bab9-19810c17039a" begin
+            @require ECOS="e2685f51-7e38-5353-a97d-a921fd2c8199" begin
+                include("../ext/TrixiConvexECOSExt.jl")
+            end
         end
     end
 
