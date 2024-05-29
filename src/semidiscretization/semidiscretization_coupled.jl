@@ -123,6 +123,14 @@ end
     sum(ndofs, semi.semis)
 end
 
+"""
+    ndofsglobal(semi::SemidiscretizationCoupled)
+    
+Return the global number of degrees of freedom associated with each scalar variable across all MPI ranks, and summed up over all coupled systems.
+This is the same as [`ndofs`](@ref) for simulations running in serial or
+parallelized via threads. It will in general be different for simulations
+running in parallel with MPI.
+"""
 @inline function ndofsglobal(semi::SemidiscretizationCoupled)
     sum(ndofsglobal, semi.semis)
 end
