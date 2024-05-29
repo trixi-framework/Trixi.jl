@@ -1,20 +1,30 @@
 
 using OrdinaryDiffEq
 using Trixi
-
+using Random: seed!
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 equations = CompressibleEulerEquations2D(1.4)
 
+seed!(1)
+function initial_condition_random_field(x, t, equations::CompressibleEulerEquations2D)
+amplitude = 1.5
+rho = 2 + amplitude * rand() 
+v1 = -3.1 + amplitude * rand()
+v2 = 1.3 + amplitude * rand() 
+p = 7.54 + amplitude * rand()
+return prim2cons(SVector(rho, v1, v2, p), equations)
+end
 initial_condition = initial_condition_weak_blast_wave
+# initial_condition = initial_condition_random_field
 
 #volume_flux = flux_ranocha
 #solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
 #               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 #
 surface_flux = flux_ranocha
-polydeg = 6
-basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 1)
+polydeg = 11
+basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 3)
 # volume_integral = VolumeIntegralWeakFormProjection()
 volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -47,7 +57,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.1)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
