@@ -516,7 +516,7 @@ function print_amr_information(callbacks, mesh, solver, cache)
                     @sprintf("% 14d", elements_per_level[level + 1 - min_level]))
     end
     mpi_println(" └── level $min_level:    " *
-                @sprintf("% 14d", elements_per_level[min_level + 1 - min_level]))
+                @sprintf("% 14d", elements_per_level[1]))
 
     return nothing
 end
