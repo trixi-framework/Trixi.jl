@@ -1679,19 +1679,22 @@ end
 end
 
 @testset "PERK Single p3 Constructors" begin
-    #TODO: make this a p3 Constructors
     path_coeff_file = mktempdir()
-    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
-                   joinpath(path_coeff_file, "gamma_6.txt"))
+    Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/d55cb5bc1837d40febcf47ff620deb1f23185e15/monomial_coeff_s8_p3.txt",
+                   joinpath(path_coeff_file, "gamma_8.txt"))
 
-    ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
+    ode_algorithm = Trixi.PairedExplicitRK2(8, path_coeff_file)
 
+    #TODO: adjust this value according to the result in the test pipeline
     @test isapprox(ode_algorithm.a_matrix,
-                   [0.12405417889682908 0.07594582110317093
-                    0.16178873711001726 0.13821126288998273
-                    0.16692313960864164 0.2330768603913584
-                    0.12281292901258256 0.37718707098741744], atol = 1e-13)
+                   [0.335517 0.0644832
+                    0.496535 0.103465
+                    0.649689 0.150311
+                    0.789172 0.210828
+                    0.752297 0.247703
+                    0.311926 0.188074], atol = 1e-13)
 
+    #TODO: make this a p3 Constructors
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/c7a89eaaa857e87dde055f78eae9b94a/raw/2937f8872ffdc08e0dcf444ee35f9ebfe18735b0/Spectrum_2D_IsentropicVortex_CEE.txt",
                    joinpath(path_coeff_file, "spectrum_2d.txt"))
 

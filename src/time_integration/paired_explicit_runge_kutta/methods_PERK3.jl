@@ -108,9 +108,9 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
 end
 
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 3
-# using provided file containing A matrix from Butcher-Tableau
+# using provided monomial coefficients file
 function compute_PairedExplicitRK3_butcher_tableau(num_stages,
-                                                   base_path_a_matrix::AbstractString,
+                                                   base_path_monomial_coeffs::AbstractString,
                                                    cS2)
 
     # Initialize array of c
@@ -122,9 +122,9 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     a_matrix = zeros(coeffs_max, 2)
     a_matrix[:, 1] = c[3:end]
 
-    # TODO: update this to work with CI mktempdir()
-    path_monomial_coeffs = base_path_a_matrix * "a_" * string(num_stages) * "_" *
-                           string(num_stages) * ".txt"
+    path_monomial_coeffs = joinpath(base_path_monomial_coeffs,
+                                    "gamma_" * string(num_stages) * ".txt")
+
     @assert isfile(path_monomial_coeffs) "Couldn't find file"
     A = readdlm(path_monomial_coeffs, Float64)
     num_monomial_coeffs = size(A, 1)
@@ -137,7 +137,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
 end
 
 @doc raw"""
-    PairedExplicitRK3(num_stages, base_path_a_matrix::AbstractString,
+    PairedExplicitRK3(num_stages, base_path_monomial_coeffs::AbstractString,
                       dt_opt;
                       cS2 = 1.0)
     PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
@@ -147,9 +147,9 @@ end
 
     Parameters:
     - `num_stages` (`Int`): Number of stages in the PERK method.
-    - `base_path_a_matrix` (`AbstractString`): Path to a file containing 
+    - `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
       monomial coefficients of the stability polynomial of PERK method.
-      The coefficients should be stored in a text file at `joinpath(base_path_a_matrix, "a_$(num_stages).txt")` and separated by line breaks.
+      The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
     -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
