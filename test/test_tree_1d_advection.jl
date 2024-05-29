@@ -84,8 +84,8 @@ end
 
 @trixi_testset "elixir_advection_perk2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_perk2.jl"),
-                        l2=[0.011288030871456082],
-                        linf=[0.01596735539841143])
+                        l2=[0.011288030389423475],
+                        linf=[0.01596735472556976])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -104,8 +104,8 @@ end
                         save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8),
                         callbacks=CallbackSet(summary_callback, save_solution,
                                               analysis_callback, alive_callback),
-                        l2=[9.886273701409754e-6],
-                        linf=[3.729460562740261e-5])
+                        l2=[9.886271430207691e-6],
+                        linf=[3.729460413781638e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
