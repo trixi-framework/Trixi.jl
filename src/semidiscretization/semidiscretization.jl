@@ -18,7 +18,7 @@ end
 """
     ndofsglobal(semi::AbstractSemidiscretization)
 
-Return the global number of degrees of freedom associated with each scalar variable.
+Return the global number of degrees of freedom associated with each scalar variable across all MPI ranks.
 This is the same as [`ndofs`](@ref) for simulations running in serial or
 parallelized via threads. It will in general be different for simulations
 running in parallel with MPI.
