@@ -11,14 +11,18 @@ initial_condition = initial_condition_convergence_test
 
 surface_flux = flux_hllc
 
-basis = LobattoLegendreBasis(3)
-volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+# basis = LobattoLegendreBasis(3)
+# volume_integral = VolumeIntegralPureLGLFiniteVolume(flux_hllc)
+# solver = DGSEM(basis, surface_flux, volume_integral)
+polydeg = 4
+basis = GaussLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 4)
+volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 2,
                 n_cells_max = 10_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -32,7 +36,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 100 * 10
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
@@ -46,7 +50,7 @@ stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
+                        # save_solution,
                         stepsize_callback)
 
 ###############################################################################

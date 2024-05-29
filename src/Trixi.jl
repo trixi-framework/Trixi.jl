@@ -230,7 +230,7 @@ export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMe
        T8codeMesh
 
 export DG,
-       DGSEM, LobattoLegendreBasis,
+       DGSEM, LobattoLegendreBasis, GaussLegendreBasis,
        FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralWeakFormProjection,
