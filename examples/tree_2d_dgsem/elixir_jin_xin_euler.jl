@@ -9,8 +9,9 @@ epsilon_relaxation = 5.0e-6
 a1 = a2 = a3 = a4 = 30.0
 b1 = b2 = b3 = b4 = 30.0
 
-equations_relaxation = CompressibleEulerEquations2D(1.4)
-equations = JinXinCompressibleEulerEquations2D(epsilon_relaxation, a1, a2, a3, a4, b1, b2, b3, b4,equations_relaxation)
+equations_base = CompressibleEulerEquations2D(1.4)
+velocities = (SVector(a1, a2, a3, a4), SVector(b1, b2, b3, b4))
+equations = JinXinEquations(equations_base, epsilon_relaxation, velocities)
 
 function initial_condition_kelvin_helmholtz_instability(x, t, equations::CompressibleEulerEquations2D)
   # change discontinuity to tanh
@@ -24,7 +25,7 @@ function initial_condition_kelvin_helmholtz_instability(x, t, equations::Compres
   v2 = 0.1 * sin(2 * pi * x[1])
   p = 1.0
   return prim2cons(SVector(rho, v1, v2, p), equations)
-end 
+end
 
 #initial_condition = initial_condition_constant
 initial_condition = Trixi.InitialConditionJinXin(initial_condition_kelvin_helmholtz_instability)
@@ -78,11 +79,9 @@ save_solution = SaveSolutionCallback(interval=1000,
 
 stepsize_callback = StepsizeCallback(cfl=0.5)
 
-collision_callback = LBMCollisionCallback()  
-
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,stepsize_callback)#,collision_callback)
+                        save_solution,stepsize_callback)
 
 ###############################################################################
 # run the simulation
