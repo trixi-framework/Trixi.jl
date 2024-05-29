@@ -166,7 +166,8 @@ end
         f_ll_base = get_block_components(u_ll, 2, equations)
         f_rr_base = get_block_components(u_rr, 2, equations)
         dissipation = SVector((sqrt_velocities .* (u_rr_base - u_ll_base))...,
-                              (sqrt_velocities .* (f_rr_base + f_ll_base))...,
+                              #   (sqrt_velocities .* (f_rr_base + f_ll_base))..., @ranocha: is this correct?
+                              (sqrt_velocities .* (f_rr_base - f_ll_base))...,
                               zero(u_ll_base)...)
     else # orientation == 2
         sqrt_velocities = equations.sqrt_velocities[2]
@@ -174,7 +175,8 @@ end
         f_rr_base = get_block_components(u_rr, 3, equations)
         dissipation = SVector((sqrt_velocities .* (u_rr_base - u_ll_base))...,
                               zero(u_ll_base)...,
-                              (sqrt_velocities .* (f_rr_base + f_ll_base))...)
+                              #   (sqrt_velocities .* (f_rr_base + f_ll_base))..., # @ranocha: is this correct?
+                              (sqrt_velocities .* (f_rr_base - f_ll_base))...)
     end
 
     return 0.5f0 * (flux(u_ll, orientation, equations) +
@@ -184,7 +186,8 @@ end
 
 @inline function max_abs_speeds(u, equations::JinXinEquations{2})
     return ntuple(Val(ndims(equations))) do n
-        maximum(equations.sqrt_velocities_inv[n])
+        # maximum(equations.sqrt_velocities_inv[n]) @ranocha: is this correct?
+        maximum(equations.sqrt_velocities[n])
     end
 end
 
