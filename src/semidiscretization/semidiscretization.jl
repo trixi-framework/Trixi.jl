@@ -410,6 +410,7 @@ end
 # TODO: Taal, document interface?
 # New mesh/solver combinations have to implement
 # - ndofs(mesh, solver, cache)
+# - ndofsgloabal(mesh, solver, cache)
 # - ndims(mesh)
 # - nnodes(solver)
 # - real(solver)
