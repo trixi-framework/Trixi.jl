@@ -459,7 +459,7 @@ In particular, not the nodes themselves are returned.
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
 @inline function ndofsglobal(mesh, dg::DG, cache)
-    nelementsglobal(mehs, dg, cache) * nnodes(dg)^ndims(mesh)
+    nelementsglobal(mesh, dg, cache) * nnodes(dg)^ndims(mesh)
 end
 
 """
