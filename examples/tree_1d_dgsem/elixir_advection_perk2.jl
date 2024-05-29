@@ -44,9 +44,15 @@ stepsize_callback = StepsizeCallback(cfl = 2.5)
 
 alive_callback = AliveCallback(alive_interval = analysis_interval)
 
+save_solution = SaveSolutionCallback(dt = 0.1,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
                         alive_callback,
+                        save_solution,
                         analysis_callback,
                         stepsize_callback)
 

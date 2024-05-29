@@ -84,8 +84,8 @@ end
 
 @trixi_testset "elixir_advection_perk2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_perk2.jl"),
-                        l2=[0.014139242834192841],
-                        linf=[0.01999756655819429])
+                        l2=[0.011288030871456082],
+                        linf=[0.01596735539841143])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
