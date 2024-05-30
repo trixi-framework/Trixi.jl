@@ -780,4 +780,22 @@ function vandermonde_legendre(nodes, N)
     return vandermonde, inverse_vandermonde
 end
 vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
+
+function calc_projection_matrix(nodes_in, nodes_out)
+  # nodes_in are size M>N
+  nnodes_in=length(nodes_in)
+  polydeg_in = nnodes_in - 1
+  # nodes_out are size N
+  nnodes_out = length(nodes_out)
+  vandermonde_in,inverse_vandermonde_in = vandermonde_legendre(nodes_in,polydeg_in)
+  filter_matrix = zeros(nnodes_in,nnodes_in)
+  for j in 1:nnodes_out
+    filter_matrix[j,j] = 1
+  end
+  interpolate_M_to_N = polynomial_interpolation_matrix(nodes_in, nodes_out)
+  filter_modal = vandermonde_in * filter_matrix * inverse_vandermonde_in
+  projection_matrix = interpolate_M_to_N * vandermonde_in * filter_matrix * inverse_vandermonde_in
+  return projection_matrix, filter_modal
+end
+
 end # @muladd
