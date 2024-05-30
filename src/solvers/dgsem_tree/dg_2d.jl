@@ -118,11 +118,12 @@ function rhs!(du, u, t,
     #u_original .= u
     u_filter_cons = similar(u)
     u_filter_prim = similar(u)
+    # println("rhs! called")
 
     # calc_entropy_projection!(u, u_original, mesh, equations, dg, cache)
     #calc_filter!(u, u, cons2entropy, entropy2cons, mesh, equations, dg, cache)
     # calc_filter!(u, u, cons2cons, cons2cons, mesh, equations, dg, cache)
-    calc_filter!(u, u, cons2prim, prim2cons, mesh, equations, dg, cache)
+    # calc_filter!(u, u, cons2prim, prim2cons, mesh, equations, dg, cache)
     #calc_filter!(u_filter_cons, u, cons2cons, cons2cons, mesh, equations, dg, cache)
     #calc_filter!(u_filter_prim, u, cons2prim, prim2cons, mesh, equations, dg, cache)
 

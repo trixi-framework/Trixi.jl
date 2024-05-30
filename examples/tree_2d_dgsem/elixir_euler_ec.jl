@@ -23,8 +23,9 @@ initial_condition = initial_condition_random_field
 #               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 #
 surface_flux = flux_ranocha
-polydeg = 31
-basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 3)
+polydeg = 19
+# basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 3)
+basis = GaussLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 3)
 # volume_integral = VolumeIntegralWeakFormProjection()
 volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(basis, surface_flux, volume_integral)
@@ -67,7 +68,13 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+# Create modal filter and filter initial condition
+modal_filter = ModalFilter(solver; polydeg_cutoff = 3,
+                                   cons2filter = cons2prim, filter2cons = prim2cons)
+modal_filter(ode.u0, semi)
+
+# sol = solve(ode, CarpenterKennedy2N54(; williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(; stage_limiter! = modal_filter, williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary
