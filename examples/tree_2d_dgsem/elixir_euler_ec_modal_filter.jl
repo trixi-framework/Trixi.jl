@@ -48,7 +48,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# Create modal filter and filter initial condition
+# Create modal filter and apply to initial condition
 modal_filter = ModalFilter(solver; polydeg_cutoff = 3,
                                    cons2filter = cons2prim, filter2cons = prim2cons)
 modal_filter(ode.u0, semi)

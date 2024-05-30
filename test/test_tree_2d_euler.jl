@@ -189,16 +189,16 @@ end
 @trixi_testset "elixir_euler_ec_modal_filter.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec_modal_filter.jl"),
                         l2=[
-                            0.03268976386040509,
-                            0.025117426148620073,
-                            0.025117426148620076,
-                            0.12080624740825954,
+                            0.0329752143337325,
+                            0.02584183920102259,
+                            0.025841839201022596,
+                            0.12212175031925285,
                         ],
                         linf=[
-                            0.30809238472283074,
-                            0.2546523167993966,
-                            0.25465231679939504,
-                            1.119945041768776,
+                            0.31358990696043687,
+                            0.304202481962901,
+                            0.30420248196290367,
+                            1.1115657230396514,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

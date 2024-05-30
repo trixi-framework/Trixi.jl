@@ -781,21 +781,27 @@ function vandermonde_legendre(nodes, N)
 end
 vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
 
-function calc_projection_matrix(nodes_in, nodes_out)
-  # nodes_in are size M>N
-  nnodes_in=length(nodes_in)
-  polydeg_in = nnodes_in - 1
-  # nodes_out are size N
-  nnodes_out = length(nodes_out)
-  vandermonde_in,inverse_vandermonde_in = vandermonde_legendre(nodes_in,polydeg_in)
-  filter_matrix = zeros(nnodes_in,nnodes_in)
-  for j in 1:nnodes_out
-    filter_matrix[j,j] = 1
-  end
-  interpolate_M_to_N = polynomial_interpolation_matrix(nodes_in, nodes_out)
-  filter_modal = vandermonde_in * filter_matrix * inverse_vandermonde_in
-  projection_matrix = interpolate_M_to_N * vandermonde_in * filter_matrix * inverse_vandermonde_in
-  return projection_matrix, filter_modal
+function calc_modal_filter_matrix(nodes, filter_coefficients)
+    @assert length(nodes) == length(filter_coefficients) "Need same number of nodes and filter coefficients"
+
+    n_nodes = length(nodes)
+    polydeg = n_nodes - 1
+    vandermonde, inverse_vandermonde = vandermonde_legendre(nodes, polydeg)
+
+    filter_matrix = zeros(n_nodes, n_nodes)
+    for j in 1:n_nodes
+        filter_matrix[j, j] = filter_coefficients[j]
+    end
+
+    modal_filter_matrix = vandermonde * filter_matrix * inverse_vandermonde
+    return modal_filter_matrix
+end
+function calc_modal_filter_matrix(nodes, polydeg_cutoff::Integer)
+    filter_coefficients = zeros(length(nodes))
+    for j in 1:(polydeg_cutoff + 1)
+        filter_coefficients[j] = 1
+    end
+    return calc_modal_filter_matrix(nodes, filter_coefficients)
 end
 
 end # @muladd

@@ -15,28 +15,34 @@ The filtering will be done in the filter variables, for which a forward (`cons2f
 reverse (`filter2cons`) transformation is required. By default, the identity transformation
 (`cons2cons`) is used.
 """
-struct ModalFilter{RealT, Cons2Filter, Filter2Cons}
+struct ModalFilter{RealT <: Real, Cons2Filter, Filter2Cons}
     cons2filter::Cons2Filter
     filter2cons::Filter2Cons
     filter_matrix::Matrix{RealT}
 end
 
-function ModalFilter(dg; polydeg_cutoff::Integer, cons2filter = cons2cons,
-                         filter2cons = cons2cons)
-    RealT = real(dg)
-    if dg.basis isa LobattoLegendreBasis
-        nodes_cutoff, _ = gauss_lobatto_nodes_weights(polydeg_cutoff)
-    elseif dg.basis isa GaussLegendreBasis
-        nodes_cutoff, _ = gauss_nodes_weights(polydeg_cutoff)
-    else
-        throw(ArgumentError("Only LobattoLegendreBasis and GaussLegendreBasis are supported."))
+function ModalFilter(dg; filter_coefficients = nothing, polydeg_cutoff = nothing,
+                         cons2filter = cons2cons, filter2cons = cons2cons)
+    # Sanity checks for the input arguments
+    if filter_coefficients !== nothing && polydeg_cutoff !== nothing
+        throw(ArgumentError("Only one of `filter_coefficients` and `polydeg_cutoff` can be specified."))
+    elseif filter_coefficients == nothing && polydeg_cutoff == nothing
+        throw(ArgumentError("Either `filter_coefficients` or `polydeg_cutoff` must be specified."))
     end
-    _, filter_matrix_ = calc_projection_matrix(dg.basis.nodes, nodes_cutoff)
+
+    # Compute the filter matrix
+    if !isnothing(filter_coefficients)
+        filter_matrix_ = calc_modal_filter_matrix(dg.basis.nodes, filter_coefficients)
+    else
+        filter_matrix_ = calc_modal_filter_matrix(dg.basis.nodes, polydeg_cutoff)
+    end
+
+    RealT = real(dg)
     filter_matrix = Matrix{RealT}(filter_matrix_)
 
-    modal_filter = ModalFilter{RealT,
-                               typeof(cons2filter),
-                               typeof(filter2cons)}(cons2filter, filter2cons, filter_matrix)
+    ModalFilter{RealT,
+                typeof(cons2filter),
+                typeof(filter2cons)}(cons2filter, filter2cons, filter_matrix)
 end
 
 # Main function that applies the actual, mesh- and solver-specific filter
