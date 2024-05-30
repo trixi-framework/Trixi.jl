@@ -32,10 +32,10 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLMARS(1.7)
 # polydeg = 3
-polydeg = 10
-basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 3)
+polydeg = 3
+basis = GaussLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 3)
 #indicator_sc = IndicatorHennemannGassner(equations, basis,
 #                                         alpha_max = 0.000,
 #                                         alpha_min = 0.0000,
@@ -45,7 +45,7 @@ basis = LobattoLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_
 #volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 #                                                 volume_flux_dg = volume_flux,
 #                                                 volume_flux_fv = surface_flux)
-# volume_integral = VolumeIntegralWeakFormProjection()
+#volume_integral = VolumeIntegralWeakFormProjection()
 volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(basis, surface_flux, volume_integral)
 
@@ -75,7 +75,10 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      solution_variables = cons2prim)
 
 # stepsize_callback = StepsizeCallback(cfl = 0.5)
-stepsize_callback = StepsizeCallback(cfl = 1.5)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
+
+#stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-4, 5.0e-4),
+#                                                     variables = (Trixi.density, pressure))
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -85,7 +88,9 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+#sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+#sol = solve(ode, SSPRK43(stage_limiter!),
+sol = solve(ode, SSPRK43(),
+            dt = 1.0e-3, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

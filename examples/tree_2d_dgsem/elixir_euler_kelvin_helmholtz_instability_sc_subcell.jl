@@ -32,7 +32,7 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-surface_flux = flux_lax_friedrichs
+surface_flux = flux_hllc
 volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
@@ -48,7 +48,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
+                initial_refinement_level = 6,
                 n_cells_max = 100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 

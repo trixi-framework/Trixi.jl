@@ -34,19 +34,19 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
                 n_cells_max = 30_000)
 
-@info "Create semi..."
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+# @info "Create semi..."
+# semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
-@info "Compute Jacobian..."
-J = jacobian_ad_forward(semi)
+# @info "Compute Jacobian..."
+# J = jacobian_ad_forward(semi)
 
-@info "Compute eigenvalues..."
-λ = eigvals(J)
+# @info "Compute eigenvalues..."
+# λ = eigvals(J)
 
-@info "max real part" maximum(real.(λ))
-# @info "Plot spectrum..."
-# scatter(real.(λ), imag.(λ), label="central flux")
-wololo
+# @info "max real part" maximum(real.(λ))
+# # @info "Plot spectrum..."
+# # scatter(real.(λ), imag.(λ), label="central flux")
+# wololo
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -32,15 +32,15 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-surface_flux = flux_lax_friedrichs
-volume_flux  = flux_central
+surface_flux = flux_hllc
+volume_flux  = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.000,
-                                         alpha_min = 0.0000,
+                                         alpha_max = 0.2,
+                                         alpha_min = 0.0001,
                                          alpha_smooth = true,
-                                         variable = density_pressure)
+                                         variable = Trixi.density)
 
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,
