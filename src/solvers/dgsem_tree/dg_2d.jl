@@ -118,11 +118,12 @@ function rhs!(du, u, t,
     #u_original .= u
     u_filter_cons = similar(u)
     u_filter_prim = similar(u)
+    # println("rhs! called")
 
     # calc_entropy_projection!(u, u_original, mesh, equations, dg, cache)
     #calc_filter!(u, u, cons2entropy, entropy2cons, mesh, equations, dg, cache)
     # calc_filter!(u, u, cons2cons, cons2cons, mesh, equations, dg, cache)
-    calc_filter!(u, u, cons2prim, prim2cons, mesh, equations, dg, cache)
+    # calc_filter!(u, u, cons2prim, prim2cons, mesh, equations, dg, cache)
     #calc_filter!(u_filter_cons, u, cons2cons, cons2cons, mesh, equations, dg, cache)
     #calc_filter!(u_filter_prim, u, cons2prim, prim2cons, mesh, equations, dg, cache)
 
@@ -336,19 +337,19 @@ function calc_volume_integral!(du, u,
     nnodes_,nnodes_projection = size(project_M_to_N)
     nVars = nvariables(equations)
     RealT = real(dg)
-    u_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
-    w_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
-    f_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
-    g_N = zeros(RealT, nVars, nnodes_, nnodes_)                                             
-    u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
-    w_M_raw = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                     
-    w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
-    f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
-    g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                         
-                                                                                            
-    tmp_MxM = zeros(RealT, nVars, nnodes_projection, nnodes_projection)                     
-    tmp_MxN = zeros(RealT, nVars, nnodes_projection, nnodes_)                               
-    tmp_NxM = zeros(RealT, nVars, nnodes_, nnodes_projection)                               
+    u_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    w_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    f_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    g_N = zeros(RealT, nVars, nnodes_, nnodes_)
+    u_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    w_M_raw = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    w_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    f_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    g_M = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+
+    tmp_MxM = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    tmp_MxN = zeros(RealT, nVars, nnodes_projection, nnodes_)
+    tmp_NxM = zeros(RealT, nVars, nnodes_, nnodes_projection)
 
     @threaded for element in eachelement(dg, cache)
         # get element u_N

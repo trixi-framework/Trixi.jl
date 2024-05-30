@@ -47,13 +47,13 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
 
     return nothing
 end
-function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompressibleEulerEquations2D, dg, cache)
+function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinEquations, dg, cache)
 
             # relaxation parameter
             eps = equations.eps_relaxation
             dt_ = dt
             factor =1.0/ (eps + dt_)
-            eq_relax = equations.equations_relaxation
+            eq_relax = equations.equations_base
 
             # prepare local storage for projection
             @unpack interpolate_N_to_M, project_M_to_N, filter_modal_to_N = dg.basis
@@ -76,7 +76,7 @@ function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinCompr
 
  #@threaded for element in eachelement(dg, cache)
   for element in eachelement(dg, cache)
-       
+
         # get element u_N
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
