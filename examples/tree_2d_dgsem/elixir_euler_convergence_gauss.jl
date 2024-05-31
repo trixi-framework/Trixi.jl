@@ -8,7 +8,7 @@ equations = CompressibleEulerEquations2D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-surface_flux = flux_hllc
+surface_flux = flux_lax_friedrichs
 
 polydeg = 3
 basis = GaussLegendreBasis(polydeg)

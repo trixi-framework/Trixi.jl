@@ -15,7 +15,7 @@ for human readability.
 - New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
   method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#1908])
 - Add subcell limiting support for `StructuredMesh` ([#1946]).
-- Add Legendre-Gauss basis for DGSEM and implement solver support for 2D TreeMesh ({#xxxx}).
+- Add Legendre-Gauss basis for DGSEM and implement solver support for 2D TreeMesh ([#1965]).
 
 ## Changes when updating to v0.7 from v0.6.x
 
