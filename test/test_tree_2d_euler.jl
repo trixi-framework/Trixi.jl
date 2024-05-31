@@ -199,7 +199,8 @@ end
                             0.304202481962901,
                             0.30420248196290367,
                             1.1115657230396514,
-                        ])
+                        ],
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

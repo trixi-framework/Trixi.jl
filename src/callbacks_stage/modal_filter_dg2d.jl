@@ -13,7 +13,7 @@ function apply_modal_filter!(u_filtered, u, cons2filter, filter2cons, filter_mat
     tmp = tmp_threaded[Threads.threadid()]
 
     @threaded for element in eachelement(dg, cache)
-        # convert u to filter variables
+        # Convert conservative variables to filter variables
         for j in eachnode(dg), i in eachnode(dg)
             u_node_cons = get_node_vars(u, equations, dg, i, j, element)
             u_node_filter = cons2filter(u_node_cons, equations)
@@ -23,7 +23,7 @@ function apply_modal_filter!(u_filtered, u, cons2filter, filter2cons, filter_mat
         # Apply modal filter
         multiply_dimensionwise!(u_element_filtered, filter_matrix, view(u_filtered, :, :, :, element), tmp)
 
-        # compute nodal values of conservative variables from the projected entropy variables
+        # Convert filter variables to conservative variables
         for j in eachnode(dg), i in eachnode(dg)
             u_node_filter = get_node_vars(u_element_filtered, equations, dg, i, j)
             u_node_cons = filter2cons(u_node_filter, equations)
