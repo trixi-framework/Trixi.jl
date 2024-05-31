@@ -107,10 +107,11 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     return a_matrix, c, dt_opt
 end
 
+#TODO: Correct this and make it actually import A matrix
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 3
 # using provided monomial coefficients file
 function compute_PairedExplicitRK3_butcher_tableau(num_stages,
-                                                   base_path_monomial_coeffs::AbstractString,
+                                                   base_path_a_coeffs::AbstractString;
                                                    cS2)
 
     # Initialize array of c
@@ -122,22 +123,23 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     a_matrix = zeros(coeffs_max, 2)
     a_matrix[:, 1] = c[3:end]
 
-    path_monomial_coeffs = joinpath(base_path_monomial_coeffs,
-                                    "gamma_" * string(num_stages) * ".txt")
+    path_a_coeffs = joinpath(base_path_a_coeffs,
+                                    "a_" * string(num_stages) * "_" * string(num_stages) * ".txt")
 
-    @assert isfile(path_monomial_coeffs) "Couldn't find file"
-    A = readdlm(path_monomial_coeffs, Float64)
-    num_monomial_coeffs = size(A, 1)
+    @assert isfile(path_a_coeffs) "Couldn't find file"
+    A = readdlm(path_a_coeffs, Float64)
+    num_a_coeffs = size(A, 1)
 
-    @assert num_monomial_coeffs == coeffs_max
+    @assert num_a_coeffs == coeffs_max
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
 
     return a_matrix, c
 end
 
+#TODO: explain dt_opt and also explain base_path_a_coeffs in the first constructor
 @doc raw"""
-    PairedExplicitRK3(num_stages, base_path_monomial_coeffs::AbstractString,
+    PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
                       dt_opt;
                       cS2 = 1.0)
     PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
@@ -180,11 +182,11 @@ mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
 end # struct PairedExplicitRK3
 
 # Constructor for previously computed A Coeffs
-function PairedExplicitRK3(num_stages, base_path_a_matrix::AbstractString,
+function PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
                            dt_opt;
                            cS2 = 1.0)
     a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
-                                                            base_path_a_matrix;
+                                                            base_path_a_coeffs;
                                                             cS2)
 
     return PairedExplicitRK3(num_stages, a_matrix, c, dt_opt)
