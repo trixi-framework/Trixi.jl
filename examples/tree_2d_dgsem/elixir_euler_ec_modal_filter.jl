@@ -50,12 +50,13 @@ callbacks = CallbackSet(summary_callback,
 
 # Create modal filter and apply to initial condition
 modal_filter = ModalFilter(solver, equations; polydeg_cutoff = 3,
-                                              cons2filter = cons2prim,
-                                              filter2cons = prim2cons)
+                           cons2filter = cons2prim,
+                           filter2cons = prim2cons)
 modal_filter(ode.u0, semi)
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter! = modal_filter,
-                                      williamson_condition = false),
+sol = solve(ode,
+            CarpenterKennedy2N54(stage_limiter! = modal_filter,
+                                 williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

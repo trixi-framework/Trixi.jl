@@ -21,7 +21,8 @@ function apply_modal_filter!(u_filtered, u, cons2filter, filter2cons, filter_mat
         end
 
         # Apply modal filter
-        multiply_dimensionwise!(u_element_filtered, filter_matrix, view(u_filtered, :, :, :, element), tmp)
+        multiply_dimensionwise!(u_element_filtered, filter_matrix,
+                                view(u_filtered, :, :, :, element), tmp)
 
         # Convert filter variables to conservative variables
         for j in eachnode(dg), i in eachnode(dg)
@@ -35,18 +36,18 @@ end
 # Convenience version that creates all required temporary arrays in a thread-safe manner
 function apply_modal_filter!(u_filtered, u, cons2filter, filter2cons, filter_matrix,
                              mesh::TreeMesh{2}, equations, dg, cache)
-      nnodes_ = nnodes(dg)
-      nvars = nvariables(equations)
-      RealT = eltype(u)
-  
-      A3 = Array{uEltype, 3}
-      u_element_filtered_threaded = A3[A3(undef, nvars, nnodes_, nnodes_)
-                                       for _ in 1:Threads.nthreads()]
-      tmp_threaded = A3[A3(undef, nvars, nnodes_, nnodes_) for _ in 1:Threads.nthreads()]
+    nnodes_ = nnodes(dg)
+    nvars = nvariables(equations)
+    RealT = eltype(u)
 
-      apply_modal_filter!(u_filtered, u, cons2filter, filter2cons, filter_matrix,
-                          mesh::TreeMesh{2}, equations, dg, cache,
-                          u_element_filtered_threaded, tmp_threaded)
+    A3 = Array{uEltype, 3}
+    u_element_filtered_threaded = A3[A3(undef, nvars, nnodes_, nnodes_)
+                                     for _ in 1:Threads.nthreads()]
+    tmp_threaded = A3[A3(undef, nvars, nnodes_, nnodes_) for _ in 1:Threads.nthreads()]
+
+    apply_modal_filter!(u_filtered, u, cons2filter, filter2cons, filter_matrix,
+                        mesh::TreeMesh{2}, equations, dg, cache,
+                        u_element_filtered_threaded, tmp_threaded)
 end
 
 # Convenience version that stores output in the same array as the input
@@ -55,5 +56,4 @@ function apply_modal_filter!(u, cons2filter, filter2cons, filter_matrix,
     apply_modal_filter!(u, u, cons2filter, filter2cons, filter_matrix,
                         mesh::TreeMesh{2}, equations, dg, cache, args...)
 end
-
 end # @muladd

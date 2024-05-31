@@ -782,7 +782,7 @@ end
 vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
 
 function calc_modal_filter_matrix(nodes, filter_coefficients)
-    @assert length(nodes) == length(filter_coefficients) "Need same number of nodes and filter coefficients"
+    @assert length(nodes)==length(filter_coefficients) "Need same number of nodes and filter coefficients"
 
     n_nodes = length(nodes)
     polydeg = n_nodes - 1
@@ -803,5 +803,4 @@ function calc_modal_filter_matrix(nodes, polydeg_cutoff::Integer)
     end
     return calc_modal_filter_matrix(nodes, filter_coefficients)
 end
-
 end # @muladd

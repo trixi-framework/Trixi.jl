@@ -22,8 +22,9 @@ struct ModalFilter{RealT <: Real, Cons2Filter, Filter2Cons, Cache}
     cache::Cache
 end
 
-function ModalFilter(dg, equations; filter_coefficients = nothing, polydeg_cutoff = nothing,
-                                    cons2filter = cons2cons, filter2cons = cons2cons)
+function ModalFilter(dg, equations; filter_coefficients = nothing,
+                     polydeg_cutoff = nothing,
+                     cons2filter = cons2cons, filter2cons = cons2cons)
     # Sanity checks for the input arguments
     if filter_coefficients !== nothing && polydeg_cutoff !== nothing
         throw(ArgumentError("Only one of `filter_coefficients` and `polydeg_cutoff` can be specified."))
@@ -74,7 +75,8 @@ function (modal_filter::ModalFilter)(u_ode, semi::AbstractSemidiscretization)
 end
 
 # This version is called as the stage limiter version of the filter
-function (modal_filter::ModalFilter)(u_ode, integrator, semi::AbstractSemidiscretization, t)
+function (modal_filter::ModalFilter)(u_ode, integrator,
+                                     semi::AbstractSemidiscretization, t)
     modal_filter(u_ode, semi)
 end
 
