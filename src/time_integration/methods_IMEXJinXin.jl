@@ -362,6 +362,7 @@ function cycle_divide!(u,dt,semi,solver,cache,aii,equations,mesh::TreeMesh2D)
          relaxation_rate = equations.eps_relaxation
                 for element in eachelement(solver,cache)
                     factor = inverse_jacobian[element]
+                    factor = 1.0
                     for j in eachnode(solver),i in eachnode(solver)
                         for var in (nvars_base+1):(nvars_base*3)
                         u[var,i,j,element] = u[var,i,j,element]/(1.0+factor*dt/relaxation_rate*aii)    
@@ -379,6 +380,7 @@ function cycle_divide!(u,dt,semi,solver,cache,aii,equations,mesh::TreeMesh1D)
          relaxation_rate = equations.eps_relaxation
                 for element in eachelement(solver,cache)
                     factor = inverse_jacobian[element]
+                    factor = 1.0
                     for i in eachnode(solver)
                         for var in (nvars_base+1):(nvars_base*2)
                         u[var,i,element] = u[var,i,element]/(1.0+factor*dt/relaxation_rate*aii)    
@@ -404,6 +406,7 @@ function set_cons_var_to_zero!(u,semi,solver,cache,equations, mesh::TreeMesh2D)
     @unpack inverse_jacobian = cache.elements
                 for element in eachelement(solver, cache)    
                     factor = inverse_jacobian[element]
+                    factor = 1.0
                     for j in eachnode(solver), i in eachnode(solver)
                         for var in 1:nvars_base
                            u_wrap[var,i,j,element] = 0.0
@@ -423,6 +426,7 @@ function set_cons_var_to_zero!(u,semi,solver,cache,equations, mesh::TreeMesh1D)
     @unpack inverse_jacobian = cache.elements
                 for element in eachelement(solver, cache)    
                     factor = inverse_jacobian[element]
+                    factor = 1.0
                     for i in eachnode(solver)
                         for var in 1:nvars_base
                            u_wrap[var,i,element] = 0.0
@@ -466,6 +470,7 @@ function perform_projection_sourceterm!(u, dt, mesh::TreeMesh1D, equations::JinX
 for element in eachelement(dg, cache)
 
                     factor = inverse_jacobian[element]
+                    factor = 1.0
 # get element u_N
 for i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, element)
@@ -551,6 +556,7 @@ function perform_projection_sourceterm!(u, dt, mesh::TreeMesh2D, equations::JinX
 for element in eachelement(dg, cache)
 
                     factor = inverse_jacobian[element]
+                    factor = 1.0
 # get element u_N
 for j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, element)
