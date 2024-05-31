@@ -538,7 +538,8 @@ end
 end
 
 function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG)
+                             mesh::TreeMesh{2}, equations,
+                             surface_integral, dg::DG{<:LobattoLegendreBasis})
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -558,6 +559,44 @@ function prolong2interfaces!(cache, u,
             for i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg), left_element]
                 interfaces_u[2, v, i, interface] = u[v, i, 1, right_element]
+            end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2interfaces!(cache, u,
+                             mesh::TreeMesh{2}, equations,
+                             surface_integral, dg::DG{<:GaussLegendreBasis})
+    @unpack interfaces = cache
+    @unpack orientations, neighbor_ids = interfaces
+    @unpack boundary_interpolation, weights = dg.basis
+    interfaces_u = interfaces.u
+
+    @threaded for interface in eachinterface(dg, cache)
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
+
+        if orientations[interface] == 1
+            # interface in x-direction
+            for j in eachnode(dg), v in eachvariable(equations)
+                interfaces_u[1, v, j, interface] = 0
+                interfaces_u[2, v, j, interface] = 0
+                for ii in eachnode(dg)
+                    interfaces_u[1, v, j, interface] += u[v, ii, j, left_element] * weights[ii] * boundary_interpolation[ii, 2]
+                    interfaces_u[2, v, j, interface] += u[v, ii, j, right_element] * weights[ii] * boundary_interpolation[ii, 1]
+                end
+            end
+        else # if orientations[interface] == 2
+            # interface in y-direction
+            for i in eachnode(dg), v in eachvariable(equations)
+                interfaces_u[1, v, i, interface] = 0
+                interfaces_u[2, v, i, interface] = 0
+                for jj in eachnode(dg)
+                    interfaces_u[1, v, i, interface] += u[v, i, jj, left_element] * weights[jj] * boundary_interpolation[jj, 2]
+                    interfaces_u[2, v, i, interface] += u[v, i, jj, right_element] * weights[jj] * boundary_interpolation[jj, 1]
+                end
             end
         end
     end
@@ -1089,7 +1128,7 @@ function calc_surface_integral!(du, u,
                                 mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                             StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
-                                dg::DG, cache)
+                                dg::DG{<:LobattoLegendreBasis}, cache)
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
@@ -1121,6 +1160,51 @@ function calc_surface_integral!(du, u,
                 du[v, l, nnodes(dg), element] = (du[v, l, nnodes(dg), element] +
                                                  surface_flux_values[v, l, 4, element] *
                                                  factor_2)
+            end
+        end
+    end
+
+    return nothing
+end
+
+function calc_surface_integral!(du, u,
+                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                            StructuredMeshView{2}},
+                                equations, surface_integral::SurfaceIntegralWeakForm,
+                                dg::DG{<:GaussLegendreBasis}, cache)
+    @unpack boundary_interpolation = dg.basis
+    @unpack surface_flux_values = cache.elements
+
+    # Note that all fluxes have been computed with outward-pointing normal vectors.
+    # Access the factors only once before beginning the loop to increase performance.
+    # We also use explicit assignments instead of `+=` to let `@muladd` turn these
+    # into FMAs (see comment at the top of the file).
+    @threaded for element in eachelement(dg, cache)
+        for l in eachnode(dg)
+            for v in eachvariable(equations)
+                for ii in eachnode(dg)
+                    # surface at -x
+                    du[v, ii, l, element] = (du[v, ii, l, element] -
+                                             surface_flux_values[v, l, 1, element] *
+                                             boundary_interpolation[ii, 1])
+
+                    # surface at +x
+                    du[v, ii, l, element] = (du[v, ii, l, element] +
+                                             surface_flux_values[v, l, 2, element] *
+                                             boundary_interpolation[ii, 2])
+                end
+
+                for jj in eachnode(dg)
+                    # surface at -y
+                    du[v, l, jj, element] = (du[v, l, jj, element] -
+                                             surface_flux_values[v, l, 3, element] *
+                                             boundary_interpolation[jj, 1])
+
+                    # surface at +y
+                    du[v, l, jj, element] = (du[v, l, jj, element] +
+                                             surface_flux_values[v, l, 4, element] *
+                                             boundary_interpolation[jj, 2])
+                end
             end
         end
     end
