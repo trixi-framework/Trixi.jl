@@ -584,8 +584,12 @@ function prolong2interfaces!(cache, u,
                 interfaces_u[1, v, j, interface] = 0
                 interfaces_u[2, v, j, interface] = 0
                 for ii in eachnode(dg)
-                    interfaces_u[1, v, j, interface] += u[v, ii, j, left_element] * weights[ii] * boundary_interpolation[ii, 2]
-                    interfaces_u[2, v, j, interface] += u[v, ii, j, right_element] * weights[ii] * boundary_interpolation[ii, 1]
+                    interfaces_u[1, v, j, interface] += (u[v, ii, j, left_element] *
+                                                         weights[ii] *
+                                                         boundary_interpolation[ii, 2])
+                    interfaces_u[2, v, j, interface] += (u[v, ii, j, right_element] *
+                                                         weights[ii] *
+                                                         boundary_interpolation[ii, 1])
                 end
             end
         else # if orientations[interface] == 2
@@ -594,8 +598,12 @@ function prolong2interfaces!(cache, u,
                 interfaces_u[1, v, i, interface] = 0
                 interfaces_u[2, v, i, interface] = 0
                 for jj in eachnode(dg)
-                    interfaces_u[1, v, i, interface] += u[v, i, jj, left_element] * weights[jj] * boundary_interpolation[jj, 2]
-                    interfaces_u[2, v, i, interface] += u[v, i, jj, right_element] * weights[jj] * boundary_interpolation[jj, 1]
+                    interfaces_u[1, v, i, interface] += (u[v, i, jj, left_element] *
+                                                         weights[jj] *
+                                                         boundary_interpolation[jj, 2])
+                    interfaces_u[2, v, i, interface] += (u[v, i, jj, right_element] *
+                                                         weights[jj] *
+                                                         boundary_interpolation[jj, 1])
                 end
             end
         end

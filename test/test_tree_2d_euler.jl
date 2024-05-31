@@ -72,7 +72,7 @@ end
                             3.0838770959107364e-6,
                             1.2983713667757968e-5,
                         ],
-                        tspan = (0.0, 0.1))
+                        tspan=(0.0, 0.1))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

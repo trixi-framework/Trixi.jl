@@ -64,16 +64,16 @@ function GaussLegendreBasis(RealT, polydeg::Integer)
     derivative_dhat = Matrix{RealT}(derivative_dhat_)
 
     return GaussLegendreBasis{RealT, nnodes_, typeof(nodes),
-                                typeof(inverse_vandermonde_legendre),
-                                typeof(boundary_interpolation),
-                                typeof(derivative_matrix)}(nodes, weights,
-                                                           inverse_weights,
-                                                           inverse_vandermonde_legendre,
-                                                           boundary_interpolation,
-                                                           derivative_matrix,
-                                                           derivative_split,
-                                                           derivative_split_transpose,
-                                                           derivative_dhat)
+                              typeof(inverse_vandermonde_legendre),
+                              typeof(boundary_interpolation),
+                              typeof(derivative_matrix)}(nodes, weights,
+                                                         inverse_weights,
+                                                         inverse_vandermonde_legendre,
+                                                         boundary_interpolation,
+                                                         derivative_matrix,
+                                                         derivative_split,
+                                                         derivative_split_transpose,
+                                                         derivative_dhat)
 end
 
 GaussLegendreBasis(polydeg::Integer) = GaussLegendreBasis(Float64, polydeg)
@@ -83,6 +83,7 @@ function Base.show(io::IO, basis::GaussLegendreBasis)
 
     print(io, "GaussLegendreBasis{", real(basis), "}(polydeg=", polydeg(basis), ")")
 end
+
 function Base.show(io::IO, ::MIME"text/plain", basis::GaussLegendreBasis)
     @nospecialize basis # reduce precompilation time
 
@@ -106,8 +107,7 @@ end
 
 @inline Base.real(basis::GaussLegendreBasis{RealT}) where {RealT} = RealT
 
-@inline function nnodes(basis::GaussLegendreBasis{RealT, NNODES}) where {RealT, NNODES
-                                                                           }
+@inline function nnodes(basis::GaussLegendreBasis{RealT, NNODES}) where {RealT, NNODES}
     NNODES
 end
 
@@ -148,8 +148,8 @@ left_boundary_weight(basis::GaussLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::GaussLegendreBasis) = last(basis.weights)
 
 struct GaussLegendreAnalyzer{RealT <: Real, NNODES,
-                               VectorT <: AbstractVector{RealT},
-                               Vandermonde <: AbstractMatrix{RealT}} <:
+                             VectorT <: AbstractVector{RealT},
+                             Vandermonde <: AbstractMatrix{RealT}} <:
        SolutionAnalyzer{RealT}
     nodes::VectorT
     weights::VectorT
@@ -183,6 +183,7 @@ function Base.show(io::IO, analyzer::GaussLegendreAnalyzer)
     print(io, "GaussLegendreAnalyzer{", real(analyzer), "}(polydeg=",
           polydeg(analyzer), ")")
 end
+
 function Base.show(io::IO, ::MIME"text/plain", analyzer::GaussLegendreAnalyzer)
     @nospecialize analyzer # reduce precompilation time
 
@@ -193,9 +194,10 @@ end
 @inline Base.real(analyzer::GaussLegendreAnalyzer{RealT}) where {RealT} = RealT
 
 @inline function nnodes(analyzer::GaussLegendreAnalyzer{RealT, NNODES}) where {RealT,
-                                                                                 NNODES}
+                                                                               NNODES}
     NNODES
 end
+
 """
     eachnode(analyzer::GaussLegendreAnalyzer)
 
@@ -206,5 +208,4 @@ In particular, not the nodes themselves are returned.
 @inline eachnode(analyzer::GaussLegendreAnalyzer) = Base.OneTo(nnodes(analyzer))
 
 @inline polydeg(analyzer::GaussLegendreAnalyzer) = nnodes(analyzer) - 1
-
 end # @muladd
