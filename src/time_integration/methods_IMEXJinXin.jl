@@ -250,8 +250,7 @@ function solve!(integrator::SimpleIntegratorIMEX)
                 #Ui = (ui;vi)
                 #u1 = un
                 #v1 = vn - -dt/epsilon A2_{11} (v1 - f(u1)) 
-                
-              @.  integrator.u1 .= integrator.u  #u1 = v1 = un
+              @. integrator.u1 .= integrator.u  #u1 = v1 = un
                 
               @. integrator.fu1 .= integrator.u1
                  wrap_and_perform_projection!(integrator.fu1,integrator.dt,mesh,equations,solver,cache)  # compute f(u1)
@@ -274,7 +273,7 @@ function solve!(integrator::SimpleIntegratorIMEX)
                 wrap_and_perform_projection!(integrator.fu2,integrator.dt,mesh,equations,solver,cache) # compute f(u2) and setting the source term values to 0 for the cons variables
                 
                 @. integrator.u_tmp1 = integrator.u1
-                set_cons_var_to_zero!(integrator.u_tmp1,semi,solver,cache) # computing v1 by setting cons variables to 0
+                set_cons_var_to_zero!(integrator.u_tmp1,semi,solver,cache,equations) # computing v1 by setting cons variables to 0
 
                 # v2 = vn - dt/eps*A2_21*(v1-f(u1)) + dt/eps*A2_22*f(u2)
                 @. integrator.u2 = integrator.u2 - integrator.dt/relaxation_rate*alg.A2[2,1]*(integrator.u_tmp1 - integrator.fu1) + integrator.dt*alg.A2[2,2]/relaxation_rate*integrator.fu2
@@ -295,7 +294,7 @@ function solve!(integrator::SimpleIntegratorIMEX)
                 #  set_cons_var_to_zero!(integrator.u_tmp1,semi,solver,cache)
 
                 @. integrator.u_tmp2 = integrator.u2
-                set_cons_var_to_zero!(integrator.u_tmp2,semi,solver,cache)
+                set_cons_var_to_zero!(integrator.u_tmp2,semi,solver,cache,equations)
 
                 @. integrator.u3 = integrator.u3 - integrator.dt/relaxation_rate*alg.A2[3,1]*(integrator.u_tmp1 - integrator.fu1) - integrator.dt/relaxation_rate*alg.A2[3,2]*(integrator.u_tmp2 - integrator.fu2) + integrator.dt*alg.A2[3,3]/relaxation_rate*integrator.fu3
                 
@@ -312,10 +311,10 @@ function solve!(integrator::SimpleIntegratorIMEX)
                 @. integrator.u_tmp3 = integrator.u3
                 # set_cons_var_to_zero!(integrator.u_tmp1,semi,solver,cache)
                 # set_cons_var_to_zero!(integrator.u_tmp2,semi,solver,cache)
-                set_cons_var_to_zero!(integrator.u_tmp3,semi,solver,cache)
+                set_cons_var_to_zero!(integrator.u_tmp3,semi,solver,cache,equations)
 
                 @. integrator.u = integrator.u - integrator.dt/relaxation_rate*alg.b[1]*(integrator.u_tmp1 - integrator.fu1) - integrator.dt/relaxation_rate*alg.b[2]*(integrator.u_tmp2 - integrator.fu2) - integrator.dt*alg.b[3]/relaxation_rate*(integrator.u_tmp3 - integrator.fu3)
-             # End Stages   
+                # End Stages   
           #  for stage_callback in alg.stage_callbacks
           #      stage_callback(integrator.u, integrator, 1)
           #  end
@@ -359,11 +358,12 @@ end
 
 function cycle_divide!(u,dt,semi,solver,cache,aii,equations)
     @unpack inverse_jacobian = cache.elements
+                nvars_base = nvariables(equations.equations_base)
          relaxation_rate = equations.eps_relaxation
                 for element in eachelement(solver,cache)
                     factor = inverse_jacobian[element]
                     for j in eachnode(solver),i in eachnode(solver)
-                        for var in 5:12
+                        for var in (nvars_base+1):(nvars_base*3)
                         u[var,i,j,element] = u[var,i,j,element]/(1.0+factor*dt/relaxation_rate*aii)    
                         end
                     end
@@ -381,16 +381,17 @@ function wrap_and_perform_projection!(u,dt,mesh,equations,solver,cache)
 end
 
 
-function set_cons_var_to_zero!(u,semi,solver,cache)
+function set_cons_var_to_zero!(u,semi,solver,cache,equations)
                 u_wrap = Trixi.wrap_array(u,semi)
+                nvars_base = nvariables(equations.equations_base)
     @unpack inverse_jacobian = cache.elements
                 for element in eachelement(solver, cache)    
                     factor = inverse_jacobian[element]
                     for j in eachnode(solver), i in eachnode(solver)
-                        for var in 1:4
+                        for var in 1:nvars_base
                            u_wrap[var,i,j,element] = 0.0
                         end
-                        for var in 5:12
+                        for var in (nvars_base+1):(nvars_base*3)
                            u_wrap[var,i,j,element] *= factor 
                         end
                     end
@@ -478,25 +479,19 @@ multiply_dimensionwise!(g_N,project_M_to_N,g_M,tmp_NxM)
         # compute compressible Euler fluxes
         vu = get_node_vars(f_N,eq_relax,dg,i,j)
         wu = get_node_vars(g_N,eq_relax,dg,i,j)
-        # compute relaxation terms
-        du1 = 0.0
-        du2 = 0.0
-        du3 = 0.0
-        du4 = 0.0
-        du5 = vu[1]
-        du6 = vu[2]
-        du7 = vu[3]
-        du8 = vu[4]
-        du9 = wu[1]
-        du10= wu[2]
-        du11= wu[3]
-        du12= wu[4]
-        new_u = factor*SVector(du1, du2, du3, du4, du5, du6, du7, du8, du9, du10, du11, du12)
+        u_base = get_block_components2(u_node, 1, equations)
+        new_u = factor*SVector(zero(u_node)..., vu..., wu...)
         set_node_vars!(u, new_u, equations, dg, i, j, element)
     end
 end
 return nothing
 end
+
+function get_block_components2(u, n, equations::JinXinEquations)
+    nvars_base = nvariables(equations.equations_base)
+    return SVector(ntuple(i -> u[i + (n - 1) * nvars_base], Val(nvars_base)))
+end
+
 
 # get a cache where the RHS can be stored
 get_du(integrator::SimpleIntegratorIMEX) = integrator.du

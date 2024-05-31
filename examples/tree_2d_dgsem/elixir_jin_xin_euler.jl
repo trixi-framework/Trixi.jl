@@ -1,11 +1,10 @@
-
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-epsilon_relaxation = 1.0e-8
+epsilon_relaxation = 1.0e-6
 a1 = a2 = a3 = a4 = 30.0
 b1 = b2 = b3 = b4 = 30.0
 
@@ -61,7 +60,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)#
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.0)
+tspan = (0.0, 3.6)
 #tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
@@ -77,7 +76,7 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.01)
+stepsize_callback = StepsizeCallback(cfl=0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
