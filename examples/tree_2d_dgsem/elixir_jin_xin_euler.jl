@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-epsilon_relaxation = 1.0e-6
+epsilon_relaxation = 1.0e-8
 a1 = a2 = a3 = a4 = 30.0
 b1 = b2 = b3 = b4 = 30.0
 
@@ -61,7 +61,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)#
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 3.7)
+tspan = (0.0, 0.0)
 #tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
@@ -77,7 +77,7 @@ save_solution = SaveSolutionCallback(interval=1000,
                                      save_final_solution=true,
                                      solution_variables=cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl=0.5)
+stepsize_callback = StepsizeCallback(cfl=0.01)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -89,7 +89,8 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6)
                                                      variables=(Trixi.density, pressure))
 
 #sol = solve(ode, CarpenterKennedy2N54(stage_limiter!,williamson_condition=false),
-sol = solve(ode, SSPRK43(stage_limiter!),
+#sol = solve(ode, SSPRK43(stage_limiter!),
+sol = Trixi.solve(ode, Trixi.SimpleIMEX(),
 #sol = solve(ode, SSPRK33(stage_limiter!),
 #sol = solve(ode, RDPK3SpFSAL49(),
 #sol = solve(ode, AutoTsit5(Rosenbrock23()),

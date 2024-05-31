@@ -358,12 +358,13 @@ function divide_relaxed_var!(u,dt,semi,solver,cache,aii,equations)
 end
 
 function cycle_divide!(u,dt,semi,solver,cache,aii,equations)
-
+    @unpack inverse_jacobian = cache.elements
          relaxation_rate = equations.eps_relaxation
                 for element in eachelement(solver,cache)
+                    factor = inverse_jacobian[element]
                     for j in eachnode(solver),i in eachnode(solver)
                         for var in 5:12
-                        u[var,i,j,element] = u[var,i,j,element]/(1.0+dt/relaxation_rate*aii)    
+                        u[var,i,j,element] = u[var,i,j,element]/(1.0+factor*dt/relaxation_rate*aii)    
                         end
                     end
                 end
@@ -382,11 +383,16 @@ end
 
 function set_cons_var_to_zero!(u,semi,solver,cache)
                 u_wrap = Trixi.wrap_array(u,semi)
+    @unpack inverse_jacobian = cache.elements
                 for element in eachelement(solver, cache)    
+                    factor = inverse_jacobian[element]
                     for j in eachnode(solver), i in eachnode(solver)
                         for var in 1:4
-                u_wrap[var,i,j,element] = 0.0
-                        end        
+                           u_wrap[var,i,j,element] = 0.0
+                        end
+                        for var in 5:12
+                           u_wrap[var,i,j,element] *= factor 
+                        end
                     end
                 end
     return nothing
@@ -397,9 +403,9 @@ function perform_projection_sourceterm!(u, dt, mesh::TreeMesh2D, equations::JinX
     # relaxation parameter
     eps = equations.eps_relaxation
     dt_ = dt
-    factor =1.0/ (eps + dt_)
     eq_relax = equations.equations_base
 
+    @unpack inverse_jacobian = cache.elements
     # prepare local storage for projection
     @unpack interpolate_N_to_M, project_M_to_N, filter_modal_to_N = dg.basis
     nnodes_,nnodes_projection = size(project_M_to_N)
@@ -422,6 +428,7 @@ function perform_projection_sourceterm!(u, dt, mesh::TreeMesh2D, equations::JinX
 #@threaded for element in eachelement(dg, cache)
 for element in eachelement(dg, cache)
 
+                    factor = inverse_jacobian[element]
 # get element u_N
 for j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -484,7 +491,7 @@ multiply_dimensionwise!(g_N,project_M_to_N,g_M,tmp_NxM)
         du10= wu[2]
         du11= wu[3]
         du12= wu[4]
-        new_u = SVector(du1, du2, du3, du4, du5, du6, du7, du8, du9, du10, du11, du12)
+        new_u = factor*SVector(du1, du2, du3, du4, du5, du6, du7, du8, du9, du10, du11, du12)
         set_node_vars!(u, new_u, equations, dg, i, j, element)
     end
 end
