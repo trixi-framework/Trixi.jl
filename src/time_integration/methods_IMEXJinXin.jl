@@ -257,7 +257,7 @@ function solve!(integrator::SimpleIntegratorIMEX)
 
               @. integrator.u1 = integrator.u1 + integrator.dt/relaxation_rate*alg.A2[1,1]*integrator.fu1 # v1 = vn + dt/eps*A2_11 f(u1)
                 
-                divide_relaxed_var!(integrator.u1,integrator.dt,semi,solver,cache,alg.A2[1,1],equations)  # v1 = (vn + dt/eps*A2_11 f(u1))/(1 + dt/eps A2_11)
+                divide_relaxed_var!(integrator.u1,integrator.dt,semi,solver,cache,alg.A2[1,1],equations,mesh)  # v1 = (vn + dt/eps*A2_11 f(u1))/(1 + dt/eps A2_11)
                
                 integrator.f(integrator.du1, integrator.u1, integrator.p, t_stage) # compute RHS(u1,v1)
 
@@ -267,25 +267,25 @@ function solve!(integrator::SimpleIntegratorIMEX)
                 
                 t_stage = integrator.t + integrator.dt * alg.c1[2]
            
-                @. integrator.u2 = integrator.u - integrator.dt*alg.A1[2,1]*integrator.du1 # u2 = v2 = Un - dt*A1_22 RHS(U1)
+                @. integrator.u2 = integrator.u + integrator.dt*alg.A1[2,1]*integrator.du1 # u2 = v2 = Un - dt*A1_22 RHS(U1)
 
                 @. integrator.fu2 = integrator.u2
                 wrap_and_perform_projection!(integrator.fu2,integrator.dt,mesh,equations,solver,cache) # compute f(u2) and setting the source term values to 0 for the cons variables
                 
                 @. integrator.u_tmp1 = integrator.u1
-                set_cons_var_to_zero!(integrator.u_tmp1,semi,solver,cache,equations) # computing v1 by setting cons variables to 0
+                set_cons_var_to_zero!(integrator.u_tmp1,semi,solver,cache,equations,mesh) # computing v1 by setting cons variables to 0
 
                 # v2 = vn - dt/eps*A2_21*(v1-f(u1)) + dt/eps*A2_22*f(u2)
                 @. integrator.u2 = integrator.u2 - integrator.dt/relaxation_rate*alg.A2[2,1]*(integrator.u_tmp1 - integrator.fu1) + integrator.dt*alg.A2[2,2]/relaxation_rate*integrator.fu2
                
-                divide_relaxed_var!(integrator.u2,integrator.dt,semi,solver,cache,alg.A2[2,2],equations) # v2 = (vn - dt/eps*A2_21*(v1-f(u1)) + dt/eps*A2_22*f(u2) ) ( 1+dt/eps A2_22)
+                divide_relaxed_var!(integrator.u2,integrator.dt,semi,solver,cache,alg.A2[2,2],equations,mesh) # v2 = (vn - dt/eps*A2_21*(v1-f(u1)) + dt/eps*A2_22*f(u2) ) ( 1+dt/eps A2_22)
 
                 integrator.f(integrator.du2, integrator.u2, integrator.p, t_stage)
                
                 # Stage 3
                 #u3 = un - dt A1_{31} rhs(u1,v1) - dt A1_{32} rhs(u2,v2)
                 #v3 = vn - dt A1_{31} rhs(u1,v1) - dt A1_{32} rhs(u2,v2) - dt/epsilon A2_{31} (v1 - f(u1)) -dt/epsilon A2_{32} (v2 - f(u2)) -dt/epsilon A2_{33} (v3 - f(u3))
-                @. integrator.u3 = integrator.u - integrator.dt*alg.A1[3,1]*integrator.du1 - integrator.dt*alg.A1[3,2]*integrator.du2
+                @. integrator.u3 = integrator.u + integrator.dt*alg.A1[3,1]*integrator.du1 + integrator.dt*alg.A1[3,2]*integrator.du2
 
                 @. integrator.fu3 = integrator.u3
                 wrap_and_perform_projection!(integrator.fu3,integrator.dt,mesh,equations,solver,cache)
@@ -294,16 +294,16 @@ function solve!(integrator::SimpleIntegratorIMEX)
                 #  set_cons_var_to_zero!(integrator.u_tmp1,semi,solver,cache)
 
                 @. integrator.u_tmp2 = integrator.u2
-                set_cons_var_to_zero!(integrator.u_tmp2,semi,solver,cache,equations)
+                set_cons_var_to_zero!(integrator.u_tmp2,semi,solver,cache,equations,mesh)
 
                 @. integrator.u3 = integrator.u3 - integrator.dt/relaxation_rate*alg.A2[3,1]*(integrator.u_tmp1 - integrator.fu1) - integrator.dt/relaxation_rate*alg.A2[3,2]*(integrator.u_tmp2 - integrator.fu2) + integrator.dt*alg.A2[3,3]/relaxation_rate*integrator.fu3
                 
-                divide_relaxed_var!(integrator.u3,integrator.dt,semi,solver,cache,alg.A2[3,3],equations) 
+                divide_relaxed_var!(integrator.u3,integrator.dt,semi,solver,cache,alg.A2[3,3],equations,mesh) 
                 
                 integrator.f(integrator.du3, integrator.u3, integrator.p, t_stage)
                 
                 # Final Stage
-                @. integrator.u = integrator.u - integrator.dt*alg.b[1]*integrator.du1 - integrator.dt*alg.b[2]*integrator.du2 - integrator.dt*alg.b[3]*integrator.du3
+                @. integrator.u = integrator.u + integrator.dt*alg.b[1]*integrator.du1 + integrator.dt*alg.b[2]*integrator.du2 + integrator.dt*alg.b[3]*integrator.du3
                 
                 # Already done that for u_tmp1 and u_tmp2, such that they are v1 = u_tmp1 and v2 = u_tmp2
                 # integrator.u_tmp1 .= integrator.u1              
@@ -311,7 +311,7 @@ function solve!(integrator::SimpleIntegratorIMEX)
                 @. integrator.u_tmp3 = integrator.u3
                 # set_cons_var_to_zero!(integrator.u_tmp1,semi,solver,cache)
                 # set_cons_var_to_zero!(integrator.u_tmp2,semi,solver,cache)
-                set_cons_var_to_zero!(integrator.u_tmp3,semi,solver,cache,equations)
+                set_cons_var_to_zero!(integrator.u_tmp3,semi,solver,cache,equations,mesh)
 
                 @. integrator.u = integrator.u - integrator.dt/relaxation_rate*alg.b[1]*(integrator.u_tmp1 - integrator.fu1) - integrator.dt/relaxation_rate*alg.b[2]*(integrator.u_tmp2 - integrator.fu2) - integrator.dt*alg.b[3]/relaxation_rate*(integrator.u_tmp3 - integrator.fu3)
                 # End Stages   
@@ -350,13 +350,13 @@ function solve!(integrator::SimpleIntegratorIMEX)
                                   (prob.u0, integrator.u), prob)
 end
 
-function divide_relaxed_var!(u,dt,semi,solver,cache,aii,equations)
+function divide_relaxed_var!(u,dt,semi,solver,cache,aii,equations,mesh)
     u_wrap = Trixi.wrap_array(u,semi)
-    cycle_divide!(u_wrap,dt,semi,solver,cache,aii,equations)
+    cycle_divide!(u_wrap,dt,semi,solver,cache,aii,equations,mesh)
     return nothing
 end
 
-function cycle_divide!(u,dt,semi,solver,cache,aii,equations)
+function cycle_divide!(u,dt,semi,solver,cache,aii,equations,mesh::TreeMesh2D)
     @unpack inverse_jacobian = cache.elements
                 nvars_base = nvariables(equations.equations_base)
          relaxation_rate = equations.eps_relaxation
@@ -365,6 +365,23 @@ function cycle_divide!(u,dt,semi,solver,cache,aii,equations)
                     for j in eachnode(solver),i in eachnode(solver)
                         for var in (nvars_base+1):(nvars_base*3)
                         u[var,i,j,element] = u[var,i,j,element]/(1.0+factor*dt/relaxation_rate*aii)    
+                        end
+                    end
+                end
+
+    return nothing
+end
+
+
+function cycle_divide!(u,dt,semi,solver,cache,aii,equations,mesh::TreeMesh1D)
+    @unpack inverse_jacobian = cache.elements
+                nvars_base = nvariables(equations.equations_base)
+         relaxation_rate = equations.eps_relaxation
+                for element in eachelement(solver,cache)
+                    factor = inverse_jacobian[element]
+                    for i in eachnode(solver)
+                        for var in (nvars_base+1):(nvars_base*2)
+                        u[var,i,element] = u[var,i,element]/(1.0+factor*dt/relaxation_rate*aii)    
                         end
                     end
                 end
@@ -381,7 +398,7 @@ function wrap_and_perform_projection!(u,dt,mesh,equations,solver,cache)
 end
 
 
-function set_cons_var_to_zero!(u,semi,solver,cache,equations)
+function set_cons_var_to_zero!(u,semi,solver,cache,equations, mesh::TreeMesh2D)
                 u_wrap = Trixi.wrap_array(u,semi)
                 nvars_base = nvariables(equations.equations_base)
     @unpack inverse_jacobian = cache.elements
@@ -397,6 +414,110 @@ function set_cons_var_to_zero!(u,semi,solver,cache,equations)
                     end
                 end
     return nothing
+end
+
+
+function set_cons_var_to_zero!(u,semi,solver,cache,equations, mesh::TreeMesh1D)
+                u_wrap = Trixi.wrap_array(u,semi)
+                nvars_base = nvariables(equations.equations_base)
+    @unpack inverse_jacobian = cache.elements
+                for element in eachelement(solver, cache)    
+                    factor = inverse_jacobian[element]
+                    for i in eachnode(solver)
+                        for var in 1:nvars_base
+                           u_wrap[var,i,element] = 0.0
+                        end
+                        for var in (nvars_base+1):(nvars_base*2)
+                           u_wrap[var,i,element] *= factor 
+                        end
+                    end
+                end
+    return nothing
+end
+
+function perform_projection_sourceterm!(u, dt, mesh::TreeMesh1D, equations::JinXinEquations, dg, cache)
+
+    # relaxation parameter
+    eps = equations.eps_relaxation
+    dt_ = dt
+    eq_relax = equations.equations_base
+
+    @unpack inverse_jacobian = cache.elements
+    # prepare local storage for projection
+    @unpack interpolate_N_to_M, project_M_to_N, filter_modal_to_N = dg.basis
+    nnodes_,nnodes_projection = size(project_M_to_N)
+    nVars = nvariables(eq_relax)
+    RealT = real(dg)
+    u_N = zeros(RealT, nVars, nnodes_)
+    w_N = zeros(RealT, nVars, nnodes_)
+    f_N = zeros(RealT, nVars, nnodes_)
+    g_N = zeros(RealT, nVars, nnodes_)
+    u_M = zeros(RealT, nVars, nnodes_projection)
+    w_M_raw = zeros(RealT, nVars, nnodes_projection)
+    w_M = zeros(RealT, nVars, nnodes_projection)
+    f_M = zeros(RealT, nVars, nnodes_projection)
+    g_M = zeros(RealT, nVars, nnodes_projection)
+
+    tmp_MxM = zeros(RealT, nVars, nnodes_projection, nnodes_projection)
+    tmp_MxN = zeros(RealT, nVars, nnodes_projection, nnodes_)
+    tmp_NxM = zeros(RealT, nVars, nnodes_, nnodes_projection)
+
+#@threaded for element in eachelement(dg, cache)
+for element in eachelement(dg, cache)
+
+                    factor = inverse_jacobian[element]
+# get element u_N
+for i in eachnode(dg)
+    u_node = get_node_vars(u, equations, dg, i, element)
+    for v in eachvariable(eq_relax)
+        u_N[v,i] = u_node[v]
+    end
+end
+# bring elemtn u_N to grid (M+1)x(M+1)
+
+multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N)
+
+# compute nodal values of entropy variables w on the M grid
+for i in 1:nnodes_projection
+    u_cons = get_node_vars(u_M, eq_relax, dg, i)
+    w_ij   = cons2entropy(u_cons,eq_relax) 
+    set_node_vars!(w_M_raw,w_ij,eq_relax,dg,i)
+end
+# compute projection of w with M values down to N
+multiply_dimensionwise!(w_M,filter_modal_to_N,w_M_raw)
+
+#multiply_dimensionwise!(w_N,project_M_to_N,w_M)
+#multiply_dimensionwise!(w_M,interpolate_N_to_M,w_N)
+
+
+# compute nodal values of conservative f,g on the M grid
+for i in 1:nnodes_projection
+    w_i = get_node_vars(w_M, eq_relax, dg, i)
+    u_cons = entropy2cons(w_i, eq_relax)
+    f_cons = flux(u_cons,1,eq_relax)
+    set_node_vars!(f_M,f_cons,eq_relax,dg,i)
+end
+# compute projection of f with M values down to N, same for g
+multiply_dimensionwise!(f_N,project_M_to_N,f_M)
+#@assert nnodes_projection == nnodes(dg) 
+#for j in 1:nnodes_projection, i in 1:nnodes_projection
+#    u_cons = get_node_vars(u_N, eq_relax, dg, i, j)
+#    f_cons = flux(u_cons,1,eq_relax)
+#    set_node_vars!(f_N,f_cons,eq_relax,dg,i,j)
+#    g_cons = flux(u_cons,2,eq_relax)
+#    set_node_vars!(g_N,g_cons,eq_relax,dg,i,j)
+#end
+
+    for i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, element)
+        # compute compressible Euler fluxes
+        vu = get_node_vars(f_N,eq_relax,dg,i)
+        u_base = get_block_components2(u_node, 1, equations)
+        new_u = factor*SVector(zero(u_node)..., vu...)
+        set_node_vars!(u, new_u, equations, dg, i, element)
+    end
+end
+return nothing
 end
 
 function perform_projection_sourceterm!(u, dt, mesh::TreeMesh2D, equations::JinXinEquations, dg, cache)

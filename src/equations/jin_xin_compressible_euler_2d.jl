@@ -13,7 +13,6 @@ TODO: Write a proper docstring
 struct JinXinEquations{NDIMS, NVARS, NVARS_BASE, EquationsBase <: AbstractEquations{NDIMS, NVARS_BASE}, RealT <: Real} <:
        AbstractJinXinEquations{NDIMS, NVARS}
     equations_base::EquationsBase
-
     # relaxation parameter of the Jin Xin relaxation model
     # The relaxed equations should converge to the original equations
     # as the relaxation parameter epsilon -> 0
@@ -155,6 +154,15 @@ end
     end
 end
 
+
+@inline function flux(u, orientation::Integer, equations::JinXinEquations{1})
+        u_base = get_block_components(u, 1, equations)
+        fluxes = get_block_components(u, 2, equations)
+        velocities = equations.velocities[1]
+        return SVector(fluxes..., (velocities .* u_base)...)
+end
+
+
 # TODO: Implement 1D and 3D
 @inline function flux_upwind(u_ll, u_rr, orientation::Integer,
                              equations::JinXinEquations{2})
@@ -184,7 +192,31 @@ end
 end
 
 
+@inline function flux_upwind(u_ll, u_rr, orientation::Integer,
+                             equations::JinXinEquations{1})
+    u_ll_base = get_block_components(u_ll, 1, equations)
+    u_rr_base = get_block_components(u_rr, 1, equations)
+
+        sqrt_velocities = equations.sqrt_velocities[1]
+        f_ll_base = get_block_components(u_ll, 2, equations)
+        f_rr_base = get_block_components(u_rr, 2, equations)
+        dissipation = SVector((sqrt_velocities .* (u_rr_base - u_ll_base))...,
+                              #   (sqrt_velocities .* (f_rr_base + f_ll_base))..., @ranocha: is this correct?
+                              (sqrt_velocities .* (f_rr_base - f_ll_base))...)
+    return 0.5f0 * (flux(u_ll, orientation, equations) +
+                    flux(u_rr, orientation, equations) - dissipation)
+end
+
+
 @inline function max_abs_speeds(u, equations::JinXinEquations{2})
+    return ntuple(Val(ndims(equations))) do n
+        # maximum(equations.sqrt_velocities_inv[n]) @ranocha: is this correct?
+        maximum(equations.sqrt_velocities[n])
+    end
+end
+
+
+@inline function max_abs_speeds(u, equations::JinXinEquations{1})
     return ntuple(Val(ndims(equations))) do n
         # maximum(equations.sqrt_velocities_inv[n]) @ranocha: is this correct?
         maximum(equations.sqrt_velocities[n])
@@ -197,4 +229,6 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::JinXinEquations) = u
+
+@inline prim2cons(u, equations::JinXinEquations) = u
 end # @muladd
