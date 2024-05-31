@@ -70,6 +70,14 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                             coverage_override=(maxiters = 6,))
     end
 
+    @trixi_testset "elixir_advection_restart_amr.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_restart_amr.jl"),
+                            l2=[7.870371848717432e-5],
+                            linf=[0.0007374081713964475],
+                            coverage_override=(maxiters = 50,))
+    end
+
     # Linear scalar advection with AMR
     # These example files are only for testing purposes and have no practical use
     @trixi_testset "elixir_advection_amr_refine_twice.jl" begin
