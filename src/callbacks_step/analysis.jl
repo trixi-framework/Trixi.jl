@@ -537,7 +537,7 @@ function get_elements_per_level(min_level, max_level, mesh::T8codeMesh, solver, 
     return [count(==(l), levels) for l in min_level:max_level]
 end
 
-function get_elements_per_level(min_level, max_level, mesh, solver, cache)
+function get_elements_per_level(min_level, max_level, mesh::TreeMesh, solver, cache)
     levels = [mesh.tree.levels[cache.elements.cell_ids[element]]
               for element in eachelement(solver, cache)]
     return [count(==(l), levels) for l in min_level:max_level]
