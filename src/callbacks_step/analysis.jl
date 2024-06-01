@@ -26,8 +26,8 @@ or `extra_analysis_errors = (:conservation_error,)`.
 If you want to omit the computation (to safe compute-time) of the [`default_analysis_errors`](@ref), specify
 `analysis_errors = Symbol[]`.
 Note: `default_analysis_errors` are `:l2_error` and `:linf_error` for all equations.
-If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e., 
-without `:l2_error, :linf_error` you need to specify 
+If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e.,
+without `:l2_error, :linf_error` you need to specify
 `analysis_errors = [:conservation_error]` instead of `extra_analysis_errors = [:conservation_error]`.
 
 Further scalar functions `func` in `extra_analysis_integrals` are applied to the numerical
@@ -119,9 +119,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
     condition = (u, t, integrator) -> interval > 0 &&
-        ((integrator.stats.naccept % interval == 0 &&
-          !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
-         isfinished(integrator))
+        (integrator.stats.naccept % interval == 0 || isfinished(integrator))
 
     analyzer = SolutionAnalyzer(solver; kwargs...)
     cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache,
@@ -696,7 +694,7 @@ include("analysis_dg3d_parallel.jl")
 
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
-# Note that this needs to be included after `analysis_surface_integral_2d.jl` to 
+# Note that this needs to be included after `analysis_surface_integral_2d.jl` to
 # have `VariableViscous` available.
 function analyze(quantity::AnalysisSurfaceIntegral{Variable},
                  du, u, t,
