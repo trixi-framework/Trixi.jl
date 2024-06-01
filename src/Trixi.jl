@@ -181,7 +181,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
-       FluxLaxFriedrichs, max_abs_speed_naive, max_abs_speeds,
+       FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
        FluxLMARS,
        FluxRotated,
@@ -216,11 +216,10 @@ export initial_condition_eoc_test_coupled_euler_gravity,
        source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons, cons2entropy_guermond_etal
+       cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity, global_mean_vars,
        equilibrium_distribution, waterheight_pressure
-export entropy, entropy_math, entropy_thermodynamic, entropy_guermond_etal,
-       energy_total, energy_kinetic, energy_internal, energy_magnetic,
+export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
        cross_helicity,
        enstrophy
 export lake_at_rest_error

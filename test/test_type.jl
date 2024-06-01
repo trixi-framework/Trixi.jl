@@ -90,7 +90,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            @test eltype(@inferred max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
@@ -177,7 +177,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                           equations)) ==
                   RealT
 
-            @test eltype(@inferred max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
@@ -343,18 +343,19 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            @test eltype(@inferred max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
             @test eltype(@inferred entropy2cons(u, equations)) == RealT
-            @test eltype(@inferred cons2entropy_guermond_etal(u, equations)) == RealT
+            @test eltype(@inferred Trixi.entropy_guermond_etal(u, equations)) == RealT
+            @test eltype(@inferred Trixi.cons2entropy_guermond_etal(u, equations)) == RealT
             @test eltype(@inferred density(u, equations)) == RealT
             @test eltype(@inferred pressure(u, equations)) == RealT
             @test eltype(@inferred density_pressure(u, equations)) == RealT
             @test eltype(@inferred entropy(cons, equations)) == RealT
-            @test eltype(@inferred entropy_math(cons, equations)) == RealT
-            @test eltype(@inferred entropy_thermodynamic(cons, equations)) == RealT
+            @test eltype(@inferred Trixi.entropy_math(cons, equations)) == RealT
+            @test eltype(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
             @test eltype(@inferred energy_internal(cons, equations)) == RealT
             # TODO: test `gradient_conservative`, not necessary but good to have
         end
@@ -482,7 +483,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                               equations)) == RealT
             end
 
-            @test eltype(@inferred max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
@@ -491,8 +492,8 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred pressure(u, equations)) == RealT
             @test eltype(@inferred density_pressure(u, equations)) == RealT
             @test eltype(@inferred entropy(cons, equations)) == RealT
-            @test eltype(@inferred entropy_math(cons, equations)) == RealT
-            @test eltype(@inferred entropy_thermodynamic(cons, equations)) == RealT
+            @test eltype(@inferred Trixi.entropy_math(cons, equations)) == RealT
+            @test eltype(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
             @test eltype(@inferred energy_internal(cons, equations)) == RealT
         end
     end
