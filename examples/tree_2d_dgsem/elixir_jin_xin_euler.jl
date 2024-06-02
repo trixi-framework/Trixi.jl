@@ -32,7 +32,7 @@ initial_condition = Trixi.InitialConditionJinXin(initial_condition_kelvin_helmho
 polydeg = 3
 polydeg_cutoff = 3
 #basis = GaussLegendreBasis(polydeg; polydeg_projection = polydeg, polydeg_cutoff = polydeg_cutoff)
-basis = LobattoLegendreBasis(polydeg; polydeg_projection = 3)
+basis = LobattoLegendreBasis(polydeg; polydeg_projection = 6)
 solver = DGSEM(basis, Trixi.flux_upwind)
 #solver = DGSEM(basis, Trixi.flux_upwind, VolumeIntegralWeakFormProjection())
 #solver = DGSEM(basis, Trixi.flux_upwind, VolumeIntegralWeakForm())

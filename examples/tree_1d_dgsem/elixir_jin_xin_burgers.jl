@@ -5,7 +5,7 @@ using Trixi
 ###############################################################################
 # semidiscretization of the (inviscid) Burgers' equation
 epsilon_relaxation = 1.0e-6
-a1 = 10.0
+a1 = 3.0
 
 equations_base = InviscidBurgersEquation1D()
 velocities = (SVector(a1),)

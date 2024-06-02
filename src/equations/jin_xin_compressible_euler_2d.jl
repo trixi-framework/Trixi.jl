@@ -229,6 +229,7 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equations::JinXinEquations) = u
+@inline entropy2cons(u, equations::JinXinEquations) = u
 
 @inline prim2cons(u, equations::JinXinEquations) = u
 end # @muladd
