@@ -18,14 +18,14 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
     v1 = 0.1
     v2 = 0.2
     rho = 1 + 0.98 * sinpi(2 * (x[1] + x[2] - t * (v1 + v2)))
-    p = 20
+    p = 1
     return prim2cons(SVector(rho, v1, v2, p),equations)
 end
 
 initial_condition = Trixi.InitialConditionJinXin(initial_condition_density_wave)
-polydeg = 1
+polydeg = 3
 #basis = LobattoLegendreBasis(polydeg; polydeg_projection = 0)
-basis = LobattoLegendreBasis(polydeg)
+basis = LobattoLegendreBasis(polydeg; polydeg_projection = 3)
 
 volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(basis, Trixi.flux_upwind,VolumeIntegralWeakForm())
@@ -86,8 +86,8 @@ callbacks = CallbackSet(summary_callback,
 stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
                                                      variables=(Trixi.density, pressure))
 #sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-#sol = Trixi.solve(ode, Trixi.SimpleIMEX(), 
-sol = solve(ode, SSPRK33(stage_limiter!),
+sol = Trixi.solve(ode, Trixi.SimpleIMEX(), 
+#sol = solve(ode, SSPRK33(stage_limiter!),
 dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

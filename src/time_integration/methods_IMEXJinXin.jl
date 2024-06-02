@@ -516,7 +516,7 @@ multiply_dimensionwise!(f_N,project_M_to_N,f_M)
         # compute compressible Euler fluxes
         vu = get_node_vars(f_N,eq_relax,dg,i)
         u_base = get_block_components2(u_node, 1, equations)
-        new_u = factor*SVector(zero(u_node)..., vu...)
+        new_u = factor*SVector(zero(u_base)..., vu...)
         set_node_vars!(u, new_u, equations, dg, i, element)
     end
 end

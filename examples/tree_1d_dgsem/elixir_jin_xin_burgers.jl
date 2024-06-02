@@ -4,8 +4,8 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the (inviscid) Burgers' equation
-epsilon_relaxation = 1.0e-6
-a1 = 3.0
+epsilon_relaxation = 1.0e-4
+a1 = 9.0
 
 equations_base = InviscidBurgersEquation1D()
 velocities = (SVector(a1),)
@@ -16,8 +16,8 @@ function initial_condition_linear_stability(x, t, equation::InviscidBurgersEquat
     return prim2cons(SVector(u),equations)
 end
 
-basis = LobattoLegendreBasis(3)
-solver = DGSEM(basis,Trixi.flux_upwind)
+basis = LobattoLegendreBasis(3; polydeg_projection = 12, polydeg_cutoff = 3)
+solver = DGSEM(basis,Trixi.flux_upwind,VolumeIntegralWeakForm())
 
 
 coordinates_min = -1.0
