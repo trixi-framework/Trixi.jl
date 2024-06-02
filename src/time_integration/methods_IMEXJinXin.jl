@@ -250,11 +250,9 @@ function solve!(integrator::SimpleIntegratorIMEX)
                 #Ui = (ui;vi)
                 #u1 = un
                 #v1 = vn - -dt/epsilon A2_{11} (v1 - f(u1)) 
-              @. integrator.u1 .= integrator.u  #u1 = v1 = un
-                
-              @. integrator.fu1 .= integrator.u1
+              @. integrator.u1 = integrator.u  #u1 = v1 = un
+              @. integrator.fu1 = integrator.u1
                  wrap_and_perform_projection!(integrator.fu1,integrator.dt,mesh,equations,solver,cache)  # compute f(u1)
-
               @. integrator.u1 = integrator.u1 + integrator.dt/relaxation_rate*alg.A2[1,1]*integrator.fu1 # v1 = vn + dt/eps*A2_11 f(u1)
                 
                 divide_relaxed_var!(integrator.u1,integrator.dt,semi,solver,cache,alg.A2[1,1],equations,mesh)  # v1 = (vn + dt/eps*A2_11 f(u1))/(1 + dt/eps A2_11)
@@ -362,7 +360,7 @@ function cycle_divide!(u,dt,semi,solver,cache,aii,equations,mesh::TreeMesh2D)
          relaxation_rate = equations.eps_relaxation
                 for element in eachelement(solver,cache)
                     factor = inverse_jacobian[element]
-                    factor = 1.0
+                    #factor = 1.0
                     for j in eachnode(solver),i in eachnode(solver)
                         for var in (nvars_base+1):(nvars_base*3)
                         u[var,i,j,element] = u[var,i,j,element]/(1.0+factor*dt/relaxation_rate*aii)    
@@ -406,7 +404,7 @@ function set_cons_var_to_zero!(u,semi,solver,cache,equations, mesh::TreeMesh2D)
     @unpack inverse_jacobian = cache.elements
                 for element in eachelement(solver, cache)    
                     factor = inverse_jacobian[element]
-                    factor = 1.0
+                 #   factor = 1.0
                     for j in eachnode(solver), i in eachnode(solver)
                         for var in 1:nvars_base
                            u_wrap[var,i,j,element] = 0.0
@@ -556,7 +554,7 @@ function perform_projection_sourceterm!(u, dt, mesh::TreeMesh2D, equations::JinX
 for element in eachelement(dg, cache)
 
                     factor = inverse_jacobian[element]
-                    factor = 1.0
+                  #  factor = 1.0
 # get element u_N
 for j in eachnode(dg), i in eachnode(dg)
     u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -607,7 +605,7 @@ multiply_dimensionwise!(g_N,project_M_to_N,g_M,tmp_NxM)
         vu = get_node_vars(f_N,eq_relax,dg,i,j)
         wu = get_node_vars(g_N,eq_relax,dg,i,j)
         u_base = get_block_components2(u_node, 1, equations)
-        new_u = factor*SVector(zero(u_node)..., vu..., wu...)
+        new_u = factor*SVector(zero(u_base)..., vu..., wu...)
         set_node_vars!(u, new_u, equations, dg, i, j, element)
     end
 end
