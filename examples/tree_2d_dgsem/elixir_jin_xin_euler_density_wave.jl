@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 using LinearAlgebra
@@ -25,11 +24,11 @@ end
 initial_condition = Trixi.InitialConditionJinXin(initial_condition_density_wave)
 polydeg = 3
 #basis = LobattoLegendreBasis(polydeg; polydeg_projection = 0)
-basis = LobattoLegendreBasis(polydeg; polydeg_projection = 3)
+basis = LobattoLegendreBasis(polydeg; polydeg_projection = polydeg)
 
 volume_integral = VolumeIntegralWeakForm()
-solver = DGSEM(basis, Trixi.flux_upwind,VolumeIntegralWeakForm())
-#solver = DGSEM(basis, Trixi.flux_upwind)
+#solver = DGSEM(basis, Trixi.flux_upwind,VolumeIntegralWeakForm())
+solver = DGSEM(basis, Trixi.flux_upwind)
 
 # solver = DGSEM(polydeg = 5, surface_flux = flux_central)
 
@@ -74,7 +73,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.25)
+stepsize_callback = StepsizeCallback(cfl = 0.85)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

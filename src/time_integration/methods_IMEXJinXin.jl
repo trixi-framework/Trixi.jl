@@ -159,7 +159,7 @@ of type `SimpleAlgorithmSSP`.
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-function solve(ode::ODEProblem, alg = SimpleAlgorithmIMEX()::SimpleAlgorithmIMEX;
+function solve(ode::ODEProblem, alg::SimpleAlgorithmIMEX;
                dt, callback = nothing, kwargs...)
     u = copy(ode.u0)
     du1 = similar(u)
