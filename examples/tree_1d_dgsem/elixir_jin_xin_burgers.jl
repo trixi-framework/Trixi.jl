@@ -9,16 +9,15 @@ a1 = 9.0
 
 equations_base = InviscidBurgersEquation1D()
 velocities = (SVector(a1),)
-equations = JinXinEquations(equations_base,epsilon_relaxation, velocities)
+equations = JinXinEquations(equations_base, epsilon_relaxation, velocities)
 function initial_condition_linear_stability(x, t, equation::InviscidBurgersEquation1D)
     k = 1
     u = 2 + sinpi(k * (x[1] - 0.7))
-    return prim2cons(SVector(u),equations)
+    return prim2cons(SVector(u), equations)
 end
 
 basis = LobattoLegendreBasis(3; polydeg_projection = 12, polydeg_cutoff = 3)
-solver = DGSEM(basis,Trixi.flux_upwind,VolumeIntegralWeakForm())
-
+solver = DGSEM(basis, Trixi.flux_upwind, VolumeIntegralWeakForm())
 
 coordinates_min = -1.0
 coordinates_max = 1.0
@@ -52,6 +51,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = Trixi.solve(ode, Trixi.SimpleIMEX(),
-            dt = 1.0e-3, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks,maxiters=1e7);
+                  dt = 1.0e-3, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep = false, callback = callbacks, maxiters = 1e7);
 summary_callback() # print the timer summary

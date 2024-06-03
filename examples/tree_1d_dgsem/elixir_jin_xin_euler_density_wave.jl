@@ -5,7 +5,6 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-
 epsilon_relaxation = 1.0e-6
 
 equations_base = CompressibleEulerEquations1D(1.4)
@@ -16,9 +15,8 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
     v1 = 0.1
     rho = 1 + 0.98 * sinpi(2 * (x[1] - t * v1))
     p = 20
-    return prim2cons(SVector(rho, v1, p),equations)
+    return prim2cons(SVector(rho, v1, p), equations)
 end
-
 
 initial_condition = Trixi.InitialConditionJinXin(initial_condition_density_wave)
 polydeg = 3
@@ -48,7 +46,6 @@ summary_callback = SummaryCallback()
 analysis_interval = 2000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
-
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
@@ -66,6 +63,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = Trixi.solve(ode, Trixi.SimpleIMEX(),
-            dt = 1e-3, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+                  dt = 1e-3, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

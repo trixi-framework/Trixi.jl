@@ -38,7 +38,9 @@ struct GaussLegendreBasis{RealT <: Real, NNODES,
     filter_modal_to_cutoff::DerivativeMatrix # compute modal cutoff filter via Legendre modes, cut off modes at polydeg_cutoff
 end
 
-function GaussLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integer = 2 * polydeg, polydeg_cutoff::Integer = div(polydeg + 1, 2) - 1)
+function GaussLegendreBasis(RealT, polydeg::Integer;
+                            polydeg_projection::Integer = 2 * polydeg,
+                            polydeg_cutoff::Integer = div(polydeg + 1, 2) - 1)
     nnodes_ = polydeg + 1
 
     # compute everything using `Float64` by default
@@ -74,39 +76,43 @@ function GaussLegendreBasis(RealT, polydeg::Integer; polydeg_projection::Integer
     # L2 projection operators
     nnodes_projection = polydeg_projection + 1
     nodes_projection, weights_projection = gauss_nodes_weights(nnodes_projection)
-    interpolate_N_to_M_ = polynomial_interpolation_matrix(nodes_, nodes_projection) 
+    interpolate_N_to_M_ = polynomial_interpolation_matrix(nodes_, nodes_projection)
     interpolate_N_to_M = Matrix{RealT}(interpolate_N_to_M_)
 
-    project_M_to_N_,filter_modal_to_N_ = calc_projection_matrix(nodes_projection, nodes_)
-    project_M_to_N  = Matrix{RealT}(project_M_to_N_)
-    filter_modal_to_N  = Matrix{RealT}(filter_modal_to_N_)
+    project_M_to_N_, filter_modal_to_N_ = calc_projection_matrix(nodes_projection,
+                                                                 nodes_)
+    project_M_to_N = Matrix{RealT}(project_M_to_N_)
+    filter_modal_to_N = Matrix{RealT}(filter_modal_to_N_)
 
     nnodes_cutoff = polydeg_cutoff + 1
     nodes_cutoff, weights_cutoff = gauss_nodes_weights(nnodes_cutoff)
     _, filter_modal_to_cutoff_ = calc_projection_matrix(nodes_, nodes_cutoff)
-    filter_modal_to_cutoff  = Matrix{RealT}(filter_modal_to_cutoff_)
+    filter_modal_to_cutoff = Matrix{RealT}(filter_modal_to_cutoff_)
 
     return GaussLegendreBasis{RealT, nnodes_, typeof(nodes),
-                                typeof(inverse_vandermonde_legendre),
-                                typeof(boundary_interpolation),
-                                typeof(derivative_matrix),
-                                typeof(interpolate_N_to_M),
-                                typeof(project_M_to_N),
-                                typeof(filter_modal_to_N)}(nodes, weights,
-                                                        inverse_weights,
-                                                        inverse_vandermonde_legendre,
-                                                        boundary_interpolation,
-                                                        derivative_matrix,
-                                                        derivative_split,
-                                                        derivative_split_transpose,
-                                                        derivative_dhat,
-                                                        interpolate_N_to_M,
-                                                        project_M_to_N,
-                                                        filter_modal_to_N,
-                                                        filter_modal_to_cutoff)
+                              typeof(inverse_vandermonde_legendre),
+                              typeof(boundary_interpolation),
+                              typeof(derivative_matrix),
+                              typeof(interpolate_N_to_M),
+                              typeof(project_M_to_N),
+                              typeof(filter_modal_to_N)}(nodes, weights,
+                                                         inverse_weights,
+                                                         inverse_vandermonde_legendre,
+                                                         boundary_interpolation,
+                                                         derivative_matrix,
+                                                         derivative_split,
+                                                         derivative_split_transpose,
+                                                         derivative_dhat,
+                                                         interpolate_N_to_M,
+                                                         project_M_to_N,
+                                                         filter_modal_to_N,
+                                                         filter_modal_to_cutoff)
 end
 
-GaussLegendreBasis(polydeg::Integer; polydeg_projection::Integer = 2 * polydeg, polydeg_cutoff::Integer = div(polydeg + 1, 2) - 1) = GaussLegendreBasis(Float64, polydeg; polydeg_projection, polydeg_cutoff)
+GaussLegendreBasis(polydeg::Integer; polydeg_projection::Integer = 2 * polydeg, polydeg_cutoff::Integer = div(polydeg + 1, 2) - 1) = GaussLegendreBasis(Float64,
+                                                                                                                                                        polydeg;
+                                                                                                                                                        polydeg_projection,
+                                                                                                                                                        polydeg_cutoff)
 
 function Base.show(io::IO, basis::GaussLegendreBasis)
     @nospecialize basis # reduce precompilation time
@@ -137,7 +143,7 @@ end
 @inline Base.real(basis::GaussLegendreBasis{RealT}) where {RealT} = RealT
 
 @inline function nnodes(basis::GaussLegendreBasis{RealT, NNODES}) where {RealT, NNODES
-                                                                           }
+                                                                         }
     NNODES
 end
 
@@ -178,8 +184,8 @@ left_boundary_weight(basis::GaussLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::GaussLegendreBasis) = last(basis.weights)
 
 struct GaussLegendreAnalyzer{RealT <: Real, NNODES,
-                               VectorT <: AbstractVector{RealT},
-                               Vandermonde <: AbstractMatrix{RealT}} <:
+                             VectorT <: AbstractVector{RealT},
+                             Vandermonde <: AbstractMatrix{RealT}} <:
        SolutionAnalyzer{RealT}
     nodes::VectorT
     weights::VectorT
@@ -223,7 +229,7 @@ end
 @inline Base.real(analyzer::GaussLegendreAnalyzer{RealT}) where {RealT} = RealT
 
 @inline function nnodes(analyzer::GaussLegendreAnalyzer{RealT, NNODES}) where {RealT,
-                                                                                 NNODES}
+                                                                               NNODES}
     NNODES
 end
 """
@@ -236,5 +242,4 @@ In particular, not the nodes themselves are returned.
 @inline eachnode(analyzer::GaussLegendreAnalyzer) = Base.OneTo(nnodes(analyzer))
 
 @inline polydeg(analyzer::GaussLegendreAnalyzer) = nnodes(analyzer) - 1
-
 end # @muladd

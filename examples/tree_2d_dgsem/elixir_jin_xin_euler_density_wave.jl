@@ -18,7 +18,7 @@ function initial_condition_density_wave(x, t, equations::CompressibleEulerEquati
     v2 = 0.2
     rho = 1 + 0.98 * sinpi(2 * (x[1] + x[2] - t * (v1 + v2)))
     p = 1
-    return prim2cons(SVector(rho, v1, v2, p),equations)
+    return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 
 initial_condition = Trixi.InitialConditionJinXin(initial_condition_density_wave)
@@ -38,8 +38,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
                 n_cells_max = 30_000)
 
-                semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)#,source_terms=source_terms_JinXin_Relaxation)
-
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)#,source_terms=source_terms_JinXin_Relaxation)
 
 # @info "Create semi..."
 # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -82,11 +81,11 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
-                                                     variables=(Trixi.density, pressure))
+stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
+                                                     variables = (Trixi.density, pressure))
 #sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-sol = Trixi.solve(ode, Trixi.SimpleIMEX(), 
-#sol = solve(ode, SSPRK33(stage_limiter!),
-dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = Trixi.solve(ode, Trixi.SimpleIMEX(),
+                  #sol = solve(ode, SSPRK33(stage_limiter!),
+                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

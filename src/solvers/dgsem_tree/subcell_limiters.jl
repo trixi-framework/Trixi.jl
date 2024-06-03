@@ -195,7 +195,7 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
             if local_twosided
                 setup = [
                     setup...,
-                    "" => "Local two-sided limiting for conservative variables $(limiter.local_twosided_variables_cons)",
+                    "" => "Local two-sided limiting for conservative variables $(limiter.local_twosided_variables_cons)"
                 ]
             end
             if positivity
@@ -203,7 +203,7 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
                 setup = [setup..., "" => string]
                 setup = [
                     setup...,
-                    "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)",
+                    "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)"
                 ]
             end
             if local_onesided
@@ -213,7 +213,7 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
             end
             setup = [
                 setup...,
-                "Local bounds" => "FV solution",
+                "Local bounds" => "FV solution"
             ]
         end
         summary_box(io, "SubcellLimiterIDP", setup)

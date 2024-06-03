@@ -22,7 +22,7 @@ struct ModalFilter{RealT, Cons2Filter, Filter2Cons}
 end
 
 function ModalFilter(dg; polydeg_cutoff::Integer, cons2filter = cons2cons,
-                         filter2cons = cons2cons)
+                     filter2cons = cons2cons)
     RealT = real(dg)
     if dg.basis isa LobattoLegendreBasis
         nodes_cutoff, _ = gauss_lobatto_nodes_weights(polydeg_cutoff)
@@ -36,7 +36,8 @@ function ModalFilter(dg; polydeg_cutoff::Integer, cons2filter = cons2cons,
 
     modal_filter = ModalFilter{RealT,
                                typeof(cons2filter),
-                               typeof(filter2cons)}(cons2filter, filter2cons, filter_matrix)
+                               typeof(filter2cons)}(cons2filter, filter2cons,
+                                                    filter_matrix)
 end
 
 # Main function that applies the actual, mesh- and solver-specific filter
@@ -47,14 +48,15 @@ function (modal_filter::ModalFilter)(u_ode, semi::AbstractSemidiscretization)
     @trixi_timeit timer() "modal filter" begin
         # println("Applying modal filter")
         apply_modal_filter!(u, u, cons2filter, filter2cons, filter_matrix,
-                            mesh_equations_solver_cache(semi)...)  
+                            mesh_equations_solver_cache(semi)...)
     end
 
     return nothing
 end
 
 # This version is called as the stage limiter version of the filter
-function (modal_filter::ModalFilter)(u_ode, integrator, semi::AbstractSemidiscretization, t)
+function (modal_filter::ModalFilter)(u_ode, integrator,
+                                     semi::AbstractSemidiscretization, t)
     modal_filter(u_ode, semi)
 end
 
