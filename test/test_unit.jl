@@ -1679,18 +1679,9 @@ end
 end
 
 @testset "PERK Single p3 Constructors" begin
-    # We are only testing from the second row to the end of `ode_algorithm.a_matrix` due to the nature of the system of equations
-    # used to find the `a_matrix` in the Butcher tableau. This system can have multiple valid solutions, which can cause slight
-    # variations in the results of the tests. These variations don't affect the validity of the solutions, but they can cause
-    # the tests to fail due to small differences in the expected and actual values.
-
-    # The first row of `ode_algorithm.a_matrix` is particularly susceptible to these variations, while the rest of the rows
-    # remain consistent across different runs. Therefore, to make the tests more robust and less prone to false negatives,
-    # we are excluding the first row from the test. This approach allows us to verify the correctness of the majority of the
-    # `a_matrix` while avoiding the issue of test instability caused by the multiple valid solutions of the system of equations.
     path_coeff_file = mktempdir()
     Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/32889062fd5dcf7f450748f4f5f0797c8155a18d/a_8_8.txt",
-                    joinpath(path_coeff_file, "a_8_8.txt"))
+                   joinpath(path_coeff_file, "a_8_8.txt"))
 
     # Value of dt_opt obtained from running the simulation in elixir_burgers_perk3
     # The value plays no role in the result but added so that the constructor can be called
@@ -1698,31 +1689,33 @@ end
     ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file, dt_opt)
 
     #TODO: adjust this value according to the result in the test pipeline
-    @test isapprox(ode_algorithm.a_matrix[2:end, :],
-                    [0.496535 0.103465
-                     0.649689 0.150311
-                     0.789172 0.210828
-                     0.752297 0.247703
-                     0.311926 0.188074], atol = 1e-13)
+    println(ode_algorithm.a_matrix) # Value in CI differs slightly from what I get locally
+    @test isapprox(ode_algorithm.a_matrix,
+                   [0.3355167784195604 0.06448322158043965
+                    0.4965349205803965 0.10346507941960345
+                    0.6496890792935297 0.15031092070647037
+                    0.789172498521197 0.21082750147880308
+                    0.7522972036571336 0.2477027963428664
+                    0.31192569908571666 0.18807430091428337], atol = 1e-13)
 
-    #TODO: make this a p3 Constructors
     Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
                    joinpath(path_coeff_file, "spectrum.txt"))
 
     eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
     tspan = (0.0, 1.0)
-    ode_algorithm = Trixi.PairedExplicitRK3(10, tspan, vec(eig_vals))
+    ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
 
     #TODO: adjust this value according to the result in the test pipeline
-    display(ode_algorithm.a_matrix) # Value in CI differs slightly from what I get locally
-    @test isapprox(ode_algorithm.a_matrix[2:end, :],
-                   [0.406023  0.0225489
-                    0.534288  0.0371408
-                    0.654943  0.0593431
-                    0.76216   0.0949827
-                    0.844659  0.155341
-                    0.771998  0.228002
-                    0.307001  0.192999], atol = 1e-13)
+    println(ode_algorithm.a_matrix) # Value in CI differs slightly from what I get locally
+    @test isapprox(ode_algorithm.a_matrix,
+                   [0.27321088155198703 0.01250340416229867
+                    0.4060225225166573 0.022548906054771216
+                    0.534287756076577 0.03714081535199439
+                    0.6549425779583463 0.05934313632736803
+                    0.7621601562844809 0.09498270085837623
+                    0.8446587253087918 0.1553412746912082
+                    0.7719976108598626 0.22800238914013735
+                    0.30700059728503437 0.1929994027149656], atol = 1e-13)
 end
 
 @testset "Sutherlands Law" begin

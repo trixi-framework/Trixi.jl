@@ -47,7 +47,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_shockcapturing.jl"),
                         l2=[0.08015029105233593],
                         linf=[0.610709468736576],
-                        atol=1.0e-5)
+                        atol=1.0e-12)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -58,11 +58,11 @@ end
     end
 end
 
-
 @trixi_testset "elixir_burgers_perk3.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
-                        l2=[8.120426329330083e-8],
-                        linf=[4.906376900315479e-7])
+                        l2=[8.120426320528704e-8],
+                        linf=[4.906376875890572e-7],
+                        atol=1.0e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -94,7 +94,8 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
                                               num_stages)
 
         # Solve the nonlinear system of equations from monomial coefficient and
-        # Butcher array abscissae c to find Butcher matrix A 
+        # Butcher array abscissae c to find Butcher matrix A
+        # This function is extended in TrixiNLsolveExt.jl
         a_unknown = solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, cS2, c;
                                      verbose)
     end
@@ -107,9 +108,8 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     return a_matrix, c, dt_opt
 end
 
-#TODO: Correct this and make it actually import A matrix
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 3
-# using provided monomial coefficients file
+# using provided values of coefficients a in a matrix of Butcher tableau
 function compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                    base_path_a_coeffs::AbstractString;
                                                    cS2)
@@ -118,26 +118,26 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     c = compute_c_coeffs_SSP33(num_stages, cS2)
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
-    coeffs_max = num_stages - 2
+    a_coeffs_max = num_stages - 2
 
-    a_matrix = zeros(coeffs_max, 2)
+    a_matrix = zeros(a_coeffs_max, 2)
     a_matrix[:, 1] = c[3:end]
 
     path_a_coeffs = joinpath(base_path_a_coeffs,
-                                    "a_" * string(num_stages) * "_" * string(num_stages) * ".txt")
+                             "a_" * string(num_stages) * "_" * string(num_stages) *
+                             ".txt")
 
     @assert isfile(path_a_coeffs) "Couldn't find file"
-    A = readdlm(path_a_coeffs, Float64)
-    num_a_coeffs = size(A, 1)
+    a_coeffs = readdlm(path_a_coeffs, Float64)
+    num_a_coeffs = size(a_coeffs, 1)
 
-    @assert num_a_coeffs == coeffs_max
-    a_matrix[:, 1] -= A
-    a_matrix[:, 2] = A
+    @assert num_a_coeffs == a_coeffs_max
+    a_matrix[:, 1] -= a_coeffs
+    a_matrix[:, 2] = a_coeffs
 
     return a_matrix, c
 end
 
-#TODO: explain dt_opt and also explain base_path_a_coeffs in the first constructor
 @doc raw"""
     PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
                       dt_opt;
@@ -149,9 +149,9 @@ end
 
     Parameters:
     - `num_stages` (`Int`): Number of stages in the PERK method.
-    - `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
-      monomial coefficients of the stability polynomial of PERK method.
-      The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
+    - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the matrix A in 
+      the Butcher tableau of the Runge Kutta method.
+      The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages)_.$(num_stages)txt")` and separated by line breaks.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
     -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the

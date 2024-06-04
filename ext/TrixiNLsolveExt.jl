@@ -9,6 +9,9 @@ else
     using ..NLsolve: nlsolve
 end
 
+# Use other necessary libraries
+using Random: seed!
+
 # Use functions and additional symbols that are not exported
 using Trixi: Trixi, PairedExplicitRK3_butcher_tableau_objective_function, @muladd
 
@@ -36,8 +39,13 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
                                                                           c_s2)
     end
 
+    # Set the seed for reproducibility of the initial guess of a_unknown
+    seed!(5555)
+
     while !is_sol_valid
+
         # Initialize initial guess
+        # The nonlinear system may have multiple valid solutions, so a reproducible initial guess is important
         x0 = 0.1 .* rand(num_stages)
         x0[1] = 0.0
         x0[2] = c[2]
@@ -47,7 +55,8 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
 
         a_unknown = sol.zero
 
-        # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver) and subsequently c[i] - a[i, i-1] >= 0.0
+        # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver) 
+        # and subsequently c[i] - a[i, i-1] >= 0.0
         is_sol_valid = all(x -> !isnan(x) && x >= 0, a_unknown[3:end]) &&
                        all(x -> !isnan(x) && x >= 0, c[3:end] .- a_unknown[3:end])
 
