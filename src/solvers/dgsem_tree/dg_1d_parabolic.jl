@@ -29,8 +29,7 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Compute the gradients of the transformed variables
     @trixi_timeit timer() "calculate gradient" begin
         calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
-                       boundary_conditions_parabolic, dg, cache, cache_parabolic,
-                       element_range, interface_range)
+                       boundary_conditions_parabolic, dg, cache, cache_parabolic)
     end
 
     # Compute and store the viscous fluxes
