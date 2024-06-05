@@ -69,7 +69,8 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                             equations_parabolic, dg, cache_parabolic)
+                             equations_parabolic, dg, cache_parabolic,
+                             eachinterface(dg, cache))
     end
 
     # Prolong solution to boundaries
@@ -173,7 +174,7 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1}, equations_parabolic,
                               dg::DG, cache_parabolic,
-                              interface_range = eachinterface(dg, cache))
+                              interface_range)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
     @threaded for interface in interface_range
