@@ -109,6 +109,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
                                                equations::CompressibleEulerEquationsQuasi1D)
     # Same settings as in `initial_condition_convergence_test`. 
     # Derivatives calculated with ForwardDiff.jl
+    RealT = eltype(u)
     c = 2
     A = convert(RealT, 0.1)
     L = 2
@@ -158,7 +159,7 @@ end
     f2 = a_rho_v1 * v1
     f3 = a * v1 * (e + p)
 
-    return SVector(f1, f2, f3, zero(eltype(u)))
+    return SVector(f1, f2, f3, 0)
 end
 
 """
@@ -190,9 +191,7 @@ Further details are available in the paper:
     # in the arithmetic average of {p}.
     p_avg = p_ll + p_rr
 
-    z = zero(eltype(u_ll))
-
-    return SVector(z, a_ll * p_avg, z, z)
+    return SVector(0, a_ll * p_avg, 0, 0)
 end
 
 # While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
@@ -252,7 +251,7 @@ Further details are available in the paper:
     f3 = f1 * (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
          0.5f0 * (p_ll * a_rr * v1_rr + p_rr * a_ll * v1_ll)
 
-    return SVector(f1, f2, f3, zero(eltype(u_ll)))
+    return SVector(f1, f2, f3, 0)
 end
 
 # While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 

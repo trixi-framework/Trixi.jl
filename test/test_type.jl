@@ -497,6 +497,53 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred energy_internal(cons, equations)) == RealT
         end
     end
+
+    @timed_testset "Compressible Euler Quasi 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquationsQuasi1D(RealT(1.4))
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = SVector(one(RealT), one(RealT), one(RealT), one(RealT))
+            orientation = 1
+            normal_direction = normal_ll = normal_rr = SVector(one(RealT))
+
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) ==
+                  RealT
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+            @test eltype(@inferred flux_nonconservative_chan_etal(u_ll, u_rr, orientation,
+                                                                  equations)) == RealT
+            @test eltype(@inferred flux_nonconservative_chan_etal(u_ll, u_rr,
+                                                                  normal_direction,
+                                                                  equations)) ==
+                  RealT
+            @test eltype(@inferred flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll,
+                                                                  normal_rr, equations)) ==
+                  RealT
+            if RealT == Float32
+                # check `ln_mean` and `inv_ln_mean` (test broken)
+                @test_broken eltype(flux_chan_etal(u_ll, u_rr, orientation, equations)) ==
+                             RealT
+            else
+                @test eltype(@inferred flux_chan_etal(u_ll, u_rr, orientation, equations)) ==
+                      RealT
+            end
+
+            @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred prim2cons(u, equations)) == RealT
+            # TODO: There is a bug in the `entropy` function
+            # @test eltype(@inferred entropy(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test eltype(@inferred density(u, equations)) == RealT
+            @test eltype(@inferred pressure(u, equations)) == RealT
+            @test eltype(@inferred density_pressure(u, equations)) == RealT
+        end
+    end
 end
 
 end # module
