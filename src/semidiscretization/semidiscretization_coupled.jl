@@ -316,7 +316,8 @@ function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep =
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
         if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh, output_directory, system = i)
+            mesh.current_filename = save_mesh_file(mesh, output_directory; system = i,
+                                                   timestep = timestep)
             mesh.unsaved_changes = false
         end
     end
@@ -346,6 +347,36 @@ function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
     end
 
     return dt
+end
+
+function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
+                                glm_speed_callback, dt)
+    @unpack glm_scale, cfl, semi_indices = glm_speed_callback
+
+    if length(semi_indices) == 0
+        throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
+    end
+
+    # Check that all MHD semidiscretizations received a GLM cleaning speed update.
+    for (semi_index, semi) in enumerate(semi_coupled.semis)
+        if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
+            !(semi_index in semi_indices))
+            error("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
+        end
+    end
+
+    for semi_index in semi_indices
+        semi = semi_coupled.semis[semi_index]
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+        # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
+
+        # c_h is proportional to its own time step divided by the complete MHD time step
+        equations.c_h = glm_scale * c_h_deltat / dt
+    end
+
+    return semi_coupled
 end
 
 ################################################################################
@@ -435,10 +466,28 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
                                 Val(nvariables(equations))))
 
     # Calculate boundary flux
-    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-        flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    if surface_flux_function isa Tuple
+        # In case of conservative (index 1) and non-conservative (index 2) fluxes,
+        # add the non-conservative one with a factor of 1/2.
+        if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+            flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
+                                             equations) +
+                    0.5 *
+                    surface_flux_function[2](u_inner, u_boundary, orientation,
+                                             equations))
+        else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+            flux = (surface_flux_function[1](u_boundary, u_inner, orientation,
+                                             equations) +
+                    0.5 *
+                    surface_flux_function[2](u_boundary, u_inner, orientation,
+                                             equations))
+        end
+    else
+        if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+            flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+        else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+            flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+        end
     end
 
     return flux
@@ -582,7 +631,9 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
-                                                  mesh::StructuredMesh, equations,
+                                                  mesh::Union{StructuredMesh,
+                                                              StructuredMeshView},
+                                                  equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
@@ -614,7 +665,8 @@ end
     end
 end
 
-function get_boundary_indices(element, orientation, mesh::StructuredMesh{2})
+function get_boundary_indices(element, orientation,
+                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}})
     cartesian_indices = CartesianIndices(size(mesh))
     if orientation == 1
         # Get index of element in y-direction

@@ -10,13 +10,36 @@
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/Trixi)](https://pkgs.genieframework.com?packages=Trixi)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8695/badge)](https://www.bestpractices.dev/projects/8695)
+<!-- [![Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/Trixi)](https://pkgs.genieframework.com?packages=Trixi) -->
 <!-- [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.43.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl) -->
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 
 <p align="center">
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
+
+***
+**Trixi.jl at JuliaCon 2024**<br/>
+At this year's JuliaCon in Eindhoven, Netherlands, we will be present with several contributions
+from the Trixi Framework ecosystem:
+
+* [**Julia for Particle-Based Multiphysics with TrixiParticles.jl**](https://pretalx.com/juliacon2024/talk/TPFF8L/),<br/>
+  [*Erik Faulhaber*](https://github.com/efaulhaber/), [*Niklas Neher*](https://github.com/lasnikas/),
+  10th July 2024, 11:30am–12:00pm, Function (4.1)
+* [**Towards Aerodynamic Simulations in Julia with Trixi.jl**](https://pretalx.com/juliacon2024/talk/XH8KBG/),<br/>
+  [*Daniel Doehring*](https://github.com/danieldoehring/),
+  10th July 2024, 15:00pm–15:30pm, While Loop (4.2)
+* [**libtrixi: serving legacy codes in earth system modeling with fresh Julia CFD**](https://pretalx.com/juliacon2024/talk/JBKVGF/),<br/>
+  [*Benedict Geihe*](https://github.com/benegee/),
+  12th July 2024, 14:00pm–17:00pm, Function (4.1)
+
+The last talk is part of the 
+[Julia for High-Performance Computing](https://pretalx.com/juliacon2024/talk/JBKVGF/)
+minisymposium, which this year is hosted by our own [*Hendrik Ranocha*](https://github.com/ranocha/).
+
+We are looking forward to seeing you there ♥️
+***
 
 **Trixi.jl** is a numerical simulation framework for conservation
 laws written in [Julia](https://julialang.org). A key objective for the

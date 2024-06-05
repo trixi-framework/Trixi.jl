@@ -22,7 +22,7 @@ using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, norm
                      UniformScaling, det
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
-                    rowvals, nzrange, nonzeros, spzeros
+                    rowvals, nzrange, nonzeros
 
 # import @reexport now to make it available for further imports/exports
 using Reexport: @reexport
@@ -32,10 +32,10 @@ using Reexport: @reexport
 using MPI: MPI
 
 using SciMLBase: CallbackSet, DiscreteCallback,
-                 ODEProblem, ODESolution, ODEFunction,
+                 ODEProblem, ODESolution,
                  SplitODEProblem
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
-                  AbstractODEIntegrator, init, step!, check_error,
+                  init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
                   terminate!, remake, add_tstop!, has_tstop, first_tstop
 
@@ -57,7 +57,6 @@ using Polyester: Polyester, @batch # You know, the cheapest threads you can find
 using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using T8code
-using Setfield: @set
 using RecipesBase: RecipesBase
 using Requires: @require
 using Static: Static, One, True, False
@@ -66,7 +65,7 @@ using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
 using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
-using Triangulate: Triangulate, TriangulateIO, triangulate
+using Triangulate: Triangulate, TriangulateIO
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
@@ -84,9 +83,9 @@ const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
-                                 AbstractNonperiodicDerivativeOperator, DerivativeOperator,
+                                 AbstractNonperiodicDerivativeOperator,
                                  AbstractPeriodicDerivativeOperator,
-                                 PeriodicDerivativeOperator, grid
+                                 grid
 import SummationByPartsOperators: integrate, semidiscretize,
                                   compute_coefficients, compute_coefficients!,
                                   left_boundary_weight, right_boundary_weight
@@ -161,7 +160,7 @@ export AcousticPerturbationEquations2D,
        LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
        ShallowWaterEquations1D, ShallowWaterEquations2D,
        ShallowWaterEquationsQuasi1D,
-       LinearizedEulerEquations2D,
+       LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D
 
@@ -226,7 +225,8 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
-export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, T8codeMesh
+export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
+       T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,
@@ -262,7 +262,9 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AveragingCallback,
        AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
-       TrivialCallback, AnalysisCallbackCoupled
+       TrivialCallback, AnalysisCallbackCoupled,
+       AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure,
+       DragCoefficientShearStress, LiftCoefficientShearStress
 
 export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
@@ -305,6 +307,14 @@ function __init__()
     @static if !isdefined(Base, :get_extension)
         @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
             include("../ext/TrixiMakieExt.jl")
+        end
+    end
+
+    @static if !isdefined(Base, :get_extension)
+        @require Convex="f65535da-76fb-5f13-bab9-19810c17039a" begin
+            @require ECOS="e2685f51-7e38-5353-a97d-a921fd2c8199" begin
+                include("../ext/TrixiConvexECOSExt.jl")
+            end
         end
     end
 

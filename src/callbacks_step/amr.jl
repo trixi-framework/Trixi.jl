@@ -138,11 +138,18 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
         # iterate until mesh does not change anymore
         has_changed = amr_callback(integrator,
                                    only_refine = amr_callback.adapt_initial_condition_only_refine)
+        iterations = 1
         while has_changed
             compute_coefficients!(integrator.u, t, semi)
             u_modified!(integrator, true)
             has_changed = amr_callback(integrator,
                                        only_refine = amr_callback.adapt_initial_condition_only_refine)
+            iterations = iterations + 1
+            if iterations > 10
+                @warn "AMR for initial condition did not settle within 10 iterations!\n" *
+                      "Consider adjusting thresholds or setting `adapt_initial_condition_only_refine`."
+                break
+            end
         end
     end
 
@@ -236,7 +243,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
-    for element in 1:length(lambda)
+    for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
             push!(to_refine, leaf_cell_ids[element])
@@ -300,7 +307,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         end
 
         # Extract only those parent cells for which all children should be coarsened
-        to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
+        to_coarsen = collect(eachindex(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
         # Finally, coarsen mesh
         coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh.tree,
@@ -388,7 +395,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
-    for element in 1:length(lambda)
+    for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
             push!(to_refine, leaf_cell_ids[element])
@@ -449,7 +456,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         end
 
         # Extract only those parent cells for which all children should be coarsened
-        to_coarsen = collect(1:length(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
+        to_coarsen = collect(eachindex(parents_to_coarsen))[parents_to_coarsen .== 2^ndims(mesh)]
 
         # Finally, coarsen mesh
         coarsened_original_cells = @trixi_timeit timer() "mesh" coarsen!(mesh.tree,
