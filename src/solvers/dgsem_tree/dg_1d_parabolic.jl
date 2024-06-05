@@ -444,7 +444,8 @@ function calc_gradient!(gradients, u_transformed, t,
                                                                    u_transformed, mesh,
                                                                    equations_parabolic,
                                                                    dg.surface_integral,
-                                                                   dg, interface_range)
+                                                                   dg, cache,
+                                                                   interface_range)
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
@@ -479,7 +480,8 @@ function calc_gradient!(gradients, u_transformed, t,
                                                                    u_transformed, mesh,
                                                                    equations_parabolic,
                                                                    dg.surface_integral,
-                                                                   dg, boundary_range)
+                                                                   dg, cache,
+                                                                   boundary_range)
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" calc_boundary_flux_gradients!(cache_parabolic,
