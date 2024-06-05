@@ -412,7 +412,7 @@ end
 function calc_gradient!(gradients, u_transformed, t,
                         mesh::TreeMesh{1}, equations_parabolic,
                         boundary_conditions_parabolic, dg::DG, cache, cache_parabolic,
-                        element_range = eachelement(dg, cache)
+                        element_range = eachelement(dg, cache),
                         interface_range = eachinterface(dg, cache),
                         boundary_range = eachboundary(dg, cache))
 
