@@ -78,37 +78,33 @@ function rhs!(du, u, t,
               mesh::TreeMesh{1}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
-    element_range = eachelement(dg, cache)
-    interface_range = eachinterface(dg, cache)
-    boundary_range = eachboundary(dg, cache)
-
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache, element_range)
+    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, u, mesh,
                               have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache, element_range)
+                              dg.volume_integral, dg, cache)
     end
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg, interface_range)
+                            dg.surface_integral, dg)
     end
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
                              have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg, cache, interface_range)
+                             dg.surface_integral, dg, cache)
     end
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg, boundary_range)
+                            dg.surface_integral, dg)
     end
 
     # Calculate boundary fluxes
@@ -120,79 +116,15 @@ function rhs!(du, u, t,
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache, element_range)
+                               dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache,
-                                                     element_range)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache, element_range)
-    end
-
-    return nothing
-end
-
-# RHS for PERK integrator
-function rhs!(du, u, t,
-              mesh::TreeMesh{1}, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
-              dg::DG, cache,
-              element_range, interface_range, boundary_range,
-              boundary_orientation_range,
-              # Mortars not appearant in 1D
-              _) where {Source}
-
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, element_range)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache, element_range)
-    end
-
-    # Prolong solution to interfaces, i.e., reconstruct interface/trace values
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg, interface_range)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
-                             dg.surface_integral, dg, cache, interface_range)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, mesh, equations,
-                            dg.surface_integral, dg, boundary_range)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-                            dg.surface_integral, dg, boundary_orientation_range)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache, element_range)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache,
-                                                     element_range)
-
-    # Calculate source terms
-    @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache, element_range)
+        calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
 
     return nothing
@@ -202,7 +134,7 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache, element_range)
+                               dg::DGSEM, cache, element_range=eachelement(dg, cache))
     @threaded for element in element_range
         weak_form_kernel!(du, u, element, mesh,
                           nonconservative_terms, equations,
@@ -244,7 +176,7 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache, element_range)
+                               dg::DGSEM, cache, element_range=eachelement(dg, cache))
     @threaded for element in element_range
         flux_differencing_kernel!(du, u, element, mesh, nonconservative_terms,
                                   equations,
@@ -323,7 +255,7 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
-                               dg::DGSEM, cache, element_range)
+                               dg::DGSEM, cache, element_range=eachelement(dg, cache))
     @unpack element_ids_dg, element_ids_dgfv = cache
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
@@ -366,7 +298,7 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
-                               dg::DGSEM, cache, element_range)
+                               dg::DGSEM, cache, element_range=eachelement(dg, cache))
     @unpack volume_flux_fv = volume_integral
 
     # Calculate LGL FV volume integral
@@ -460,7 +392,7 @@ end
 # We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG,
-                             interface_range)
+                             interface_range=eachinterface(dg, cache))
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -483,7 +415,7 @@ function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
                               nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache,
-                              interface_range)
+                              interface_range=eachinterface(dg, cache))
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
 
@@ -512,7 +444,7 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
                               nonconservative_terms::True, equations,
-                              surface_integral, dg::DG, cache, interface_range)
+                              surface_integral, dg::DG, cache, interface_range=eachinterface(dg, cache))
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, orientations = cache.interfaces
 
@@ -553,7 +485,7 @@ end
 
 function prolong2boundaries!(cache, u,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG,
-                             boundary_range)
+                             boundary_range=eachboundary(dg, cache))
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
 
@@ -676,7 +608,7 @@ end
 
 function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral, dg::DGSEM, cache,
-                                element_range)
+                                element_range=eachelement(dg, cache))
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
@@ -702,7 +634,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
 end
 
 function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                         equations, dg::DG, cache, element_range)
+                         equations, dg::DG, cache, element_range=eachelement(dg, cache))
     @unpack inverse_jacobian = cache.elements
 
     @threaded for element in element_range
@@ -720,12 +652,12 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_sources!(du, u, t, source_terms::Nothing,
-                       equations::AbstractEquations{1}, dg::DG, cache, elements)
+                       equations::AbstractEquations{1}, dg::DG, cache, element_range=eachelement(dg, cache))
     return nothing
 end
 
 function calc_sources!(du, u, t, source_terms,
-                       equations::AbstractEquations{1}, dg::DG, cache, element_range)
+                       equations::AbstractEquations{1}, dg::DG, cache, element_range=eachelement(dg, cache))
     @unpack node_coordinates = cache.elements
 
     @threaded for element in element_range
