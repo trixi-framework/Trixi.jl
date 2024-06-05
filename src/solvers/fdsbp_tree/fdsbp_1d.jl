@@ -44,7 +44,7 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralStrongForm,
-                               dg::FDSBP, cache, element_range=eachelement(dg, cache))
+                               dg::FDSBP, cache, element_range = eachelement(dg, cache))
     D = dg.basis # SBP derivative operator
     @unpack f_threaded = cache
 
@@ -91,7 +91,7 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralUpwind,
-                               dg::FDSBP, cache, element_range=eachelement(dg, cache))
+                               dg::FDSBP, cache, element_range = eachelement(dg, cache))
     # Assume that
     # dg.basis isa SummationByPartsOperators.UpwindOperators
     D_minus = dg.basis.minus # Upwind SBP D^- derivative operator
@@ -141,7 +141,7 @@ end
 
 function calc_surface_integral!(du, u, mesh::TreeMesh{1},
                                 equations, surface_integral::SurfaceIntegralStrongForm,
-                                dg::DG, cache, element_range=eachelement(dg, cache))
+                                dg::DG, cache, element_range = eachelement(dg, cache))
     inv_weight_left = inv(left_boundary_weight(dg.basis))
     inv_weight_right = inv(right_boundary_weight(dg.basis))
     @unpack surface_flux_values = cache.elements
@@ -182,7 +182,8 @@ function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
                               nonconservative_terms::False, equations,
                               surface_integral::SurfaceIntegralUpwind,
-                              dg::FDSBP, cache, interface_range=eachinterface(dg, cache))
+                              dg::FDSBP, cache,
+                              interface_range = eachinterface(dg, cache))
     @unpack splitting = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
 
@@ -222,7 +223,8 @@ end
 # side of the element are computed in the upwind direction.
 function calc_surface_integral!(du, u, mesh::TreeMesh{1},
                                 equations, surface_integral::SurfaceIntegralUpwind,
-                                dg::FDSBP, cache, element_range=eachelement(dg, cache))
+                                dg::FDSBP, cache,
+                                element_range = eachelement(dg, cache))
     inv_weight_left = inv(left_boundary_weight(dg.basis))
     inv_weight_right = inv(right_boundary_weight(dg.basis))
     @unpack surface_flux_values = cache.elements
@@ -250,7 +252,8 @@ end
 # Periodic FDSBP operators need to use a single element without boundaries
 function calc_surface_integral!(du, u, mesh::TreeMesh1D,
                                 equations, surface_integral::SurfaceIntegralUpwind,
-                                dg::PeriodicFDSBP, cache, element_range=eachelement(dg, cache))
+                                dg::PeriodicFDSBP, cache,
+                                element_range = eachelement(dg, cache))
     @assert nelements(dg, cache) == 1
     return nothing
 end

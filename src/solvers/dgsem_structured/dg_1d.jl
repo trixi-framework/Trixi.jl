@@ -49,7 +49,7 @@ end
 
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
                               equations, surface_integral, dg::DG,
-                              element_range=eachelement(dg, cache))
+                              element_range = eachelement(dg, cache))
     @unpack surface_flux = surface_integral
 
     @threaded for element in element_range
