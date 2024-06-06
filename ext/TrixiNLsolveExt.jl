@@ -25,7 +25,7 @@ using Trixi: Trixi, solve_a_unknown!
 @muladd begin
 #! format: noindent
 
-# Find the values of a in the Butcher tableau by solving a system of
+# Find the values of the a_{i, i-1} in the Butcher tableau matrix A by solving a system of
 # non-linear equations
 function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
                                 verbose)
