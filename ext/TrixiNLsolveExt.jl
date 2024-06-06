@@ -26,7 +26,9 @@ using Trixi: Trixi, solve_a_unknown!
 #! format: noindent
 
 # Find the values of the a_{i, i-1} in the Butcher tableau matrix A by solving a system of
-# non-linear equations
+# non-linear equations that arise from the relation of the stability polynomial to the Butcher tableau.
+# For details, see Proposition 3.2, Equation (3.3) from 
+# Hairer, Wanner: Solving Ordinary Differential Equations 2
 function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
                                 verbose)
     is_sol_valid = false
