@@ -276,7 +276,7 @@ end
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, rho_e = u
 
-    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
     T = p / rho
     return T
 end
@@ -285,7 +285,7 @@ end
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
     omega = vorticity(u, gradients, equations)
-    return 0.5 * u[1] * omega^2
+    return 0.5f0 * u[1] * omega^2
 end
 
 @inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion2D)

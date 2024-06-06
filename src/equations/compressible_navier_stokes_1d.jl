@@ -252,7 +252,7 @@ end
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion1D)
     rho, rho_v1, rho_e = u
 
-    p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1^2 / rho)
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1^2 / rho)
     T = p / rho
     return T
 end
