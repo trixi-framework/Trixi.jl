@@ -127,15 +127,16 @@ A smooth initial condition used for convergence tests in combination with
 """
 function initial_condition_convergence_test(x, t,
                                             equations::CompressibleEulerMulticomponentEquations2D)
+    RealT = eltype(x)
     c = 2
-    A = 0.1
+    A = convert(RealT, 0.1)
     L = 2
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     ini = c + A * sin(omega * (x[1] + x[2] - t))
 
-    v1 = 1.0
-    v2 = 1.0
+    v1 = 1
+    v2 = 1
 
     rho = ini
 
@@ -165,11 +166,12 @@ Source terms used for convergence tests in combination with
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::CompressibleEulerMulticomponentEquations2D)
     # Same settings as in `initial_condition`
+    RealT = eltype(u)
     c = 2
-    A = 0.1
+    A = convert(RealT, 0.1)
     L = 2
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
 
     gamma = totalgamma(u, equations)
 
@@ -191,7 +193,7 @@ Source terms used for convergence tests in combination with
 
     du1 = tmp5
     du2 = tmp5
-    du3 = 2 * ((tmp6 - 1.0) * tmp3 + tmp6 * gamma) * tmp1
+    du3 = 2 * ((tmp6 - 1) * tmp3 + tmp6 * gamma) * tmp1
 
     du_other = SVector{3, real(equations)}(du1, du2, du3)
 
@@ -210,27 +212,28 @@ function initial_condition_weak_blast_wave(x, t,
                                            equations::CompressibleEulerMulticomponentEquations2D)
     # From Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
     # Set up polar coordinates
-    inicenter = SVector(0.0, 0.0)
+    RealT = eltype(x)
+    inicenter = SVector(0, 0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
-    prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5 ?
+    prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
                                                                 2^(i - 1) * (1 - 2) /
                                                                 (1 -
                                                                  2^ncomponents(equations)) *
-                                                                1.0 :
+                                                                1 :
                                                                 2^(i - 1) * (1 - 2) /
                                                                 (1 -
                                                                  2^ncomponents(equations)) *
-                                                                1.1691
+                                                                convert(RealT, 1.1691)
                                                                 for i in eachcomponent(equations))
 
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-    p = r > 0.5 ? 1.0 : 1.245
+    v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
+    v2 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * sin_phi
+    p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
 
     prim_other = SVector{3, real(equations)}(v1, v2, p)
 
@@ -247,7 +250,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
+    p = (gamma - 1) * (rho_e - 0.5f0 * rho * (v1^2 + v2^2))
 
     if orientation == 1
         f_rho = densities(u, v1, equations)
@@ -277,7 +280,7 @@ end
     v2 = rho_v2 / rho
     v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
+    p = (gamma - 1) * (rho_e - 0.5f0 * rho * (v1^2 + v2^2))
 
     f_rho = densities(u, v_normal, equations)
     f1 = rho_v1 * v_normal + p * normal_direction[1]
@@ -306,7 +309,7 @@ Adaption of the entropy conserving two-point flux by
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
                                                                          u_rr[i + 3])
                                                                  for i in eachcomponent(equations))
-    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i + 3] +
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 3] +
                                                                  u_rr[i + 3])
                                                                 for i in eachcomponent(equations))
 
@@ -319,15 +322,15 @@ Adaption of the entropy conserving two-point flux by
     v2_ll = rho_v2_ll / rho_ll
     v1_rr = rho_v1_rr / rho_rr
     v2_rr = rho_v2_rr / rho_rr
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    v1_square = 0.5 * (v1_ll^2 + v1_rr^2)
-    v2_square = 0.5 * (v2_ll^2 + v2_rr^2)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    v1_square = 0.5f0 * (v1_ll^2 + v1_rr^2)
+    v2_square = 0.5f0 * (v2_ll^2 + v2_rr^2)
     v_sum = v1_avg + v2_avg
 
-    enth = zero(v_sum)
-    help1_ll = zero(v1_ll)
-    help1_rr = zero(v1_rr)
+    enth = 0
+    help1_ll = 0
+    help1_rr = 0
 
     for i in eachcomponent(equations)
         enth += rhok_avg[i] * gas_constants[i]
@@ -335,14 +338,14 @@ Adaption of the entropy conserving two-point flux by
         help1_rr += u_rr[i + 3] * cv[i]
     end
 
-    T_ll = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
-    T_rr = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
-    T = 0.5 * (1.0 / T_ll + 1.0 / T_rr)
-    T_log = ln_mean(1.0 / T_ll, 1.0 / T_rr)
+    T_ll = (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    T = 0.5f0 * (1 / T_ll + 1 / T_rr)
+    T_log = ln_mean(1 / T_ll, 1 / T_rr)
 
     # Calculate fluxes depending on orientation
-    help1 = zero(T_ll)
-    help2 = zero(T_rr)
+    help1 = 0
+    help2 = 0
     if orientation == 1
         f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v1_avg
                                                                  for i in eachcomponent(equations))
@@ -352,7 +355,7 @@ Adaption of the entropy conserving two-point flux by
         end
         f1 = (help2) * v1_avg + enth / T
         f2 = (help2) * v2_avg
-        f3 = (help1) / T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 +
+        f3 = (help1) / T_log - 0.5f0 * (v1_square + v2_square) * (help2) + v1_avg * f1 +
              v2_avg * f2
     else
         f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v2_avg
@@ -363,7 +366,7 @@ Adaption of the entropy conserving two-point flux by
         end
         f1 = (help2) * v1_avg
         f2 = (help2) * v2_avg + enth / T
-        f3 = (help1) / T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 +
+        f3 = (help1) / T_log - 0.5f0 * (v1_square + v2_square) * (help2) + v1_avg * f1 +
              v2_avg * f2
     end
     f_other = SVector{3, real(equations)}(f1, f2, f3)
@@ -395,7 +398,7 @@ See also
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
                                                                          u_rr[i + 3])
                                                                  for i in eachcomponent(equations))
-    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i + 3] +
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 3] +
                                                                  u_rr[i + 3])
                                                                 for i in eachcomponent(equations))
 
@@ -404,23 +407,23 @@ See also
     rho_rr = density(u_rr, equations)
 
     # Calculating gamma
-    gamma = totalgamma(0.5 * (u_ll + u_rr), equations)
+    gamma = totalgamma(0.5f0 * (u_ll + u_rr), equations)
     inv_gamma_minus_one = 1 / (gamma - 1)
 
     # extract velocities
     v1_ll = rho_v1_ll / rho_ll
     v1_rr = rho_v1_rr / rho_rr
-    v1_avg = 0.5 * (v1_ll + v1_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_ll = rho_v2_ll / rho_ll
     v2_rr = rho_v2_rr / rho_rr
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr + v2_ll * v2_rr)
 
     # helpful variables
-    help1_ll = zero(v1_ll)
-    help1_rr = zero(v1_rr)
-    enth_ll = zero(v1_ll)
-    enth_rr = zero(v1_rr)
+    help1_ll = 0
+    help1_rr = 0
+    enth_ll = 0
+    enth_rr = 0
     for i in eachcomponent(equations)
         enth_ll += u_ll[i + 3] * gas_constants[i]
         enth_rr += u_rr[i + 3] * gas_constants[i]
@@ -429,14 +432,14 @@ See also
     end
 
     # temperature and pressure
-    T_ll = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
-    T_rr = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    T_ll = (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
     p_ll = T_ll * enth_ll
     p_rr = T_rr * enth_rr
-    p_avg = 0.5 * (p_ll + p_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
     inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
 
-    f_rho_sum = zero(T_rr)
+    f_rho_sum = 0
     if orientation == 1
         f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v1_avg
                                                                  for i in eachcomponent(equations))
@@ -446,7 +449,7 @@ See also
         f1 = f_rho_sum * v1_avg + p_avg
         f2 = f_rho_sum * v2_avg
         f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
-             0.5 * (p_ll * v1_rr + p_rr * v1_ll)
+             0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
     else
         f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v2_avg
                                                                  for i in eachcomponent(equations))
@@ -456,7 +459,7 @@ See also
         f1 = f_rho_sum * v1_avg
         f2 = f_rho_sum * v2_avg + p_avg
         f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
-             0.5 * (p_ll * v2_rr + p_rr * v2_ll)
+             0.5f0 * (p_ll * v2_rr + p_rr * v2_ll)
     end
 
     # momentum and energy flux
@@ -474,7 +477,7 @@ end
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
                                                                          u_rr[i + 3])
                                                                  for i in eachcomponent(equations))
-    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i + 3] +
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 3] +
                                                                  u_rr[i + 3])
                                                                 for i in eachcomponent(equations))
 
@@ -483,25 +486,25 @@ end
     rho_rr = density(u_rr, equations)
 
     # Calculating gamma
-    gamma = totalgamma(0.5 * (u_ll + u_rr), equations)
+    gamma = totalgamma(0.5f0 * (u_ll + u_rr), equations)
     inv_gamma_minus_one = 1 / (gamma - 1)
 
     # extract velocities
     v1_ll = rho_v1_ll / rho_ll
     v1_rr = rho_v1_rr / rho_rr
-    v1_avg = 0.5 * (v1_ll + v1_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_ll = rho_v2_ll / rho_ll
     v2_rr = rho_v2_rr / rho_rr
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr + v2_ll * v2_rr)
     v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
     v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
     # helpful variables
-    help1_ll = zero(v1_ll)
-    help1_rr = zero(v1_rr)
-    enth_ll = zero(v1_ll)
-    enth_rr = zero(v1_rr)
+    help1_ll = 0
+    help1_rr = 0
+    enth_ll = 0
+    enth_rr = 0
     for i in eachcomponent(equations)
         enth_ll += u_ll[i + 3] * gas_constants[i]
         enth_rr += u_rr[i + 3] * gas_constants[i]
@@ -510,15 +513,15 @@ end
     end
 
     # temperature and pressure
-    T_ll = (rho_e_ll - 0.5 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
-    T_rr = (rho_e_rr - 0.5 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
+    T_ll = (rho_e_ll - 0.5f0 * rho_ll * (v1_ll^2 + v2_ll^2)) / help1_ll
+    T_rr = (rho_e_rr - 0.5f0 * rho_rr * (v1_rr^2 + v2_rr^2)) / help1_rr
     p_ll = T_ll * enth_ll
     p_rr = T_rr * enth_rr
-    p_avg = 0.5 * (p_ll + p_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
     inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
 
-    f_rho_sum = zero(T_rr)
-    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * 0.5 *
+    f_rho_sum = 0
+    f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * 0.5f0 *
                                                              (v_dot_n_ll + v_dot_n_rr)
                                                              for i in eachcomponent(equations))
     for i in eachcomponent(equations)
@@ -527,7 +530,7 @@ end
     f1 = f_rho_sum * v1_avg + p_avg * normal_direction[1]
     f2 = f_rho_sum * v2_avg + p_avg * normal_direction[2]
     f3 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
-         0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
+         0.5f0 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
 
     # momentum and energy flux
     f_other = SVector(f1, f2, f3)
@@ -557,9 +560,9 @@ end
     end
 
     # Compute the sound speeds on the left and right
-    p_ll = (gamma_ll - 1) * (rho_e_ll - 1 / 2 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+    p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
-    p_rr = (gamma_rr - 1) * (rho_e_rr - 1 / 2 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
@@ -574,7 +577,7 @@ end
     v2 = rho_v2 / rho
 
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 1 / 2 * rho * (v1^2 + v2^2))
+    p = (gamma - 1) * (rho_e - 0.5f0 * rho * (v1^2 + v2^2))
     c = sqrt(gamma * p / rho)
 
     return (abs(v1) + c, abs(v2) + c)
@@ -635,7 +638,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5 * rho * (v1^2 + v2^2))
+    p = (gamma - 1) * (rho_e - 0.5f0 * rho * (v1^2 + v2^2))
     prim_other = SVector{3, real(equations)}(v1, v2, p)
 
     return vcat(prim_other, prim_rho)
@@ -649,8 +652,8 @@ end
     rho = density(u, equations)
 
     # Multicomponent stuff
-    help1 = zero(rho)
-    gas_constant = zero(rho)
+    help1 = 0
+    gas_constant = 0
     for i in eachcomponent(equations)
         help1 += u[i + 3] * cv[i]
         gas_constant += gas_constants[i] * (u[i + 3] / rho)
@@ -661,10 +664,10 @@ end
     v_square = v1^2 + v2^2
     gamma = totalgamma(u, equations)
 
-    p = (gamma - 1) * (rho_e - 0.5 * rho * v_square)
+    p = (gamma - 1) * (rho_e - 0.5f0 * rho * v_square)
     s = log(p) - gamma * log(rho) - log(gas_constant)
     rho_p = rho / p
-    T = (rho_e - 0.5 * rho * v_square) / (help1)
+    T = (rho_e - 0.5f0 * rho * v_square) / (help1)
 
     entrop_rho = SVector{ncomponents(equations), real(equations)}((cv[i] *
                                                                    (1 - log(T)) +
@@ -698,10 +701,10 @@ end
                                                                     1)
                                                                 for i in eachcomponent(equations))
 
-    rho = zero(cons_rho[1])
-    help1 = zero(cons_rho[1])
-    help2 = zero(cons_rho[1])
-    p = zero(cons_rho[1])
+    rho = 0
+    help1 = 0
+    help2 = 0
+    p = 0
     for i in eachcomponent(equations)
         rho += cons_rho[i]
         help1 += cons_rho[i] * cv[i] * gammas[i]
@@ -711,7 +714,7 @@ end
     u1 = rho * v1
     u2 = rho * v2
     gamma = help1 / help2
-    u3 = p / (gamma - 1) + 0.5 * rho * v_squared
+    u3 = p / (gamma - 1) + 0.5f0 * rho * v_squared
     cons_other = SVector{3, real(equations)}(u1, u2, u3)
     return vcat(cons_other, cons_rho)
 end
@@ -728,7 +731,7 @@ end
 
     rho_v1 = rho * v1
     rho_v2 = rho * v2
-    rho_e = p / (gamma - 1) + 0.5 * (rho_v1 * v1 + rho_v2 * v2)
+    rho_e = p / (gamma - 1) + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2)
 
     cons_other = SVector{3, real(equations)}(rho_v1, rho_v2, rho_e)
 
@@ -740,7 +743,7 @@ end
     rho = density(u, equations)
     T = temperature(u, equations)
 
-    total_entropy = zero(u[1])
+    total_entropy = 0
     for i in eachcomponent(equations)
         total_entropy -= u[i + 3] * (cv[i] * log(T) - gas_constants[i] * log(u[i + 3]))
     end
@@ -754,7 +757,7 @@ end
     rho_v1, rho_v2, rho_e = u
 
     rho = density(u, equations)
-    help1 = zero(rho)
+    help1 = 0
 
     for i in eachcomponent(equations)
         help1 += u[i + 3] * cv[i]
@@ -763,7 +766,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v_square = v1^2 + v2^2
-    T = (rho_e - 0.5 * rho * v_square) / help1
+    T = (rho_e - 0.5f0 * rho * v_square) / help1
 
     return T
 end
@@ -777,8 +780,8 @@ partial density fractions as well as the partial specific heats at constant volu
 @inline function totalgamma(u, equations::CompressibleEulerMulticomponentEquations2D)
     @unpack cv, gammas = equations
 
-    help1 = zero(u[1])
-    help2 = zero(u[1])
+    help1 = 0
+    help2 = 0
 
     for i in eachcomponent(equations)
         help1 += u[i + 3] * cv[i] * gammas[i]
@@ -794,13 +797,13 @@ end
 
     rho = density(u, equations)
     gamma = totalgamma(u, equations)
-    rho_times_p = (gamma - 1) * (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2))
+    rho_times_p = (gamma - 1) * (rho * rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2))
 
     return rho_times_p
 end
 
 @inline function density(u, equations::CompressibleEulerMulticomponentEquations2D)
-    rho = zero(u[1])
+    rho = 0
 
     for i in eachcomponent(equations)
         rho += u[i + 3]
