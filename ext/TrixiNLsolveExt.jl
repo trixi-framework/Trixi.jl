@@ -54,7 +54,8 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
         x0[1] = 0.0
         x0[2] = c[2]
 
-        sol = nlsolve(objective_function, x0, method = :trust_region, ftol = 4e-16,
+        sol = nlsolve(objective_function, x0, method = :trust_region, 
+                      ftol = 4e-16, # Enforce objective up to machine precision
                       iterations = 10^4, xtol = 1e-13)
 
         a_unknown = sol.zero
