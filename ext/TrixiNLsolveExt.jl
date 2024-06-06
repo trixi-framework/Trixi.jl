@@ -45,7 +45,8 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
     while !is_sol_valid
 
         # Initialize initial guess
-        # The nonlinear system may have multiple valid solutions, so a reproducible initial guess is important
+        # The nonlinear system may have multiple valid solutions.
+        # For the sake of reproducibility, we use a seeded random initial guess
         x0 = 0.1 .* rand(num_stages)
         x0[1] = 0.0
         x0[2] = c[2]
