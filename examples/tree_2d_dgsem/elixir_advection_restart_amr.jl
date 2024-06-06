@@ -34,7 +34,7 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first)
                                       max_level = 5, max_threshold = 1.2)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
-                           adapt_initial_condition = false,
+                           adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 callbacks_ext = CallbackSet(amr_callback, callbacks.discrete_callbacks...)
 
