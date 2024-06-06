@@ -132,6 +132,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     num_a_coeffs = size(a_coeffs, 1)
 
     @assert num_a_coeffs == a_coeffs_max
+    # Fill A-matrix in P-ERK style
     a_matrix[:, 1] -= a_coeffs
     a_matrix[:, 2] = a_coeffs
 
