@@ -50,6 +50,7 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
         # The nonlinear system may have multiple valid solutions.
         # For the sake of reproducibility, we use a seeded random initial guess
         x0 = 0.1 .* rand(num_stages)
+        # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
         x0[1] = 0.0
         x0[2] = c[2]
 
