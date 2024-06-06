@@ -99,7 +99,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
         a_unknown = solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, cS2, c;
                                      verbose)
     end
-
+ # Fill A-matrix in P-ERK style
     a_matrix = zeros(num_stages - 2, 2)
     a_matrix[:, 1] = c[3:end]
     a_matrix[:, 1] -= a_unknown[3:end]
