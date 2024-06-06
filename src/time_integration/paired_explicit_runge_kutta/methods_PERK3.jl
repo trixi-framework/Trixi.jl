@@ -12,8 +12,8 @@ function compute_c_coeffs_SSP33(num_stages, cS2)
     c = zeros(num_stages)
 
     # Last timesteps as for SSPRK33
-    c[num_stages] = 0.5
     c[num_stages - 1] = 1
+    c[num_stages] = 0.5
 
     # Linear increasing timestep for remainder
     for i in 2:(num_stages - 2)
