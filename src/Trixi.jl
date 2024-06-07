@@ -70,7 +70,7 @@ export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using TrixiBase: trixi_include
-using TrixiBase: TrixiBase
+using TrixiBase: TrixiBase, @trixi_timeit, timer
 @reexport using SimpleUnPack: @unpack
 using SimpleUnPack: @pack!
 using DataStructures: BinaryHeap, FasterForward, extract_all!
