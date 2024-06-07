@@ -171,7 +171,7 @@ function flux(u, gradients, orientation::Integer,
     mu = dynamic_viscosity(u, equations)
 
     # viscous flux components in the x-direction
-    f1 = zero(rho)
+    f1 = 0
     f2 = tau_11 * mu
     f3 = (v1 * tau_11 + q1) * mu
 

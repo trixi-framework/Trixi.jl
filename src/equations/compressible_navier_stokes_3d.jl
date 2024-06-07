@@ -163,11 +163,11 @@ function flux(u, gradients, orientation::Integer,
 
     # Diagonal parts
     # (4/3 * (v1)_x - 2/3 * ((v2)_y + (v3)_z)
-    tau_11 = 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * (dv2dy + dv3dz)
+    tau_11 = 4.0f0 / 3 * dv1dx - 2.0f0 / 3 * (dv2dy + dv3dz)
     # (4/3 * (v2)_y - 2/3 * ((v1)_x + (v3)_z)
-    tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * (dv1dx + dv3dz)
+    tau_22 = 4.0f0 / 3 * dv2dy - 2.0f0 / 3 * (dv1dx + dv3dz)
     # (4/3 * (v3)_z - 2/3 * ((v1)_x + (v2)_y)
-    tau_33 = 4.0 / 3.0 * dv3dz - 2.0 / 3.0 * (dv1dx + dv2dy)
+    tau_33 = 4.0f0 / 3 * dv3dz - 2.0f0 / 3 * (dv1dx + dv2dy)
 
     # Off diagonal parts, exploit that stress tensor is symmetric
     # ((v1)_y + (v2)_x)
@@ -194,7 +194,7 @@ function flux(u, gradients, orientation::Integer,
 
     if orientation == 1
         # viscous flux components in the x-direction
-        f1 = zero(rho)
+        f1 = 0
         f2 = tau_11 * mu
         f3 = tau_12 * mu
         f4 = tau_13 * mu
@@ -204,7 +204,7 @@ function flux(u, gradients, orientation::Integer,
     elseif orientation == 2
         # viscous flux components in the y-direction
         # Note, symmetry is exploited for tau_12 = tau_21
-        g1 = zero(rho)
+        g1 = 0
         g2 = tau_12 * mu # tau_21 * mu
         g3 = tau_22 * mu
         g4 = tau_23 * mu
@@ -214,7 +214,7 @@ function flux(u, gradients, orientation::Integer,
     else # if orientation == 3
         # viscous flux components in the z-direction
         # Note, symmetry is exploited for tau_13 = tau_31, tau_23 = tau_32
-        h1 = zero(rho)
+        h1 = 0
         h2 = tau_13 * mu # tau_31 * mu
         h3 = tau_23 * mu # tau_32 * mu
         h4 = tau_33 * mu

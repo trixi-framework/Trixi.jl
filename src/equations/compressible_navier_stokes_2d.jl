@@ -158,12 +158,12 @@ function flux(u, gradients, orientation::Integer,
     # Components of viscous stress tensor
 
     # (4/3 * (v1)_x - 2/3 * (v2)_y)
-    tau_11 = 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy
+    tau_11 = 4.0f0 / 3 * dv1dx - 2.0f0 / 3 * dv2dy
     # ((v1)_y + (v2)_x)
     # stress tensor is symmetric
     tau_12 = dv1dy + dv2dx # = tau_21
     # (4/3 * (v2)_y - 2/3 * (v1)_x)
-    tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
+    tau_22 = 4.0f0 / 3 * dv2dy - 2.0f0 / 3 * dv1dx
 
     # Fick's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
@@ -181,7 +181,7 @@ function flux(u, gradients, orientation::Integer,
 
     if orientation == 1
         # viscous flux components in the x-direction
-        f1 = zero(rho)
+        f1 = 0
         f2 = tau_11 * mu
         f3 = tau_12 * mu
         f4 = (v1 * tau_11 + v2 * tau_12 + q1) * mu
@@ -190,7 +190,7 @@ function flux(u, gradients, orientation::Integer,
     else # if orientation == 2
         # viscous flux components in the y-direction
         # Note, symmetry is exploited for tau_12 = tau_21
-        g1 = zero(rho)
+        g1 = 0
         g2 = tau_12 * mu # tau_21 * mu
         g3 = tau_22 * mu
         g4 = (v1 * tau_12 + v2 * tau_22 + q2) * mu
