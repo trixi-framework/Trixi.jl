@@ -535,10 +535,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
-            # Note: Pass with check for `ln_mean` 
+            # pass with check for `ln_mean` 
             @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation, equations)) ==
                   RealT
-            # Note: Pass with check for `ln_mean` and `inv_ln_mean`
+            # pass with check for `ln_mean` and `inv_ln_mean`
             @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
                   RealT
 
@@ -581,7 +581,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             if RealT == Float32
-                # check `ln_mean` (test broken)
+                # check `ln_mean` and `inv_ln_mean` (test broken)
                 @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
                                                            equations)) == RealT
             else
