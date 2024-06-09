@@ -198,19 +198,19 @@ end
     # this is an optimized version of the application of the upwind dissipation matrix:
     #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
     λ_max = sqrt(equations.nu * equations.inv_Tr)
-    f1 = 1 / 2 * (f_ll[1] + f_rr[1]) - 1 / 2 * λ_max * (phi_rr - phi_ll)
+    f1 = 0.5f0 * (f_ll[1] + f_rr[1]) - 0.5f0 * λ_max * (phi_rr - phi_ll)
     if orientation == 1 # x-direction
-        f2 = 1 / 2 * (f_ll[2] + f_rr[2]) - 1 / 2 * λ_max * (q1_rr - q1_ll)
-        f3 = 1 / 2 * (f_ll[3] + f_rr[3])
-        f4 = 1 / 2 * (f_ll[4] + f_rr[4])
+        f2 = 0.5f0 * (f_ll[2] + f_rr[2]) - 0.5f0 * λ_max * (q1_rr - q1_ll)
+        f3 = 0.5f0 * (f_ll[3] + f_rr[3])
+        f4 = 0.5f0 * (f_ll[4] + f_rr[4])
     elseif orientation == 2 # y-direction
-        f2 = 1 / 2 * (f_ll[2] + f_rr[2])
-        f3 = 1 / 2 * (f_ll[3] + f_rr[3]) - 1 / 2 * λ_max * (q2_rr - q2_ll)
-        f4 = 1 / 2 * (f_ll[4] + f_rr[4])
+        f2 = 0.5f0 * (f_ll[2] + f_rr[2])
+        f3 = 0.5f0 * (f_ll[3] + f_rr[3]) - 0.5f0 * λ_max * (q2_rr - q2_ll)
+        f4 = 0.5f0 * (f_ll[4] + f_rr[4])
     else # y-direction
-        f2 = 1 / 2 * (f_ll[2] + f_rr[2])
-        f3 = 1 / 2 * (f_ll[3] + f_rr[3])
-        f4 = 1 / 2 * (f_ll[4] + f_rr[4]) - 1 / 2 * λ_max * (q3_rr - q3_ll)
+        f2 = 0.5f0 * (f_ll[2] + f_rr[2])
+        f3 = 0.5f0 * (f_ll[3] + f_rr[3])
+        f4 = 0.5f0 * (f_ll[4] + f_rr[4]) - 0.5f0 * λ_max * (q3_rr - q3_ll)
     end
 
     return SVector(f1, f2, f3, f4)
