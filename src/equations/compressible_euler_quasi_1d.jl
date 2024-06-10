@@ -314,10 +314,8 @@ end
 # 1D compressible Euler equations scaled by the channel width `a`.
 @inline function entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    q = a * entropy(SVector(a_rho, a_rho_v1, a_e) / a,
-                CompressibleEulerEquations1D(equations.gamma))
-
-    return SVector(q[1], q[2], q[3], a)
+    return a * entropy(SVector(a_rho, a_rho_v1, a_e) / a,
+                   CompressibleEulerEquations1D(equations.gamma))
 end
 
 # Convert conservative variables to entropy. The entropy variables for the 
