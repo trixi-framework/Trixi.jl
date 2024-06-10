@@ -11,7 +11,9 @@ using DelimitedFiles: readdlm
 function compute_c_coeffs_SSP33(num_stages, cS2)
     c = zeros(num_stages)
 
-    # Last timesteps as for SSPRK33
+    # Last timesteps as for SSPRK33, see motivation in
+    # https://doi.org/10.48550/arXiv.2403.05144
+
     c[num_stages - 1] = 1
     c[num_stages] = 0.5
 
@@ -33,8 +35,10 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
     # Equality Constraint array that ensures that the stability polynomial computed from 
     # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
     # optimized stability polynomial.
+    # For details, see Chapter4.3, Proposition 3.2, Equation (3.3) from 
+    # Hairer, Wanner: Solving Ordinary Differential Equations 2
     c_eq = zeros(num_stage_evals - 2) # Add equality constraint that cS2 is equal to 1
-    # Both terms should be present
+    # Lower-order terms: Two summands present
     for i in 1:(num_stage_evals - 4)
         term1 = a_unknown[num_stage_evals - 1]
         term2 = a_unknown[num_stage_evals]
@@ -42,8 +46,8 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
             term1 *= a_unknown[num_stage_evals - 1 - j]
             term2 *= a_unknown[num_stage_evals - j]
         end
-        term1 *= c_ts[num_stages - 2 - i] * 1 / 6
-        term2 *= c_ts[num_stages - 1 - i] * 4 / 6
+        term1 *= c_ts[num_stages - 2 - i] * 1 / 6 # 1/ 6 = b_{S-1}
+        term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
 
         c_eq[i] = monomial_coeffs[i] - (term1 + term2)
     end
@@ -54,7 +58,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
     for j in 1:i
         term2 *= a_unknown[num_stage_evals - j]
     end
-    term2 *= c_ts[num_stages - 1 - i] * 4 / 6
+    term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
 
     c_eq[i] = monomial_coeffs[i] - term2
     c_eq[num_stage_evals - 2] = 1 - 4 * a_unknown[num_stage_evals] -
