@@ -10,7 +10,7 @@ equations = InviscidBurgersEquation1D()
 
 initial_condition = initial_condition_convergence_test
 
-# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
+# Create DG solver with polynomial degree = 4 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (0.0,) # minimum coordinate
