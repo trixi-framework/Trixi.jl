@@ -315,7 +315,7 @@ end
 @inline function entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
     return a * entropy(SVector(a_rho, a_rho_v1, a_e) / a,
-                       CompressibleEulerEquations1D(equations.gamma))
+                   CompressibleEulerEquations1D(equations.gamma))
 end
 
 # Convert conservative variables to entropy. The entropy variables for the 
