@@ -24,7 +24,7 @@ function compute_c_coeffs_SSP33(num_stages, cS2)
 end
 
 # Compute residuals for nonlinear equations to match a stability polynomial with given coefficients,
-# in order to find A matrix in the Butcher-Tableau
+# in order to find A-matrix in the Butcher-Tableau
 function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_stages,
                                                               num_stage_evals,
                                                               monomial_coeffs, cS2)
@@ -99,7 +99,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
         a_unknown = solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, cS2, c;
                                      verbose)
     end
- # Fill A-matrix in P-ERK style
+    # Fill A-matrix in P-ERK style
     a_matrix = zeros(num_stages - 2, 2)
     a_matrix[:, 1] = c[3:end]
     a_matrix[:, 1] -= a_unknown[3:end]
@@ -109,7 +109,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
 end
 
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 3
-# using provided values of coefficients a in a matrix of Butcher tableau
+# using provided values of coefficients a in A-matrix of Butcher tableau
 function compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                    base_path_a_coeffs::AbstractString;
                                                    cS2)
@@ -150,7 +150,7 @@ end
 
     Parameters:
     - `num_stages` (`Int`): Number of stages in the PERK method.
-    - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the matrix A in 
+    - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
       the Butcher tableau of the Runge Kutta method.
       The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages)_.$(num_stages)txt")` and separated by line breaks.
     - `tspan`: Time span of the simulation.
@@ -344,7 +344,7 @@ function step!(integrator::PairedExplicitRK3Integrator)
             end
 
             # Higher stages
-            for stage in 3:(alg.num_stages-1)
+            for stage in 3:(alg.num_stages - 1)
                 # Construct current state
                 @threaded for i in eachindex(integrator.du)
                     integrator.u_tmp[i] = integrator.u[i] +
@@ -362,7 +362,6 @@ function step!(integrator::PairedExplicitRK3Integrator)
                 end
             end
 
-            # IDEA: Stop for loop at num_stages -1 to avoid if (maybe more performant?)
             @threaded for i in eachindex(integrator.du)
                 integrator.k_s1[i] = integrator.k_higher[i]
             end
