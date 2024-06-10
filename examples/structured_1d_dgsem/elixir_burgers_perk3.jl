@@ -17,7 +17,6 @@ coordinates_min = (0.0,) # minimum coordinate
 coordinates_max = (1.0,) # maximum coordinate
 cells_per_dimension = (64,)
 
-# Create curved mesh with 16 cells
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
