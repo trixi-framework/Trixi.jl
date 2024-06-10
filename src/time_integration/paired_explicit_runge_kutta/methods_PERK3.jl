@@ -57,7 +57,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
     term2 *= c_ts[num_stages - 1 - i] * 4 / 6
 
     c_eq[i] = monomial_coeffs[i] - term2
-    c_eq[num_stage_evals - 2] = 1.0 - 4 * a_unknown[num_stage_evals] -
+    c_eq[num_stage_evals - 2] = 1 - 4 * a_unknown[num_stage_evals] -
                                 a_unknown[num_stage_evals - 1]
 
     return c_eq
@@ -194,7 +194,7 @@ end
 
 # Constructor that computes Butcher matrix A coefficients from a semidiscretization
 function PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
-                           verbose = false, cS2 = 1.0)
+                           verbose = false, cS2 = 1)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     return PairedExplicitRK3(num_stages, tspan, eig_vals; verbose, cS2)
@@ -202,7 +202,7 @@ end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
 function PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
-                           verbose = false, cS2 = 1.0)
+                           verbose = false, cS2 = 1)
     a_matrix, c, dt_opt = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                                     tspan,
                                                                     eig_vals;
