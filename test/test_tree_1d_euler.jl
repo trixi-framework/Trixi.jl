@@ -411,7 +411,7 @@ end
 
 @trixi_testset "test_quasi_1D_entropy" begin
     a = 0.9
-    u_1D = SVector(1.1, .2, 2.1)
+    u_1D = SVector(1.1, 0.2, 2.1)
     u_quasi_1D = SVector(a * 1.1, a * .2, a * 2.1, a)
     @test entropy(u_quasi_1D, CompressibleEulerEquationsQuasi1D(1.4)) ≈ a * entropy(u_1D, CompressibleEulerEquations1D(1.4))
 end
