@@ -34,8 +34,8 @@ varnames(::typeof(cons2prim), ::LinearScalarAdvectionEquation2D) = ("scalar",)
 function x_trans_periodic_2d(x, domain_length = SVector(10, 10), center = SVector(0, 0))
     x_normalized = x .- center
     x_shifted = x_normalized .% domain_length
-    x_offset = ((x_shifted .< -0.5 * domain_length) -
-                (x_shifted .> 0.5 * domain_length)) .* domain_length
+    x_offset = ((x_shifted .< -0.5f0 * domain_length) -
+                (x_shifted .> 0.5f0 * domain_length)) .* domain_length
     return center + x_shifted + x_offset
 end
 
@@ -63,7 +63,7 @@ function initial_condition_convergence_test(x, t,
     x_trans = x - equation.advection_velocity * t
 
     c = 1.0
-    A = 0.5
+    A = 0.5f0
     L = 2
     f = 1 / L
     omega = 2 * pi * f
@@ -280,11 +280,11 @@ end
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation2D) = u
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
+@inline entropy(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation2D) = entropy(u[1], equation)
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5 * u^2
+@inline energy_total(u::Real, ::LinearScalarAdvectionEquation2D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation2D)
     energy_total(u[1], equation)
 end

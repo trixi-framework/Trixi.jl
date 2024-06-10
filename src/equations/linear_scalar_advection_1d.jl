@@ -52,7 +52,7 @@ function initial_condition_convergence_test(x, t,
     x_trans = x - equation.advection_velocity * t
 
     c = 1.0
-    A = 0.5
+    A = 0.5f0
     L = 2
     f = 1 / L
     omega = 2 * pi * f
@@ -161,7 +161,7 @@ function flux_engquist_osher(u_ll, u_rr, orientation::Int,
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    return SVector(0.5 * (flux(u_L, orientation, equation) +
+    return SVector(0.5f0 * (flux(u_L, orientation, equation) +
                     flux(u_R, orientation, equation) -
                     abs(equation.advection_velocity[orientation]) * (u_R - u_L)))
 end
@@ -217,11 +217,11 @@ end
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation1D) = u
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5 * u^2
+@inline entropy(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation1D) = entropy(u[1], equation)
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5 * u^2
+@inline energy_total(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation1D)
     energy_total(u[1], equation)
 end

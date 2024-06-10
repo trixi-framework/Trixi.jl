@@ -54,7 +54,7 @@ function initial_condition_convergence_test(x, t,
     x_trans = x - equation.advection_velocity * t
 
     c = 1.0
-    A = 0.5
+    A = 0.5f0
     L = 2
     f = 1 / L
     omega = 2 * pi * f
@@ -199,11 +199,11 @@ end
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5 * u^2
+@inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation3D) = entropy(u[1], equation)
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5 * u^2
+@inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation3D)
     energy_total(u[1], equation)
 end
