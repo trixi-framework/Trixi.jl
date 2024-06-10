@@ -233,7 +233,7 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
     # PairedExplicitRK stages:
     k1::uType
     k_higher::uType
-    k_s1::uType # Required for custom third order version of PairedExplicitRK3
+    k_S1::uType # Required for custom third order version of PairedExplicitRK3
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK3;
@@ -245,7 +245,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
     # PairedExplicitRK stages
     k1 = zero(u0)
     k_higher = zero(u0)
-    k_s1 = zero(u0)
+    k_S1 = zero(u0)
 
     t0 = first(ode.tspan)
     iter = 0
@@ -257,7 +257,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
                                                                      ode.tspan;
                                                                      kwargs...),
                                              false,
-                                             k1, k_higher, k_s1)
+                                             k1, k_higher, k_S1)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -339,7 +339,7 @@ function step!(integrator::PairedExplicitRK3Integrator)
 
             if alg.num_stages == 3
                 @threaded for i in eachindex(integrator.du)
-                    integrator.k_s1[i] = integrator.k_higher[i]
+                    integrator.k_S1[i] = integrator.k_higher[i]
                 end
             end
 
@@ -363,12 +363,12 @@ function step!(integrator::PairedExplicitRK3Integrator)
             end
 
             @threaded for i in eachindex(integrator.du)
-                integrator.k_s1[i] = integrator.k_higher[i]
+                integrator.k_S1[i] = integrator.k_higher[i]
             end
 
             @threaded for i in eachindex(integrator.u)
                 # "Own" PairedExplicitRK based on SSPRK33
-                integrator.u[i] += (integrator.k1[i] + integrator.k_s1[i] +
+                integrator.u[i] += (integrator.k1[i] + integrator.k_S1[i] +
                                     4.0 * integrator.k_higher[i]) / 6.0
             end
         end # PairedExplicitRK step timer
@@ -401,6 +401,6 @@ function Base.resize!(integrator::PairedExplicitRK3Integrator, new_size)
 
     resize!(integrator.k1, new_size)
     resize!(integrator.k_higher, new_size)
-    resize!(integrator.k_s1, new_size)
+    resize!(integrator.k_S1, new_size)
 end
 end # @muladd
