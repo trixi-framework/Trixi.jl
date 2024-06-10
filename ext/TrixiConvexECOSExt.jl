@@ -136,7 +136,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
                                            "reltol_inacc" => 5e-5,
                                            "nitref" => 9,
                                            "maxit" => 100,
-                                           "verbose" => 3); silent = true)
+                                           "verbose" => 3); silent_solver = true)
 
         abs_p = problem.optval
 

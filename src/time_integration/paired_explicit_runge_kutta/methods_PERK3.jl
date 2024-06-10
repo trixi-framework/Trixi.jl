@@ -344,7 +344,7 @@ function step!(integrator::PairedExplicitRK3Integrator)
             end
 
             # Higher stages
-            for stage in 3:(alg.num_stages)
+            for stage in 3:(alg.num_stages-1)
                 # Construct current state
                 @threaded for i in eachindex(integrator.du)
                     integrator.u_tmp[i] = integrator.u[i] +
@@ -360,13 +360,11 @@ function step!(integrator::PairedExplicitRK3Integrator)
                 @threaded for i in eachindex(integrator.du)
                     integrator.k_higher[i] = integrator.du[i] * integrator.dt
                 end
+            end
 
-                # IDEA: Stop for loop at num_stages -1 to avoid if (maybe more performant?)
-                if stage == alg.num_stages - 1
-                    @threaded for i in eachindex(integrator.du)
-                        integrator.k_s1[i] = integrator.k_higher[i]
-                    end
-                end
+            # IDEA: Stop for loop at num_stages -1 to avoid if (maybe more performant?)
+            @threaded for i in eachindex(integrator.du)
+                integrator.k_s1[i] = integrator.k_higher[i]
             end
 
             @threaded for i in eachindex(integrator.u)
