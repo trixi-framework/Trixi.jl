@@ -366,6 +366,21 @@ function step!(integrator::PairedExplicitRK3Integrator)
                 integrator.k_S1[i] = integrator.k_higher[i]
             end
 
+            # Last stage
+            @threaded for i in eachindex(integrator.du)
+                integrator.u_tmp[i] = integrator.u[i] +
+                                      alg.a_matrix[alg.num_stages - 2, 1] *
+                                      integrator.k1[i] +
+                                      alg.a_matrix[alg.num_stages - 2, 2] *
+                                      integrator.k_higher[i]
+            end
+
+            integrator.f(integrator.du, integrator.u_tmp, prob.p,
+                         integrator.t + alg.c[alg.num_stages] * integrator.dt)
+            @threaded for i in eachindex(integrator.du)
+                integrator.k_higher[i] = integrator.du[i] * integrator.dt
+            end
+
             @threaded for i in eachindex(integrator.u)
                 # "Own" PairedExplicitRK based on SSPRK33
                 integrator.u[i] += (integrator.k1[i] + integrator.k_S1[i] +
