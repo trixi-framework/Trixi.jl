@@ -30,12 +30,12 @@ from the Trixi Framework ecosystem:
 * [**Towards Aerodynamic Simulations in Julia with Trixi.jl**](https://pretalx.com/juliacon2024/talk/XH8KBG/),<br/>
   [*Daniel Doehring*](https://github.com/danieldoehring/),
   10th July 2024, 15:00pm–15:30pm, While Loop (4.2)
-* [**libtrixi: serving legacy codes in earth system modeling with fresh Julia CFD**](https://pretalx.com/juliacon2024/talk/JBKVGF/),<br/>
+* [**libtrixi: serving legacy codes in earth system modeling with fresh Julia CFD**](https://pretalx.com/juliacon2024/talk/SXC7LA/),<br/>
   [*Benedict Geihe*](https://github.com/benegee/),
   12th July 2024, 14:00pm–17:00pm, Function (4.1)
 
 The last talk is part of the 
-[Julia for High-Performance Computing](https://pretalx.com/juliacon2024/talk/JBKVGF/)
+[Julia for High-Performance Computing](https://juliacon.org/2024/minisymposia/hpc/)
 minisymposium, which this year is hosted by our own [*Hendrik Ranocha*](https://github.com/ranocha/).
 
 We are looking forward to seeing you there ♥️
