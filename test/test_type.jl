@@ -535,12 +535,23 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
-            # pass with check for `ln_mean` 
-            @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation, equations)) ==
-                  RealT
-            # pass with check for `ln_mean` and `inv_ln_mean`
-            @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
-                  RealT
+            if RealT == Float32
+                # check `ln_mean` (test broken)
+                @test_broken eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
+                                                                 equations)) == RealT
+            else
+                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
+                                                          equations)) == RealT
+            end
+            if RealT == Float32
+                # check `ln_mean` and `inv_ln_mean` (test broken)
+                @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, orientation,
+                                                           equations)) ==
+                             RealT
+            else
+                @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
+                      RealT
+            end
 
             @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT
@@ -591,13 +602,23 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             for orientation in orientations
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
-                # pass with check for `ln_mean` 
-                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
-                                                          equations)) ==
-                      RealT
-                # pass with check for `ln_mean` and `inv_ln_mean`
-                @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
-                      RealT
+                if RealT == Float32
+                    # check `ln_mean` (test broken)
+                    @test_broken eltype(@inferred flux_chandrashekar(u_ll, u_rr,
+                                                                     orientation,
+                                                                     equations)) == RealT
+                else
+                    @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
+                                                              equations)) == RealT
+                end
+                if RealT == Float32
+                    # check `ln_mean` and `inv_ln_mean` (test broken)
+                    @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, orientation,
+                                                               equations)) == RealT
+                else
+                    @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
+                          RealT
+                end
 
                 @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
                                                            equations)) ==
@@ -657,8 +678,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
-            # TODO: There is a bug in the `entropy` function
-            # @test eltype(@inferred entropy(u, equations)) == RealT
+            @test eltype(@inferred entropy(u, equations)) == RealT
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
             @test eltype(@inferred density(u, equations)) == RealT
             @test eltype(@inferred pressure(u, equations)) == RealT

@@ -145,7 +145,7 @@ function initial_condition_convergence_test(x, t,
     prim1 = rho * v1
     prim2 = rho^2
 
-    prim_other = SVector{2, real(equations)}(prim1, prim2)
+    prim_other = SVector(prim1, prim2)
 
     return vcat(prim_other, prim_rho)
 end
@@ -180,7 +180,7 @@ Source terms used for convergence tests in combination with
     du1 = tmp
     du2 = tmp
 
-    du_other = SVector{2, real(equations)}(du1, du2)
+    du_other = SVector(du1, du2)
 
     return vcat(du_other, du_rho)
 end
@@ -216,7 +216,7 @@ function initial_condition_weak_blast_wave(x, t,
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
     p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
 
-    prim_other = SVector{2, real(equations)}(v1, p)
+    prim_other = SVector(v1, p)
 
     return prim2cons(vcat(prim_other, prim_rho), equations)
 end
@@ -236,7 +236,7 @@ end
     f1 = rho_v1 * v1 + p
     f2 = (rho_e + p) * v1
 
-    f_other = SVector{2, real(equations)}(f1, f2)
+    f_other = SVector(f1, f2)
 
     return vcat(f_other, f_rho)
 end
@@ -276,9 +276,10 @@ Entropy conserving two-point flux by
     v1_square = 0.5f0 * (v1_ll^2 + v1_rr^2)
     v_sum = v1_avg
 
-    enth = 0
-    help1_ll = 0
-    help1_rr = 0
+    RealT = eltype(u_ll)
+    enth = zero(RealT)
+    help1_ll = zero(RealT)
+    help1_rr = zero(RealT)
 
     for i in eachcomponent(equations)
         enth += rhok_avg[i] * gas_constants[i]
@@ -292,8 +293,8 @@ Entropy conserving two-point flux by
     T_log = ln_mean(1 / T_ll, 1 / T_rr)
 
     # Calculate fluxes depending on orientation
-    help1 = 0
-    help2 = 0
+    help1 = zero(RealT)
+    help2 = zero(RealT)
 
     f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v1_avg
                                                              for i in eachcomponent(equations))
@@ -304,7 +305,7 @@ Entropy conserving two-point flux by
     f1 = (help2) * v1_avg + enth / T
     f2 = (help1) / T_log - 0.5f0 * (v1_square) * (help2) + v1_avg * f1
 
-    f_other = SVector{2, real(equations)}(f1, f2)
+    f_other = SVector(f1, f2)
 
     return vcat(f_other, f_rho)
 end
@@ -356,11 +357,12 @@ See also
                                                              for i in eachcomponent(equations))
 
     # helpful variables
-    f_rho_sum = 0
-    help1_ll = 0
-    help1_rr = 0
-    enth_ll = 0
-    enth_rr = 0
+    RealT = eltype(u_ll)
+    f_rho_sum = zero(RealT)
+    help1_ll = zero(RealT)
+    help1_rr = zero(RealT)
+    enth_ll = zero(RealT)
+    enth_rr = zero(RealT)
     for i in eachcomponent(equations)
         enth_ll += u_ll[i + 2] * gas_constants[i]
         enth_rr += u_rr[i + 2] * gas_constants[i]
@@ -381,7 +383,7 @@ See also
     f1 = f_rho_sum * v1_avg + p_avg
     f2 = f_rho_sum * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
          0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
-    f_other = SVector{2, real(equations)}(f1, f2)
+    f_other = SVector(f1, f2)
 
     return vcat(f_other, f_rho)
 end
@@ -435,7 +437,7 @@ end
     gamma = totalgamma(u, equations)
 
     p = (gamma - 1) * (rho_e - 0.5f0 * rho * (v1^2))
-    prim_other = SVector{2, real(equations)}(v1, p)
+    prim_other = SVector(v1, p)
 
     return vcat(prim_other, prim_rho)
 end
@@ -469,8 +471,9 @@ end
 
     rho = density(u, equations)
 
-    help1 = 0
-    gas_constant = 0
+    RealT = eltype(u)
+    help1 = zero(RealT)
+    gas_constant = zero(RealT)
     for i in eachcomponent(equations)
         help1 += u[i + 2] * cv[i]
         gas_constant += gas_constants[i] * (u[i + 2] / rho)
@@ -495,7 +498,7 @@ end
     w1 = gas_constant * v1 * rho_p
     w2 = gas_constant * (-rho_p)
 
-    entrop_other = SVector{2, real(equations)}(w1, w2)
+    entrop_other = SVector(w1, w2)
 
     return vcat(entrop_other, entrop_rho)
 end
@@ -514,10 +517,11 @@ end
                                                                      w[2]))
                                                                 for i in eachcomponent(equations))
 
-    rho = 0
-    help1 = 0
-    help2 = 0
-    p = 0
+    RealT = eltype(w)
+    rho = zero(RealT)
+    help1 = zero(RealT)
+    help2 = zero(RealT)
+    p = zero(RealT)
     for i in eachcomponent(equations)
         rho += cons_rho[i]
         help1 += cons_rho[i] * cv[i] * gammas[i]
@@ -527,7 +531,7 @@ end
     u1 = rho * v1
     gamma = help1 / help2
     u2 = p / (gamma - 1) + 0.5f0 * rho * v1^2
-    cons_other = SVector{2, real(equations)}(u1, u2)
+    cons_other = SVector(u1, u2)
     return vcat(cons_other, cons_rho)
 end
 
@@ -537,7 +541,8 @@ end
     rho = density(u, equations)
     T = temperature(u, equations)
 
-    total_entropy = 0
+    RealT = eltype(u)
+    total_entropy = zero(RealT)
     for i in eachcomponent(equations)
         total_entropy -= u[i + 2] * (cv[i] * log(T) - gas_constants[i] * log(u[i + 2]))
     end
@@ -551,7 +556,9 @@ end
     rho_v1, rho_e = u
 
     rho = density(u, equations)
-    help1 = 0
+
+    RealT = eltype(u)
+    help1 = zero(RealT)
 
     for i in eachcomponent(equations)
         help1 += u[i + 2] * cv[i]
@@ -573,8 +580,9 @@ partial density fractions as well as the partial specific heats at constant volu
 @inline function totalgamma(u, equations::CompressibleEulerMulticomponentEquations1D)
     @unpack cv, gammas = equations
 
-    help1 = 0
-    help2 = 0
+    RealT = eltype(u)
+    help1 = zero(RealT)
+    help2 = zero(RealT)
 
     for i in eachcomponent(equations)
         help1 += u[i + 2] * cv[i] * gammas[i]
@@ -596,7 +604,8 @@ end
 end
 
 @inline function density(u, equations::CompressibleEulerMulticomponentEquations1D)
-    rho = 0
+    RealT = eltype(u)
+    rho = zero(RealT)
 
     for i in eachcomponent(equations)
         rho += u[i + 2]
