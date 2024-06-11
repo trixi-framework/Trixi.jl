@@ -99,14 +99,30 @@ end
 function load_p4est(file, ::Val{2})
     conn_vec = Vector{Ptr{p4est_connectivity_t}}(undef, 1)
     comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
-    p4est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
+    p4est = p4est_load_ext(file,
+                           comm,
+                           0,         # Size of user data
+                           0,         # Flag to load user data
+                           1,         # Autopartition: ignore saved partition
+                           0,         # Have only rank 0 read headers and bcast them
+                           C_NULL,    # No pointer to user data
+                           pointer(conn_vec))
+    # p4est_load_ext only allocates memory when also data is read
+    # use p4est_reset_data to allocate uninitialized memory
+    p4est_reset_data(p4est,
+                     2 * sizeof(Int), # Use Int-Vector of size 2 as quadrant user data
+                     C_NULL,          # No init function
+                     C_NULL)          # No pointer to user data
+    return p4est
 end
 
 # 3D
 function load_p4est(file, ::Val{3})
     conn_vec = Vector{Ptr{p8est_connectivity_t}}(undef, 1)
     comm = P4est.uses_mpi() ? mpi_comm() : C_NULL # Use Trixi.jl's MPI communicator if p4est supports MPI
-    p8est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
+    p4est = p8est_load_ext(file, comm, 0, 0, 1, 0, C_NULL, pointer(conn_vec))
+    p8est_reset_data(p4est, 2 * sizeof(Int), C_NULL, C_NULL)
+    return p4est
 end
 
 # Read `p4est` connectivity from Abaqus mesh file (.inp)
