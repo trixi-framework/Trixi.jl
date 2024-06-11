@@ -171,9 +171,8 @@ function Base.getproperty(integrator::SimpleIntegrator3Sstar, field::Symbol)
     return getfield(integrator, field)
 end
 
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::T;
-               dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm3Sstar}
+function init(ode::ODEProblem, alg::T;
+              dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm3Sstar}
     u = copy(ode.u0)
     du = similar(u)
     u_tmp1 = similar(u)
@@ -199,10 +198,33 @@ function solve(ode::ODEProblem, alg::T;
         error("unsupported")
     end
 
-    solve!(integrator)
+    return integrator
 end
 
-function solve!(integrator::SimpleIntegrator3Sstar)
+# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
+function solve(ode::ODEProblem, alg::T;
+               dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm3Sstar}
+    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+
+    # Start actual solve
+    solve_steps!(integrator)
+end
+
+function solve_steps!(integrator::SimpleIntegrator3Sstar)
+    @unpack prob = integrator.sol
+
+    integrator.finalstep = false
+
+    @trixi_timeit timer() "main loop" while !integrator.finalstep
+        step!(integrator)
+    end # "main loop" timer
+
+    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
+                                  (prob.u0, integrator.u),
+                                  integrator.sol.prob)
+end
+
+function step!(integrator::SimpleIntegrator3Sstar)
     @unpack prob = integrator.sol
     @unpack alg = integrator
     t_end = last(prob.tspan)
@@ -262,10 +284,6 @@ function solve!(integrator::SimpleIntegrator3Sstar)
             terminate!(integrator)
         end
     end
-
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
 end
 
 # get a cache where the RHS can be stored

@@ -104,9 +104,8 @@ function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
     return getfield(integrator, field)
 end
 
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::T;
-               dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm2N}
+function init(ode::ODEProblem, alg::T;
+              dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm2N}
     u = copy(ode.u0)
     du = similar(u)
     u_tmp = similar(u)
@@ -129,10 +128,33 @@ function solve(ode::ODEProblem, alg::T;
         error("unsupported")
     end
 
-    solve!(integrator)
+    return integrator
 end
 
-function solve!(integrator::SimpleIntegrator2N)
+# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
+function solve(ode::ODEProblem, alg::T;
+               dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm2N}
+    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+
+    # Start actual solve
+    solve_steps!(integrator)
+end
+
+function solve_steps!(integrator::SimpleIntegrator2N)
+    @unpack prob = integrator.sol
+
+    integrator.finalstep = false
+
+    @trixi_timeit timer() "main loop" while !integrator.finalstep
+        step!(integrator)
+    end # "main loop" timer
+
+    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
+                                  (prob.u0, integrator.u),
+                                  integrator.sol.prob)
+end
+
+function step!(integrator::SimpleIntegrator2N)
     @unpack prob = integrator.sol
     @unpack alg = integrator
     t_end = last(prob.tspan)
@@ -186,10 +208,6 @@ function solve!(integrator::SimpleIntegrator2N)
             terminate!(integrator)
         end
     end
-
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
 end
 
 # get a cache where the RHS can be stored
