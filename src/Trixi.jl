@@ -64,7 +64,7 @@ using Static: Static, One, True, False
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
-using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
+using TimerOutputs: TimerOutputs, @notimeit, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
