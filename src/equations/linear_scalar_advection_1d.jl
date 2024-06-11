@@ -34,9 +34,10 @@ A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation1D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    return SVector(2.0)
+    return SVector(RealT(2))
 end
 
 """
@@ -49,13 +50,14 @@ in non-periodic domains).
 function initial_condition_convergence_test(x, t,
                                             equation::LinearScalarAdvectionEquation1D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    c = 1.0
+    c = 1
     A = 0.5f0
     L = 2
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * sum(x_trans))
     return SVector(scalar)
 end
