@@ -34,7 +34,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 1,
                 n_cells_max = 10_000) # set maximum capacity of tree data structure
 
-function initial_condition_constant_alfven_3d(x, t, equations)
+function initial_condition_constant_alfven_2d(x, t, equations)
     # Alfvén wave in three space dimensions modified by a periodic density variation.
     # For the system without the density variations see: Altmann thesis http://dx.doi.org/10.18419/opus-3895.
     # Domain must be set to [-1, 1]^3, γ = 5/3.
@@ -61,7 +61,7 @@ function initial_condition_constant_alfven_3d(x, t, equations)
 #     p = 1
 #     psi = 0
 
-    # 3d Alfven wave
+    # 2d Alfven wave
     rho = 1.0 + e * cos(phi_alv + 1.0)
     v1 = -e * ny * cos(phi_alv) / rho
     v2 = e * nx * cos(phi_alv) / rho
@@ -75,7 +75,7 @@ function initial_condition_constant_alfven_3d(x, t, equations)
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
-@inline function source_terms_mhd_convergence_test_3d(u, x, t, equations)
+@inline function source_terms_mhd_convergence_test_2d(u, x, t, equations)
 #     # 1d Alfven wave
 #     r_1 = 0
 #     r_2 = 0.0004*pi*sin(4*pi*x[1])
@@ -105,13 +105,13 @@ end
 
     r_8 = pi*((0.1*pi*eta_const*sin(pi*(-sqrt(5)*t + x[1] + 2*x[2])) + 0.02*sqrt(5)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)))*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2 - 0.02*sqrt(5)*(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)*cos(pi*(sqrt(5)*t - x[1] - 2*x[2] + 3.0)) + 0.0002*sqrt(5)*(cos(-2*sqrt(5)*pi*t + 2*pi*x[1] + 4*pi*x[2] + 1) - cos(1)))/(0.02*cos(-sqrt(5)*pi*t + pi*(x[1] + 2*x[2] - 3.0) + 1) + 1)^2
 
-    r_9 = 0.0
+    r_9 = 0
 
     return SVector(r_1, r_2, r_3, r_4, r_5, r_6, r_7, r_8, r_9)
 end
 
-initial_condition = initial_condition_constant_alfven_3d
-source_terms = source_terms_mhd_convergence_test_3d
+initial_condition = initial_condition_constant_alfven_2d
+source_terms = source_terms_mhd_convergence_test_2d
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
