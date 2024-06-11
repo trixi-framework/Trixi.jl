@@ -368,6 +368,7 @@ function step!(integrator::PairedExplicitRK3Integrator)
                 end
             end
 
+            # Store K_{S-1}
             @threaded for i in eachindex(integrator.du)
                 integrator.k_S1[i] = integrator.k_higher[i]
             end
