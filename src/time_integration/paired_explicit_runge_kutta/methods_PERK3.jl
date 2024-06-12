@@ -384,14 +384,11 @@ function step!(integrator::PairedExplicitRK3Integrator)
 
             integrator.f(integrator.du, integrator.u_tmp, prob.p,
                          integrator.t + alg.c[alg.num_stages] * integrator.dt)
-            @threaded for i in eachindex(integrator.du)
-                integrator.k_higher[i] = integrator.du[i] * integrator.dt
-            end
 
             @threaded for i in eachindex(integrator.u)
                 # "Own" PairedExplicitRK based on SSPRK33
                 integrator.u[i] += (integrator.k1[i] + integrator.k_S1[i] +
-                                    4.0 * integrator.k_higher[i]) / 6.0
+                                    4.0 * integrator.du[i] * integrator.dt) / 6.0
             end
         end # PairedExplicitRK step timer
 
