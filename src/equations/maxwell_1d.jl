@@ -10,6 +10,7 @@
 
 The Maxwell equations of electro dynamics
 ```math
+\frac{\partial}{\partial t}
 \begin{pmatrix}
 E \\ B
 \end{pmatrix}
