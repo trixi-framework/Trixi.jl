@@ -61,6 +61,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
     term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
 
     c_eq[i] = monomial_coeffs[i] - term2
+    # Third-order consistency condition (Cf. eq. (27) from https://doi.org/10.1016/j.jcp.2022.111470
     c_eq[num_stage_evals - 2] = 1 - 4 * a_unknown[num_stage_evals] -
                                 a_unknown[num_stage_evals - 1]
 
