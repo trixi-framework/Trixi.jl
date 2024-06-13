@@ -32,17 +32,21 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-surface_flux = flux_hllc
-volume_flux = flux_ranocha
+surface_flux = FluxLMARS(1.7)
+# polydeg = 3
 polydeg = 3
-basis = LobattoLegendreBasis(polydeg)
-
-limiter_idp = SubcellLimiterIDP(equations, basis;
-                                positivity_variables_cons = ["rho"],
-                                positivity_variables_nonlinear = [pressure])
-volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
-                                                volume_flux_dg = volume_flux,
-                                                volume_flux_fv = surface_flux)
+basis = GaussLegendreBasis(polydeg; polydeg_projection = 2 * polydeg, polydeg_cutoff = 3)
+#indicator_sc = IndicatorHennemannGassner(equations, basis,
+#                                         alpha_max = 0.000,
+#                                         alpha_min = 0.0000,
+#                                         alpha_smooth = true,
+#                                         variable = density_pressure)
+#
+#volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+#                                                 volume_flux_dg = volume_flux,
+#                                                 volume_flux_fv = surface_flux)
+#volume_integral = VolumeIntegralWeakFormProjection()
+volume_integral = VolumeIntegralWeakForm()
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-1.0, -1.0)
@@ -65,29 +69,28 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
+save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-save_restart = SaveRestartCallback(interval = 1000,
-                                   save_final_restart = true)
+# stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.5)
 
-stepsize_callback = StepsizeCallback(cfl = 0.7)
+#stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-4, 5.0e-4),
+#                                                     variables = (Trixi.density, pressure))
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        stepsize_callback,
-                        save_restart, save_solution)
+                        #save_solution,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(),
-                   BoundsCheckCallback(save_errors = false, interval = 100))
-# `interval` is used when calling this elixir in the tests with `save_errors=true`.
-
-sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  callback = callbacks);
+#sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+#sol = solve(ode, SSPRK43(stage_limiter!),
+sol = solve(ode, SSPRK43(),
+            dt = 1.0e-3, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

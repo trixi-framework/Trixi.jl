@@ -32,15 +32,16 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-surface_flux = flux_lax_friedrichs
-volume_flux = flux_ranocha
+surface_flux = flux_hllc
+volume_flux  = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.002,
+                                         alpha_max = 0.2,
                                          alpha_min = 0.0001,
                                          alpha_smooth = true,
-                                         variable = density_pressure)
+                                         variable = Trixi.density)
+
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
@@ -49,29 +50,29 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
+                initial_refinement_level = 6,
                 n_cells_max = 100_000)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 3.0)
+tspan = (0.0, 3.7)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 100
+analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 20,
+save_solution = SaveSolutionCallback(interval=1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 1.3)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

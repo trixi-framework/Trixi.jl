@@ -1,6 +1,6 @@
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = SBP(),
+dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
              volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
 
@@ -31,7 +31,7 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-cells_per_dimension = (32, 32)
+cells_per_dimension = (64, 64)
 mesh = DGMultiMesh(dg, cells_per_dimension; periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
@@ -40,8 +40,8 @@ tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
-alive_callback = AliveCallback(alive_interval = 10)
-analysis_interval = 100
+alive_callback = AliveCallback(alive_interval = 100)
+analysis_interval = 1000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
@@ -50,7 +50,8 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+#sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, SSPRK43(),
             dt = estimate_dt(mesh, dg), save_everystep = false, callback = callbacks);
 
 summary_callback() # print the timer summary

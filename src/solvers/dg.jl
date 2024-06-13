@@ -51,6 +51,15 @@ struct VolumeIntegralWeakForm <: AbstractVolumeIntegral end
 create_cache(mesh, equations, ::VolumeIntegralWeakForm, dg, uEltype) = NamedTuple()
 
 """
+    VolumeIntegralWeakFormProjection()
+
+A weak form volume integral type for DG methods with projection of entropy variables.
+"""
+struct VolumeIntegralWeakFormProjection <: AbstractVolumeIntegral end
+
+create_cache(mesh, equations, ::VolumeIntegralWeakFormProjection, dg, uEltype) = NamedTuple()
+
+"""
     VolumeIntegralFluxDifferencing(volume_flux)
 
 Volume integral type for DG methods based on SBP operators and flux differencing
@@ -416,6 +425,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
         show(increment_indent(io), mime, dg.surface_integral)
         summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
         if !(dg.volume_integral isa VolumeIntegralWeakForm) &&
+           !(dg.volume_integral isa VolumeIntegralWeakFormProjection) &&
            !(dg.volume_integral isa VolumeIntegralStrongForm)
             show(increment_indent(io), mime, dg.volume_integral)
         end

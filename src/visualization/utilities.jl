@@ -1179,6 +1179,7 @@ function unstructured2structured(unstructured_data, normalized_coordinates,
 
     # Get node coordinates for DG locations on reference element
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes_in)
+    #nodes_in, _ = gauss_nodes_weights(n_nodes_in)
 
     # Calculate interpolation vandermonde matrices for each level
     max_level = length(nvisnodes_per_level) - 1

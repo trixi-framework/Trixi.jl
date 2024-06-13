@@ -512,4 +512,10 @@ abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
 abstract type AbstractTrafficFlowLWREquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("traffic_flow_lwr_1d.jl")
+
+# Jin Xin Relaxation type equation (Compressible Euler variant)
+abstract type AbstractJinXinEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("jin_xin_compressible_euler_2d.jl")
+
 end # @muladd

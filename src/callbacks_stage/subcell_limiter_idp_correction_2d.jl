@@ -44,4 +44,40 @@ function perform_idp_correction!(u, dt,
 
     return nothing
 end
+#function perform_idp_correction!(u, dt, mesh::TreeMesh2D, equations::JinXinEquations, dg, cache)
+#
+#            # relaxation parameter
+#            eps = equations.eps_relaxation
+#            dt_ = dt * 1.0
+#            factor =1.0/ (eps + dt_)
+#
+# @threaded for element in eachelement(dg, cache)
+#        for j in eachnode(dg), i in eachnode(dg)
+#            u_node = get_node_vars(u, equations, dg, i, j, element)
+#
+#            # compute compressible Euler fluxes
+#            u_cons = SVector(u_node[1], u_node[2], u_node[3], u_node[4])
+#            eq_relax = equations.equations_base
+#            vu = flux(u_cons,1,eq_relax)
+#            wu = flux(u_cons,2,eq_relax)
+#            # compute relaxation terms
+#            du1 = 0.0
+#            du2 = 0.0
+#            du3 = 0.0
+#            du4 = 0.0
+#            du5 = factor * (eps * u[5] + dt_ * vu[1])
+#            du6 = factor * (eps * u[6] + dt_ * vu[2])
+#            du7 = factor * (eps * u[7] + dt_ * vu[3])
+#            du8 = factor * (eps * u[8] + dt_ * vu[4])
+#            du9 = factor * (eps * u[9] + dt_ * wu[1])
+#            du10= factor * (eps * u[10]+ dt_ * wu[2])
+#            du11= factor * (eps * u[11]+ dt_ * wu[3])
+#            du12= factor * (eps * u[12]+ dt_ * wu[4])
+#            new_u = SVector(du1, du2, du3, du4, du5, du6, du7, du8, du9, du10, du11, du12)
+#            set_node_vars!(u, new_u, equations, dg, i, j, element)
+#        end
+#    end
+#
+#    return nothing
+#end
 end # @muladd

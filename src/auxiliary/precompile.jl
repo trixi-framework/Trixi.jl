@@ -186,6 +186,8 @@ function _precompile_manual_()
                              Matrix{RealT},
                              # DerivativeMatrix
                              #StaticArrays.SArray{Tuple{nnodes_,nnodes_},RealT,2,nnodes_^2},
+                             Matrix{RealT},
+                             Matrix{RealT},
                              Matrix{RealT}}
     end
 
@@ -302,9 +304,9 @@ function _precompile_manual_()
     # Constructors of the basis are inherently type-unstable since we pass integers
     # and use their values as parameters of static arrays.
     # Nevertheless, we can still precompile methods used to construct the bases.
-    Base.precompile(Tuple{Type{LobattoLegendreBasis}, Int})
+    #Base.precompile(Tuple{Type{LobattoLegendreBasis}, Int})
     for RealT in (Float64,)
-        Base.precompile(Tuple{Type{LobattoLegendreBasis}, RealT, Int})
+    #    Base.precompile(Tuple{Type{LobattoLegendreBasis}, RealT, Int})
         @assert Base.precompile(Tuple{typeof(Trixi.calc_dhat), Vector{RealT},
                                       Vector{RealT}})
         @assert Base.precompile(Tuple{typeof(Trixi.calc_dsplit), Vector{RealT},
@@ -338,9 +340,9 @@ function _precompile_manual_()
     for RealT in (Float64,), polydeg in 1:7
         nnodes_ = polydeg + 1
         basis_type = basis_type_dgsem(RealT, nnodes_)
-        @assert Base.precompile(Tuple{typeof(Trixi.MortarL2), basis_type})
-        @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer}, basis_type})
-        @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2}, basis_type})
+#        @assert Base.precompile(Tuple{typeof(Trixi.MortarL2), basis_type})
+#        @assert Base.precompile(Tuple{Type{Trixi.SolutionAnalyzer}, basis_type})
+#        @assert Base.precompile(Tuple{Type{Trixi.AdaptorL2}, basis_type})
     end
 
     # Constructors: callbacks
