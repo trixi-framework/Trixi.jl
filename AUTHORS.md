@@ -8,7 +8,7 @@ provided substantial additions or modifications. Together, these two groups form
 
 ## Principal Developers
 * [Michael Schlottke-Lakemper](https://lakemper.eu),
-  RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany
+  University of Augsburg, Germany
 * [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner),
   University of Cologne, Germany
 * [Hendrik Ranocha](https://ranocha.de),
