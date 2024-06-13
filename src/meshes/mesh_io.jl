@@ -225,11 +225,50 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
     return filename
 end
 
-# TODO: Implement this function as soon as there is support for this in `t8code`.
-function save_mesh_file(mesh::T8codeMesh, output_directory, timestep, mpi_parallel)
-    error("Mesh file output not supported yet for `T8codeMesh`.")
+## # TODO: Implement this function as soon as there is support for this in `t8code`.
+## function save_mesh_file(mesh::T8codeMesh, output_directory, timestep, mpi_parallel)
+##     error("Mesh file output not supported yet for `T8codeMesh`.")
+## 
+##     return joinpath(output_directory, "dummy_mesh.h5")
+## end
 
-    return joinpath(output_directory, "dummy_mesh.h5")
+function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
+                        mpi_parallel::False)
+
+    elemIDs, neighIDs, faces, duals, orientations = get_cmesh_info(mesh)
+
+    levels = trixi_t8_get_local_element_levels(mesh.forest)
+
+    # Create output directory (if it does not exist).
+    mkpath(output_directory)
+
+    # Determine file name based on existence of meaningful time step.
+    if timestep > 0
+        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+    else
+        filename = joinpath(output_directory, "mesh.h5")
+    end
+
+    # Open file (clobber existing content).
+    h5open(filename, "w") do file
+        # Add context information as attributes.
+        attributes(file)["mesh_type"] = get_name(mesh)
+        attributes(file)["ndims"] = ndims(mesh)
+        attributes(file)["ntrees"] = t8_forest_get_num_local_trees(mesh.forest)
+        attributes(file)["nelements"] = ncells(mesh)
+
+        file["tree_node_coordinates"] = mesh.tree_node_coordinates
+        file["nodes"] = Vector(mesh.nodes)
+        file["boundary_names"] = mesh.boundary_names .|> String
+        file["elemIDs"] = elemIDs
+        file["neighIDs"] = neighIDs
+        file["faces"] = faces
+        file["duals"] = duals
+        file["orientations"] = orientations
+        file["levels"] = levels
+    end
+
+    return filename
 end
 
 """
@@ -322,7 +361,29 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
                                 nodes, boundary_names, mesh_file, false, true)
+
+    elseif mesh_type == "T8codeMesh"
+        ndims, ntrees, nelements, tree_node_coordinates,
+        nodes, boundary_names_, elemIDs, neighIDs, faces, duals, orientations, levels = h5open(mesh_file, "r") do file
+            return read(attributes(file)["ndims"]),
+                   read(attributes(file)["ntrees"]),
+                   read(attributes(file)["nelements"]),
+                   read(file["tree_node_coordinates"]),
+                   read(file["nodes"]),
+                   read(file["boundary_names"]),
+                   read(file["elemIDs"]),
+                   read(file["neighIDs"]),
+                   read(file["faces"]),
+                   read(file["duals"]),
+                   read(file["orientations"]),
+                   read(file["levels"])
+        end
+
+        boundary_names = boundary_names_ .|> Symbol
+
+        mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels)
     else
+
         error("Unknown mesh type!")
     end
 
@@ -477,4 +538,5 @@ function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
 
     return mesh
 end
+
 end # @muladd
