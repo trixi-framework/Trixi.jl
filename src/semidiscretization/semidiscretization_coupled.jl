@@ -125,7 +125,7 @@ end
 
 """
     ndofsglobal(semi::SemidiscretizationCoupled)
-    
+
 Return the global number of degrees of freedom associated with each scalar variable across all MPI ranks, and summed up over all coupled systems.
 This is the same as [`ndofs`](@ref) for simulations running in serial or
 parallelized via threads. It will in general be different for simulations
@@ -605,10 +605,11 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
     j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
 
-    i_cell = i_cell_start
-    j_cell = j_cell_start
+    @threaded for i in 1:length(cells)
+        cell = cells[i]
+        i_cell = i_cell_start + (i - 1) * i_cell_step
+        j_cell = j_cell_start + (i - 1) * j_cell_step
 
-    for cell in cells
         i_node = i_node_start
         j_node = j_node_start
         element_id = linear_indices[i_cell, j_cell]
@@ -630,9 +631,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
             i_node += i_node_step
             j_node += j_node_step
         end
-
-        i_cell += i_cell_step
-        j_cell += j_cell_step
     end
 end
 
