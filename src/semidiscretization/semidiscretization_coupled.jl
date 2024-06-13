@@ -547,7 +547,8 @@ end
 
 function copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i, n_boundaries,
                                    boundary_condition, boundary_conditions...)
-    copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi)
+    other_semi = semi_coupled.semis[boundary_condition.other_semi_index]
+    copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi, other_semi)
     if i < n_boundaries
         copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i + 1, n_boundaries,
                                   boundary_conditions...)
@@ -560,28 +561,15 @@ function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}
                               boundary_conditions...)
 end
 
-function mesh_equations_solver_cache(other_semi_index, i, semi_, semi_tuple...)
-    if i == other_semi_index
-        return mesh_equations_solver_cache(semi_)
-    else
-        # Walk through semidiscretizations until we find `i`
-        mesh_equations_solver_cache(other_semi_index, i + 1, semi_tuple...)
-    end
-end
-
 # In 2D
 function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2},
-                                   u_ode,
-                                   semi_coupled, semi)
+                                   u_ode, semi_coupled, semi, other_semi)
     @unpack u_indices = semi_coupled
     @unpack other_semi_index, other_orientation, indices = boundary_condition
     @unpack coupling_converter, u_boundary = boundary_condition
 
     mesh_own, equations_own, solver_own, cache_own = mesh_equations_solver_cache(semi)
-
-    mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(other_semi_index,
-                                                                                         1,
-                                                                                         semi_coupled.semis...)
+    mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(other_semi)
 
     node_coordinates_other = cache_other.elements.node_coordinates
     u_ode_other = get_system_u_ode(u_ode, other_semi_index, semi_coupled)
