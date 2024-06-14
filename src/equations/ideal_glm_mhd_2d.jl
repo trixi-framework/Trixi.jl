@@ -1411,4 +1411,9 @@ end
 @inline function cross_helicity(cons, ::IdealGlmMhdEquations2D)
     return (cons[2] * cons[6] + cons[3] * cons[7] + cons[4] * cons[8]) / cons[1]
 end
+
+# Return the magnetic field
+function magnetic_field(u, equations::IdealGlmMhdEquations2D)
+    return SVector(u[6], u[7], u[8])
+end
 end # @muladd

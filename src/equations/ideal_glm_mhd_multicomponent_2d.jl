@@ -707,4 +707,9 @@ end
     return SVector{ncomponents(equations), real(equations)}(u[i + 8] * v
                                                             for i in eachcomponent(equations))
 end
+
+# Return the magnetic field
+function magnetic_field(u, equations::IdealGlmMhdMulticomponentEquations2D)
+    return SVector(u[5], u[6], u[7])
+end
 end # @muladd
