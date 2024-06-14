@@ -6,135 +6,94 @@
 #! format: noindent
 
 @doc raw"""
-    CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
+CompressibleMoistEulerEquations2D(;gammas, gas_constants, c_p, c_v, L_00)
 
-Multicomponent version of the compressible Euler equations
+Similar to `CompressibleEulerMulticomponentEquations2D` but including latent heat of
+vaporization
 ```math
-\frac{\partial}{\partial t}
-\begin{pmatrix}
-\rho v_1 \\ \rho v_2 \\ \rho e \\ \rho_1 \\ \rho_2 \\ \vdots \\ \rho_{n}
-\end{pmatrix}
-+
-\frac{\partial}{\partial x}
-\begin{pmatrix}
-\rho v_1^2 + p \\ \rho v_1 v_2 \\ ( \rho e +p) v_1 \\ \rho_1 v_1 \\ \rho_2 v_1 \\ \vdots \\ \rho_{n} v_1
-\end{pmatrix}
-+
-\frac{\partial}{\partial y}
-\begin{pmatrix}
-\rho v_1 v_2 \\ \rho v_2^2 + p \\ ( \rho e +p) v_2 \\ \rho_1 v_2 \\ \rho_2 v_2 \\ \vdots \\ \rho_{n} v_2
-\end{pmatrix}
-=
-\begin{pmatrix}
-0 \\ 0 \\ 0 \\ 0 \\ 0 \\ \vdots \\ 0
-\end{pmatrix}
+...
 ```
-for calorically perfect gas in two space dimensions.
-Here, ``\rho_i`` is the density of component ``i``, ``\rho=\sum_{i=1}^n\rho_i`` the sum of the individual ``\rho_i``,
-``v_1``, ``v_2`` the velocities, ``e`` the specific total energy **rather than** specific internal energy, and
-```math
-p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)
-```
-the pressure,
-```math
-\gamma=\frac{\sum_{i=1}^n\rho_i C_{v,i}\gamma_i}{\sum_{i=1}^n\rho_i C_{v,i}}
-```
-total heat capacity ratio, ``\gamma_i`` heat capacity ratio of component ``i``,
-```math
-C_{v,i}=\frac{R}{\gamma_i-1}
-```
-specific heat capacity at constant volume of component ``i``.
 
-In case of more than one component, the specific heat ratios `gammas` and the gas constants
-`gas_constants` in [kJ/(kg*K)] should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
-
-The remaining variables like the specific heats at constant volume `cv` or the specific heats at
-constant pressure `cp` are then calculated considering a calorically perfect gas.
+Either the specific heat ratios `gammas` and the gas constants `gas_constants` in should be
+passed as tuples, or the specific heats at constant volume `cv` and the specific heats at
+constant pressure `cp`. The other quantities are then calculated considering a calorically
+perfect gas.
 """
-struct CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
+struct CompressibleMoistEulerEquations2D{NVARS, NCOMP, RealT <: Real} <:
        AbstractCompressibleEulerMulticomponentEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT}
     gas_constants::SVector{NCOMP, RealT}
-    cv::SVector{NCOMP, RealT}
-    cp::SVector{NCOMP, RealT}
+    c_p::SVector{NCOMP, RealT}
+    c_v::SVector{NCOMP, RealT}
+    L_00::RealT # latent heat of evaporation at 0 K
 
-    function CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
-                                                                                             RealT},
-                                                                             gas_constants::SVector{NCOMP,
-                                                                                                    RealT}) where {
-                                                                                                                   NVARS,
-                                                                                                                   NCOMP,
-                                                                                                                   RealT <:
-                                                                                                                   Real
-                                                                                                                   }
-        NCOMP >= 1 ||
-            throw(DimensionMismatch("`gammas` and `gas_constants` have to be filled with at least one value"))
-
-        cv = gas_constants ./ (gammas .- 1)
-        cp = gas_constants + gas_constants ./ (gammas .- 1)
-
-        new(gammas, gas_constants, cv, cp)
+    function CompressibleMoistEulerEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
+                                                                                    RealT},
+                                                                    gas_constants::SVector{NCOMP,
+                                                                                           RealT},
+                                                                    c_p::SVector{NCOMP,
+                                                                                 RealT},
+                                                                    c_v::SVector{NCOMP,
+                                                                                 RealT},
+                                                                    L_00::RealT) where {
+                                                                                        NVARS,
+                                                                                        NCOMP,
+                                                                                        RealT <:
+                                                                                        Real
+                                                                                        }
+        new(gammas, gas_constants, c_p, c_v, L_00)
     end
 end
 
-function CompressibleEulerMulticomponentEquations2D(; gammas, gas_constants)
-    _gammas = promote(gammas...)
-    _gas_constants = promote(gas_constants...)
-    RealT = promote_type(eltype(_gammas), eltype(_gas_constants),
-                         typeof(gas_constants[1] / (gammas[1] - 1)))
+function CompressibleMoistEulerEquations2D(;
+                                           gammas = nothing, gas_constants = nothing,
+                                           c_p = nothing, c_v = nothing, L_00)
+    if gammas !== nothing && gas_constants !== nothing
+        _gammas = promote(gammas...)
+        _gas_constants = promote(gas_constants...)
+        RealT = promote_type(eltype(_gammas), eltype(_gas_constants),
+                             typeof(gas_constants[1] / (gammas[1] - 1)))
+        _c_v = _gas_constants ./ (_gammas .- 1)
+        _c_p = _gas_constants + _gas_constants ./ (_gammas .- 1)
+    elseif c_p !== nothing && c_v !== nothing
+        _c_p = promote(c_p...)
+        _c_v = promote(c_v...)
+        RealT = promote_type(eltype(_c_p), eltype(_c_v), typeof(c_p[1] / c_v[1]))
+        _gas_constants = _c_p .- _c_v
+        _gammas = _c_p ./ _c_v
+    else
+        throw(DimensionMismatch("Either `gammas` and `gas_constants` or `c_p` and `c_v` \
+                                 have to be filled with at least one value"))
+    end
 
     NVARS = length(_gammas) + 3
     NCOMP = length(_gammas)
 
     __gammas = SVector(map(RealT, _gammas))
     __gas_constants = SVector(map(RealT, _gas_constants))
+    __c_p = SVector(map(RealT, _c_p))
+    __c_v = SVector(map(RealT, _c_v))
 
-    return CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
-                                                                           __gas_constants)
+    return CompressibleMoistEulerEquations2D{NVARS, NCOMP, RealT}(__gammas,
+                                                                  __gas_constants,
+                                                                  __c_p, __c_v, L_00)
 end
 
-@inline function Base.real(::CompressibleEulerMulticomponentEquations2D{NVARS, NCOMP,
-                                                                        RealT}) where {
-                                                                                       NVARS,
-                                                                                       NCOMP,
-                                                                                       RealT
-                                                                                       }
+@inline function Base.real(::CompressibleMoistEulerEquations2D{NVARS, NCOMP,
+                                                               RealT}) where {NVARS,
+                                                                              NCOMP,
+                                                                              RealT}
     RealT
 end
 
 """
-    temperature(u, equations::CompressibleEulerMulticomponentEquations2D)
-
-Calculate temperature.
-"""
-@inline function temperature(u, equations::CompressibleEulerMulticomponentEquations2D)
-    rho_v1, rho_v2, rho_e = u
-    @unpack cv = equations
-
-    rho = density(u, equations)
-    help1 = zero(rho)
-
-    # compute weighted average of cv
-    # normalization by rho not required, cancels below
-    for i in eachcomponent(equations)
-        help1 += u[i + 3] * cv[i]
-    end
-
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    v_square = v1^2 + v2^2
-    T = (rho_e - 0.5 * rho * v_square) / help1
-    return T
-end
-
-"""
-    totalgamma(u, equations::CompressibleEulerMulticomponentEquations2D)
+    totalgamma(u, equations::CompressibleMoistEulerEquations2D)
 
 Function that calculates the total gamma out of all partial gammas using the
 partial density fractions as well as the partial specific heats at constant volume.
 """
-@inline function totalgamma(u, equations::CompressibleEulerMulticomponentEquations2D)
-    @unpack cv, cp = equations
+@inline function totalgamma(u, equations::CompressibleMoistEulerEquations2D)
+    @unpack c_v, c_p = equations
 
     help1 = zero(u[1])
     help2 = zero(u[1])
@@ -142,20 +101,88 @@ partial density fractions as well as the partial specific heats at constant volu
     # compute weighted averages of cp and cv
     # normalization by total rho not required, would cancel below
     for i in eachcomponent(equations)
-        help1 += u[i + 3] * cp[i]
-        help2 += u[i + 3] * cv[i]
+        help1 += u[i + 3] * c_p[i]
+        help2 += u[i + 3] * c_v[i]
     end
 
     return help1 / help2
 end
 
 """
-cons2entropy(u, equations::CompressibleEulerMulticomponentEquations2D)
+pressure(u, equations::CompressibleMoistEulerEquations2D)
+
+Calculate pressure. This differs from the calculation in `AbstractCompressibleEulerMulticomponentEquations` in that the latent heat is accounted for.
+"""
+@inline function pressure(u, equations::CompressibleMoistEulerEquations2D)
+    @unpack L_00 = equations
+    rho_v1, rho_v2, rho_e, rho_d, rho_v = u
+    rho = density(u, equations)
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    gamma = totalgamma(u, equations)
+    p = (gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2) - L_00 * rho_v)
+    return p
+end
+
+"""
+    density_pressure(u, equations::CompressibleMoistEulerEquations2D)
+
+Calculates overall density times overall pressure.
+"""
+@inline function density_pressure(u,
+                                  equations::CompressibleMoistEulerEquations2D)
+    rho = density(u, equations)
+    p = pressure(u, equations)
+    return rho * p
+end
+
+"""
+temperature(u, equations::CompressibleMoistEulerEquations2D)
+
+Calculate temperature. Account for latent heat.
+"""
+@inline function temperature(u, equations::CompressibleMoistEulerEquations2D)
+    @unpack c_v, L_00 = equations
+    rho_v1, rho_v2, rho_e, rho_d, rho_v = u
+
+    rho = density(u, equations)
+    help1 = zero(rho)
+
+    # compute weighted average of cv
+    # normalization by rho not required, cancels below
+    for i in eachcomponent(equations)
+        help1 += u[i + 3] * c_v[i]
+    end
+
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+
+    T = (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2) - L_00 * rho_v) / help1
+    return T
+end
+
+"""
+    density_gas_constant(u, equations::CompressibleMoistEulerEquations2D)
+
+Function that calculates overall density times overall gas constant.
+"""
+@inline function density_gas_constant(u,
+                                      equations::CompressibleMoistEulerEquations2D)
+    @unpack gas_constants = equations
+    help = zero(u[1])
+    for i in eachcomponent(equations)
+        help += u[i + 3] * gas_constants[i]
+    end
+    return help
+end
+
+"""
+cons2entropy(u, equations::CompressibleMoistEulerEquations2D)
 
 Convert conservative variables to entropy.
 """
-@inline function cons2entropy(u, equations::CompressibleEulerMulticomponentEquations2D)
-    @unpack cv, gammas, gas_constants = equations
+@inline function cons2entropy(u, equations::CompressibleMoistEulerEquations2D)
+    @unpack c_v, gas_constants = equations
     rho_v1, rho_v2, rho_e = u
 
     rho = density(u, equations)
@@ -164,7 +191,7 @@ Convert conservative variables to entropy.
     help1 = zero(rho)
     gas_constant = zero(rho)
     for i in eachcomponent(equations)
-        help1 += u[i + 3] * cv[i]
+        help1 += u[i + 3] * c_v[i]
         gas_constant += gas_constants[i] * (u[i + 3] / rho)
     end
 
@@ -175,7 +202,7 @@ Convert conservative variables to entropy.
     rho_p = rho / p
     T = temperature(u, equations)
 
-    entrop_rho = SVector{ncomponents(equations), real(equations)}((cv[i] *
+    entrop_rho = SVector{ncomponents(equations), real(equations)}((c_v[i] *
                                                                    (1 - log(T)) +
                                                                    gas_constants[i] *
                                                                    (1 + log(u[i + 3])) -
@@ -192,12 +219,12 @@ Convert conservative variables to entropy.
 end
 
 """
-entropy2cons(w, equations::CompressibleEulerMulticomponentEquations2D)
+entropy2cons(w, equations::CompressibleMoistEulerEquations2D)
 
 Convert entropy variables to conservative variables
 """
-@inline function entropy2cons(w, equations::CompressibleEulerMulticomponentEquations2D)
-    @unpack gammas, gas_constants, cp, cv = equations
+@inline function entropy2cons(w, equations::CompressibleMoistEulerEquations2D)
+    @unpack gammas, gas_constants, cv = equations
     T = -1 / w[3]
     v1 = w[1] * T
     v2 = w[2] * T
@@ -224,45 +251,13 @@ Convert entropy variables to conservative variables
     u1 = rho * v1
     u2 = rho * v2
     gamma = help1 / help2
-    u3 = p / (gamma - 1) + 0.5 * rho * v_squared
+    u3 = p / (gamma - 1) + 0.5 * rho * v_squared + L_00 * cons_rho[2]
     cons_other = SVector{3, real(equations)}(u1, u2, u3)
     return vcat(cons_other, cons_rho)
 end
 
 """
-    total_entropy(u, equations::CompressibleEulerMulticomponentEquations2D)
-
-Calculate total entropy.
-"""
-@inline function total_entropy(u, equations::CompressibleEulerMulticomponentEquations2D)
-    @unpack cv, gammas, gas_constants = equations
-    T = temperature(u, equations)
-
-    total_entropy = zero(u[1])
-    for i in eachcomponent(equations)
-        total_entropy -= u[i + 3] * (cv[i] * log(T) - gas_constants[i] * log(u[i + 3]))
-    end
-
-    return total_entropy
-end
-
-"""
-    density_gas_constant(u, equations::CompressibleEulerMulticomponentEquations2D{2})
-
-Function that calculates overall density times overall gas constant.
-"""
-@inline function density_gas_constant(u,
-                                      equations::CompressibleEulerMulticomponentEquations2D)
-    @unpack gas_constants = equations
-    help = zero(u[1])
-    for i in eachcomponent(equations)
-        help += u[i + 3] * gas_constants[i]
-    end
-    return help
-end
-
-"""
-    flux_chandrashekar(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleEulerMulticomponentEquations2D)
+    flux_chandrashekar(u_ll, u_rr, orientation_or_normal_direction, equations::CompressibleMoistEulerEquations2D)
 
 Adaption of the entropy conserving two-point flux by
 - Ayoub Gouasmi, Karthik Duraisamy (2020)
@@ -270,9 +265,9 @@ Adaption of the entropy conserving two-point flux by
   [arXiv:1904.00972v3](https://arxiv.org/abs/1904.00972) [math.NA] 4 Feb 2020
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer,
-                                    equations::CompressibleEulerMulticomponentEquations2D)
+                                    equations::CompressibleMoistEulerEquations2D)
     # Unpack left and right state
-    @unpack gammas, gas_constants, cv = equations
+    @unpack gammas, gas_constants, cv, L_00 = equations
     rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
     rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
@@ -319,8 +314,10 @@ Adaption of the entropy conserving two-point flux by
         end
         f1 = (help2) * v1_avg + enth / T
         f2 = (help2) * v2_avg
+        # Account for latent heat. This is the only difference compared to 
+        # AbstractCompressibleEulerMulticomponentEquations
         f3 = (help1) / T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 +
-             v2_avg * f2
+             v2_avg * f2 + L_00 * f_rho[2]
     else
         f_rho = SVector{ncomponents(equations), real(equations)}(rhok_mean[i] * v2_avg
                                                                  for i in eachcomponent(equations))
@@ -330,8 +327,10 @@ Adaption of the entropy conserving two-point flux by
         end
         f1 = (help2) * v1_avg
         f2 = (help2) * v2_avg + enth / T
+        # Account for latent heat. This is the only difference compared to 
+        # AbstractCompressibleEulerMulticomponentEquations
         f3 = (help1) / T_log - 0.5 * (v1_square + v2_square) * (help2) + v1_avg * f1 +
-             v2_avg * f2
+             v2_avg * f2 + L_00 * f_rho[2]
     end
     f_other = SVector{3, real(equations)}(f1, f2, f3)
 
@@ -339,9 +338,9 @@ Adaption of the entropy conserving two-point flux by
 end
 
 @inline function flux_chandrashekar(u_ll, u_rr, normal_direction::AbstractVector,
-                                    equations::CompressibleEulerMulticomponentEquations2D)
+                                    equations::CompressibleMoistEulerEquations2D)
     # Unpack left and right state
-    @unpack gammas, gas_constants, cv = equations
+    @unpack gammas, gas_constants, c_v, L_00 = equations
     rho_v1_ll, rho_v2_ll = u_ll
     rho_v1_rr, rho_v2_rr = u_rr
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 3],
@@ -383,14 +382,17 @@ end
     help1 = zero(T_ll)
     help2 = zero(T_rr)
     for i in eachcomponent(equations)
-        help1 += f_rho[i] * cv[i]
+        help1 += f_rho[i] * c_v[i]
         help2 += f_rho[i]
     end
 
     f1 = (help2) * v1_avg + normal_direction[1] * enth / T
     f2 = (help2) * v2_avg + normal_direction[2] * enth / T
+
+    # Account for latent heat. This is the only difference compared to 
+    # AbstractCompressibleEulerMulticomponentEquations
     f3 = ((help1) / T_log - 0.5 * (v1_square + v2_square) * (help2)
-          + v1_avg * f1 + v2_avg * f2)
+          + v1_avg * f1 + v2_avg * f2 + L_00 * f_rho[2])
 
     f_other = SVector{3, real(equations)}(f1, f2, f3)
 
