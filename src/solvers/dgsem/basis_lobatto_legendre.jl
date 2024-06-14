@@ -780,4 +780,27 @@ function vandermonde_legendre(nodes, N)
     return vandermonde, inverse_vandermonde
 end
 vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
+
+function calc_modal_filter_matrix(nodes, filter_coefficients)
+    @assert length(nodes)==length(filter_coefficients) "Need same number of nodes and filter coefficients"
+
+    n_nodes = length(nodes)
+    polydeg = n_nodes - 1
+    vandermonde, inverse_vandermonde = vandermonde_legendre(nodes, polydeg)
+
+    filter_matrix = zeros(n_nodes, n_nodes)
+    for j in 1:n_nodes
+        filter_matrix[j, j] = filter_coefficients[j]
+    end
+
+    modal_filter_matrix = vandermonde * filter_matrix * inverse_vandermonde
+    return modal_filter_matrix
+end
+function calc_modal_filter_matrix(nodes, polydeg_cutoff::Integer)
+    filter_coefficients = zeros(length(nodes))
+    for j in 1:(polydeg_cutoff + 1)
+        filter_coefficients[j] = 1
+    end
+    return calc_modal_filter_matrix(nodes, filter_coefficients)
+end
 end # @muladd
