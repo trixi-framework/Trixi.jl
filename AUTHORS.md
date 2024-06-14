@@ -43,3 +43,4 @@ are listed in alphabetical order:
 * Michael Schlottke-Lakemper
 * Toskan Theine
 * Andrew Winters
+* Huiyu Xie
