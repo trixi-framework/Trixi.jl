@@ -287,10 +287,10 @@ function solve(ode::ODEProblem, alg::PairedExplicitRK3;
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
     # Start actual solve
-    solve_steps!(integrator)
+    solve!(integrator)
 end
 
-function solve_steps!(integrator::PairedExplicitRK3Integrator)
+function solve!(integrator::PairedExplicitRK3Integrator)
     @unpack prob = integrator.sol
 
     integrator.finalstep = false
