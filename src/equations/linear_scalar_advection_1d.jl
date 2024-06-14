@@ -204,14 +204,14 @@ end
                                           equations::LinearScalarAdvectionEquation1D)
     RealT = eltype(u)
     a = equations.advection_velocity[1]
-    return a > 0 ? flux(u, orientation, equations) : zero(RealT)
+    return a > 0 ? flux(u, orientation, equations) : SVector(zero(RealT))
 end
 
 @inline function splitting_lax_friedrichs(u, ::Val{:minus}, orientation::Integer,
                                           equations::LinearScalarAdvectionEquation1D)
     RealT = eltype(u)
     a = equations.advection_velocity[1]
-    return a < 0 ? flux(u, orientation, equations) : zero(RealT)
+    return a < 0 ? flux(u, orientation, equations) : SVector(zero(RealT))
 end
 
 # Convert conservative variables to primitive

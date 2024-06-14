@@ -87,9 +87,7 @@ function initial_condition_sin(x, t, equation::LinearScalarAdvectionEquation3D)
     RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    scalar = sin(2 * convert(RealT, pi) * x_trans[1]) *
-             sin(2 * convert(RealT, pi) * x_trans[2]) *
-             sin(2 * convert(RealT, pi) * x_trans[3])
+    scalar = sinpi(2 * x_trans[1]) * sinpi(2 * x_trans[2]) * sinpi(2 * x_trans[3])
     return SVector(scalar)
 end
 
