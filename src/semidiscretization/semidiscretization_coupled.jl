@@ -125,7 +125,7 @@ end
 
 """
     ndofsglobal(semi::SemidiscretizationCoupled)
-    
+
 Return the global number of degrees of freedom associated with each scalar variable across all MPI ranks, and summed up over all coupled systems.
 This is the same as [`ndofs`](@ref) for simulations running in serial or
 parallelized via threads. It will in general be different for simulations
@@ -180,12 +180,10 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     end
 
     # Call rhs! for each semidiscretization
-    @trixi_timeit timer() "copy to coupled boundaries" begin
-        foreach_enumerate(semi.semis) do (i, semi_)
-            u_loc = get_system_u_ode(u_ode, i, semi)
-            du_loc = get_system_u_ode(du_ode, i, semi)
-            rhs!(du_loc, u_loc, semi_, t)
-        end
+    foreach_enumerate(semi.semis) do (i, semi_)
+        u_loc = get_system_u_ode(u_ode, i, semi)
+        du_loc = get_system_u_ode(du_ode, i, semi)
+        rhs!(du_loc, u_loc, semi_, t)
     end
 
     runtime = time_ns() - time_start
