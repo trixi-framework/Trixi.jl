@@ -553,18 +553,18 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
             @test eltype(@inferred entropy2cons(u, equations)) == RealT
-            @test eltype(@inferred Trixi.total_entropy(u, equations)) == RealT
-            @test eltype(@inferred Trixi.temperature(u, equations)) == RealT
-            @test eltype(@inferred Trixi.totalgamma(u, equations)) == RealT
-            @test eltype(@inferred density(u, equations)) == RealT
-            @test eltype(@inferred pressure(u, equations)) == RealT
+            @test typeof(@inferred Trixi.total_entropy(u, equations)) == RealT
+            @test typeof(@inferred Trixi.temperature(u, equations)) == RealT
+            @test typeof(@inferred Trixi.totalgamma(u, equations)) == RealT
+            @test typeof(@inferred density(u, equations)) == RealT
+            @test typeof(@inferred pressure(u, equations)) == RealT
         end
     end
 
@@ -620,7 +620,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                           RealT
                 end
 
-                @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
                                                            equations)) ==
                       RealT
             end
@@ -673,13 +673,13 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            @test eltype(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
-            @test typeof(@inferred entropy(u, equations)) == RealT
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred entropy(u, equations)) == RealT
             @test typeof(@inferred density(u, equations)) == RealT
             @test typeof(@inferred pressure(u, equations)) == RealT
             @test typeof(@inferred density_pressure(u, equations)) == RealT
