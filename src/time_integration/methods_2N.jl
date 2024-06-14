@@ -137,10 +137,10 @@ function solve(ode::ODEProblem, alg::T;
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
     # Start actual solve
-    solve_steps!(integrator)
+    solve!(integrator)
 end
 
-function solve_steps!(integrator::SimpleIntegrator2N)
+function solve!(integrator::SimpleIntegrator2N)
     @unpack prob = integrator.sol
 
     integrator.finalstep = false

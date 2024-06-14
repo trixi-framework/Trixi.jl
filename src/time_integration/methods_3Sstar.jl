@@ -207,10 +207,10 @@ function solve(ode::ODEProblem, alg::T;
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
     # Start actual solve
-    solve_steps!(integrator)
+    solve!(integrator)
 end
 
-function solve_steps!(integrator::SimpleIntegrator3Sstar)
+function solve!(integrator::SimpleIntegrator3Sstar)
     @unpack prob = integrator.sol
 
     integrator.finalstep = false
