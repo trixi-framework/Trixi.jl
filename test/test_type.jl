@@ -109,7 +109,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             x = SVector(zero(RealT))
             t = zero(RealT)
-            u = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT))
+            u = u_ll = u_rr = u_inner = SVector(one(RealT), zero(RealT), zero(RealT))
             orientation = 1
             directions = [1, 2]
             cons = SVector(one(RealT), one(RealT), one(RealT))
@@ -683,6 +683,48 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred density(u, equations)) == RealT
             @test typeof(@inferred pressure(u, equations)) == RealT
             @test typeof(@inferred density_pressure(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Compressible Navier Stokes Diffusion 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations1D(RealT(1.4))
+            prandtl_number() = RealT(0.72)
+            mu() = RealT(0.01)
+            equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion1D(equations,
+                                                                                          mu = mu(),
+                                                                                          Prandtl = prandtl_number(),
+                                                                                          gradient_variables = GradientVariablesPrimitive())
+            equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion1D(equations,
+                                                                                        mu = mu(),
+                                                                                        Prandtl = prandtl_number(),
+                                                                                        gradient_variables = GradientVariablesEntropy())
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_inner = u_transformed = SVector(one(RealT), zero(RealT), zero(RealT))
+            orientation = 1
+            directions = [1, 2]
+            gradients = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+
+            for equations_parabolic in (equations_parabolic_primitive,
+                                        equations_parabolic_entropy)
+                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                      RealT
+
+                @test eltype(@inferred cons2prim(u, equations_parabolic)) == RealT
+                @test eltype(@inferred prim2cons(u, equations_parabolic)) == RealT
+                @test eltype(@inferred cons2entropy(u, equations_parabolic)) == RealT
+                @test eltype(@inferred entropy2cons(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
+
+                @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
+                                                                              equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradients,
+                                                                             equations_parabolic)) ==
+                      RealT
+            end
         end
     end
 end
