@@ -702,7 +702,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             x = SVector(zero(RealT))
             t = zero(RealT)
-            u = u_inner = u_transformed = SVector(one(RealT), zero(RealT), zero(RealT))
+            u = u_inner = u_transformed = flux_inner = SVector(one(RealT), zero(RealT),
+                                                               zero(RealT))
             orientation = 1
             directions = [1, 2]
             gradients = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
@@ -725,6 +726,32 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                              equations_parabolic)) ==
                       RealT
             end
+
+            # test for GradientVariablesPrimitive
+            velocity_bc_left_right = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                  t,
+                                                                                                                  equations)[2])
+            heat_bc_left = Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                              t,
+                                                                                                                              equations),
+                                                                             equations_parabolic))
+            heat_bc_right = Adiabatic((x, t, equations) -> zero(RealT))
+            boundary_condition_left = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
+                                                                        heat_bc_left)
+            boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
+                                                                         heat_bc_right)
+            gradient = Trixi.Gradient()
+
+            for direction in directions
+                @test eltype(@inferred boundary_condition_left(flux_inner, u_inner,
+                                                               orientation, direction, x, t,
+                                                               gradient,
+                                                               equations_parabolic_primitive)) ==
+                      RealT
+            end
+
+            # test for GradientVariablesEntropy
+
         end
     end
 
