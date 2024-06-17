@@ -230,59 +230,57 @@ function step!(integrator::SimpleIntegrator3Sstar)
     t_end = last(prob.tspan)
     callbacks = integrator.opts.callback
 
-    integrator.finalstep = false
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        if isnan(integrator.dt)
-            error("time step size `dt` is NaN")
-        end
+    @assert !integrator.finalstep
+    if isnan(integrator.dt)
+        error("time step size `dt` is NaN")
+    end
 
-        # if the next iteration would push the simulation beyond the end time, set dt accordingly
-        if integrator.t + integrator.dt > t_end ||
-           isapprox(integrator.t + integrator.dt, t_end)
-            integrator.dt = t_end - integrator.t
-            terminate!(integrator)
-        end
+    # if the next iteration would push the simulation beyond the end time, set dt accordingly
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
+        integrator.dt = t_end - integrator.t
+        terminate!(integrator)
+    end
 
-        # one time step
-        integrator.u_tmp1 .= zero(eltype(integrator.u_tmp1))
-        integrator.u_tmp2 .= integrator.u
-        for stage in eachindex(alg.c)
-            t_stage = integrator.t + integrator.dt * alg.c[stage]
-            prob.f(integrator.du, integrator.u, prob.p, t_stage)
+    # one time step
+    integrator.u_tmp1 .= zero(eltype(integrator.u_tmp1))
+    integrator.u_tmp2 .= integrator.u
+    for stage in eachindex(alg.c)
+        t_stage = integrator.t + integrator.dt * alg.c[stage]
+        prob.f(integrator.du, integrator.u, prob.p, t_stage)
 
-            delta_stage = alg.delta[stage]
-            gamma1_stage = alg.gamma1[stage]
-            gamma2_stage = alg.gamma2[stage]
-            gamma3_stage = alg.gamma3[stage]
-            beta_stage_dt = alg.beta[stage] * integrator.dt
-            @trixi_timeit timer() "Runge-Kutta step" begin
-                @threaded for i in eachindex(integrator.u)
-                    integrator.u_tmp1[i] += delta_stage * integrator.u[i]
-                    integrator.u[i] = (gamma1_stage * integrator.u[i] +
-                                       gamma2_stage * integrator.u_tmp1[i] +
-                                       gamma3_stage * integrator.u_tmp2[i] +
-                                       beta_stage_dt * integrator.du[i])
-                end
+        delta_stage = alg.delta[stage]
+        gamma1_stage = alg.gamma1[stage]
+        gamma2_stage = alg.gamma2[stage]
+        gamma3_stage = alg.gamma3[stage]
+        beta_stage_dt = alg.beta[stage] * integrator.dt
+        @trixi_timeit timer() "Runge-Kutta step" begin
+            @threaded for i in eachindex(integrator.u)
+                integrator.u_tmp1[i] += delta_stage * integrator.u[i]
+                integrator.u[i] = (gamma1_stage * integrator.u[i] +
+                                   gamma2_stage * integrator.u_tmp1[i] +
+                                   gamma3_stage * integrator.u_tmp2[i] +
+                                   beta_stage_dt * integrator.du[i])
             end
         end
-        integrator.iter += 1
-        integrator.t += integrator.dt
+    end
+    integrator.iter += 1
+    integrator.t += integrator.dt
 
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
+    # handle callbacks
+    if callbacks isa CallbackSet
+        foreach(callbacks.discrete_callbacks) do cb
+            if cb.condition(integrator.u, integrator.t, integrator)
+                cb.affect!(integrator)
             end
+            return nothing
         end
+    end
 
-        # respect maximum number of iterations
-        if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-            @warn "Interrupted. Larger maxiters is needed."
-            terminate!(integrator)
-        end
+    # respect maximum number of iterations
+    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
+        @warn "Interrupted. Larger maxiters is needed."
+        terminate!(integrator)
     end
 end
 
