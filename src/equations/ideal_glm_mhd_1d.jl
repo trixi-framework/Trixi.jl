@@ -45,11 +45,11 @@ function initial_condition_constant(x, t, equations::IdealGlmMhdEquations1D)
     rho = 1.0
     rho_v1 = 0.1
     rho_v2 = -0.2
-    rho_v3 = -0.5
+    rho_v3 = -0.5f0
     rho_e = 50.0
     B1 = 3.0
     B2 = -1.2
-    B3 = 0.5
+    B3 = 0.5f0
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3)
 end
 
@@ -92,9 +92,9 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
     phi = atan(x_norm)
 
     # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    p = r > 0.5 ? 1.0 : 1.245
+    rho = r > 0.5f0 ? 1.0 : 1.1691
+    v1 = r > 0.5f0 ? 0.0 : 0.1882 * cos(phi)
+    p = r > 0.5f0 ? 1.0 : 1.245
 
     return prim2cons(SVector(rho, v1, 0.0, 0.0, p, 1.0, 1.0, 1.0, 0.0), equations)
 end
@@ -105,8 +105,8 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    kin_en = 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
-    mag_en = 0.5 * (B1 * B1 + B2 * B2 + B3 * B3)
+    kin_en = 0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+    mag_en = 0.5f0 * (B1 * B1 + B2 * B2 + B3 * B3)
     p_over_gamma_minus_one = (rho_e - kin_en - mag_en)
     p = (equations.gamma - 1) * p_over_gamma_minus_one
 
@@ -150,44 +150,44 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
     mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
     p_ll = (equations.gamma - 1) *
-           (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll)
+           (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll)
     p_rr = (equations.gamma - 1) *
-           (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr)
-    beta_ll = 0.5 * rho_ll / p_ll
-    beta_rr = 0.5 * rho_rr / p_rr
+           (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr)
+    beta_ll = 0.5f0 * rho_ll / p_ll
+    beta_rr = 0.5f0 * rho_rr / p_rr
     # for convenience store v⋅B
     vel_dot_mag_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
     vel_dot_mag_rr = v1_rr * B1_rr + v2_rr * B2_rr + v3_rr * B3_rr
 
     # Compute the necessary mean values needed for either direction
-    rho_avg = 0.5 * (rho_ll + rho_rr)
+    rho_avg = 0.5f0 * (rho_ll + rho_rr)
     rho_mean = ln_mean(rho_ll, rho_rr)
     beta_mean = ln_mean(beta_ll, beta_rr)
-    beta_avg = 0.5 * (beta_ll + beta_rr)
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    v3_avg = 0.5 * (v3_ll + v3_rr)
-    p_mean = 0.5 * rho_avg / beta_avg
-    B1_avg = 0.5 * (B1_ll + B1_rr)
-    B2_avg = 0.5 * (B2_ll + B2_rr)
-    B3_avg = 0.5 * (B3_ll + B3_rr)
-    vel_norm_avg = 0.5 * (vel_norm_ll + vel_norm_rr)
-    mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
-    vel_dot_mag_avg = 0.5 * (vel_dot_mag_ll + vel_dot_mag_rr)
+    beta_avg = 0.5f0 * (beta_ll + beta_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    v3_avg = 0.5f0 * (v3_ll + v3_rr)
+    p_mean = 0.5f0 * rho_avg / beta_avg
+    B1_avg = 0.5f0 * (B1_ll + B1_rr)
+    B2_avg = 0.5f0 * (B2_ll + B2_rr)
+    B3_avg = 0.5f0 * (B3_ll + B3_rr)
+    vel_norm_avg = 0.5f0 * (vel_norm_ll + vel_norm_rr)
+    mag_norm_avg = 0.5f0 * (mag_norm_ll + mag_norm_rr)
+    vel_dot_mag_avg = 0.5f0 * (vel_dot_mag_ll + vel_dot_mag_rr)
 
     # Ignore orientation since it is always "1" in 1D
     f1 = rho_mean * v1_avg
-    f2 = f1 * v1_avg + p_mean + 0.5 * mag_norm_avg - B1_avg * B1_avg
+    f2 = f1 * v1_avg + p_mean + 0.5f0 * mag_norm_avg - B1_avg * B1_avg
     f3 = f1 * v2_avg - B1_avg * B2_avg
     f4 = f1 * v3_avg - B1_avg * B3_avg
     f6 = 0.0
     f7 = v1_avg * B2_avg - v2_avg * B1_avg
     f8 = v1_avg * B3_avg - v3_avg * B1_avg
     # total energy flux is complicated and involves the previous eight components
-    v1_mag_avg = 0.5 * (v1_ll * mag_norm_ll + v1_rr * mag_norm_rr)
-    f5 = (f1 * 0.5 * (1 / (equations.gamma - 1) / beta_mean - vel_norm_avg) +
+    v1_mag_avg = 0.5f0 * (v1_ll * mag_norm_ll + v1_rr * mag_norm_rr)
+    f5 = (f1 * 0.5f0 * (1 / (equations.gamma - 1) / beta_mean - vel_norm_avg) +
           f2 * v1_avg + f3 * v2_avg +
-          f4 * v3_avg + f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v1_mag_avg +
+          f4 * v3_avg + f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5f0 * v1_mag_avg +
           B1_avg * vel_dot_mag_avg)
 
     return SVector(f1, f2, f3, f4, f5, f6, f7, f8)
@@ -228,27 +228,27 @@ Hindenlang and Gassner (2019), extending [`flux_ranocha`](@ref) to the MHD equat
     #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
     #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
     inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    v3_avg = 0.5 * (v3_ll + v3_rr)
-    p_avg = 0.5 * (p_ll + p_rr)
-    velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
-    magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    v3_avg = 0.5f0 * (v3_ll + v3_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
+    magnetic_square_avg = 0.5f0 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
 
     # Calculate fluxes depending on orientation with specific direction averages
     f1 = rho_mean * v1_avg
     f2 = f1 * v1_avg + p_avg + magnetic_square_avg -
-         0.5 * (B1_ll * B1_rr + B1_rr * B1_ll)
-    f3 = f1 * v2_avg - 0.5 * (B1_ll * B2_rr + B1_rr * B2_ll)
-    f4 = f1 * v3_avg - 0.5 * (B1_ll * B3_rr + B1_rr * B3_ll)
+         0.5f0 * (B1_ll * B1_rr + B1_rr * B1_ll)
+    f3 = f1 * v2_avg - 0.5f0 * (B1_ll * B2_rr + B1_rr * B2_ll)
+    f4 = f1 * v3_avg - 0.5f0 * (B1_ll * B3_rr + B1_rr * B3_ll)
     #f5 below
     f6 = 0.0
-    f7 = 0.5 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
-    f8 = 0.5 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
+    f7 = 0.5f0 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
+    f8 = 0.5f0 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
     # total energy flux is complicated and involves the previous components
     f5 = (f1 * (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one)
           +
-          0.5 * (+p_ll * v1_rr + p_rr * v1_ll
+          0.5f0 * (+p_ll * v1_rr + p_rr * v1_ll
            + (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
            + (v1_ll * B3_ll * B3_rr + v1_rr * B3_rr * B3_ll)
            -
@@ -273,8 +273,8 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, B1_rr, B2_rr, B3_rr = cons2prim(u_rr, equations)
 
     # Total pressure, i.e., thermal + magnetic pressures (eq. (12))
-    p_tot_ll = p_ll + 0.5 * (B1_ll^2 + B2_ll^2 + B3_ll^2)
-    p_tot_rr = p_rr + 0.5 * (B1_rr^2 + B2_rr^2 + B3_rr^2)
+    p_tot_ll = p_ll + 0.5f0 * (B1_ll^2 + B2_ll^2 + B3_ll^2)
+    p_tot_rr = p_rr + 0.5f0 * (B1_rr^2 + B2_rr^2 + B3_rr^2)
 
     # Conserved variables
     rho_v1_ll = u_ll[2]
@@ -502,8 +502,8 @@ end
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
     p = (equations.gamma - 1) * (rho_e -
-         0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
-                + B1 * B1 + B2 * B2 + B3 * B3))
+         0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
+          + B1 * B1 + B2 * B2 + B3 * B3))
 
     return SVector(rho, v1, v2, v3, p, B1, B2, B3)
 end
@@ -517,11 +517,11 @@ end
     v3 = rho_v3 / rho
     v_square = v1^2 + v2^2 + v3^2
     p = (equations.gamma - 1) *
-        (rho_e - 0.5 * rho * v_square - 0.5 * (B1^2 + B2^2 + B3^2))
+        (rho_e - 0.5f0 * rho * v_square - 0.5f0 * (B1^2 + B2^2 + B3^2))
     s = log(p) - equations.gamma * log(rho)
     rho_p = rho / p
 
-    w1 = (equations.gamma - s) / (equations.gamma - 1) - 0.5 * rho_p * v_square
+    w1 = (equations.gamma - s) / (equations.gamma - 1) - 0.5f0 * rho_p * v_square
     w2 = rho_p * v1
     w3 = rho_p * v2
     w4 = rho_p * v3
@@ -541,8 +541,8 @@ end
     rho_v2 = rho * v2
     rho_v3 = rho * v3
     rho_e = p / (equations.gamma - 1) +
-            0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
-            0.5 * (B1^2 + B2^2 + B3^2)
+            0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
+            0.5f0 * (B1^2 + B2^2 + B3^2)
 
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3)
 end
@@ -554,17 +554,17 @@ end
 
 @inline function pressure(u, equations::IdealGlmMhdEquations1D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
          -
-         0.5 * (B1^2 + B2^2 + B3^2))
+         0.5f0 * (B1^2 + B2^2 + B3^2))
     return p
 end
 
 @inline function density_pressure(u, equations::IdealGlmMhdEquations1D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
-    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
          -
-         0.5 * (B1^2 + B2^2 + B3^2))
+         0.5f0 * (B1^2 + B2^2 + B3^2))
     return rho * p
 end
 
@@ -576,7 +576,7 @@ end
     v3 = rho_v3 / rho
     v_mag = sqrt(v1^2 + v2^2 + v3^2)
     p = (equations.gamma - 1) *
-        (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2))
+        (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2))
     a_square = equations.gamma * p / rho
     sqrt_rho = sqrt(rho)
     b1 = B1 / sqrt_rho
@@ -584,8 +584,8 @@ end
     b3 = B3 / sqrt_rho
     b_square = b1^2 + b2^2 + b3^2
 
-    c_f = sqrt(0.5 * (a_square + b_square) +
-               0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+    c_f = sqrt(0.5f0 * (a_square + b_square) +
+               0.5f0 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
     return c_f
 end
 
@@ -611,7 +611,7 @@ as given by
     vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
     mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
     p_ll = (equations.gamma - 1) *
-           (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll)
+           (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll)
 
     v1_rr = rho_v1_rr / rho_rr
     v2_rr = rho_v2_rr / rho_rr
@@ -619,11 +619,11 @@ as given by
     vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
     p_rr = (equations.gamma - 1) *
-           (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr)
+           (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr)
 
     # compute total pressure which is thermal + magnetic pressures
-    p_total_ll = p_ll + 0.5 * mag_norm_ll
-    p_total_rr = p_rr + 0.5 * mag_norm_rr
+    p_total_ll = p_ll + 0.5f0 * mag_norm_ll
+    p_total_rr = p_rr + 0.5f0 * mag_norm_rr
 
     # compute the Roe density averages
     sqrt_rho_ll = sqrt(rho_ll)
@@ -645,19 +645,19 @@ as given by
     H_rr = (rho_e_rr + p_total_rr) / rho_rr
     H_roe = H_ll * rho_ll_roe + H_rr * rho_rr_roe
     # temporary variable see equations (4.12) in Cargo and Gallice
-    X = 0.5 * ((B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2) *
+    X = 0.5f0 * ((B1_ll - B1_rr)^2 + (B2_ll - B2_rr)^2 + (B3_ll - B3_rr)^2) *
         inv_sqrt_rho_add^2
     # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
     b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
     a_square_roe = ((2.0 - equations.gamma) * X +
                     (equations.gamma - 1.0) *
-                    (H_roe - 0.5 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -
+                    (H_roe - 0.5f0 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -
                      b_square_roe)) # acoustic speed
     # finally compute the average wave speed and set the output velocity
     # Ignore orientation since it is always "1" in 1D
     c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
     a_star_roe = sqrt((a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe)
-    c_f_roe = sqrt(0.5 * (a_square_roe + b_square_roe + a_star_roe))
+    c_f_roe = sqrt(0.5f0 * (a_square_roe + b_square_roe + a_star_roe))
 
     return v1_roe, c_f_roe
 end
@@ -691,13 +691,13 @@ end
 
 # Calculate kinetic energy for a conservative state `cons`
 @inline function energy_kinetic(cons, equations::IdealGlmMhdEquations1D)
-    return 0.5 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
+    return 0.5f0 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
 end
 
 # Calculate the magnetic energy for a conservative state `cons'.
 #  OBS! For non-dinmensional form of the ideal MHD magnetic pressure ≡ magnetic energy
 @inline function energy_magnetic(cons, ::IdealGlmMhdEquations1D)
-    return 0.5 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
+    return 0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
 end
 
 # Calculate internal energy for a conservative state `cons`
