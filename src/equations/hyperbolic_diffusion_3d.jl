@@ -56,15 +56,15 @@ function initial_condition_poisson_nonperiodic(x, t,
         q2 = one(RealT)
         q3 = one(RealT)
     else
-        phi = 2.0 * cos(convert(RealT, pi) * x[1]) *
-              sin(2.0 * convert(RealT, pi) * x[2]) *
-              sin(2.0 * convert(RealT, pi) * x[3]) + 2.0 # ϕ
-        q1 = -2.0 * convert(RealT, pi) * sin(convert(RealT, pi) * x[1]) *
-             sin(2.0 * convert(RealT, pi) * x[2]) * sin(2.0 * convert(RealT, pi) * x[3])   # ϕ_x
-        q2 = 4.0 * convert(RealT, pi) * cos(convert(RealT, pi) * x[1]) *
-             cos(2.0 * convert(RealT, pi) * x[2]) * sin(2.0 * convert(RealT, pi) * x[3])   # ϕ_y
-        q3 = 4.0 * convert(RealT, pi) * cos(convert(RealT, pi) * x[1]) *
-             sin(2.0 * convert(RealT, pi) * x[2]) * cos(2.0 * convert(RealT, pi) * x[3])   # ϕ_z
+        phi = 2 * cospi(x[1]) *
+              sinpi(2 * x[2]) *
+              sinpi(2 * x[3]) + 2 # ϕ
+        q1 = -2 * convert(RealT, pi) * sinpi(x[1]) *
+             sinpi(2 * x[2]) * sinpi(2 * x[3])   # ϕ_x
+        q2 = 4 * convert(RealT, pi) * cospi(x[1]) *
+             cospi(2 * x[2]) * sinpi(2 * x[3])   # ϕ_y
+        q3 = 4 * convert(RealT, pi) * cospi(x[1]) *
+             sinpi(2 * x[2]) * cospi(2 * x[3])   # ϕ_z
     end
     return SVector(phi, q1, q2, q3)
 end
@@ -90,14 +90,14 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
                                                 equations::HyperbolicDiffusionEquations3D)
     # elliptic equation: -νΔϕ = f
     RealT = eltype(u_inner)
-    phi = 2.0 * cos(convert(RealT, pi) * x[1]) * sin(2.0 * convert(RealT, pi) * x[2]) *
-          sin(2.0 * convert(RealT, pi) * x[3]) + 2.0 # ϕ
-    q1 = -2.0 * convert(RealT, pi) * sin(convert(RealT, pi) * x[1]) *
-         sin(2.0 * convert(RealT, pi) * x[2]) * sin(2.0 * convert(RealT, pi) * x[3])   # ϕ_x
-    q2 = 4.0 * convert(RealT, pi) * cos(convert(RealT, pi) * x[1]) *
-         cos(2.0 * convert(RealT, pi) * x[2]) * sin(2.0 * convert(RealT, pi) * x[3])   # ϕ_y
-    q3 = 4.0 * convert(RealT, pi) * cos(convert(RealT, pi) * x[1]) *
-         sin(2.0 * convert(RealT, pi) * x[2]) * cos(2.0 * convert(RealT, pi) * x[3])   # ϕ_z
+    phi = 2 * cospi(x[1]) * sinpi(2 * x[2]) *
+          sinpi(2 * x[3]) + 2 # ϕ
+    q1 = -2 * convert(RealT, pi) * sinpi(x[1]) *
+         sinpi(2 * x[2]) * sinpi(2 * x[3])   # ϕ_x
+    q2 = 4 * convert(RealT, pi) * cospi(x[1]) *
+         cospi(2 * x[2]) * sinpi(2 * x[3])   # ϕ_y
+    q3 = 4 * convert(RealT, pi) * cospi(x[1]) *
+         sinpi(2 * x[2]) * cospi(2 * x[3])   # ϕ_z
     u_boundary = SVector(phi, q1, q2, q3)
 
     # Calculate boundary flux
@@ -120,7 +120,7 @@ Source term that only includes the forcing from the hyperbolic diffusion system.
     # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
     @unpack inv_Tr = equations
 
-    du1 = zero(u[1])
+    du1 = 0
     du2 = -inv_Tr * u[2]
     du3 = -inv_Tr * u[3]
     du4 = -inv_Tr * u[4]
@@ -142,14 +142,14 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
 
     # Determine phi_x, phi_y
     RealT = eltype(x)
-    G = 1.0 # gravitational constant
+    G = 1 # gravitational constant
     C_grav = -4 * G / (3 * convert(RealT, pi)) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
-    A = 0.1 # perturbation coefficient must match Euler setup
-    rho1 = A * sin(convert(RealT, pi) * (x[1] + x[2] + x[3] - t))
+    A = convert(RealT, 0.1) # perturbation coefficient must match Euler setup
+    rho1 = A * sinpi(x[1] + x[2] + x[3] - t)
     # initialize with ansatz of gravity potential
     phi = C_grav * rho1
     q1 = C_grav * A * convert(RealT, pi) *
-         cos(convert(RealT, pi) * (x[1] + x[2] + x[3] - t)) # = gravity acceleration in x-direction
+         cospi(x[1] + x[2] + x[3] - t) # = gravity acceleration in x-direction
     q2 = q1                                                 # = gravity acceleration in y-direction
     q3 = q1                                                 # = gravity acceleration in z-direction
 
@@ -164,17 +164,17 @@ end
     if orientation == 1
         f1 = -equations.nu * q1
         f2 = -phi * equations.inv_Tr
-        f3 = zero(phi)
-        f4 = zero(phi)
+        f3 = 0
+        f4 = 0
     elseif orientation == 2
         f1 = -equations.nu * q2
-        f2 = zero(phi)
+        f2 = 0
         f3 = -phi * equations.inv_Tr
-        f4 = zero(phi)
+        f4 = 0
     else
         f1 = -equations.nu * q3
-        f2 = zero(phi)
-        f3 = zero(phi)
+        f2 = 0
+        f3 = 0
         f4 = -phi * equations.inv_Tr
     end
 

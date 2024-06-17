@@ -125,7 +125,7 @@ Source term that only includes the forcing from the hyperbolic diffusion system.
 
     dq1 = -inv_Tr * u[2]
 
-    return SVector(zero(dq1), dq1)
+    return SVector(0, dq1)
 end
 
 """
@@ -142,9 +142,9 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
 
     # Determine phi_x
     RealT = eltype(x)
-    G = 1.0           # gravitational constant
-    C = -4.0 * G / convert(RealT, pi) # -4 * G / ndims * pi
-    A = 0.1           # perturbation coefficient must match Euler setup
+    G = 1             # gravitational constant
+    C = -4 * G / convert(RealT, pi) # -4 * G / ndims * pi
+    A = convert(RealT, 0.1)           # perturbation coefficient must match Euler setup
     rho1 = A * sinpi(x[1] - t)
     # initialize with ansatz of gravity potential
     phi = C * rho1

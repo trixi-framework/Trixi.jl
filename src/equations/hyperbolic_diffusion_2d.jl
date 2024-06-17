@@ -117,13 +117,13 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
 
     # Determine phi_x, phi_y
     RealT = eltype(x)
-    G = 1.0 # gravitational constant
-    C = -2.0 * G / convert(RealT, pi)
-    A = 0.1 # perturbation coefficient must match Euler setup
-    rho1 = A * sin(convert(RealT, pi) * (x[1] + x[2] - t))
+    G = 1 # gravitational constant
+    C = -2 * G / convert(RealT, pi)
+    A = convert(RealT, 0.1) # perturbation coefficient must match Euler setup
+    rho1 = A * sinpi(x[1] + x[2] - t)
     # initialize with ansatz of gravity potential
     phi = C * rho1
-    q1 = C * A * convert(RealT, pi) * cos(convert(RealT, pi) * (x[1] + x[2] - t)) # = gravity acceleration in x-direction
+    q1 = C * A * convert(RealT, pi) * cospi(x[1] + x[2] - t) # = gravity acceleration in x-direction
     q2 = q1                                     # = gravity acceleration in y-direction
 
     return SVector(phi, q1, q2)
@@ -138,10 +138,10 @@ end
     if orientation == 1
         f1 = -equations.nu * q1
         f2 = -phi * inv_Tr
-        f3 = zero(phi)
+        f3 = 0
     else
         f1 = -equations.nu * q2
-        f2 = zero(phi)
+        f2 = 0
         f3 = -phi * inv_Tr
     end
 
