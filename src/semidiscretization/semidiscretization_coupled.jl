@@ -603,9 +603,9 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
     j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
 
-    # we need indices starting at 1 for the handling of `i_cell` etc.
+    # We need indices starting at 1 for the handling of `i_cell` etc.
     Base.require_one_based_indexing(cells)
-    
+
     @threaded for i in eachindex(cells)
         cell = cells[i]
         i_cell = i_cell_start + (i - 1) * i_cell_step
