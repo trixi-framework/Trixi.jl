@@ -29,7 +29,8 @@ save_solution.condition.save_initial_solution = false
 
 integrator = init(ode, alg,
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  callback = callbacks, maxiters = 100_000; ode_default_options()...)
+                  callback = callbacks;
+                  ode_default_options()...); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
 
 # Load saved context for adaptive time integrator
 if integrator.opts.adaptive

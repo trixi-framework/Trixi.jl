@@ -409,6 +409,14 @@ end
     end
 end
 
+@trixi_testset "test_quasi_1D_entropy" begin
+    a = 0.9
+    u_1D = SVector(1.1, 0.2, 2.1)
+    u_quasi_1D = SVector(a * 1.1, a * 0.2, a * 2.1, a)
+    @test entropy(u_quasi_1D, CompressibleEulerEquationsQuasi1D(1.4)) ≈
+          a * entropy(u_1D, CompressibleEulerEquations1D(1.4))
+end
+
 @trixi_testset "elixir_euler_quasi_1d_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d_source_terms.jl"),
                         l2=[
@@ -423,6 +431,7 @@ end
                             1.821888865105592e-6,
                             1.1166012159335992e-7,
                         ])
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

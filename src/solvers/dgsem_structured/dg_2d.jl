@@ -388,7 +388,7 @@ end
 end
 
 function calc_interface_flux!(cache, u,
-		mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
+                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                               nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
     @unpack elements = cache

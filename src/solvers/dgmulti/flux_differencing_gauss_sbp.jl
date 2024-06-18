@@ -51,6 +51,29 @@ struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperat
     nfaces::Int
 end
 
+function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
+                                        dg::DGMulti{1, Line, GaussSBP})
+    rd = dg.basis
+
+    rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
+    interp_matrix_gauss_to_face_1d = polynomial_interpolation_matrix(rq1D, [-1; 1])
+
+    nnodes_1d = length(rq1D)
+    face_indices_tensor_product = nothing # not needed in 1D; we fall back to mul!
+
+    num_faces = 2
+
+    T_op = typeof(operator)
+    Tm = typeof(interp_matrix_gauss_to_face_1d)
+    Tw = typeof(inv.(wq1D))
+    Tf = typeof(rd.wf)
+    Ti = typeof(face_indices_tensor_product)
+    return TensorProductGaussFaceOperator{1, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
+                                                                   inv.(wq1D), rd.wf,
+                                                                   face_indices_tensor_product,
+                                                                   nnodes_1d, num_faces)
+end
+
 # constructor for a 2D operator
 function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
                                         dg::DGMulti{2, Quad, GaussSBP})
@@ -124,6 +147,21 @@ end
     @threaded for col in Base.OneTo(size(out, 2))
         tensor_product_gauss_face_operator!(view(out, :, col), A, view(x, :, col))
     end
+end
+
+@inline function tensor_product_gauss_face_operator!(out::AbstractVector,
+                                                     A::TensorProductGaussFaceOperator{1,
+                                                                                       Interpolation},
+                                                     x::AbstractVector)
+    mul!(out, A.interp_matrix_gauss_to_face_1d, x)
+end
+
+@inline function tensor_product_gauss_face_operator!(out::AbstractVector,
+                                                     A::TensorProductGaussFaceOperator{1,
+                                                                                       <:Projection},
+                                                     x::AbstractVector)
+    mul!(out, A.interp_matrix_gauss_to_face_1d', x)
+    @. out *= A.inv_volume_weights_1d
 end
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
@@ -352,7 +390,7 @@ end
 # For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
 # In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
 function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT,
+                      dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Line, Quad, Hex}}, RealT,
                       uEltype)
 
     # call general Polynomial flux differencing constructor
