@@ -296,8 +296,6 @@ function step!(integrator::PairedExplicitRK2Integrator)
     t_end = last(prob.tspan)
     callbacks = integrator.opts.callback
 
-    integrator.finalstep = false
-
     @assert !integrator.finalstep
     if isnan(integrator.dt)
         error("time step size `dt` is NaN")
