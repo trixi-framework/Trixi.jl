@@ -45,6 +45,7 @@ end
         q1 = one(RealT)
         q2 = one(RealT)
     else
+        # TODO: sincospi
         sinpi_x1, cospi_x1 = sincos(convert(RealT, pi) * x[1])
         sinpi_2x2, cospi_2x2 = sincos(convert(RealT, pi) * 2 * x[2])
         phi = 2 * cospi_x1 * sinpi_2x2 + 2 # ϕ
