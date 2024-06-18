@@ -371,7 +371,7 @@ function step!(integrator::PairedExplicitRK3Integrator)
         integrator.f(integrator.du, integrator.u_tmp, prob.p,
                      integrator.t + alg.c[alg.num_stages] * integrator.dt)
 
-         @threaded for i in eachindex(integrator.u)
+        @threaded for i in eachindex(integrator.u)
             # "Own" PairedExplicitRK based on SSPRK33.
             # Note that 'k_higher' carries the values of K_{S-1}
             # and that we construct 'K_S' "in-place" from 'integrator.du'
