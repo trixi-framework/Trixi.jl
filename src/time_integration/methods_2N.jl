@@ -104,8 +104,8 @@ function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
     return getfield(integrator, field)
 end
 
-function init(ode::ODEProblem, alg::T;
-              dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm2N}
+function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
+              dt, callback = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp = similar(u)
@@ -132,8 +132,8 @@ function init(ode::ODEProblem, alg::T;
 end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::T;
-               dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm2N}
+function solve(ode::ODEProblem, alg:: SimpleAlgorithm2N;
+               dt, callback = nothing, kwargs...)
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
     # Start actual solve
