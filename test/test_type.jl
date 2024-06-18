@@ -689,15 +689,15 @@ isdir(outdir) && rm(outdir, recursive = true)
     @timed_testset "Compressible Navier Stokes Diffusion 1D" begin
         for RealT in (Float32, Float64)
             equations = @inferred CompressibleEulerEquations1D(RealT(1.4))
-            prandtl_number() = RealT(0.72)
-            mu() = RealT(0.01)
+            prandtl_number = RealT(0.72)
+            mu = RealT(0.01)
             equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion1D(equations,
-                                                                                          mu = mu(),
-                                                                                          Prandtl = prandtl_number(),
+                                                                                          mu = mu,
+                                                                                          Prandtl = prandtl_number,
                                                                                           gradient_variables = GradientVariablesPrimitive())
             equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion1D(equations,
-                                                                                        mu = mu(),
-                                                                                        Prandtl = prandtl_number(),
+                                                                                        mu = mu,
+                                                                                        Prandtl = prandtl_number,
                                                                                         gradient_variables = GradientVariablesEntropy())
 
             x = SVector(zero(RealT))
