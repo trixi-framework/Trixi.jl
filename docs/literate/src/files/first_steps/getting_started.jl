@@ -14,6 +14,7 @@
 # - [Getting an existing setup file](@ref Getting-an-existing-setup-file)
 # - [Modifying an existing setup](@ref Modifying-an-existing-setup)
 
+
 # ## Julia installation
 
 # Trixi.jl is compatible with the latest stable release of Julia. Additional details regarding Julia
@@ -22,6 +23,7 @@
 # line tool `juliaup`. You may follow our concise installation guidelines for Windows, Linux, and
 # MacOS provided below. In the event of any issues during the installation process, please consult
 # the official [Julia installation instruction](https://julialang.org/downloads/).
+
 
 # ### Windows
 
@@ -36,6 +38,7 @@
 #   julia
 #   ```
 #   To exit Julia, execute `exit()` or press `Ctrl+d`.
+
 
 # ### Linux and MacOS
 
@@ -55,6 +58,7 @@
 #   julia
 #   ```
 #   To exit Julia, execute `exit()` or press `Ctrl+d`.
+
 
 # ## Trixi.jl installation
 
@@ -80,7 +84,9 @@
 # integration schemes used by Trixi.jl and [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 # can be used to directly visualize Trixi.jl results from the Julia REPL.
 
+
 # ## Usage
+
 
 # ### Running a simulation
 
@@ -141,7 +147,7 @@
 # trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
 # ```
 using Trixi, OrdinaryDiffEq #hide #md
-trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
+trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
 
 # The output contains a recap of the setup and various information about the course of the simulation.
 # For instance, the solution was approximated over the [`TreeMesh`](@ref) with 1024 effective cells using
@@ -159,6 +165,7 @@ trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_eul
 
 using Plots
 plot(sol)
+
 
 # ### Getting an existing setup file
 
@@ -180,6 +187,7 @@ get_examples()
 # - Right-click the `Raw` button on the right side of the webpage and choose `Save as...`
 #   (or `Save Link As...`).
 # - Choose a folder and save the file.
+
 
 # ### Modifying an existing setup
 
@@ -206,8 +214,8 @@ function initial_condition_density_waves(x, t, equations::CompressibleEulerEquat
     v2 = 0.2 # velocity along y-axis
     rho = 1.0 + 0.98 * sinpi(sum(x) - t * (v1 + v2)) # density wave profile
     p = 20 # pressure
-    rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2)
-    return SVector(rho, rho * v1, rho * v2, rho_e)
+    rho_e = p / (equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+    return SVector(rho, rho*v1, rho*v2, rho_e)
 end
 initial_condition = initial_condition_density_waves
 nothing; #hide #md
@@ -223,13 +231,13 @@ nothing; #hide #md
 # Then you will obtain a new solution from running the simulation with a different initial
 # condition.
 
-trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
-              initial_condition = initial_condition) #hide #md
+trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
+ initial_condition=initial_condition) #hide #md
 pd = PlotData2D(sol) #hide #md
 p1 = plot(pd["rho"]) #hide #md
-p2 = plot(pd["v1"], clim = (0.05, 0.15)) #hide #md
-p3 = plot(pd["v2"], clim = (0.15, 0.25)) #hide #md
-p4 = plot(pd["p"], clim = (10, 30)) #hide #md
+p2 = plot(pd["v1"], clim=(0.05, 0.15)) #hide #md
+p3 = plot(pd["v2"], clim=(0.15, 0.25)) #hide #md
+p4 = plot(pd["p"], clim=(10, 30)) #hide #md
 plot(p1, p2, p3, p4) #hide #md
 
 # To get exactly the same picture execute the following.
@@ -248,4 +256,4 @@ plot(p1, p2, p3, p4) #hide #md
 # further details on setting up a new simulation with Trixi.jl, refer to the second part of
 # the introduction titled [Create your first setup](@ref create_first_setup).
 
-Sys.rm("out"; recursive = true, force = true) #hide #md
+Sys.rm("out"; recursive=true, force=true) #hide #md

@@ -12,8 +12,8 @@
 # ## Basic setup
 using Trixi
 
-struct CubicEquation <: Trixi.AbstractEquations{1, #= number of spatial dimensions =#
-                                                1} #= number of primary variables, i.e. scalar =#
+struct CubicEquation <: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
+                                                1 #= number of primary variables, i.e. scalar =#};
 end
 
 # We create `CubicEquation` as an empty `struct` since we do not use any parameters
@@ -23,7 +23,7 @@ end
 # Next, we define the physical flux `f(u) = u^3` using the calling structure
 # used in Trixi.jl.
 
-Trixi.flux(u, orientation, equation::CubicEquation) = u .^ 3
+Trixi.flux(u, orientation, equation::CubicEquation) = u.^3
 Trixi.varnames(_, ::CubicEquation) = ("scalar",)
 
 # In Trixi.jl, the conserved variables `u` are usually passed as `SVector`s of variables
@@ -41,10 +41,10 @@ equation = CubicEquation()
 initial_condition_sine(x, t, equation::CubicEquation) = SVector(sinpi(x[1]))
 
 mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
-                initial_refinement_level = 4,
-                n_cells_max = 10^4)
+                initial_refinement_level=4,
+                n_cells_max=10^4)
 
-solver = DGSEM(3, flux_central) #= polynomial degree =#
+solver = DGSEM(3 #= polynomial degree =#, flux_central)
 
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
 
@@ -67,7 +67,7 @@ callbacks = CallbackSet(summary_callback)
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol = solve(ode, SSPRK43();
-            ode_default_options()..., callback = callbacks);
+            ode_default_options()..., callback=callbacks);
 
 # That's it, you ran your first simulation using your new equation with Trixi.jl! Now, we can plot
 # the solution at the final time using Plots.jl.
@@ -79,21 +79,20 @@ plot(sol)
 # To avoid these issues, we need to use dissipative numerical fluxes (approximate
 # Riemann solvers) at interfaces.
 
+
 # ## Advanced setup
 
 # Thus, we add a Godunov's flux for our cubic equation. That is easy for this equation
 # since the wave speed `f'(u) = 3u^2` is always non-negative.
 
-@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll,
-                                                                                    orientation,
-                                                                                    equation)
+@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)
 
 # Let's run the example again but with a dissipative numerical flux at interfaces.
 # `remake` will recreate the semidiscretization we used before and only change
 # selected parameters, in this case the `solver`.
 
 ## A new setup with dissipation
-semi = remake(semi, solver = DGSEM(3, flux_godunov))
+semi = remake(semi, solver=DGSEM(3, flux_godunov))
 ode = semidiscretize(semi, tspan)
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot!(sol)
@@ -102,9 +101,8 @@ plot!(sol)
 # Now let's increase the final time (and also the spatial resolution).
 
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
-semi = remake(semi,
-              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5))
-ode = semidiscretize(semi, (0.0, 0.5)) #= tspan =#
+semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
+ode = semidiscretize(semi, (0.0, 0.5) #= tspan =#)
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
 
@@ -114,16 +112,14 @@ plot(sol)
 # to define an entropy-conservative numerical flux
 
 @inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicEquation)
-    return SVector(0.25 *
-                   (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
+  return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
 end
 
 # and use a [`VolumeIntegralFluxDifferencing`](@ref) instead of the standard
 # [`VolumeIntegralWeakForm`](@ref) in the DGSEM.
 
 ## Let's use a provably entropy-dissipative semidiscretization
-semi = remake(semi,
-              solver = DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
+semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
 ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(); ode_default_options()...);
 plot(sol)
@@ -141,6 +137,7 @@ plot(sol)
 # the 2D scalar "KPP equation" from [Kurganov, Petrova, Popov (2007)](https://doi.org/10.1137/040614189) is
 # implemented.
 
+
 # ## Summary of the code
 
 # To sum up, here is the complete code that we used (without the callbacks since these create a
@@ -153,22 +150,20 @@ module CubicConservationLaw
 
 using Trixi
 
-struct CubicEquation <: Trixi.AbstractEquations{1, #= number of spatial dimensions =#
-                                                1} #= number of primary variables, i.e. scalar =#
+struct CubicEquation <: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
+                                                1 #= number of primary variables, i.e. scalar =#}
 end
 
-@inline Trixi.flux(u, orientation, equation::CubicEquation) = u .^ 3
+@inline Trixi.flux(u, orientation, equation::CubicEquation) = u.^3
 Trixi.varnames(_, ::CubicEquation) = ("scalar",)
 
-@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll,
-                                                                                    orientation,
-                                                                                    equation)
+@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)
 @inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicEquation)
-    return SVector(0.25 *
-                   (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
+  return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
 end
 
 end # module
+
 
 ## Create a simulation setup
 import .CubicConservationLaw
@@ -178,15 +173,13 @@ using Plots
 
 equation = CubicConservationLaw.CubicEquation()
 
-function initial_condition_sine(x, t, equation::CubicConservationLaw.CubicEquation)
-    SVector(sinpi(x[1]))
-end
+initial_condition_sine(x, t, equation::CubicConservationLaw.CubicEquation) = SVector(sinpi(x[1]))
 
 mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
-                initial_refinement_level = 4,
-                n_cells_max = 10^4)
+                initial_refinement_level=4,
+                n_cells_max=10^4)
 
-solver = DGSEM(3, flux_central) #= polynomial degree =#
+solver = DGSEM(3 #= polynomial degree =#, flux_central)
 
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
 
@@ -198,25 +191,27 @@ ode = semidiscretize(semi, tspan)
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
 
+
 ## A new setup with dissipation
-semi = remake(semi, solver = DGSEM(3, flux_godunov))
+semi = remake(semi, solver=DGSEM(3, flux_godunov))
 ode = semidiscretize(semi, tspan)
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot!(sol)
 
+
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
-semi = remake(semi,
-              mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5))
+semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
 ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
 
+
 ## Let's use a provably entropy-dissipative semidiscretization
-semi = remake(semi,
-              solver = DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
+semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
 ode = semidiscretize(semi, (0.0, 0.5))
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
+
 
 # ## Package versions
 
@@ -227,4 +222,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode = PKGMODE_MANIFEST)
+           mode=PKGMODE_MANIFEST)

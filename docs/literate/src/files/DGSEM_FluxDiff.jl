@@ -20,6 +20,7 @@
 # J u_t + f(u)_{\xi} = 0, \qquad t\in \mathbb{R}^+, \xi\in [-1,1]
 # ```
 
+
 # ## The weak form of the DGSEM
 # We consider the so-called discontinuous Galerkin spectral element method (DGSEM) with collocation.
 # It results from choosing a nodal DG ansatz using $N+1$ Gauss-Lobatto nodes $\xi_i$ in $[-1,1]$
@@ -76,6 +77,7 @@
 # ```
 # More information about the equivalence you can find in [Kopriva, Gassner (2010)](https://doi.org/10.1007/s10915-010-9372-3).
 
+
 # ## DGSEM with flux differencing
 # When using the diagonal SBP property it is possible to rewrite the application of the derivative
 # operator $D$ in the calculation of the volume integral into a subcell based finite volume type
@@ -103,12 +105,15 @@
 # flux $f=f_{surface}$ used for the numerical flux $f_{surface}^*$ and the already mentioned volume
 # flux $f_{vol}$ especially for this formulation.
 
+
 # This formulation creates a more stable version of DGSEM, because it fulfils entropy stability.
 # Moreover it allows the construction of entropy conserving discretizations without relying on
 # exact integration. This is achieved when using a two-point entropy conserving flux function as
 # volume flux in the volume flux differencing formulation.
 # Then, the numerical surface flux can be used to control the dissipation of the discretization and to
 # guarantee decreasing entropy, i.e. entropy stability.
+
+
 
 # ## [Implementation in Trixi.jl](@id fluxDiffExample)
 # Now, we have a look at the implementation of DGSEM with flux differencing with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl).
@@ -153,21 +158,21 @@ initial_condition = initial_condition_weak_blast_wave
 # We will confirm the entropy conservation property numerically.
 
 volume_flux = flux_ranocha # = f_vol
-solver = DGSEM(polydeg = 3, surface_flux = volume_flux,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux=volume_flux,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 # Now, we implement Trixi.jl's `mesh`, `semi` and `ode` in a simple framework. For more information please
 # have a look at the documentation, the basic tutorial [introduction to DG methods](@ref scalar_linear_advection_1d)
 # or some basic elixirs.
 coordinates_min = (-2.0, -2.0)
-coordinates_max = (2.0, 2.0)
+coordinates_max = ( 2.0,  2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
-                n_cells_max = 10_000,
-                periodicity = true)
+                initial_refinement_level=5,
+                n_cells_max=10_000,
+                periodicity=true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_condition_periodic)
+                                    boundary_conditions=boundary_condition_periodic)
 
 ## ODE solvers
 tspan = (0.0, 0.4)
@@ -175,11 +180,11 @@ ode = semidiscretize(semi, tspan);
 
 # To analyse the entropy conservation of the approximation, we will use the analysis calllback
 # implemented in Trixi. It provides some information about the approximation including the entropy change.
-analysis_callback = AnalysisCallback(semi, interval = 100);
+analysis_callback = AnalysisCallback(semi, interval=100);
 
 # We now run the simulation using `flux_ranocha` for both surface and volume flux.
-sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
-            ode_default_options()..., callback = analysis_callback);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=analysis_callback);
 # A look at the change in entropy $\sum \partial S/\partial U \cdot U_t$ in the analysis callback
 # confirms that the flux is entropy conserving since the change is about machine precision.
 
@@ -197,32 +202,33 @@ equations = CompressibleEulerEquations2D(gamma)
 initial_condition = initial_condition_weak_blast_wave
 
 volume_flux = flux_ranocha # = f_vol
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = (-2.0, -2.0)
-coordinates_max = (2.0, 2.0)
+coordinates_max = ( 2.0,  2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
-                n_cells_max = 10_000,
-                periodicity = true)
+                initial_refinement_level=5,
+                n_cells_max=10_000,
+                periodicity=true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_condition_periodic)
+                                    boundary_conditions=boundary_condition_periodic)
 
 ## ODE solvers
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan);
 
-analysis_callback = AnalysisCallback(semi, interval = 100);
+analysis_callback = AnalysisCallback(semi, interval=100);
 
 # We now run the simulation using the volume flux `flux_ranocha` and surface flux `flux_lax_friedrichs`.
-sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
-            ode_default_options()..., callback = analysis_callback);
+sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
+            ode_default_options()..., callback=analysis_callback);
 # The change in entropy confirms the expected entropy stability.
 
 using Plots
 plot(sol)
+
 
 # Of course, you can use more than these two fluxes in Trixi. Here, we will give a short list
 # of possible fluxes for the compressible Euler equations.
@@ -230,6 +236,7 @@ plot(sol)
 # [`flux_chandrashekar`](@ref), [`flux_kennedy_gruber`](@ref).
 # As surface flux you can use all volume fluxes and additionally for instance [`flux_lax_friedrichs`](@ref),
 # [`flux_hll`](@ref), [`flux_hllc`](@ref).
+
 
 # ## Package versions
 
@@ -240,4 +247,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode = PKGMODE_MANIFEST)
+           mode=PKGMODE_MANIFEST)

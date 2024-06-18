@@ -50,6 +50,7 @@
 # amr_indicator = IndicatorMax(semi, variable=variable)
 # ````
 
+
 # ### Controllers
 # The spatial discretization into elements is tree-based for both AMR supporting mesh types `TreeMesh`
 # and `P4estMesh`. Thus, the higher the level in the tree the higher the level of refinement.
@@ -86,6 +87,7 @@
 # This controller is for instance used in
 # [`elixir_euler_astro_jet_amr.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_astro_jet_amr.jl).
 
+
 # ### Callback
 # The AMR indicator and controller are added to the simulation through the callback [`AMRCallback`](@ref).
 # It contains a semidiscretization `semi`, the controller `amr_controller` and the parameters `interval`,
@@ -101,6 +103,7 @@
 #                            adapt_initial_condition_only_refine=true)
 # ````
 
+
 # # Exemplary simulation
 # Here, we want to implement a simple AMR simulation of the 2D linear advection equation for a Gaussian pulse.
 
@@ -111,15 +114,16 @@ advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_gauss
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 
 coordinates_min = (-5.0, -5.0)
-coordinates_max = (5.0, 5.0)
+coordinates_max = ( 5.0,  5.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 30_000)
+                initial_refinement_level=4,
+                n_cells_max=30_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
 
 tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan);
@@ -128,35 +132,36 @@ ode = semidiscretize(semi, tspan);
 # `IndicatorMax`. As described before, it returns the maximal value of the specified variable
 # (here the only conserved variable). Therefore, regions with a high maximum are refined.
 # This is not really useful numerical application, but a nice demonstration example.
-amr_indicator = IndicatorMax(semi, variable = first)
+amr_indicator = IndicatorMax(semi, variable=first)
 
 # These values are transferred to a refinement level with the `ControllerThreeLevel`, such that
 # every element with maximal value greater than `0.1` is refined once and elements with maximum
 # above `0.6` are refined twice.
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 4,
-                                      med_level = 5, med_threshold = 0.1,
-                                      max_level = 6, max_threshold = 0.6)
+                                      base_level=4,
+                                      med_level=5, med_threshold=0.1,
+                                      max_level=6, max_threshold=0.6)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           interval=5,
+                           adapt_initial_condition=true,
+                           adapt_initial_condition_only_refine=true)
 
-stepsize_callback = StepsizeCallback(cfl = 0.9)
+stepsize_callback = StepsizeCallback(cfl=0.9)
 
 callbacks = CallbackSet(amr_callback, stepsize_callback);
 
 # Running the simulation.
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep=false, callback=callbacks);
 
 # We plot the solution and add the refined mesh at the end of the simulation.
 using Plots
 pd = PlotData2D(sol)
 plot(pd)
 plot!(getmesh(pd))
+
 
 # # More examples
 # Trixi.jl provides many elixirs using AMR. We want to give some examples for different mesh types:
@@ -198,6 +203,7 @@ plot!(getmesh(pd))
 
 # For more information, please have a look at the respective links.
 
+
 # ## Package versions
 
 # These results were obtained using the following versions.
@@ -207,4 +213,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode = PKGMODE_MANIFEST)
+           mode=PKGMODE_MANIFEST)

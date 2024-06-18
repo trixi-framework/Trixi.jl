@@ -4,6 +4,7 @@
 # and its implementation in [Trixi.jl](https://github.com/trixi-framework/Trixi.jl).
 # In the second part, an implementation of a positivity preserving limiter is added to the simulation.
 
+
 # # Shock capturing with flux differencing
 
 # The following rough explanation is on a very basic level. More information about an entropy stable
@@ -34,6 +35,7 @@
 #                                                  volume_flux_dg=volume_flux_dg,
 #                                                  volume_flux_fv=volume_flux_fv)
 # ````
+
 
 # We now focus on a choice of the shock capturing indicator `indicator_sc`.
 # A possible indicator is $\alpha_{HG}$ presented by Hennemann et al. (p.10), which depends on the
@@ -82,6 +84,8 @@
 #                                          variable=variable)
 # ````
 
+
+
 # # Positivity preserving limiter
 
 # Some numerical solutions are physically meaningless, for instance negative values of pressure
@@ -128,6 +132,7 @@
 # SSPRK43(stage_limiter!).
 # ````
 
+
 # # Simulation with shock capturing and positivity preserving
 
 # Now, we can run a simulation using the described methods of shock capturing and positivity
@@ -138,26 +143,26 @@ equations = CompressibleEulerEquations2D(1.4)
 
 # As our initial condition we use the Sedov blast wave setup.
 function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations2D)
-    ## Set up polar coordinates
-    inicenter = SVector(0.0, 0.0)
-    x_norm = x[1] - inicenter[1]
-    y_norm = x[2] - inicenter[2]
-    r = sqrt(x_norm^2 + y_norm^2)
+  ## Set up polar coordinates
+  inicenter = SVector(0.0, 0.0)
+  x_norm = x[1] - inicenter[1]
+  y_norm = x[2] - inicenter[2]
+  r = sqrt(x_norm^2 + y_norm^2)
 
-    r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
-    ## r0 = 0.5 # = more reasonable setup
-    E = 1.0
-    p0_inner = 3 * (equations.gamma - 1) * E / (3 * pi * r0^2)
-    p0_outer = 1.0e-5 # = true Sedov setup
-    ## p0_outer = 1.0e-3 # = more reasonable setup
+  r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+  ## r0 = 0.5 # = more reasonable setup
+  E = 1.0
+  p0_inner = 3 * (equations.gamma - 1) * E / (3 * pi * r0^2)
+  p0_outer = 1.0e-5 # = true Sedov setup
+  ## p0_outer = 1.0e-3 # = more reasonable setup
 
-    ## Calculate primitive variables
-    rho = 1.0
-    v1 = 0.0
-    v2 = 0.0
-    p = r > r0 ? p0_outer : p0_inner
+  ## Calculate primitive variables
+  rho = 1.0
+  v1  = 0.0
+  v2  = 0.0
+  p   = r > r0 ? p0_outer : p0_inner
 
-    return prim2cons(SVector(rho, v1, v2, p), equations)
+  return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 initial_condition = initial_condition_sedov_blast_wave
 #-
@@ -166,7 +171,7 @@ basis = LobattoLegendreBasis(3)
 # We set the numerical fluxes and divide between the surface flux and the two volume fluxes for the DG
 # and FV method. Here, we are using [`flux_lax_friedrichs`](@ref) and [`flux_ranocha`](@ref).
 surface_flux = flux_lax_friedrichs
-volume_flux = flux_ranocha
+volume_flux  = flux_ranocha
 
 # Now, we specify the shock capturing indicator $\alpha$.
 
@@ -175,26 +180,26 @@ volume_flux = flux_ranocha
 # Since density and pressure are the critical variables in this example, we use
 # `density_pressure = density * pressure = rho * p` as indicator variable.
 indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.5,
-                                         alpha_min = 0.001,
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
+                                         alpha_max=0.5,
+                                         alpha_min=0.001,
+                                         alpha_smooth=true,
+                                         variable=density_pressure)
 
 # Now, we can use the defined fluxes and the indicator to implement the volume integral using shock
 # capturing.
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+                                                 volume_flux_dg=volume_flux,
+                                                 volume_flux_fv=surface_flux)
 
 # We finalize the discretization by implementing Trixi.jl's `solver`, `mesh`, `semi` and `ode`,
 # while `solver` now has the extra parameter `volume_integral`.
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)
-coordinates_max = (2.0, 2.0)
+coordinates_max = ( 2.0,  2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 6,
-                n_cells_max = 10_000)
+                initial_refinement_level=6,
+                n_cells_max=10_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -202,23 +207,24 @@ tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
 # We add some callbacks to get an solution analysis and use a CFL-based time step size calculation.
-analysis_callback = AnalysisCallback(semi, interval = 100)
+analysis_callback = AnalysisCallback(semi, interval=100)
 
-stepsize_callback = StepsizeCallback(cfl = 0.8)
+stepsize_callback = StepsizeCallback(cfl=0.8)
 
 callbacks = CallbackSet(analysis_callback, stepsize_callback);
 
 # We now run the simulation using the positivity preserving limiter of Zhang and Shu for the variables
 # density and pressure.
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
-                                                     variables = (Trixi.density, pressure))
+stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds=(5.0e-6, 5.0e-6),
+                                                     variables=(Trixi.density, pressure))
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep=false, callback=callbacks);
 
 using Plots
 plot(sol)
+
 
 # ## Package versions
 
@@ -229,4 +235,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode = PKGMODE_MANIFEST)
+           mode=PKGMODE_MANIFEST)

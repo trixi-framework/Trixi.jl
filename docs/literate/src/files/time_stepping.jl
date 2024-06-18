@@ -33,6 +33,7 @@
 # If you run Trixi in parallel with MPI you need to pass `internalnorm=ode_norm` and you should pass `unstable_check=ode_unstable_check`
 # to enable MPI aware error-based adaptive step size control. These keyword arguments are also included in [`ode_default_options`](@ref).
 
+
 # # CFL-based step size control
 # The SciML ecosystem also provides time integration algorithms without adaptive time stepping on
 # their own, such as `CarpenterKennedy2N54`. Moreover, you also can deactivate the automatic adaptivity
@@ -73,6 +74,7 @@
 # [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl)
 # or [`elixir_euler_source_terms.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_source_terms.jl).
 
+
 # ## Package versions
 
 # These results were obtained using the following versions.
@@ -82,4 +84,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq"],
-           mode = PKGMODE_MANIFEST)
+           mode=PKGMODE_MANIFEST)

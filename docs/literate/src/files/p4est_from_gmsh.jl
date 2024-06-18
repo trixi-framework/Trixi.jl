@@ -16,9 +16,8 @@
 # Mach 2 flow around the NACA6412 airfoil. 
 
 using Trixi
-redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-    trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
-                           "elixir_euler_NACA6412airfoil_mach2.jl"), tspan = (0.0, 0.5))
+redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_euler_NACA6412airfoil_mach2.jl"), tspan=(0.0, 0.5))
 end #hide #md
 
 # Conveniently, we use the Plots package to have a first look at the results:
@@ -457,4 +456,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "Download"],
-           mode = PKGMODE_MANIFEST)
+           mode=PKGMODE_MANIFEST)

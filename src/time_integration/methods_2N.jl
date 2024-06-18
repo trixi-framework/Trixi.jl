@@ -132,7 +132,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
 end
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::SimpleAlgorithm2N;
+function solve(ode::ODEProblem, alg:: SimpleAlgorithm2N;
                dt, callback = nothing, kwargs...)
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
