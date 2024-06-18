@@ -82,6 +82,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     # Special case of e = 3
     if num_stages == 3
         a_unknown = [0, c[2], 0.25]
+        dt_opt = 42.0 # TODO! This is a placeholder value
     else
         # Calculate coefficients of the stability polynomial in monomial form
         consistency_order = 3
@@ -240,7 +241,6 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
     # PairedExplicitRK stages:
     k1::uType
     k_higher::uType
-    k_S1::uType # Required for custom third order version of PairedExplicitRK3
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK3;
@@ -252,7 +252,6 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
     # PairedExplicitRK stages
     k1 = zero(u0)
     k_higher = zero(u0)
-    k_S1 = zero(u0)
 
     t0 = first(ode.tspan)
     iter = 0
@@ -264,7 +263,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
                                                                      ode.tspan;
                                                                      kwargs...),
                                              false,
-                                             k1, k_higher, k_S1)
+                                             k1, k_higher)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -341,12 +340,6 @@ function step!(integrator::PairedExplicitRK3Integrator)
             integrator.k_higher[i] = integrator.du[i] * integrator.dt
         end
 
-        if alg.num_stages == 3
-            @threaded for i in eachindex(integrator.du)
-                integrator.k_S1[i] = integrator.k_higher[i]
-            end
-        end
-
         # Higher stages
         for stage in 3:(alg.num_stages - 1)
             # Construct current state
@@ -366,11 +359,6 @@ function step!(integrator::PairedExplicitRK3Integrator)
             end
         end
 
-        # Store K_{S-1}
-        @threaded for i in eachindex(integrator.du)
-            integrator.k_S1[i] = integrator.k_higher[i]
-        end
-
         # Last stage
         @threaded for i in eachindex(integrator.du)
             integrator.u_tmp[i] = integrator.u[i] +
@@ -384,8 +372,10 @@ function step!(integrator::PairedExplicitRK3Integrator)
                      integrator.t + alg.c[alg.num_stages] * integrator.dt)
 
          @threaded for i in eachindex(integrator.u)
-            # "Own" PairedExplicitRK based on SSPRK33
-            integrator.u[i] += (integrator.k1[i] + integrator.k_S1[i] +
+            # "Own" PairedExplicitRK based on SSPRK33.
+            # Note that 'k_higher' carries the values of K_{S-1}
+            # and that we construct 'K_S' "in-place" from 'integrator.du'
+            integrator.u[i] += (integrator.k1[i] + integrator.k_higher[i] +
                                 4.0 * integrator.du[i] * integrator.dt) / 6.0
         end
     end # PairedExplicitRK step timer
@@ -417,6 +407,5 @@ function Base.resize!(integrator::PairedExplicitRK3Integrator, new_size)
 
     resize!(integrator.k1, new_size)
     resize!(integrator.k_higher, new_size)
-    resize!(integrator.k_S1, new_size)
 end
 end # @muladd
