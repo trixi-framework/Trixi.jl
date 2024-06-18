@@ -52,7 +52,7 @@ function trixi_t8_get_local_element_levels(forest)
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
 
-    levels = Vector{Int}(undef, t8_forest_get_local_num_elements(forest))
+    levels = Vector{UInt8}(undef, t8_forest_get_local_num_elements(forest))
 
     # Get the number of trees that have elements of this process.
     num_local_trees = t8_forest_get_num_local_trees(forest)
@@ -69,7 +69,7 @@ function trixi_t8_get_local_element_levels(forest)
         for ielement in 0:(num_elements_in_tree - 1)
             element = t8_forest_get_element_in_tree(forest, itree, ielement)
             current_index += 1
-            levels[current_index] = t8_element_level(eclass_scheme, element)
+            levels[current_index] = UInt8(t8_element_level(eclass_scheme, element))
         end # for
     end # for
 

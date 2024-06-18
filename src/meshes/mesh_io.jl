@@ -225,22 +225,11 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
     return filename
 end
 
-## # TODO: Implement this function as soon as there is support for this in `t8code`.
-## function save_mesh_file(mesh::T8codeMesh, output_directory, timestep, mpi_parallel)
-##     error("Mesh file output not supported yet for `T8codeMesh`.")
-## 
-##     return joinpath(output_directory, "dummy_mesh.h5")
-## end
-
 function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
-                        mpi_parallel::False)
-
-    elemIDs, neighIDs, faces, duals, orientations = get_cmesh_info(mesh)
-
-    levels = trixi_t8_get_local_element_levels(mesh.forest)
+                        mpi_parallel)
 
     # Create output directory (if it does not exist).
-    mkpath(output_directory)
+    mpi_isroot() && mkpath(output_directory)
 
     # Determine file name based on existence of meaningful time step.
     if timestep > 0
@@ -249,12 +238,38 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         filename = joinpath(output_directory, "mesh.h5")
     end
 
+    levels = get_levels(mesh)
+    if mpi_parallel    
+      levels = MPI.Gather(levels, mpi_root(), mpi_comm())
+    end
+
+    num_global_trees = t8_forest_get_num_global_trees(mesh.forest)
+    num_elements_per_tree = zeros(t8_gloidx_t, num_global_trees)
+    num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
+    for local_tree_id in 0:(num_local_trees - 1)
+        num_local_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, local_tree_id)
+        global_tree_id = t8_forest_global_tree_id(mesh.forest, local_tree_id)
+        num_elements_per_tree[global_tree_id + 1] = num_local_elements_in_tree
+    end
+
+    if mpi_parallel    
+      num_elements_per_tree = MPI.Reduce!(num_elements_per_tree, +, mpi_comm())
+    end
+
+    # Since the mesh attributes are replicated on all ranks, only save from MPI
+    # root.
+    if !mpi_isroot()
+        return filename
+    end
+
+    elemIDs, neighIDs, faces, duals, orientations = get_cmesh_info(mesh)
+
     # Open file (clobber existing content).
     h5open(filename, "w") do file
         # Add context information as attributes.
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["ndims"] = ndims(mesh)
-        attributes(file)["ntrees"] = t8_forest_get_num_local_trees(mesh.forest)
+        attributes(file)["ntrees"] = ntrees(mesh)
         attributes(file)["nelements"] = ncells(mesh)
 
         file["tree_node_coordinates"] = mesh.tree_node_coordinates
@@ -266,6 +281,7 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         file["duals"] = duals
         file["orientations"] = orientations
         file["levels"] = levels
+        file["num_elements_per_tree"] = num_elements_per_tree
     end
 
     return filename
@@ -364,7 +380,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
     elseif mesh_type == "T8codeMesh"
         ndims, ntrees, nelements, tree_node_coordinates,
-        nodes, boundary_names_, elemIDs, neighIDs, faces, duals, orientations, levels = h5open(mesh_file, "r") do file
+        nodes, boundary_names_, elemIDs, neighIDs, faces, duals, orientations, levels, num_elements_per_tree = h5open(mesh_file, "r") do file
             return read(attributes(file)["ndims"]),
                    read(attributes(file)["ntrees"]),
                    read(attributes(file)["nelements"]),
@@ -376,12 +392,13 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
                    read(file["faces"]),
                    read(file["duals"]),
                    read(file["orientations"]),
-                   read(file["levels"])
+                   read(file["levels"]),
+                   read(file["num_elements_per_tree"])
         end
 
         boundary_names = boundary_names_ .|> Symbol
 
-        mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels)
+        mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels, num_elements_per_tree)
     else
 
         error("Unknown mesh type!")
@@ -472,6 +489,36 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
 
         mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
                                  nodes, boundary_names, mesh_file, false, true)
+
+    elseif mesh_type == "T8codeMesh"
+
+        if mpi_isroot()
+            ndims, ntrees, nelements, tree_node_coordinates,
+            nodes, boundary_names_, elemIDs, neighIDs, faces, duals, orientations, levels = h5open(mesh_file, "r") do file
+                return read(attributes(file)["ndims"]),
+                       read(attributes(file)["ntrees"]),
+                       read(attributes(file)["nelements"]),
+                       read(file["tree_node_coordinates"]),
+                       read(file["nodes"]),
+                       read(file["boundary_names"]),
+                       read(file["elemIDs"]),
+                       read(file["neighIDs"]),
+                       read(file["faces"]),
+                       read(file["duals"]),
+                       read(file["orientations"]),
+                       read(file["levels"])
+            end
+
+            boundary_names = boundary_names_ .|> Symbol
+
+            data = (ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels)
+            MPI.bcast(data, mpi_root(), mpi_comm())
+        else
+            data = MPI.bcast(nothing, mpi_root(), mpi_comm())
+            ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels = data
+        end
+
+        mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels)
     else
         error("Unknown mesh type!")
     end

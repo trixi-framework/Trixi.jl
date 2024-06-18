@@ -120,8 +120,7 @@ constructors.
 - `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
 """
-
-function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels)
+function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels, num_elements_per_tree)
     # Construct the cmesh from `interfaces` and `orientations`.
     Trixi.cmesh_ref = Ref(t8_cmesh_t())
     t8_cmesh_init(Trixi.cmesh_ref)
@@ -201,25 +200,34 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boun
     scheme = t8_scheme_new_default_cxx()
     initial_refinement_level = 0
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost, mpi_comm())
-  
-    function adapt_callback(forest, ltreeid, eclass_scheme, lelementid, elements, is_family,
+
+    virtual_element_index = 1
+
+    cum_sum_num_elements_per_tree = cumsum(num_elements_per_tree)
+
+    function adapt_callback(forest, local_tree_id, eclass_scheme, local_element_id, elements, is_family,
                             user_data)
+
+        global_tree_id = t8_forest_global_tree_id(forest, local_tree_id)
+
+        if virtual_element_index > cum_sum_num_elements_per_tree[global_tree_id + 1]
+          return 0
+        end
 
         level = t8_element_level(eclass_scheme, elements[1])
 
-        if level < levels[lelementid + 1]
+        if level < levels[virtual_element_index]
           return 1
-        elseif level > levels[lelementid + 1]
-          return -1
         end
 
+        virtual_element_index += 1
         return 0
     end
 
-    for level = 0:maximum(levels)
-      forest = adapt(forest, adapt_callback; recursive = false, balance = false,
-                partition = false, ghost = false, user_data = C_NULL)
-    end
+    forest = adapt(forest, adapt_callback; recursive = true, balance = false,
+              partition = false, ghost = false, user_data = C_NULL)
+
+    # forest = t8_forest_partition(forest)
 
     return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
 end
@@ -1392,6 +1400,10 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     end # for itree
 
     return nothing
+end
+
+function get_levels(mesh::T8codeMesh)
+  return trixi_t8_get_local_element_levels(mesh.forest)
 end
 
 function get_cmesh_info(mesh::T8codeMesh)
