@@ -161,20 +161,21 @@ end
                       equations::HyperbolicDiffusionEquations3D)
     phi, q1, q2, q3 = u
 
+    RealT = eltype(u)
     if orientation == 1
         f1 = -equations.nu * q1
         f2 = -phi * equations.inv_Tr
-        f3 = 0
-        f4 = 0
+        f3 = zero(RealT)
+        f4 = zero(RealT)
     elseif orientation == 2
         f1 = -equations.nu * q2
-        f2 = 0
+        f2 = zero(RealT)
         f3 = -phi * equations.inv_Tr
-        f4 = 0
+        f4 = zero(RealT)
     else
         f1 = -equations.nu * q3
-        f2 = 0
-        f3 = 0
+        f2 = zero(RealT)
+        f3 = zero(RealT)
         f4 = -phi * equations.inv_Tr
     end
 

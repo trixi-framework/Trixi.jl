@@ -135,13 +135,14 @@ end
     phi, q1, q2 = u
     @unpack inv_Tr = equations
 
+    RealT = eltype(u)
     if orientation == 1
         f1 = -equations.nu * q1
         f2 = -phi * inv_Tr
-        f3 = 0
+        f3 = zero(RealT)
     else
         f1 = -equations.nu * q2
-        f2 = 0
+        f2 = zero(RealT)
         f3 = -phi * inv_Tr
     end
 
