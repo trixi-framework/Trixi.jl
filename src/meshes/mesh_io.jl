@@ -241,7 +241,7 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
     # Retrieve refinement levels of all elements.
     levels = get_levels(mesh)
     if mpi_isparallel()
-      levels = MPI.Gather(levels, mpi_root(), mpi_comm())
+        levels = MPI.Gather(levels, mpi_root(), mpi_comm())
     end
 
     # Retrieve number of elements per tree.
@@ -249,13 +249,14 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
     num_elements_per_tree = zeros(t8_gloidx_t, num_global_trees)
     num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
     for local_tree_id in 0:(num_local_trees - 1)
-        num_local_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, local_tree_id)
+        num_local_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest,
+                                                                     local_tree_id)
         global_tree_id = t8_forest_global_tree_id(mesh.forest, local_tree_id)
         num_elements_per_tree[global_tree_id + 1] = num_local_elements_in_tree
     end
 
     if mpi_isparallel()
-      num_elements_per_tree = MPI.Reduce!(num_elements_per_tree, +, mpi_comm())
+        num_elements_per_tree = MPI.Reduce!(num_elements_per_tree, +, mpi_comm())
     end
 
     # Since the mesh attributes are replicated on all ranks, only save from MPI
@@ -406,7 +407,6 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
                           nodes, boundary_names, treeIDs, neighIDs, faces,
                           duals, orientations, levels, num_elements_per_tree)
     else
-
         error("Unknown mesh type!")
     end
 
@@ -597,5 +597,4 @@ function load_mesh!(mesh::ParallelTreeMesh, mesh_file::AbstractString)
 
     return mesh
 end
-
 end # @muladd

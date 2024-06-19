@@ -91,7 +91,8 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh, ParallelT8codeMesh}, equations,
+                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                        ParallelT8codeMesh}, equations,
                             dg::DG, cache,
                             solution_callback,
                             element_variables = Dict{Symbol, Any}(),
@@ -136,7 +137,8 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 function save_solution_file_parallel(data, time, dt, timestep, n_vars,
-                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh, ParallelT8codeMesh},
+                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                                 ParallelT8codeMesh},
                                      equations, dg::DG, cache,
                                      solution_variables, filename,
                                      element_variables = Dict{Symbol, Any}())

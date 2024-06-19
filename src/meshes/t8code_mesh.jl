@@ -26,7 +26,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     nmpiinterfaces :: Int
     nmpimortars    :: Int
 
-    unsaved_changes :: Bool
+    unsaved_changes::Bool
 
     function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
                                boundary_names,
@@ -139,62 +139,63 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     # Store element vertices inside the cmesh.
     N = length(nodes)
     vertices = zeros(3 * 2^ndims) # quads/hexs only
-    for i = 1:ntrees
-        t8_cmesh_set_tree_class(cmesh, i-1, eclass)
+    for i in 1:ntrees
+        t8_cmesh_set_tree_class(cmesh, i - 1, eclass)
 
         if ndims == 2
-          vertices[1] = tree_node_coordinates[1,1,1,i]
-          vertices[2] = tree_node_coordinates[2,1,1,i]
+            vertices[1] = tree_node_coordinates[1, 1, 1, i]
+            vertices[2] = tree_node_coordinates[2, 1, 1, i]
 
-          vertices[4] = tree_node_coordinates[1,N,1,i]
-          vertices[5] = tree_node_coordinates[2,N,1,i]
+            vertices[4] = tree_node_coordinates[1, N, 1, i]
+            vertices[5] = tree_node_coordinates[2, N, 1, i]
 
-          vertices[7] = tree_node_coordinates[1,1,N,i]
-          vertices[8] = tree_node_coordinates[2,1,N,i]
+            vertices[7] = tree_node_coordinates[1, 1, N, i]
+            vertices[8] = tree_node_coordinates[2, 1, N, i]
 
-          vertices[10] = tree_node_coordinates[1,N,N,i]
-          vertices[11] = tree_node_coordinates[2,N,N,i]
+            vertices[10] = tree_node_coordinates[1, N, N, i]
+            vertices[11] = tree_node_coordinates[2, N, N, i]
         else
-          vertices[1] = tree_node_coordinates[1,1,1,1,i]
-          vertices[2] = tree_node_coordinates[2,1,1,1,i]
-          vertices[3] = tree_node_coordinates[3,1,1,1,i]
+            vertices[1] = tree_node_coordinates[1, 1, 1, 1, i]
+            vertices[2] = tree_node_coordinates[2, 1, 1, 1, i]
+            vertices[3] = tree_node_coordinates[3, 1, 1, 1, i]
 
-          vertices[4] = tree_node_coordinates[1,N,1,1,i]
-          vertices[5] = tree_node_coordinates[2,N,1,1,i]
-          vertices[6] = tree_node_coordinates[3,N,1,1,i]
+            vertices[4] = tree_node_coordinates[1, N, 1, 1, i]
+            vertices[5] = tree_node_coordinates[2, N, 1, 1, i]
+            vertices[6] = tree_node_coordinates[3, N, 1, 1, i]
 
-          vertices[7] = tree_node_coordinates[1,1,N,1,i]
-          vertices[8] = tree_node_coordinates[2,1,N,1,i]
-          vertices[9] = tree_node_coordinates[3,1,N,1,i]
+            vertices[7] = tree_node_coordinates[1, 1, N, 1, i]
+            vertices[8] = tree_node_coordinates[2, 1, N, 1, i]
+            vertices[9] = tree_node_coordinates[3, 1, N, 1, i]
 
-          vertices[10] = tree_node_coordinates[1,N,N,1,i]
-          vertices[11] = tree_node_coordinates[2,N,N,1,i]
-          vertices[12] = tree_node_coordinates[3,N,N,1,i]
+            vertices[10] = tree_node_coordinates[1, N, N, 1, i]
+            vertices[11] = tree_node_coordinates[2, N, N, 1, i]
+            vertices[12] = tree_node_coordinates[3, N, N, 1, i]
 
-          vertices[13] = tree_node_coordinates[1,1,1,N,i]
-          vertices[14] = tree_node_coordinates[2,1,1,N,i]
-          vertices[15] = tree_node_coordinates[3,1,1,N,i]
+            vertices[13] = tree_node_coordinates[1, 1, 1, N, i]
+            vertices[14] = tree_node_coordinates[2, 1, 1, N, i]
+            vertices[15] = tree_node_coordinates[3, 1, 1, N, i]
 
-          vertices[16] = tree_node_coordinates[1,N,1,N,i]
-          vertices[17] = tree_node_coordinates[2,N,1,N,i]
-          vertices[18] = tree_node_coordinates[3,N,1,N,i]
+            vertices[16] = tree_node_coordinates[1, N, 1, N, i]
+            vertices[17] = tree_node_coordinates[2, N, 1, N, i]
+            vertices[18] = tree_node_coordinates[3, N, 1, N, i]
 
-          vertices[19] = tree_node_coordinates[1,1,N,N,i]
-          vertices[20] = tree_node_coordinates[2,1,N,N,i]
-          vertices[21] = tree_node_coordinates[3,1,N,N,i]
+            vertices[19] = tree_node_coordinates[1, 1, N, N, i]
+            vertices[20] = tree_node_coordinates[2, 1, N, N, i]
+            vertices[21] = tree_node_coordinates[3, 1, N, N, i]
 
-          vertices[22] = tree_node_coordinates[1,N,N,N,i]
-          vertices[23] = tree_node_coordinates[2,N,N,N,i]
-          vertices[24] = tree_node_coordinates[3,N,N,N,i]
+            vertices[22] = tree_node_coordinates[1, N, N, N, i]
+            vertices[23] = tree_node_coordinates[2, N, N, N, i]
+            vertices[24] = tree_node_coordinates[3, N, N, N, i]
         end
 
-        t8_cmesh_set_tree_vertices(cmesh, i-1, vertices, 3)
+        t8_cmesh_set_tree_vertices(cmesh, i - 1, vertices, 3)
     end
 
     # Connect the coarse mesh elements.
-    for i = 1:length(elemIDs)
-        t8_cmesh_set_join(cmesh, elemIDs[i], neighIDs[i], faces[i], duals[i], orientations[i])
-    end 
+    for i in 1:length(elemIDs)
+        t8_cmesh_set_join(cmesh, elemIDs[i], neighIDs[i], faces[i], duals[i],
+                          orientations[i])
+    end
 
     t8_cmesh_commit(cmesh, mpi_comm())
 
@@ -202,7 +203,8 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()
     initial_refinement_level = 0
-    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost, mpi_comm())
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
 
     cum_sum_num_elements_per_tree = cumsum(num_elements_per_tree)
 
@@ -214,19 +216,20 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
         virtual_element_index += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
     end
 
-    function adapt_callback(forest, local_tree_id, eclass_scheme, local_element_id, elements, is_family,
+    function adapt_callback(forest, local_tree_id, eclass_scheme, local_element_id,
+                            elements, is_family,
                             user_data)
 
         # Check if we are already in the next tree in terms of the `virtual_element_index`.
         global_tree_id = t8_forest_global_tree_id(forest, local_tree_id)
         if virtual_element_index > cum_sum_num_elements_per_tree[global_tree_id + 1]
-          return 0
+            return 0
         end
 
         # Test if we already reached the targeted level.
         level = t8_element_level(eclass_scheme, elements[1])
         if level < levels[virtual_element_index]
-          return 1 # Go one refinement level deeper.
+            return 1 # Go one refinement level deeper.
         end
 
         # Targeted level is reached.
@@ -238,7 +241,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     # For each tree the callback recursively increases the refinement level
     # till it matches with the associated section in `levels.
     forest = adapt(forest, adapt_callback; recursive = true, balance = false,
-              partition = false, ghost = false, user_data = C_NULL)
+                   partition = false, ghost = false, user_data = C_NULL)
 
     # if mpi_isparallel()
     #   forest = t8_forest_partition(forest)
@@ -849,7 +852,7 @@ Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
     - `user_data = C_NULL`: Pointer to some arbitrary user-defined data.
 """
 function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance = true,
-                partition = true, ghost = true, user_data = C_NULL)
+               partition = true, ghost = true, user_data = C_NULL)
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
 
@@ -945,7 +948,7 @@ function get_global_first_element_ids(mesh::T8codeMesh)
 end
 
 function count_interfaces(mesh::T8codeMesh)
-  return count_interfaces(mesh.forest,ndims(mesh))
+    return count_interfaces(mesh.forest, ndims(mesh))
 end
 
 function count_interfaces(forest::Ptr{t8_forest}, ndims)
@@ -1235,11 +1238,13 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                     # Compute the `orientation` of the touching faces.
                     if t8_element_is_root_boundary(eclass_scheme, element, iface) == 1
-                        itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(mesh.forest, itree)
+                        itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(mesh.forest,
+                                                                            itree)
                         iface_in_tree = t8_element_tree_face(eclass_scheme, element, iface)
                         orientation_ref = Ref{Cint}()
 
-                        t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree, C_NULL,
+                        t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree,
+                                                   C_NULL,
                                                    orientation_ref)
                         orientation = orientation_ref[]
                     else
@@ -1418,18 +1423,18 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 end
 
 function get_levels(mesh::T8codeMesh)
-  return trixi_t8_get_local_element_levels(mesh.forest)
+    return trixi_t8_get_local_element_levels(mesh.forest)
 end
 
 function get_cmesh_info(mesh::T8codeMesh)
-  @assert t8_forest_is_committed(mesh.forest) != 0
-  cmesh = t8_forest_get_cmesh(mesh.forest)
-  return get_cmesh_info(cmesh, ndims(mesh))
+    @assert t8_forest_is_committed(mesh.forest) != 0
+    cmesh = t8_forest_get_cmesh(mesh.forest)
+    return get_cmesh_info(cmesh, ndims(mesh))
 end
 
 function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
     num_trees = t8_cmesh_get_num_trees(cmesh)
-    num_faces = 2*ndims
+    num_faces = 2 * ndims
 
     num_interfaces = 0
 
@@ -1439,7 +1444,8 @@ function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
     # Count connected faces.
     for itree in 0:(num_trees - 1)
         for iface in 0:(num_faces - 1)
-            neigh_itree = t8_cmesh_get_face_neighbor(cmesh, itree, iface, dual_face_ref, C_NULL)
+            neigh_itree = t8_cmesh_get_face_neighbor(cmesh, itree, iface, dual_face_ref,
+                                                     C_NULL)
             if itree < neigh_itree || itree == neigh_itree && iface < dual_face_ref[]
                 num_interfaces += 1
             end
@@ -1457,7 +1463,8 @@ function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
 
     for itree in 0:(num_trees - 1)
         for iface in 0:(num_faces - 1)
-            neigh_itree = t8_cmesh_get_face_neighbor(cmesh, itree, iface, dual_face_ref, orientation_ref)
+            neigh_itree = t8_cmesh_get_face_neighbor(cmesh, itree, iface, dual_face_ref,
+                                                     orientation_ref)
 
             if itree < neigh_itree || itree == neigh_itree && iface < dual_face_ref[]
                 itf_index += 1
