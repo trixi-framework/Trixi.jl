@@ -120,24 +120,25 @@ constructors.
 - `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
 """
-function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels, num_elements_per_tree)
-    # Construct the cmesh from `interfaces` and `orientations`.
+function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
+                    boundary_names, elemIDs, neighIDs, faces, duals,
+                    orientations, levels, num_elements_per_tree)
     Trixi.cmesh_ref = Ref(t8_cmesh_t())
     t8_cmesh_init(Trixi.cmesh_ref)
     cmesh = Trixi.cmesh_ref[]
 
-    Trixi.linear_geom = Trixi.t8_geometry_linear_new(2)
-    Trixi.linear_geom_ptr = pointer_from_objref(Ref(Trixi.linear_geom))
-
     # Use linear geometry for now. There is no real Lagrange geometry
     # implementation yet in t8code.
+    Trixi.linear_geom = Trixi.t8_geometry_linear_new(2)
+    Trixi.linear_geom_ptr = pointer_from_objref(Ref(Trixi.linear_geom))
     t8_cmesh_register_geometry(cmesh, Trixi.linear_geom_ptr)
 
-    N = length(nodes)
-    vertices = zeros(3 * 2^ndims) # quads/hexs only
-
+    # Determine element class.
     eclass = ndims > 2 ? T8_ECLASS_HEX : T8_ECLASS_QUAD
 
+    # Store element vertices inside the cmesh.
+    N = length(nodes)
+    vertices = zeros(3 * 2^ndims) # quads/hexs only
     for i = 1:ntrees
         t8_cmesh_set_tree_class(cmesh, i-1, eclass)
 
@@ -190,44 +191,58 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boun
         t8_cmesh_set_tree_vertices(cmesh, i-1, vertices, 3)
     end
 
+    # Connect the coarse mesh elements.
     for i = 1:length(elemIDs)
         t8_cmesh_set_join(cmesh, elemIDs[i], neighIDs[i], faces[i], duals[i], orientations[i])
     end 
 
     t8_cmesh_commit(cmesh, mpi_comm())
 
+    # Init a new forest with just one element per tree.
     do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()
     initial_refinement_level = 0
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost, mpi_comm())
 
-    virtual_element_index = 1
-
     cum_sum_num_elements_per_tree = cumsum(num_elements_per_tree)
+
+    # Compute the offset within the to-be-reconstructed forest depending on the
+    # MPI rank resp. first global tree id.
+    virtual_element_index = 1 # one-based index
+    if mpi_rank() > 0
+        last_global_tree_id_of_preceding_rank = t8_forest_global_tree_id(forest, 0) - 1
+        virtual_element_index += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
+    end
 
     function adapt_callback(forest, local_tree_id, eclass_scheme, local_element_id, elements, is_family,
                             user_data)
 
+        # Check if we are already in the next tree in terms of the `virtual_element_index`.
         global_tree_id = t8_forest_global_tree_id(forest, local_tree_id)
-
         if virtual_element_index > cum_sum_num_elements_per_tree[global_tree_id + 1]
           return 0
         end
 
+        # Test if we already reached the targeted level.
         level = t8_element_level(eclass_scheme, elements[1])
-
         if level < levels[virtual_element_index]
-          return 1
+          return 1 # Go one refinement level deeper.
         end
 
+        # Targeted level is reached.
         virtual_element_index += 1
         return 0
     end
 
+    # The adapt callback refines the forest according to the `levels` array.
+    # For each tree the callback recursively increases the refinement level
+    # till it matches with the associated section in `levels.
     forest = adapt(forest, adapt_callback; recursive = true, balance = false,
               partition = false, ghost = false, user_data = C_NULL)
 
-    # forest = t8_forest_partition(forest)
+    # if mpi_isparallel()
+    #   forest = t8_forest_partition(forest)
+    # end
 
     return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
 end
@@ -1413,102 +1428,49 @@ function get_cmesh_info(mesh::T8codeMesh)
 end
 
 function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
-    # Avoid destroying cmesh when destroying the forest.
-    t8_cmesh_ref(cmesh)
+    num_trees = t8_cmesh_get_num_trees(cmesh)
+    num_faces = 2*ndims
 
-    # In order to retrieve the connectivity between cmesh elements, a uniform
-    # forest with one element per cmesh cell is initialized.
-    scheme = t8_scheme_new_default_cxx()
-    do_face_ghost = 0
-    initial_refinement_level = 0
-    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost, mpi_comm())
+    num_interfaces = 0
 
-    counts = count_interfaces(forest, ndims)
+    dual_face_ref = Ref{Cint}()
+    orientation_ref = Ref{Cint}()
 
-    elemIDs = zeros(Int, counts.interfaces)
-    neighIDs = zeros(Int, counts.interfaces)
-    orientations = zeros(Int32, counts.interfaces)
-    faces = zeros(Int8, counts.interfaces)
-    duals = zeros(Int8, counts.interfaces)
+    # Count connected faces.
+    for itree in 0:(num_trees - 1)
+        for iface in 0:(num_faces - 1)
+            neigh_itree = t8_cmesh_get_face_neighbor(cmesh, itree, iface, dual_face_ref, C_NULL)
+            if itree < neigh_itree || itree == neigh_itree && iface < dual_face_ref[]
+                num_interfaces += 1
+            end
+        end
+    end
 
-    num_local_elements = t8_forest_get_local_num_elements(forest)
-    num_local_trees = t8_forest_get_num_local_trees(forest)
+    # Allocate arrays.
+    treeIDs = zeros(Int, num_interfaces)
+    neighIDs = zeros(Int, num_interfaces)
+    orientations = zeros(Int32, num_interfaces)
+    faces = zeros(Int8, num_interfaces)
+    duals = zeros(Int8, num_interfaces)
 
-    sfc_index = 0 # space-filling curve index
     itf_index = 0 # interface index
 
-    # Loop over all local trees.
-    for itree in 0:(num_local_trees - 1)
-        tree_class = t8_forest_get_tree_class(forest, itree)
-        eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
+    for itree in 0:(num_trees - 1)
+        for iface in 0:(num_faces - 1)
+            neigh_itree = t8_cmesh_get_face_neighbor(cmesh, itree, iface, dual_face_ref, orientation_ref)
 
-        num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
+            if itree < neigh_itree || itree == neigh_itree && iface < dual_face_ref[]
+                itf_index += 1
+                treeIDs[itf_index] = itree
+                neighIDs[itf_index] = neigh_itree
+                orientations[itf_index] = orientation_ref[]
+                faces[itf_index] = iface
+                duals[itf_index] = dual_face_ref[]
+            end
+        end
+    end
 
-        # Loop over all local elements of the current local tree.
-        for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(forest, itree, ielement)
-            level = t8_element_level(eclass_scheme, element)
-            num_faces = t8_element_num_faces(eclass_scheme, element)
-
-            # Loop over all faces of the current local element.
-            for iface in 0:(num_faces - 1)
-                # Compute the `orientation` of the touching faces.
-                if t8_element_is_root_boundary(eclass_scheme, element, iface) == 1
-                    itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(forest, itree)
-                    iface_in_tree = t8_element_tree_face(eclass_scheme, element, iface)
-                    orientation_ref = Ref{Cint}()
-
-                    t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree, C_NULL,
-                                               orientation_ref)
-                    orientation = orientation_ref[]
-                else
-                    orientation = zero(Cint)
-                end
-
-                pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
-                pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
-                pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
-
-                dual_faces_ref = Ref{Ptr{Cint}}()
-                num_neighbors_ref = Ref{Cint}()
-
-                forest_is_balanced = Cint(1)
-
-                # Query neighbor information from t8code.
-                t8_forest_leaf_face_neighbors(forest, itree, element,
-                                              pneighbor_leaves_ref, iface, dual_faces_ref,
-                                              num_neighbors_ref,
-                                              pelement_indices_ref, pneigh_scheme_ref,
-                                              forest_is_balanced)
-
-                num_neighbors = num_neighbors_ref[]
-                dual_faces = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
-                neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[], num_neighbors)
-                neighbor_leaves = unsafe_wrap(Array, pneighbor_leaves_ref[], num_neighbors)
-                neighbor_scheme = pneigh_scheme_ref[]
-
-                # The condition ensures we only visit the interface once.
-                if num_neighbors == 1 && sfc_index <= neighbor_ielements[1]
-                    itf_index += 1
-                    elemIDs[itf_index] = sfc_index
-                    neighIDs[itf_index] = neighbor_ielements[1]
-                    orientations[itf_index] = orientation
-                    faces[itf_index] = iface
-                    duals[itf_index] = dual_faces[1]
-                end
-
-                t8_free(dual_faces_ref[])
-                t8_free(pneighbor_leaves_ref[])
-                t8_free(pelement_indices_ref[])
-            end # for iface
-                    
-            sfc_index += 1
-        end # for ielement
-    end # for itree
-
-    t8_forest_unref(Ref(forest))
-
-    return elemIDs, neighIDs, faces, duals, orientations
+    return treeIDs, neighIDs, faces, duals, orientations
 end
 
 #! format: off

@@ -226,7 +226,7 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
 end
 
 function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
-                        mpi_parallel)
+                        mpi_parallel::Any)
 
     # Create output directory (if it does not exist).
     mpi_isroot() && mkpath(output_directory)
@@ -238,11 +238,13 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         filename = joinpath(output_directory, "mesh.h5")
     end
 
+    # Retrieve refinement levels of all elements.
     levels = get_levels(mesh)
-    if mpi_parallel    
+    if mpi_isparallel()
       levels = MPI.Gather(levels, mpi_root(), mpi_comm())
     end
 
+    # Retrieve number of elements per tree.
     num_global_trees = t8_forest_get_num_global_trees(mesh.forest)
     num_elements_per_tree = zeros(t8_gloidx_t, num_global_trees)
     num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
@@ -252,7 +254,7 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         num_elements_per_tree[global_tree_id + 1] = num_local_elements_in_tree
     end
 
-    if mpi_parallel    
+    if mpi_isparallel()
       num_elements_per_tree = MPI.Reduce!(num_elements_per_tree, +, mpi_comm())
     end
 
@@ -262,7 +264,8 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         return filename
     end
 
-    elemIDs, neighIDs, faces, duals, orientations = get_cmesh_info(mesh)
+    # Retrieve face connectivity info of the coarse mesh.
+    treeIDs, neighIDs, faces, duals, orientations = get_cmesh_info(mesh)
 
     # Open file (clobber existing content).
     h5open(filename, "w") do file
@@ -275,7 +278,7 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         file["tree_node_coordinates"] = mesh.tree_node_coordinates
         file["nodes"] = Vector(mesh.nodes)
         file["boundary_names"] = mesh.boundary_names .|> String
-        file["elemIDs"] = elemIDs
+        file["treeIDs"] = treeIDs
         file["neighIDs"] = neighIDs
         file["faces"] = faces
         file["duals"] = duals
@@ -380,14 +383,15 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
     elseif mesh_type == "T8codeMesh"
         ndims, ntrees, nelements, tree_node_coordinates,
-        nodes, boundary_names_, elemIDs, neighIDs, faces, duals, orientations, levels, num_elements_per_tree = h5open(mesh_file, "r") do file
+        nodes, boundary_names_, treeIDs, neighIDs, faces, duals, orientations,
+        levels, num_elements_per_tree = h5open(mesh_file, "r") do file
             return read(attributes(file)["ndims"]),
                    read(attributes(file)["ntrees"]),
                    read(attributes(file)["nelements"]),
                    read(file["tree_node_coordinates"]),
                    read(file["nodes"]),
                    read(file["boundary_names"]),
-                   read(file["elemIDs"]),
+                   read(file["treeIDs"]),
                    read(file["neighIDs"]),
                    read(file["faces"]),
                    read(file["duals"]),
@@ -398,7 +402,9 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
         boundary_names = boundary_names_ .|> Symbol
 
-        mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels, num_elements_per_tree)
+        mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates,
+                          nodes, boundary_names, treeIDs, neighIDs, faces,
+                          duals, orientations, levels, num_elements_per_tree)
     else
 
         error("Unknown mesh type!")
@@ -489,36 +495,42 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
 
         mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
                                  nodes, boundary_names, mesh_file, false, true)
-
     elseif mesh_type == "T8codeMesh"
-
         if mpi_isroot()
-            ndims, ntrees, nelements, tree_node_coordinates,
-            nodes, boundary_names_, elemIDs, neighIDs, faces, duals, orientations, levels = h5open(mesh_file, "r") do file
+            ndims, ntrees, nelements, tree_node_coordinates, nodes,
+            boundary_names_, treeIDs, neighIDs, faces, duals, orientations, levels,
+            num_elements_per_tree = h5open(mesh_file, "r") do file
                 return read(attributes(file)["ndims"]),
                        read(attributes(file)["ntrees"]),
                        read(attributes(file)["nelements"]),
                        read(file["tree_node_coordinates"]),
                        read(file["nodes"]),
                        read(file["boundary_names"]),
-                       read(file["elemIDs"]),
+                       read(file["treeIDs"]),
                        read(file["neighIDs"]),
                        read(file["faces"]),
                        read(file["duals"]),
                        read(file["orientations"]),
-                       read(file["levels"])
+                       read(file["levels"]),
+                       read(file["num_elements_per_tree"])
             end
 
             boundary_names = boundary_names_ .|> Symbol
 
-            data = (ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels)
+            data = (ndims, ntrees, nelements, tree_node_coordinates, nodes,
+                    boundary_names, treeIDs, neighIDs, faces, duals,
+                    orientations, levels, num_elements_per_tree)
             MPI.bcast(data, mpi_root(), mpi_comm())
         else
             data = MPI.bcast(nothing, mpi_root(), mpi_comm())
-            ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels = data
+            ndims, ntrees, nelements, tree_node_coordinates, nodes,
+            boundary_names, treeIDs, neighIDs, faces, duals, orientations, levels,
+            num_elements_per_tree = data
         end
 
-        mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes, boundary_names, elemIDs, neighIDs, faces, duals, orientations, levels)
+        mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates,
+                          nodes, boundary_names, treeIDs, neighIDs, faces,
+                          duals, orientations, levels, num_elements_per_tree)
     else
         error("Unknown mesh type!")
     end
