@@ -38,6 +38,7 @@ are listed in alphabetical order:
 * Julia Odenthal
 * Sigrun Ortleb
 * Hendrik Ranocha
+* Warisa Roongaraya
 * Andrés M. Rueda-Ramírez
 * Felipe Santillan
 * Michael Schlottke-Lakemper
