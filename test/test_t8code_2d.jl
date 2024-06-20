@@ -15,20 +15,20 @@ mkdir(outdir)
 @testset "T8codeMesh2D" begin
 #! format: noindent
 
-@trixi_testset "test save_mesh_file" begin
-    @test_throws Exception begin
-        # Save mesh file support will be added in the future. The following
-        # lines of code are here for satisfying code coverage.
-
-        # Create dummy mesh.
-        mesh = T8codeMesh((1, 1), polydeg = 1,
-                          mapping = Trixi.coordinates2mapping((-1.0, -1.0), (1.0, 1.0)),
-                          initial_refinement_level = 1)
-
-        # This call throws an error.
-        Trixi.save_mesh_file(mesh, "dummy")
-    end
-end
+# @trixi_testset "test save_mesh_file" begin
+#     @test_throws Exception begin
+#         # Save mesh file support will be added in the future. The following
+#         # lines of code are here for satisfying code coverage.
+# 
+#         # Create dummy mesh.
+#         mesh = T8codeMesh((1, 1), polydeg = 1,
+#                           mapping = Trixi.coordinates2mapping((-1.0, -1.0), (1.0, 1.0)),
+#                           initial_refinement_level = 1)
+# 
+#         # This call throws an error.
+#         Trixi.save_mesh_file(mesh, "dummy")
+#     end
+# end
 
 @trixi_testset "test load mesh from path" begin
     mktempdir() do path
@@ -142,6 +142,24 @@ end
                         l2=[4.949660644033807e-5],
                         linf=[0.0004867846262313763],
                         coverage_override=(maxiters = 6,))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_advection_restart_amr.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
+                        l2=[2.869137983727866e-6],
+                        linf=[3.8353423270964804e-5],
+                        # With the default `maxiters = 1` in coverage tests,
+                        # there would be no time steps after the restart.
+                        coverage_override=(maxiters = 25,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
