@@ -28,8 +28,8 @@ trees_per_dimension = (19, 37)
 
 # Create curved mesh with 19 x 37 elements
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
-                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 periodicity = false)
+                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                  periodicity = false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
