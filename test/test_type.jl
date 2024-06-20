@@ -700,13 +700,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                                         Prandtl = prandtl_number,
                                                                                         gradient_variables = GradientVariablesEntropy())
 
-            x = SVector(zero(RealT))
-            t = zero(RealT)
-            u = u_inner = u_transformed = flux_inner = SVector(one(RealT), zero(RealT),
-                                                               zero(RealT))
+            u = u_transformed = SVector(one(RealT), zero(RealT),
+                                        zero(RealT))
             orientation = 1
-            directions = [1, 2]
-            gradients = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = SVector(RealT(0.1), RealT(0.1), RealT(0.1))
 
             for equations_parabolic in (equations_parabolic_primitive,
                                         equations_parabolic_entropy)
@@ -727,31 +724,107 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            # test for GradientVariablesPrimitive
-            velocity_bc_left_right = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
-                                                                                                                  t,
-                                                                                                                  equations)[2])
-            heat_bc_left = Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
-                                                                                                                              t,
-                                                                                                                              equations),
-                                                                             equations_parabolic))
-            heat_bc_right = Adiabatic((x, t, equations) -> zero(RealT))
-            boundary_condition_left = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
-                                                                        heat_bc_left)
-            boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
-                                                                         heat_bc_right)
-            gradient = Trixi.Gradient()
+            # TODO: BC test for GradientVariablesPrimitive
+            # TODO: BC test for GradientVariablesEntropy
+        end
+    end
 
-            for direction in directions
-                @test eltype(@inferred boundary_condition_left(flux_inner, u_inner,
-                                                               orientation, direction, x, t,
-                                                               gradient,
-                                                               equations_parabolic_primitive)) ==
+    @timed_testset "Compressible Navier Stokes Diffusion 2D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
+            prandtl_number = RealT(0.72)
+            mu = RealT(0.01)
+            equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion2D(equations,
+                                                                                          mu = mu,
+                                                                                          Prandtl = prandtl_number,
+                                                                                          gradient_variables = GradientVariablesPrimitive())
+            equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion2D(equations,
+                                                                                        mu = mu,
+                                                                                        Prandtl = prandtl_number,
+                                                                                        gradient_variables = GradientVariablesEntropy())
+
+            u = u_transformed = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT))
+            orientations = [1, 2]
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = SVector(gradient, gradient)
+
+            for equations_parabolic in (equations_parabolic_primitive,
+                                        equations_parabolic_entropy)
+                for orientation in orientations
+                    @test eltype(@inferred flux(u, gradients, orientation,
+                                                equations_parabolic)) == RealT
+                end
+
+                @test eltype(@inferred cons2prim(u, equations_parabolic)) == RealT
+                @test eltype(@inferred prim2cons(u, equations_parabolic)) == RealT
+                @test eltype(@inferred cons2entropy(u, equations_parabolic)) == RealT
+                @test eltype(@inferred entropy2cons(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.enstrophy(u, gradients, equations_parabolic)) ==
+                      RealT
+                @test typeof(@inferred Trixi.vorticity(u, gradients, equations_parabolic)) ==
+                      RealT
+
+                @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
+                                                                              equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradient,
+                                                                             equations_parabolic)) ==
                       RealT
             end
 
-            # test for GradientVariablesEntropy
+            # TODO: BC test for GradientVariablesPrimitive
+            # TODO: BC test for GradientVariablesEntropy
+        end
+    end
 
+    @timed_testset "Compressible Navier Stokes Diffusion 3D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations3D(RealT(1.4))
+            prandtl_number = RealT(0.72)
+            mu = RealT(0.01)
+            equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion3D(equations,
+                                                                                          mu = mu,
+                                                                                          Prandtl = prandtl_number,
+                                                                                          gradient_variables = GradientVariablesPrimitive())
+            equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion3D(equations,
+                                                                                        mu = mu,
+                                                                                        Prandtl = prandtl_number,
+                                                                                        gradient_variables = GradientVariablesEntropy())
+
+            u = u_transformed = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT),
+                                        zero(RealT))
+            orientations = [1, 2, 3]
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = SVector(gradient, gradient, gradient)
+
+            for equations_parabolic in (equations_parabolic_primitive,
+                                        equations_parabolic_entropy)
+                for orientation in orientations
+                    @test eltype(@inferred flux(u, gradients, orientation,
+                                                equations_parabolic)) == RealT
+                end
+
+                @test eltype(@inferred cons2prim(u, equations_parabolic)) == RealT
+                @test eltype(@inferred prim2cons(u, equations_parabolic)) == RealT
+                @test eltype(@inferred cons2entropy(u, equations_parabolic)) == RealT
+                @test eltype(@inferred entropy2cons(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.enstrophy(u, gradients, equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred Trixi.vorticity(u, gradients, equations_parabolic)) ==
+                      RealT
+
+                @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
+                                                                              equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradient,
+                                                                             equations_parabolic)) ==
+                      RealT
+            end
+
+            # TODO: BC test for GradientVariablesPrimitive
+            # TODO: BC test for GradientVariablesEntropy
         end
     end
 
