@@ -429,12 +429,11 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indices,
-                                        CouplingConverter}
+mutable struct BoundaryConditionCoupled{NDIMS, other_semi_index, NDIMST2M1,
+                                        uEltype <: Real, Indices, CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
     u_boundary         :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-    other_semi_index   :: Int
     other_orientation  :: Int
     indices            :: Indices
     coupling_converter :: CouplingConverter
@@ -452,9 +451,9 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
             other_orientation = 3
         end
 
-        new{NDIMS, NDIMS * 2 - 1, uEltype, typeof(indices),
+        new{NDIMS, other_semi_index, NDIMS * 2 - 1, uEltype, typeof(indices),
             typeof(coupling_converter)}(u_boundary,
-                                        other_semi_index, other_orientation,
+                                        other_orientation,
                                         indices, coupling_converter)
     end
 end
@@ -545,8 +544,7 @@ end
 
 function copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i, n_boundaries,
                                    boundary_condition, boundary_conditions...)
-    other_semi = semi_coupled.semis[boundary_condition.other_semi_index]
-    copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi, other_semi)
+    copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi)
     if i < n_boundaries
         copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i + 1, n_boundaries,
                                   boundary_conditions...)
@@ -560,13 +558,15 @@ function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}
 end
 
 # In 2D
-function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2},
-                                   u_ode, semi_coupled, semi, other_semi)
+function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2,
+                                                                                other_semi_index},
+                                   u_ode, semi_coupled, semi) where {other_semi_index}
     @unpack u_indices = semi_coupled
-    @unpack other_semi_index, other_orientation, indices = boundary_condition
+    @unpack other_orientation, indices = boundary_condition
     @unpack coupling_converter, u_boundary = boundary_condition
 
     mesh_own, equations_own, solver_own, cache_own = mesh_equations_solver_cache(semi)
+    other_semi = semi_coupled.semis[other_semi_index]
     mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(other_semi)
 
     node_coordinates_other = cache_other.elements.node_coordinates
