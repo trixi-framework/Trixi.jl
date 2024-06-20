@@ -273,10 +273,10 @@ function solve(ode::ODEProblem, alg::PairedExplicitRK2;
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
     # Start actual solve
-    solve_steps!(integrator)
+    solve!(integrator)
 end
 
-function solve_steps!(integrator::PairedExplicitRK2Integrator)
+function solve!(integrator::PairedExplicitRK2Integrator)
     @unpack prob = integrator.sol
 
     integrator.finalstep = false
@@ -295,8 +295,6 @@ function step!(integrator::PairedExplicitRK2Integrator)
     @unpack alg = integrator
     t_end = last(prob.tspan)
     callbacks = integrator.opts.callback
-
-    integrator.finalstep = false
 
     @assert !integrator.finalstep
     if isnan(integrator.dt)
