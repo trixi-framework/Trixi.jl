@@ -1683,10 +1683,7 @@ end
     Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/32889062fd5dcf7f450748f4f5f0797c8155a18d/a_8_8.txt",
                    joinpath(path_coeff_file, "a_8_8.txt"))
 
-    # Value of dt_opt obtained from running the simulation in elixir_burgers_perk3
-    # The value plays no role in the result but added so that the constructor can be called
-    dt_opt = 0.004485771991312504
-    ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file, dt_opt)
+    ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
 
     #TODO: adjust this value according to the result in the test pipeline
     println(ode_algorithm.a_matrix) # Value in CI differs slightly from what I get locally
