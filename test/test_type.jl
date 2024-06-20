@@ -724,8 +724,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            # TODO: BC test for GradientVariablesPrimitive
-            # TODO: BC test for GradientVariablesEntropy
+            # TODO: BC tests for GradientVariablesPrimitive
+            # TODO: BC tests for GradientVariablesEntropy
         end
     end
 
@@ -773,8 +773,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            # TODO: BC test for GradientVariablesPrimitive
-            # TODO: BC test for GradientVariablesEntropy
+            # TODO: BC tests for GradientVariablesPrimitive
+            # TODO: BC tests for GradientVariablesEntropy
         end
     end
 
@@ -823,8 +823,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
-            # TODO: BC test for GradientVariablesPrimitive
-            # TODO: BC test for GradientVariablesEntropy
+            # TODO: BC tests for GradientVariablesPrimitive
+            # TODO: BC tests for GradientVariablesEntropy
         end
     end
 
