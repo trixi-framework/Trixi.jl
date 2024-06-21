@@ -120,7 +120,7 @@ function initial_condition_weak_blast_wave(x, t,
     phi = atan(x_norm)
 
     # Calculate primitive variables
-    if r > 0.5
+    if r > 0.5f0
         rho = 1.0
         prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) *
                                                                     (1 - 2) / (1 -
@@ -135,8 +135,8 @@ function initial_condition_weak_blast_wave(x, t,
                                                                     rho
                                                                     for i in eachcomponent(equations))
     end
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    p = r > 0.5 ? 1.0 : 1.245
+    v1 = r > 0.5f0 ? 0.0 : 0.1882 * cos(phi)
+    p = r > 0.5f0 ? 1.0 : 1.245
 
     prim_other = SVector{7, real(equations)}(v1, 0.0, 0.0, p, 1.0, 1.0, 1.0)
 
@@ -153,8 +153,8 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
-    mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
+    kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
+    mag_en = 0.5f0 * (B1^2 + B2^2 + B3^2)
     gamma = totalgamma(u, equations)
     p = (gamma - 1) * (rho_e - kin_en - mag_en)
 
@@ -198,7 +198,7 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 7],
                                                                          u_rr[i + 7])
                                                                  for i in eachcomponent(equations))
-    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i + 7] +
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 7] +
                                                                  u_rr[i + 7])
                                                                 for i in eachcomponent(equations))
 
@@ -217,16 +217,16 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
     vel_dot_mag_rr = v1_rr * B1_rr + v2_rr * B2_rr + v3_rr * B3_rr
 
     # Compute the necessary mean values needed for either direction
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    v3_avg = 0.5 * (v3_ll + v3_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    v3_avg = 0.5f0 * (v3_ll + v3_rr)
     v_sum = v1_avg + v2_avg + v3_avg
-    B1_avg = 0.5 * (B1_ll + B1_rr)
-    B2_avg = 0.5 * (B2_ll + B2_rr)
-    B3_avg = 0.5 * (B3_ll + B3_rr)
-    vel_norm_avg = 0.5 * (vel_norm_ll + vel_norm_rr)
-    mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
-    vel_dot_mag_avg = 0.5 * (vel_dot_mag_ll + vel_dot_mag_rr)
+    B1_avg = 0.5f0 * (B1_ll + B1_rr)
+    B2_avg = 0.5f0 * (B2_ll + B2_rr)
+    B3_avg = 0.5f0 * (B3_ll + B3_rr)
+    vel_norm_avg = 0.5f0 * (vel_norm_ll + vel_norm_rr)
+    mag_norm_avg = 0.5f0 * (mag_norm_ll + mag_norm_rr)
+    vel_dot_mag_avg = 0.5f0 * (vel_dot_mag_ll + vel_dot_mag_rr)
 
     enth = zero(v_sum)
     help1_ll = zero(v1_ll)
@@ -238,9 +238,9 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
         help1_rr += u_rr[i + 7] * cv[i]
     end
 
-    T_ll = (rho_e_ll - 0.5 * rho_ll * (vel_norm_ll) - 0.5 * mag_norm_ll) / help1_ll
-    T_rr = (rho_e_rr - 0.5 * rho_rr * (vel_norm_rr) - 0.5 * mag_norm_rr) / help1_rr
-    T = 0.5 * (1.0 / T_ll + 1.0 / T_rr)
+    T_ll = (rho_e_ll - 0.5f0 * rho_ll * (vel_norm_ll) - 0.5f0 * mag_norm_ll) / help1_ll
+    T_rr = (rho_e_rr - 0.5f0 * rho_rr * (vel_norm_rr) - 0.5f0 * mag_norm_rr) / help1_rr
+    T = 0.5f0 * (1.0 / T_ll + 1.0 / T_rr)
     T_log = ln_mean(1.0 / T_ll, 1.0 / T_rr)
 
     # Calculate fluxes depending on orientation with specific direction averages
@@ -253,7 +253,7 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
         help1 += f_rho[i] * cv[i]
         help2 += f_rho[i]
     end
-    f1 = help2 * v1_avg + enth / T + 0.5 * mag_norm_avg - B1_avg * B1_avg
+    f1 = help2 * v1_avg + enth / T + 0.5f0 * mag_norm_avg - B1_avg * B1_avg
     f2 = help2 * v2_avg - B1_avg * B2_avg
     f3 = help2 * v3_avg - B1_avg * B3_avg
     f5 = 0.0
@@ -261,11 +261,12 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
     f7 = v1_avg * B3_avg - v3_avg * B1_avg
 
     # total energy flux is complicated and involves the previous eight components
-    v1_mag_avg = 0.5 * (v1_ll * mag_norm_ll + v1_rr * mag_norm_rr)
+    v1_mag_avg = 0.5f0 * (v1_ll * mag_norm_ll + v1_rr * mag_norm_rr)
 
-    f4 = (help1 / T_log) - 0.5 * (vel_norm_avg) * (help2) + f1 * v1_avg + f2 * v2_avg +
+    f4 = (help1 / T_log) - 0.5f0 * (vel_norm_avg) * (help2) + f1 * v1_avg +
+         f2 * v2_avg +
          f3 * v3_avg +
-         f5 * B1_avg + f6 * B2_avg + f7 * B3_avg - 0.5 * v1_mag_avg +
+         f5 * B1_avg + f6 * B2_avg + f7 * B3_avg - 0.5f0 * v1_mag_avg +
          B1_avg * vel_dot_mag_avg
 
     f_other = SVector{7, real(equations)}(f1, f2, f3, f4, f5, f6, f7)
@@ -309,19 +310,19 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
     #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
     #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
     inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    v3_avg = 0.5 * (v3_ll + v3_rr)
-    p_avg = 0.5 * (p_ll + p_rr)
-    velocity_square_avg = 0.5 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
-    magnetic_square_avg = 0.5 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    v3_avg = 0.5f0 * (v3_ll + v3_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr)
+    magnetic_square_avg = 0.5f0 * (B1_ll * B1_rr + B2_ll * B2_rr + B3_ll * B3_rr)
 
-    inv_gamma_minus_one = 1 / (totalgamma(0.5 * (u_ll + u_rr), equations) - 1)
+    inv_gamma_minus_one = 1 / (totalgamma(0.5f0 * (u_ll + u_rr), equations) - 1)
 
     rhok_mean = SVector{ncomponents(equations), real(equations)}(ln_mean(u_ll[i + 7],
                                                                          u_rr[i + 7])
                                                                  for i in eachcomponent(equations))
-    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5 * (u_ll[i + 7] +
+    rhok_avg = SVector{ncomponents(equations), real(equations)}(0.5f0 * (u_ll[i + 7] +
                                                                  u_rr[i + 7])
                                                                 for i in eachcomponent(equations))
 
@@ -334,17 +335,17 @@ Hindenlang (2019), extending [`flux_ranocha`](@ref) to the MHD equations.
 
     # Calculate fluxes depending on orientation with specific direction averages
     f2 = f1 * v1_avg + p_avg + magnetic_square_avg -
-         0.5 * (B1_ll * B1_rr + B1_rr * B1_ll)
-    f3 = f1 * v2_avg - 0.5 * (B1_ll * B2_rr + B1_rr * B2_ll)
-    f4 = f1 * v3_avg - 0.5 * (B1_ll * B3_rr + B1_rr * B3_ll)
+         0.5f0 * (B1_ll * B1_rr + B1_rr * B1_ll)
+    f3 = f1 * v2_avg - 0.5f0 * (B1_ll * B2_rr + B1_rr * B2_ll)
+    f4 = f1 * v3_avg - 0.5f0 * (B1_ll * B3_rr + B1_rr * B3_ll)
     #f5 below
     f6 = 0.0
-    f7 = 0.5 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
-    f8 = 0.5 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
+    f7 = 0.5f0 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
+    f8 = 0.5f0 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
     # total energy flux is complicated and involves the previous components
     f5 = (f1 * (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one)
           +
-          0.5 * (+p_ll * v1_rr + p_rr * v1_ll
+          0.5f0 * (+p_ll * v1_rr + p_rr * v1_ll
            + (v1_ll * B2_ll * B2_rr + v1_rr * B2_rr * B2_ll)
            + (v1_ll * B3_ll * B3_rr + v1_rr * B3_rr * B3_ll)
            -
@@ -405,7 +406,7 @@ function cons2prim(u, equations::IdealGlmMhdMulticomponentEquations1D)
     gamma = totalgamma(u, equations)
 
     p = (gamma - 1) *
-        (rho_e - 0.5 * rho * (v1^2 + v2^2 + v3^2) - 0.5 * (B1^2 + B2^2 + B3^2))
+        (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) - 0.5f0 * (B1^2 + B2^2 + B3^2))
     prim_other = SVector{7, real(equations)}(v1, v2, v3, p, B1, B2, B3)
     return vcat(prim_other, prim_rho)
 end
@@ -422,7 +423,7 @@ end
     v3 = rho_v3 / rho
     v_square = v1^2 + v2^2 + v3^2
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5 * rho * v_square - 0.5 * (B1^2 + B2^2 + B3^2))
+    p = (gamma - 1) * (rho_e - 0.5f0 * rho * v_square - 0.5f0 * (B1^2 + B2^2 + B3^2))
     s = log(p) - gamma * log(rho)
     rho_p = rho / p
 
@@ -433,7 +434,7 @@ end
         help1 += u[i + 7] * cv[i]
     end
 
-    T = (rho_e - 0.5 * rho * v_square - 0.5 * (B1^2 + B2^2 + B3^2)) / (help1)
+    T = (rho_e - 0.5f0 * rho * v_square - 0.5f0 * (B1^2 + B2^2 + B3^2)) / (help1)
 
     entrop_rho = SVector{ncomponents(equations), real(equations)}(-1.0 *
                                                                   (cv[i] * log(T) -
@@ -470,8 +471,8 @@ end
     rho_v3 = rho * v3
 
     gamma = totalgamma(prim, equations)
-    rho_e = p / (gamma - 1) + 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
-            0.5 * (B1^2 + B2^2 + B3^2)
+    rho_e = p / (gamma - 1) + 0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
+            0.5f0 * (B1^2 + B2^2 + B3^2)
 
     cons_other = SVector{7, real(equations)}(rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3)
 
@@ -482,9 +483,9 @@ end
     rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
     rho = density(u, equations)
     gamma = totalgamma(u, equations)
-    p = (gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
+    p = (gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
          -
-         0.5 * (B1^2 + B2^2 + B3^2))
+         0.5f0 * (B1^2 + B2^2 + B3^2))
     return rho * p
 end
 
@@ -498,7 +499,7 @@ end
     v3 = rho_v3 / rho
     v_mag = sqrt(v1^2 + v2^2 + v3^2)
     gamma = totalgamma(cons, equations)
-    p = (gamma - 1) * (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2))
+    p = (gamma - 1) * (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2))
     a_square = gamma * p / rho
     sqrt_rho = sqrt(rho)
     b1 = B1 / sqrt_rho
@@ -506,8 +507,8 @@ end
     b3 = B3 / sqrt_rho
     b_square = b1^2 + b2^2 + b3^2
 
-    c_f = sqrt(0.5 * (a_square + b_square) +
-               0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+    c_f = sqrt(0.5f0 * (a_square + b_square) +
+               0.5f0 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
 
     return c_f
 end

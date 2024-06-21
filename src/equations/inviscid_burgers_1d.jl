@@ -69,7 +69,7 @@ end
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
-    return SVector(0.5 * u[1]^2)
+    return SVector(0.5f0 * u[1]^2)
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
@@ -111,7 +111,7 @@ function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    return SVector(0.5 * max(max(u_L, zero(u_L))^2, min(u_R, zero(u_R))^2))
+    return SVector(0.5f0 * max(max(u_L, zero(u_L))^2, min(u_R, zero(u_R))^2))
 end
 
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
@@ -121,7 +121,7 @@ function flux_engquist_osher(u_ll, u_rr, orientation,
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    return SVector(0.5 * (max(u_L, zero(u_L))^2 + min(u_R, zero(u_R))^2))
+    return SVector(0.5f0 * (max(u_L, zero(u_L))^2 + min(u_R, zero(u_R))^2))
 end
 
 """
@@ -151,16 +151,16 @@ end
 
 @inline function splitting_lax_friedrichs(u, ::Val{:plus}, orientation::Integer,
                                           equations::InviscidBurgersEquation1D)
-    f = 0.5 * u[1]^2
+    f = 0.5f0 * u[1]^2
     lambda = abs(u[1])
-    return SVector(0.5 * (f + lambda * u[1]))
+    return SVector(0.5f0 * (f + lambda * u[1]))
 end
 
 @inline function splitting_lax_friedrichs(u, ::Val{:minus}, orientation::Integer,
                                           equations::InviscidBurgersEquation1D)
-    f = 0.5 * u[1]^2
+    f = 0.5f0 * u[1]^2
     lambda = abs(u[1])
-    return SVector(0.5 * (f - lambda * u[1]))
+    return SVector(0.5f0 * (f - lambda * u[1]))
 end
 
 # Convert conservative variables to primitive
@@ -171,11 +171,11 @@ end
 @inline entropy2cons(u, equation::InviscidBurgersEquation1D) = u
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
+@inline entropy(u::Real, ::InviscidBurgersEquation1D) = 0.5f0 * u^2
 @inline entropy(u, equation::InviscidBurgersEquation1D) = entropy(u[1], equation)
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
+@inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::InviscidBurgersEquation1D)
     energy_total(u[1], equation)
 end
