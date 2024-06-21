@@ -1045,7 +1045,7 @@ function count_interfaces(forest::Ptr{t8_forest}, ndims)
                         elseif level < neighbor_level
                             local_num_mpi_mortars += 1
 
-                            global_mortar_id = 2 * ndims(mesh) * current_linear_id + iface
+                            global_mortar_id = 2 * ndims * current_linear_id + iface
 
                         else # level > neighbor_level
                             neighbor_global_ghost_itree = ghost_global_treeids[findlast(ghost_tree_element_offsets .<=
@@ -1055,7 +1055,7 @@ function count_interfaces(forest::Ptr{t8_forest}, ndims)
                                                  t8_element_get_linear_id(neighbor_scheme,
                                                                           neighbor_leaves[1],
                                                                           max_level)
-                            global_mortar_id = 2 * ndims(mesh) * neighbor_linear_id +
+                            global_mortar_id = 2 * ndims * neighbor_linear_id +
                                                dual_faces[1]
 
                             if !(global_mortar_id in visited_global_mortar_ids)
@@ -1455,7 +1455,7 @@ function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
     # Allocate arrays.
     treeIDs = zeros(Int, num_interfaces)
     neighIDs = zeros(Int, num_interfaces)
-    orientations = zeros(Int32, num_interfaces)
+    orientations = zeros(Int8, num_interfaces)
     faces = zeros(Int8, num_interfaces)
     duals = zeros(Int8, num_interfaces)
 
