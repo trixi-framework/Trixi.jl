@@ -31,7 +31,6 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
         @trixi_testset "second-order FV" begin
             @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                                 order=2,
-                                extended_reconstruction_stencil=false,
                                 l2=[0.013669404880134087],
                                 linf=[0.03455999303991164])
             # Ensure that we do not have excessive memory allocations

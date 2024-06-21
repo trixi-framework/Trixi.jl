@@ -6,7 +6,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
-solver = FV(order = 2, extended_reconstruction_stencil = true,
+solver = FV(order = 2, extended_reconstruction_stencil = false,
             surface_flux = flux_lax_friedrichs)
 
 cmesh = Trixi.cmesh_new_periodic_hybrid()
