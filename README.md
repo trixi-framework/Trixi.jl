@@ -280,6 +280,22 @@ To get in touch with the developers,
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
 
+## Participating research groups
+Participating research groups in alphabetical order:
+
+[Applied and Computational Mathematics, RWTH Aachen University :de:](https://www.acom.rwth-aachen.de)
+
+[Applied Mathematics, Linköping University :sweden:](https://liu.se/en/employee/andwi94)
+
+[Computational and Applied Mathematics, Rice University :us:](https://jlchan.github.io/)
+
+[High-Performance Scientific Computing, University of Augsburg :de:](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
+
+[Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz :de:](https://ranocha.de)
+
+[Numerical Simulation, Department of Mathematics and Computer Science, University of Cologne :de:](https://www.mi.uni-koeln.de/NumSim/)
+
+
 ## Acknowledgments
 <p align="center" style="font-size:0;"><!--
   BMBF     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120"><!--
