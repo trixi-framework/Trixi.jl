@@ -78,7 +78,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     c = compute_c_coeffs_SSP33(num_stages, cS2)
 
     # Initialize the array of our solution
-    a_unknown = zeros(num_stages-2)
+    a_unknown = zeros(num_stages - 2)
 
     # Special case of e = 3
     if num_stages == 3
@@ -113,7 +113,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     a_matrix[:, 1] = c[3:end]
     a_matrix[:, 1] -= a_unknown
     a_matrix[:, 2] = a_unknown
-    
+
     return a_matrix, c
 end
 
@@ -210,10 +210,10 @@ end
 function PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false, cS2 = 1)
     a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
-                                                                    tspan,
-                                                                    eig_vals;
-                                                                    verbose, cS2)
-    return PairedExplicitRK3(num_stages, a_matrix, c,)
+                                                            tspan,
+                                                            eig_vals;
+                                                            verbose, cS2)
+    return PairedExplicitRK3(num_stages, a_matrix, c)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77

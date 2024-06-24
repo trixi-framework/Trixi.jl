@@ -49,7 +49,7 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
         # Initialize initial guess
         # The nonlinear system may have multiple valid solutions.
         # For the sake of reproducibility, we use a seeded random initial guess
-        x0 = 0.1 .* rand(num_stages-2)
+        x0 = 0.1 .* rand(num_stages - 2)
 
         sol = nlsolve(objective_function, x0, method = :trust_region,
                       ftol = 4e-16, # Enforce objective up to machine precision
