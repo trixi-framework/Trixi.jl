@@ -333,7 +333,13 @@ end
     x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
                         element_index)
 
-    flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+#    println(i_index, " ", j_index, " ",  node_index, " ", element_index, " ", boundary_index, " ", x)
+#    @autoinfiltrate
+    if typeof(boundary_condition) <: BoundaryConditionCoupled
+        flux_ = boundary_condition(u_inner, normal_direction, direction_index, boundary_index, node_index, surface_flux, equations)
+    else
+        flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+    end
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)

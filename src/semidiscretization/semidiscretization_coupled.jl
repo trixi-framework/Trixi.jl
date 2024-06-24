@@ -175,7 +175,14 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
     @trixi_timeit timer() "copy to coupled boundaries" begin
         foreach(semi.semis) do semi_
-            copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
+            boundary_conditions = semi_.boundary_conditions
+            # For p4est meshes we define the bundary conditions as ictionaries.
+            # But for the copt routine we need them as NamedTuple.
+            # Hence, the conversion here.
+            if typeof(boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes
+                boundary_conditions = NamedTuple{Tuple(keys(boundary_conditions.boundary_dictionary))}(values(boundary_conditions.boundary_dictionary))
+            end
+            copy_to_coupled_boundary!(boundary_conditions, u_ode, semi, semi_)
         end
     end
 
@@ -425,9 +432,6 @@ BoundaryConditionCoupled(2, (:begin, :i_backwards), Float64, fun)
 # Using this as y_neg boundary will connect `our_cells[i, 1, j]` to `other_cells[j, end-i, end]`
 BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
 ```
-
-!!! warning "Experimental code"
-    This is an experimental feature and can change any time.
 """
 mutable struct BoundaryConditionCoupled{NDIMS, other_semi_index, NDIMST2M1,
                                         uEltype <: Real, Indices, CouplingConverter}
@@ -469,10 +473,11 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
                                                         equations)
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
-    u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
-                                                                   surface_node_indices...,
-                                                                   cell_indices...],
-                                Val(nvariables(equations))))
+    # u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
+    #                                                                surface_node_indices...,
+    #                                                                cell_indices...],
+    #                             Val(nvariables(equations))))
+    u_boundary = u_inner .* 0.0 .+ 1.0
 
     # Calculate boundary flux
     if surface_flux_function isa Tuple
@@ -502,17 +507,54 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
     return flux
 end
 
+# flux_ = boundary_condition(flux_inner, u_inner, normal_direction, x, t, surface_flux, equations)
+# (::BoundaryConditionCoupled{2, 3, …})(::SVector{1, Float64}, ::SVector{2, Float64}, ::SVector{2, Float64}, ::Float64, ::FluxLaxFriedrichs{typeof(max_abs_speed_naive)}, ::LinearScalarAdvectionEquation2D{Float64})
+function (boundary_condition::BoundaryConditionCoupled)(u_inner, normal_direction,
+                                                        x, t, surface_flux_function,
+                                                        equations)
+    # @autoinfiltrate
+    # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
+    # but we don't have a solver here
+    # @autoinfiltrate
+    u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
+                                                                   1...,
+                                                                   1...],
+                                Val(nvariables(equations))))
+
+    # Calculate boundary flux
+    # if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+    # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    #     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    # end
+
+    return flux
+end
+
 function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
     n_boundaries = 2 * ndims(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
 
-    for direction in 1:n_boundaries
-        boundary_condition = semi.boundary_conditions[direction]
+    if !(typeof(semi.boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes)
+        for direction in 1:n_boundaries
+            boundary_condition = semi.boundary_conditions[direction]
+                
+            allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
+                                                equations,
+                                                solver)
+        end
+    else
+        # TODO: write this as loop.
+        boundary_condition = semi.boundary_conditions.boundary_dictionary[:x_neg]
+        allocate_coupled_boundary_condition(boundary_condition, 1, mesh, equations, solver)
+        boundary_condition = semi.boundary_conditions.boundary_dictionary[:x_pos]
+        allocate_coupled_boundary_condition(boundary_condition, 2, mesh, equations, solver)
+        boundary_condition = semi.boundary_conditions.boundary_dictionary[:y_neg]
+        allocate_coupled_boundary_condition(boundary_condition, 3, mesh, equations, solver)
+        boundary_condition = semi.boundary_conditions.boundary_dictionary[:y_pos]
+        allocate_coupled_boundary_condition(boundary_condition, 4, mesh, equations, solver)
+end
 
-        allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
-                                            equations,
-                                            solver)
-    end
 end
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
@@ -529,6 +571,47 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
         cell_size = size(mesh, 2)
     else
         cell_size = size(mesh, 1)
+    end
+
+    uEltype = eltype(boundary_condition)
+    boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
+                                                      nnodes(dg),
+                                                      cell_size)
+end
+
+# In 2D
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
+                                                                                          },
+                                             direction, mesh::P4estMesh, equations, dg::DGSEM)
+    if direction in (1, 2)
+        cell_size = size(mesh, 2)
+    # Negative and positive y.
+    else
+        cell_size = size(mesh, 1)
+    end
+
+    uEltype = eltype(boundary_condition)
+    boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
+                                                      nnodes(dg),
+						      cell_size)
+end
+
+# In 2D for a p4est mesh.
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2
+                                                                                          },
+                                             direction, mesh::P4estMesh, equations, dg::DGSEM)
+    # Negative x.
+    if direction == 1
+        cell_size = sum(mesh.tree_node_coordinates[1, 1, 1, :] .== minimum(mesh.tree_node_coordinates[1, 1, 1, :]))
+    # Positive x.
+    elseif direction == 2
+        cell_size = sum(mesh.tree_node_coordinates[1, 1, 1, :] .== maximum(mesh.tree_node_coordinates[1, 1, 1, :]))
+    # Negative y.
+    elseif direction == 3
+        cell_size = sum(mesh.tree_node_coordinates[2, 1, 1, :] .== minimum(mesh.tree_node_coordinates[2, 1, 1, :]))
+    # Positive  y.
+    else
+        cell_size = sum(mesh.tree_node_coordinates[2, 1, 1, :] .== maximum(mesh.tree_node_coordinates[2, 1, 1, :]))
     end
 
     uEltype = eltype(boundary_condition)
@@ -574,12 +657,24 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     u_other = wrap_array(u_ode_other, mesh_other, equations_other, solver_other,
                          cache_other)
 
-    linear_indices = LinearIndices(size(mesh_other))
+    if mesh_other isa P4estMesh
+        linear_indices = LinearIndices((mesh_other.trees_per_dimension[1], mesh_other.trees_per_dimension[2]))
+    else
+        linear_indices = LinearIndices(size(mesh_other))
+    end
 
-    if other_orientation == 1
-        cells = axes(mesh_other, 2)
-    else # other_orientation == 2
-        cells = axes(mesh_other, 1)
+    if mesh_other isa P4estMesh
+        if other_orientation == 1
+            cells = mesh_other.trees_per_dimension[2]
+        else # other_orientation == 2
+            cells = mesh_other.trees_per_dimension[1]
+        end
+    else
+        if other_orientation == 1
+            cells = axes(mesh_other, 2)
+        else # other_orientation == 2
+            cells = axes(mesh_other, 1)
+        end
     end
 
     # Copy solution data to the coupled boundary using "delayed indexing" with
@@ -588,8 +683,13 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
     j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
 
-    i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
-    j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
+    if mesh_other isa P4estMesh
+        i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], mesh_other.trees_per_dimension[1])
+        j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], mesh_other.trees_per_dimension[2])
+    else
+        i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
+        j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
+    end
 
     # We need indices starting at 1 for the handling of `i_cell` etc.
     Base.require_one_based_indexing(cells)
@@ -631,8 +731,8 @@ end
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
-                                                              StructuredMeshView},
-                                                  equations,
+							      StructuredMeshView,
+							      P4estMesh}, equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
