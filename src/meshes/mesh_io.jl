@@ -227,7 +227,7 @@ end
 
 # This routine works for both, serial and MPI parallel mode. The forest
 # information is collected on all ranks and then gathered by the root rank.
-# Since only the `levels` array of unsigned bytes is bascially independent per
+# Since only the `levels` array of unsigned bytes is basicially independent per
 # rank it is not worth the effort to have a collective write to the HDF5 file.
 # Instead, `levels` gets gathered by the root rank and written in serial.
 function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,

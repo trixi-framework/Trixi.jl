@@ -245,7 +245,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
                    partition = false, ghost = false, user_data = C_NULL)
 
     if mpi_isparallel()
-      forest = partition(forest)
+        forest = partition(forest)
     end
 
     return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
