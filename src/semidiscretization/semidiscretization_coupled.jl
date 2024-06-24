@@ -433,6 +433,7 @@ mutable struct BoundaryConditionCoupled{NDIMS,
                                         # Store the other semi index as type parameter,
                                         # so that retrieving the other semidiscretization
                                         # is type-stable.
+                                        # x-ref: https://github.com/trixi-framework/Trixi.jl/pull/1979
                                         other_semi_index, NDIMST2M1,
                                         uEltype <: Real, Indices, CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
