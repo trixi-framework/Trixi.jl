@@ -10,7 +10,6 @@ else
 end
 
 # Use other necessary libraries
-using Random: seed!
 using LinearAlgebra: norm
 
 # Use functions and additional symbols that are not exported
@@ -41,9 +40,6 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
                                                                           monomial_coeffs,
                                                                           c_s2)
     end
-
-    # Set the seed for reproducibility of the initial guess of a_unknown
-    #seed!(5555)
 
     while !is_sol_valid
         # Initialize initial guess
