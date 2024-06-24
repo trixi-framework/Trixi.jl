@@ -200,7 +200,8 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
 end
 
 function save_solution_file_on_root(data, time, dt, timestep, n_vars,
-                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                                ParallelT8codeMesh},
                                     equations, dg::DG, cache,
                                     solution_variables, filename,
                                     element_variables = Dict{Symbol, Any}())
