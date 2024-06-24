@@ -225,6 +225,11 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
     return filename
 end
 
+# This routine works for both, serial and MPI parallel mode. The forest
+# information is collected on all ranks and then gathered by the root rank.
+# Since only the `levels` array of unsigned bytes is bascially independent per
+# rank it is not worth the effort to have a collective write to the HDF5 file.
+# Instead, `levels` gets gathered by the root rank and written in serial.
 function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
                         mpi_parallel::Any)
 
@@ -239,12 +244,25 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
     end
 
     # Retrieve refinement levels of all elements.
-    levels = get_levels(mesh)
+    local_levels = get_levels(mesh)
     if mpi_isparallel()
-        levels = MPI.Gather(levels, mpi_root(), mpi_comm())
+        count = [length(local_levels)]
+        counts = MPI.Gather(view(count, 1), mpi_root(), mpi_comm())
+
+        if mpi_isroot()
+            levels = similar(local_levels, ncellsglobal(mesh))
+            MPI.Gatherv!(local_levels, MPI.VBuffer(levels, counts),
+                         mpi_root(), mpi_comm())
+        else
+            MPI.Gatherv!(local_levels, nothing, mpi_root(), mpi_comm())
+        end
+    else
+        levels = local_levels
     end
 
-    # Retrieve number of elements per tree.
+    # Retrieve the number of elements per tree. Since a tree can be distributed
+    # among multiple ranks a reduction operation sums them all up. The latter
+    # is done on the root rank only.
     num_global_trees = t8_forest_get_num_global_trees(mesh.forest)
     num_elements_per_tree = zeros(t8_gloidx_t, num_global_trees)
     num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
@@ -256,7 +274,7 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
     end
 
     if mpi_isparallel()
-        num_elements_per_tree = MPI.Reduce!(num_elements_per_tree, +, mpi_comm())
+        MPI.Reduce!(num_elements_per_tree, +, mpi_comm())
     end
 
     # Since the mesh attributes are replicated on all ranks, only save from MPI
@@ -274,7 +292,7 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["ntrees"] = ntrees(mesh)
-        attributes(file)["nelements"] = ncells(mesh)
+        attributes(file)["nelements"] = ncellsglobal(mesh)
 
         file["tree_node_coordinates"] = mesh.tree_node_coordinates
         file["nodes"] = Vector(mesh.nodes)
@@ -495,6 +513,7 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
 
         mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
                                  nodes, boundary_names, mesh_file, false, true)
+
     elseif mesh_type == "T8codeMesh"
         if mpi_isroot()
             ndims, ntrees, nelements, tree_node_coordinates, nodes,

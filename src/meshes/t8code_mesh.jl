@@ -208,32 +208,33 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
 
     cum_sum_num_elements_per_tree = cumsum(num_elements_per_tree)
 
-    # Compute the offset within the to-be-reconstructed forest depending on the
+    global_element_id = 0 # zero-based index
+
+    # Compute the offset within the to-be-reconstructed forest. Depends on the
     # MPI rank resp. first global tree id.
-    virtual_element_index = 1 # one-based index
     if mpi_rank() > 0
         last_global_tree_id_of_preceding_rank = t8_forest_global_tree_id(forest, 0) - 1
-        virtual_element_index += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
+        global_element_id += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
     end
 
     function adapt_callback(forest, local_tree_id, eclass_scheme, local_element_id,
                             elements, is_family,
                             user_data)
 
-        # Check if we are already in the next tree in terms of the `virtual_element_index`.
+        # Check if we are already in the next tree in terms of the `global_element_id`.
         global_tree_id = t8_forest_global_tree_id(forest, local_tree_id)
-        if virtual_element_index > cum_sum_num_elements_per_tree[global_tree_id + 1]
+        if global_element_id + 1 > cum_sum_num_elements_per_tree[global_tree_id + 1]
             return 0
         end
 
         # Test if we already reached the targeted level.
         level = t8_element_level(eclass_scheme, elements[1])
-        if level < levels[virtual_element_index]
+        if level < levels[global_element_id + 1]
             return 1 # Go one refinement level deeper.
         end
 
         # Targeted level is reached.
-        virtual_element_index += 1
+        global_element_id += 1
         return 0
     end
 
@@ -243,9 +244,9 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     forest = adapt(forest, adapt_callback; recursive = true, balance = false,
                    partition = false, ghost = false, user_data = C_NULL)
 
-    # if mpi_isparallel()
-    #   forest = t8_forest_partition(forest)
-    # end
+    if mpi_isparallel()
+      forest = partition(forest)
+    end
 
     return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
 end
@@ -878,7 +879,9 @@ function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance
             t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
         end
 
-        t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
+        if ghost
+            t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES)
+        end
 
         # The old forest is destroyed here.
         # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
@@ -914,6 +917,20 @@ function balance!(mesh::T8codeMesh)
     return nothing
 end
 
+function partition(forest::Ptr{t8_forest})
+    new_forest_ref = Ref{t8_forest_t}()
+    t8_forest_init(new_forest_ref)
+    new_forest = new_forest_ref[]
+
+    let set_from = forest, do_ghost = 1, allow_for_coarsening = 1
+        t8_forest_set_partition(new_forest, set_from, allow_for_coarsening)
+        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
+        t8_forest_commit(new_forest)
+    end
+
+    return new_forest
+end
+
 """
     Trixi.partition!(mesh::T8codeMesh)
 
@@ -923,18 +940,7 @@ Partition a `T8codeMesh` in order to redistribute elements evenly among MPI rank
 - `mesh::T8codeMesh`: Initialized mesh object.
 """
 function partition!(mesh::T8codeMesh)
-    new_forest_ref = Ref{t8_forest_t}()
-    t8_forest_init(new_forest_ref)
-    new_forest = new_forest_ref[]
-
-    let set_from = mesh.forest, do_ghost = 1, allow_for_coarsening = 1
-        t8_forest_set_partition(new_forest, set_from, allow_for_coarsening)
-        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
-        t8_forest_commit(new_forest)
-    end
-
-    mesh.forest = new_forest
-
+    mesh.forest = partition(mesh.forest)
     return nothing
 end
 
