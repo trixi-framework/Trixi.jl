@@ -31,7 +31,8 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
                                                               num_stage_evals,
                                                               monomial_coeffs, cS2)
     c_ts = compute_c_coeffs_SSP33(num_stages, cS2) # ts = timestep
-
+    # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
+    a_coeff = [0.0, c_ts[2], a_unknown...]
     # Equality Constraint array that ensures that the stability polynomial computed from 
     # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
     # optimized stability polynomial.
@@ -40,11 +41,11 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
     c_eq = zeros(num_stage_evals - 2) # Add equality constraint that cS2 is equal to 1
     # Lower-order terms: Two summands present
     for i in 1:(num_stage_evals - 4)
-        term1 = a_unknown[num_stage_evals - 1]
-        term2 = a_unknown[num_stage_evals]
+        term1 = a_coeff[num_stage_evals - 1]
+        term2 = a_coeff[num_stage_evals]
         for j in 1:i
-            term1 *= a_unknown[num_stage_evals - 1 - j]
-            term2 *= a_unknown[num_stage_evals - j]
+            term1 *= a_coeff[num_stage_evals - 1 - j]
+            term2 *= a_coeff[num_stage_evals - j]
         end
         term1 *= c_ts[num_stages - 2 - i] * 1 / 6 # 1/ 6 = b_{S-1}
         term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
@@ -54,16 +55,16 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
 
     # Highest coefficient: Only one term present
     i = num_stage_evals - 3
-    term2 = a_unknown[num_stage_evals]
+    term2 = a_coeff[num_stage_evals]
     for j in 1:i
-        term2 *= a_unknown[num_stage_evals - j]
+        term2 *= a_coeff[num_stage_evals - j]
     end
     term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
 
     c_eq[i] = monomial_coeffs[i] - term2
     # Third-order consistency condition (Cf. eq. (27) from https://doi.org/10.1016/j.jcp.2022.111470
-    c_eq[num_stage_evals - 2] = 1 - 4 * a_unknown[num_stage_evals] -
-                                a_unknown[num_stage_evals - 1]
+    c_eq[num_stage_evals - 2] = 1 - 4 * a_coeff[num_stage_evals] -
+                                a_coeff[num_stage_evals - 1]
 
     return c_eq
 end
@@ -77,10 +78,12 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     c = compute_c_coeffs_SSP33(num_stages, cS2)
 
     # Initialize the array of our solution
-    a_unknown = zeros(num_stages)
+    a_unknown = zeros(num_stages-2)
 
     # Special case of e = 3
     if num_stages == 3
+        #TODO: with this new defining of what we are solving from nlsolve, this array shouldn't be called a_unknown anymore
+        # or maybe it should be called a_unknown but only with one member
         a_unknown = [0, c[2], 0.25]
         dt_opt = 42.0 # TODO! This is a placeholder value
     else
@@ -108,9 +111,9 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     # Fill A-matrix in P-ERK style
     a_matrix = zeros(num_stages - 2, 2)
     a_matrix[:, 1] = c[3:end]
-    a_matrix[:, 1] -= a_unknown[3:end]
-    a_matrix[:, 2] = a_unknown[3:end]
-
+    a_matrix[:, 1] -= a_unknown
+    a_matrix[:, 2] = a_unknown
+    
     return a_matrix, c
 end
 

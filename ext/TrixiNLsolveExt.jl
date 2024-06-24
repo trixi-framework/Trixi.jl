@@ -11,6 +11,7 @@ end
 
 # Use other necessary libraries
 using Random: seed!
+using LinearAlgebra: norm
 
 # Use functions and additional symbols that are not exported
 using Trixi: Trixi, PairedExplicitRK3_butcher_tableau_objective_function, @muladd
@@ -42,17 +43,13 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
     end
 
     # Set the seed for reproducibility of the initial guess of a_unknown
-    seed!(5555)
+    #seed!(5555)
 
     while !is_sol_valid
-
         # Initialize initial guess
         # The nonlinear system may have multiple valid solutions.
         # For the sake of reproducibility, we use a seeded random initial guess
-        x0 = 0.1 .* rand(num_stages)
-        # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
-        x0[1] = 0
-        x0[2] = c[2]
+        x0 = 0.1 .* rand(num_stages-2)
 
         sol = nlsolve(objective_function, x0, method = :trust_region,
                       ftol = 4e-16, # Enforce objective up to machine precision
@@ -62,8 +59,8 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
 
         # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver) 
         # and subsequently c[i] - a[i, i-1] >= 0.0 since all coefficients are non-negative
-        is_sol_valid = all(x -> !isnan(x) && x >= 0, a_unknown[3:end]) &&
-                       all(x -> !isnan(x) && x >= 0, c[3:end] .- a_unknown[3:end])
+        is_sol_valid = all(x -> !isnan(x) && x >= 0, a_unknown) &&
+                       all(x -> !isnan(x) && x >= 0, c[3:end] .- a_unknown)
 
         if verbose && !is_sol_valid
             println("Solution invalid. Restart the process of solving non-linear system of equations again.")
