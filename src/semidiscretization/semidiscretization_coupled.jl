@@ -81,7 +81,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
                          semi.semis[i].source_terms)
             summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
         end
-        summary_line(io, "total #DOFs per field", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)
     end
 end
@@ -121,6 +121,18 @@ end
 
 @inline function ndofs(semi::SemidiscretizationCoupled)
     sum(ndofs, semi.semis)
+end
+
+"""
+    ndofsglobal(semi::SemidiscretizationCoupled)
+
+Return the global number of degrees of freedom associated with each scalar variable across all MPI ranks, and summed up over all coupled systems.
+This is the same as [`ndofs`](@ref) for simulations running in serial or
+parallelized via threads. It will in general be different for simulations
+running in parallel with MPI.
+"""
+@inline function ndofsglobal(semi::SemidiscretizationCoupled)
+    sum(ndofsglobal, semi.semis)
 end
 
 function compute_coefficients(t, semi::SemidiscretizationCoupled)
@@ -175,12 +187,10 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     end
 
     # Call rhs! for each semidiscretization
-    @trixi_timeit timer() "copy to coupled boundaries" begin
-        foreach_enumerate(semi.semis) do (i, semi_)
-            u_loc = get_system_u_ode(u_ode, i, semi)
-            du_loc = get_system_u_ode(du_ode, i, semi)
-            rhs!(du_loc, u_loc, semi_, t)
-        end
+    foreach_enumerate(semi.semis) do (i, semi_)
+        u_loc = get_system_u_ode(u_ode, i, semi)
+        du_loc = get_system_u_ode(du_ode, i, semi)
+        rhs!(du_loc, u_loc, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -323,7 +333,8 @@ function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep =
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
         if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh, output_directory, system = i)
+            mesh.current_filename = save_mesh_file(mesh, output_directory; system = i,
+                                                   timestep = timestep)
             mesh.unsaved_changes = false
         end
     end
@@ -353,6 +364,36 @@ function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
     end
 
     return dt
+end
+
+function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
+                                glm_speed_callback, dt)
+    @unpack glm_scale, cfl, semi_indices = glm_speed_callback
+
+    if length(semi_indices) == 0
+        throw("Since you have more than one semidiscretization you need to specify the 'semi_indices' for which the GLM speed needs to be calculated.")
+    end
+
+    # Check that all MHD semidiscretizations received a GLM cleaning speed update.
+    for (semi_index, semi) in enumerate(semi_coupled.semis)
+        if (typeof(semi.equations) <: AbstractIdealGlmMhdEquations &&
+            !(semi_index in semi_indices))
+            error("Equation of semidiscretization $semi_index needs to be included in 'semi_indices' of 'GlmSpeedCallback'.")
+        end
+    end
+
+    for semi_index in semi_indices
+        semi = semi_coupled.semis[semi_index]
+        mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+        # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
+
+        # c_h is proportional to its own time step divided by the complete MHD time step
+        equations.c_h = glm_scale * c_h_deltat / dt
+    end
+
+    return semi_coupled
 end
 
 ################################################################################
@@ -440,10 +481,28 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
     u_boundary = u_inner .* 0.0 .+ 1.0
 
     # Calculate boundary flux
-    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-        flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-        flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    if surface_flux_function isa Tuple
+        # In case of conservative (index 1) and non-conservative (index 2) fluxes,
+        # add the non-conservative one with a factor of 1/2.
+        if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+            flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
+                                             equations) +
+                    0.5 *
+                    surface_flux_function[2](u_inner, u_boundary, orientation,
+                                             equations))
+        else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+            flux = (surface_flux_function[1](u_boundary, u_inner, orientation,
+                                             equations) +
+                    0.5 *
+                    surface_flux_function[2](u_boundary, u_inner, orientation,
+                                             equations))
+        end
+    else
+        if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+            flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+        else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+            flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+        end
     end
 
     return flux
@@ -644,10 +703,14 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
     end
 
-    i_cell = i_cell_start
-    j_cell = j_cell_start
+    # We need indices starting at 1 for the handling of `i_cell` etc.
+    Base.require_one_based_indexing(cells)
 
-    for cell in cells
+    @threaded for i in eachindex(cells)
+        cell = cells[i]
+        i_cell = i_cell_start + (i - 1) * i_cell_step
+        j_cell = j_cell_start + (i - 1) * j_cell_step
+
         i_node = i_node_start
         j_node = j_node_start
         element_id = linear_indices[i_cell, j_cell]
@@ -669,9 +732,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
             i_node += i_node_step
             j_node += j_node_step
         end
-
-        i_cell += i_cell_step
-        j_cell += j_cell_step
     end
 end
 
@@ -682,7 +742,9 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
-                                                  mesh::Union{StructuredMesh, P4estMesh}, equations,
+                                                  mesh::Union{StructuredMesh,
+							      StructuredMeshView,
+							      P4estMesh}, equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
@@ -714,7 +776,8 @@ end
     end
 end
 
-function get_boundary_indices(element, orientation, mesh::StructuredMesh{2})
+function get_boundary_indices(element, orientation,
+                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}})
     cartesian_indices = CartesianIndices(size(mesh))
     if orientation == 1
         # Get index of element in y-direction

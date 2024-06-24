@@ -97,7 +97,10 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::StructuredMesh, output_directory; system = "")
+# Note: the `timestep` argument is needed for compatibility with the method for
+# `StructuredMeshView`
+function save_mesh_file(mesh::StructuredMesh, output_directory; system = "",
+                        timestep = 0)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
@@ -272,7 +275,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         end
         mesh = TreeMesh(SerialTree{ndims}, max(n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
-    elseif mesh_type == "StructuredMesh"
+    elseif mesh_type in ("StructuredMesh", "StructuredMeshView")
         size_, mapping_as_string = h5open(mesh_file, "r") do file
             return read(attributes(file)["size"]),
                    read(attributes(file)["mapping"])
@@ -315,6 +318,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         mesh = UnstructuredMesh2D(mesh_filename; RealT = RealT,
                                   periodicity = periodicity_,
                                   unsaved_changes = false)
+        mesh.current_filename = mesh_file
     elseif mesh_type == "P4estMesh"
         p4est_filename, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
@@ -333,7 +337,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         p4est = load_p4est(p4est_file, Val(ndims))
 
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                                nodes, boundary_names, "", false, true,
+                                nodes, boundary_names, mesh_file,, false, true,
                                 coordinates_min, coordinates_max, trees_per_dimension)
     else
         error("Unknown mesh type!")
@@ -383,17 +387,18 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
 
     if mesh_type == "TreeMesh"
         if mpi_isroot()
-            n_cells = h5open(mesh_file, "r") do file
-                read(attributes(file)["n_cells"])
+            n_cells, capacity = h5open(mesh_file, "r") do file
+                return read(attributes(file)["n_cells"]),
+                       read(attributes(file)["capacity"])
             end
-            MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
             MPI.Bcast!(Ref(n_cells), mpi_root(), mpi_comm())
+            MPI.Bcast!(Ref(capacity), mpi_root(), mpi_comm())
         else
-            ndims_ = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
             n_cells = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+            capacity = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
         end
 
-        mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max))
+        mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
     elseif mesh_type == "P4estMesh"
         if mpi_isroot()
@@ -422,7 +427,7 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
         p4est = load_p4est(p4est_file, Val(ndims_))
 
         mesh = P4estMesh{ndims_}(p4est, tree_node_coordinates,
-                                 nodes, boundary_names, "", false, true)
+                                 nodes, boundary_names, mesh_file, false, true)
     else
         error("Unknown mesh type!")
     end

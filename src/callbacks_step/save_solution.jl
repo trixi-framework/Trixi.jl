@@ -174,8 +174,7 @@ function (solution_callback::SaveSolutionCallback)(u, t, integrator)
     #    (total #steps)       (#accepted steps)
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
-    return interval_or_dt > 0 && (((integrator.stats.naccept % interval_or_dt == 0) &&
-             !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
+    return interval_or_dt > 0 && (integrator.stats.naccept % interval_or_dt == 0 ||
             (save_final_solution && isfinished(integrator)))
 end
 

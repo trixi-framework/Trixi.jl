@@ -4,19 +4,6 @@
 include("containers.jl")
 include("math.jl")
 
-# Enable debug timings `@trixi_timeit timer() "name" stuff...`.
-# This allows us to disable timings completely by executing
-# `TimerOutputs.disable_debug_timings(Trixi)`
-# and to enable them again by executing
-# `TimerOutputs.enable_debug_timings(Trixi)`
-timeit_debug_enabled() = true
-
-# Store main timer for global timing of functions
-const main_timer = TimerOutput()
-
-# Always call timer() to hide implementation details
-timer() = main_timer
-
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -242,36 +229,11 @@ macro threaded(expr)
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
 
+    # By using `Trixi.@batch` we allow users of Trixi.jl to use `@threaded` without having
+    # Polyester.jl in their namespace.
     return esc(quote
                    Trixi.@batch $(expr)
                end)
-end
-
-#     @trixi_timeit timer() "some label" expression
-#
-# Basically the same as a special case of `@timeit_debug` from
-# [TimerOutputs.jl](https://github.com/KristofferC/TimerOutputs.jl),
-# but without `try ... finally ... end` block. Thus, it's not exception-safe,
-# but it also avoids some related performance problems. Since we do not use
-# exception handling in Trixi.jl, that's not really an issue.
-macro trixi_timeit(timer_output, label, expr)
-    timeit_block = quote
-        if timeit_debug_enabled()
-            local to = $(esc(timer_output))
-            local enabled = to.enabled
-            if enabled
-                local accumulated_data = $(TimerOutputs.push!)(to, $(esc(label)))
-            end
-            local b₀ = $(TimerOutputs.gc_bytes)()
-            local t₀ = $(TimerOutputs.time_ns)()
-        end
-        local val = $(esc(expr))
-        if timeit_debug_enabled() && enabled
-            $(TimerOutputs.do_accumulate!)(accumulated_data, t₀, b₀)
-            $(TimerOutputs.pop!)(to)
-        end
-        val
-    end
 end
 
 """

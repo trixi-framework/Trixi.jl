@@ -5,12 +5,11 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Navier-Stokes equations
 
-# TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 6.25e-4 # equivalent to Re = 1600
+mu = 6.25e-4 # equivalent to Re = 1600
 
 equations = CompressibleEulerEquations3D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
                                                           Prandtl = prandtl_number())
 
 """
