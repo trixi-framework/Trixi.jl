@@ -253,7 +253,7 @@ end
     else
         v_alpha = equations.v_alpha2
     end
-    return 0.5 * (v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll))
+    return 0.5f0 * (v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll))
 end
 
 """
