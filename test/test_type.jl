@@ -825,6 +825,204 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             # TODO: BC tests for GradientVariablesPrimitive
             # TODO: BC tests for GradientVariablesEntropy
+
+    @timed_testset "Hyperbolic Diffusion 1D" begin
+        for RealT in (Float32, Float64)
+            nu = one(RealT)
+            Lr = RealT(inv(2pi))
+            equations = @inferred HyperbolicDiffusionEquations1D(nu = nu, Lr = Lr)
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = du = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT))
+            orientation = 1
+            directions = [1, 2]
+
+            surface_flux_function = flux_lax_friedrichs
+
+            @test typeof(@inferred Trixi.residual_steady_state(du, equations)) == RealT
+            @test eltype(@inferred initial_condition_poisson_nonperiodic(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_poisson_nonperiodic(u, x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_harmonic(u, x, t, equations)) == RealT
+            @test eltype(@inferred Trixi.initial_condition_eoc_test_coupled_euler_gravity(x,
+                                                                                          t,
+                                                                                          equations)) ==
+                  RealT
+
+            for direction in directions
+                if RealT == Float32
+                    # check `surface_flux_function` (test broken)
+                    @test_broken eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                         orientation,
+                                                                                         direction,
+                                                                                         x,
+                                                                                         t,
+                                                                                         surface_flux_function,
+                                                                                         equations)) ==
+                                 RealT
+                else
+                    @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                  orientation,
+                                                                                  direction,
+                                                                                  x, t,
+                                                                                  surface_flux_function,
+                                                                                  equations)) ==
+                          RealT
+                end
+            end
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                       equations)) == RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred entropy(u, equations)) == RealT
+            @test typeof(@inferred energy_total(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Hyperbolic Diffusion 2D" begin
+        for RealT in (Float32, Float64)
+            nu = one(RealT)
+            Lr = RealT(inv(2pi))
+            equations = @inferred HyperbolicDiffusionEquations2D(nu = nu, Lr = Lr)
+
+            x = SVector(zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = du = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT))
+            orientations = [1, 2]
+            directions = [1, 2, 3, 4]
+            normal_direction = SVector(one(RealT), zero(RealT))
+
+            surface_flux_function = flux_lax_friedrichs
+
+            @test typeof(@inferred Trixi.residual_steady_state(du, equations)) == RealT
+            @test eltype(@inferred initial_condition_poisson_nonperiodic(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_poisson_nonperiodic(u, x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_harmonic(u, x, t, equations)) == RealT
+            @test eltype(@inferred Trixi.initial_condition_eoc_test_coupled_euler_gravity(x,
+                                                                                          t,
+                                                                                          equations)) ==
+                  RealT
+
+            for orientation in orientations
+                for direction in directions
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                             orientation,
+                                                                                             direction,
+                                                                                             x,
+                                                                                             t,
+                                                                                             surface_flux_function,
+                                                                                             equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                      orientation,
+                                                                                      direction,
+                                                                                      x, t,
+                                                                                      surface_flux_function,
+                                                                                      equations)) ==
+                              RealT
+                    end
+                end
+            end
+
+            @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_godunov(u_ll, u_rr, normal_direction, equations)) ==
+                  RealT
+
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_godunov(u_ll, u_rr, orientation,
+                                                    equations)) == RealT
+
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+            end
+
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred entropy(u, equations)) == RealT
+            @test typeof(@inferred energy_total(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Hyperbolic Diffusion 3D" begin
+        for RealT in (Float32, Float64)
+            nu = one(RealT)
+            Lr = RealT(inv(2pi))
+            equations = @inferred HyperbolicDiffusionEquations3D(nu = nu, Lr = Lr)
+
+            x = SVector(zero(RealT), zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = du = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT),
+                                                     one(RealT))
+            orientations = [1, 2, 3]
+            directions = [1, 2, 3, 4, 5, 6]
+
+            surface_flux_function = flux_lax_friedrichs
+
+            @test typeof(@inferred Trixi.residual_steady_state(du, equations)) == RealT
+            @test eltype(@inferred initial_condition_poisson_nonperiodic(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_poisson_nonperiodic(u, x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_harmonic(u, x, t, equations)) == RealT
+            @test eltype(@inferred Trixi.initial_condition_eoc_test_coupled_euler_gravity(x,
+                                                                                          t,
+                                                                                          equations)) ==
+                  RealT
+
+            for orientation in orientations
+                for direction in directions
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                             orientation,
+                                                                                             direction,
+                                                                                             x,
+                                                                                             t,
+                                                                                             surface_flux_function,
+                                                                                             equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                      orientation,
+                                                                                      direction,
+                                                                                      x, t,
+                                                                                      surface_flux_function,
+                                                                                      equations)) ==
+                              RealT
+                    end
+                end
+            end
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_godunov(u_ll, u_rr, orientation,
+                                                    equations)) == RealT
+
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+            end
+
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred entropy(u, equations)) == RealT
+            @test typeof(@inferred energy_total(u, equations)) == RealT
         end
     end
 
