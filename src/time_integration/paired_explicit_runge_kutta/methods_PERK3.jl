@@ -82,7 +82,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
 
     # Special case of e = 3
     if num_stages == 3
-        a_unknown =  [0.25]
+        a_unknown = [0.25]
         dt_opt = 42.0 # TODO! This is a placeholder value
     else
         # Calculate coefficients of the stability polynomial in monomial form
