@@ -12,6 +12,8 @@ end
 # Use other necessary libraries
 using LinearAlgebra: norm
 
+using Random: seed!
+
 # Use functions and additional symbols that are not exported
 using Trixi: Trixi, PairedExplicitRK3_butcher_tableau_objective_function, @muladd
 
@@ -41,8 +43,13 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
                                                                           c_s2)
     end
 
+    seed!(5555)
+
     while !is_sol_valid
-        # Initialize an initial guess
+        # Due to the nature of the nonlinear solver, different initial guesses can lead to 
+        # small numerical differences in the solution.
+        # To ensure consistency and reproducibility of results across runs, we use 
+        # a seeded random initial guess.
         x0 = 0.1 .* rand(num_stages - 2)
 
         sol = nlsolve(objective_function, x0, method = :trust_region,
