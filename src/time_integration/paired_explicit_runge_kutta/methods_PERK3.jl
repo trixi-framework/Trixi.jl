@@ -8,7 +8,7 @@ using DelimitedFiles: readdlm
 #! format: noindent
 
 # Initialize Butcher array abscissae c for PairedExplicitRK3 based on SSPRK33 base method
-function compute_c_coeffs_SSP33(num_stages, cS2)
+function compute_c_coeffs(num_stages, cS2)
     c = zeros(num_stages)
 
     # Last timesteps as for SSPRK33, see motivation in
@@ -30,7 +30,7 @@ end
 function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_stages,
                                                               num_stage_evals,
                                                               monomial_coeffs, cS2)
-    c_ts = compute_c_coeffs_SSP33(num_stages, cS2) # ts = timestep
+    c_ts = compute_c_coeffs(num_stages, cS2) # ts = timestep
     # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
     a_coeff = [0.0, c_ts[2], a_unknown...]
     # Equality Constraint array that ensures that the stability polynomial computed from 
@@ -75,16 +75,14 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
                                                    eig_vals::Vector{ComplexF64};
                                                    verbose = false, cS2)
     # Initialize array of c
-    c = compute_c_coeffs_SSP33(num_stages, cS2)
+    c = compute_c_coeffs(num_stages, cS2)
 
     # Initialize the array of our solution
     a_unknown = zeros(num_stages - 2)
 
     # Special case of e = 3
     if num_stages == 3
-        #TODO: with this new defining of what we are solving from nlsolve, this array shouldn't be called a_unknown anymore
-        # or maybe it should be called a_unknown but only with one member
-        a_unknown = [0, c[2], 0.25]
+        a_unknown =  [0.25]
         dt_opt = 42.0 # TODO! This is a placeholder value
     else
         # Calculate coefficients of the stability polynomial in monomial form
@@ -124,7 +122,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                    cS2)
 
     # Initialize array of c
-    c = compute_c_coeffs_SSP33(num_stages, cS2)
+    c = compute_c_coeffs(num_stages, cS2)
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     a_coeffs_max = num_stages - 2
