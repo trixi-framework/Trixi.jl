@@ -359,6 +359,8 @@ Participating research groups in alphabetical order:
 
 [Computational and Applied Mathematics, Rice University :us:](https://jlchan.github.io/)
 
+[High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) :de:](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
+
 [High-Performance Scientific Computing, University of Augsburg :de:](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
 
 [Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz :de:](https://ranocha.de)
