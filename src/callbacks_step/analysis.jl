@@ -43,7 +43,8 @@ evaluating the computational performance, such as the total runtime, the perform
 (time/DOF/rhs!), the time spent in garbage collection (GC), or the current memory usage (alloc'd
 memory).
 """
-mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegrals,
+mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, AnalysisPointwise,
+                                InitialStateIntegrals,
                                 Cache}
     start_time::Float64
     start_time_last_analysis::Float64
@@ -56,6 +57,7 @@ mutable struct AnalysisCallback{Analyzer, AnalysisIntegrals, InitialStateIntegra
     analyzer::Analyzer
     analysis_errors::Vector{Symbol}
     analysis_integrals::AnalysisIntegrals
+    analysis_pointwise::AnalysisPointwise
     initial_state_integrals::InitialStateIntegrals
     cache::Cache
 end
@@ -79,6 +81,9 @@ function Base.show(io::IO, ::MIME"text/plain",
         end
         for (idx, integral) in enumerate(analysis_callback.analysis_integrals)
             push!(setup, "│ integral " * string(idx) => integral)
+        end
+        for (idx, quantity) in enumerate(analysis_callback.analysis_pointwise)
+            push!(setup, "│ pointwise " * string(idx) => quantity)
         end
         push!(setup,
               "save analysis to file" => analysis_callback.save_analysis ? "yes" : "no")
@@ -109,6 +114,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                           extra_analysis_integrals = (),
                           analysis_integrals = union(default_analysis_integrals(equations),
                                                      extra_analysis_integrals),
+                          analysis_pointwise = (),
                           RealT = real(solver),
                           uEltype = eltype(cache.elements),
                           kwargs...)
@@ -130,6 +136,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
                                          analysis_filename,
                                          analyzer,
                                          analysis_errors, Tuple(analysis_integrals),
+                                         Tuple(analysis_pointwise),
                                          SVector(ntuple(_ -> zero(uEltype),
                                                         Val(nvariables(equations)))),
                                          cache_analysis)
@@ -156,7 +163,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
 
     analysis_callback = cb.affect!
     analysis_callback.initial_state_integrals = initial_state_integrals
-    @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
+    @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals, analysis_pointwise = analysis_callback
 
     if save_analysis && mpi_isroot()
         mkpath(output_directory)
@@ -198,6 +205,10 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
             end
 
             for quantity in analysis_integrals
+                @printf(io, "   %-14s", pretty_form_ascii(quantity))
+            end
+
+            for quantity in analysis_pointwise
                 @printf(io, "   %-14s", pretty_form_ascii(quantity))
             end
 
@@ -337,8 +348,8 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         @notimeit timer() integrator.f(du_ode, u_ode, semi, t)
         u = wrap_array(u_ode, mesh, equations, solver, cache)
         du = wrap_array(du_ode, mesh, equations, solver, cache)
-        # Compute l2_error, linf_error
-        analysis_callback(io, du, u, u_ode, t, semi)
+        # Compute l2_error, linf_error among other quantities
+        analysis_callback(io, du, u, u_ode, t, semi, iter)
 
         mpi_println("─"^100)
         mpi_println()
@@ -365,8 +376,8 @@ end
 
 # This method is just called internally from `(analysis_callback::AnalysisCallback)(integrator)`
 # and serves as a function barrier. Additionally, it makes the code easier to profile and optimize.
-function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
-    @unpack analyzer, analysis_errors, analysis_integrals = analysis_callback
+function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi, iter)
+    @unpack analyzer, analysis_errors, analysis_integrals, analysis_pointwise = analysis_callback
     cache_analysis = analysis_callback.cache
     _, equations, _, _ = mesh_equations_solver_cache(semi)
 
@@ -484,6 +495,8 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
 
     # additional integrals
     analyze_integrals(analysis_integrals, io, du, u, t, semi)
+    # additional pointwise quantities
+    analyze_pointwise(analysis_pointwise, du, u, t, semi, iter)
 
     return nothing
 end
@@ -569,6 +582,26 @@ function analyze_integrals(analysis_integrals::Tuple{}, io, du, u, t, semi)
     nothing
 end
 
+# Iterate over tuples of pointwise analysis quantities in a type-stable way using "lispy tuple programming".
+function analyze_pointwise(analysis_quantities::NTuple{N, Any}, du, u, t,
+                           semi, iter) where {N}
+
+    # Extract the first pointwise analysis quantity and process it; keep the remaining to be processed later
+    quantity = first(analysis_quantities)
+    remaining_quantities = Base.tail(analysis_quantities)
+
+    analyze(quantity, du, u, t, semi, iter)
+
+    # Recursively call this method with the unprocessed pointwise analysis quantities
+    analyze_pointwise(remaining_quantities, du, u, t, semi, iter)
+    return nothing
+end
+
+# terminate the type-stable iteration over tuples
+function analyze_pointwise(analysis_quantities::Tuple{}, du, u, t, semi, iter)
+    nothing
+end
+
 # used for error checks and EOC analysis
 function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
                                                                 Affect! <:
@@ -589,6 +622,10 @@ end
 function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     analyze(quantity, du, u, t, mesh, equations, solver, cache)
+end
+function analyze(quantity, du, u, t, semi::AbstractSemidiscretization, iter)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    analyze(quantity, du, u, t, mesh, equations, solver, cache, iter)
 end
 function analyze(quantity, du, u, t, mesh, equations, solver, cache)
     integrate(quantity, u, mesh, equations, solver, cache, normalize = true)
@@ -653,6 +690,7 @@ end # @muladd
 include("analysis_dg1d.jl")
 include("analysis_dg2d.jl")
 include("analysis_surface_integral_2d.jl")
+include("analysis_surface_pointwise_2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
@@ -661,7 +699,8 @@ include("analysis_dg3d_parallel.jl")
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
 # Note that this needs to be included after `analysis_surface_integral_2d.jl` to
 # have `VariableViscous` available.
-function analyze(quantity::AnalysisSurfaceIntegral{Variable},
+function analyze(quantity::Union{AnalysisSurfaceIntegral{Variable},
+                                 AnalysisSurfacePointwise{Variable}},
                  du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic) where {
                                                                      Variable <:
@@ -671,4 +710,17 @@ function analyze(quantity::AnalysisSurfaceIntegral{Variable},
     cache_parabolic = semi.cache_parabolic
     analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
             cache_parabolic)
+end
+function analyze(quantity::Union{AnalysisSurfaceIntegral{Variable},
+                                 AnalysisSurfacePointwise{Variable}},
+                 du, u, t,
+                 semi::SemidiscretizationHyperbolicParabolic,
+                 iter) where {
+                              Variable <:
+                              VariableViscous}
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+            cache_parabolic, iter)
 end

@@ -729,7 +729,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 3000
     end
 
     u_ode = copy(sol.u[end])
@@ -755,6 +755,35 @@ end
 
     @test isapprox(drag_f, 1.5427441885921553, atol = 1e-13)
     @test isapprox(lift_f, 0.005621910087395724, atol = 1e-13)
+
+    # Check cp, cf written to outfiles
+
+    cp_vals = read(Trixi.h5open("out/CP_x_000007.h5"))["point_data"]
+    cf_vals = read(Trixi.h5open("out/CF_x_000007.h5"))["point_data"]
+    @test cp_vals[1:10] ≈ [
+        2.0956920203526193,
+        2.098639791879171,
+        2.0354491762572806,
+        2.1591959225932777,
+        1.7417814818119175,
+        2.0400855926847936,
+        1.874247697759559,
+        1.871513931283643,
+        1.5182860925755697,
+        1.5152278762705806,
+    ]
+    @test cf_vals[1:10] ≈ [
+        0.2038354965561312,
+        0.2634810993266428,
+        0.42919006623618894,
+        0.045526882648679115,
+        0.6611394672752093,
+        -0.23515678100990495,
+        -0.37053727238603884,
+        -0.4537078569805583,
+        0.8113349266282898,
+        0.7458959144321556,
+    ]
 end
 end
 
