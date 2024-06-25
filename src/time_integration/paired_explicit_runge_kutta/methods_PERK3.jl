@@ -182,7 +182,7 @@ Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively 
 [Arxiv: 10.48550/arXiv.2403.05144](https://doi.org/10.48550/arXiv.2403.05144)
 """
 mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
-    const num_stages::Int
+    const num_stages::Int # S
 
     a_matrix::Matrix{Float64}
     c::Vector{Float64}
