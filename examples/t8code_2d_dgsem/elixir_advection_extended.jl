@@ -10,24 +10,26 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
-# you can either use a single function to impose the BCs weakly in all
-# 1*ndims == 2 directions or you can pass a tuple containing BCs for
-# each direction
-# Note: "boundary_condition_periodic" indicates that it is a periodic boundary and can be omitted on
-#       fully periodic domains. Here, however, it is included to allow easy override during testing
-boundary_conditions = boundary_condition_periodic
+# BCs must be passed as Dict
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = Dict(:x_neg => boundary_condition,
+                           :x_pos => boundary_condition,
+                           :y_neg => boundary_condition,
+                           :y_pos => boundary_condition)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
+# The initial condition is 2-periodic
+coordinates_min = (-1.5, 1.3) # minimum coordinates (min(x), min(y))
+coordinates_max = (0.5, 5.3) # maximum coordinates (max(x), max(y))
 
-# Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
-                periodicity = true)
+trees_per_dimension = (19, 37)
+
+# Create curved mesh with 19 x 37 elements
+mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
+                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                  periodicity = false)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -53,7 +55,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
-save_restart = SaveRestartCallback(interval = 40,
+save_restart = SaveRestartCallback(interval = 100,
                                    save_final_restart = true)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
@@ -75,11 +77,9 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-alg = CarpenterKennedy2N54(williamson_condition = false)
-sol = solve(ode, alg,
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            callback = callbacks;
-            ode_default_options()...); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
+            save_everystep = false, callback = callbacks);
 
 # Print the timer summary
 summary_callback()

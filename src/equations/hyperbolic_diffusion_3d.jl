@@ -49,16 +49,22 @@ end
 function initial_condition_poisson_nonperiodic(x, t,
                                                equations::HyperbolicDiffusionEquations3D)
     # elliptic equation: -νΔϕ = f
-    if t == 0.0
-        phi = 1.0
-        q1 = 1.0
-        q2 = 1.0
-        q3 = 1.0
+    RealT = eltype(x)
+    if t == 0
+        phi = one(RealT)
+        q1 = one(RealT)
+        q2 = one(RealT)
+        q3 = one(RealT)
     else
-        phi = 2.0 * cos(pi * x[1]) * sin(2.0 * pi * x[2]) * sin(2.0 * pi * x[3]) + 2.0 # ϕ
-        q1 = -2.0 * pi * sin(pi * x[1]) * sin(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_x
-        q2 = 4.0 * pi * cos(pi * x[1]) * cos(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_y
-        q3 = 4.0 * pi * cos(pi * x[1]) * sin(2.0 * pi * x[2]) * cos(2.0 * pi * x[3])   # ϕ_z
+        phi = 2 * cospi(x[1]) *
+              sinpi(2 * x[2]) *
+              sinpi(2 * x[3]) + 2 # ϕ
+        q1 = -2 * convert(RealT, pi) * sinpi(x[1]) *
+             sinpi(2 * x[2]) * sinpi(2 * x[3])   # ϕ_x
+        q2 = 4 * convert(RealT, pi) * cospi(x[1]) *
+             cospi(2 * x[2]) * sinpi(2 * x[3])   # ϕ_y
+        q3 = 4 * convert(RealT, pi) * cospi(x[1]) *
+             sinpi(2 * x[2]) * cospi(2 * x[3])   # ϕ_z
     end
     return SVector(phi, q1, q2, q3)
 end
@@ -67,10 +73,11 @@ end
                                                   equations::HyperbolicDiffusionEquations3D)
     # elliptic equation: -νΔϕ = f
     # analytical solution: ϕ = 2 cos(πx)sin(2πy)sin(2πz) + 2 and f = 18 π^2 cos(πx)sin(2πy)sin(2πz)
+    RealT = eltype(u)
     @unpack inv_Tr = equations
 
     x1, x2, x3 = x
-    du1 = 18 * pi^2 * cospi(x1) * sinpi(2 * x2) * sinpi(2 * x3)
+    du1 = 18 * convert(RealT, pi)^2 * cospi(x1) * sinpi(2 * x2) * sinpi(2 * x3)
     du2 = -inv_Tr * u[2]
     du3 = -inv_Tr * u[3]
     du4 = -inv_Tr * u[4]
@@ -82,10 +89,15 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
                                                 surface_flux_function,
                                                 equations::HyperbolicDiffusionEquations3D)
     # elliptic equation: -νΔϕ = f
-    phi = 2.0 * cos(pi * x[1]) * sin(2.0 * pi * x[2]) * sin(2.0 * pi * x[3]) + 2.0 # ϕ
-    q1 = -2.0 * pi * sin(pi * x[1]) * sin(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_x
-    q2 = 4.0 * pi * cos(pi * x[1]) * cos(2.0 * pi * x[2]) * sin(2.0 * pi * x[3])   # ϕ_y
-    q3 = 4.0 * pi * cos(pi * x[1]) * sin(2.0 * pi * x[2]) * cos(2.0 * pi * x[3])   # ϕ_z
+    RealT = eltype(u_inner)
+    phi = 2 * cospi(x[1]) * sinpi(2 * x[2]) *
+          sinpi(2 * x[3]) + 2 # ϕ
+    q1 = -2 * convert(RealT, pi) * sinpi(x[1]) *
+         sinpi(2 * x[2]) * sinpi(2 * x[3])   # ϕ_x
+    q2 = 4 * convert(RealT, pi) * cospi(x[1]) *
+         cospi(2 * x[2]) * sinpi(2 * x[3])   # ϕ_y
+    q3 = 4 * convert(RealT, pi) * cospi(x[1]) *
+         sinpi(2 * x[2]) * cospi(2 * x[3])   # ϕ_z
     u_boundary = SVector(phi, q1, q2, q3)
 
     # Calculate boundary flux
@@ -108,7 +120,7 @@ Source term that only includes the forcing from the hyperbolic diffusion system.
     # harmonic solution ϕ = (sinh(πx)sin(πy) + sinh(πy)sin(πx))/sinh(π), so f = 0
     @unpack inv_Tr = equations
 
-    du1 = zero(u[1])
+    du1 = 0
     du2 = -inv_Tr * u[2]
     du3 = -inv_Tr * u[3]
     du4 = -inv_Tr * u[4]
@@ -129,13 +141,15 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
                                                           equations::HyperbolicDiffusionEquations3D)
 
     # Determine phi_x, phi_y
-    G = 1.0 # gravitational constant
-    C_grav = -4 * G / (3 * pi) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
-    A = 0.1 # perturbation coefficient must match Euler setup
-    rho1 = A * sin(pi * (x[1] + x[2] + x[3] - t))
+    RealT = eltype(x)
+    G = 1 # gravitational constant
+    C_grav = -4 * G / (3 * convert(RealT, pi)) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
+    A = convert(RealT, 0.1) # perturbation coefficient must match Euler setup
+    rho1 = A * sinpi(x[1] + x[2] + x[3] - t)
     # initialize with ansatz of gravity potential
     phi = C_grav * rho1
-    q1 = C_grav * A * pi * cos(pi * (x[1] + x[2] + x[3] - t)) # = gravity acceleration in x-direction
+    q1 = C_grav * A * convert(RealT, pi) *
+         cospi(x[1] + x[2] + x[3] - t) # = gravity acceleration in x-direction
     q2 = q1                                                 # = gravity acceleration in y-direction
     q3 = q1                                                 # = gravity acceleration in z-direction
 
@@ -147,20 +161,21 @@ end
                       equations::HyperbolicDiffusionEquations3D)
     phi, q1, q2, q3 = u
 
+    RealT = eltype(u)
     if orientation == 1
         f1 = -equations.nu * q1
         f2 = -phi * equations.inv_Tr
-        f3 = zero(phi)
-        f4 = zero(phi)
+        f3 = zero(RealT)
+        f4 = zero(RealT)
     elseif orientation == 2
         f1 = -equations.nu * q2
-        f2 = zero(phi)
+        f2 = zero(RealT)
         f3 = -phi * equations.inv_Tr
-        f4 = zero(phi)
+        f4 = zero(RealT)
     else
         f1 = -equations.nu * q3
-        f2 = zero(phi)
-        f3 = zero(phi)
+        f2 = zero(RealT)
+        f3 = zero(RealT)
         f4 = -phi * equations.inv_Tr
     end
 
@@ -184,19 +199,19 @@ end
     # this is an optimized version of the application of the upwind dissipation matrix:
     #   dissipation = 0.5*R_n*|Λ|*inv(R_n)[[u]]
     λ_max = sqrt(equations.nu * equations.inv_Tr)
-    f1 = 1 / 2 * (f_ll[1] + f_rr[1]) - 1 / 2 * λ_max * (phi_rr - phi_ll)
+    f1 = 0.5f0 * (f_ll[1] + f_rr[1]) - 0.5f0 * λ_max * (phi_rr - phi_ll)
     if orientation == 1 # x-direction
-        f2 = 1 / 2 * (f_ll[2] + f_rr[2]) - 1 / 2 * λ_max * (q1_rr - q1_ll)
-        f3 = 1 / 2 * (f_ll[3] + f_rr[3])
-        f4 = 1 / 2 * (f_ll[4] + f_rr[4])
+        f2 = 0.5f0 * (f_ll[2] + f_rr[2]) - 0.5f0 * λ_max * (q1_rr - q1_ll)
+        f3 = 0.5f0 * (f_ll[3] + f_rr[3])
+        f4 = 0.5f0 * (f_ll[4] + f_rr[4])
     elseif orientation == 2 # y-direction
-        f2 = 1 / 2 * (f_ll[2] + f_rr[2])
-        f3 = 1 / 2 * (f_ll[3] + f_rr[3]) - 1 / 2 * λ_max * (q2_rr - q2_ll)
-        f4 = 1 / 2 * (f_ll[4] + f_rr[4])
+        f2 = 0.5f0 * (f_ll[2] + f_rr[2])
+        f3 = 0.5f0 * (f_ll[3] + f_rr[3]) - 0.5f0 * λ_max * (q2_rr - q2_ll)
+        f4 = 0.5f0 * (f_ll[4] + f_rr[4])
     else # y-direction
-        f2 = 1 / 2 * (f_ll[2] + f_rr[2])
-        f3 = 1 / 2 * (f_ll[3] + f_rr[3])
-        f4 = 1 / 2 * (f_ll[4] + f_rr[4]) - 1 / 2 * λ_max * (q3_rr - q3_ll)
+        f2 = 0.5f0 * (f_ll[2] + f_rr[2])
+        f3 = 0.5f0 * (f_ll[3] + f_rr[3])
+        f4 = 0.5f0 * (f_ll[4] + f_rr[4]) - 0.5f0 * λ_max * (q3_rr - q3_ll)
     end
 
     return SVector(f1, f2, f3, f4)
@@ -232,6 +247,6 @@ end
 @inline function energy_total(u, equations::HyperbolicDiffusionEquations3D)
     # energy function as found in equation (2.5.12) in the book "I Do Like CFD, Vol. 1"
     phi, q1, q2, q3 = u
-    return 0.5 * (phi^2 + equations.Lr^2 * (q1^2 + q2^2 + q3^2))
+    return 0.5f0 * (phi^2 + equations.Lr^2 * (q1^2 + q2^2 + q3^2))
 end
 end # @muladd

@@ -38,9 +38,10 @@ A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation3D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    return SVector(2.0)
+    return SVector(RealT(2))
 end
 
 """
@@ -51,13 +52,14 @@ A smooth initial condition used for convergence tests.
 function initial_condition_convergence_test(x, t,
                                             equation::LinearScalarAdvectionEquation3D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    c = 1.0
-    A = 0.5
+    c = 1
+    A = 0.5f0
     L = 2
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * sum(x_trans))
     return SVector(scalar)
 end
@@ -82,10 +84,10 @@ A sine wave in the conserved variable.
 """
 function initial_condition_sin(x, t, equation::LinearScalarAdvectionEquation3D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    scalar = sin(2 * pi * x_trans[1]) * sin(2 * pi * x_trans[2]) *
-             sin(2 * pi * x_trans[3])
+    scalar = sinpi(2 * x_trans[1]) * sinpi(2 * x_trans[2]) * sinpi(2 * x_trans[3])
     return SVector(scalar)
 end
 
@@ -199,11 +201,11 @@ end
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation3D) = u
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5 * u^2
+@inline entropy(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation3D) = entropy(u[1], equation)
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5 * u^2
+@inline energy_total(u::Real, ::LinearScalarAdvectionEquation3D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation3D)
     energy_total(u[1], equation)
 end

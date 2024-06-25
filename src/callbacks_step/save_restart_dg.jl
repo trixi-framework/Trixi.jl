@@ -48,7 +48,8 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
-                                       UnstructuredMesh2D, SerialP4estMesh},
+                                       UnstructuredMesh2D, SerialP4estMesh,
+                                       SerialT8codeMesh},
                            equations, dg::DG, cache, restart_file)
 
     # allocate memory
@@ -88,7 +89,8 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
 end
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations,
+                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                       ParallelT8codeMesh}, equations,
                            dg::DG, cache,
                            restart_callback)
     @unpack output_directory = restart_callback
@@ -105,7 +107,8 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 function save_restart_file_parallel(u, time, dt, timestep,
-                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                                ParallelT8codeMesh},
                                     equations, dg::DG, cache,
                                     filename)
 
@@ -126,7 +129,7 @@ function save_restart_file_parallel(u, time, dt, timestep,
         attributes(file)["equations"] = get_name(equations)
         attributes(file)["polydeg"] = polydeg(dg)
         attributes(file)["n_vars"] = nvariables(equations)
-        attributes(file)["n_elements"] = nelementsglobal(dg, cache)
+        attributes(file)["n_elements"] = nelementsglobal(mesh, dg, cache)
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
         attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
@@ -151,7 +154,8 @@ function save_restart_file_parallel(u, time, dt, timestep,
 end
 
 function save_restart_file_on_root(u, time, dt, timestep,
-                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                               ParallelT8codeMesh},
                                    equations, dg::DG, cache,
                                    filename)
 
@@ -204,7 +208,8 @@ function save_restart_file_on_root(u, time, dt, timestep,
     return filename
 end
 
-function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations,
+function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                       ParallelT8codeMesh}, equations,
                            dg::DG, cache, restart_file)
     if HDF5.has_parallel()
         load_restart_file_parallel(mesh, equations, dg, cache, restart_file)
@@ -213,7 +218,8 @@ function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equ
     end
 end
 
-function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                                ParallelT8codeMesh},
                                     equations, dg::DG, cache, restart_file)
 
     # Calculate element and node counts by MPI rank
@@ -239,7 +245,7 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
         if read(attributes(file)["polydeg"]) != polydeg(dg)
             error("restart mismatch: polynomial degree in solver differs from value in restart file")
         end
-        if read(attributes(file)["n_elements"]) != nelementsglobal(dg, cache)
+        if read(attributes(file)["n_elements"]) != nelementsglobal(mesh, dg, cache)
             error("restart mismatch: number of elements in solver differs from value in restart file")
         end
 
@@ -264,7 +270,8 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
     return u_ode
 end
 
-function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                               ParallelT8codeMesh},
                                    equations, dg::DG, cache, restart_file)
 
     # Calculate element and node counts by MPI rank
