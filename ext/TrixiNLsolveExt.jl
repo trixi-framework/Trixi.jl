@@ -9,16 +9,11 @@ else
     using ..NLsolve: nlsolve
 end
 
-# Use other necessary libraries
-using LinearAlgebra: norm
-
 using Random: seed!
 
-# Use functions and additional symbols that are not exported
-using Trixi: Trixi, PairedExplicitRK3_butcher_tableau_objective_function, @muladd
-
-# Use functions that are to be extended
-using Trixi: Trixi, solve_a_unknown!
+# Use functions that are to be extended and additional symbols that are not exported
+using Trixi: Trixi, solve_a_unknown!, PairedExplicitRK3_butcher_tableau_objective_function,
+             @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
