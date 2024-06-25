@@ -52,7 +52,7 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
         a_unknown = sol.zero
 
         # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver) 
-        # and also c[i] - a[i, i-1] >= 0.0 since all coefficients are non-negative
+        # and also c[i] - a[i, i-1] >= 0.0 since all coefficients should be non-negative
         is_sol_valid = all(x -> !isnan(x) && x >= 0, a_unknown) &&
                        all(x -> !isnan(x) && x >= 0, c[3:end] .- a_unknown)
 
