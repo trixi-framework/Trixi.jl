@@ -825,6 +825,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             # TODO: BC tests for GradientVariablesPrimitive
             # TODO: BC tests for GradientVariablesEntropy
+        end
+    end
 
     @timed_testset "Hyperbolic Diffusion 1D" begin
         for RealT in (Float32, Float64)
