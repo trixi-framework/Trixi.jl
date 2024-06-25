@@ -13,6 +13,10 @@ for human readability.
 - The specification of boundary names on which `AnalysisSurfaceIntegral`s are computed (such as drag and lift coefficients) has changed from `Symbol` and `Vector{Symbol}` to `NTuple{Symbol}`.
 Thus, for one boundary the syntax changes from `:boundary` to `(:boundary,)` and for `Vector`s `[:boundary1, :boundary2]` to `(:boundary1, boundary2)`.
 
+#### Deprecated
+
+#### Removed
+
 ## Changes in the v0.7 lifecycle
 
 #### Added
