@@ -9,6 +9,8 @@ else
     using ..NLsolve: nlsolve
 end
 
+# We use a random initialization of the nonlinear solver.
+# To make the tests reproducible, we need to seed the RNG
 using Random: seed!
 
 # Use functions that are to be extended and additional symbols that are not exported
