@@ -72,7 +72,8 @@ function Base.resize!(elements::T8codeFVElementContainer, capacity)
     resize!(elements.reconstruction_distance, capacity)
 
     resize!(_reconstruction_gradient, n_dims * n_variables * capacity)
-    elements.reconstruction_gradient = unsafe_wrap(Array, pointer(_reconstruction_gradient),
+    elements.reconstruction_gradient = unsafe_wrap(Array,
+                                                   pointer(_reconstruction_gradient),
                                                    (ndims, n_variables, capacity))
 
     return nothing
