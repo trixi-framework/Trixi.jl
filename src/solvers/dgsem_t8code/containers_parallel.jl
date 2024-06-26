@@ -22,7 +22,8 @@ function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM
 
                      # Temporary arrays for updating `mpi_cache`.
                      global_mortar_ids = fill(UInt128(0), nmpimortars(mpi_mortars)),
-                     global_interface_ids = fill(UInt128(0), nmpiinterfaces(mpi_interfaces)),
+                     global_interface_ids = fill(UInt128(0),
+                                                 nmpiinterfaces(mpi_interfaces)),
                      neighbor_ranks_mortar = Vector{Vector{Int}}(undef,
                                                                  nmpimortars(mpi_mortars)),
                      neighbor_ranks_interface = fill(-1, nmpiinterfaces(mpi_interfaces)))
