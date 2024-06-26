@@ -351,21 +351,21 @@ or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 ## Participating research groups
 Participating research groups in alphabetical order:
 
-[Applied and Computational Mathematics, RWTH Aachen University :de:](https://www.acom.rwth-aachen.de)
+[Applied and Computational Mathematics, RWTH Aachen University 🇩🇪](https://www.acom.rwth-aachen.de)
 
-[Applied Mathematics, Department of Mathematics, University of Hamburg :de:](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
+[Applied Mathematics, Department of Mathematics, University of Hamburg 🇩🇪](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
 
-[Applied Mathematics, Linköping University :sweden:](https://liu.se/en/employee/andwi94)
+[Applied Mathematics, Linköping University 🇸🇪](https://liu.se/en/employee/andwi94)
 
-[Computational and Applied Mathematics, Rice University :us:](https://jlchan.github.io/)
+[Computational and Applied Mathematics, Rice University 🇺🇸](https://jlchan.github.io/)
 
-[High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) :de:](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
+[High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) 🇩🇪](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
 
-[High-Performance Scientific Computing, University of Augsburg :de:](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
+[High-Performance Scientific Computing, University of Augsburg 🇩🇪](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
 
-[Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz :de:](https://ranocha.de)
+[Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz 🇩🇪](https://ranocha.de)
 
-[Numerical Simulation, Department of Mathematics and Computer Science, University of Cologne :de:](https://www.mi.uni-koeln.de/NumSim/)
+[Numerical Simulation, Department of Mathematics and Computer Science, University of Cologne 🇩🇪](https://www.mi.uni-koeln.de/NumSim/)
 
 
 ## Acknowledgments
