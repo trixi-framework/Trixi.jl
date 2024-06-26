@@ -1,5 +1,3 @@
-using Printf
-
 """
     T8codeMesh{NDIMS} <: AbstractMesh{NDIMS}
 
