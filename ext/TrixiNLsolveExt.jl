@@ -27,7 +27,7 @@ using Trixi: Trixi, solve_a_unknown!, PairedExplicitRK3_butcher_tableau_objectiv
 # For details, see Proposition 3.2, Equation (3.3) from 
 # Hairer, Wanner: Solving Ordinary Differential Equations 2
 function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
-                                verbose)
+                                verbose, max_iter = 100000)
     is_sol_valid = false
 
     # Define the objective_function
@@ -40,7 +40,7 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
 
     seed!(5555)
 
-    while !is_sol_valid
+    for _ in 1:max_iter
         # Due to the nature of the nonlinear solver, different initial guesses can lead to 
         # small numerical differences in the solution.
         # To ensure consistency and reproducibility of results across runs, we use 
@@ -58,12 +58,16 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
         is_sol_valid = all(x -> !isnan(x) && x >= 0, a_unknown) &&
                        all(x -> !isnan(x) && x >= 0, c[3:end] .- a_unknown)
 
-        if verbose && !is_sol_valid
-            println("Solution invalid. Restart the process of solving non-linear system of equations again.")
+        if is_sol_valid
+            return a_unknown
+        else
+            if verbose
+                println("Solution invalid. Restart the process of solving non-linear system of equations again.")
+            end
         end
     end
 
-    return a_unknown
+    error("Maximum number of iterations ($max_iter) reached. Cannot find valid sets of coefficients.")
 end
 end # @muladd
 
