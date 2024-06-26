@@ -1,3 +1,5 @@
+using Printf
+
 """
     T8codeMesh{NDIMS} <: AbstractMesh{NDIMS}
 
@@ -972,10 +974,10 @@ function count_interfaces(forest::Ptr{t8_forest}, ndims)
     local_num_mpi_conform = 0
     local_num_mpi_mortars = 0
 
-    visited_global_mortar_ids = Set{UInt64}([])
+    visited_global_mortar_ids = Set{UInt128}([])
 
     max_level = t8_forest_get_maxlevel(forest) #UInt64
-    max_tree_num_elements = UInt64(2^ndims)^max_level
+    max_tree_num_elements = UInt128(2^ndims)^max_level
 
     if mpi_isparallel()
         ghost_num_trees = t8_forest_ghost_num_trees(forest)
@@ -1144,12 +1146,12 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
     # Helper variables to compute unique global MPI interface/mortar ids.
     max_level = t8_forest_get_maxlevel(mesh.forest) #UInt64
-    max_tree_num_elements = UInt64(2^ndims(mesh))^max_level
+    max_tree_num_elements = (UInt128(2)^ndims(mesh))^max_level
 
     # These two variables help to ensure that we count MPI mortars from smaller
     # elements point of view only once.
-    visited_global_mortar_ids = Set{UInt64}([])
-    global_mortar_id_to_local = Dict{UInt64, Int}([])
+    visited_global_mortar_ids = Set{UInt128}([])
+    global_mortar_id_to_local = Dict{UInt128, Int}([])
 
     cmesh = t8_forest_get_cmesh(mesh.forest)
 
