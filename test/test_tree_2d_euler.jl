@@ -214,16 +214,48 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_shockcapturing_subcell.jl"),
                         l2=[
-                            0.08508147906199143,
-                            0.04510299017724501,
-                            0.045103019801950375,
-                            0.6930704343869766,
+                            0.08508152653623638,
+                            0.04510301725066843,
+                            0.04510304668512745,
+                            0.6930705064715306,
                         ],
                         linf=[
-                            0.31123546471463326,
-                            0.5616274869594462,
-                            0.5619692712224448,
-                            2.88670199345138,
+                            0.31136518019691406,
+                            0.5617651935473419,
+                            0.5621200790240503,
+                            2.8866869108596056,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_shockcapturing_subcell.jl (fixed time step)" begin
+    # Testing local SSP method without stepsize callback
+    # Additionally, tests combination with SaveSolutionCallback using time interval
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shockcapturing_subcell.jl"),
+                        dt=2.0e-3,
+                        tspan=(0.0, 0.25),
+                        save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8),
+                        callbacks=CallbackSet(summary_callback, save_solution,
+                                              analysis_callback, alive_callback),
+                        l2=[
+                            0.05624855363458103,
+                            0.06931288786158463,
+                            0.06931283188960778,
+                            0.6200535829842072,
+                        ],
+                        linf=[
+                            0.29029967648805566,
+                            0.6494728865862608,
+                            0.6494729363533714,
+                            3.0949621505674787,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -317,16 +349,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
                         l2=[
-                            0.3517507570120483,
-                            0.19252291020146015,
-                            0.19249751956580294,
-                            0.618717827188004,
+                            0.3221177942225801,
+                            0.1798478357478982,
+                            0.1798364616438908,
+                            0.6136884131056267,
                         ],
                         linf=[
-                            1.6699566795772216,
-                            1.3608007992899402,
-                            1.361864507190922,
-                            2.44022884092527,
+                            1.343766644801395,
+                            1.1749593109683463,
+                            1.1747613085307178,
+                            2.4216006041018785,
                         ],
                         tspan=(0.0, 0.5),
                         initial_refinement_level=4,
@@ -368,23 +400,37 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.4328635350273501,
-                            0.15011135840723572,
-                            0.15011135840723572,
-                            0.616129927549474,
+                            0.41444427153173785,
+                            0.1460669409661223,
+                            0.14606693069201596,
+                            0.6168046457461059,
                         ],
                         linf=[
-                            1.6145297181778906,
-                            0.8614006163026988,
-                            0.8614006163026972,
-                            6.450225090647602,
+                            1.5720584643579567,
+                            0.7946656826861964,
+                            0.7946656525739751,
+                            6.455520291414711,
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
+                        coverage_override=(maxiters = 6,),
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] == "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min"
+    cmd = string(Base.julia_cmd())
+    coverage = occursin("--code-coverage", cmd) &&
+               !occursin("--code-coverage=none", cmd)
+    if coverage
+        # Run with coverage takes 6 time steps.
+        @test startswith(lines[end], "6")
+    else
+        # Run without coverage takes 89 time steps.
+        @test startswith(lines[end], "89")
+    end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -578,6 +624,39 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    rm(joinpath("out", "deviations.txt"), force = true)
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_kelvin_helmholtz_instability_sc_subcell.jl"),
+                        l2=[
+                            0.42185634563805724,
+                            0.1686471269704017,
+                            0.18240674916968103,
+                            0.17858250604280654,
+                        ],
+                        linf=[
+                            1.7012978064377158,
+                            0.7149714986746726,
+                            0.5822547982757897,
+                            0.7300051017382696,
+                        ],
+                        tspan=(0.0, 2.0),
+                        coverage_override=(maxiters = 7,),
+                        save_errors=true)
+    lines = readlines(joinpath("out", "deviations.txt"))
+    @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
+    # Run without (with) coverage takes 745 (7) time steps
+    @test startswith(lines[end], "7")
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 
@@ -831,6 +910,32 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_warm_bubble.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_warm_bubble.jl"),
+                        l2=[
+                            0.0001379946769624388,
+                            0.02078779689715382,
+                            0.033237241571263176,
+                            31.36068872331705,
+                        ],
+                        linf=[
+                            0.0016286690573188434,
+                            0.15623770697198225,
+                            0.3341371832270615,
+                            334.5373488726036,
+                        ],
+                        tspan=(0.0, 10.0),
+                        initial_refinement_level=4)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 100
     end
 end
 

@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations1D(; gravity, H0 = 0, threshold_limiter = nothing threshold_wet = nothing)
+    ShallowWaterEquations1D(; gravity, H0 = 0)
 
 Shallow water equations (SWE) in one space dimension. The equations are given by
 ```math
@@ -23,12 +23,6 @@ also defines the total water height as ``H = h + b``.
 
 The additional quantity ``H_0`` is also available to store a reference value for the total water height that
 is useful to set initial conditions or test the "lake-at-rest" well-balancedness.
-
-Also, there are two thresholds which prevent numerical problems as well as instabilities. Both of them do not
-have to be passed, as default values are defined within the struct. The first one, `threshold_limiter`, is
-used in [`PositivityPreservingLimiterShallowWater`](@ref) on the water height, as a (small) shift on the initial
-condition and cutoff before the next time step. The second one, `threshold_wet`, is applied on the water height to
-define when the flow is "wet" before calculating the numerical flux.
 
 The bottom topography function ``b(x)`` is set inside the initial condition routine
 for a particular problem setup. To test the conservative form of the SWE one can set the bottom topography
@@ -51,35 +45,16 @@ References for the SWE are many but a good introduction is available in Chapter 
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 struct ShallowWaterEquations1D{RealT <: Real} <: AbstractShallowWaterEquations{1, 3}
-    # TODO: TrixiShallowWater: where should the `threshold_limiter` and `threshold_wet` live?
-    # how to "properly" export these constants across the two packages?
     gravity::RealT # gravitational constant
     H0::RealT      # constant "lake-at-rest" total water height
-    # `threshold_limiter` used in `PositivityPreservingLimiterShallowWater` on water height,
-    # as a (small) shift on the initial condition and cutoff before the next time step.
-    # Default is 500*eps() which in double precision is ≈1e-13.
-    threshold_limiter::RealT
-    # `threshold_wet` applied on water height to define when the flow is "wet"
-    # before calculating the numerical flux.
-    # Default is 5*eps() which in double precision is ≈1e-15.
-    threshold_wet::RealT
 end
 
 # Allow for flexibility to set the gravitational constant within an elixir depending on the
 # application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases.
-# Strict default values for thresholds that performed well in many numerical experiments
-function ShallowWaterEquations1D(; gravity_constant, H0 = zero(gravity_constant),
-                                 threshold_limiter = nothing, threshold_wet = nothing)
-    T = promote_type(typeof(gravity_constant), typeof(H0))
-    if threshold_limiter === nothing
-        threshold_limiter = 500 * eps(T)
-    end
-    if threshold_wet === nothing
-        threshold_wet = 5 * eps(T)
-    end
-    ShallowWaterEquations1D(gravity_constant, H0, threshold_limiter, threshold_wet)
+function ShallowWaterEquations1D(; gravity_constant, H0 = zero(gravity_constant))
+    ShallowWaterEquations1D(gravity_constant, H0)
 end
 
 have_nonconservative_terms(::ShallowWaterEquations1D) = True()
@@ -332,54 +307,6 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
                    z)
 end
 
-# TODO: TrixiShallowWater: move wet/dry specific routine
-"""
-    flux_nonconservative_chen_noelle(u_ll, u_rr,
-                                     orientation::Integer,
-                                     equations::ShallowWaterEquations1D)
-
-Non-symmetric two-point surface flux that discretizes the nonconservative (source) term.
-The discretization uses the `hydrostatic_reconstruction_chen_noelle` on the conservative
-variables.
-
-Should be used together with [`FluxHydrostaticReconstruction`](@ref) and
-[`hydrostatic_reconstruction_chen_noelle`](@ref) in the surface flux to ensure consistency.
-
-Further details on the hydrostatic reconstruction and its motivation can be found in
-- Guoxian Chen and Sebastian Noelle (2017)
-  A new hydrostatic reconstruction scheme based on subcell reconstructions
-  [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
-"""
-@inline function flux_nonconservative_chen_noelle(u_ll, u_rr,
-                                                  orientation::Integer,
-                                                  equations::ShallowWaterEquations1D)
-
-    # Pull the water height and bottom topography on the left
-    h_ll, _, b_ll = u_ll
-    h_rr, _, b_rr = u_rr
-
-    H_ll = h_ll + b_ll
-    H_rr = h_rr + b_rr
-
-    b_star = min(max(b_ll, b_rr), min(H_ll, H_rr))
-
-    # Create the hydrostatic reconstruction for the left solution state
-    u_ll_star, _ = hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, equations)
-
-    # Copy the reconstructed water height for easier to read code
-    h_ll_star = u_ll_star[1]
-
-    z = zero(eltype(u_ll))
-    # Includes two parts:
-    #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
-    #        cross-averaging across a discontinuous bottom topography
-    #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
-    return SVector(z,
-                   equations.gravity * h_ll * b_ll -
-                   equations.gravity * (h_ll_star + h_ll) * (b_ll - b_star),
-                   z)
-end
-
 """
     flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
                                      equations::ShallowWaterEquations1D)
@@ -521,67 +448,6 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
     return u_ll_star, u_rr_star
 end
 
-# TODO: TrixiShallowWater: move wet/dry specific routine
-"""
-    hydrostatic_reconstruction_chen_noelle(u_ll, u_rr, orientation::Integer,
-                                           equations::ShallowWaterEquations1D)
-
-A particular type of hydrostatic reconstruction of the water height to guarantee well-balancedness
-for a general bottom topography of the [`ShallowWaterEquations1D`](@ref). The reconstructed solution states
-`u_ll_star` and `u_rr_star` variables are used to evaluate the surface numerical flux at the interface.
-The key idea is a linear reconstruction of the bottom and water height at the interfaces using subcells.
-Use in combination with the generic numerical flux routine [`FluxHydrostaticReconstruction`](@ref).
-
-Further details on this hydrostatic reconstruction and its motivation can be found in
-- Guoxian Chen and Sebastian Noelle (2017)
-  A new hydrostatic reconstruction scheme based on subcell reconstructions
-  [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
-"""
-@inline function hydrostatic_reconstruction_chen_noelle(u_ll, u_rr,
-                                                        equations::ShallowWaterEquations1D)
-    # Unpack left and right water heights and bottom topographies
-    h_ll, _, b_ll = u_ll
-    h_rr, _, b_rr = u_rr
-
-    # Get the velocities on either side
-    v_ll = velocity(u_ll, equations)
-    v_rr = velocity(u_rr, equations)
-
-    H_ll = b_ll + h_ll
-    H_rr = b_rr + h_rr
-
-    b_star = min(max(b_ll, b_rr), min(H_ll, H_rr))
-
-    # Compute the reconstructed water heights
-    h_ll_star = min(H_ll - b_star, h_ll)
-    h_rr_star = min(H_rr - b_star, h_rr)
-
-    # Set the water height to be at least the value stored in the variable threshold after
-    # the hydrostatic reconstruction is applied and before the numerical flux is calculated
-    # to avoid numerical problem with arbitrary small values. Interfaces with a water height
-    # lower or equal to the threshold can be declared as dry.
-    # The default value for `threshold_wet` is ≈ 5*eps(), or 1e-15 in double precision, is set
-    # in the `ShallowWaterEquations1D` struct. This threshold value can be changed in the constructor
-    # call of this equation struct in an elixir.
-    threshold = equations.threshold_wet
-
-    if (h_ll_star <= threshold)
-        h_ll_star = threshold
-        v_ll = zero(v_ll)
-    end
-
-    if (h_rr_star <= threshold)
-        h_rr_star = threshold
-        v_rr = zero(v_rr)
-    end
-
-    # Create the conservative variables using the reconstruted water heights
-    u_ll_star = SVector(h_ll_star, h_ll_star * v_ll, b_ll)
-    u_rr_star = SVector(h_rr_star, h_rr_star * v_rr, b_rr)
-
-    return u_ll_star, u_rr_star
-end
-
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
@@ -646,39 +512,6 @@ end
     return λ_min, λ_max
 end
 
-# TODO: TrixiShallowWater: move wet/dry specific routine
-"""
-    min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer,
-                              equations::ShallowWaterEquations1D)
-
-The approximated speeds for the HLL type numerical flux used by Chen and Noelle for their
-hydrostatic reconstruction. As they state in the paper, these speeds are chosen for the numerical
-flux to ensure positivity and to satisfy an entropy inequality.
-
-Further details on this hydrostatic reconstruction and its motivation can be found in
-- Guoxian Chen and Sebastian Noelle (2017)
-  A new hydrostatic reconstruction scheme based on subcell reconstructions
-  [DOI:10.1137/15M1053074](https://dx.doi.org/10.1137/15M1053074)
-"""
-@inline function min_max_speed_chen_noelle(u_ll, u_rr, orientation::Integer,
-                                           equations::ShallowWaterEquations1D)
-    # Get the velocity quantities
-    v_ll = velocity(u_ll, equations)
-    v_rr = velocity(u_rr, equations)
-
-    # Calculate the wave celerity on the left and right
-    h_ll = waterheight(u_ll, equations)
-    h_rr = waterheight(u_rr, equations)
-
-    a_ll = sqrt(equations.gravity * h_ll)
-    a_rr = sqrt(equations.gravity * h_rr)
-
-    λ_min = min(v_ll - a_ll, v_rr - a_rr, zero(eltype(u_ll)))
-    λ_max = max(v_ll + a_ll, v_rr + a_rr, zero(eltype(u_ll)))
-
-    return λ_min, λ_max
-end
-
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::ShallowWaterEquations1D)
@@ -718,7 +551,7 @@ end
     h = waterheight(u, equations)
     v = velocity(u, equations)
 
-    c = equations.gravity * sqrt(h)
+    c = sqrt(equations.gravity * h)
     return (abs(v) + c,)
 end
 
@@ -841,20 +674,10 @@ end
 end
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
-# be a constant value over time. Note, assumes there is a single reference
-# water height `H0` with which to compare.
-#
-# TODO: TrixiShallowWater: where should `threshold_limiter` live? May need
-# to modify or have different versions of the `lake_at_rest_error` function
+# be a constant value over time. 
 @inline function lake_at_rest_error(u, equations::ShallowWaterEquations1D)
     h, _, b = u
 
-    # For well-balancedness testing with possible wet/dry regions the reference
-    # water height `H0` accounts for the possibility that the bottom topography
-    # can emerge out of the water as well as for the threshold offset to avoid
-    # division by a "hard" zero water heights as well.
-    H0_wet_dry = max(equations.H0, b + equations.threshold_limiter)
-
-    return abs(H0_wet_dry - (h + b))
+    return abs(equations.H0 - (h + b))
 end
 end # @muladd

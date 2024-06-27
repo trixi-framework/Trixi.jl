@@ -10,17 +10,17 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
     end
 
     binder_logo   = "https://mybinder.org/badge_logo.svg"
-    nbviewer_logo = "https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg"
-    download_logo = "https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e"
+    nbviewer_logo = "https://img.shields.io/badge/render-nbviewer-f37726"
+    raw_notebook_logo = "https://img.shields.io/badge/raw-notebook-4cc61e"
 
     notebook_path = "tutorials/notebooks/$notebook_filename"
     binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=$notebook_path"
     nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/$notebook_path"
-    download_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/$notebook_path"
+    raw_notebook_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/$notebook_path"
 
     binder_badge   = "# [![]($binder_logo)]($binder_url)"
     nbviewer_badge = "# [![]($nbviewer_logo)]($nbviewer_url)"
-    download_badge = "# [![]($download_logo)]($download_url)"
+    raw_notebook_badge = "# [![]($raw_notebook_logo)]($raw_notebook_url)"
 
     # Generate notebook file
     function preprocess_notebook(content)
@@ -32,7 +32,7 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
 
     # Generate markdown file
     function preprocess_docs(content)
-        return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $download_badge\n\n", content)
+        return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $raw_notebook_badge\n\n", content)
     end
     Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder); preprocess=preprocess_docs,)
 end
@@ -75,7 +75,17 @@ function create_tutorials(files)
     end
 
     # Generate markdown file for introduction page
-    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction")
+    # Preprocessing introduction file: Generate consecutive tutorial numbers by replacing
+    # each occurrence of `{index}` with an integer incremented by 1, starting at 1.
+    function preprocess_introduction(content)
+        counter = 1
+        while occursin("{index}", content)
+            content = replace(content, "{index}" => "$counter", count = 1)
+            counter += 1
+        end
+        return content
+    end
+    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction", preprocess=preprocess_introduction)
     # Navigation system for makedocs
     pages = Any["Introduction" => "tutorials/introduction.md",]
 

@@ -17,10 +17,8 @@ A shock-bubble testcase for multicomponent Euler equations
   [arXiv: 1904.00972](https://arxiv.org/abs/1904.00972)
 """
 function initial_condition_shock_bubble(x, t,
-                                        equations::CompressibleEulerMulticomponentEquations2D{
-                                                                                              5,
-                                                                                              2
-                                                                                              })
+                                        equations::CompressibleEulerMulticomponentEquations2D{5,
+                                                                                              2})
     # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
     # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
     # typical domain is rectangular, we change it to a square, as Trixi can only do squares
@@ -88,8 +86,8 @@ volume_flux = flux_ranocha
 basis = LobattoLegendreBasis(3)
 
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                local_minmax_variables_cons = ["rho" * string(i)
-                                                               for i in eachcomponent(equations)])
+                                local_twosided_variables_cons = ["rho" * string(i)
+                                                                 for i in eachcomponent(equations)])
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)

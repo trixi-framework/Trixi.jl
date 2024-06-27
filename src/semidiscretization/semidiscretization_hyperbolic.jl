@@ -29,17 +29,18 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
     performance_counter::PerformanceCounter
 
     function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
-                                          BoundaryConditions, SourceTerms, Solver, Cache
-                                          }(mesh::Mesh, equations::Equations,
-                                            initial_condition::InitialCondition,
-                                            boundary_conditions::BoundaryConditions,
-                                            source_terms::SourceTerms,
-                                            solver::Solver,
-                                            cache::Cache) where {Mesh, Equations,
-                                                                 InitialCondition,
-                                                                 BoundaryConditions,
-                                                                 SourceTerms, Solver,
-                                                                 Cache}
+                                          BoundaryConditions, SourceTerms, Solver,
+                                          Cache}(mesh::Mesh, equations::Equations,
+                                                 initial_condition::InitialCondition,
+                                                 boundary_conditions::BoundaryConditions,
+                                                 source_terms::SourceTerms,
+                                                 solver::Solver,
+                                                 cache::Cache) where {Mesh, Equations,
+                                                                      InitialCondition,
+                                                                      BoundaryConditions,
+                                                                      SourceTerms,
+                                                                      Solver,
+                                                                      Cache}
         @assert ndims(mesh) == ndims(equations)
 
         performance_counter = PerformanceCounter()
@@ -70,6 +71,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
              initial_cache...)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
+
+    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
     SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
                                  typeof(initial_condition),
@@ -209,6 +212,75 @@ function digest_boundary_conditions(boundary_conditions::AbstractArray, mesh, so
     throw(ArgumentError("Please use a (named) tuple instead of an (abstract) array to supply multiple boundary conditions (to improve performance)."))
 end
 
+# No checks for these meshes yet available
+function check_periodicity_mesh_boundary_conditions(mesh::Union{P4estMesh,
+                                                                UnstructuredMesh2D,
+                                                                T8codeMesh,
+                                                                DGMultiMesh},
+                                                    boundary_conditions)
+end
+
+# No actions needed for periodic boundary conditions
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
+                                                                StructuredMesh},
+                                                    boundary_conditions::BoundaryConditionPeriodic)
+end
+
+function check_periodicity_mesh_boundary_conditions_x(mesh, x_neg, x_pos)
+    if isperiodic(mesh, 1) &&
+       (x_neg != BoundaryConditionPeriodic() ||
+        x_pos != BoundaryConditionPeriodic())
+        @error "For periodic mesh non-periodic boundary conditions in x-direction are supplied."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions_y(mesh, y_neg, y_pos)
+    if isperiodic(mesh, 2) &&
+       (y_neg != BoundaryConditionPeriodic() ||
+        y_pos != BoundaryConditionPeriodic())
+        @error "For periodic mesh non-periodic boundary conditions in y-direction are supplied."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions_z(mesh, z_neg, z_pos)
+    if isperiodic(mesh, 3) &&
+       (z_neg != BoundaryConditionPeriodic() ||
+        z_pos != BoundaryConditionPeriodic())
+        @error "For periodic mesh non-periodic boundary conditions in z-direction are supplied."
+    end
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
+                                                                StructuredMesh{1}},
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               Tuple})
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
+                                                 boundary_conditions[2])
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
+                                                                StructuredMesh{2},
+                                                                StructuredMeshView{2}},
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               Tuple})
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
+                                                 boundary_conditions[2])
+    check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
+                                                 boundary_conditions[4])
+end
+
+function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{3},
+                                                                StructuredMesh{3}},
+                                                    boundary_conditions::Union{NamedTuple,
+                                                                               Tuple})
+    check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
+                                                 boundary_conditions[2])
+    check_periodicity_mesh_boundary_conditions_y(mesh, boundary_conditions[3],
+                                                 boundary_conditions[4])
+    check_periodicity_mesh_boundary_conditions_z(mesh, boundary_conditions[5],
+                                                 boundary_conditions[6])
+end
+
 function Base.show(io::IO, semi::SemidiscretizationHyperbolic)
     @nospecialize semi # reduce precompilation time
 
@@ -243,7 +315,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
-        summary_line(io, "total #DOFs per field", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)
     end
 end
@@ -268,8 +340,7 @@ end
 
 function print_boundary_conditions(io,
                                    semi::SemiHypMeshBCSolver{<:Any,
-                                                             <:UnstructuredSortedBoundaryTypes
-                                                             })
+                                                             <:UnstructuredSortedBoundaryTypes})
     @unpack boundary_conditions = semi
     @unpack boundary_dictionary = boundary_conditions
     summary_line(io, "boundary conditions", length(boundary_dictionary))
@@ -289,8 +360,7 @@ function print_boundary_conditions(io, semi::SemiHypMeshBCSolver{<:Any, <:NamedT
 end
 
 function print_boundary_conditions(io,
-                                   semi::SemiHypMeshBCSolver{
-                                                             <:Union{TreeMesh,
+                                   semi::SemiHypMeshBCSolver{<:Union{TreeMesh,
                                                                      StructuredMesh},
                                                              <:Union{Tuple, NamedTuple,
                                                                      AbstractArray}})

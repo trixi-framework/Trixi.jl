@@ -16,6 +16,8 @@
 # state as arguments, and solves an approximate Riemann problem to introduce dissipation (and
 # hence stabilization) at the boundary. Hence, the performance of the Dirichlet BC depends on the
 # fidelity of the numerical surface flux.
+# An easy-to read introductory reference on this topic is the paper by 
+# [Mengaldo et al.](https://doi.org/10.2514/6.2014-2923).
 
 # The passed boundary value function is called with the same arguments as an initial condition
 # function, i.e.
@@ -97,7 +99,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
             save_everystep=false, saveat=visnodes, callback=callbacks);
 
 using Plots
-@gif for step in 1:length(sol.u)
+@gif for step in eachindex(sol.u)
     plot(sol.u[step], semi, ylim=(-1.5, 1.5), legend=true, label="approximation", title="time t=$(round(sol.t[step], digits=5))")
     scatter!([0.0], [sum(boundary_condition(SVector(0.0), sol.t[step], equations))], label="boundary condition")
 end

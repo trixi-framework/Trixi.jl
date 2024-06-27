@@ -109,6 +109,31 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_alfven_wave.jl with flux_hllc" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
+                        l2=[
+                            1.036850596986597e-5, 1.965192583650368e-6,
+                            3.5882124656715505e-5, 3.5882124656638764e-5,
+                            5.270975504780837e-6, 1.1963224165731992e-16,
+                            3.595811808912869e-5, 3.5958118089159453e-5,
+                        ],
+                        linf=[
+                            2.887280521446378e-5, 7.310580790352001e-6,
+                            0.00012390046377899755, 0.00012390046377787345,
+                            1.5102711136583125e-5, 2.220446049250313e-16,
+                            0.0001261935452181312, 0.0001261935452182006,
+                        ],
+                        surface_flux=flux_hllc)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
                         l2=[
@@ -210,16 +235,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_torrilhon_shock_tube.jl"),
                         surface_flux=flux_hllc,
                         l2=[
-                            0.45738965718253993, 0.479402222862685, 0.34069729746967664,
-                            0.44795514335568865, 0.9206813325913135,
-                            1.3216517820475193e-16, 0.2889672868491632,
-                            0.2552794220777942,
+                            0.4573799618744708, 0.4792633358230866, 0.34064852506872795,
+                            0.4479668434955162, 0.9203891782415092,
+                            1.3216517820475193e-16, 0.28887826520860815,
+                            0.255281629265771,
                         ],
                         linf=[
-                            1.2181099854251536, 0.8869319941747589, 0.8763562906332134,
-                            0.9712221036087284, 1.6734231113527818,
-                            2.220446049250313e-16, 0.7035011427822779,
-                            0.6562884129650286,
+                            1.2382842201671505, 0.8929169308132259, 0.871298623806198,
+                            0.9822415614542821, 1.6726170732132717,
+                            2.220446049250313e-16, 0.7016155888023747,
+                            0.6556091522071984,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

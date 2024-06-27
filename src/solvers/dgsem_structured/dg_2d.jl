@@ -6,7 +6,7 @@
 #! format: noindent
 
 function rhs!(du, u, t,
-              mesh::StructuredMesh{2}, equations,
+              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}}, equations,
               initial_condition, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
@@ -58,8 +58,14 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 =#
 @inline function weak_form_kernel!(du, u,
                                    element,
+<<<<<<< HEAD
                                    mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
                                                P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+=======
+                                   mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                               UnstructuredMesh2D, P4estMesh{2},
+                                               T8codeMesh{2}},
+>>>>>>> main
                                    nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -387,7 +393,7 @@ end
 end
 
 function calc_interface_flux!(cache, u,
-                              mesh::StructuredMesh{2},
+                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
                               nonconservative_terms, # can be True/False
                               equations, surface_integral, dg::DG)
     @unpack elements = cache
@@ -416,7 +422,8 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
-                                      mesh::StructuredMesh{2},
+                                      mesh::Union{StructuredMesh{2},
+                                                  StructuredMeshView{2}},
                                       nonconservative_terms::False, equations,
                                       surface_integral, dg::DG, cache)
     # This is slow for LSA, but for some reason faster for Euler (see #519)
@@ -551,13 +558,14 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_boundary_flux!(cache, u, t, boundary_condition::BoundaryConditionPeriodic,
-                             mesh::StructuredMesh{2}, equations, surface_integral,
-                             dg::DG)
+                             mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
+                             equations, surface_integral, dg::DG)
     @assert isperiodic(mesh)
 end
 
 function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
-                             mesh::StructuredMesh{2}, equations, surface_integral,
+                             mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
+                             equations, surface_integral,
                              dg::DG)
     @unpack surface_flux_values = cache.elements
     linear_indices = LinearIndices(size(mesh))
@@ -616,8 +624,8 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
 end
 
 function apply_jacobian!(du,
-                         mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                     P4estMesh{2}, T8codeMesh{2}},
+                         mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                     UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 

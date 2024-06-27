@@ -8,8 +8,8 @@
 """
     UnstructuredSortedBoundaryTypes
 
-General container to sort the boundary conditions by type for some unstructured meshes/solvers.
-It stores a set of global indices for each boundary condition type to expedite computation
+General container to sort the boundary conditions by type and name for some unstructured meshes/solvers.
+It stores a set of global indices for each boundary condition type and name to expedite computation
 during the call to `calc_boundary_flux!`. The original dictionary form of the boundary conditions
 set by the user in the elixir file is also stored for printing.
 """
@@ -17,6 +17,7 @@ mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any}}
     boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
     boundary_indices::NTuple{N, Vector{Int}} # integer vectors containing global boundary indices
     boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
+    boundary_symbol_indices::Dict{Symbol, Vector{Int}} # integer vectors containing global boundary indices per boundary identifier
 end
 
 # constructor that "eats" the original boundary condition dictionary and sorts the information
@@ -28,10 +29,14 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::Dict, cache)
     n_boundary_types = length(boundary_condition_types)
     boundary_indices = ntuple(_ -> [], n_boundary_types)
 
+    # Initialize `boundary_symbol_indices` as an empty dictionary, filled later in `initialize!`
+    boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
+
     container = UnstructuredSortedBoundaryTypes{n_boundary_types,
                                                 typeof(boundary_condition_types)}(boundary_condition_types,
                                                                                   boundary_indices,
-                                                                                  boundary_conditions)
+                                                                                  boundary_conditions,
+                                                                                  boundary_symbol_indices)
 
     initialize!(container, cache)
 end
@@ -56,7 +61,8 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
             for key in keys(boundary_dictionary)
                 if !(key in all_names)
                     println(stderr,
-                            "ERROR: Key $(repr(key)) is not a valid boundary name")
+                            "ERROR: Key $(repr(key)) is not a valid boundary name. " *
+                            "Valid names are $all_names.")
                     MPI.Abort(mpi_comm(), 1)
                 end
             end
@@ -67,7 +73,8 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     else
         for key in keys(boundary_dictionary)
             if !(key in unique_names)
-                error("Key $(repr(key)) is not a valid boundary name")
+                error("Key $(repr(key)) is not a valid boundary name. " *
+                      "Valid names are $unique_names.")
             end
         end
     end
@@ -94,6 +101,13 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
     # convert the work array with the boundary indices into a tuple
     boundary_types_container.boundary_indices = Tuple(_boundary_indices)
+
+    # Store boundary indices per symbol (required for force computations, for instance)
+    for (symbol, _) in boundary_dictionary
+        indices = findall(x -> x === symbol, cache.boundaries.name)
+        # Store the indices in `boundary_symbol_indices` dictionary
+        boundary_types_container.boundary_symbol_indices[symbol] = sort!(indices)
+    end
 
     return boundary_types_container
 end

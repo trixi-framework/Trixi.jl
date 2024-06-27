@@ -41,8 +41,8 @@ standard textbooks.
   Applications
   [doi: 10.1007/978-0-387-72067-8](https://doi.org/10.1007/978-0-387-72067-8)
 
-`VolumeIntegralWeakForm()` is only implemented for conserved terms as 
-non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+`VolumeIntegralWeakForm()` is only implemented for conserved terms as
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
 see [`VolumeIntegralFluxDifferencing`](@ref).
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 """
@@ -415,7 +415,8 @@ function Base.show(io::IO, mime::MIME"text/plain", dg::DG)
         summary_line(io, "surface integral", dg.surface_integral |> typeof |> nameof)
         show(increment_indent(io), mime, dg.surface_integral)
         summary_line(io, "volume integral", dg.volume_integral |> typeof |> nameof)
-        if !(dg.volume_integral isa VolumeIntegralWeakForm)
+        if !(dg.volume_integral isa VolumeIntegralWeakForm) &&
+           !(dg.volume_integral isa VolumeIntegralStrongForm)
             show(increment_indent(io), mime, dg.volume_integral)
         end
         summary_footer(io)
@@ -435,8 +436,14 @@ function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
     get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
 end
 
+<<<<<<< HEAD
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh,
                           P4estMeshView, T8codeMesh}
+=======
+const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
+                          UnstructuredMesh2D,
+                          P4estMesh, T8codeMesh}
+>>>>>>> main
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
     nelements(cache.elements) * nnodes(dg)^ndims(mesh)
@@ -457,7 +464,7 @@ In particular, not the nodes themselves are returned.
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
 @inline function ndofsglobal(mesh, dg::DG, cache)
-    nelementsglobal(dg, cache) * nnodes(dg)^ndims(mesh)
+    nelementsglobal(mesh, dg, cache) * nnodes(dg)^ndims(mesh)
 end
 
 """
@@ -515,7 +522,7 @@ In particular, not the mortars themselves are returned.
 @inline eachmpimortar(dg::DG, cache) = Base.OneTo(nmpimortars(dg, cache))
 
 @inline nelements(dg::DG, cache) = nelements(cache.elements)
-@inline function nelementsglobal(dg::DG, cache)
+@inline function nelementsglobal(mesh, dg::DG, cache)
     mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
 end
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
@@ -598,6 +605,7 @@ include("dgsem/dgsem.jl")
 # and boundary conditions weakly. Thus, these methods can re-use a lot of
 # functionality implemented for DGSEM.
 include("fdsbp_tree/fdsbp.jl")
+include("fdsbp_unstructured/fdsbp.jl")
 
 function allocate_coefficients(mesh::AbstractMesh, equations, dg::DG, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).

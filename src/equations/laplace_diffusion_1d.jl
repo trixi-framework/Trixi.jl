@@ -24,12 +24,13 @@ function flux(u, gradients, orientation::Integer, equations_parabolic::LaplaceDi
     return equations_parabolic.diffusivity * dudx
 end
 
-# Dirichlet-type boundary condition for use with a parabolic solver in weak form
+# Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
+# Note that these are general, so they apply to LaplaceDiffusion in any spatial dimension.
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Gradient,
-                                                                  equations_parabolic::LaplaceDiffusion1D)
+                                                                  equations_parabolic::AbstractLaplaceDiffusion)
     return boundary_condition.boundary_value_function(x, t, equations_parabolic)
 end
 
@@ -37,7 +38,7 @@ end
                                                                   normal::AbstractVector,
                                                                   x, t,
                                                                   operator_type::Divergence,
-                                                                  equations_parabolic::LaplaceDiffusion1D)
+                                                                  equations_parabolic::AbstractLaplaceDiffusion)
     return flux_inner
 end
 
@@ -45,7 +46,7 @@ end
                                                                 normal::AbstractVector,
                                                                 x, t,
                                                                 operator_type::Divergence,
-                                                                equations_parabolic::LaplaceDiffusion1D)
+                                                                equations_parabolic::AbstractLaplaceDiffusion)
     return boundary_condition.boundary_normal_flux_function(x, t, equations_parabolic)
 end
 
@@ -53,6 +54,6 @@ end
                                                                 normal::AbstractVector,
                                                                 x, t,
                                                                 operator_type::Gradient,
-                                                                equations_parabolic::LaplaceDiffusion1D)
+                                                                equations_parabolic::AbstractLaplaceDiffusion)
     return flux_inner
 end

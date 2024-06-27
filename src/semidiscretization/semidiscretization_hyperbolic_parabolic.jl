@@ -45,30 +45,29 @@ struct SemidiscretizationHyperbolicParabolic{Mesh, Equations, EquationsParabolic
                                                    BoundaryConditionsParabolic,
                                                    SourceTerms, Solver,
                                                    SolverParabolic, Cache,
-                                                   CacheParabolic
-                                                   }(mesh::Mesh,
-                                                     equations::Equations,
-                                                     equations_parabolic::EquationsParabolic,
-                                                     initial_condition::InitialCondition,
-                                                     boundary_conditions::BoundaryConditions,
-                                                     boundary_conditions_parabolic::BoundaryConditionsParabolic,
-                                                     source_terms::SourceTerms,
-                                                     solver::Solver,
-                                                     solver_parabolic::SolverParabolic,
-                                                     cache::Cache,
-                                                     cache_parabolic::CacheParabolic) where {
-                                                                                             Mesh,
-                                                                                             Equations,
-                                                                                             EquationsParabolic,
-                                                                                             InitialCondition,
-                                                                                             BoundaryConditions,
-                                                                                             BoundaryConditionsParabolic,
-                                                                                             SourceTerms,
-                                                                                             Solver,
-                                                                                             SolverParabolic,
-                                                                                             Cache,
-                                                                                             CacheParabolic
-                                                                                             }
+                                                   CacheParabolic}(mesh::Mesh,
+                                                                   equations::Equations,
+                                                                   equations_parabolic::EquationsParabolic,
+                                                                   initial_condition::InitialCondition,
+                                                                   boundary_conditions::BoundaryConditions,
+                                                                   boundary_conditions_parabolic::BoundaryConditionsParabolic,
+                                                                   source_terms::SourceTerms,
+                                                                   solver::Solver,
+                                                                   solver_parabolic::SolverParabolic,
+                                                                   cache::Cache,
+                                                                   cache_parabolic::CacheParabolic) where {
+                                                                                                           Mesh,
+                                                                                                           Equations,
+                                                                                                           EquationsParabolic,
+                                                                                                           InitialCondition,
+                                                                                                           BoundaryConditions,
+                                                                                                           BoundaryConditionsParabolic,
+                                                                                                           SourceTerms,
+                                                                                                           Solver,
+                                                                                                           SolverParabolic,
+                                                                                                           Cache,
+                                                                                                           CacheParabolic
+                                                                                                           }
         @assert ndims(mesh) == ndims(equations)
 
         # Todo: assert nvariables(equations)==nvariables(equations_parabolic)
@@ -136,6 +135,8 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabo
                                                       cache)
     _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
                                                                 mesh, solver, cache)
+
+    check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
     cache_parabolic = (;
                        create_cache_parabolic(mesh, equations, equations_parabolic,
@@ -228,7 +229,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "parabolic solver", semi.solver_parabolic |> typeof |> nameof)
-        summary_line(io, "total #DOFs per field", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)
     end
 end

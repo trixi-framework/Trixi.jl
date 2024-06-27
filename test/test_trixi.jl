@@ -153,7 +153,12 @@ macro test_nowarn_mod(expr, additional_ignore_content = String[])
                                      r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
                                      r"┌ Warning: `parse\(::Type, ::Coloarant\)` is deprecated.+\n│.+\n│.+\n└ @ Plots.+\n",
                                      # TODO: Silence warning introduced by Flux v0.13.13. Should be properly fixed.
-                                     r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n"]
+                                     r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n",
+                                     # NOTE: These warnings arose from Julia 1.10 onwards
+                                     r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
+                                     # Warnings from third party packages
+                                     r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
+                                     r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n"]
                 append!(ignore_content, $additional_ignore_content)
                 for pattern in ignore_content
                     stderr_content = replace(stderr_content, pattern => "")

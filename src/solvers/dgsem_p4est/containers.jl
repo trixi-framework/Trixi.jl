@@ -455,8 +455,7 @@ mutable struct InitSurfacesIterFaceUserData{Interfaces, Mortars, Boundaries, Mes
 end
 
 function InitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mesh)
-    return InitSurfacesIterFaceUserData{
-                                        typeof(interfaces), typeof(mortars),
+    return InitSurfacesIterFaceUserData{typeof(interfaces), typeof(mortars),
                                         typeof(boundaries), typeof(mesh)}(interfaces, 1,
                                                                           mortars, 1,
                                                                           boundaries, 1,

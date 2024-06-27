@@ -16,6 +16,19 @@ Return the number of degrees of freedom associated with each scalar variable.
 end
 
 """
+    ndofsglobal(semi::AbstractSemidiscretization)
+
+Return the global number of degrees of freedom associated with each scalar variable across all MPI ranks.
+This is the same as [`ndofs`](@ref) for simulations running in serial or
+parallelized via threads. It will in general be different for simulations
+running in parallel with MPI.
+"""
+@inline function ndofsglobal(semi::AbstractSemidiscretization)
+    mesh, _, solver, cache = mesh_equations_solver_cache(semi)
+    ndofsglobal(mesh, solver, cache)
+end
+
+"""
     integrate_via_indices(func, u_ode, semi::AbstractSemidiscretization, args...; normalize=true)
 
 Call `func(u, i..., element, equations, solver, args...)` for all nodal indices `i..., element`
@@ -253,6 +266,9 @@ end
 
 function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
+    # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
         Trixi.rhs!(du_ode, u_ode, new_semi, t0)
     end
@@ -279,6 +295,9 @@ end
 
 function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
     new_semi = remake(semi, uEltype = eltype(config))
+    # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain,
                              config) do du_ode_plain, u_ode_plain
         u_ode = StructArray{SVector{nvariables(semi), eltype(config)}}(ntuple(v -> view(u_ode_plain,
@@ -391,6 +410,7 @@ end
 # TODO: Taal, document interface?
 # New mesh/solver combinations have to implement
 # - ndofs(mesh, solver, cache)
+# - ndofsgloabal(mesh, solver, cache)
 # - ndims(mesh)
 # - nnodes(solver)
 # - real(solver)

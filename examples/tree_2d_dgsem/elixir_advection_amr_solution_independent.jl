@@ -31,7 +31,7 @@ function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any, 4},
     outer_distance = 1.85
 
     #Iterate over all elements
-    for element in 1:length(alpha)
+    for element in eachindex(alpha)
         #Calculate periodic distance between cell and center.
         cell_id = cache.elements.cell_ids[element]
         coordinates = mesh.tree.coordinates[1:2, cell_id]
