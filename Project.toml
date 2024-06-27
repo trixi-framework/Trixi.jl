@@ -50,13 +50,13 @@ TrixiBase = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [weakdeps]
-Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 
 [extensions]
-TrixiMakieExt = "Makie"
 TrixiConvexECOSExt = ["Convex", "ECOS"]
+TrixiMakieExt = "Makie"
 
 [compat]
 CodeTracking = "1.0.5"
@@ -93,7 +93,7 @@ SciMLBase = "1.90, 2"
 SimpleUnPack = "1.1"
 SparseArrays = "1"
 StartUpDG = "0.17.7"
-Static = "0.8.7"
+Static = "0.8.7, 1"
 StaticArrayInterface = "1.4"
 StaticArrays = "1.5"
 StrideArrays = "0.1.26"
@@ -109,6 +109,6 @@ UUIDs = "1.6"
 julia = "1.8"
 
 [extras]
-Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
