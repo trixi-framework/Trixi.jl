@@ -17,8 +17,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 30_000) # set maximum capacity of tree data structure
 
-# Excite the electric field which causes a standing wave 
-# The solution is an undamped exchange between electric and magnetic energy            
+# Excite the electric field which causes a standing wave.
+# The solution is an undamped exchange between electric and magnetic energy.
 function initial_condition_E_excitation(x, t, equations::MaxwellEquations1D)
     c = equations.speed_of_light[1]
     E = -c * sin(2 * pi * x[1])
