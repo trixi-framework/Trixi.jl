@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                       equations, volume_integral::VolumeIntegralSubcellLimiting,
                       dg::DG, uEltype)
     cache = create_cache(mesh, equations,
@@ -57,7 +57,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}},
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                           P4estMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
@@ -72,7 +73,8 @@ function calc_volume_integral!(du, u,
 end
 
 @inline function subcell_limiting_kernel!(du, u, element,
-                                          mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                      P4estMesh{2}},
                                           nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
@@ -392,7 +394,9 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                                         u,
+                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                     P4estMesh{2}},
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
@@ -430,7 +434,9 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                                         u,
+                                         mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                                     P4estMesh{2}},
                                          nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
@@ -466,22 +472,40 @@ end
 end
 
 """
-    get_boundary_outer_state(boundary_condition::BoundaryConditionDirichlet,
-                             cache, t, equations, dg, indices...)
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::BoundaryConditionDirichlet,
+                             orientation_or_normal, direction,
+                             mesh, equations, dg, cache, indices...)
 For subcell limiting, the calculation of local bounds for non-periodic domains require the boundary
 outer state. This function returns the boundary value at time `t` and for node with spatial
-indices `indices`.
+indices `indices` at the boundary with `orientation_or_normal` and `direction`.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 """
-@inline function get_boundary_outer_state(boundary_condition::BoundaryConditionDirichlet,
-                                          cache, t, equations, dg, indices...)
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::BoundaryConditionDirichlet,
+                                          orientation_or_normal, direction,
+                                          mesh, equations, dg, cache, indices...)
     (; node_coordinates) = cache.elements
 
     x = get_node_coords(node_coordinates, equations, dg, indices...)
     u_outer = boundary_condition.boundary_value_function(x, t, equations)
 
     return u_outer
+end
+
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          normal_direction::AbstractVector, direction,
+                                          mesh, equations::CompressibleEulerEquations2D,
+                                          dg, cache, indices...)
+    factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
+    u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
+
+    return SVector(u_inner[1],
+                   u_inner[2] - 2.0 * u_normal[1],
+                   u_inner[3] - 2.0 * u_normal[2],
+                   u_inner[4])
 end
 end # @muladd
