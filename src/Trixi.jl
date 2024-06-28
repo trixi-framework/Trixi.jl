@@ -225,12 +225,8 @@ export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
-<<<<<<< HEAD
-export TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh, P4estMeshView,
-=======
 export TreeMesh, StructuredMesh, StructuredMeshView, UnstructuredMesh2D, P4estMesh,
->>>>>>> main
-       T8codeMesh
+       P4estMeshView, T8codeMesh
 
 export DG,
        DGSEM, LobattoLegendreBasis,

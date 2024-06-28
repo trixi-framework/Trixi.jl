@@ -438,7 +438,6 @@ mutable struct BoundaryConditionCoupled{NDIMS,
                                         uEltype <: Real, Indices, CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
-<<<<<<< HEAD
     u_boundary        :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
     other_semi_index  :: Int
     other_orientation :: Int
@@ -446,15 +445,6 @@ mutable struct BoundaryConditionCoupled{NDIMS,
     coupling_converter :: Function
 
     function BoundaryConditionCoupled(other_semi_index, indices, uEltype, coupling_converter)
-=======
-    u_boundary         :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-    other_orientation  :: Int
-    indices            :: Indices
-    coupling_converter :: CouplingConverter
-
-    function BoundaryConditionCoupled(other_semi_index, indices, uEltype,
-                                      coupling_converter)
->>>>>>> main
         NDIMS = length(indices)
         u_boundary = Array{uEltype, NDIMS * 2 - 1}(undef, ntuple(_ -> 0, NDIMS * 2 - 1))
 
@@ -466,15 +456,8 @@ mutable struct BoundaryConditionCoupled{NDIMS,
             other_orientation = 3
         end
 
-<<<<<<< HEAD
         new{NDIMS, NDIMS * 2 - 1, uEltype, typeof(indices)}(u_boundary, other_semi_index,
                                                             other_orientation, indices, coupling_converter)
-=======
-        new{NDIMS, other_semi_index, NDIMS * 2 - 1, uEltype, typeof(indices),
-            typeof(coupling_converter)}(u_boundary,
-                                        other_orientation,
-                                        indices, coupling_converter)
->>>>>>> main
     end
 end
 
