@@ -69,14 +69,15 @@ An Alfvén wave as smooth initial condition used for convergence tests.
 function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations2D)
     # smooth Alfvén wave test from Derigs et al. FLASH (2016)
     # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
-    alpha = 0.25 * pi
+    RealT = eltype(x)
+    alpha = 0.25f0 * convert(RealT, pi)
     x_perp = x[1] * cos(alpha) + x[2] * sin(alpha)
-    B_perp = 0.1 * sin(2 * pi * x_perp)
+    B_perp = convert(RealT, 0.1) * sinpi(2 * x_perp)
     rho = 1
     v1 = -B_perp * sin(alpha)
     v2 = B_perp * cos(alpha)
-    v3 = 0.1 * cos(2 * pi * x_perp)
-    p = 0.1
+    v3 = convert(RealT, 0.1) * cospi(2 * x_perp)
+    p = convert(RealT, 0.1)
     B1 = cos(alpha) + v1
     B2 = sin(alpha) + v2
     B3 = v3
@@ -1355,11 +1356,11 @@ end
 @inline function entropy_thermodynamic(cons, equations::IdealGlmMhdEquations2D)
     # Pressure
     p = (equations.gamma - 1) *
-        (cons[5] - 1 / 2 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
+        (cons[5] - 0.5f0 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
          -
-         1 / 2 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
+         0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2)
          -
-         1 / 2 * cons[9]^2)
+         0.5f0 * cons[9]^2)
 
     # Thermodynamic entropy
     s = log(p) - equations.gamma * log(cons[1])
