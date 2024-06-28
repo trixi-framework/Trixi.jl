@@ -42,13 +42,14 @@ end
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equations::IdealGlmMhdEquations1D)
-    rho = 1.0
-    rho_v1 = 0.1
-    rho_v2 = -0.2
+    RealT = eltype(x)
+    rho = 1
+    rho_v1 = convert(RealT, 0.1)
+    rho_v2 = -convert(RealT, 0.2)
     rho_v3 = -0.5f0
-    rho_e = 50.0
-    B1 = 3.0
-    B2 = -1.2
+    rho_e = 50
+    B1 = 3
+    B2 = -convert(RealT, 1.2)
     B3 = 0.5f0
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3)
 end
@@ -61,14 +62,15 @@ An Alfvén wave as smooth initial condition used for convergence tests.
 function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations1D)
     # smooth Alfvén wave test from Derigs et al. FLASH (2016)
     # domain must be set to [0, 1], γ = 5/3
-    rho = 1.0
-    v1 = 0.0
+    RealT = eltype(x)
+    rho = 1
+    v1 = 0
     # TODO: sincospi
-    si, co = sincos(2 * pi * x[1])
-    v2 = 0.1 * si
-    v3 = 0.1 * co
-    p = 0.1
-    B1 = 1.0
+    si, co = sincos(2 * convert(RealT, pi) * x[1])
+    v2 = convert(RealT, 0.1) * si
+    v3 = convert(RealT, 0.1) * co
+    p = convert(RealT, 0.1)
+    B1 = 1
     B2 = v2
     B3 = v3
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
@@ -86,17 +88,18 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
     # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
+    RealT = eltype(x)
     inicenter = (0,)
     x_norm = x[1] - inicenter[1]
     r = sqrt(x_norm^2)
     phi = atan(x_norm)
 
     # Calculate primitive variables
-    rho = r > 0.5f0 ? 1.0 : 1.1691
-    v1 = r > 0.5f0 ? 0.0 : 0.1882 * cos(phi)
-    p = r > 0.5f0 ? 1.0 : 1.245
+    rho = r > 0.5f0 ? one(RealT) : convert(RealT, 1.1691)
+    v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(phi)
+    p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
 
-    return prim2cons(SVector(rho, v1, 0.0, 0.0, p, 1.0, 1.0, 1.0, 0.0), equations)
+    return prim2cons(SVector(rho, v1, 0, 0, p, 1, 1, 1, 0), equations)
 end
 
 # Calculate 1D flux in for a single point
@@ -117,7 +120,7 @@ end
     f4 = rho_v1 * v3 - B1 * B3
     f5 = (kin_en + equations.gamma * p_over_gamma_minus_one + 2 * mag_en) * v1 -
          B1 * (v1 * B1 + v2 * B2 + v3 * B3)
-    f6 = 0.0
+    f6 = 0
     f7 = v1 * B2 - v2 * B1
     f8 = v1 * B3 - v3 * B1
 
@@ -180,7 +183,7 @@ function flux_derigs_etal(u_ll, u_rr, orientation::Integer,
     f2 = f1 * v1_avg + p_mean + 0.5f0 * mag_norm_avg - B1_avg * B1_avg
     f3 = f1 * v2_avg - B1_avg * B2_avg
     f4 = f1 * v3_avg - B1_avg * B3_avg
-    f6 = 0.0
+    f6 = 0
     f7 = v1_avg * B2_avg - v2_avg * B1_avg
     f8 = v1_avg * B3_avg - v3_avg * B1_avg
     # total energy flux is complicated and involves the previous eight components
@@ -242,7 +245,7 @@ Hindenlang and Gassner (2019), extending [`flux_ranocha`](@ref) to the MHD equat
     f3 = f1 * v2_avg - 0.5f0 * (B1_ll * B2_rr + B1_rr * B2_ll)
     f4 = f1 * v3_avg - 0.5f0 * (B1_ll * B3_rr + B1_rr * B3_ll)
     #f5 below
-    f6 = 0.0
+    f6 = 0
     f7 = 0.5f0 * (v1_ll * B2_ll - v2_ll * B1_ll + v1_rr * B2_rr - v2_rr * B1_rr)
     f8 = 0.5f0 * (v1_ll * B3_ll - v3_ll * B1_ll + v1_rr * B3_rr - v3_rr * B1_rr)
     # total energy flux is complicated and involves the previous components
@@ -585,7 +588,7 @@ end
     b_square = b1^2 + b2^2 + b3^2
 
     c_f = sqrt(0.5f0 * (a_square + b_square) +
-               0.5f0 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+               0.5f0 * sqrt((a_square + b_square)^2 - 4 * a_square * b1^2))
     return c_f
 end
 
@@ -628,8 +631,8 @@ as given by
     # compute the Roe density averages
     sqrt_rho_ll = sqrt(rho_ll)
     sqrt_rho_rr = sqrt(rho_rr)
-    inv_sqrt_rho_add = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
-    inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
+    inv_sqrt_rho_add = 1 / (sqrt_rho_ll + sqrt_rho_rr)
+    inv_sqrt_rho_prod = 1 / (sqrt_rho_ll * sqrt_rho_rr)
     rho_ll_roe = sqrt_rho_ll * inv_sqrt_rho_add
     rho_rr_roe = sqrt_rho_rr * inv_sqrt_rho_add
     # Roe averages
@@ -649,14 +652,14 @@ as given by
         inv_sqrt_rho_add^2
     # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
     b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
-    a_square_roe = ((2.0 - equations.gamma) * X +
-                    (equations.gamma - 1.0) *
+    a_square_roe = ((2 - equations.gamma) * X +
+                    (equations.gamma - 1) *
                     (H_roe - 0.5f0 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -
                      b_square_roe)) # acoustic speed
     # finally compute the average wave speed and set the output velocity
     # Ignore orientation since it is always "1" in 1D
     c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
-    a_star_roe = sqrt((a_square_roe + b_square_roe)^2 - 4.0 * a_square_roe * c_a_roe)
+    a_star_roe = sqrt((a_square_roe + b_square_roe)^2 - 4 * a_square_roe * c_a_roe)
     c_f_roe = sqrt(0.5f0 * (a_square_roe + b_square_roe + a_star_roe))
 
     return v1_roe, c_f_roe
@@ -666,9 +669,9 @@ end
 @inline function entropy_thermodynamic(cons, equations::IdealGlmMhdEquations1D)
     # Pressure
     p = (equations.gamma - 1) *
-        (cons[5] - 1 / 2 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
+        (cons[5] - 0.5f0 * (cons[2]^2 + cons[3]^2 + cons[4]^2) / cons[1]
          -
-         1 / 2 * (cons[6]^2 + cons[7]^2 + cons[8]^2))
+         0.5f0 * (cons[6]^2 + cons[7]^2 + cons[8]^2))
 
     # Thermodynamic entropy
     s = log(p) - equations.gamma * log(cons[1])

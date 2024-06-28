@@ -48,15 +48,16 @@ end
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equations::IdealGlmMhdEquations2D)
-    rho = 1.0
-    rho_v1 = 0.1
-    rho_v2 = -0.2
+    RealT = eltype(x)
+    rho = 1
+    rho_v1 = convert(RealT, 0.1)
+    rho_v2 = -convert(RealT, 0.2)
     rho_v3 = -0.5f0
-    rho_e = 50.0
-    B1 = 3.0
-    B2 = -1.2
+    rho_e = 50
+    B1 = 3
+    B2 = -convert(RealT, 1.2)
     B3 = 0.5f0
-    psi = 0.0
+    psi = 0
     return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi)
 end
 
@@ -70,16 +71,16 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
     # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
     alpha = 0.25 * pi
     x_perp = x[1] * cos(alpha) + x[2] * sin(alpha)
-    B_perp = 0.1 * sin(2.0 * pi * x_perp)
-    rho = 1.0
+    B_perp = 0.1 * sin(2 * pi * x_perp)
+    rho = 1
     v1 = -B_perp * sin(alpha)
     v2 = B_perp * cos(alpha)
-    v3 = 0.1 * cos(2.0 * pi * x_perp)
+    v3 = 0.1 * cos(2 * pi * x_perp)
     p = 0.1
     B1 = cos(alpha) + v1
     B2 = sin(alpha) + v2
     B3 = v3
-    psi = 0.0
+    psi = 0
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 
@@ -95,6 +96,7 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
     # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
+    RealT = eltype(x)
     inicenter = (0, 0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
@@ -102,12 +104,12 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdEquations
     phi = atan(y_norm, x_norm)
 
     # Calculate primitive variables
-    rho = r > 0.5f0 ? 1.0 : 1.1691
-    v1 = r > 0.5f0 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5f0 ? 0.0 : 0.1882 * sin(phi)
-    p = r > 0.5f0 ? 1.0 : 1.245
+    rho = r > 0.5f0 ? one(RealT) : convert(RealT, 1.1691)
+    v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(phi)
+    v2 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * sin(phi)
+    p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
 
-    return prim2cons(SVector(rho, v1, v2, 0.0, p, 1.0, 1.0, 1.0, 0.0), equations)
+    return prim2cons(SVector(rho, v1, v2, 0, p, 1, 1, 1, 0), equations)
 end
 
 # Pre-defined source terms should be implemented as
@@ -1131,8 +1133,8 @@ end
     v3 = rho_v3 / rho
     v_square = v1^2 + v2^2 + v3^2
 
-    return (equations.gamma - 1.0) *
-           SVector(0.5f0 * v_square, -v1, -v2, -v3, 1.0, -B1, -B2, -B3, -psi)
+    return (equations.gamma - 1) *
+           SVector(0.5f0 * v_square, -v1, -v2, -v3, 1, -B1, -B2, -B3, -psi)
 end
 
 @inline function density_pressure(u, equations::IdealGlmMhdEquations2D)
@@ -1163,10 +1165,10 @@ end
     b_square = b1 * b1 + b2 * b2 + b3 * b3
     if orientation == 1 # x-direction
         c_f = sqrt(0.5f0 * (a_square + b_square) +
-                   0.5f0 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2))
+                   0.5f0 * sqrt((a_square + b_square)^2 - 4 * a_square * b1^2))
     else
         c_f = sqrt(0.5f0 * (a_square + b_square) +
-                   0.5f0 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b2^2))
+                   0.5f0 * sqrt((a_square + b_square)^2 - 4 * a_square * b2^2))
     end
     return c_f
 end
@@ -1236,8 +1238,8 @@ as given by
     # compute the Roe density averages
     sqrt_rho_ll = sqrt(rho_ll)
     sqrt_rho_rr = sqrt(rho_rr)
-    inv_sqrt_rho_add = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
-    inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
+    inv_sqrt_rho_add = 1 / (sqrt_rho_ll + sqrt_rho_rr)
+    inv_sqrt_rho_prod = 1 / (sqrt_rho_ll * sqrt_rho_rr)
     rho_ll_roe = sqrt_rho_ll * inv_sqrt_rho_add
     rho_rr_roe = sqrt_rho_rr * inv_sqrt_rho_add
     # Roe averages
@@ -1257,21 +1259,21 @@ as given by
         inv_sqrt_rho_add^2
     # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
     b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
-    a_square_roe = ((2.0 - equations.gamma) * X +
-                    (equations.gamma - 1.0) *
+    a_square_roe = ((2 - equations.gamma) * X +
+                    (equations.gamma - 1) *
                     (H_roe - 0.5f0 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -
                      b_square_roe)) # acoustic speed
     # finally compute the average wave speed and set the output velocity (depends on orientation)
     if orientation == 1 # x-direction
         c_a_roe = B1_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt((a_square_roe + b_square_roe)^2 -
-                          4.0 * a_square_roe * c_a_roe)
+                          4 * a_square_roe * c_a_roe)
         c_f_roe = sqrt(0.5f0 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v1_roe
     else # y-direction
         c_a_roe = B2_roe^2 * inv_sqrt_rho_prod # (squared) Alfvén wave speed
         a_star_roe = sqrt((a_square_roe + b_square_roe)^2 -
-                          4.0 * a_square_roe * c_a_roe)
+                          4 * a_square_roe * c_a_roe)
         c_f_roe = sqrt(0.5f0 * (a_square_roe + b_square_roe + a_star_roe))
         vel_out_roe = v2_roe
     end
@@ -1308,8 +1310,8 @@ end
     # compute the Roe density averages
     sqrt_rho_ll = sqrt(rho_ll)
     sqrt_rho_rr = sqrt(rho_rr)
-    inv_sqrt_rho_add = 1.0 / (sqrt_rho_ll + sqrt_rho_rr)
-    inv_sqrt_rho_prod = 1.0 / (sqrt_rho_ll * sqrt_rho_rr)
+    inv_sqrt_rho_add = 1 / (sqrt_rho_ll + sqrt_rho_rr)
+    inv_sqrt_rho_prod = 1 / (sqrt_rho_ll * sqrt_rho_rr)
     rho_ll_roe = sqrt_rho_ll * inv_sqrt_rho_add
     rho_rr_roe = sqrt_rho_rr * inv_sqrt_rho_add
     # Roe averages
@@ -1329,8 +1331,8 @@ end
         inv_sqrt_rho_add^2
     # averaged components needed to compute c_f, the fast magnetoacoustic wave speed
     b_square_roe = (B1_roe^2 + B2_roe^2 + B3_roe^2) * inv_sqrt_rho_prod # scaled magnectic sum
-    a_square_roe = ((2.0 - equations.gamma) * X +
-                    (equations.gamma - 1.0) *
+    a_square_roe = ((2 - equations.gamma) * X +
+                    (equations.gamma - 1) *
                     (H_roe - 0.5f0 * (v1_roe^2 + v2_roe^2 + v3_roe^2) -
                      b_square_roe)) # acoustic speed
 
@@ -1404,7 +1406,7 @@ end
 # State validation for Newton-bisection method of subcell IDP limiting
 @inline function Base.isvalid(u, equations::IdealGlmMhdEquations2D)
     p = pressure(u, equations)
-    if u[1] <= 0.0 || p <= 0.0
+    if u[1] <= 0 || p <= 0
         return false
     end
     return true
