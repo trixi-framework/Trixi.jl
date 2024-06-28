@@ -686,6 +686,348 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Compressible Navier Stokes Diffusion 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations1D(RealT(1.4))
+            prandtl_number = RealT(0.72)
+            mu = RealT(0.01)
+            equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion1D(equations,
+                                                                                          mu = mu,
+                                                                                          Prandtl = prandtl_number,
+                                                                                          gradient_variables = GradientVariablesPrimitive())
+            equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion1D(equations,
+                                                                                        mu = mu,
+                                                                                        Prandtl = prandtl_number,
+                                                                                        gradient_variables = GradientVariablesEntropy())
+
+            u = u_transformed = SVector(one(RealT), zero(RealT),
+                                        zero(RealT))
+            orientation = 1
+            gradients = SVector(RealT(0.1), RealT(0.1), RealT(0.1))
+
+            for equations_parabolic in (equations_parabolic_primitive,
+                                        equations_parabolic_entropy)
+                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                      RealT
+
+                @test eltype(@inferred cons2prim(u, equations_parabolic)) == RealT
+                @test eltype(@inferred prim2cons(u, equations_parabolic)) == RealT
+                @test eltype(@inferred cons2entropy(u, equations_parabolic)) == RealT
+                @test eltype(@inferred entropy2cons(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
+
+                @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
+                                                                              equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradients,
+                                                                             equations_parabolic)) ==
+                      RealT
+            end
+
+            # TODO: BC tests for GradientVariablesPrimitive
+            # TODO: BC tests for GradientVariablesEntropy
+        end
+    end
+
+    @timed_testset "Compressible Navier Stokes Diffusion 2D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations2D(RealT(1.4))
+            prandtl_number = RealT(0.72)
+            mu = RealT(0.01)
+            equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion2D(equations,
+                                                                                          mu = mu,
+                                                                                          Prandtl = prandtl_number,
+                                                                                          gradient_variables = GradientVariablesPrimitive())
+            equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion2D(equations,
+                                                                                        mu = mu,
+                                                                                        Prandtl = prandtl_number,
+                                                                                        gradient_variables = GradientVariablesEntropy())
+
+            u = u_transformed = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT))
+            orientations = [1, 2]
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = SVector(gradient, gradient)
+
+            for equations_parabolic in (equations_parabolic_primitive,
+                                        equations_parabolic_entropy)
+                for orientation in orientations
+                    @test eltype(@inferred flux(u, gradients, orientation,
+                                                equations_parabolic)) == RealT
+                end
+
+                @test eltype(@inferred cons2prim(u, equations_parabolic)) == RealT
+                @test eltype(@inferred prim2cons(u, equations_parabolic)) == RealT
+                @test eltype(@inferred cons2entropy(u, equations_parabolic)) == RealT
+                @test eltype(@inferred entropy2cons(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.enstrophy(u, gradients, equations_parabolic)) ==
+                      RealT
+                @test typeof(@inferred Trixi.vorticity(u, gradients, equations_parabolic)) ==
+                      RealT
+
+                @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
+                                                                              equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradient,
+                                                                             equations_parabolic)) ==
+                      RealT
+            end
+
+            # TODO: BC tests for GradientVariablesPrimitive
+            # TODO: BC tests for GradientVariablesEntropy
+        end
+    end
+
+    @timed_testset "Compressible Navier Stokes Diffusion 3D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred CompressibleEulerEquations3D(RealT(1.4))
+            prandtl_number = RealT(0.72)
+            mu = RealT(0.01)
+            equations_parabolic_primitive = @inferred CompressibleNavierStokesDiffusion3D(equations,
+                                                                                          mu = mu,
+                                                                                          Prandtl = prandtl_number,
+                                                                                          gradient_variables = GradientVariablesPrimitive())
+            equations_parabolic_entropy = @inferred CompressibleNavierStokesDiffusion3D(equations,
+                                                                                        mu = mu,
+                                                                                        Prandtl = prandtl_number,
+                                                                                        gradient_variables = GradientVariablesEntropy())
+
+            u = u_transformed = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT),
+                                        zero(RealT))
+            orientations = [1, 2, 3]
+            gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
+            gradients = SVector(gradient, gradient, gradient)
+
+            for equations_parabolic in (equations_parabolic_primitive,
+                                        equations_parabolic_entropy)
+                for orientation in orientations
+                    @test eltype(@inferred flux(u, gradients, orientation,
+                                                equations_parabolic)) == RealT
+                end
+
+                @test eltype(@inferred cons2prim(u, equations_parabolic)) == RealT
+                @test eltype(@inferred prim2cons(u, equations_parabolic)) == RealT
+                @test eltype(@inferred cons2entropy(u, equations_parabolic)) == RealT
+                @test eltype(@inferred entropy2cons(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.temperature(u, equations_parabolic)) == RealT
+                @test typeof(@inferred Trixi.enstrophy(u, gradients, equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred Trixi.vorticity(u, gradients, equations_parabolic)) ==
+                      RealT
+
+                @test eltype(@inferred Trixi.convert_transformed_to_primitive(u_transformed,
+                                                                              equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradient,
+                                                                             equations_parabolic)) ==
+                      RealT
+            end
+
+            # TODO: BC tests for GradientVariablesPrimitive
+            # TODO: BC tests for GradientVariablesEntropy
+        end
+    end
+
+    @timed_testset "Hyperbolic Diffusion 1D" begin
+        for RealT in (Float32, Float64)
+            nu = one(RealT)
+            Lr = RealT(inv(2pi))
+            equations = @inferred HyperbolicDiffusionEquations1D(nu = nu, Lr = Lr)
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = du = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT))
+            orientation = 1
+            directions = [1, 2]
+
+            surface_flux_function = flux_lax_friedrichs
+
+            @test typeof(@inferred Trixi.residual_steady_state(du, equations)) == RealT
+            @test eltype(@inferred initial_condition_poisson_nonperiodic(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_poisson_nonperiodic(u, x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_harmonic(u, x, t, equations)) == RealT
+            @test eltype(@inferred Trixi.initial_condition_eoc_test_coupled_euler_gravity(x,
+                                                                                          t,
+                                                                                          equations)) ==
+                  RealT
+
+            for direction in directions
+                if RealT == Float32
+                    # check `surface_flux_function` (test broken)
+                    @test_broken eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                         orientation,
+                                                                                         direction,
+                                                                                         x,
+                                                                                         t,
+                                                                                         surface_flux_function,
+                                                                                         equations)) ==
+                                 RealT
+                else
+                    @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                  orientation,
+                                                                                  direction,
+                                                                                  x, t,
+                                                                                  surface_flux_function,
+                                                                                  equations)) ==
+                          RealT
+                end
+            end
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                       equations)) == RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred entropy(u, equations)) == RealT
+            @test typeof(@inferred energy_total(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Hyperbolic Diffusion 2D" begin
+        for RealT in (Float32, Float64)
+            nu = one(RealT)
+            Lr = RealT(inv(2pi))
+            equations = @inferred HyperbolicDiffusionEquations2D(nu = nu, Lr = Lr)
+
+            x = SVector(zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = du = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT))
+            orientations = [1, 2]
+            directions = [1, 2, 3, 4]
+            normal_direction = SVector(one(RealT), zero(RealT))
+
+            surface_flux_function = flux_lax_friedrichs
+
+            @test typeof(@inferred Trixi.residual_steady_state(du, equations)) == RealT
+            @test eltype(@inferred initial_condition_poisson_nonperiodic(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_poisson_nonperiodic(u, x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_harmonic(u, x, t, equations)) == RealT
+            @test eltype(@inferred Trixi.initial_condition_eoc_test_coupled_euler_gravity(x,
+                                                                                          t,
+                                                                                          equations)) ==
+                  RealT
+
+            for orientation in orientations
+                for direction in directions
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                             orientation,
+                                                                                             direction,
+                                                                                             x,
+                                                                                             t,
+                                                                                             surface_flux_function,
+                                                                                             equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                      orientation,
+                                                                                      direction,
+                                                                                      x, t,
+                                                                                      surface_flux_function,
+                                                                                      equations)) ==
+                              RealT
+                    end
+                end
+            end
+
+            @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_godunov(u_ll, u_rr, normal_direction, equations)) ==
+                  RealT
+
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_godunov(u_ll, u_rr, orientation,
+                                                    equations)) == RealT
+
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+            end
+
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred entropy(u, equations)) == RealT
+            @test typeof(@inferred energy_total(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Hyperbolic Diffusion 3D" begin
+        for RealT in (Float32, Float64)
+            nu = one(RealT)
+            Lr = RealT(inv(2pi))
+            equations = @inferred HyperbolicDiffusionEquations3D(nu = nu, Lr = Lr)
+
+            x = SVector(zero(RealT), zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = du = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT),
+                                                     one(RealT))
+            orientations = [1, 2, 3]
+            directions = [1, 2, 3, 4, 5, 6]
+
+            surface_flux_function = flux_lax_friedrichs
+
+            @test typeof(@inferred Trixi.residual_steady_state(du, equations)) == RealT
+            @test eltype(@inferred initial_condition_poisson_nonperiodic(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_poisson_nonperiodic(u, x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_harmonic(u, x, t, equations)) == RealT
+            @test eltype(@inferred Trixi.initial_condition_eoc_test_coupled_euler_gravity(x,
+                                                                                          t,
+                                                                                          equations)) ==
+                  RealT
+
+            for orientation in orientations
+                for direction in directions
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                             orientation,
+                                                                                             direction,
+                                                                                             x,
+                                                                                             t,
+                                                                                             surface_flux_function,
+                                                                                             equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                      orientation,
+                                                                                      direction,
+                                                                                      x, t,
+                                                                                      surface_flux_function,
+                                                                                      equations)) ==
+                              RealT
+                    end
+                end
+            end
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_godunov(u_ll, u_rr, orientation,
+                                                    equations)) == RealT
+
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+            end
+
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred entropy(u, equations)) == RealT
+            @test typeof(@inferred energy_total(u, equations)) == RealT
+        end
+    end
+
     @timed_testset "Linear Scalar Advection 1D" begin
         for RealT in (Float32, Float64)
             equations = @inferred LinearScalarAdvectionEquation1D(RealT(1))

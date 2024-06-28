@@ -104,9 +104,8 @@ function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
     return getfield(integrator, field)
 end
 
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::T;
-               dt, callback = nothing, kwargs...) where {T <: SimpleAlgorithm2N}
+function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
+              dt, callback = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp = similar(u)
@@ -129,67 +128,84 @@ function solve(ode::ODEProblem, alg::T;
         error("unsupported")
     end
 
+    return integrator
+end
+
+# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
+function solve(ode::ODEProblem, alg::SimpleAlgorithm2N;
+               dt, callback = nothing, kwargs...)
+    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
+
+    # Start actual solve
     solve!(integrator)
 end
 
 function solve!(integrator::SimpleIntegrator2N)
     @unpack prob = integrator.sol
-    @unpack alg = integrator
-    t_end = last(prob.tspan)
-    callbacks = integrator.opts.callback
 
     integrator.finalstep = false
+
     @trixi_timeit timer() "main loop" while !integrator.finalstep
-        if isnan(integrator.dt)
-            error("time step size `dt` is NaN")
-        end
-
-        # if the next iteration would push the simulation beyond the end time, set dt accordingly
-        if integrator.t + integrator.dt > t_end ||
-           isapprox(integrator.t + integrator.dt, t_end)
-            integrator.dt = t_end - integrator.t
-            terminate!(integrator)
-        end
-
-        # one time step
-        integrator.u_tmp .= 0
-        for stage in eachindex(alg.c)
-            t_stage = integrator.t + integrator.dt * alg.c[stage]
-            integrator.f(integrator.du, integrator.u, prob.p, t_stage)
-
-            a_stage = alg.a[stage]
-            b_stage_dt = alg.b[stage] * integrator.dt
-            @trixi_timeit timer() "Runge-Kutta step" begin
-                @threaded for i in eachindex(integrator.u)
-                    integrator.u_tmp[i] = integrator.du[i] -
-                                          integrator.u_tmp[i] * a_stage
-                    integrator.u[i] += integrator.u_tmp[i] * b_stage_dt
-                end
-            end
-        end
-        integrator.iter += 1
-        integrator.t += integrator.dt
-
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
-                end
-                return nothing
-            end
-        end
-
-        # respect maximum number of iterations
-        if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-            @warn "Interrupted. Larger maxiters is needed."
-            terminate!(integrator)
-        end
-    end
+        step!(integrator)
+    end # "main loop" timer
 
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                                   (prob.u0, integrator.u),
                                   integrator.sol.prob)
+end
+
+function step!(integrator::SimpleIntegrator2N)
+    @unpack prob = integrator.sol
+    @unpack alg = integrator
+    t_end = last(prob.tspan)
+    callbacks = integrator.opts.callback
+
+    @assert !integrator.finalstep
+    if isnan(integrator.dt)
+        error("time step size `dt` is NaN")
+    end
+
+    # if the next iteration would push the simulation beyond the end time, set dt accordingly
+    if integrator.t + integrator.dt > t_end ||
+       isapprox(integrator.t + integrator.dt, t_end)
+        integrator.dt = t_end - integrator.t
+        terminate!(integrator)
+    end
+
+    # one time step
+    integrator.u_tmp .= 0
+    for stage in eachindex(alg.c)
+        t_stage = integrator.t + integrator.dt * alg.c[stage]
+        integrator.f(integrator.du, integrator.u, prob.p, t_stage)
+
+        a_stage = alg.a[stage]
+        b_stage_dt = alg.b[stage] * integrator.dt
+        @trixi_timeit timer() "Runge-Kutta step" begin
+            @threaded for i in eachindex(integrator.u)
+                integrator.u_tmp[i] = integrator.du[i] -
+                                      integrator.u_tmp[i] * a_stage
+                integrator.u[i] += integrator.u_tmp[i] * b_stage_dt
+            end
+        end
+    end
+    integrator.iter += 1
+    integrator.t += integrator.dt
+
+    # handle callbacks
+    if callbacks isa CallbackSet
+        foreach(callbacks.discrete_callbacks) do cb
+            if cb.condition(integrator.u, integrator.t, integrator)
+                cb.affect!(integrator)
+            end
+            return nothing
+        end
+    end
+
+    # respect maximum number of iterations
+    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
+        @warn "Interrupted. Larger maxiters is needed."
+        terminate!(integrator)
+    end
 end
 
 # get a cache where the RHS can be stored
