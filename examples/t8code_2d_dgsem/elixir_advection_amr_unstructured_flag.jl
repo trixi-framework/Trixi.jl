@@ -78,7 +78,6 @@ amr_callback = AMRCallback(semi, amr_controller,
 # convergent tests. Once this feature is available in t8code load balancing is
 # enabled again.
 
-
 stepsize_callback = StepsizeCallback(cfl = 0.7)
 
 callbacks = CallbackSet(summary_callback,

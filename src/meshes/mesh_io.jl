@@ -232,7 +232,7 @@ end
 # effort to have a collective write to the HDF5 file. Instead, `levels` and
 # `num_elements_per_tree` gets gathered by the root rank and written to disk.
 function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
-                        mpi_parallel::Union{False,True})
+                        mpi_parallel::Union{False, True})
 
     # Create output directory (if it does not exist).
     mpi_isroot() && mkpath(output_directory)
