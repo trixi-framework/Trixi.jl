@@ -105,31 +105,42 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
 end
 
 """
-    T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = 1, mapping = nothing)
+    T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
+               boundary_names, treeIDs, neighIDs, faces, duals,
+               orientations, levels, num_elements_per_tree))
 
-Main mesh constructor for the `T8codeMesh` wrapping around a given t8code
-`forest` object. This constructor is typically called by other `T8codeMesh`
-constructors.
+Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine. 
 
 # Arguments
-- `forest`: Pointer to a t8code forest.
+- `ndims`: Dimension of the mesh. 
+- `ntrees`: Global number of trees. 
+- `nelements`: Global number of elements. 
+- `tree_node_coordinates`: Node coordinates for each tree: [dimension, i, j, k, tree]
+- `nodes`: Array of interpolation nodes.
 - `boundary_names`: List of boundary names.
-- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
-                      The mapping will be approximated by an interpolation polynomial
-                      of the specified degree for each tree.
-- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
-             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `treeIDs`: List of tree IDs. The lenght is the number of conforming interfaces of the coarse mesh.
+- `neighIDs`: List of neighboring tree IDs. Same length as `treeIDs`.
+- `faces`: List of face IDs. Same length as `treeIDs`.
+- `duals`: List of face IDs of the neighboring tree. Same length as `treeIDs`.
+- `orientations`: Orientation number of the interface. Same length as `treeIDs`.
+- `levels`: List of levels of each element. Has length `nelements`.
+- `num_elements_per_tree`: List of global number of elements per tree. Has length `ntrees`.
+
+Returns a `T8codeMesh` object with a forest reconstructed by the input arguments.
 """
 function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
-                    boundary_names, elemIDs, neighIDs, faces, duals,
+                    boundary_names, treeIDs, neighIDs, faces, duals,
                     orientations, levels, num_elements_per_tree)
     Trixi.cmesh_ref = Ref(t8_cmesh_t())
     t8_cmesh_init(Trixi.cmesh_ref)
     cmesh = Trixi.cmesh_ref[]
 
     # Use linear geometry for now. There is no real Lagrange geometry
-    # implementation yet in t8code.
-    Trixi.linear_geom = Trixi.t8_geometry_linear_new(2)
+    # implementation (volume nodes) yet in t8code. Moreover, we need to store
+    # the pointer variables in the `Trixi` package in order to avoid garbage
+    # collection. Otherwise t8code segfaults. This is an un-feature of t8code
+    # (recently introduced) and will be fixed in the near future.
+    Trixi.linear_geom = Trixi.t8_geometry_linear_new(ndims)
     Trixi.linear_geom_ptr = pointer_from_objref(Ref(Trixi.linear_geom))
     t8_cmesh_register_geometry(cmesh, Trixi.linear_geom_ptr)
 
@@ -188,12 +199,12 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
             vertices[24] = tree_node_coordinates[3, N, N, N, i]
         end
 
-        t8_cmesh_set_tree_vertices(cmesh, i - 1, vertices, 3)
+        t8_cmesh_set_tree_vertices(cmesh, i - 1, vertices, 2^ndims)
     end
 
     # Connect the coarse mesh elements.
-    for i in 1:length(elemIDs)
-        t8_cmesh_set_join(cmesh, elemIDs[i], neighIDs[i], faces[i], duals[i],
+    for i in eachindex(treeIDs)
+        t8_cmesh_set_join(cmesh, treeIDs[i], neighIDs[i], faces[i], duals[i],
                           orientations[i])
     end
 
@@ -212,7 +223,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
 
     # Compute the offset within the to-be-reconstructed forest. Depends on the
     # MPI rank resp. first global tree id.
-    if mpi_rank() > 0
+    if mpi_rank() > 0 && t8_forest_get_local_num_elements(forest) > 0
         last_global_tree_id_of_preceding_rank = t8_forest_global_tree_id(forest, 0) - 1
         global_element_id += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
     end
@@ -243,6 +254,8 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     # till it matches with the associated section in `levels.
     forest = adapt(forest, adapt_callback; recursive = true, balance = false,
                    partition = false, ghost = false, user_data = C_NULL)
+
+    @assert t8_forest_get_global_num_elements(forest) == nelements
 
     if mpi_isparallel()
         forest = partition(forest)
@@ -974,7 +987,7 @@ function count_interfaces(forest::Ptr{t8_forest}, ndims)
 
     visited_global_mortar_ids = Set{UInt128}([])
 
-    max_level = t8_forest_get_maxlevel(forest) #UInt64
+    max_level = t8_forest_get_maxlevel(forest)
     max_tree_num_elements = UInt128(2^ndims)^max_level
 
     if mpi_isparallel()
@@ -1143,8 +1156,8 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     ]
 
     # Helper variables to compute unique global MPI interface/mortar ids.
-    max_level = t8_forest_get_maxlevel(mesh.forest) #UInt64
-    max_tree_num_elements = (UInt128(2)^ndims(mesh))^max_level
+    max_level = t8_forest_get_maxlevel(mesh.forest)
+    max_tree_num_elements = UInt128(2^ndims(mesh))^max_level
 
     # These two variables help to ensure that we count MPI mortars from smaller
     # elements point of view only once.
@@ -1438,6 +1451,8 @@ function get_cmesh_info(mesh::T8codeMesh)
     return get_cmesh_info(cmesh, ndims(mesh))
 end
 
+# Note, `cmesh` is not partitioned as of now.
+# Every MPI rank has a full copy of the `cmesh`.
 function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
     num_trees = t8_cmesh_get_num_trees(cmesh)
     num_faces = 2 * ndims
