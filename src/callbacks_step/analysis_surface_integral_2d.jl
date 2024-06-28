@@ -244,7 +244,7 @@ function (drag_coefficient::DragCoefficientShearStress)(u, normal_direction, x, 
 end
 
 function get_boundary_indices(boundary_symbols, boundary_symbol_indices)
-    indices = Vector{Int}()
+    indices = Int[]
     for name in boundary_symbols
         append!(indices, boundary_symbol_indices[name])
     end
