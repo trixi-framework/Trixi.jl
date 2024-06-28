@@ -73,7 +73,7 @@ function initial_condition_convergence_test(x, t,
     # generates a manufactured solution. 
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
     Omega = sqrt(2) * pi
-    H = 2.0 + 0.5 * sin(Omega * x[1] - t)
+    H = 2.0 + 0.5f0 * sin(Omega * x[1] - t)
     v = 0.25
     b = 0.2 - 0.05 * sin(Omega * x[1])
     a = 1 + 0.1 * cos(Omega * x[1])
@@ -96,9 +96,9 @@ as defined in [`initial_condition_convergence_test`](@ref).
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
     Omega = sqrt(2) * pi
-    H = 2.0 + 0.5 * sin(Omega * x[1] - t)
-    H_x = 0.5 * cos(Omega * x[1] - t) * Omega
-    H_t = -0.5 * cos(Omega * x[1] - t)
+    H = 2.0 + 0.5f0 * sin(Omega * x[1] - t)
+    H_x = 0.5f0 * cos(Omega * x[1] - t) * Omega
+    H_t = -0.5f0 * cos(Omega * x[1] - t)
 
     v = 0.25
 
@@ -200,8 +200,8 @@ Further details are available in the paper:
     v_ll = velocity(u_ll, equations)
     v_rr = velocity(u_rr, equations)
 
-    f1 = 0.5 * (a_h_v_ll + a_h_v_rr)
-    f2 = f1 * 0.5 * (v_ll + v_rr)
+    f1 = 0.5f0 * (a_h_v_ll + a_h_v_rr)
+    f2 = f1 * 0.5f0 * (v_ll + v_rr)
 
     return SVector(f1, f2, zero(eltype(u_ll)), zero(eltype(u_ll)))
 end
@@ -240,7 +240,7 @@ end
                                                               equations::ShallowWaterEquationsQuasi1D)
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
-    diss = -0.5 * λ * (u_rr - u_ll)
+    diss = -0.5f0 * λ * (u_rr - u_ll)
     return SVector(diss[1], diss[2], zero(eltype(u_ll)), zero(eltype(u_ll)))
 end
 
@@ -278,7 +278,7 @@ end
     h = waterheight(u, equations)
     v = velocity(u, equations)
     #entropy variables are the same as ones in standard shallow water equations
-    w1 = equations.gravity * (h + b) - 0.5 * v^2
+    w1 = equations.gravity * (h + b) - 0.5f0 * v^2
     w2 = v
 
     return SVector(w1, w2, b, a)
@@ -306,7 +306,7 @@ end
 # Calculate total energy for a conservative state `cons`
 @inline function energy_total(cons, equations::ShallowWaterEquationsQuasi1D)
     a_h, a_h_v, b, a = cons
-    e = (a_h_v^2) / (2 * a * a_h) + 0.5 * equations.gravity * (a_h^2 / a) +
+    e = (a_h_v^2) / (2 * a * a_h) + 0.5f0 * equations.gravity * (a_h^2 / a) +
         equations.gravity * a_h * b
     return e
 end

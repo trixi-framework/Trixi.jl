@@ -79,8 +79,8 @@ function initial_condition_convergence_test(x, t, equations::ShallowWaterEquatio
     omega_t = 2.0 * pi
 
     H = c + cos(omega_x * x[1]) * cos(omega_t * t)
-    v = 0.5
-    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
+    v = 0.5f0
+    b = 2.0 + 0.5f0 * sin(sqrt(2.0) * pi * x[1])
     return prim2cons(SVector(H, v, b), equations)
 end
 
@@ -104,7 +104,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     omega_x = 2.0 * pi * sqrt(2.0)
     omega_t = 2.0 * pi
     omega_b = sqrt(2.0) * pi
-    v = 0.5
+    v = 0.5f0
 
     sinX, cosX = sincos(omega_x * x[1])
     sinT, cosT = sincos(omega_t * t)
@@ -116,8 +116,8 @@ as defined in [`initial_condition_convergence_test`](@ref).
     H_t = -omega_t * cosX * sinT
 
     # bottom topography and its spatial derivative
-    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
-    b_x = 0.5 * omega_b * cos(omega_b * x[1])
+    b = 2.0 + 0.5f0 * sin(sqrt(2.0) * pi * x[1])
+    b_x = 0.5f0 * omega_b * cos(omega_b * x[1])
 
     du1 = H_t + v * (H_x - b_x)
     du2 = v * du1 + equations.gravity * (H - b) * H_x
@@ -136,8 +136,8 @@ function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquation
     r = abs(x_norm)
 
     # Calculate primitive variables
-    H = r > 0.5 ? 3.25 : 4.0
-    v = r > 0.5 ? 0.0 : 0.1882
+    H = r > 0.5f0 ? 3.25 : 4.0
+    v = r > 0.5f0 ? 0.0 : 0.1882
     b = sin(x[1]) # arbitrary continuous function
 
     return prim2cons(SVector(H, v, b), equations)
@@ -185,7 +185,7 @@ end
     h, h_v, _ = u
     v = velocity(u, equations)
 
-    p = 0.5 * equations.gravity * h^2
+    p = 0.5f0 * equations.gravity * h^2
 
     f1 = h_v
     f2 = h_v * v + p
@@ -249,7 +249,7 @@ and for curvilinear 2D case in the paper:
     h_ll, _, b_ll = u_ll
     h_rr, _, b_rr = u_rr
 
-    h_average = 0.5 * (h_ll + h_rr)
+    h_average = 0.5f0 * (h_ll + h_rr)
     b_jump = b_rr - b_ll
 
     # Includes two parts:
@@ -367,8 +367,8 @@ Details are available in Eq. (4.1) in the paper:
     v_rr = velocity(u_rr, equations)
 
     # Average each factor of products in flux
-    h_avg = 0.5 * (h_ll + h_rr)
-    v_avg = 0.5 * (v_ll + v_rr)
+    h_avg = 0.5f0 * (h_ll + h_rr)
+    v_avg = 0.5f0 * (v_ll + v_rr)
     p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
 
     # Calculate fluxes depending on orientation
@@ -403,11 +403,11 @@ Further details are available in Theorem 1 of the paper:
     v_rr = velocity(u_rr, equations)
 
     # Average each factor of products in flux
-    v_avg = 0.5 * (v_ll + v_rr)
-    p_avg = 0.5 * equations.gravity * h_ll * h_rr
+    v_avg = 0.5f0 * (v_ll + v_rr)
+    p_avg = 0.5f0 * equations.gravity * h_ll * h_rr
 
     # Calculate fluxes depending on orientation
-    f1 = 0.5 * (h_v_ll + h_v_rr)
+    f1 = 0.5f0 * (h_v_ll + h_v_rr)
     f2 = f1 * v_avg + p_avg
 
     return SVector(f1, f2, zero(eltype(u_ll)))
@@ -471,7 +471,7 @@ end
                                                               equations::ShallowWaterEquations1D)
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
-    diss = -0.5 * λ * (u_rr - u_ll)
+    diss = -0.5f0 * λ * (u_rr - u_ll)
     return SVector(diss[1], diss[2], zero(eltype(u_ll)))
 end
 
@@ -581,7 +581,7 @@ end
 
     v = velocity(u, equations)
 
-    w1 = equations.gravity * (h + b) - 0.5 * v^2
+    w1 = equations.gravity * (h + b) - 0.5f0 * v^2
     w2 = v
 
     return SVector(w1, w2, b)
@@ -591,7 +591,7 @@ end
 @inline function entropy2cons(w, equations::ShallowWaterEquations1D)
     w1, w2, b = w
 
-    h = (w1 + 0.5 * w2^2) / equations.gravity - b
+    h = (w1 + 0.5f0 * w2^2) / equations.gravity - b
     h_v = h * w2
     return SVector(h, h_v, b)
 end
@@ -612,7 +612,7 @@ end
 
 @inline function pressure(u, equations::ShallowWaterEquations1D)
     h = waterheight(u, equations)
-    p = 0.5 * equations.gravity * h^2
+    p = 0.5f0 * equations.gravity * h^2
     return p
 end
 
@@ -638,7 +638,7 @@ Or equation (9.17) in [this lecture notes](https://metaphor.ethz.ch/x/2019/hs/40
     h_rr = waterheight(u_rr, equations)
     v_rr = velocity(u_rr, equations)
 
-    h_roe = 0.5 * (h_ll + h_rr)
+    h_roe = 0.5f0 * (h_ll + h_rr)
     c_roe = sqrt(equations.gravity * h_roe)
 
     h_ll_sqrt = sqrt(h_ll)
@@ -658,7 +658,7 @@ end
 @inline function energy_total(cons, equations::ShallowWaterEquations1D)
     h, h_v, b = cons
 
-    e = (h_v^2) / (2 * h) + 0.5 * equations.gravity * h^2 + equations.gravity * h * b
+    e = (h_v^2) / (2 * h) + 0.5f0 * equations.gravity * h^2 + equations.gravity * h * b
     return e
 end
 
