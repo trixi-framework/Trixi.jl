@@ -118,7 +118,7 @@ Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine.
 - `tree_node_coordinates`: Node coordinates for each tree: [dimension, i, j, k, tree]
 - `nodes`: Array of interpolation nodes.
 - `boundary_names`: List of boundary names.
-- `treeIDs`: List of tree IDs. The lenght is the number of conforming interfaces of the coarse mesh.
+- `treeIDs`: List of tree IDs. The length is the number of conforming interfaces of the coarse mesh.
 - `neighIDs`: List of neighboring tree IDs. Same length as `treeIDs`.
 - `faces`: List of face IDs. Same length as `treeIDs`.
 - `duals`: List of face IDs of the neighboring tree. Same length as `treeIDs`.
