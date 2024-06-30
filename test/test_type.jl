@@ -1030,11 +1030,12 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             x = SVector(zero(RealT))
             t = zero(RealT)
-            u = u_ll = u_rr = cons = SVector(one(RealT), one(RealT), one(RealT), one(RealT),
-                                             one(RealT),
-                                             one(RealT),
-                                             one(RealT),
-                                             one(RealT))
+            u = u_ll = u_rr = cons = SVector(one(RealT), zero(RealT), zero(RealT),
+                                             zero(RealT),
+                                             zero(RealT),
+                                             zero(RealT),
+                                             zero(RealT),
+                                             zero(RealT))
             orientation = 1
             directions = [1, 2]
 
@@ -1085,6 +1086,144 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test typeof(Trixi.calc_fast_wavespeed(cons, direction, equations)) == RealT
                 @test eltype(Trixi.calc_fast_wavespeed_roe(u_ll, u_rr, direction,
                                                            equations)) == RealT
+            end
+
+            @test typeof(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
+            @test typeof(@inferred Trixi.entropy_math(cons, equations)) == RealT
+            @test typeof(@inferred entropy(cons, equations)) == RealT
+            @test typeof(@inferred energy_total(cons, equations)) == RealT
+            @test typeof(@inferred energy_kinetic(cons, equations)) == RealT
+            @test typeof(@inferred energy_magnetic(cons, equations)) == RealT
+            @test typeof(@inferred energy_internal(cons, equations)) == RealT
+            @test typeof(@inferred cross_helicity(cons, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Ideal Glm Mhd 2D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred IdealGlmMhdEquations2D(RealT(1.4))
+
+            x = SVector(zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = cons = SVector(one(RealT), zero(RealT), zero(RealT),
+                                             zero(RealT),
+                                             zero(RealT),
+                                             zero(RealT),
+                                             zero(RealT),
+                                             zero(RealT),
+                                             zero(RealT))
+            orientations = [1, 2]
+            directions = [1, 2, 3, 4]
+            normal_direction = normal_direction_ll = normal_direction_average = SVector(one(RealT),
+                                                                                        zero(RealT))
+            nonconservative_type_local = Trixi.NonConservativeLocal()
+            nonconservative_type_symmetric = Trixi.NonConservativeSymmetric()
+            nonconservative_terms = [1, 2]
+
+            @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
+                  RealT
+
+            @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr,
+                                                               normal_direction_ll,
+                                                               normal_direction_average,
+                                                               equations)) == RealT
+            if RealT == Float32
+                # check `ln_mean` and `inv_ln_mean` (test broken)
+                @test_broken eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
+                                                                      normal_direction,
+                                                                      equations)) == RealT
+            else
+                @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, normal_direction,
+                                                               equations)) == RealT
+            end
+
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_einfeldt(u_ll, u_rr, normal_direction,
+                                                          equations)) == RealT
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr, orientation,
+                                                                   equations)) == RealT
+                @test eltype(@inferred flux_nonconservative_powell_local_symmetric(u_ll,
+                                                                                   u_rr,
+                                                                                   orientation,
+                                                                                   equations)) ==
+                      RealT
+                if RealT == Float32
+                    # check `ln_mean` (test broken)
+                    @test_broken eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
+                                                                   equations)) ==
+                                 RealT
+                    # check `ln_mean` and `inv_ln_mean` (test broken)
+                    @test_broken eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
+                                                                          orientation,
+                                                                          equations)) ==
+                                 RealT
+                else
+                    @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
+                                                            equations)) == RealT
+                    @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, orientation,
+                                                                   equations)) == RealT
+                end
+                for nonconservative_term in nonconservative_terms
+                    @test eltype(@inferred flux_nonconservative_powell_local_symmetric(u_ll,
+                                                                                       orientation,
+                                                                                       equations,
+                                                                                       nonconservative_type_local,
+                                                                                       nonconservative_term)) ==
+                          RealT
+                    @test eltype(@inferred flux_nonconservative_powell_local_symmetric(u_ll,
+                                                                                       u_rr,
+                                                                                       orientation,
+                                                                                       equations,
+                                                                                       nonconservative_type_symmetric,
+                                                                                       nonconservative_term)) ==
+                          RealT
+                end
+
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+                @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+                @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+                @test eltype(@inferred min_max_speed_einfeldt(u_ll, u_rr, orientation,
+                                                              equations)) == RealT
+            end
+
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred prim2cons(u, equations)) == RealT
+            @test eltype(@inferred entropy2cons(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred density(u, equations)) == RealT
+            @test typeof(@inferred pressure(u, equations)) == RealT
+            @test eltype(@inferred Trixi.gradient_conservative(pressure, u, equations)) ==
+                  RealT
+            @test typeof(@inferred density_pressure(u, equations)) == RealT
+
+            @test typeof(@inferred Trixi.calc_fast_wavespeed(cons, normal_direction,
+                                                             equations)) == RealT
+            @test eltype(@inferred Trixi.calc_fast_wavespeed_roe(u_ll, u_rr,
+                                                                 normal_direction,
+                                                                 equations)) == RealT
+            for orientation in orientations
+                @test typeof(@inferred Trixi.calc_fast_wavespeed(cons, orientation,
+                                                                 equations)) ==
+                      RealT
+                @test eltype(@inferred Trixi.calc_fast_wavespeed_roe(u_ll, u_rr,
+                                                                     orientation,
+                                                                     equations)) == RealT
             end
 
             @test typeof(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
