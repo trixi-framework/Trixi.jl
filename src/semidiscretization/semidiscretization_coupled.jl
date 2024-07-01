@@ -438,13 +438,13 @@ mutable struct BoundaryConditionCoupled{NDIMS,
                                         uEltype <: Real, Indices, CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
-    u_boundary        :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-    other_semi_index  :: Int
-    other_orientation :: Int
-    indices           :: Indices
-    coupling_converter :: Function
+    u_boundary         :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
+    other_orientation  :: Int
+    indices            :: Indices
+    coupling_converter :: CouplingConverter
 
-    function BoundaryConditionCoupled(other_semi_index, indices, uEltype, coupling_converter)
+    function BoundaryConditionCoupled(other_semi_index, indices, uEltype,
+                                      coupling_converter)
         NDIMS = length(indices)
         u_boundary = Array{uEltype, NDIMS * 2 - 1}(undef, ntuple(_ -> 0, NDIMS * 2 - 1))
 
@@ -456,8 +456,10 @@ mutable struct BoundaryConditionCoupled{NDIMS,
             other_orientation = 3
         end
 
-        new{NDIMS, NDIMS * 2 - 1, uEltype, typeof(indices)}(u_boundary, other_semi_index,
-                                                            other_orientation, indices, coupling_converter)
+        new{NDIMS, other_semi_index, NDIMS * 2 - 1, uEltype, typeof(indices),
+            typeof(coupling_converter)}(u_boundary,
+                                        other_orientation,
+                                        indices, coupling_converter)
     end
 end
 
@@ -606,16 +608,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
         j_node = j_node_start
         element_id = linear_indices[i_cell, j_cell]
 
-<<<<<<< HEAD
-        for i in eachnode(solver)
-            for v in 1:size(u, 1)
-                x = cache.elements.node_coordinates[:, i_node, j_node, linear_indices[i_cell, j_cell]]
-                converted_u = boundary_condition.coupling_converter(x, u[:, i_node, j_node, linear_indices[i_cell, j_cell]])
-                boundary_condition.u_boundary[v, i, cell] = converted_u[v]
-                # boundary_condition.u_boundary[v, i, cell] = u[v, i_node, j_node,
-                #                                               linear_indices[i_cell,
-                #                                                              j_cell]]
-=======
         for element_id in eachnode(solver_other)
             x_other = get_node_coords(node_coordinates_other, equations_other,
                                       solver_other,
@@ -628,7 +620,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
 
             for i in eachindex(u_node_converted)
                 u_boundary[i, element_id, cell] = u_node_converted[i]
->>>>>>> main
             end
 
             i_node += i_node_step

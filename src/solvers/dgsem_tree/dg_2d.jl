@@ -180,13 +180,8 @@ end
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-<<<<<<< HEAD
-                                           UnstructuredMesh2D, P4estMesh{2},
-					                       P4estMeshView{2}, T8codeMesh{2}},
-=======
                                            StructuredMeshView{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, T8codeMesh{2}},
->>>>>>> main
+                                           P4estMesh{2}, P4estMeshView{2},T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -397,12 +392,7 @@ end
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                         UnstructuredMesh2D, P4estMesh{2},
-<<<<<<< HEAD
-					P4estMeshView{2}, T8codeMesh{2}
-                                        },
-=======
-                                        T8codeMesh{2}},
->>>>>>> main
+                                        P4estMeshView{2}, T8codeMesh{2}},
                             nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded = cache

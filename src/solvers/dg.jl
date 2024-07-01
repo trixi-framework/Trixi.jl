@@ -436,14 +436,9 @@ function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
     get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
 end
 
-<<<<<<< HEAD
-const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh,
-                          P4estMeshView, T8codeMesh}
-=======
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
                           UnstructuredMesh2D,
-                          P4estMesh, T8codeMesh}
->>>>>>> main
+                          P4estMesh, P4estMeshView, T8codeMesh}
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
     nelements(cache.elements) * nnodes(dg)^ndims(mesh)
