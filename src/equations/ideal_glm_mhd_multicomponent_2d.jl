@@ -88,9 +88,9 @@ function initial_condition_convergence_test(x, t,
                                             equations::IdealGlmMhdMulticomponentEquations2D)
     # smooth Alfvén wave test from Derigs et al. FLASH (2016)
     # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
-    alpha = 0.25 * pi
+    alpha = 0.25 * convert(RealT, pi)
     x_perp = x[1] * cos(alpha) + x[2] * sin(alpha)
-    B_perp = 0.1 * sin(2.0 * pi * x_perp)
+    B_perp = 0.1 * sinpi(2 * x_perp)
     rho = 1
     prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
                                                                 (1 -
@@ -99,7 +99,7 @@ function initial_condition_convergence_test(x, t,
                                                                 for i in eachcomponent(equations))
     v1 = -B_perp * sin(alpha)
     v2 = B_perp * cos(alpha)
-    v3 = 0.1 * cos(2.0 * pi * x_perp)
+    v3 = 0.1 * cospi(2 * x_perp)
     p = 0.1
     B1 = cos(alpha) + v1
     B2 = sin(alpha) + v2

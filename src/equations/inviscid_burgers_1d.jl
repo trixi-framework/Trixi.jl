@@ -39,7 +39,7 @@ function initial_condition_convergence_test(x, t, equation::InviscidBurgersEquat
     A = 1.0
     L = 1
     f = 1 / L
-    omega = 2 * pi * f
+    omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * (x[1] - t))
 
     return SVector(scalar)
@@ -58,7 +58,7 @@ Source terms used for convergence tests in combination with
     A = 1.0
     L = 1
     f = 1 / L
-    omega = 2 * pi * f
+    omega = 2 * convert(RealT, pi) * f
     du = omega * A * cos(omega * (x[1] - t)) * (c - 1 + A * sin(omega * (x[1] - t)))
 
     return SVector(du)

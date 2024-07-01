@@ -83,18 +83,20 @@ function initial_condition_convergence_test(x, t,
     # smooth Alfvén wave test from Derigs et al. FLASH (2016)
     # domain must be set to [0, 1], γ = 5/3
 
-    rho = 1.0
+    RealT = eltype(x)
+    rho = 1
     prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
                                                                 (1 -
                                                                  2^ncomponents(equations)) *
                                                                 rho
                                                                 for i in eachcomponent(equations))
-    v1 = 0.0
-    si, co = sincos(2 * pi * x[1])
+    v1 = 0
+    # TODO: sincospi
+    si, co = sincos(2 * convert(RealT, pi) * x[1])
     v2 = 0.1 * si
     v3 = 0.1 * co
     p = 0.1
-    B1 = 1.0
+    B1 = 1
     B2 = v2
     B3 = v3
     prim_other = SVector{7, real(equations)}(v1, v2, v3, p, B1, B2, B3)
