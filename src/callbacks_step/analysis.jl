@@ -657,6 +657,15 @@ include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
 
+# This version of `analyze` is used for [`AnalysisSurfaceIntegral`](@ref) which requires
+# `semi` to be passed along to retrieve the current boundary indices, which are non-static 
+# in the case of AMR.
+function analyze(quantity::AnalysisSurfaceIntegral, du, u, t,
+                 semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    analyze(quantity, du, u, t, mesh, equations, solver, cache, semi)
+end
+
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
 # Note that this needs to be included after `analysis_surface_integral_2d.jl` to
@@ -669,6 +678,6 @@ function analyze(quantity::AnalysisSurfaceIntegral{Variable},
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
-    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, semi,
             cache_parabolic)
 end
