@@ -72,7 +72,7 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
     p = 1
     omega = 2 * convert(RealT, pi) # may be multiplied by frequency
     # r: length-variable = length of computational domain
-    r = 2.0f0
+    r = convert(RealT, 2)
     # e: epsilon = 0.2
     e = convert(RealT, 0.2)
     nx = 1 / sqrt(r^2 + 1)
