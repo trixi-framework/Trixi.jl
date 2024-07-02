@@ -1,0 +1,161 @@
+<!DOCTYPE html><HTML lang="en"><head><meta charset="UTF-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><title>Adding a new equation · Trixi.jl</title><link href="https://trixi-framework.github.io/Trixi.jl/stable/adding_a_new_equation/" rel="canonical"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script data-main="../assets/documenter.js" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" data-theme-name="documenter-dark" data-theme-primary-dark="" href="../assets/themes/documenter-dark.css" rel="stylesheet" type="text/css"/><link class="docs-theme-link" data-theme-name="documenter-light" data-theme-primary="" href="../assets/themes/documenter-light.css" rel="stylesheet" type="text/css"/><script src="../assets/themeswap.js"></script><link href="../assets/favicon.ico" rel="icon" type="image/x-icon"/><script data-outdated-warner="">function maybeAddWarning () {
+    const head = document.getElementsByTagName('head')[0];
+
+    // Add a noindex meta tag (unless one exists) so that search engines don't index this version of the docs.
+    if (document.body.querySelector('meta[name="robots"]') === null) {
+        const meta = document.createElement('meta');
+        meta.name = 'robots';
+        meta.content = 'noindex';
+
+        head.appendChild(meta);
+    };
+
+    // Add a stylesheet to avoid inline styling
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    style.appendChild(document.createTextNode('.outdated-warning-overlay {  position: fixed;  top: 0;  left: 0;  right: 0;  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);  z-index: 999;  background-color: #ffaba7;  color: rgba(0, 0, 0, 0.7);  border-bottom: 3px solid #da0b00;  padding: 10px 35px;  text-align: center;  font-size: 15px; }  .outdated-warning-overlay .outdated-warning-closer {    position: absolute;    top: calc(50% - 10px);    right: 18px;    cursor: pointer;    width: 12px; }  .outdated-warning-overlay a {    color: #2e63b8; }    .outdated-warning-overlay a:hover {      color: #363636; }'));
+    head.appendChild(style);
+
+    const div = document.createElement('div');
+    div.classList.add('outdated-warning-overlay');
+    const closer = document.createElement('div');
+    closer.classList.add('outdated-warning-closer');
+
+    // Icon by font-awesome (license: https://fontawesome.com/license, link: https://fontawesome.com/icons/times?style=solid)
+    closer.innerHTML = '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="times" class="svg-inline--fa fa-times fa-w-11" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 352 512"><path fill="currentColor" d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path></svg>';
+    closer.addEventListener('click', function () {
+        document.body.removeChild(div);
+    });
+    let href = '/stable';
+    if (window.documenterBaseURL) {
+        href = window.documenterBaseURL + '/../stable';
+    }
+    div.innerHTML = 'This is an old version of the documentation. <br> <a href="' + href + '">Go to the newest version</a>.';
+    div.appendChild(closer);
+    document.body.appendChild(div);
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', maybeAddWarning);
+} else {
+    maybeAddWarning();
+};
+</script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img alt="Trixi.jl logo" src="../assets/logo.png"/></a><div class="docs-package-name"><span class="docs-autofit">Trixi.jl</span></div><form action="../search/" class="docs-search"><input class="docs-search-query" id="documenter-search-query" name="q" placeholder="Search docs" type="text"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../visualization/">Visualization</a></li><li><a class="tocitem" href="../conventions/">Conventions</a></li><li><span class="tocitem">Meshes</span><ul><li><a class="tocitem" href="../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li></ul></li><li><a class="tocitem" href="../time_integration/">Time integration</a></li><li><a class="tocitem" href="../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../development/">Development</a></li><li><a class="tocitem" href="../performance/">Performance</a></li><li><a class="tocitem" href="../parallelization/">Parallelization</a></li><li><a class="tocitem" href="../testing/">Testing</a></li><li><span class="tocitem">Tutorials</span><ul><li class="is-active"><a class="tocitem" href="">Adding a new equation</a><ul class="internal"><li><a class="tocitem" href="#Basic-setup"><span>Basic setup</span></a></li><li><a class="tocitem" href="#Advanced-setup"><span>Advanced setup</span></a></li><li><a class="tocitem" href="#Summary-of-the-code"><span>Summary of the code</span></a></li></ul></li><li><a class="tocitem" href="../differentiable_programming/">Differentiable programming</a></li></ul></li><li><a class="tocitem" href="../troubleshooting/">Troubleshooting</a></li><li><a class="tocitem" href="../styleguide/">Style guide</a></li><li><a class="tocitem" href="../github-git/">GitHub &amp; Git</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../reference-trixi2vtk/">Trixi2Vtk.jl</a></li><li><a class="tocitem" href="../reference-trixi2img/">Trixi2Img.jl</a></li></ul></li><li><a class="tocitem" href="../authors/">Authors</a></li><li><a class="tocitem" href="../contributing/">Contributing</a></li><li><a class="tocitem" href="../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href="">Adding a new equation</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="">Adding a new equation</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/trixi-framework/Trixi.jl/blob/master/docs/src/adding_a_new_equation.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" href="#" id="documenter-settings-button" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" href="#" id="documenter-sidebar-button"></a></div></header><article class="content" id="documenter-page"><h1 id="Adding-a-new-equation"><a class="docs-heading-anchor" href="#Adding-a-new-equation">Adding a new equation</a><a id="Adding-a-new-equation-1"></a><a class="docs-heading-anchor-permalink" href="#Adding-a-new-equation" title="Permalink"></a></h1><p>If you want to use Trixi for your own research, you might be interested in a new physics model that's not already included in Trixi.jl. In this tutorial, we will implement the cubic conservation law</p><p class="math-container">\[\partial_t u(t,x) + \partial_x u(t,x)^3 = 0\]</p><p>in a periodic domain in one space dimension. In Trixi.jl, such a mathematical model is encoded as a subtype of <a href="../reference-trixi/#Trixi.AbstractEquations"><code>Trixi.AbstractEquations</code></a>.</p><h2 id="Basic-setup"><a class="docs-heading-anchor" href="#Basic-setup">Basic setup</a><a id="Basic-setup-1"></a><a class="docs-heading-anchor-permalink" href="#Basic-setup" title="Permalink"></a></h2><p>Let's start by creating a module (in the REPL, in a file, in a Jupyter notebook, ...). That ensures that we can re-create <code>struct</code>s defined therein without having to restart Julia.</p><pre><code class="language-julia">module CubicConservationLaw
+
+using Trixi
+
+struct CubicEquation &lt;: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
+                                                1 #= number of primary variables, i.e. scalar =#}
+end
+
+end # module</code></pre><p>We create <code>CubicEquation</code> as an empty <code>struct</code> since we do not use any parameters for this equation. Other models could bundle arbitrary parameters, e.g., the ideal gas constant for the compressible Euler equations.</p><p>From here on, the following code snippets should be written inside the <code>module</code>. The complete code can be found at the end. Next, we define the physical flux <code>f(u) = u^3</code> using the calling structure used in Trixi.jl.</p><pre><code class="language-julia">Trixi.flux(u, orientation, equation::CubicEquation) = u.^3</code></pre><p>In Trixi.jl, the conserved variables <code>u</code> are usually passed as <code>SVector</code>s of variables at a single physical location. Hence, we must use <code>u.^3</code> instead of the scalar operation <code>u^3</code>.</p><p>That's already enough to run a simple simulation with a standard DGSEM discretization using the non-dissipative central flux at interfaces. This code is written outside of our new <code>module</code>.</p><pre><code class="language-julia"># Create a simulation setup
+import .CubicConservationLaw
+using Trixi
+using OrdinaryDiffEq
+
+equation = CubicConservationLaw.CubicEquation()
+
+initial_condition_sine(x, t, equation::CubicConservationLaw.CubicEquation) = SVector(sinpi(x[1]))
+
+mesh = mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
+                       initial_refinement_level=4,
+                       n_cells_max=10^4)
+
+solver = DGSEM(3 #= polynomial degree =#, flux_central)
+
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+
+# Create ODE problem with given time span
+tspan = (0.0, 0.09)
+ode = semidiscretize(semi, tspan)</code></pre><p>We wrap the return value of the <code>initial_condition_sine</code> inside an <code>SVector</code> since that's the approach used in Trixi.jl also for systems of equations. We need to index the spatial coordinate <code>x[1]</code>, since it is an <code>SVector</code> with one component. In multiple space dimensions, all spatial coordinates are passed together.</p><p>The <code>ode</code> is an <code>ODEProblem</code> from the SciML/DifferentialEquations ecosystem. Thus, we can solve this ODE numerically using any time integration method, e.g., <code>SSPRK43</code> from <a href="https://github.com/SciML/OrdinaryDiffEq.jl">OrdinaryDiffEq.jl</a>. Before, we set up a <a href="../callbacks/#callbacks-id">callback</a> to summarize the simulation setup.</p><pre><code class="language-julia">summary_callback = SummaryCallback()
+callbacks = CallbackSet(summary_callback)
+
+# OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
+sol = solve(ode, SSPRK43(),
+            save_everystep=false, callback=callbacks, maxiters=1e5);
+
+# Print the timer summary
+summary_callback()</code></pre><p>That's it, you ran your first simulation using your new equation with Trixi! Now, we can plot the solution at the final time using Plots.jl.</p><pre><code class="language-julia">plot(sol)</code></pre><p><img alt="tutorial_adding_new_equations_plot1" src="https://user-images.githubusercontent.com/12693098/111651488-91122980-8806-11eb-848c-af09f3af234c.png"/></p><p>You can already see that discontinuities will develop and oscillations start to occur around steep parts of the wave. That's expected from our central discretization. To avoid these issues, we need to use dissipative numerical fluxes (approximate Riemann solvers) at interfaces.</p><h2 id="Advanced-setup"><a class="docs-heading-anchor" href="#Advanced-setup">Advanced setup</a><a id="Advanced-setup-1"></a><a class="docs-heading-anchor-permalink" href="#Advanced-setup" title="Permalink"></a></h2><p>Thus, we add a Godunov's flux for our cubic equation. That is easy for this equation since the wave speed <code>f'(u) = 3u^2</code> is always non-negative.</p><pre><code class="language-julia">@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)</code></pre><p>Let's run the example again but with a dissipative numerical flux at interfaces. <code>remake</code> will recreate the semidiscretization we used before and only change selected parameters, in this case the <code>solver</code>.</p><pre><code class="language-julia"># A new setup with dissipation
+semi = remake(semi, solver=DGSEM(3, flux_godunov))
+ode = semidiscretize(semi, tspan)
+sol = solve(ode, SSPRK43(),
+            save_everystep=false, callback=callbacks, maxiters=1e5);
+summary_callback()
+plot!(sol)</code></pre><p><img alt="tutorial_adding_new_equations_plot2" src="https://user-images.githubusercontent.com/12693098/111651740-c9196c80-8806-11eb-9a02-c0420eecf4fc.png"/></p><p>You can see that there are fewer oscillations, in particular around steep edges. Now let's increase the final time (and also the spatial resolution).</p><pre><code class="language-julia"># A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
+semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
+ode = semidiscretize(semi, (0.0, 0.5))
+sol = solve(ode, SSPRK43(),
+            save_everystep=false, callback=callbacks, maxiters=1e5);
+plot(sol)</code></pre><p><img alt="tutorial_adding_new_equations_plot3" src="https://user-images.githubusercontent.com/12693098/111651770-cfa7e400-8806-11eb-887d-d8f6282cb6ef.png"/></p><p>You can observe that nonclassical shocks develop and are stable under grid refinement, e.g. for <code>initial_refinement_level=12</code>. In this case, these nonclassical shocks can be avoided by using an entropy-dissipative semidiscretization. Thus, we need to define an entropy-conservative numerical flux</p><pre><code class="language-julia">@inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicEquation)
+  return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
+end</code></pre><p>and use a <a href="../reference-trixi/#Trixi.VolumeIntegralFluxDifferencing"><code>VolumeIntegralFluxDifferencing</code></a> instead of the standard <a href="../reference-trixi/#Trixi.VolumeIntegralWeakForm"><code>VolumeIntegralWeakForm</code></a> in the DGSEM.</p><pre><code class="language-julia"># Let's use a provably entropy-dissipative semidiscretization
+semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
+ode = semidiscretize(semi, (0.0, 0.5))
+sol = solve(ode, SSPRK43(),
+            save_everystep=false, callback=callbacks, maxiters=1e5);
+plot(sol)</code></pre><p><img alt="tutorial_adding_new_equations_plot4" src="https://user-images.githubusercontent.com/12693098/111651788-d46c9800-8806-11eb-8cc7-9323527b02a2.png"/></p><p>Possible next steps could be</p><ul><li>to define <code>Trixi.max_abs_speeds(u, equations::CubicEquation) = 3 * u[1]^2</code> to use CFL_based time step control via a [<code>StepsizeCallback</code>][@ref]</li><li>to define quantities of interest like <code>Trixi.entropy(u, equations::CubicEquation) = u[1]^2</code> and integrate them in a simulation using the <a href="../reference-trixi/#Trixi.AnalysisCallback"><code>AnalysisCallback</code></a></li><li>to experiment with shock-capturing volume integrals <a href="../reference-trixi/#Trixi.VolumeIntegralShockCapturingHG"><code>VolumeIntegralShockCapturingHG</code></a> and adaptive mesh refinement <a href="../reference-trixi/#Trixi.AMRCallback"><code>AMRCallback</code></a></li></ul><h2 id="Summary-of-the-code"><a class="docs-heading-anchor" href="#Summary-of-the-code">Summary of the code</a><a id="Summary-of-the-code-1"></a><a class="docs-heading-anchor-permalink" href="#Summary-of-the-code" title="Permalink"></a></h2><p>To sum up, here is the complete code that we used (without the <a href="../reference-trixi/#Trixi.SummaryCallback-Tuple{}"><code>SummaryCallback</code></a> since that creates a lot of unnecessary output in the doctests of this tutorial).</p><pre><code class="language-julia"># Define new physics
+module CubicConservationLaw
+
+using Trixi
+
+struct CubicEquation &lt;: Trixi.AbstractEquations{1 #= number of spatial dimensions =#,
+                                                1 #= number of primary variables, i.e. scalar =#}
+end
+
+@inline Trixi.flux(u, orientation, equation::CubicEquation) = u.^3
+Trixi.varnames(_, ::CubicEquation) = ("scalar",)
+
+@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll, orientation, equation)
+@inline function Trixi.flux_ec(u_ll, u_rr, orientation, equation::CubicEquation)
+  return SVector(0.25 * (u_ll[1]^3 + u_ll[1]^2 * u_rr[1] + u_ll[1] * u_rr[1]^2 + u_rr[1]^3))
+end
+
+end # module
+
+
+# Create a simulation setup
+import .CubicConservationLaw
+using Trixi
+using OrdinaryDiffEq
+using Plots
+
+equation = CubicConservationLaw.CubicEquation()
+
+initial_condition_sine(x, t, equation::CubicConservationLaw.CubicEquation) = SVector(sinpi(x[1]))
+
+mesh = mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
+                       initial_refinement_level=4,
+                       n_cells_max=10^4)
+
+solver = DGSEM(3 #= polynomial degree =#, flux_central)
+
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+
+# Create ODE problem with given time span
+tspan = (0.0, 0.1)
+ode = semidiscretize(semi, tspan)
+
+# OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
+sol = solve(ode, SSPRK43(), save_everystep=false);
+plot(sol);
+
+
+# A new setup with dissipation
+semi = remake(semi, solver=DGSEM(3, flux_godunov))
+ode = semidiscretize(semi, tspan)
+sol = solve(ode, SSPRK43(), save_everystep=false);
+plot!(sol);
+
+
+# A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
+semi = remake(semi, mesh=TreeMesh(-1.0, 1.0, initial_refinement_level=8, n_cells_max=10^5))
+ode = semidiscretize(semi, (0.0, 0.5))
+sol = solve(ode, SSPRK43(), save_everystep=false);
+plot(sol);
+
+
+# Let's use a provably entropy-dissipative semidiscretization
+semi = remake(semi, solver=DGSEM(3, flux_godunov, VolumeIntegralFluxDifferencing(flux_ec)))
+ode = semidiscretize(semi, (0.0, 0.5))
+sol = solve(ode, SSPRK43(), save_everystep=false);
+plot(sol);</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../testing/">« Testing</a><a class="docs-footer-nextpage" href="../differentiable_programming/">Differentiable programming »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label></p><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div><p></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 20 April 2021 11:39">Tuesday 20 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></HTML>
