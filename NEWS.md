@@ -4,6 +4,20 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.8 from v0.7.x
+
+#### Added
+
+#### Changed
+
+- The specification of boundary names on which `AnalysisSurfaceIntegral`s are computed (such as drag and lift coefficients) has changed from `Symbol` and `Vector{Symbol}` to `NTuple{Symbol}`.
+  Thus, for one boundary the syntax changes from `:boundary` to `(:boundary,)` and for `Vector`s `[:boundary1, :boundary2]` to `(:boundary1, :boundary2)` ([#1959]).
+- The names of output files like the one created from the `SaveSolutionCallback` have changed from `%06d` to `%09d` to allow longer-running simulations ([#1996]).
+
+#### Deprecated
+
+#### Removed
+
 ## Changes in the v0.7 lifecycle
 
 #### Added
