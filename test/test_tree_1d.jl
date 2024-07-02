@@ -51,6 +51,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Linearized Euler
     include("test_tree_1d_linearizedeuler.jl")
+
+    # Maxwell
+    include("test_tree_1d_maxwell.jl")
 end
 
 # Coverage test for all initial conditions
