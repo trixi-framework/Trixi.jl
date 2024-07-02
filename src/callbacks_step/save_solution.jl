@@ -256,7 +256,7 @@ function save_solution_file(u, time, dt, timestep,
                             element_variables = Dict{Symbol, Any}(),
                             node_variables = Dict{Symbol, Any}();
                             system = "")
-    @unpack output_directory = solution_callback
+    @unpack output_directory, solution_variables = solution_callback
 
     # Filename based on current time step
     if isempty(system)
@@ -268,7 +268,8 @@ function save_solution_file(u, time, dt, timestep,
     MPI.Barrier(MPI.COMM_WORLD)
     Trixi.exchange_solution_data!(u, mesh, equations, solver, cache)
     Trixi.output_data_to_vtu(mesh, equations, solver,
-                             cache.communication_data.solution_data, filename)
+                             cache.communication_data.solution_data, filename,
+                             solution_variables)
 
     return filename
 end

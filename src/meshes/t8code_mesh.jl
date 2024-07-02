@@ -1253,15 +1253,16 @@ end
 # t8code supports two types: T8_VTK_SCALAR - One double per element.
 #                       and  T8_VTK_VECTOR - Three doubles per element.
 function output_data_to_vtu(mesh::T8codeMesh, equations, solver,
-                            u_tmp, out)
-    vars = varnames(cons2cons, equations)
+                            u_tmp, out, solution_variables)
+    vars = varnames(solution_variables, equations)
 
     vtk_data = Vector{t8_vtk_data_field_t}(undef, nvariables(equations))
 
     data = Array{Float64}(undef, ncells(mesh), nvariables(equations))
-    for v in eachvariable(equations)
-        for element in 1:ncells(mesh)
-            data[element, v] = u_tmp[element].u[v]
+    for element in 1:ncells(mesh)
+        variables = solution_variables(u_tmp[element].u, equations)
+        for v in eachvariable(equations)
+            data[element, v] = variables[v]
         end
     end
 
