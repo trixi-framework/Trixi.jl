@@ -53,7 +53,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                                                        min)],
                                 max_iterations_newton = 40, # Default value of 10 iterations is too low to fulfill bounds.
                                 positivity_variables_cons = [],
-                                positivity_variables_nonlinear = [])
+                                positivity_variables_nonlinear = [],
+                                bar_states = false)
 # Variables for global limiting (`positivity_variables_cons` and
 # `positivity_variables_nonlinear`) are overwritten and used in the tests.
 

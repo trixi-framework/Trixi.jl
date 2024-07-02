@@ -11,10 +11,18 @@
 
 # this method is used when the limiter is constructed as for shock-capturing volume integrals
 function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquations{2},
-                      basis::LobattoLegendreBasis, bound_keys)
+                      basis::LobattoLegendreBasis, bound_keys, bar_states)
     subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterIDP2D{real(basis)}(0,
                                                                                    nnodes(basis),
                                                                                    bound_keys)
+
+    cache = (;)
+    if bar_states
+        container_bar_states = Trixi.ContainerBarStates{real(basis)}(0,
+                                                                     nvariables(equations),
+                                                                     nnodes(basis))
+        cache = (; cache..., container_bar_states)
+    end
 
     # Memory for bounds checking routine with `BoundsCheckCallback`.
     # Local variable contains the maximum deviation since the last export.
@@ -26,42 +34,55 @@ function create_cache(limiter::Type{SubcellLimiterIDP}, equations::AbstractEquat
         idp_bounds_delta_global[key] = zero(real(basis))
     end
 
-    return (; subcell_limiter_coefficients, idp_bounds_delta_local,
+    return (; cache..., subcell_limiter_coefficients, idp_bounds_delta_local,
             idp_bounds_delta_global)
 end
 
 function (limiter::SubcellLimiterIDP)(u::AbstractArray{<:Any, 4}, semi, dg::DGSEM, t,
                                       dt;
                                       kwargs...)
+    mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
     # TODO: Do not abuse `reset_du!` but maybe implement a generic `set_zero!`
     @trixi_timeit timer() "reset alpha" reset_du!(alpha, dg, semi.cache)
 
+    if limiter.smoothness_indicator
+        elements = semi.cache.element_ids_dgfv
+    else
+        elements = eachelement(dg, semi.cache)
+    end
+
     if limiter.local_twosided
         @trixi_timeit timer() "local twosided" idp_local_twosided!(alpha, limiter,
-                                                                   u, t, dt, semi)
+                                                                   u, t, dt, semi,
+                                                                   elements)
     end
     if limiter.positivity
-        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt, semi)
+        @trixi_timeit timer() "positivity" idp_positivity!(alpha, limiter, u, dt,
+                                                           semi, elements)
     end
     if limiter.local_onesided
         @trixi_timeit timer() "local onesided" idp_local_onesided!(alpha, limiter,
-                                                                   u, t, dt, semi)
+                                                                   u, t, dt, semi,
+                                                                   elements)
     end
 
     # Calculate alpha1 and alpha2
     @unpack alpha1, alpha2 = limiter.cache.subcell_limiter_coefficients
-    @threaded for element in eachelement(dg, semi.cache)
+    @threaded for element in elements
         for j in eachnode(dg), i in 2:nnodes(dg)
             alpha1[i, j, element] = max(alpha[i - 1, j, element], alpha[i, j, element])
         end
         for j in 2:nnodes(dg), i in eachnode(dg)
             alpha2[i, j, element] = max(alpha[i, j - 1, element], alpha[i, j, element])
         end
-        alpha1[1, :, element] .= zero(eltype(alpha1))
-        alpha1[nnodes(dg) + 1, :, element] .= zero(eltype(alpha1))
-        alpha2[:, 1, element] .= zero(eltype(alpha2))
-        alpha2[:, nnodes(dg) + 1, element] .= zero(eltype(alpha2))
+        for i in eachnode(dg)
+            alpha1[1, i, element] = zero(eltype(alpha1))
+            alpha1[nnodes(dg) + 1, i, element] = zero(eltype(alpha1))
+            alpha2[i, 1, element] = zero(eltype(alpha2))
+            alpha2[i, nnodes(dg) + 1, element] = zero(eltype(alpha2))
+        end
     end
 
     return nothing
@@ -74,8 +95,10 @@ end
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Calc bounds inside elements
     @threaded for element in eachelement(dg, cache)
-        var_min[:, :, element] .= typemax(eltype(var_min))
-        var_max[:, :, element] .= typemin(eltype(var_max))
+        for j in eachnode(dg), i in eachnode(dg)
+            var_min[i, j, element] = typemax(eltype(var_min))
+            var_max[i, j, element] = typemin(eltype(var_max))
+        end
         # Calculate bounds at Gauss-Lobatto nodes using u
         for j in eachnode(dg), i in eachnode(dg)
             var = u[variable, i, j, element]
@@ -155,8 +178,11 @@ end
                 index = reverse(index)
                 boundary_index += 2
             end
-            u_outer = get_boundary_outer_state(boundary_conditions[boundary_index],
-                                               cache, t, equations, dg,
+            u_inner = get_node_vars(u, equations, dg, index..., element)
+            u_outer = get_boundary_outer_state(u_inner, cache, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               mesh, equations, dg,
                                                index..., element)
             var_outer = u_outer[variable]
 
@@ -220,7 +246,6 @@ end
         right = cache.interfaces.neighbor_ids[2, interface]
 
         orientation = cache.interfaces.orientations[interface]
-
         for i in eachnode(dg)
             index_left = (nnodes(dg), i)
             index_right = (1, i)
@@ -258,8 +283,11 @@ end
                 index = reverse(index)
                 boundary_index += 2
             end
-            u_outer = get_boundary_outer_state(boundary_conditions[boundary_index],
-                                               cache, t, equations, dg,
+            u_inner = get_node_vars(u, equations, dg, index..., element)
+            u_outer = get_boundary_outer_state(u_inner, cache, t,
+                                               boundary_conditions[boundary_index],
+                                               orientation, boundary_index,
+                                               mesh, equations, dg,
                                                index..., element)
             var_outer = variable(u_outer, equations)
 
@@ -274,15 +302,15 @@ end
 ###############################################################################
 # Local two-sided limiting of conservative variables
 
-@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi)
+@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi, elements)
     for variable in limiter.local_twosided_variables_cons
-        idp_local_twosided!(alpha, limiter, u, t, dt, semi, variable)
+        idp_local_twosided!(alpha, limiter, u, t, dt, semi, elements, variable)
     end
 
     return nothing
 end
 
-@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi, variable)
+@inline function idp_local_twosided!(alpha, limiter, u, t, dt, semi, elements, variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
@@ -291,9 +319,11 @@ end
     variable_string = string(variable)
     var_min = variable_bounds[Symbol(variable_string, "_min")]
     var_max = variable_bounds[Symbol(variable_string, "_max")]
-    calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
+    if !limiter.bar_states
+        calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
+    end
 
-    @threaded for element in eachelement(dg, semi.cache)
+    @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
@@ -347,23 +377,26 @@ end
 ##############################################################################
 # Local one-sided limiting of nonlinear variables
 
-@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi)
+@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi, elements)
     for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
-        idp_local_onesided!(alpha, limiter, u, t, dt, semi, variable, min_or_max)
+        idp_local_onesided!(alpha, limiter, u, t, dt, semi, elements,
+                            variable, min_or_max)
     end
 
     return nothing
 end
 
-@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi,
+@inline function idp_local_onesided!(alpha, limiter, u, t, dt, semi, elements,
                                      variable, min_or_max)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_minmax = variable_bounds[Symbol(string(variable), "_", string(min_or_max))]
-    calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    if !limiter.bar_states
+        calc_bounds_onesided!(var_minmax, min_or_max, variable, u, t, semi)
+    end
 
     # Perform Newton's bisection method to find new alpha
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
@@ -382,7 +415,7 @@ end
 ###############################################################################
 # Global positivity limiting
 
-@inline function idp_positivity!(alpha, limiter, u, dt, semi)
+@inline function idp_positivity!(alpha, limiter, u, dt, semi, elements)
     # Conservative variables
     for variable in limiter.positivity_variables_cons
         @trixi_timeit timer() "conservative variables" idp_positivity_conservative!(alpha,
@@ -390,6 +423,7 @@ end
                                                                                     u,
                                                                                     dt,
                                                                                     semi,
+                                                                                    elements,
                                                                                     variable)
     end
 
@@ -399,6 +433,7 @@ end
                                                                               limiter,
                                                                               u, dt,
                                                                               semi,
+                                                                              elements,
                                                                               variable)
     end
 
@@ -408,7 +443,8 @@ end
 ###############################################################################
 # Global positivity limiting of conservative variables
 
-@inline function idp_positivity_conservative!(alpha, limiter, u, dt, semi, variable)
+@inline function idp_positivity_conservative!(alpha, limiter, u, dt, semi, elements,
+                                              variable)
     mesh, _, dg, cache = mesh_equations_solver_cache(semi)
     (; antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R) = cache.antidiffusive_fluxes
     (; inverse_weights) = dg.basis
@@ -417,7 +453,7 @@ end
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    @threaded for element in eachelement(dg, semi.cache)
+    @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
@@ -473,14 +509,15 @@ end
 ###############################################################################
 # Global positivity limiting of nonlinear variables
 
-@inline function idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, variable)
+@inline function idp_positivity_nonlinear!(alpha, limiter, u, dt, semi, elements,
+                                           variable)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     (; positivity_correction_factor) = limiter
 
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     var_min = variable_bounds[Symbol(string(variable), "_min")]
 
-    @threaded for element in eachelement(dg, semi.cache)
+    @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                     mesh, i, j, element)
@@ -670,5 +707,33 @@ end
 # final check for nonnegativity limiting
 @inline function final_check_nonnegative_newton_idp(bound, goal, newton_abstol)
     (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
+end
+
+###############################################################################
+# Monolithic Convex Limiting
+###############################################################################
+
+# this method is used when the limiter is constructed as for shock-capturing volume integrals
+function create_cache(limiter::Type{SubcellLimiterMCL}, equations::AbstractEquations{2},
+                      basis::LobattoLegendreBasis, positivity_limiter_pressure)
+    subcell_limiter_coefficients = Trixi.ContainerSubcellLimiterMCL2D{real(basis)}(0,
+                                                                                   nvariables(equations),
+                                                                                   nnodes(basis))
+    container_bar_states = Trixi.ContainerBarStates{real(basis)}(0,
+                                                                 nvariables(equations),
+                                                                 nnodes(basis))
+
+    # Memory for bounds checking routine with `BoundsCheckCallback`.
+    # Local variable contains the maximum deviation since the last export.
+    # [min / max, variable]
+    mcl_bounds_delta_local = zeros(real(basis), 2,
+                                   nvariables(equations) + positivity_limiter_pressure)
+    # Global variable contains the total maximum deviation.
+    # [min / max, variable]
+    mcl_bounds_delta_global = zeros(real(basis), 2,
+                                    nvariables(equations) + positivity_limiter_pressure)
+
+    return (; subcell_limiter_coefficients, container_bar_states,
+            mcl_bounds_delta_local, mcl_bounds_delta_global)
 end
 end # @muladd
