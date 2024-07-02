@@ -56,6 +56,14 @@ summary_callback = SummaryCallback()
 
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
+save_solution = SaveSolutionCallback(interval = 10,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+
+save_restart = SaveRestartCallback(interval = 100,
+                                   save_final_restart = true)
+
 analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -63,6 +71,7 @@ analysis_callback = AnalysisCallback(semi_euler, interval = analysis_interval,
                                      save_analysis = true)
 
 callbacks = CallbackSet(summary_callback, stepsize_callback,
+                        save_restart, save_solution,
                         analysis_callback, alive_callback)
 
 ###############################################################################
