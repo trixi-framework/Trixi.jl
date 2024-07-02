@@ -206,7 +206,7 @@ function initial_condition_weak_blast_wave(x, t,
                                                                 2^(i - 1) * (1 - 2) /
                                                                 (1 -
                                                                  2^ncomponents(equations)) *
-                                                                1 :
+                                                                one(RealT) :
                                                                 2^(i - 1) * (1 - 2) /
                                                                 (1 -
                                                                  2^ncomponents(equations)) *
