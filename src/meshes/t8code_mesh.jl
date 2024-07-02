@@ -18,10 +18,12 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
 
     boundary_names   :: Array{Symbol, 2}      # [face direction, tree]
     current_filename :: String
+    unsaved_changes  :: Bool
 
-    ninterfaces :: Int
-    nmortars    :: Int
-    nboundaries :: Int
+    max_number_faces :: Int
+    ninterfaces      :: Int
+    nmortars         :: Int
+    nboundaries      :: Int
 
     nmpiinterfaces :: Int
     nmpimortars    :: Int
@@ -31,13 +33,17 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                current_filename) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
 
+        @assert t8_forest_get_local_num_elements(forest)>0 "Too many ranks to properly partition the mesh!"
+
         mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
                                                                                   is_parallel)
 
         mesh.nodes = nodes
         mesh.boundary_names = boundary_names
         mesh.current_filename = current_filename
+        mesh.unsaved_changes = false # TODO: if set to `true`, the mesh will be saved to a mesh file.
         mesh.tree_node_coordinates = tree_node_coordinates
+        mesh.max_number_faces = 4 # TODO: How to automatically adapt for other element types, e.g. triangles?
 
         finalizer(mesh) do mesh
             # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are
@@ -1263,9 +1269,537 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     return nothing
 end
 
+function fill_mesh_info_fv!(mesh::T8codeMesh, interfaces, boundaries,
+                            boundary_names; mpi_mesh_info = nothing)
+    @assert t8_forest_is_committed(mesh.forest) != 0
+
+    num_local_elements = t8_forest_get_local_num_elements(mesh.forest)
+    num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
+
+    # Process-local index of the current element in the space-filling curve.
+    current_index = t8_locidx_t(0)
+
+    # Increment counters for the different interface/mortar/boundary types.
+    local_num_conform = 0
+    local_num_mortars = 0
+    local_num_boundary = 0
+
+    local_num_mpi_conform = 0
+    local_num_mpi_mortars = 0
+
+    # Helper variables to compute unique global MPI interface/mortar ids.
+    max_level = t8_forest_get_maxlevel(mesh.forest) #UInt64
+    max_tree_num_elements = UInt64(2^ndims(mesh))^max_level
+
+    # Loop over all local trees.
+    for itree in 0:(num_local_trees - 1)
+        tree_class = t8_forest_get_tree_class(mesh.forest, itree)
+        eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest, tree_class)
+
+        num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, itree)
+
+        global_itree = t8_forest_global_tree_id(mesh.forest, itree)
+
+        # Loop over all local elements of the current local tree.
+        for ielement in 0:(num_elements_in_tree - 1)
+            element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
+
+            level = t8_element_level(eclass_scheme, element)
+
+            num_faces = t8_element_num_faces(eclass_scheme, element)
+
+            # Loop over all faces of the current local element.
+            for iface in 0:(num_faces - 1)
+                pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
+                pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
+                pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
+
+                dual_faces_ref = Ref{Ptr{Cint}}()
+                num_neighbors_ref = Ref{Cint}()
+
+                forest_is_balanced = Cint(1)
+
+                # Query neighbor information from t8code.
+                t8_forest_leaf_face_neighbors(mesh.forest, itree, element,
+                                              pneighbor_leaves_ref, iface, dual_faces_ref,
+                                              num_neighbors_ref,
+                                              pelement_indices_ref, pneigh_scheme_ref,
+                                              forest_is_balanced)
+
+                num_neighbors = num_neighbors_ref[]
+                dual_faces = unsafe_wrap(Array, dual_faces_ref[], num_neighbors)
+                neighbor_ielements = unsafe_wrap(Array, pelement_indices_ref[],
+                                                 num_neighbors)
+                neighbor_leaves = unsafe_wrap(Array, pneighbor_leaves_ref[], num_neighbors)
+                neighbor_scheme = pneigh_scheme_ref[]
+
+                # Now we check for the different cases. The nested if-structure is as follows:
+                #
+                #   if `boundary`:
+                #     <fill boundary info>
+                #
+                #   else: // It must be an interface or mortar.
+                #
+                #     if `local interface`:
+                #       <fill interface info>
+                #     elseif `local mortar from larger element point of view`:
+                #       <throw error> Not supported yet
+                #     else: // `local mortar from smaller elements point of view`
+                #       <skip> // We only count local mortars once.
+                #
+                #   // end
+
+                # Domain boundary.
+                if num_neighbors == 0
+                    local_num_boundary += 1
+                    boundary_id = local_num_boundary
+
+                    # One-based indexing.
+                    boundaries.neighbor_ids[boundary_id] = current_index + 1
+                    boundaries.faces[boundary_id] = iface + 1
+                    boundaries.name[boundary_id] = boundary_names[iface + 1, itree + 1]
+                else # Interface or mortar.
+                    neighbor_level = t8_element_level(neighbor_scheme, neighbor_leaves[1])
+
+                    # Local interface: The second condition ensures we only visit the interface once.
+                    if level == neighbor_level && current_index <= neighbor_ielements[1]
+                        local_num_conform += 1
+                        interfaces.neighbor_ids[1, local_num_conform] = current_index +
+                                                                        1
+                        interfaces.neighbor_ids[2, local_num_conform] = neighbor_ielements[1] +
+                                                                        1
+
+                        interfaces.faces[1, local_num_conform] = iface + 1
+                        interfaces.faces[2, local_num_conform] = dual_faces[1] + 1
+
+                        # Local mortar.
+                    elseif level < neighbor_level
+                        error("Mortars are not supported yet!")
+                    end
+                end
+
+                t8_free(dual_faces_ref[])
+                t8_free(pneighbor_leaves_ref[])
+                t8_free(pelement_indices_ref[])
+            end # for iface
+
+            current_index += 1
+        end # for ielement
+    end # for itree
+
+    return nothing
+end
+
 #! format: off
 @deprecate T8codeMesh{2}(conn::Ptr{p4est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p4est_connectivity}; kwargs...)
 @deprecate T8codeMesh{3}(conn::Ptr{p8est_connectivity}; kwargs...) T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
 @deprecate T8codeMesh{2}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 2; kwargs...)
 @deprecate T8codeMesh{3}(meshfile::String; kwargs...) T8codeMesh(meshfile::String, 3; kwargs...)
 #! format: on
+
+# Write the forest as vtu and also write the element's volumes in the file.
+#
+# t8code supports writing element based data to vtu as long as its stored
+# as doubles. Each of the data fields to write has to be provided in its own
+# array of length num_local_elements.
+# t8code supports two types: T8_VTK_SCALAR - One double per element.
+#                       and  T8_VTK_VECTOR - Three doubles per element.
+function output_data_to_vtu(mesh::T8codeMesh, equations, solver,
+                            u_tmp, out, solution_variables)
+    vars = varnames(solution_variables, equations)
+
+    vtk_data = Vector{t8_vtk_data_field_t}(undef, nvariables(equations))
+
+    data = Array{Float64}(undef, ncells(mesh), nvariables(equations))
+    for element in 1:ncells(mesh)
+        variables = solution_variables(u_tmp[element].u, equations)
+        for v in eachvariable(equations)
+            data[element, v] = variables[v]
+        end
+    end
+
+    GC.@preserve data begin
+        for v in eachvariable(equations)
+            data_ptr = pointer(@views(data[:, v]))
+            vtk_data[v] = t8_vtk_data_field_t(T8_VTK_SCALAR,
+                                              NTuple{8192, Cchar}(rpad("$(vars[v])\0",
+                                                                       8192, ' ')),
+                                              data_ptr)
+        end
+
+        # The number of user defined data fields to write.
+        num_data = length(vtk_data)
+
+        # Write user defined data to vtu file.
+        write_treeid = 1
+        write_mpirank = 1
+        write_level = 1
+        write_element_id = 1
+        write_ghosts = 0
+        t8_forest_write_vtk_ext(mesh.forest, out, write_treeid, write_mpirank,
+                                write_level, write_element_id, write_ghosts,
+                                0, 0, num_data, pointer(vtk_data))
+    end
+end
+
+# Simple meshes
+# Temporary routines to create simple `cmesh`s by hand
+
+# Directly ported from: `src/t8_cmesh/t8_cmesh_examples.c: t8_cmesh_new_periodic_hybrid`.
+function cmesh_new_periodic_hybrid(; comm = mpi_comm())::t8_cmesh_t
+    n_dims = 2
+    vertices = [ # Just all vertices of all trees. partly duplicated
+        -1.0, -1.0, 0, # tree 0, triangle
+        0, -1.0, 0,
+        0, 0, 0,
+        -1.0, -1.0, 0, # tree 1, triangle
+        0, 0, 0,
+        -1.0, 0, 0,
+        0, -1.0, 0,    # tree 2, quad
+        1.0, -1.0, 0,
+        0, 0, 0,
+        1.0, 0, 0,
+        -1.0, 0, 0,    # tree 3, quad
+        0, 0, 0,
+        -1.0, 1.0, 0,
+        0, 1.0, 0,
+        0, 0, 0,       # tree 4, triangle
+        1.0, 0, 0,
+        1.0, 1.0, 0,
+        0, 0, 0,       # tree 5, triangle
+        1.0, 1.0, 0,
+        0, 1.0, 0,
+    ]
+
+    # Generally, one can define other geometries. But besides linear the other
+    # geometries in t8code do not have C interface yet.
+    linear_geom = t8_geometry_linear_new(n_dims)
+
+    # This is how the cmesh looks like. The numbers are the tree numbers:
+    # Domain size [-1,1]^2
+    #
+    #   +---+---+
+    #   |   |5 /|
+    #   | 3 | / |
+    #   |   |/ 4|
+    #   +---+---+
+    #   |1 /|   |
+    #   | / | 2 |
+    #   |/0 |   |
+    #   +---+---+
+    #
+
+    cmesh_ref = Ref(t8_cmesh_t())
+    t8_cmesh_init(cmesh_ref)
+    cmesh = cmesh_ref[]
+
+    # Use linear geometry
+    t8_cmesh_register_geometry(cmesh, linear_geom)
+    t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 2, T8_ECLASS_QUAD)
+    t8_cmesh_set_tree_class(cmesh, 3, T8_ECLASS_QUAD)
+    t8_cmesh_set_tree_class(cmesh, 4, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 5, T8_ECLASS_TRIANGLE)
+
+    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[(1 + 0):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[(1 + 9):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 2, @views(vertices[(1 + 18):end]), 4)
+    t8_cmesh_set_tree_vertices(cmesh, 3, @views(vertices[(1 + 30):end]), 4)
+    t8_cmesh_set_tree_vertices(cmesh, 4, @views(vertices[(1 + 42):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 5, @views(vertices[(1 + 51):end]), 3)
+
+    t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
+    t8_cmesh_set_join(cmesh, 0, 2, 0, 0, 0)
+    t8_cmesh_set_join(cmesh, 0, 3, 2, 3, 0)
+
+    t8_cmesh_set_join(cmesh, 1, 3, 0, 2, 1)
+    t8_cmesh_set_join(cmesh, 1, 2, 1, 1, 0)
+
+    t8_cmesh_set_join(cmesh, 2, 4, 3, 2, 0)
+    t8_cmesh_set_join(cmesh, 2, 5, 2, 0, 1)
+
+    t8_cmesh_set_join(cmesh, 3, 5, 1, 1, 0)
+    t8_cmesh_set_join(cmesh, 3, 4, 0, 0, 0)
+
+    t8_cmesh_set_join(cmesh, 4, 5, 1, 2, 0)
+
+    t8_cmesh_commit(cmesh, comm)
+
+    return cmesh
+end
+
+function cmesh_quad(; comm = mpi_comm(), periodicity = (true, true))::t8_cmesh_t
+    n_dims = 2
+    vertices = [ # Just all vertices of all trees. partly duplicated
+        -1.0, -1.0, 0, # tree 0, quad
+        1.0, -1.0, 0,
+        -1.0, 1.0, 0,
+        1.0, 1.0, 0,
+
+        # rotated:
+        # -1.0, 0.0, 0,  # tree 0, quad
+        # 0.0, -1.0, 0,
+        # 0.0, 1.0, 0,
+        # 1.0, 0.0, 0,
+    ]
+
+    # Generally, one can define other geometries. But besides linear the other
+    # geometries in t8code do not have C interface yet.
+    linear_geom = t8_geometry_linear_new(n_dims)
+
+    # This is how the cmesh looks like. The numbers are the tree numbers:
+    #
+    #   +---+
+    #   |   |
+    #   | 0 |
+    #   |   |
+    #   +---+
+    #
+
+    cmesh_ref = Ref(t8_cmesh_t())
+    t8_cmesh_init(cmesh_ref)
+    cmesh = cmesh_ref[]
+
+    # Use linear geometry
+    t8_cmesh_register_geometry(cmesh, linear_geom)
+    t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_QUAD)
+
+    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[(1 + 0):end]), 4)
+
+    if periodicity[1]
+        t8_cmesh_set_join(cmesh, 0, 0, 0, 1, 0)
+    end
+    if periodicity[2]
+        t8_cmesh_set_join(cmesh, 0, 0, 2, 3, 0)
+    end
+
+    t8_cmesh_commit(cmesh, comm)
+
+    return cmesh
+end
+
+function cmesh_new_periodic_tri(; comm = mpi_comm())::t8_cmesh_t
+    n_dims = 2
+    vertices = [ # Just all vertices of all trees. partly duplicated
+        -1.0, -1.0, 0, # tree 0, triangle
+        1.0, -1.0, 0,
+        1.0, 1.0, 0,
+        -1.0, -1.0, 0, # tree 1, triangle
+        1.0, 1.0, 0,
+        -1.0, 1.0, 0,
+
+        # rotated:
+        # -1.0, 0, 0,  # tree 0, triangle
+        # 0, -1.0, 0,
+        # 1.0, 0, 0,
+        # -1.0, 0, 0,  # tree 1, triangle
+        # 1.0, 0, 0,
+        # 0, 1.0, 0,
+    ]
+
+    # Generally, one can define other geometries. But besides linear the other
+    # geometries in t8code do not have C interface yet.
+    linear_geom = t8_geometry_linear_new(n_dims)
+
+    # This is how the cmesh looks like. The numbers are the tree numbers:
+    #
+    #   +---+
+    #   |1 /|
+    #   | / |
+    #   |/0 |
+    #   +---+
+    #
+
+    cmesh_ref = Ref(t8_cmesh_t())
+    t8_cmesh_init(cmesh_ref)
+    cmesh = cmesh_ref[]
+
+    # Use linear geometry
+    t8_cmesh_register_geometry(cmesh, linear_geom)
+    t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
+
+    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[(1 + 0):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[(1 + 9):end]), 3)
+
+    t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
+    t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
+    t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 1)
+
+    t8_cmesh_commit(cmesh, comm)
+
+    return cmesh
+end
+
+function cmesh_new_periodic_tri2(; comm = mpi_comm())::t8_cmesh_t
+    n_dims = 2
+    vertices = [ # Just all vertices of all trees. partly duplicated
+        -1.0, -1.0, 0,  # tree 0, triangle
+        0, -1.0, 0,
+        0, 0, 0,
+        -1.0, -1.0, 0,  # tree 1, triangle
+        0, 0, 0,
+        -1.0, 0, 0,
+        0, -1.0, 0,     # tree 2, triangle
+        1.0, -1.0, 0,
+        1.0, 0, 0,
+        0, -1.0, 0,     # tree 3, triangle
+        1.0, 0, 0,
+        0, 0, 0,
+        -1.0, 0, 0,     # tree 4, triangle
+        0, 0, 0,
+        -1.0, 1.0, 0,
+        -1.0, 1.0, 0,   # tree 5, triangle
+        0, 0, 0,
+        0, 1.0, 0,
+        0, 0, 0,        # tree 6, triangle
+        1.0, 0, 0,
+        0, 1.0, 0,
+        0, 1.0, 0,      # tree 7, triangle
+        1.0, 0, 0,
+        1.0, 1.0, 0,
+    ]
+
+    # Generally, one can define other geometries. But besides linear the other
+    # geometries in t8code do not have C interface yet.
+    linear_geom = t8_geometry_linear_new(n_dims)
+
+    #
+    # This is how the cmesh looks like. The numbers are the tree numbers:
+    #
+    #   +---+---+
+    #   |\ 5|\ 7|
+    #   | \ | \ |
+    #   |4 \| 6\|
+    #   +---+---+
+    #   |1 /|3 /|
+    #   | / | / |
+    #   |/0 |/ 2|
+    #   +---+---+
+    #
+
+    cmesh_ref = Ref(t8_cmesh_t())
+    t8_cmesh_init(cmesh_ref)
+    cmesh = cmesh_ref[]
+
+    # Use linear geometry
+    t8_cmesh_register_geometry(cmesh, linear_geom)
+    t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 2, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 3, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 4, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 5, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 6, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 7, T8_ECLASS_TRIANGLE)
+
+    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[(1 + 0):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[(1 + 9):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 2, @views(vertices[(1 + 18):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 3, @views(vertices[(1 + 27):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 4, @views(vertices[(1 + 36):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 5, @views(vertices[(1 + 45):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 6, @views(vertices[(1 + 54):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 7, @views(vertices[(1 + 63):end]), 3)
+
+    t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
+    t8_cmesh_set_join(cmesh, 0, 3, 0, 1, 0)
+    t8_cmesh_set_join(cmesh, 0, 5, 2, 1, 0)
+
+    t8_cmesh_set_join(cmesh, 1, 4, 0, 2, 1)
+    t8_cmesh_set_join(cmesh, 1, 2, 1, 0, 0)
+
+    t8_cmesh_set_join(cmesh, 2, 3, 1, 2, 0)
+    t8_cmesh_set_join(cmesh, 2, 7, 2, 1, 0)
+
+    t8_cmesh_set_join(cmesh, 3, 6, 0, 2, 1)
+
+    t8_cmesh_set_join(cmesh, 4, 5, 0, 2, 1)
+    t8_cmesh_set_join(cmesh, 4, 7, 1, 0, 0)
+
+    t8_cmesh_set_join(cmesh, 5, 6, 0, 1, 0)
+
+    t8_cmesh_set_join(cmesh, 6, 7, 0, 2, 1)
+
+    t8_cmesh_commit(cmesh, comm)
+
+    return cmesh
+end
+
+function cmesh_new_periodic_hybrid2(; comm = mpi_comm())::t8_cmesh_t
+    n_dims = 2
+    vertices = [  # Just all vertices of all trees. partly duplicated
+        -2.0, -2.0, 0,  # tree 0, triangle
+        0, -2.0, 0,
+        -2.0, 0, 0,
+        -2.0, 2.0, 0,   # tree 1, triangle
+        -2.0, 0, 0,
+        0, 2.0, 0,
+        2.0, -2.0, 0,   # tree 2, triangle
+        2.0, 0, 0,
+        0, -2.0, 0,
+        2.0, 2.0, 0,    # tree 3, triangle
+        0, 2.0, 0,
+        2.0, 0, 0,
+        0, -2.0, 0,     # tree 4, quad
+        2.0, 0, 0,
+        -2.0, 0, 0,
+        0, 2.0, 0,
+    ]
+
+    # This is how the cmesh looks like. The numbers are the tree numbers:
+    # Domain size [-2,2]^2
+    #
+    # +----------+
+    # | 1  /\  3 |
+    # |   /  \   |
+    # |  /    \  |
+    # | /      \ |
+    # |/   4    \|
+    # |\        /|
+    # | \      / |
+    # |  \    /  |
+    # | 0 \  / 2 |
+    # |    \/    |
+    # +----------+
+    #
+
+    # Generally, one can define other geometries. But besides linear the other
+    # geometries in t8code do not have C interface yet.
+    linear_geom = t8_geometry_linear_new(n_dims)
+
+    cmesh_ref = Ref(t8_cmesh_t())
+    t8_cmesh_init(cmesh_ref)
+    cmesh = cmesh_ref[]
+
+    # Use linear geometry
+    t8_cmesh_register_geometry(cmesh, linear_geom)
+    t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 2, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 3, T8_ECLASS_TRIANGLE)
+    t8_cmesh_set_tree_class(cmesh, 4, T8_ECLASS_QUAD)
+
+    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[(1 + 0):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[(1 + 9):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 2, @views(vertices[(1 + 18):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 3, @views(vertices[(1 + 27):end]), 3)
+    t8_cmesh_set_tree_vertices(cmesh, 4, @views(vertices[(1 + 36):end]), 4)
+
+    t8_cmesh_set_join(cmesh, 0, 4, 0, 0, 0)
+    t8_cmesh_set_join(cmesh, 0, 2, 1, 2, 0)
+    t8_cmesh_set_join(cmesh, 0, 1, 2, 1, 0)
+
+    t8_cmesh_set_join(cmesh, 1, 4, 0, 3, 0)
+    t8_cmesh_set_join(cmesh, 1, 3, 2, 1, 0)
+
+    t8_cmesh_set_join(cmesh, 2, 4, 0, 2, 1)
+    t8_cmesh_set_join(cmesh, 2, 3, 1, 2, 0)
+
+    t8_cmesh_set_join(cmesh, 3, 4, 0, 1, 1)
+
+    t8_cmesh_commit(cmesh, comm)
+
+    return cmesh
+end

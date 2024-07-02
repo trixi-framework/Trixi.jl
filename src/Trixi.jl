@@ -243,6 +243,8 @@ export DG,
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
+export FV
+
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
 
