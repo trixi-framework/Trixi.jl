@@ -58,6 +58,31 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_convergence_gauss.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence_gauss.jl"),
+                        l2=[
+                            6.842012745925939e-7,
+                            8.453336053912326e-7,
+                            8.453336053697182e-7,
+                            2.6936842273518903e-6,
+                        ],
+                        linf=[
+                            2.3648599070114074e-6,
+                            3.083877093246201e-6,
+                            3.0838770959107364e-6,
+                            1.2983713667757968e-5,
+                        ],
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_density_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave.jl"),
                         l2=[
