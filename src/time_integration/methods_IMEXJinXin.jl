@@ -146,15 +146,6 @@ function Base.getproperty(integrator::SimpleIntegratorIMEX, field::Symbol)
     return getfield(integrator, field)
 end
 
-"""
-    solve(ode, alg; dt, callbacks, kwargs...)
-
-The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
-of type `SimpleAlgorithmSSP`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
-"""
 function solve(ode::ODEProblem, alg::SimpleAlgorithmIMEX;
                dt, callback = nothing, kwargs...)
     u = copy(ode.u0)
