@@ -279,6 +279,47 @@ To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
+## Institutional Support
+Trixi.jl relies on institutions that provide infrastructure for coding and testing,
+as well as encourage students, post-docs, and scientists to contribute code.
+Some institutes and groups that supported us in the past and present are listed below,
+roughly in chronological order.
+
+<p align="left">
+  <img style="float:left;height:30px;margin-right:10px" 
+    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/e9432f4c-995f-434e-b393-d15efe68abf1">
+  <a href="https://www.mi.uni-koeln.de/NumSim/">Numerical Simulation Group, University of Cologne</a>
+</p>
+<p align="left">
+  <img style="float:left;height:30px;margin-right:10px" 
+    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/387319ba-9e08-4ad8-9154-628416b247b6">
+  <a href="https://liu.se/en/organisation/liu/mai/tima">Applied Mathematics, Linköping University, Sweden</a>
+</p>
+<p align="left">
+  <img style="float:left;height:30px;margin-right:10px" 
+    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/e2b9e54b-fe00-40f8-b6a1-1152ed677d0a">
+  <a href="https://www.uni-muenster.de/AMM/en/">Applied Mathematics, University of Münster, Germany</a>
+</p>
+<p align="left">
+  <img style="float:left;height:30px;margin-right:10px" 
+    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/17f64669-c581-4788-b20c-7a98055b743b">
+  <a href="https://cmor.rice.edu">Computational and Applied Mathematics, Rice University, USA</a>
+</p>
+<p align="left">
+  <img style="float:left;height:30px;margin-right:10px" 
+    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/34f243bc-cd6c-4935-8b4c-ec9898df59c3">
+  <a href="https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html">Applied Mathematics, University of Hamburg, Germany</a>
+</p>
+<p align="left">
+  <img style="float:left;height:30px;margin-right:10px" 
+    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/c3e1f6c9-4d13-4001-b817-b3ab405f177b">
+  <a href="https://www.acom.rwth-aachen.de">Applied and Computational Mathematics, RWTH Aachen, Germany</a>
+</p>
+<p align="left">
+  <img style="float:left;height:30px;margin-right:10px" 
+    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/7d4c8e93-4efa-40f9-bbe9-f9a5ba52690a">
+  <a href="https://www.nummath.math.uni-mainz.de">Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz, Germany</a>
+</p>
 
 ## Acknowledgments
 <p align="center" style="font-size:0;"><!--
@@ -296,8 +337,8 @@ This project has benefited from funding by the [Deutsche
 Forschungsgemeinschaft](https://www.dfg.de/) (DFG, German Research Foundation)
 through the following grants:
 * Excellence Strategy EXC 2044-390685587, Mathematics Münster: Dynamics-Geometry-Structure.
-* Research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
-  Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
+* Research Unit FOR 5409 "[Structure-Preserving Numerical Methods for Bulk- and
+  Interface Coupling of Heterogeneous Models (SNuBIC)](https://www.snubic.io/)" (project number 463312734).
 * Individual grant no. 528753982.
 
 This project has benefited from funding from the [European Research Council](https://erc.europa.eu)
