@@ -12,7 +12,7 @@ for human readability.
 
 - The specification of boundary names on which `AnalysisSurfaceIntegral`s are computed (such as drag and lift coefficients) has changed from `Symbol` and `Vector{Symbol}` to `NTuple{Symbol}`.
 Thus, for one boundary the syntax changes from `:boundary` to `(:boundary,)` and for `Vector`s `[:boundary1, :boundary2]` to `(:boundary1, :boundary2)` ([1959]).
-- The names of output files like the one created from the `SaveSolutionCallback` has changed from `%06d` to `%09d` to allow longer-running simulations ([1996]).
+- The names of output files like the one created from the `SaveSolutionCallback` have changed from `%06d` to `%09d` to allow longer-running simulations ([1996]).
 
 #### Deprecated
 
