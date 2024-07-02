@@ -45,7 +45,113 @@ function max_dt(u, t, mesh::TreeMesh{3},
 end
 
 function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                constant_speed::False, equations, dg::DG, cache)
+                constant_speed, equations, dg::DG, cache)
+    backend = backend_or_nothing(cache.elements)
+    _max_dt(backend, u, t, mesh, constant_speed, equations, dg, cache)
+end
+
+@inline function _max_dt(backend::Backend, u, t,
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                         constant_speed::False, equations, dg::DG, cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    num_elements = nelements(dg, cache)
+    nodes = eachnode(dg)
+    kernel! = max_scaled_speed_kernel!(backend)
+
+    max_scaled_speeds = allocate(backend, eltype(t), num_elements)
+    kernel!(max_scaled_speeds, u, constant_speed, equations, nodes,
+            contravariant_vectors,
+            inverse_jacobian; ndrange = num_elements)
+
+    # to avoid a division by zero if the speed vanishes everywhere,
+    # e.g. for steady-state linear advection
+    max_scaled_speed = max(nextfloat(zero(t)), maximum(max_scaled_speeds))
+
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+@kernel function max_scaled_speed_kernel!(max_scaled_speeds, u,
+                                          constant_speed::False, equations, nodes,
+                                          contravariant_vectors, inverse_jacobian)
+    element = @index(Global, Linear)
+    NVARS = Val(nvariables(equations))
+
+    max_lambda1 = max_lambda2 = max_lambda3 = zero(eltype(max_scaled_speeds))
+    for k in nodes, j in nodes, i in nodes
+        u_node = get_svector(u, NVARS, i, j, k, element)
+        lambda1, lambda2, lambda3 = max_abs_speeds(u_node, equations)
+
+        Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,
+                                                    k, element)
+        lambda1_transformed = abs(Ja11 * lambda1 + Ja12 * lambda2 + Ja13 * lambda3)
+        Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j,
+                                                    k, element)
+        lambda2_transformed = abs(Ja21 * lambda1 + Ja22 * lambda2 + Ja23 * lambda3)
+        Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j,
+                                                    k, element)
+        lambda3_transformed = abs(Ja31 * lambda1 + Ja32 * lambda2 + Ja33 * lambda3)
+
+        inv_jacobian = abs(inverse_jacobian[i, j, k, element])
+
+        max_lambda1 = max(max_lambda1, inv_jacobian * lambda1_transformed)
+        max_lambda2 = max(max_lambda2, inv_jacobian * lambda2_transformed)
+        max_lambda3 = max(max_lambda3, inv_jacobian * lambda3_transformed)
+    end
+
+    max_scaled_speeds[element] = max_lambda1 + max_lambda2 + max_lambda3
+end
+
+@inline function _max_dt(backend::Backend, u, t,
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                         constant_speed::True, equations, dg::DG, cache)
+    @unpack contravariant_vectors, inverse_jacobian = cache.elements
+    num_elements = nelements(dg, cache)
+    nodes = eachnode(dg)
+    kernel! = max_scaled_speed_kernel!(backend)
+
+    max_lambda1.max_lambda2.max_lambda3 = max_abs_speeds(equations)
+    max_scaled_speeds = allocate(backend, eltype(t), num_elements)
+    kernel!(max_scaled_speeds, constant_speed, nodes, contravariant_vectors,
+            inverse_jacobian, max_lambda1, max_lambda2, max_lambda3;
+            ndrange = num_elements)
+
+    # to avoid a division by zero if the speed vanishes everywhere,
+    # e.g. for steady-state linear advection
+    max_scaled_speed = max(nextfloat(zero(t)), maximum(max_scaled_speeds))
+
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+@kernel function max_scaled_speed_kernel!(max_scaled_speeds,
+                                          constant_speed::True, nodes,
+                                          contravariant_vectors, inverse_jacobian,
+                                          max_lambda1, max_lambda2, max_lambda3)
+    element = @index(Global, Linear)
+    for k in nodes, j in nodes, i in nodes
+        Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,
+                                                    k, element)
+        lambda1_transformed = abs(Ja11 * max_lambda1 + Ja12 * max_lambda2 +
+                                  Ja13 * max_lambda3)
+        Ja21, Ja22, Ja23 = get_contravariant_vector(2, contravariant_vectors, i, j,
+                                                    k, element)
+        lambda2_transformed = abs(Ja21 * max_lambda1 + Ja22 * max_lambda2 +
+                                  Ja23 * max_lambda3)
+        Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j,
+                                                    k, element)
+        lambda3_transformed = abs(Ja31 * max_lambda1 + Ja32 * max_lambda2 +
+                                  Ja33 * max_lambda3)
+
+        inv_jacobian = abs(inverse_jacobian[i, j, k, element])
+
+        max_scaled_speeds[element] = inv_jacobian *
+                                     (lambda1_transformed + lambda2_transformed +
+                                      lambda3_transformed)
+    end
+end
+
+@inline function _max_dt(::Nothing, u, t,
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                         constant_speed::False, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
@@ -82,8 +188,9 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
     return 2 / (nnodes(dg) * max_scaled_speed)
 end
 
-function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                constant_speed::True, equations, dg::DG, cache)
+@inline function _max_dt(::Nothing, u, t,
+                         mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                         constant_speed::True, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))

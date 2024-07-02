@@ -1,6 +1,7 @@
 
 using OrdinaryDiffEq
 using Trixi
+using CUDA
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -37,7 +38,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 5.0)
-ode = semidiscretize(semi, tspan)
+ode = semidiscretize(semi, tspan; adapt_to=CuArray)
 
 summary_callback = SummaryCallback()
 

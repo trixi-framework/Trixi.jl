@@ -208,6 +208,10 @@ function rhs!(du, u, t,
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
 
+    if mesh isa P4estMesh && uses_ka(cache.elements)
+        synchronize(get_backend(cache.elements))
+    end
+
     return nothing
 end
 
@@ -217,6 +221,18 @@ function calc_volume_integral!(du, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
+    backend = backend_or_nothing(cache.elements)
+    _calc_volume_integral!(backend, du, u, mesh, nonconservative_terms, equations,
+                           volume_integral, dg, cache)
+    return nothing
+end
+
+@inline function _calc_volume_integral!(backend::Nothing, du, u,
+                                        mesh::Union{TreeMesh{3}, StructuredMesh{3},
+                                                    P4estMesh{3}, T8codeMesh{3}},
+                                        nonconservative_terms, equations,
+                                        volume_integral::VolumeIntegralWeakForm,
+                                        dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         weak_form_kernel!(du, u, element, mesh,
                           nonconservative_terms, equations,
@@ -267,11 +283,22 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3},
+                                           P4estMesh{3}, T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
+    backend = backend_or_nothing(cache.elements)
+    _calc_volume_integral!(backend, du, u, mesh, nonconservative_terms, equations,
+                           volume_integral, dg, cache)
+end
+
+@inline function _calc_volume_integral!(backend::Nothing, du, u,
+                                        mesh::Union{TreeMesh{3}, StructuredMesh{3},
+                                                    P4estMesh{3}, T8codeMesh{3}},
+                                        nonconservative_terms, equations,
+                                        volume_integral::VolumeIntegralFluxDifferencing,
+                                        dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         flux_differencing_kernel!(du, u, element, mesh,
                                   nonconservative_terms, equations,
@@ -1385,6 +1412,12 @@ end
 
 function calc_sources!(du, u, t, source_terms,
                        equations::AbstractEquations{3}, dg::DG, cache)
+    backend = backend_or_nothing(cache.elements)
+    _calc_sources!(backend, du, u, t, source_terms, equations, dg, cache)
+end
+
+@inline function _calc_sources!(::Nothing, du, u, t, source_terms,
+                                equations::AbstractEquations{3}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)

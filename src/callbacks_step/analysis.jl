@@ -144,7 +144,14 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, t,
                      integrator) where {Condition, Affect! <: AnalysisCallback}
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
-    initialize!(cb, u_ode, du_ode, t, integrator, semi)
+    if semi isa SemidiscretizationHyperbolic && uses_ka(semi.cache.elements)
+        semi_cpu = Adapt.adapt(Array, semi)
+        du_ode_cpu = Adapt.adapt(Array, du_ode)
+        u_ode_cpu = Adapt.adapt(Array, u_ode)
+        initialize!(cb, u_ode_cpu, du_ode_cpu, t, integrator, semi_cpu)
+    else
+        initialize!(cb, u_ode, du_ode, t, integrator, semi)
+    end
 end
 
 # This is the actual initialization method
@@ -227,7 +234,14 @@ function (analysis_callback::AnalysisCallback)(integrator)
     semi = integrator.p
     du_ode = first(get_tmp_cache(integrator))
     u_ode = integrator.u
-    analysis_callback(u_ode, du_ode, integrator, semi)
+    if semi isa SemidiscretizationHyperbolic && uses_ka(semi.cache.elements)
+        semi_cpu = Adapt.adapt(Array, semi)
+        du_ode_cpu = Adapt.adapt(Array, du_ode)
+        u_ode_cpu = Adapt.adapt(Array, u_ode)
+        analysis_callback(u_ode_cpu, du_ode_cpu, integrator, semi_cpu)
+    else
+        analysis_callback(u_ode, du_ode, integrator, semi)
+    end
 end
 
 # This method gets called internally as the main entry point to the AnalysiCallback
@@ -578,8 +592,15 @@ function (cb::DiscreteCallback{Condition, Affect!})(sol) where {Condition,
     @unpack analyzer = analysis_callback
     cache_analysis = analysis_callback.cache
 
-    l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi,
-                                            cache_analysis)
+    if semi isa SemidiscretizationHyperbolic && uses_ka(semi.cache.elements)
+        semi_cpu = Adapt.adapt(Array, semi)
+        u_ode_cpu = Adapt.adapt(Array, sol.u[end])
+        l2_error, linf_error = calc_error_norms(u_ode_cpu, sol.t[end], analyzer, semi_cpu,
+                                                cache_analysis)
+    else
+        l2_error, linf_error = calc_error_norms(sol.u[end], sol.t[end], analyzer, semi,
+                                                cache_analysis)
+    end
     (; l2 = l2_error, linf = linf_error)
 end
 

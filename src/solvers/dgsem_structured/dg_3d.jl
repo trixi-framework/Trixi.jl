@@ -790,6 +790,14 @@ end
 function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                          equations, dg::DG, cache)
+    backend = backend_or_nothing(cache.elements)
+    _apply_jacobian!(backend, du, mesh, equations, dg, cache)
+    return nothing
+end
+
+@inline function _apply_jacobian!(::Nothing, du,
+                                  mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
+                                  equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             factor = -cache.elements.inverse_jacobian[i, j, k, element]

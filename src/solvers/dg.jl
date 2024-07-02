@@ -649,7 +649,12 @@ end
         #  (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))..., nelements(dg, cache)))
     else
         # The following version is reasonably fast and allows us to `resize!(u_ode, ...)`.
-        unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
+        if mesh isa P4estMesh
+            ArrayType = array_type(cache.elements)
+        else
+            ArrayType = Array
+        end
+        unsafe_wrap(ArrayType{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
                     (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
                      nelements(dg, cache)))
     end
@@ -693,7 +698,12 @@ end
         @assert length(u_ode) ==
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
-    unsafe_wrap(Array{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
+    if mesh isa P4estMesh
+        ArrayType = array_type(cache.elements)
+    else
+        ArrayType = Array
+    end
+    unsafe_wrap(ArrayType{eltype(u_ode), ndims(mesh) + 2}, pointer(u_ode),
                 (nvariables(equations), ntuple(_ -> nnodes(dg), ndims(mesh))...,
                  nelements(dg, cache)))
 end

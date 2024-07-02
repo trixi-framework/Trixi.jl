@@ -93,7 +93,7 @@ end
 
 # Required methods due to <: AbstractHeterogeneousContainer
 function KernelAbstractions.get_backend(mpi_interfaces::P4estMPIInterfaceContainer)
-    return KernelAbstractions.get_backend(interfaces.u)
+    return KernelAbstractions.get_backend(mpi_interfaces.u)
 end
 function Adapt.adapt_structure(to, mpi_interfaces::P4estMPIInterfaceContainer)
     # Adapt Vectors and underlying storage
@@ -224,8 +224,8 @@ function init_mpi_mortars!(mpi_mortars, mesh::ParallelP4estMesh, basis, elements
 end
 
 # Required methods due to <: AbstractHeterogeneousContainer
-function KernelAbstractions.get_backend(mpi_interfaces::P4estMPIMortarContainer)
-    return KernelAbstractions.get_backend(mortars.u)
+function KernelAbstractions.get_backend(mpi_mortars::P4estMPIMortarContainer)
+    return KernelAbstractions.get_backend(mpi_mortars.u)
 end
 function Adapt.adapt_structure(to, mpi_mortars::P4estMPIMortarContainer)
     # TODO: Vector of Vector type data structure does not work on GPUs,

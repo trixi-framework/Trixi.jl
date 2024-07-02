@@ -330,4 +330,51 @@ function download(src_url, file_path)
 
     return file_path
 end
+
+# Returns u[:, indices...] as an SVector. size(u, 1) should thus be
+# known at compile time in the caller and passed via Val()
+@inline function get_svector(u, ::Val{N}, indices...) where {N}
+    # There is a cut-off at `n == 10` inside of the method
+    # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
+    # in Julia `v1.5`, leading to type instabilities if
+    # more than ten variables are used. That's why we use
+    # `Val(...)` below.
+    # We use `@inline` to make sure that the `getindex` calls are
+    # really inlined, which might be the default choice of the Julia
+    # compiler for standard `Array`s but not necessarily for more
+    # advanced array types such as `PtrArray`s, cf.
+    # https://github.com/JuliaSIMD/VectorizationBase.jl/issues/55
+    SVector(ntuple(@inline(v->u[v, indices...]), N))
+end
+
+# Returns u[1, :, indices] and u[2, :, indices] as SVectors. size(u, 2)
+# should thus be known at compile time in the caller and passed via Val()
+@inline function get_svectors(u, ::Val{N}, indices...) where {N}
+    # There is a cut-off at `n == 10` inside of the method
+    # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
+    # in Julia `v1.5`, leading to type instabilities if
+    # more than ten variables are used. That's why we use
+    # `Val(...)` below.
+    u_ll = SVector(ntuple(@inline(v->u[1, v, indices...]), N))
+    u_rr = SVector(ntuple(@inline(v->u[2, v, indices...]), N))
+    return u_ll, u_rr
+end
+
+@inline function add_to_first_axis!(u, u_node::SVector{N}, indices...) where {N}
+    for v in Base.OneTo(N)
+        u[v, indices...] += u_node[v]
+    end
+    return nothing
+end
+
+# Use this function instead of `add_to_first_axis!` to speed up
+# multiply-and-add-to-node-vars operations
+# See https://github.com/trixi-framework/Trixi.jl/pull/643
+@inline function multiply_add_to_first_axis!(u, factor, u_node::SVector{N},
+                                             indices...) where {N}
+    for v in Base.OneTo(N)
+        u[v, indices...] = u[v, indices...] + factor * u_node[v]
+    end
+    return nothing
+end
 end # @muladd

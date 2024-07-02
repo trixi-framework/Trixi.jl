@@ -78,12 +78,18 @@ function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan)
+    semidiscretize(semi::AbstractSemidiscretization, tspan; adapt_to = nothing)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+The optional keyword argument `adapt_to` controls whether `semi` is adapted via
+`Adapt.jl`. If it is not nothing, `semi` gets adapted to `adapt_to` before
+semidiscretizing it. If it is adapted, KernelAbstractions.jl will be used in
+the solver backend. The `adapt_to` keyword is only supported for
+`SemidiscretizationHyperbolic` objects that use a `P4estMesh` as their mesh.
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
+                        adapt_to = nothing,
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
@@ -98,7 +104,19 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
     iip = true # is-inplace, i.e., we modify a vector when calling rhs!
     specialize = SciMLBase.FullSpecialize # specialize on rhs! and parameters (semi)
-    return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+
+    if !isnothing(adapt_to)
+        if !(typeof(semi) <: SemidiscretizationHyperbolic) && !(typeof(semi.mesh) <: P4estMesh)
+            throw(ArgumentError("adapt_to keyword argument not supported for this semidiscretization"))
+        end
+        semi_adapted = Adapt.adapt(adapt_to, semi)
+        backend = get_backend(semi_adapted.cache.elements)
+        _u0_ode = allocate(backend, eltype(u0_ode), size(u0_ode))
+        KernelAbstractions.copyto!(backend, _u0_ode, u0_ode)
+        return ODEProblem{iip, specialize}(rhs!, _u0_ode, tspan, semi_adapted)
+    else
+        return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
+    end
 end
 
 """
