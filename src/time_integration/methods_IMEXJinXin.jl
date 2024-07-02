@@ -30,11 +30,6 @@ struct SimpleIMEX{StageCallbacks} <: SimpleAlgorithmIMEX
     stage_callbacks::StageCallbacks
 
     function SimpleIMEX(; stage_callbacks = ())
-        # Mathematically speaking, it is not necessary for the algorithm to split the factors
-        # into numerator and denominator. Otherwise, however, rounding errors of the order of
-        # the machine accuracy will occur, which will add up over time and thus endanger the
-        # conservation of the simulation.
-        # See also https://github.com/trixi-framework/Trixi.jl/pull/1640.
         A1 = zeros(3, 3)
         A2 = zeros(3, 3)
         A1[2, 1] = 0.5
