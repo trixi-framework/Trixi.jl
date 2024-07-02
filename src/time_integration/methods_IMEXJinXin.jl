@@ -16,7 +16,7 @@ abstract type SimpleAlgorithmIMEX end
 
 ## References
 
-- missing
+- TODO: missing
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
