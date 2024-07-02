@@ -202,7 +202,7 @@ end
 function calc_entropy_projection!(u_projected, u, mesh, equations, dg, cache)
     # prepare local storage for projection
     @unpack interpolate_N_to_M, project_M_to_N = dg.basis
-    nnodes_,nnodes_projection = size(project_M_to_N)
+    nnodes_, nnodes_projection = size(project_M_to_N)
     nVars = nvariables(equations)
     RealT = real(dg)
     u_N = zeros(RealT, nVars, nnodes_, nnodes_)
@@ -218,22 +218,22 @@ function calc_entropy_projection!(u_projected, u, mesh, equations, dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
             for v in eachvariable(equations)
-                u_N[v,i,j] = u_node[v]
+                u_N[v, i, j] = u_node[v]
             end
         end
         # bring elemtn u_N to grid (M+1)x(M+1)
-        multiply_dimensionwise!(u_M,interpolate_N_to_M,u_N,tmp_MxN)
-     
+        multiply_dimensionwise!(u_M, interpolate_N_to_M, u_N, tmp_MxN)
+
         # compute nodal values of entropy variables w on the M grid
         for j in 1:nnodes_projection, i in 1:nnodes_projection
             u_cons = get_node_vars(u_M, equations, dg, i, j)
-            w_ij   = cons2entropy(u_cons,equations)
-            set_node_vars!(w_M,w_ij,equations,dg,i,j)
+            w_ij = cons2entropy(u_cons, equations)
+            set_node_vars!(w_M, w_ij, equations, dg, i, j)
         end
 
         # compute projection of w with M values down to N
-        multiply_dimensionwise!(w_N, project_M_to_N ,w_M, tmp_NxM)
-     
+        multiply_dimensionwise!(w_N, project_M_to_N, w_M, tmp_NxM)
+
         # compute nodal values of conservative variables from the projected entropy variables
         for j in eachnode(dg), i in eachnode(dg)
             w_ij = get_node_vars(w_N, equations, dg, i, j)
@@ -243,7 +243,8 @@ function calc_entropy_projection!(u_projected, u, mesh, equations, dg, cache)
     end
 end
 
-function calc_filter!(u_filtered, u, cons2filter, filter2cons, mesh, equations, dg, cache)
+function calc_filter!(u_filtered, u, cons2filter, filter2cons, mesh, equations, dg,
+                      cache)
     # prepare local storage for projection
     @unpack filter_modal_to_cutoff = dg.basis
     nnodes_ = nnodes(dg)
@@ -258,15 +259,15 @@ function calc_filter!(u_filtered, u, cons2filter, filter2cons, mesh, equations, 
         # convert u to entropy variables
         for j in eachnode(dg), i in eachnode(dg)
             u_cons = get_node_vars(u, equations, dg, i, j, element)
-            w_ij   = cons2filter(u_cons, equations)
+            w_ij = cons2filter(u_cons, equations)
             for v in eachvariable(equations)
-                w_N[v,i,j] = w_ij[v]
+                w_N[v, i, j] = w_ij[v]
             end
         end
 
         # filter entropy variables
         multiply_dimensionwise!(w_N_filtered, filter_modal_to_cutoff, w_N, tmp_NxN)
-     
+
         # compute nodal values of conservative variables from the projected entropy variables
         for j in eachnode(dg), i in eachnode(dg)
             w_ij = get_node_vars(w_N_filtered, equations, dg, i, j)
@@ -334,7 +335,7 @@ function calc_volume_integral!(du, u,
                                dg::DGSEM, cache)
     # prepare local storage for projection
     @unpack interpolate_N_to_M, project_M_to_N, filter_modal_to_N = dg.basis
-    nnodes_,nnodes_projection = size(project_M_to_N)
+    nnodes_, nnodes_projection = size(project_M_to_N)
     nVars = nvariables(equations)
     RealT = real(dg)
     u_N = zeros(RealT, nVars, nnodes_, nnodes_)
@@ -355,9 +356,9 @@ function calc_volume_integral!(du, u,
         # get element u_N
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
-            w_ij   = cons2entropy(u_node, equations)
+            w_ij = cons2entropy(u_node, equations)
             for v in eachvariable(equations)
-                w_N[v,i,j] = w_ij[v]
+                w_N[v, i, j] = w_ij[v]
             end
         end
         # bring elemtn u_N to grid (M+1)x(M+1)
@@ -367,16 +368,16 @@ function calc_volume_integral!(du, u,
         for j in 1:nnodes_projection, i in 1:nnodes_projection
             w_ij = get_node_vars(w_M, equations, dg, i, j)
             u_cons = entropy2cons(w_ij, equations)
-            f_cons = flux(u_cons,1,equations)
-            set_node_vars!(f_M,f_cons,equations,dg,i,j)
-            g_cons = flux(u_cons,2,equations)
-            set_node_vars!(g_M,g_cons,equations,dg,i,j)
+            f_cons = flux(u_cons, 1, equations)
+            set_node_vars!(f_M, f_cons, equations, dg, i, j)
+            g_cons = flux(u_cons, 2, equations)
+            set_node_vars!(g_M, g_cons, equations, dg, i, j)
         end
         # compute projection of f with M values down to N, same for g
-        multiply_dimensionwise!(f_N,project_M_to_N,f_M,tmp_NxM)
-        multiply_dimensionwise!(g_N,project_M_to_N,g_M,tmp_NxM)
+        multiply_dimensionwise!(f_N, project_M_to_N, f_M, tmp_NxM)
+        multiply_dimensionwise!(g_N, project_M_to_N, g_M, tmp_NxM)
 
-        weak_form_kernel_projection!(du, u,f_N, g_N, element, mesh,
+        weak_form_kernel_projection!(du, u, f_N, g_N, element, mesh,
                                      nonconservative_terms, equations,
                                      dg, cache)
     end
@@ -396,13 +397,13 @@ end
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
 
-        flux1 = get_node_vars(f_N, equations, dg, i,j)
+        flux1 = get_node_vars(f_N, equations, dg, i, j)
         for ii in eachnode(dg)
             multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux1,
                                        equations, dg, ii, j, element)
         end
 
-        flux2 = get_node_vars(g_N, equations, dg, i,j)
+        flux2 = get_node_vars(g_N, equations, dg, i, j)
         for jj in eachnode(dg)
             multiply_add_to_node_vars!(du, derivative_dhat[jj, j], flux2,
                                        equations, dg, i, jj, element)
@@ -721,7 +722,8 @@ end
 end
 
 function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG{<:LobattoLegendreBasis})
+                             mesh::TreeMesh{2}, equations, surface_integral,
+                             dg::DG{<:LobattoLegendreBasis})
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -749,7 +751,8 @@ function prolong2interfaces!(cache, u,
 end
 
 function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{2}, equations, surface_integral, dg::DG{<:GaussLegendreBasis})
+                             mesh::TreeMesh{2}, equations, surface_integral,
+                             dg::DG{<:GaussLegendreBasis})
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     @unpack boundary_interpolation, weights = dg.basis
@@ -765,8 +768,12 @@ function prolong2interfaces!(cache, u,
                 interfaces_u[1, v, j, interface] = 0
                 interfaces_u[2, v, j, interface] = 0
                 for ii in eachnode(dg)
-                    interfaces_u[1, v, j, interface] += u[v, ii, j, left_element] * weights[ii] * boundary_interpolation[ii, 2]
-                    interfaces_u[2, v, j, interface] += u[v, ii, j, right_element] * weights[ii] * boundary_interpolation[ii, 1]
+                    interfaces_u[1, v, j, interface] += u[v, ii, j, left_element] *
+                                                        weights[ii] *
+                                                        boundary_interpolation[ii, 2]
+                    interfaces_u[2, v, j, interface] += u[v, ii, j, right_element] *
+                                                        weights[ii] *
+                                                        boundary_interpolation[ii, 1]
                 end
             end
         else # if orientations[interface] == 2
@@ -775,8 +782,12 @@ function prolong2interfaces!(cache, u,
                 interfaces_u[1, v, i, interface] = 0
                 interfaces_u[2, v, i, interface] = 0
                 for jj in eachnode(dg)
-                    interfaces_u[1, v, i, interface] += u[v, i, jj, left_element] * weights[jj] * boundary_interpolation[jj, 2]
-                    interfaces_u[2, v, i, interface] += u[v, i, jj, right_element] * weights[jj] * boundary_interpolation[jj, 1]
+                    interfaces_u[1, v, i, interface] += u[v, i, jj, left_element] *
+                                                        weights[jj] *
+                                                        boundary_interpolation[jj, 2]
+                    interfaces_u[2, v, i, interface] += u[v, i, jj, right_element] *
+                                                        weights[jj] *
+                                                        boundary_interpolation[jj, 1]
                 end
             end
         end

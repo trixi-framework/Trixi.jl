@@ -35,7 +35,7 @@ function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator,
     @trixi_timeit timer() "positivity-preserving limiter" begin
         #limiter_zhang_shu!(u, limiter!.thresholds, limiter!.variables,
         #                   mesh_equations_solver_cache(semi)...)
-        perform_idp_correction!(u, integrator.dt, mesh_equations_solver_cache(semi)...)  
+        perform_idp_correction!(u, integrator.dt, mesh_equations_solver_cache(semi)...)
     end
 end
 
