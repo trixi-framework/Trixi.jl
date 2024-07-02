@@ -2,7 +2,7 @@
 set term pdfcairo color enhanced font ",8" fontscale 1.0 lw 0.5 size 14cm,10cm 
 
 # Set defaults
-if (!exists("infile")) infile="solution_000000.txt"
+if (!exists("infile")) infile="solution_000000000.txt"
 if (!exists("eqn")) eqn="linear_scalar_advection"
 ext = ".pdf"
 
