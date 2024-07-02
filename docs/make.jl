@@ -110,7 +110,7 @@ Changelog.generate(
 )
 # Fix edit URL of changelog
 open(joinpath(@__DIR__, "src", "changelog.md"), "w") do io
-    for line in eachline(joinpath(dirname(@__DIR__), "src", "changelog_tmp.md"))
+    for line in eachline(joinpath(@__DIR__, "src", "changelog_tmp.md"))
         if startswith(line, "EditURL")
             line = EditURL = "https://github.com/trixi-framework/Trixi.jl/blob/main/NEWS.md"
         end
