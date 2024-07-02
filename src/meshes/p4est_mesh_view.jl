@@ -3,21 +3,17 @@
 
 mutable struct P4estMeshView{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     parent::P4estMesh{NDIMS, RealT}
+    # We need to store information about which cells are part of this mesh view.
     nodes::SVector
-    index_min::Int
-    index_max::Int
 end
 
-function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
-                        index_min = 1::Int,
-                        index_max = sizeof(unsafe_wrap_sc(p4est_tree_t, parent.p4est.trees))::Int) where {NDIMS, RealT}
-    @assert index_min <= index_max
-    @assert all(index_min .> 0)
-    @assert index_max <= sizeof(unsafe_wrap_sc(p4est_tree_t, parent.p4est.trees))
+function P4estMeshView(parent::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
 
-    return P4estMeshView{NDIMS, RealT}(parent, parent.nodes, index_min, index_max)
+    return P4estMeshView{NDIMS, RealT}(parent, parent.nodes)
 end
 
+# TODO: Check if this is still needed.
+# At the end we will have every cell boundary with a boundary condition.
 # Check if mesh is periodic
 function isperiodic(mesh::P4estMeshView)
     @unpack parent = mesh
@@ -34,12 +30,13 @@ end
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMeshView{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 function Base.size(mesh::P4estMeshView)
-    @unpack index_min, index_max = mesh
-    return index_max .- index_min .+ 1
+    # TODO: Implement size function. This used to be with checking index_min and inde_max.
+    return 0
 end
 function Base.size(mesh::P4estMeshView, i)
-    @unpack index_min, index_max = mesh
-    return index_max[i] - index_min[i] + 1
+#     @unpack index_min, index_max = mesh
+    # TODO: Implement size function. This used to be with checking index_min and inde_max.
+    return 0
 end
 Base.axes(mesh::P4estMeshView) = map(Base.OneTo, size(mesh))
 Base.axes(mesh::P4estMeshView, i) = Base.OneTo(size(mesh, i))
