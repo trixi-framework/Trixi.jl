@@ -26,7 +26,8 @@ varnames(::typeof(cons2prim), ::InviscidBurgersEquation1D) = ("scalar",)
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::InviscidBurgersEquation1D)
-    return SVector(2.0)
+    RealT = eltype(x)
+    return SVector(RealT(2))
 end
 
 """
@@ -35,8 +36,9 @@ end
 A smooth initial condition used for convergence tests.
 """
 function initial_condition_convergence_test(x, t, equation::InviscidBurgersEquation1D)
-    c = 2.0
-    A = 1.0
+    RealT = eltype(x)
+    c = 2
+    A = 1
     L = 1
     f = 1 / L
     omega = 2 * convert(RealT, pi) * f
@@ -54,8 +56,9 @@ Source terms used for convergence tests in combination with
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::InviscidBurgersEquation1D)
     # Same settings as in `initial_condition`
-    c = 2.0
-    A = 1.0
+    RealT = eltype(x)
+    c = 2
+    A = 1
     L = 1
     f = 1 / L
     omega = 2 * convert(RealT, pi) * f
@@ -111,7 +114,7 @@ function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    return SVector(0.5f0 * max(max(u_L, zero(u_L))^2, min(u_R, zero(u_R))^2))
+    return SVector(0.5f0 * max(max(u_L, 0)^2, min(u_R, 0)^2))
 end
 
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
@@ -121,7 +124,7 @@ function flux_engquist_osher(u_ll, u_rr, orientation,
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    return SVector(0.5f0 * (max(u_L, zero(u_L))^2 + min(u_R, zero(u_R))^2))
+    return SVector(0.5f0 * (max(u_L, 0)^2 + min(u_R, 0)^2))
 end
 
 """
