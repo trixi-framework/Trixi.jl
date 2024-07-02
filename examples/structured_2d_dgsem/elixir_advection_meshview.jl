@@ -51,21 +51,21 @@ mesh2 = StructuredMeshView(parent_mesh; indices_min = (9, 1), indices_max = (16,
 coupling_function = (x, u, equations_other, equations_own) -> u
 
 # Define the coupled boundary conditions
-# The indices (:end, :i_forward) and (:begin, :i_forward) denote the interface indexing.
+# The indices (Indexing.last, Indexing.i_forward) and (Indexing.first, Indexing.i_forward) denote the interface indexing.
 # For a system with coupling in x and y see examples/structured_2d_dgsem/elixir_advection_coupled.jl.
 boundary_conditions1 = (
                         # Connect left boundary with right boundary of left mesh
-                        x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
+                        x_neg = BoundaryConditionCoupled(2, (Indexing.last, Indexing.i_forward), Float64,
                                                          coupling_function),
-                        x_pos = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64,
+                        x_pos = BoundaryConditionCoupled(2, (Indexing.first, Indexing.i_forward), Float64,
                                                          coupling_function),
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 boundary_conditions2 = (
                         # Connect left boundary with right boundary of left mesh
-                        x_neg = BoundaryConditionCoupled(1, (:end, :i_forward), Float64,
+                        x_neg = BoundaryConditionCoupled(1, (Indexing.last, Indexing.i_forward), Float64,
                                                          coupling_function),
-                        x_pos = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64,
+                        x_pos = BoundaryConditionCoupled(1, (Indexing.first, Indexing.i_forward), Float64,
                                                          coupling_function),
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)

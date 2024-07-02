@@ -130,12 +130,12 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2} <:
                AbstractContainer
     u::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
     neighbor_ids::Matrix{Int}                   # [primary/secondary, interface]
-    node_indices::Matrix{NTuple{NDIMS, Symbol}} # [primary/secondary, interface]
+    node_indices::Matrix{NTuple{NDIMS, IndexInfo}} # [primary/secondary, interface]
 
     # internal `resize!`able storage
     _u::Vector{uEltype}
     _neighbor_ids::Vector{Int}
-    _node_indices::Vector{NTuple{NDIMS, Symbol}}
+    _node_indices::Vector{NTuple{NDIMS, IndexInfo}}
 end
 
 @inline function ninterfaces(interfaces::P4estInterfaceContainer)
@@ -183,7 +183,7 @@ function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
     _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, n_interfaces))
 
-    _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
+    _node_indices = Vector{NTuple{NDIMS, IndexInfo}}(undef, 2 * n_interfaces)
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
 
     interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMS + 2}(u, neighbor_ids,
@@ -206,7 +206,7 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1} <:
                AbstractContainer
     u::Array{uEltype, NDIMSP1}       # [variables, i, j, boundary]
     neighbor_ids::Vector{Int}                   # [boundary]
-    node_indices::Vector{NTuple{NDIMS, Symbol}} # [boundary]
+    node_indices::Vector{NTuple{NDIMS, IndexInfo}} # [boundary]
     name::Vector{Symbol}                # [boundary]
 
     # internal `resize!`able storage
@@ -256,7 +256,7 @@ function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
                      n_boundaries))
 
     neighbor_ids = Vector{Int}(undef, n_boundaries)
-    node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
+    node_indices = Vector{NTuple{NDIMS, IndexInfo}}(undef, n_boundaries)
     names = Vector{Symbol}(undef, n_boundaries)
 
     boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS + 1}(u, neighbor_ids,
@@ -337,12 +337,12 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3} <:
                AbstractContainer
     u::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
     neighbor_ids::Matrix{Int}             # [position, mortar]
-    node_indices::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
+    node_indices::Matrix{NTuple{NDIMS, IndexInfo}} # [small/large, mortar]
 
     # internal `resize!`able storage
     _u::Vector{uEltype}
     _neighbor_ids::Vector{Int}
-    _node_indices::Vector{NTuple{NDIMS, Symbol}}
+    _node_indices::Vector{NTuple{NDIMS, IndexInfo}}
 end
 
 @inline nmortars(mortars::P4estMortarContainer) = size(mortars.neighbor_ids, 2)
@@ -390,7 +390,7 @@ function init_mortars(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elem
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
                                (2^(NDIMS - 1) + 1, n_mortars))
 
-    _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
+    _node_indices = Vector{NTuple{NDIMS, IndexInfo}}(undef, 2 * n_mortars)
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
 
     mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3}(u,
@@ -705,17 +705,17 @@ end
 
 # Return direction of the face, which is indexed by node_indices
 @inline function indices2direction(indices)
-    if indices[1] === :begin
+    if indices[1] === Indexing.first
         return 1
-    elseif indices[1] === :end
+    elseif indices[1] === Indexing.last
         return 2
-    elseif indices[2] === :begin
+    elseif indices[2] === Indexing.first
         return 3
-    elseif indices[2] === :end
+    elseif indices[2] === Indexing.last
         return 4
-    elseif indices[3] === :begin
+    elseif indices[3] === Indexing.first
         return 5
-    else # if indices[3] === :end
+    else # if indices[3] === Indexing.last
         return 6
     end
 end

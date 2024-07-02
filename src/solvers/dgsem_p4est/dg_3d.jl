@@ -24,7 +24,7 @@ function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
     (; fstar_threaded, fstar_tmp_threaded, u_threaded)
 end
 
-#     index_to_start_step_3d(index::Symbol, index_range)
+#     index_to_start_step_3d(index::IndexInfo, index_range)
 #
 # Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
 # return `index_start, index_step_i, index_step_j`, i.e., a tuple containing
@@ -53,36 +53,38 @@ end
 #       j_volume += j_volume_step_j
 #       k_volume += k_volume_step_j
 #     end
-@inline function index_to_start_step_3d(index::Symbol, index_range)
+@inline function index_to_start_step_3d(index::IndexInfo, index_range)
     index_begin = first(index_range)
     index_end = last(index_range)
 
-    if index === :begin
+    if index === Indexing.first
         return index_begin, 0, 0
-    elseif index === :end
+    elseif index === Indexing.last
         return index_end, 0, 0
-    elseif index === :i_forward
+    elseif index === Indexing.i_forward
         return index_begin, 1, index_begin - index_end - 1
-    elseif index === :i_backward
+    elseif index === Indexing.i_backward
         return index_end, -1, index_end + 1 - index_begin
-    elseif index === :j_forward
+    elseif index === Indexing.j_forward
         return index_begin, 0, 1
-    else # if index === :j_backward
+    else # if index === Indexing.j_backward
         return index_end, 0, -1
     end
 end
 
-# Extract the two varying indices from a symbolic index tuple.
-# For example, `surface_indices((:i_forward, :end, :j_forward)) == (:i_forward, :j_forward)`.
-@inline function surface_indices(indices::NTuple{3, Symbol})
+# Extract the two varying indices from an IndexInfo tuple.
+# For example, 
+# `surface_indices((Indexing.i_forward, Indexing.last, Indexing.j_forward)) == 
+#    (Indexing.i_forward, Indexing.j_forward)`.
+@inline function surface_indices(indices::NTuple{3, IndexInfo})
     i1, i2, i3 = indices
     index = i1
-    (index === :begin || index === :end) && return (i2, i3)
+    (index === Indexing.first || index === Indexing.last) && return (i2, i3)
 
     index = i2
-    (index === :begin || index === :end) && return (i1, i3)
+    (index === Indexing.first || index === Indexing.last) && return (i1, i3)
 
-    # i3 in (:begin, :end)
+    # i3 in (Indexing.first, Indexing.last)
     return (i1, i2)
 end
 

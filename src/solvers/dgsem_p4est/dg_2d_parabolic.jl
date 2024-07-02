@@ -427,7 +427,7 @@ end
     large_indices = node_indices[2, mortar]
     large_direction = indices2direction(large_indices)
 
-    if :i_backward in large_indices
+    if Indexing.i_backward in large_indices
         for i in eachnode(dg)
             for v in eachvariable(equations)
                 surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v,
@@ -636,7 +636,7 @@ function calc_interface_flux!(surface_flux_values,
         # Initiate the secondary index to be used in the surface for loop.
         # This index on the primary side will always run forward but
         # the secondary index might need to run backwards for flipped sides.
-        if :i_backward in secondary_indices
+        if Indexing.i_backward in secondary_indices
             node_secondary = index_end
             node_secondary_step = -1
         else

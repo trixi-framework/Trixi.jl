@@ -71,7 +71,7 @@ function calc_mpi_interface_flux!(surface_flux_values,
 
         # Initiate the node index to be used in the surface for loop,
         # the surface flux storage must be indexed in alignment with the local element indexing
-        if :i_backward in local_indices
+        if Indexing.i_backward in local_indices
             surface_node = index_end
             surface_node_step = -1
         else
@@ -308,7 +308,7 @@ end
             # correct orientation.
             # Note that the index of the small sides will always run forward but
             # the index of the large side might need to run backwards for flipped sides.
-            if :i_backward in large_indices
+            if Indexing.i_backward in large_indices
                 for i in eachnode(dg)
                     for v in eachvariable(equations)
                         surface_flux_values[v, end + 1 - i, large_direction, element] = u_buffer[v,
