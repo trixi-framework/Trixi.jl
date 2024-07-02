@@ -18,7 +18,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
     else
         filename = joinpath(output_directory, "mesh.h5")
     end
@@ -57,7 +57,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step
     if timestep >= 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
     else
         filename = joinpath(output_directory, "mesh.h5")
     end
@@ -156,8 +156,8 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%06d", timestep)
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+        p4est_filename = @sprintf("p4est_data_%09d", timestep)
     else
         filename = joinpath(output_directory, "mesh.h5")
         p4est_filename = "p4est_data"
@@ -191,8 +191,8 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%06d", timestep)
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+        p4est_filename = @sprintf("p4est_data_%09d", timestep)
     else
         filename = joinpath(output_directory, "mesh.h5")
         p4est_filename = "p4est_data"

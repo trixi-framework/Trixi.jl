@@ -14,7 +14,7 @@ function save_restart_file(u, time, dt, timestep,
     @unpack output_directory = restart_callback
 
     # Filename based on current time step
-    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+    filename = joinpath(output_directory, @sprintf("restart_%09d.h5", timestep))
 
     # Restart files always store conservative variables
     data = u
@@ -95,7 +95,7 @@ function save_restart_file(u, time, dt, timestep,
                            restart_callback)
     @unpack output_directory = restart_callback
     # Filename based on current time step
-    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+    filename = joinpath(output_directory, @sprintf("restart_%09d.h5", timestep))
 
     if HDF5.has_parallel()
         save_restart_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache,
@@ -344,7 +344,7 @@ function save_adaptive_time_integrator(integrator,
         timestep = integrator.stats.naccept
 
         # Filename based on current time step
-        filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("restart_%09d.h5", timestep))
 
         # Open file (preserve existing content)
         h5open(filename, "r+") do file
