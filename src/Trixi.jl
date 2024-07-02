@@ -40,6 +40,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   terminate!, remake, add_tstop!, has_tstop, first_tstop
 
 using Downloads: Downloads
+import Adapt
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
@@ -48,6 +49,7 @@ using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using IfElse: ifelse
+using KernelAbstractions
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
@@ -59,7 +61,7 @@ using P4est
 using T8code
 using RecipesBase: RecipesBase
 using Requires: @require
-using Static: Static, One, True, False
+using Static: Static, One, StaticBool, True, False
 @reexport using StaticArrays: SVector
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
@@ -122,6 +124,7 @@ include("auxiliary/auxiliary.jl")
 include("auxiliary/mpi.jl")
 include("auxiliary/p4est.jl")
 include("auxiliary/t8code.jl")
+include("auxiliary/vector_of_arrays.jl")
 include("equations/equations.jl")
 include("meshes/meshes.jl")
 include("solvers/solvers.jl")

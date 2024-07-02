@@ -314,4 +314,53 @@ end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
     raw_copy!(c, c, from, from, destination)
 end
+
+# Containers that support heterogenous computing via KernelAbstractions.jl
+# should be subtypes of this type. 
+#
+# The first type parameter must be `Array` by default and if 
+# `Adapt.adapt_structure(to, container)` is called then this must be
+# `typeof(to)`. This is used in downstream code, e.g. for calling
+# `wrap_array` with an appropriate type after `resize!`ing.
+#
+# The second type parameter determines if KA.jl is used.
+# By default, each container must initialize this to `false`.
+# However, when `Adapt.adapt_structure` is called on the container, it must
+# be changed to `true`.
+abstract type AbstractHeterogeneousContainer{T, B} <: AbstractContainer end
+uses_ka(::Any) = false # need ::Any here since not all containers <: AbstractContainer
+uses_ka(::AbstractHeterogeneousContainer{T, B}) where {T, B} = B
+array_type(::AbstractHeterogeneousContainer{T}) where {T} = T
+function backend_or_nothing(c::AbstractContainer)
+    # Return KA backend if KA is used, else nothing
+    if uses_ka(c) # compile-time constant
+        return get_backend(c)
+    else
+        return nothing
+    end
+end
+# Subtypes must implement a method for these functions
+function Adapt.adapt_structure(to, ::AbstractHeterogeneousContainer)
+    error("required method not implemented")
+end
+function KernelAbstractions.get_backend(::AbstractHeterogeneousContainer)
+    erorr("required method not implemented")
+end
+
+# For some KA.jl backends like CUDA.jl, empty arrays do seem to simply be
+# null pointers which can cause `unsafe_wrap` to fail when calling
+# Adapt.adapt (ArgumentError, see
+# https://github.com/JuliaGPU/CUDA.jl/blob/v5.4.2/src/array.jl#L212-L229).
+# To circumvent this, on length zero arrays this allocates
+# a separate empty array instead of wrapping.
+# However, since zero length arrays are not used in calculations,
+# it should be okay if the underlying storage vectors and wrapped arrays
+# are not the same as long as they are properly wrapped when `resize!`d etc.
+function unsafe_wrap_or_alloc(to, vec, size)
+    if length(vec) == 0
+        return allocate(get_backend(vec), eltype(vec), size)
+    else
+        return unsafe_wrap(to, pointer(vec), size)
+    end
+end
 end # @muladd

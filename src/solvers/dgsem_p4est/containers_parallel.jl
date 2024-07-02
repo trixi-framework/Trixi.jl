@@ -5,15 +5,21 @@
 @muladd begin
 #! format: noindent
 
-mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2} <:
-               AbstractContainer
-    u::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
-    local_neighbor_ids::Vector{Int}                   # [interface]
-    node_indices::Vector{NTuple{NDIMS, IndexInfo}} # [interface]
-    local_sides::Vector{Int}                   # [interface]
+mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
+                                          uArray <: DenseArray{uEltype, NDIMSP2},
+                                          VecInt <: DenseVector{Int},
+                                          IndicesVector <:
+                                          DenseVector{NTuple{NDIMS, IndexInfo}},
+                                          uVector <: DenseVector{uEltype},
+                                          ArrayType, Bool} <:
+               AbstractHeterogeneousContainer{ArrayType, Bool}
+    u::uArray      # [primary/secondary, variable, i, j, interface]
+    local_neighbor_ids::VecInt                   # [interface]
+    node_indices::IndicesVector # [interface]
+    local_sides::VecInt                   # [interface]
 
     # internal `resize!`able storage
-    _u::Vector{uEltype}
+    _u::uVector
 end
 
 @inline function nmpiinterfaces(interfaces::P4estMPIInterfaceContainer)
@@ -27,9 +33,10 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
     n_dims = ndims(mpi_interfaces)
     n_nodes = size(mpi_interfaces.u, 3)
     n_variables = size(mpi_interfaces.u, 2)
+    ArrayType = array_type(mpi_interfaces)
 
     resize!(_u, 2 * n_variables * n_nodes^(n_dims - 1) * capacity)
-    mpi_interfaces.u = unsafe_wrap(Array, pointer(_u),
+    mpi_interfaces.u = unsafe_wrap(ArrayType, pointer(_u),
                                    (2, n_variables, ntuple(_ -> n_nodes, n_dims - 1)...,
                                     capacity))
 
@@ -64,11 +71,14 @@ function init_mpi_interfaces(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
 
     local_sides = Vector{Int}(undef, n_mpi_interfaces)
 
-    mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, uEltype, NDIMS + 2}(u,
-                                                                           local_neighbor_ids,
-                                                                           node_indices,
-                                                                           local_sides,
-                                                                           _u)
+    mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, uEltype, NDIMS + 2,
+                                                typeof(u), typeof(local_neighbor_ids),
+                                                typeof(node_indices), typeof(_u),
+                                                Array, false}(u,
+                                                              local_neighbor_ids,
+                                                              node_indices,
+                                                              local_sides,
+                                                              _u)
 
     init_mpi_interfaces!(mpi_interfaces, mesh)
 
@@ -81,6 +91,29 @@ function init_mpi_interfaces!(mpi_interfaces, mesh::ParallelP4estMesh)
     return mpi_interfaces
 end
 
+# Required methods due to <: AbstractHeterogeneousContainer
+function KernelAbstractions.get_backend(mpi_interfaces::P4estMPIInterfaceContainer)
+    return KernelAbstractions.get_backend(interfaces.u)
+end
+function Adapt.adapt_structure(to, mpi_interfaces::P4estMPIInterfaceContainer)
+    # Adapt Vectors and underlying storage
+    _u = Adapt.adapt_structure(to, mpi_interfaces._u)
+    local_neighbor_ids = Adapt.adapt_structure(to, mpi_interfaces.local_neighbor_ids)
+    node_indices = Adapt.adapt_structure(to, mpi_interfaces.node_indices)
+    local_sides = Adapt.adapt_structure(to, mpi_interfaces.local_sides)
+
+    # Wrap array again
+    u = unsafe_wrap_or_alloc(to, _u, size(mpi_interfaces.u))
+
+    NDIMS = ndims(mpi_interfaces)
+    return P4estMPIInterfaceContainer{NDIMS, eltype(mpi_interfaces.u),
+                                      NDIMS + 2,
+                                      typeof(u), typeof(local_neighbor_ids),
+                                      typeof(node_indices), typeof(_u),
+                                      to, true}(u, local_neighbor_ids, node_indices,
+                                                local_sides, _u)
+end
+
 # Container data structure (structure-of-arrays style) for DG L2 mortars
 #
 # Similar to `P4estMortarContainer`. The field `neighbor_ids` has been split up into
@@ -88,14 +121,18 @@ end
 # available elements belonging to a particular MPI mortar. Furthermore, `normal_directions` holds
 # the normal vectors on the surface of the small elements for each mortar.
 mutable struct P4estMPIMortarContainer{NDIMS, uEltype <: Real, RealT <: Real, NDIMSP1,
-                                       NDIMSP2, NDIMSP3} <: AbstractContainer
-    u::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
+                                       NDIMSP2, NDIMSP3,
+                                       uArray <: DenseArray{uEltype, NDIMSP3},
+                                       uVector <: DenseVector{uEltype},
+                                       ArrayType, Bool} <:
+               AbstractHeterogeneousContainer{ArrayType, Bool}
+    u::uArray # [small/large side, variable, position, i, j, mortar]
     local_neighbor_ids::Vector{Vector{Int}} # [mortar]
     local_neighbor_positions::Vector{Vector{Int}} # [mortar]
     node_indices::Matrix{NTuple{NDIMS, IndexInfo}} # [small/large, mortar]
     normal_directions::Array{RealT, NDIMSP2} # [dimension, i, j, position, mortar]
     # internal `resize!`able storage
-    _u::Vector{uEltype}
+    _u::uVector
     _node_indices::Vector{NTuple{NDIMS, IndexInfo}}
     _normal_directions::Vector{RealT}
 end
@@ -164,11 +201,13 @@ function init_mpi_mortars(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh}, eq
                                      2^(NDIMS - 1), n_mpi_mortars))
 
     mpi_mortars = P4estMPIMortarContainer{NDIMS, uEltype, RealT, NDIMS + 1, NDIMS + 2,
-                                          NDIMS + 3}(u, local_neighbor_ids,
-                                                     local_neighbor_positions,
-                                                     node_indices, normal_directions,
-                                                     _u, _node_indices,
-                                                     _normal_directions)
+                                          NDIMS + 3, typeof(u),
+                                          typeof(_u), 
+                                          Array, false}(u, local_neighbor_ids,
+                                                        local_neighbor_positions,
+                                                        node_indices, normal_directions,
+                                                        _u, _node_indices,
+                                                        _normal_directions)
 
     if n_mpi_mortars > 0
         init_mpi_mortars!(mpi_mortars, mesh, basis, elements)
@@ -182,6 +221,36 @@ function init_mpi_mortars!(mpi_mortars, mesh::ParallelP4estMesh, basis, elements
     init_normal_directions!(mpi_mortars, basis, elements)
 
     return mpi_mortars
+end
+
+# Required methods due to <: AbstractHeterogeneousContainer
+function KernelAbstractions.get_backend(mpi_interfaces::P4estMPIMortarContainer)
+    return KernelAbstractions.get_backend(mortars.u)
+end
+function Adapt.adapt_structure(to, mpi_mortars::P4estMPIMortarContainer)
+    # TODO: Vector of Vector type data structure does not work on GPUs,
+    # must be redesigned. This skeleton implementation here just exists just
+    # for compatability with the rest of the KA.jl solver code
+
+    _u = Adapt.adapt_structure(to, mpi_mortars._u)
+    _node_indices = mpi_mortars._node_indices
+    _normal_directions = mpi_mortars._normal_directions
+
+    u = unsafe_wrap_or_alloc(to, _u, size(mpi_mortars.u))
+    local_neighbor_ids = mpi_mortars.local_neighbor_ids
+    local_neighbor_positions = mpi_mortars.local_neighbor_positions
+    node_indices = mpi_mortars.node_indices
+    normal_directions = mpi_mortars.normal_directions
+
+    NDIMS = ndims(mpi_mortars)
+    return P4estMPIMortarContainer{NDIMS, eltype(_u),
+                                   eltype(_normal_directions),
+                                   NDIMS + 1, NDIMS + 2, NDIMS + 3,
+                                   typeof(u), typeof(_u),
+                                   to, true}(u, local_neighbor_ids,
+                                             local_neighbor_positions,
+                                             node_indices, normal_directions, _u,
+                                             _node_indices, _normal_directions)
 end
 
 # Overload init! function for regular interfaces, regular mortars and boundaries since they must

@@ -128,6 +128,31 @@ In particular, not the nodes themselves are returned.
 
 @inline get_nodes(basis::LobattoLegendreBasis) = basis.nodes
 
+function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
+    # Do not adapt SVector fields, i.e. nodes, weights and inverse_weights
+    (; nodes, weights, inverse_weights) = basis
+    inverse_vandermonde_legendre = Adapt.adapt_structure(to,
+                                                         basis.inverse_vandermonde_legendre)
+    boundary_interpolation = basis.boundary_interpolation
+    derivative_matrix = Adapt.adapt_structure(to, basis.derivative_matrix)
+    derivative_split = Adapt.adapt_structure(to, basis.derivative_split)
+    derivative_split_transpose = Adapt.adapt_structure(to,
+                                                       basis.derivative_split_transpose)
+    derivative_dhat = Adapt.adapt_structure(to, basis.derivative_dhat)
+    return LobattoLegendreBasis{real(basis), nnodes(basis), typeof(basis.nodes),
+                                typeof(inverse_vandermonde_legendre),
+                                typeof(boundary_interpolation),
+                                typeof(derivative_matrix)}(nodes,
+                                                           weights,
+                                                           inverse_weights,
+                                                           inverse_vandermonde_legendre,
+                                                           boundary_interpolation,
+                                                           derivative_matrix,
+                                                           derivative_split,
+                                                           derivative_split_transpose,
+                                                           derivative_dhat)
+end
+
 """
     integrate(f, u, basis::LobattoLegendreBasis)
 
@@ -215,6 +240,16 @@ end
 end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
+
+function Adapt.adapt_structure(to, mortar::LobattoLegendreMortarL2)
+    forward_upper = Adapt.adapt_structure(to, mortar.forward_upper)
+    forward_lower = Adapt.adapt_structure(to, mortar.forward_lower)
+    reverse_upper = Adapt.adapt_structure(to, mortar.reverse_upper)
+    reverse_lower = Adapt.adapt_structure(to, mortar.reverse_lower)
+    return LobattoLegendreMortarL2{real(mortar), nnodes(mortar), typeof(forward_upper),
+                                   typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                          reverse_upper, reverse_lower)
+end
 
 # TODO: We can create EC mortars along the lines of the following implementation.
 # abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end

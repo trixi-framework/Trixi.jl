@@ -770,6 +770,10 @@ export IndexInfo
 end
 using .Indexing
 
+# Adapt.@adapt_structure macro must be outside of the same `begin ... end` block where
+# the type it is used on is defined, otherwise this throws an UndefVar
+Adapt.@adapt_structure DG
+
 # Discretizations specific to each mesh type of Trixi.jl
 # If some functionality is shared by multiple combinations of meshes/solvers,
 # it is defined in the directory of the most basic mesh and solver type.

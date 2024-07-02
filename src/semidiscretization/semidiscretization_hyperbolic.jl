@@ -30,20 +30,20 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
 
     function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
                                           BoundaryConditions, SourceTerms, Solver,
-                                          Cache}(mesh::Mesh, equations::Equations,
+                                          Cache}(mesh::Mesh,
+                                                 equations::Equations,
                                                  initial_condition::InitialCondition,
                                                  boundary_conditions::BoundaryConditions,
                                                  source_terms::SourceTerms,
                                                  solver::Solver,
-                                                 cache::Cache) where {Mesh, Equations,
-                                                                      InitialCondition,
-                                                                      BoundaryConditions,
-                                                                      SourceTerms,
-                                                                      Solver,
-                                                                      Cache}
+                                                 cache::Cache,
+                                                 performance_counter::PerformanceCounter) where {Mesh, Equations,
+                                                                                                 InitialCondition,
+                                                                                                 BoundaryConditions,
+                                                                                                 SourceTerms,
+                                                                                                 Solver,
+                                                                                                 Cache}
         @assert ndims(mesh) == ndims(equations)
-
-        performance_counter = PerformanceCounter()
 
         new(mesh, equations, initial_condition, boundary_conditions, source_terms,
             solver, cache, performance_counter)
@@ -74,6 +74,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
 
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
+    performance_counter = PerformanceCounter()
+
     SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
                                  typeof(initial_condition),
                                  typeof(_boundary_conditions), typeof(source_terms),
@@ -81,7 +83,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                                                 initial_condition,
                                                                 _boundary_conditions,
                                                                 source_terms, solver,
-                                                                cache)
+                                                                cache, performance_counter)
 end
 
 # Create a new semidiscretization but change some parameters compared to the input.
@@ -101,6 +103,30 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
     #       the indicators and their own caches...).
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms, boundary_conditions, uEltype)
+end
+
+function Adapt.adapt_structure(to, semi::SemidiscretizationHyperbolic)
+    if !(typeof(semi.mesh) <: P4estMesh)
+        error("Adapt.adapt is only supported for semidiscretizations based on P4estMesh")
+    end
+
+    mesh = semi.mesh
+    equations = Adapt.adapt_structure(to, semi.equations)
+    initial_condition = Adapt.adapt_structure(to, semi.initial_condition)
+    boundary_conditions = Adapt.adapt_structure(to, semi.boundary_conditions)
+    source_terms = Adapt.adapt_structure(to, semi.source_terms)
+    solver = Adapt.adapt_structure(to, semi.solver)
+    cache = Adapt.adapt_structure(to, semi.cache)
+    performance_counter = semi.performance_counter
+
+    SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
+                                 typeof(initial_condition),
+                                 typeof(boundary_conditions), typeof(source_terms),
+                                 typeof(solver), typeof(cache)}(mesh, equations,
+                                                                initial_condition,
+                                                                boundary_conditions,
+                                                                source_terms, solver,
+                                                                cache, performance_counter)
 end
 
 # general fallback
@@ -316,6 +342,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))
+        summary_line(io, "backend", backend_or_nothing(semi.cache.elements))
         summary_footer(io)
     end
 end

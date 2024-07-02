@@ -330,7 +330,7 @@ end
 # Iterate over tuples of boundary condition types and associated indices
 # in a type-stable way using "lispy tuple programming".
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
-                                     BC_indices::NTuple{N, Vector{Int}},
+                                     BC_indices::NTuple{N, <:AbstractVector{<:Integer}},
                                      mesh::Union{UnstructuredMesh2D, P4estMesh,
                                                  T8codeMesh},
                                      equations, surface_integral, dg::DG) where {N}
