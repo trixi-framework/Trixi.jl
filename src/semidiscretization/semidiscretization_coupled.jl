@@ -429,7 +429,12 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct BoundaryConditionCoupled{NDIMS, other_semi_index, NDIMST2M1,
+mutable struct BoundaryConditionCoupled{NDIMS,
+                                        # Store the other semi index as type parameter,
+                                        # so that retrieving the other semidiscretization
+                                        # is type-stable.
+                                        # x-ref: https://github.com/trixi-framework/Trixi.jl/pull/1979
+                                        other_semi_index, NDIMST2M1,
                                         uEltype <: Real, Indices, CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
