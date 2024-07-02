@@ -239,7 +239,7 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step.
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
     else
         filename = joinpath(output_directory, "mesh.h5")
     end
