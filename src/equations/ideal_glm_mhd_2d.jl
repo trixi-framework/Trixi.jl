@@ -72,11 +72,11 @@ function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquation
     RealT = eltype(x)
     alpha = 0.25f0 * convert(RealT, pi)
     x_perp = x[1] * cos(alpha) + x[2] * sin(alpha)
-    B_perp = convert(RealT, 0.1) * sin(2 * convert(RealT, pi) * x_perp)
+    B_perp = convert(RealT, 0.1) * sinpi(2 * x_perp)
     rho = 1
     v1 = -B_perp * sin(alpha)
     v2 = B_perp * cos(alpha)
-    v3 = convert(RealT, 0.1) * cos(2 * convert(RealT, pi) * x_perp)
+    v3 = convert(RealT, 0.1) * cospi(2 * x_perp)
     p = convert(RealT, 0.1)
     B1 = cos(alpha) + v1
     B2 = sin(alpha) + v2
