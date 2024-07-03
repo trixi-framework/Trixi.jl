@@ -33,6 +33,8 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
+# As the wave speed is equal to the speed of light which is on the order of 3 * 10^8
+# we consider only a small time horizon.
 ode = semidiscretize(semi, (0.0, 1e-7));
 
 summary_callback = SummaryCallback()

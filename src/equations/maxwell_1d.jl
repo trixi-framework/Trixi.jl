@@ -39,7 +39,7 @@ struct MaxwellEquations1D{RealT <: Real} <:
     speed_of_light::SVector{1, RealT} # c
 end
 
-function MaxwellEquations1D(c::Real = 299792458)
+function MaxwellEquations1D(c::Real = 299_792_458.0)
     MaxwellEquations1D(SVector(c))
 end
 
@@ -67,7 +67,7 @@ function initial_condition_convergence_test(x, t, equations::MaxwellEquations1D)
     return SVector(E, B)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::MaxwellEquations1D)
     E, B = u
