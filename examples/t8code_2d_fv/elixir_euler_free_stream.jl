@@ -37,7 +37,8 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/a075f8
 # we can create a t8code mesh.
 conn = Trixi.read_inp_p4est(mesh_file, Val(2))
 
-mesh = T8codeMesh(conn, polydeg = 3,
+# TODO: Parameter mapping is not supported for fv
+mesh = T8codeMesh(conn, polydeg = 0,
                   mapping = mapping,
                   initial_refinement_level = 2)
 

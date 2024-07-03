@@ -6,7 +6,8 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_convergence_test
 
-solver = FV(order = 2, surface_flux = flux_lax_friedrichs)
+solver = FV(order = 2, extended_reconstruction_stencil = false,
+            surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
@@ -15,7 +16,7 @@ trees_per_dimension = (8, 8)
 
 mesh = T8codeMesh(trees_per_dimension,
                   coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                  initial_refinement_level = 2)
+                  initial_refinement_level = 4)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
