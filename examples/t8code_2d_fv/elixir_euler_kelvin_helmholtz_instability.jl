@@ -31,7 +31,7 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-solver = FV(surface_flux = flux_lax_friedrichs)
+solver = FV(order = 1, surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
 # cmesh = Trixi.cmesh_new_periodic_hybrid()

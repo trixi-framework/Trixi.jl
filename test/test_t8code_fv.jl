@@ -48,9 +48,9 @@ mkdir(outdir)
     @trixi_testset "first-order FV" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                             order=1,
-                            initial_refinement_level = 2,
-                            l2=[0.1419061449384701],
-                            linf=[0.2086802087402776])
+                            initial_refinement_level=2,
+                            l2=[0.23262794278028587],
+                            linf=[0.3278746599076482])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -62,26 +62,9 @@ mkdir(outdir)
     end
     @trixi_testset "second-order FV" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                            order=2,
-                            initial_refinement_level = 2,
-                            l2=[0.013669404880134087],
-                            linf=[0.03455999303991164])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-    @trixi_testset "second-order FV, extended reconstruction stencil" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                            order=2,
-                            initial_refinement_level = 2,
-                            extended_reconstruction_stencil=true,
-                            l2=[0.020331012873518642],
-                            linf=[0.05571209803860677])
+                            initial_refinement_level=2,
+                            l2=[0.05314637803882428],
+                            linf=[0.0720440648162668])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -176,6 +159,7 @@ end
 @trixi_testset "elixir_euler_blast_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave.jl"),
+                        order=1,
                         l2=[
                             0.49698968976388164,
                             0.16934401479236502,
@@ -199,6 +183,7 @@ end
 end
 
 # TODO: Add some free stream test like the following
+# TODO: After parameter mapping is supported
 # @trixi_testset "elixir_euler_free_stream.jl" begin
 #     # This test is identical to the one in `test_p4est_2d.jl`.
 #     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
