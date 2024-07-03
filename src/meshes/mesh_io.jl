@@ -226,13 +226,10 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
 end
 
 # TODO: Implement this function as soon as there is support for this in `t8code`.
-# function save_mesh_file(mesh::T8codeMesh, output_directory, timestep, mpi_parallel)
-#     error("Mesh file output not supported yet for `T8codeMesh`.")
-
-#     return joinpath(output_directory, "dummy_mesh.h5")
-# end
-
 function save_mesh_file(mesh::T8codeMesh, output_directory, timestep, mpi_parallel)
+    # TODO: commented following line. SaveSolutionCallback doesn't work for FV with this error.
+    # error("Mesh file output not supported yet for `T8codeMesh`.")
+
     return joinpath(output_directory, "dummy_mesh.h5")
 end
 
