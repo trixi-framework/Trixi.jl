@@ -28,7 +28,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     nmpiinterfaces :: Int
     nmpimortars    :: Int
 
-    function T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
+    function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
                                boundary_names,
                                current_filename) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
@@ -86,6 +86,7 @@ const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 
 @inline ntrees(mesh::T8codeMesh) = size(mesh.tree_node_coordinates)[end]
 @inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_local_num_elements(mesh.forest))
+@inline ncellsglobal(mesh::T8codeMesh) = Int(t8_forest_get_global_num_elements(mesh.forest))
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -97,13 +98,136 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
     else
         setup = [
             "#trees" => ntrees(mesh),
-            "current #cells" => ncells(mesh),
+            "current #cells" => ncellsglobal(mesh),
             "polydeg" => length(mesh.nodes) - 1,
         ]
         summary_box(io,
                     "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}",
                     setup)
     end
+end
+
+"""
+    T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = 1, mapping = nothing)
+
+Main mesh constructor for the `T8codeMesh` wrapping around a given t8code
+`forest` object. This constructor is typically called by other `T8codeMesh`
+constructors.
+
+# Arguments
+- `forest`: Pointer to a t8code forest.
+- `boundary_names`: List of boundary names.
+- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+"""
+function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polydeg = 1,
+                                  mapping = nothing) where {NDIMS, RealT}
+    # In t8code reference space is [0,1].
+    basis = LobattoLegendreBasis(RealT, polydeg)
+    nodes = 0.5 .* (basis.nodes .+ 1.0)
+
+    cmesh = t8_forest_get_cmesh(forest)
+    number_of_trees = t8_forest_get_num_global_trees(forest)
+
+    tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
+                                                    ntuple(_ -> length(nodes), NDIMS)...,
+                                                    number_of_trees)
+
+    reference_coordinates = Vector{Float64}(undef, 3)
+
+    # Calculate node coordinates of reference mesh.
+    if NDIMS == 2
+        number_of_corners = 4 # quadrilateral
+
+        # Testing for negative element volumes.
+        vertices = zeros(3, number_of_corners)
+        for itree in 1:number_of_trees
+            vertices_pointer = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
+
+            # Note, `vertices = unsafe_wrap(Array, vertices_pointer, (3, 1 << NDIMS))`
+            # sometimes does not work since `vertices_pointer` is not necessarily properly
+            # aligned to 8 bytes.
+            for icorner in 1:number_of_corners
+                vertices[1, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 1)
+                vertices[2, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 2)
+            end
+
+            # Check if tree's node ordering is right-handed or print a warning.
+            let z = zero(eltype(vertices)), o = one(eltype(vertices))
+                u = vertices[:, 2] - vertices[:, 1]
+                v = vertices[:, 3] - vertices[:, 1]
+                w = [z, z, o]
+
+                # Triple product gives signed volume of spanned parallelepiped.
+                vol = dot(cross(u, v), w)
+
+                if vol < z
+                    error("Discovered negative volumes in `cmesh`: vol = $vol")
+                end
+            end
+
+            # Query geometry data from t8code.
+            for j in eachindex(nodes), i in eachindex(nodes)
+                reference_coordinates[1] = nodes[i]
+                reference_coordinates[2] = nodes[j]
+                reference_coordinates[3] = 0.0
+                t8_geometry_evaluate(cmesh, itree - 1, reference_coordinates, 1,
+                                     @view(tree_node_coordinates[:, i, j, itree]))
+            end
+        end
+
+    elseif NDIMS == 3
+        number_of_corners = 8 # hexahedron
+
+        # Testing for negative element volumes.
+        vertices = zeros(3, number_of_corners)
+        for itree in 1:number_of_trees
+            vertices_pointer = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
+
+            # Note, `vertices = unsafe_wrap(Array, vertices_pointer, (3, 1 << NDIMS))`
+            # sometimes does not work since `vertices_pointer` is not necessarily properly
+            # aligned to 8 bytes.
+            for icorner in 1:number_of_corners
+                vertices[1, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 1)
+                vertices[2, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 2)
+                vertices[3, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 3)
+            end
+
+            # Check if tree's node ordering is right-handed or print a warning.
+            let z = zero(eltype(vertices))
+                u = vertices[:, 2] - vertices[:, 1]
+                v = vertices[:, 3] - vertices[:, 1]
+                w = vertices[:, 5] - vertices[:, 1]
+
+                # Triple product gives signed volume of spanned parallelepiped.
+                vol = dot(cross(u, v), w)
+
+                if vol < z
+                    error("Discovered negative volumes in `cmesh`: vol = $vol")
+                end
+            end
+
+            # Query geometry data from t8code.
+            for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
+                reference_coordinates[1] = nodes[i]
+                reference_coordinates[2] = nodes[j]
+                reference_coordinates[3] = nodes[k]
+                t8_geometry_evaluate(cmesh, itree - 1, reference_coordinates, 1,
+                                     @view(tree_node_coordinates[:, i, j, k, itree]))
+            end
+        end
+    else
+        throw(ArgumentError("$NDIMS dimensions are not supported."))
+    end
+
+    # Apply user defined mapping.
+    map_node_coordinates!(tree_node_coordinates, mapping)
+
+    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, basis.nodes,
+                             boundary_names, "")
 end
 
 """
@@ -193,57 +317,10 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
-    basis = LobattoLegendreBasis(RealT, polydeg)
-    nodes = basis.nodes
-
-    num_trees = t8_cmesh_get_num_trees(cmesh)
-
-    tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
-                                                    ntuple(_ -> length(nodes), NDIMS)...,
-                                                    num_trees)
-
-    # Get cell length in reference mesh: Omega_ref = [-1,1]^NDIMS.
-    dx = [2 / n for n in trees_per_dimension]
-
     # Non-periodic boundaries.
     boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
 
-    if mapping === nothing
-        mapping_ = coordinates2mapping(ntuple(_ -> -1.0, NDIMS), ntuple(_ -> 1.0, NDIMS))
-    else
-        mapping_ = mapping
-    end
-
-    for itree in 1:num_trees
-        veptr = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
-        verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
-
-        # Calculate node coordinates of reference mesh.
-        if NDIMS == 2
-            cell_x_offset = (verts[1, 1] - 0.5 * (trees_per_dimension[1] - 1)) * dx[1]
-            cell_y_offset = (verts[2, 1] - 0.5 * (trees_per_dimension[2] - 1)) * dx[2]
-
-            for j in eachindex(nodes), i in eachindex(nodes)
-                tree_node_coordinates[:, i, j, itree] .= mapping_(cell_x_offset +
-                                                                  dx[1] * nodes[i] / 2,
-                                                                  cell_y_offset +
-                                                                  dx[2] * nodes[j] / 2)
-            end
-        elseif NDIMS == 3
-            cell_x_offset = (verts[1, 1] - 0.5 * (trees_per_dimension[1] - 1)) * dx[1]
-            cell_y_offset = (verts[2, 1] - 0.5 * (trees_per_dimension[2] - 1)) * dx[2]
-            cell_z_offset = (verts[3, 1] - 0.5 * (trees_per_dimension[3] - 1)) * dx[3]
-
-            for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
-                tree_node_coordinates[:, i, j, k, itree] .= mapping_(cell_x_offset +
-                                                                     dx[1] * nodes[i] / 2,
-                                                                     cell_y_offset +
-                                                                     dx[2] * nodes[j] / 2,
-                                                                     cell_z_offset +
-                                                                     dx[3] * nodes[k] / 2)
-            end
-        end
-
+    for itree in 1:t8_forest_get_num_global_trees(forest)
         if !periodicity[1]
             boundary_names[1, itree] = :x_neg
             boundary_names[2, itree] = :x_pos
@@ -262,8 +339,13 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
         end
     end
 
-    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
-                             boundary_names, "")
+    # Note, `p*est_connectivity_new_brick` converts a domain of `[0,nx] x [0,ny] x ....`.
+    # Hence, transform mesh coordinates to reference space [-1,1]^NDIMS before applying user defined mapping.
+    mapping_(xyz...) = mapping((x * 2.0 / tpd - 1.0 for (x, tpd) in zip(xyz,
+                                                                        trees_per_dimension))...)
+
+    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
+                                    mapping = mapping_)
 end
 
 """
@@ -301,106 +383,11 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
-    basis = LobattoLegendreBasis(RealT, polydeg)
-    nodes = basis.nodes
+    # There's no simple and generic way to distinguish boundaries, yet. Name all of them :all.
+    boundary_names = fill(:all, 2 * NDIMS, t8_cmesh_get_num_trees(cmesh))
 
-    num_trees = t8_cmesh_get_num_trees(cmesh)
-
-    tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
-                                                    ntuple(_ -> length(nodes), NDIMS)...,
-                                                    num_trees)
-
-    nodes_in = [-1.0, 1.0]
-    matrix = polynomial_interpolation_matrix(nodes_in, nodes)
-
-    num_local_trees = t8_cmesh_get_num_local_trees(cmesh)
-
-    if NDIMS == 2
-        data_in = Array{RealT, 3}(undef, 2, 2, 2)
-        tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
-        verts = zeros(3, 4)
-
-        for itree in 0:(num_local_trees - 1)
-            veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
-
-            # Note, `verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))`
-            # sometimes does not work since `veptr` is not necessarily properly
-            # aligned to 8 bytes.
-            for icorner in 1:4
-                verts[1, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 1)
-                verts[2, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 2)
-            end
-
-            # Check if tree's node ordering is right-handed or print a warning.
-            let z = zero(eltype(verts)), o = one(eltype(verts))
-                u = verts[:, 2] - verts[:, 1]
-                v = verts[:, 3] - verts[:, 1]
-                w = [z, z, o]
-
-                # Triple product gives signed volume of spanned parallelepiped.
-                vol = dot(cross(u, v), w)
-
-                if vol < z
-                    @warn "Discovered negative volumes in `cmesh`: vol = $vol"
-                end
-            end
-
-            # Tree vertices are stored in z-order.
-            @views data_in[:, 1, 1] .= verts[1:2, 1]
-            @views data_in[:, 2, 1] .= verts[1:2, 2]
-            @views data_in[:, 1, 2] .= verts[1:2, 3]
-            @views data_in[:, 2, 2] .= verts[1:2, 4]
-
-            # Interpolate corner coordinates to specified nodes.
-            multiply_dimensionwise!(view(tree_node_coordinates, :, :, :, itree + 1),
-                                    matrix, matrix,
-                                    data_in,
-                                    tmp1)
-        end
-
-    elseif NDIMS == 3
-        data_in = Array{RealT, 4}(undef, 3, 2, 2, 2)
-        tmp1 = zeros(RealT, 3, length(nodes), length(nodes_in), length(nodes_in))
-        verts = zeros(3, 8)
-
-        for itree in 0:(num_trees - 1)
-            veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
-
-            # Note, `verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))`
-            # sometimes does not work since `veptr` is not necessarily properly
-            # aligned to 8 bytes.
-            for icorner in 1:8
-                verts[1, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 1)
-                verts[2, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 2)
-                verts[3, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 3)
-            end
-
-            # Tree vertices are stored in z-order.
-            @views data_in[:, 1, 1, 1] .= verts[1:3, 1]
-            @views data_in[:, 2, 1, 1] .= verts[1:3, 2]
-            @views data_in[:, 1, 2, 1] .= verts[1:3, 3]
-            @views data_in[:, 2, 2, 1] .= verts[1:3, 4]
-
-            @views data_in[:, 1, 1, 2] .= verts[1:3, 5]
-            @views data_in[:, 2, 1, 2] .= verts[1:3, 6]
-            @views data_in[:, 1, 2, 2] .= verts[1:3, 7]
-            @views data_in[:, 2, 2, 2] .= verts[1:3, 8]
-
-            # Interpolate corner coordinates to specified nodes.
-            multiply_dimensionwise!(view(tree_node_coordinates, :, :, :, :, itree + 1),
-                                    matrix, matrix, matrix,
-                                    data_in,
-                                    tmp1)
-        end
-    end
-
-    map_node_coordinates!(tree_node_coordinates, mapping)
-
-    # There's no simple and generic way to distinguish boundaries. Name all of them :all.
-    boundary_names = fill(:all, 2 * NDIMS, num_trees)
-
-    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
-                             boundary_names, "")
+    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
+                                    mapping = mapping)
 end
 
 """
@@ -451,34 +438,199 @@ function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
     return T8codeMesh(cmesh; kwargs...)
 end
 
+# Convenience types for multiple dispatch. Only used in this file.
+struct GmshFile{NDIMS}
+    path::String
+end
+
+struct AbaqusFile{NDIMS}
+    path::String
+end
+
 """
-    T8codeMesh(meshfile::String, ndims; kwargs...)
+    T8codeMesh(meshfile::String, NDIMS; kwargs...)
+
+Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
+mesh from either a Gmsh mesh file (`.msh`) or Abaqus mesh file  (`.inp`) which is determined
+by the file extension.
+
+# Arguments
+- `filepath::String`: path to a Gmsh or Abaqus mesh file.
+- `ndims`: Mesh file dimension: `2` or `3`.
+
+# Optional Keyword Arguments
+- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
+                      will curve the imported uncurved mesh.
+- `RealT::Type`: The type that should be used for coordinates.
+- `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
+"""
+function T8codeMesh(filepath::String, ndims; kwargs...)
+    # Prevent `t8code` from crashing Julia if the file doesn't exist.
+    @assert isfile(filepath)
+
+    meshfile_prefix, meshfile_suffix = splitext(filepath)
+
+    file_extension = lowercase(meshfile_suffix)
+
+    if file_extension == ".msh"
+        return T8codeMesh(GmshFile{ndims}(filepath); kwargs...)
+    end
+
+    if file_extension == ".inp"
+        return T8codeMesh(AbaqusFile{ndims}(filepath); kwargs...)
+    end
+
+    throw(ArgumentError("Unknown file extension: " * file_extension))
+end
+
+"""
+    T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
 mesh from a Gmsh mesh file (`.msh`).
 
 # Arguments
-- `meshfile::String`: path to a Gmsh mesh file.
-- `ndims`: Mesh file dimension: `2` or `3`.
-- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
+- `meshfile::GmshFile{NDIMS}`: Gmsh mesh file object of dimension NDIMS and give `path` to the file.
+
+# Optional Keyword Arguments
+- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
-- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
                       The default of `1` creates an uncurved geometry. Use a higher value if the mapping
                       will curve the imported uncurved mesh.
-- `RealT::Type`: the type that should be used for coordinates.
-- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `RealT::Type`: The type that should be used for coordinates.
+- `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
 """
-function T8codeMesh(meshfile::String, ndims; kwargs...)
+function T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...) where {NDIMS}
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
-    @assert isfile(meshfile)
+    @assert isfile(meshfile.path)
 
-    meshfile_prefix, meshfile_suffix = splitext(meshfile)
+    meshfile_prefix, meshfile_suffix = splitext(meshfile.path)
 
-    cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), ndims, 0, 0)
+    cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 0)
 
     return T8codeMesh(cmesh; kwargs...)
+end
+
+"""
+    T8codeMesh(meshfile::AbaqusFile{NDIMS};
+               mapping=nothing, polydeg=1, RealT=Float64,
+               initial_refinement_level=0, unsaved_changes=true,
+               boundary_symbols = nothing)
+
+Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
+mesh from an Abaqus mesh file (`.inp`).
+
+To create a curved unstructured `T8codeMesh` two strategies are available:
+
+- `HOHQMesh Abaqus`: High-order, curved boundary information created by
+                     [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl) is
+                     available in the `meshfile`. The mesh polynomial degree `polydeg`
+                     of the boundaries is provided from the `meshfile`. The computation of
+                     the mapped tree coordinates is done with transfinite interpolation
+                     with linear blending similar to [`UnstructuredMesh2D`](@ref). Boundary name
+                     information is also parsed from the `meshfile` such that different boundary
+                     conditions can be set at each named boundary on a given tree.
+
+- `Standard Abaqus`: By default, with `mapping=nothing` and `polydeg=1`, this creates a
+                     straight-sided mesh from the information parsed from the `meshfile`. If a mapping
+                     function is specified then it computes the mapped tree coordinates via polynomial
+                     interpolants with degree `polydeg`. The mesh created by this function will only
+                     have one boundary `:all` if `boundary_symbols` is not specified.
+                     If `boundary_symbols` is specified the mesh file will be parsed for nodesets defining
+                     the boundary nodes from which boundary edges (2D) and faces (3D) will be assigned.
+
+Note that the `mapping` and `polydeg` keyword arguments are only used by the `HOHQMesh Abaqus` option.
+The `Standard Abaqus` routine obtains the mesh `polydeg` directly from the `meshfile`
+and constructs the transfinite mapping internally.
+
+The particular strategy is selected according to the header present in the `meshfile` where
+the constructor checks whether or not the `meshfile` was created with
+[HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
+If the Abaqus file header is not present in the `meshfile` then the `T8codeMesh` is created
+by `Standard Abaqus`.
+
+The default keyword argument `initial_refinement_level=0` corresponds to a forest
+where the number of trees is the same as the number of elements in the original `meshfile`.
+Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
+in the `meshfile` to create a forest with more trees before the simulation begins.
+For example, if a two-dimensional base mesh contains 25 elements then setting
+`initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
+
+# Arguments
+- `meshfile::AbaqusFile{NDIMS}`: Abaqus mesh file object of dimension NDIMS and given `path` to the file.
+
+# Optional Keyword Arguments
+- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
+                      will curve the imported uncurved mesh.
+- `RealT::Type`: The type that should be used for coordinates.
+- `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
+- `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
+                                      If `nothing` is passed then all boundaries are named `:all`.                                                
+"""
+function T8codeMesh(meshfile::AbaqusFile{NDIMS};
+                    mapping = nothing, polydeg = 1, RealT = Float64,
+                    initial_refinement_level = 0,
+                    boundary_symbols = nothing) where {NDIMS}
+    # Prevent `t8code` from crashing Julia if the file doesn't exist.
+    @assert isfile(meshfile.path)
+
+    # Read in the Header of the meshfile to determine which constructor is appropriate.
+    header = open(meshfile.path, "r") do io
+        readline(io) # Header of the Abaqus file; discarded
+        readline(io) # Read in the actual header information
+    end
+
+    # Check if the meshfile was generated using HOHQMesh.
+    if header == " File created by HOHQMesh"
+        # Mesh curvature and boundary naming is handled with additional information available in meshfile
+        connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_hohqmesh_abaqus(meshfile.path,
+                                                                                                             initial_refinement_level,
+                                                                                                             NDIMS,
+                                                                                                             RealT)
+        # Apply user defined mapping.
+        map_node_coordinates!(tree_node_coordinates, mapping)
+    else
+        # Mesh curvature is handled directly by applying the mapping keyword argument.
+        connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_standard_abaqus(meshfile.path,
+                                                                                                             mapping,
+                                                                                                             polydeg,
+                                                                                                             initial_refinement_level,
+                                                                                                             NDIMS,
+                                                                                                             RealT,
+                                                                                                             boundary_symbols)
+    end
+
+    cmesh = t8_cmesh_new_from_connectivity(connectivity, mpi_comm())
+    p4est_connectivity_destroy(connectivity)
+
+    do_face_ghost = mpi_isparallel()
+    scheme = t8_scheme_new_default_cxx()
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
+
+    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
+                             boundary_names, "")
+end
+
+function t8_cmesh_new_from_connectivity(connectivity::Ptr{p4est_connectivity}, comm)
+    return t8_cmesh_new_from_p4est(connectivity, comm, 0)
+end
+
+function t8_cmesh_new_from_connectivity(connectivity::Ptr{p8est_connectivity}, comm)
+    return t8_cmesh_new_from_p8est(connectivity, comm, 0)
 end
 
 struct adapt_callback_passthrough

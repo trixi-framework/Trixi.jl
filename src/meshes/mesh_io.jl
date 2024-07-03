@@ -18,7 +18,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
     else
         filename = joinpath(output_directory, "mesh.h5")
     end
@@ -57,7 +57,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step
     if timestep >= 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
     else
         filename = joinpath(output_directory, "mesh.h5")
     end
@@ -97,7 +97,10 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
-function save_mesh_file(mesh::StructuredMesh, output_directory; system = "")
+# Note: the `timestep` argument is needed for compatibility with the method for
+# `StructuredMeshView`
+function save_mesh_file(mesh::StructuredMesh, output_directory; system = "",
+                        timestep = 0)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
@@ -153,8 +156,8 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%06d", timestep)
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+        p4est_filename = @sprintf("p4est_data_%09d", timestep)
     else
         filename = joinpath(output_directory, "mesh.h5")
         p4est_filename = "p4est_data"
@@ -188,8 +191,8 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%06d", timestep)
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+        p4est_filename = @sprintf("p4est_data_%09d", timestep)
     else
         filename = joinpath(output_directory, "mesh.h5")
         p4est_filename = "p4est_data"
@@ -260,7 +263,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         end
         mesh = TreeMesh(SerialTree{ndims}, max(n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
-    elseif mesh_type == "StructuredMesh"
+    elseif mesh_type in ("StructuredMesh", "StructuredMeshView")
         size_, mapping_as_string = h5open(mesh_file, "r") do file
             return read(attributes(file)["size"]),
                    read(attributes(file)["mapping"])
@@ -371,17 +374,18 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
 
     if mesh_type == "TreeMesh"
         if mpi_isroot()
-            n_cells = h5open(mesh_file, "r") do file
-                read(attributes(file)["n_cells"])
+            n_cells, capacity = h5open(mesh_file, "r") do file
+                return read(attributes(file)["n_cells"]),
+                       read(attributes(file)["capacity"])
             end
-            MPI.Bcast!(Ref(ndims_), mpi_root(), mpi_comm())
             MPI.Bcast!(Ref(n_cells), mpi_root(), mpi_comm())
+            MPI.Bcast!(Ref(capacity), mpi_root(), mpi_comm())
         else
-            ndims_ = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
             n_cells = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+            capacity = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
         end
 
-        mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max))
+        mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
     elseif mesh_type == "P4estMesh"
         if mpi_isroot()

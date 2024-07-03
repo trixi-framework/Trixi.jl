@@ -436,8 +436,9 @@ function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
     get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
 end
 
-const MeshesDGSEM = Union{TreeMesh, StructuredMesh, UnstructuredMesh2D, P4estMesh,
-                          T8codeMesh}
+const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
+                          UnstructuredMesh2D,
+                          P4estMesh, T8codeMesh}
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
     nelements(cache.elements) * nnodes(dg)^ndims(mesh)
@@ -458,7 +459,7 @@ In particular, not the nodes themselves are returned.
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
 @inline function ndofsglobal(mesh, dg::DG, cache)
-    nelementsglobal(dg, cache) * nnodes(dg)^ndims(mesh)
+    nelementsglobal(mesh, dg, cache) * nnodes(dg)^ndims(mesh)
 end
 
 """
@@ -516,7 +517,7 @@ In particular, not the mortars themselves are returned.
 @inline eachmpimortar(dg::DG, cache) = Base.OneTo(nmpimortars(dg, cache))
 
 @inline nelements(dg::DG, cache) = nelements(cache.elements)
-@inline function nelementsglobal(dg::DG, cache)
+@inline function nelementsglobal(mesh, dg::DG, cache)
     mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
 end
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)

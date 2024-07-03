@@ -81,7 +81,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupled)
                          semi.semis[i].source_terms)
             summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
         end
-        summary_line(io, "total #DOFs per field", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)
     end
 end
@@ -121,6 +121,18 @@ end
 
 @inline function ndofs(semi::SemidiscretizationCoupled)
     sum(ndofs, semi.semis)
+end
+
+"""
+    ndofsglobal(semi::SemidiscretizationCoupled)
+
+Return the global number of degrees of freedom associated with each scalar variable across all MPI ranks, and summed up over all coupled systems.
+This is the same as [`ndofs`](@ref) for simulations running in serial or
+parallelized via threads. It will in general be different for simulations
+running in parallel with MPI.
+"""
+@inline function ndofsglobal(semi::SemidiscretizationCoupled)
+    sum(ndofsglobal, semi.semis)
 end
 
 function compute_coefficients(t, semi::SemidiscretizationCoupled)
@@ -168,12 +180,10 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
     end
 
     # Call rhs! for each semidiscretization
-    @trixi_timeit timer() "copy to coupled boundaries" begin
-        foreach_enumerate(semi.semis) do (i, semi_)
-            u_loc = get_system_u_ode(u_ode, i, semi)
-            du_loc = get_system_u_ode(du_ode, i, semi)
-            rhs!(du_loc, u_loc, semi_, t)
-        end
+    foreach_enumerate(semi.semis) do (i, semi_)
+        u_loc = get_system_u_ode(u_ode, i, semi)
+        du_loc = get_system_u_ode(du_ode, i, semi)
+        rhs!(du_loc, u_loc, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -316,7 +326,8 @@ function save_mesh(semi::SemidiscretizationCoupled, output_directory, timestep =
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
         if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh, output_directory, system = i)
+            mesh.current_filename = save_mesh_file(mesh, output_directory; system = i,
+                                                   timestep = timestep)
             mesh.unsaved_changes = false
         end
     end
@@ -418,12 +429,16 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indices,
-                                        CouplingConverter}
+mutable struct BoundaryConditionCoupled{NDIMS,
+                                        # Store the other semi index as type parameter,
+                                        # so that retrieving the other semidiscretization
+                                        # is type-stable.
+                                        # x-ref: https://github.com/trixi-framework/Trixi.jl/pull/1979
+                                        other_semi_index, NDIMST2M1,
+                                        uEltype <: Real, Indices, CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
     u_boundary         :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-    other_semi_index   :: Int
     other_orientation  :: Int
     indices            :: Indices
     coupling_converter :: CouplingConverter
@@ -441,9 +456,9 @@ mutable struct BoundaryConditionCoupled{NDIMS, NDIMST2M1, uEltype <: Real, Indic
             other_orientation = 3
         end
 
-        new{NDIMS, NDIMS * 2 - 1, uEltype, typeof(indices),
+        new{NDIMS, other_semi_index, NDIMS * 2 - 1, uEltype, typeof(indices),
             typeof(coupling_converter)}(u_boundary,
-                                        other_semi_index, other_orientation,
+                                        other_orientation,
                                         indices, coupling_converter)
     end
 end
@@ -547,28 +562,17 @@ function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}
                               boundary_conditions...)
 end
 
-function mesh_equations_solver_cache(other_semi_index, i, semi_, semi_tuple...)
-    if i == other_semi_index
-        return mesh_equations_solver_cache(semi_)
-    else
-        # Walk through semidiscretizations until we find `i`
-        mesh_equations_solver_cache(other_semi_index, i + 1, semi_tuple...)
-    end
-end
-
 # In 2D
-function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2},
-                                   u_ode,
-                                   semi_coupled, semi)
+function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2,
+                                                                                other_semi_index},
+                                   u_ode, semi_coupled, semi) where {other_semi_index}
     @unpack u_indices = semi_coupled
-    @unpack other_semi_index, other_orientation, indices = boundary_condition
+    @unpack other_orientation, indices = boundary_condition
     @unpack coupling_converter, u_boundary = boundary_condition
 
     mesh_own, equations_own, solver_own, cache_own = mesh_equations_solver_cache(semi)
-
-    mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(other_semi_index,
-                                                                                         1,
-                                                                                         semi_coupled.semis...)
+    other_semi = semi_coupled.semis[other_semi_index]
+    mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(other_semi)
 
     node_coordinates_other = cache_other.elements.node_coordinates
     u_ode_other = get_system_u_ode(u_ode, other_semi_index, semi_coupled)
@@ -592,10 +596,14 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
     j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
 
-    i_cell = i_cell_start
-    j_cell = j_cell_start
+    # We need indices starting at 1 for the handling of `i_cell` etc.
+    Base.require_one_based_indexing(cells)
 
-    for cell in cells
+    @threaded for i in eachindex(cells)
+        cell = cells[i]
+        i_cell = i_cell_start + (i - 1) * i_cell_step
+        j_cell = j_cell_start + (i - 1) * j_cell_step
+
         i_node = i_node_start
         j_node = j_node_start
         element_id = linear_indices[i_cell, j_cell]
@@ -617,9 +625,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
             i_node += i_node_step
             j_node += j_node_step
         end
-
-        i_cell += i_cell_step
-        j_cell += j_cell_step
     end
 end
 
@@ -630,7 +635,9 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionCoupled,
-                                                  mesh::StructuredMesh, equations,
+                                                  mesh::Union{StructuredMesh,
+                                                              StructuredMeshView},
+                                                  equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
@@ -662,7 +669,8 @@ end
     end
 end
 
-function get_boundary_indices(element, orientation, mesh::StructuredMesh{2})
+function get_boundary_indices(element, orientation,
+                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2}})
     cartesian_indices = CartesianIndices(size(mesh))
     if orientation == 1
         # Get index of element in y-direction
