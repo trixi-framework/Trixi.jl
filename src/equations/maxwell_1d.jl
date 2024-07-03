@@ -36,11 +36,11 @@ For reference, see
 """
 struct MaxwellEquations1D{RealT <: Real} <:
        AbstractLinearScalarAdvectionEquation{1, 2}
-    speed_of_light::SVector{1, RealT} # c
+    speed_of_light::RealT # c
 end
 
 function MaxwellEquations1D(c::Real = 299_792_458.0)
-    MaxwellEquations1D(SVector(c))
+    MaxwellEquations1D{typeof(c)}(c)
 end
 
 function varnames(::typeof(cons2cons), ::MaxwellEquations1D)
@@ -56,7 +56,7 @@ end
 A smooth initial condition used for convergence tests.
 """
 function initial_condition_convergence_test(x, t, equations::MaxwellEquations1D)
-    c = equations.speed_of_light[1]
+    c = equations.speed_of_light
     char_pos = c * t + x[1]
 
     sin_char_pos = sin(2 * pi * char_pos)
@@ -71,20 +71,19 @@ end
 @inline function flux(u, orientation::Integer,
                       equations::MaxwellEquations1D)
     E, B = u
-    c = equations.speed_of_light[orientation]
-    return SVector(c^2 * B, E)
+    return SVector(equations.speed_of_light^2 * B, E)
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Int,
                                      equations::MaxwellEquations1D)
-    λ_max = equations.speed_of_light[orientation]
+    λ_max = equations.speed_of_light
 end
 
 @inline have_constant_speed(::MaxwellEquations1D) = True()
 
 @inline function max_abs_speeds(equations::MaxwellEquations1D)
-    return equations.speed_of_light[1]
+    return equations.speed_of_light
 end
 
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
@@ -94,8 +93,8 @@ end
 
 @inline function min_max_speed_davis(u_ll, u_rr, orientation::Integer,
                                      equations::MaxwellEquations1D)
-    λ_min = -equations.speed_of_light[orientation]
-    λ_max = equations.speed_of_light[orientation]
+    λ_min = -equations.speed_of_light
+    λ_max = equations.speed_of_light
 
     return λ_min, λ_max
 end
