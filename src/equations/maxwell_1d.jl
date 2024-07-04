@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    MaxwellEquations1D
+    MaxwellEquations1D(c = 299_792_458.0)
 
 The Maxwell equations of electro dynamics
 ```math
