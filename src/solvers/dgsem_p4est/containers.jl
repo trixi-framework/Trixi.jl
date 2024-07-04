@@ -271,7 +271,7 @@ function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     return boundaries
 end
 
-function init_boundaries!(boundaries, mesh::P4estMesh)
+function init_boundaries!(boundaries, mesh::Union{P4estMesh, P4estMeshView})
     init_surfaces!(nothing, nothing, boundaries, mesh)
 
     return boundaries
@@ -514,7 +514,7 @@ function init_surfaces_iter_face_inner(info, user_data)
     return nothing
 end
 
-function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMesh)
+function init_surfaces!(interfaces, mortars, boundaries, mesh::Union{P4estMesh, P4estMeshView})
     # Let `p4est` iterate over all interfaces and call init_surfaces_iter_face
     iter_face_c = cfunction(init_surfaces_iter_face, Val(ndims(mesh)))
     user_data = InitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mesh)

@@ -385,7 +385,7 @@ end
 end
 
 function prolong2mortars!(cache, u,
-                          mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
+   		mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           surface_integral, dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -452,7 +452,7 @@ function prolong2mortars!(cache, u,
 end
 
 function calc_mortar_flux!(surface_flux_values,
-                           mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+		mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                            nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
@@ -626,7 +626,7 @@ end
 end
 
 function calc_surface_integral!(du, u,
-                                mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+		mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
