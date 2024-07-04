@@ -34,8 +34,7 @@ For reference, see
 
 - or equation (1) in https://inria.hal.science/hal-01720293/document
 """
-struct MaxwellEquations1D{RealT <: Real} <:
-       AbstractLinearScalarAdvectionEquation{1, 2}
+struct MaxwellEquations1D{RealT <: Real} <: AbstractMaxwellEquations{1, 2}
     speed_of_light::RealT # c
 end
 
