@@ -1446,7 +1446,7 @@ function get_levels(mesh::T8codeMesh)
 end
 
 function get_cmesh_info(mesh::T8codeMesh)
-    @assert t8_forest_is_committed(mesh.forest) != 0
+    @assert t8_forest_is_committed(mesh.forest) == 1
     cmesh = t8_forest_get_cmesh(mesh.forest)
     return get_cmesh_info(cmesh, ndims(mesh))
 end
