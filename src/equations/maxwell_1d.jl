@@ -39,7 +39,7 @@ struct MaxwellEquations1D{RealT <: Real} <: AbstractMaxwellEquations{1, 2}
 end
 
 function MaxwellEquations1D(c::Real = 299_792_458.0)
-    return MaxwellEquations1D{typeof(c)}(c)
+    return MaxwellEquations1D(c)
 end
 
 function varnames(::typeof(cons2cons), ::MaxwellEquations1D)
