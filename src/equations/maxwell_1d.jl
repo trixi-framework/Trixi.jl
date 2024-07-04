@@ -36,10 +36,10 @@ For reference, see
 """
 struct MaxwellEquations1D{RealT <: Real} <: AbstractMaxwellEquations{1, 2}
     speed_of_light::RealT # c
-end
 
-function MaxwellEquations1D(c::Real = 299_792_458.0)
-    return MaxwellEquations1D(c)
+    function MaxwellEquations1D(c::Real = 299_792_458.0)
+        new{typeof(c)}(c)
+    end
 end
 
 function varnames(::typeof(cons2cons), ::MaxwellEquations1D)
