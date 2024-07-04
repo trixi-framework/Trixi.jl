@@ -107,7 +107,7 @@ end
 """
     T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
                boundary_names, treeIDs, neighIDs, faces, duals,
-               orientations, levels, num_elements_per_tree))
+               orientations, levels, num_elements_per_tree)
 
 Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine. 
 
