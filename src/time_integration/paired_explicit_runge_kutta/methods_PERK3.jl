@@ -129,8 +129,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     a_matrix[:, 1] = c[3:end]
 
     path_a_coeffs = joinpath(base_path_a_coeffs,
-                             "a_" * string(num_stages) * "_" * string(num_stages) *
-                             ".txt")
+                             "a_" * string(num_stages) * ".txt")
 
     @assert isfile(path_a_coeffs) "Couldn't find file"
     a_coeffs = readdlm(path_a_coeffs, Float64)
@@ -156,7 +155,7 @@ end
     - `num_stages` (`Int`): Number of stages in the PERK method.
     - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
       the Butcher tableau of the Runge Kutta method.
-      The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages)_.$(num_stages)txt")` and separated by line breaks.
+      The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
     -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the

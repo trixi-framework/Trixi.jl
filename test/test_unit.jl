@@ -1681,7 +1681,7 @@ end
 @testset "PERK Single p3 Constructors" begin
     path_coeff_file = mktempdir()
     Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/32889062fd5dcf7f450748f4f5f0797c8155a18d/a_8_8.txt",
-                   joinpath(path_coeff_file, "a_8_8.txt"))
+                   joinpath(path_coeff_file, "a_8.txt"))
 
     ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
 
