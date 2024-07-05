@@ -151,7 +151,13 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         println("Concluded stability polynomial optimization \n")
     end
 
-    return evaluate(gamma), dt
+    gamma_opt = evaluate(gamma)
+
+    if isa(gamma_opt, Number)
+        gamma_opt = [gamma_opt]
+    end
+
+    return gamma_opt, dt
 end
 end # @muladd
 
