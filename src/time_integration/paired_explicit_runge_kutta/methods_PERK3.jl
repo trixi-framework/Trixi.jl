@@ -13,7 +13,6 @@ function compute_c_coeffs(num_stages, cS2)
 
     # Last timesteps as for SSPRK33, see motivation in
     # https://doi.org/10.48550/arXiv.2403.05144
-
     c[num_stages - 1] = 1
     c[num_stages] = 0.5
 
@@ -33,7 +32,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
     c_ts = compute_c_coeffs(num_stages, cS2) # ts = timestep
     # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
     a_coeff = [0.0, c_ts[2], a_unknown...]
-    # Equality Constraint array that ensures that the stability polynomial computed from 
+    # Equality constraint array that ensures that the stability polynomial computed from 
     # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
     # optimized stability polynomial.
     # For details, see Chapter4.3, Proposition 3.2, Equation (3.3) from 
@@ -167,8 +166,8 @@ end
     - `cS2` (`Float64`, optional): Value of c in the Butcher tableau at c_{s-2}, when
       s is the number of stages, default is 1.0.
 
-The following structures and methods provide a implementation of
-the third-order paired explicit Runge-Kutta method
+The following structures and methods provide an implementation of
+the third-order paired explicit Runge-Kutta (P-ERK) method
 optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solver).
 The original paper is
 - Nasab, Vermeire (2022)

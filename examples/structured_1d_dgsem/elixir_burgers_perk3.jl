@@ -4,7 +4,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the (inviscid) Burgers' equation
+# semidiscretization of the (inviscid) Burgers equation
 
 equations = InviscidBurgersEquation1D()
 
