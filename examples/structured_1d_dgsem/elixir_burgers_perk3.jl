@@ -35,7 +35,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback()
+stepsize_callback = StepsizeCallback(cfl = 3.713)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
