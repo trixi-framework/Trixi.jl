@@ -119,7 +119,7 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 2000
 
-force_boundary_names = [:AirfoilBottom, :AirfoilTop]
+force_boundary_names = (:AirfoilBottom, :AirfoilTop)
 drag_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
                                            DragCoefficientPressure(aoa(), rho_inf(),
                                                                    u_inf(equations),

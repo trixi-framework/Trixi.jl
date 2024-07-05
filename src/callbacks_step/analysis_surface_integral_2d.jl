@@ -21,30 +21,18 @@ drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil with the b
 symbol `:Airfoil` in 2D.
 
 - `semi::Semidiscretization`: Passed in to retrieve boundary condition information
-- `boundary_symbol_or_boundary_symbols::Symbol|Vector{Symbol}`: Name(s) of the boundary/boundaries
+- `boundary_symbols::NTuple{NBoundaries, Symbol}`: Name(s) of the boundary/boundaries
   where the quantity of interest is computed
 - `variable::Variable`: Quantity of interest, like lift or drag
 """
-struct AnalysisSurfaceIntegral{Variable}
-    indices::Vector{Int} # Indices in `boundary_condition_indices` where quantity of interest is computed
+struct AnalysisSurfaceIntegral{Variable, NBoundaries}
     variable::Variable # Quantity of interest, like lift or drag
+    boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
 
-    function AnalysisSurfaceIntegral(semi, boundary_symbol, variable)
-        @unpack boundary_symbol_indices = semi.boundary_conditions
-        indices = boundary_symbol_indices[boundary_symbol]
-
-        return new{typeof(variable)}(indices, variable)
-    end
-
-    function AnalysisSurfaceIntegral(semi, boundary_symbols::Vector{Symbol}, variable)
-        @unpack boundary_symbol_indices = semi.boundary_conditions
-        indices = Vector{Int}()
-        for name in boundary_symbols
-            append!(indices, boundary_symbol_indices[name])
-        end
-        sort!(indices)
-
-        return new{typeof(variable)}(indices, variable)
+    function AnalysisSurfaceIntegral(semi,
+                                     boundary_symbols::NTuple{NBoundaries, Symbol},
+                                     variable) where {NBoundaries}
+        return new{typeof(variable), NBoundaries}(variable, boundary_symbols)
     end
 end
 
@@ -259,14 +247,26 @@ function (drag_coefficient::DragCoefficientShearStress)(u, normal_direction, x, 
            (0.5 * rhoinf * uinf^2 * linf)
 end
 
+function get_boundary_indices(boundary_symbols, boundary_symbol_indices)
+    indices = Int[]
+    for name in boundary_symbols
+        append!(indices, boundary_symbol_indices[name])
+    end
+    sort!(indices) # Try to achieve some data locality by sorting
+
+    return indices
+end
+
 function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                  mesh::P4estMesh{2},
-                 equations, dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache, semi)
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
-    @unpack indices, variable = surface_variable
+    @unpack variable, boundary_symbols = surface_variable
+    @unpack boundary_symbol_indices = semi.boundary_conditions
+    indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
     surface_integral = zero(eltype(u))
     index_range = eachnode(dg)
@@ -312,13 +312,15 @@ end
 function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
                  du, u, t, mesh::P4estMesh{2},
                  equations, equations_parabolic,
-                 dg::DGSEM, cache,
+                 dg::DGSEM, cache, semi,
                  cache_parabolic) where {Variable <: VariableViscous}
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
-    @unpack indices, variable = surface_variable
+    @unpack variable, boundary_symbols = surface_variable
+    @unpack boundary_symbol_indices = semi.boundary_conditions
+    indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
     # Additions for parabolic
     @unpack viscous_container = cache_parabolic

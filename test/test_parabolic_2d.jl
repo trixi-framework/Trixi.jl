@@ -739,16 +739,16 @@ end
     du = Trixi.wrap_array(du_ode, semi)
 
     drag_p = Trixi.analyze(drag_coefficient, du, u, tspan[2], mesh, equations, solver,
-                           semi.cache)
+                           semi.cache, semi)
     lift_p = Trixi.analyze(lift_coefficient, du, u, tspan[2], mesh, equations, solver,
-                           semi.cache)
+                           semi.cache, semi)
 
     drag_f = Trixi.analyze(drag_coefficient_shear_force, du, u, tspan[2], mesh,
                            equations, equations_parabolic, solver,
-                           semi.cache, semi.cache_parabolic)
+                           semi.cache, semi, semi.cache_parabolic)
     lift_f = Trixi.analyze(lift_coefficient_shear_force, du, u, tspan[2], mesh,
                            equations, equations_parabolic, solver,
-                           semi.cache, semi.cache_parabolic)
+                           semi.cache, semi, semi.cache_parabolic)
 
     @test isapprox(drag_p, 0.17963843913309516, atol = 1e-13)
     @test isapprox(lift_p, 0.26462588007949367, atol = 1e-13)
