@@ -92,8 +92,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
 
         monomial_coeffs, _ = bisect_stability_polynomial(consistency_order,
                                                          num_eig_vals, num_stages,
-                                                         dtmax,
-                                                         dteps,
+                                                         dtmax, dteps,
                                                          eig_vals; verbose)
         monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
                                               num_stages)
