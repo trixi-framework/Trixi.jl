@@ -82,7 +82,6 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     # Special case of e = 3
     if num_stages == 3
         a_unknown = [0.25]
-        dt_opt = 42.0 # TODO! This is a placeholder value
     else
         # Calculate coefficients of the stability polynomial in monomial form
         consistency_order = 3
@@ -91,11 +90,11 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
 
         num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
 
-        monomial_coeffs, dt_opt = bisect_stability_polynomial(consistency_order,
-                                                              num_eig_vals, num_stages,
-                                                              dtmax,
-                                                              dteps,
-                                                              eig_vals; verbose)
+        monomial_coeffs, _ = bisect_stability_polynomial(consistency_order,
+                                                         num_eig_vals, num_stages,
+                                                         dtmax,
+                                                         dteps,
+                                                         eig_vals; verbose)
         monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
                                               num_stages)
 
