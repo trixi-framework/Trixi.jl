@@ -16,8 +16,8 @@ for human readability.
   method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#1908])
 - Add subcell limiting support for `StructuredMesh` ([#1946]).
 - New time integrator `PairedExplicitRK3`, implementing the third-order paired explicit Runge-Kutta
-  method with [Convex.jl](https://github.com/jump-dev/Convex.jl), [ECOS.jl](https://github.com/jump-dev/ECOS.jl)
-  , and [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) ([TBD])
+  method with [Convex.jl](https://github.com/jump-dev/Convex.jl), [ECOS.jl](https://github.com/jump-dev/ECOS.jl),
+  and [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) ([TBD])
 
 ## Changes when updating to v0.7 from v0.6.x
 
