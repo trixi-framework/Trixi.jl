@@ -46,7 +46,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
             term1 *= a_coeff[num_stage_evals - 1 - j]
             term2 *= a_coeff[num_stage_evals - j]
         end
-        term1 *= c_ts[num_stages - 2 - i] * 1 / 6 # 1/ 6 = b_{S-1}
+        term1 *= c_ts[num_stages - 2 - i] * 1 / 6 # 1 / 6 = b_{S-1}
         term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
 
         c_eq[i] = monomial_coeffs[i] - (term1 + term2)
