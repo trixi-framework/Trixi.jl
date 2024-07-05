@@ -10,7 +10,7 @@
 
 """
     AnalysisSurfaceIntegral{Variable, NBoundaries}(semi,
-                                                   boundary_symbol_or_boundary_symbols,
+                                                   boundary_symbols::NTuple{NBoundaries, Symbol},
                                                    variable)
 
 This struct is used to compute the surface integral of a quantity of interest `variable` alongside
