@@ -9,9 +9,8 @@
 # pointwise surface forces.
 
 """
-    AnalysisSurfacePointwise{Semidiscretization, Variable}(semi,
-                                                  boundary_symbol_or_boundary_symbols,
-                                                  variable)
+    AnalysisSurfacePointwise{Variable, NBoundaries}(boundary_symbol_or_boundary_symbols,
+                                                    variable, output_directory = "out")
 
 This struct is used to compute pointwise surface values of a quantity of interest `variable`
 alongside the boundary/boundaries associated with particular name(s) given in `boundary_symbol`
@@ -20,34 +19,21 @@ For instance, this can be used to compute the surface pressure coefficient [`Sur
 surface friction coefficient [`SurfaceFrictionCoefficient`](@ref) of e.g. an airfoil with the boundary
 symbol `:Airfoil` in 2D.
 
-- `semi::Semidiscretization`: Passed in to retrieve boundary condition information
-- `boundary_symbol_or_boundary_symbols::Symbol|Vector{Symbol}`: Name(s) of the boundary/boundaries stored as symbol(s)
+- `boundary_symbols::NTuple{NBoundaries, Symbol}`: Name(s) of the boundary/boundaries
   where the quantity of interest is computed
 - `variable::Variable`: Quantity of interest, like lift or drag
+- `output_directory = "out"`: Directory where the pointwise value files are stored.
 """
-struct AnalysisSurfacePointwise{Variable}
-    indices::Vector{Int} # Indices in `boundary_condition_indices` where quantity of interest is computed
+struct AnalysisSurfacePointwise{Variable, NBoundaries}
     variable::Variable # Quantity of interest, like lift or drag
+    boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
     output_directory::String
 
-    function AnalysisSurfacePointwise(semi, boundary_symbol, variable,
-                                      output_directory = "out")
-        @unpack boundary_symbol_indices = semi.boundary_conditions
-        indices = boundary_symbol_indices[boundary_symbol]
-
-        return new{typeof(variable)}(indices, variable, output_directory)
-    end
-
-    function AnalysisSurfacePointwise(semi, boundary_symbols::Vector{Symbol}, variable,
-                                      output_directory = "out")
-        @unpack boundary_symbol_indices = semi.boundary_conditions
-        indices = Vector{Int}()
-        for name in boundary_symbols
-            append!(indices, boundary_symbol_indices[name])
-        end
-        sort!(indices)
-
-        return new{typeof(variable)}(indices, variable, output_directory)
+    function AnalysisSurfacePointwise(boundary_symbols::NTuple{NBoundaries, Symbol},
+                                      variable,
+                                      output_directory = "out") where {NBoundaries}
+        return new{typeof(variable), NBoundaries}(variable, boundary_symbols,
+                                                  output_directory)
     end
 end
 
@@ -132,12 +118,14 @@ end
 
 function analyze(surface_variable::AnalysisSurfacePointwise, du, u, t,
                  mesh::P4estMesh{2},
-                 equations, dg::DGSEM, cache, iter)
+                 equations, dg::DGSEM, cache, semi, iter)
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
-    @unpack indices, variable = surface_variable
+    @unpack variable, boundary_symbols = surface_variable
+    @unpack boundary_symbol_indices = semi.boundary_conditions
+    indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
     dim = ndims(mesh)
     n_nodes = nnodes(dg)
@@ -184,13 +172,15 @@ end
 function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
                  du, u, t, mesh::P4estMesh{2},
                  equations, equations_parabolic,
-                 dg::DGSEM, cache,
+                 dg::DGSEM, cache, semi,
                  cache_parabolic, iter) where {Variable <: VariableViscous}
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
     @unpack weights = dg.basis
 
-    @unpack indices, variable = surface_variable
+    @unpack variable, boundary_symbols = surface_variable
+    @unpack boundary_symbol_indices = semi.boundary_conditions
+    indices = get_boundary_indices(boundary_symbols, boundary_symbol_indices)
 
     dim = ndims(mesh)
     n_nodes = nnodes(dg)

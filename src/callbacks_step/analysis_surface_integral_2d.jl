@@ -9,9 +9,9 @@
 # surface forces
 
 """
-    AnalysisSurfaceIntegral{Semidiscretization, Variable}(semi,
-                                                          boundary_symbol_or_boundary_symbols,
-                                                          variable)
+    AnalysisSurfaceIntegral{Variable, NBoundaries}(semi,
+                                                   boundary_symbol_or_boundary_symbols,
+                                                   variable)
 
 This struct is used to compute the surface integral of a quantity of interest `variable` alongside
 the boundary/boundaries associated with particular name(s) given in `boundary_symbol`
