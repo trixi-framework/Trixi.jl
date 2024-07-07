@@ -153,6 +153,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
 
     gamma_opt = evaluate(gamma)
 
+    # Catch case S = 3 (only one opt. variable)
     if isa(gamma_opt, Number)
         gamma_opt = [gamma_opt]
     end
