@@ -197,7 +197,7 @@ function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equa
     return interfaces
 end
 
-function init_interfaces!(interfaces, mesh::P4estMesh)
+function init_interfaces!(interfaces, mesh::Union{P4estMesh, P4estMeshView})
     init_surfaces!(interfaces, nothing, nothing, mesh)
 
     return interfaces
@@ -689,7 +689,7 @@ function cfunction(::typeof(count_surfaces_iter_face), ::Val{3})
                (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 end
 
-function count_required_surfaces(mesh::P4estMesh)
+function count_required_surfaces(mesh::Union{P4estMesh, P4estMeshView})
     # Let `p4est` iterate over all interfaces and call count_surfaces_iter_face
     iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh)))
 

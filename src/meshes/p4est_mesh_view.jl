@@ -42,7 +42,6 @@ end
 
 function isperiodic(mesh::P4estMeshView, dimension)
     @unpack parent = mesh
-
     return (isperiodic(parent, dimension))
 end
 
@@ -52,13 +51,13 @@ end
     return mesh.p4est.trees.elem_count[]
 end
 @inline ncellsglobal(mesh::P4estMeshView) = Int(mesh.p4est.global_num_quadrants[])
-function Base.size(mesh::P4estMeshView)
-    return 0
-end
-function Base.size(mesh::P4estMeshView, i)
-    # TODO: Implement size function. This used to be with checking index_min and inde_max.
-    return 0
-end
+# function Base.size(mesh::P4estMeshView)
+#     return 0
+# end
+# function Base.size(mesh::P4estMeshView, i)
+#     # TODO: Implement size function. This used to be with checking index_min and inde_max.
+#     return 0
+# end
 Base.axes(mesh::P4estMeshView) = map(Base.OneTo, size(mesh))
 Base.axes(mesh::P4estMeshView, i) = Base.OneTo(size(mesh, i))
 
@@ -88,79 +87,37 @@ function balance!(mesh::P4estMeshView{2}, init_fn = C_NULL)
     p4est_balance(mesh.p4est, P4EST_CONNECT_FACE, init_fn)
 end
 
-@inline ncells(mesh::P4estMeshView) = Int(mesh.parent.p4est.local_num_quadrants[])
+@inline ncells(mesh::P4estMeshView) = Int(mesh.p4est.local_num_quadrants[])
 
-function count_required_surfaces(mesh::P4estMeshView)
-    # Let `p4est` iterate over all interfaces and call count_surfaces_iter_face
-    iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh.parent)))
-
-    # interfaces, mortars, boundaries
-    user_data = [0, 0, 0]
-
-    iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
-
-    # Return counters
-    return (interfaces = user_data[1],
-            mortars = user_data[2],
-            boundaries = user_data[3])
-end
-
-function init_interfaces!(interfaces, mesh::P4estMeshView)
-    init_surfaces!(interfaces, nothing, nothing, mesh.parent)
-
-    return interfaces
-end
-
-# Interpolate tree_node_coordinates to each quadrant at the specified nodes
-function calc_node_coordinates!(node_coordinates,
-        mesh::P4estMeshView{2},
-        nodes::AbstractVector)
-    @unpack parent = mesh
-
-#     # We use `StrideArray`s here since these buffers are used in performance-critical
-#     # places and the additional information passed to the compiler makes them faster
-#     # than native `Array`s.
-#     tmp1 = StrideArray(undef, real(parent),
-#     StaticInt(2), static_length(nodes), static_length(parent.nodes))
-#     matrix1 = StrideArray(undef, real(parent),
-#     static_length(nodes), static_length(parent.nodes))
-#     matrix2 = similar(matrix1)
-#     baryweights_in = barycentric_weights(parent.nodes)
+# function count_required_surfaces(mesh::P4estMeshView)
+#     # Let `p4est` iterate over all interfaces and call count_surfaces_iter_face
+#     iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh.parent)))
 #
-#     # Macros from `p4est`
-#     p4est_root_len = 1 << P4EST_MAXLEVEL
-#     p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
+#     # interfaces, mortars, boundaries
+#     user_data = [0, 0, 0]
 #
-#     trees = unsafe_wrap_sc(p4est_tree_t, parent.p4est.trees)
+#     iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
 #
-#     for tree in eachindex(trees)
-#         offset = trees[tree].quadrants_offset
-#         quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree].quadrants)
-#
-#         for i in eachindex(quadrants)
-#             element = offset + i
-#             quad = quadrants[i]
-#
-#             quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
-#
-#             nodes_out_x = 2 * (quad_length * 1 / 2 * (nodes .+ 1) .+
-#             quad.x / p4est_root_len) .- 1
-#             nodes_out_y = 2 * (quad_length * 1 / 2 * (nodes .+ 1) .+
-#             quad.y / p4est_root_len) .- 1
-#             polynomial_interpolation_matrix!(matrix1, parent.nodes, nodes_out_x,
-#                             baryweights_in)
-#             polynomial_interpolation_matrix!(matrix2, parent.nodes, nodes_out_y,
-#                             baryweights_in)
-#
-#             multiply_dimensionwise!(view(node_coordinates, :, :, :, element),
-#                     matrix1, matrix2,
-#                     view(parent.tree_node_coordinates, :, :, :, tree),
-#                     tmp1)
-#         end
-#     end
+#     # Return counters
+#     return (interfaces = user_data[1],
+#             mortars = user_data[2],
+#             boundaries = user_data[3])
+# end
 
-    return node_coordinates
-end
+# function init_interfaces!(interfaces, mesh::P4estMeshView)
+#     init_surfaces!(interfaces, nothing, nothing, mesh.parent)
+#
+#     return interfaces
+# end
+
+# # Interpolate tree_node_coordinates to each quadrant at the specified nodes
+# function calc_node_coordinates!(node_coordinates,
+#         mesh::P4estMeshView{2},
+#         nodes::AbstractVector)
+#     @unpack parent = mesh
+#
+#     return node_coordinates
+# end
 
 function save_mesh_file(mesh::P4estMeshView, output_directory, timestep = 0;
                         system = "")
