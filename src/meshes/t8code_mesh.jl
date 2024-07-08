@@ -26,11 +26,15 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     nmpiinterfaces :: Int
     nmpimortars    :: Int
 
-    unsaved_changes::Bool
+    unsaved_changes :: Bool
+
+    # Keeps a reference to the geometry handler in order to avoid gargabe
+    # collection if necessary.
+    geometry :: Any
 
     function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
                                boundary_names,
-                               current_filename) where {NDIMS}
+                               current_filename; geometry = nothing) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
 
         mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
@@ -41,6 +45,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.current_filename = current_filename
         mesh.tree_node_coordinates = tree_node_coordinates
         mesh.unsaved_changes = true
+        mesh.geometry = geometry
 
         finalizer(mesh) do mesh
             # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are
@@ -131,18 +136,19 @@ Returns a `T8codeMesh` object with a forest reconstructed by the input arguments
 function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
                     boundary_names, treeIDs, neighIDs, faces, duals,
                     orientations, levels, num_elements_per_tree)
-    Trixi.cmesh_ref = Ref(t8_cmesh_t())
-    t8_cmesh_init(Trixi.cmesh_ref)
-    cmesh = Trixi.cmesh_ref[]
+    # Initialize the `cmesh` object.
+    cmesh_ref = Ref(t8_cmesh_t())
+    t8_cmesh_init(cmesh_ref)
+    cmesh = cmesh_ref[]
 
     # Use linear geometry for now. There is no real Lagrange geometry
     # implementation (volume nodes) yet in t8code. Moreover, we need to store
-    # the pointer variables in the `Trixi` package in order to avoid garbage
+    # the pointer variables in the `mesh` object in order to avoid garbage
     # collection. Otherwise t8code segfaults. This is an un-feature of t8code
     # (recently introduced) and will be fixed in the near future.
-    Trixi.linear_geom = Trixi.t8_geometry_linear_new(ndims)
-    Trixi.linear_geom_ptr = pointer_from_objref(Ref(Trixi.linear_geom))
-    t8_cmesh_register_geometry(cmesh, Trixi.linear_geom_ptr)
+    linear_geom = t8_geometry_linear_new(ndims)
+    linear_geom_ptr = pointer_from_objref(Ref(linear_geom))
+    t8_cmesh_register_geometry(cmesh, linear_geom_ptr)
 
     # Determine element class.
     eclass = ndims > 2 ? T8_ECLASS_HEX : T8_ECLASS_QUAD
@@ -261,7 +267,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
         forest = partition(forest)
     end
 
-    return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
+    return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, ""; geometry = linear_geom_ptr)
 end
 
 """
