@@ -26,11 +26,11 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     nmpiinterfaces :: Int
     nmpimortars    :: Int
 
-    unsaved_changes :: Bool
+    unsaved_changes::Bool
 
     # Keeps a reference to the geometry handler in order to avoid gargabe
     # collection if necessary.
-    geometry :: Any
+    geometry::Any
 
     function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
                                boundary_names,
@@ -267,7 +267,8 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
         forest = partition(forest)
     end
 
-    return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, ""; geometry = linear_geom_ptr)
+    return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "";
+                             geometry = linear_geom_ptr)
 end
 
 """
