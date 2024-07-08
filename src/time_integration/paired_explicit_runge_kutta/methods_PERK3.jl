@@ -221,8 +221,9 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
     du::uType
     u_tmp::uType
     t::RealT
+    tdir::RealT
     dt::RealT # current time step
-    dtcache::RealT # ignored
+    dtcache::RealT # manually set time step
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
@@ -230,6 +231,8 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
     alg::Alg # This is our own class written above; Abbreviation for ALGorithm
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
+    dtchangeable::Bool
+    force_stepfail::Bool
     # PairedExplicitRK stages:
     k1::uType
     k_higher::uType
@@ -246,15 +249,16 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
     k_higher = zero(u0)
 
     t0 = first(ode.tspan)
+    tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
 
-    integrator = PairedExplicitRK3Integrator(u0, du, u_tmp, t0, dt, zero(dt), iter,
+    integrator = PairedExplicitRK3Integrator(u0, du, u_tmp, t0, tdir, dt, dt, iter,
                                              ode.p,
                                              (prob = ode,), ode.f, alg,
                                              PairedExplicitRKOptions(callback,
                                                                      ode.tspan;
                                                                      kwargs...),
-                                             false,
+                                             false, true, false,
                                              k1, k_higher)
 
     # initialize callbacks
@@ -305,6 +309,8 @@ function step!(integrator::PairedExplicitRK3Integrator)
     if isnan(integrator.dt)
         error("time step size `dt` is NaN")
     end
+
+    modify_dt_for_tstops!(integrator)
 
     # if the next iteration would push the simulation beyond the end time, set dt accordingly
     if integrator.t + integrator.dt > t_end ||
