@@ -77,7 +77,7 @@ end
 
 function max_dt(u, t,
                 mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
-			    T8codeMesh{2}, StructuredMeshView{2}, P4estMeshView{2}},
+                            T8codeMesh{2}, StructuredMeshView{2}, P4estMeshView{2}},
                 constant_speed::False, equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection

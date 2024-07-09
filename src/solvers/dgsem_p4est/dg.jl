@@ -8,7 +8,8 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::Union{P4estMesh, P4estMeshView}, equations::AbstractEquations, dg::DG, ::Any,
+function create_cache(mesh::Union{P4estMesh, P4estMeshView},
+                      equations::AbstractEquations, dg::DG, ::Any,
                       ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance the `p4est` before creating any containers
     # in case someone has tampered with the `p4est` after creating the mesh

@@ -1,8 +1,9 @@
 @muladd begin
 #! format: noindent
 
-mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NNODES} <:
-                             AbstractMesh{NDIMS}
+mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2,
+                             NNODES} <:
+               AbstractMesh{NDIMS}
     # Attributes from the original P4est mesh
     p4est       :: P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
     is_parallel :: IsParallel
@@ -24,10 +25,17 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
     ghost = ghost_new_p4est(parent.p4est)
     ghost_pw = PointerWrapper(ghost)
 
-    return P4estMeshView{NDIMS, eltype(parent.tree_node_coordinates), typeof(parent.is_parallel),
-                   typeof(parent.p4est), typeof(parent.ghost), NDIMS + 2, length(parent.nodes)}(parent.p4est, parent.is_parallel, parent.ghost, parent.tree_node_coordinates,
-                                       parent.nodes,parent.boundary_names,parent.current_filename, parent.unsaved_changes,
-                                       parent.p4est_partition_allow_for_coarsening, parent)
+    return P4estMeshView{NDIMS, eltype(parent.tree_node_coordinates),
+                         typeof(parent.is_parallel),
+                         typeof(parent.p4est), typeof(parent.ghost), NDIMS + 2,
+                         length(parent.nodes)}(parent.p4est, parent.is_parallel,
+                                               parent.ghost,
+                                               parent.tree_node_coordinates,
+                                               parent.nodes, parent.boundary_names,
+                                               parent.current_filename,
+                                               parent.unsaved_changes,
+                                               parent.p4est_partition_allow_for_coarsening,
+                                               parent)
 end
 
 # TODO: Check if this is still needed.
@@ -87,7 +95,8 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep = 0;
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%s_%06d.h5", system, timestep))
+        filename = joinpath(output_directory,
+                            @sprintf("mesh_%s_%06d.h5", system, timestep))
         p4est_filename = @sprintf("p4est_data_%s_%06d", system, timestep)
     else
         filename = joinpath(output_directory, "mesh.h5")
