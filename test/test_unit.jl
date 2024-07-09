@@ -1704,8 +1704,6 @@ end
 
     ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
 
-    #TODO: adjust this value according to the result in the test pipeline
-    println(ode_algorithm.a_matrix) # Value in CI differs slightly from what I get locally
     @test isapprox(ode_algorithm.a_matrix,
                    [0.3355167784195604 0.06448322158043965
                     0.4965349205803965 0.10346507941960345
@@ -1721,8 +1719,6 @@ end
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
 
-    #TODO: adjust this value according to the result in the test pipeline
-    println(ode_algorithm.a_matrix) # Value in CI differs slightly from what I get locally
     @test isapprox(ode_algorithm.a_matrix,
                    [0.19156094079581354 0.008439059204186486
                     0.2872329213106948 0.01276707868930521
