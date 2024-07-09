@@ -48,7 +48,7 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
     for _ in 1:max_iter
         # Due to the nature of the nonlinear solver, different initial guesses can lead to 
         # small numerical differences in the solution.
-        
+
         x0 = 0.1 .* rand(num_stages - 2)
 
         sol = nlsolve(objective_function, x0, method = :trust_region,
