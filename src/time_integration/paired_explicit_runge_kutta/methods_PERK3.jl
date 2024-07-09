@@ -100,7 +100,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
         # Solve the nonlinear system of equations from monomial coefficient and
         # Butcher array abscissae c to find Butcher matrix A
         # This function is extended in TrixiNLsolveExt.jl
-        a_unknown = solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, cS2, c;
+        a_unknown = solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_coeffs, cS2, c;
                                      verbose)
     end
     # Fill A-matrix in P-ERK style
