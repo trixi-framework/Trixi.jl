@@ -16,7 +16,7 @@ mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2
     unsaved_changes::Bool
     p4est_partition_allow_for_coarsening::Bool
 
-    # Attributes partaining the views.
+    # Attributes pertaining the views.
     parent::P4estMesh{NDIMS, RealT}
 end
 
