@@ -11,7 +11,7 @@ end
 
 # We use a random initialization of the nonlinear solver.
 # To make the tests reproducible, we need to seed the RNG
-using Random: seed!
+using StableRNGs: StableRNG, rand
 
 # Use functions that are to be extended and additional symbols that are not exported
 using Trixi: Trixi, solve_a_butcher_coeffs_unknown!,
@@ -43,7 +43,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
 
     # To ensure consistency and reproducibility of results across runs, we use 
     # a seeded random initial guess.
-    seed!(5555)
+    rng = StableRNG(555)
 
     is_sol_valid = false
 
@@ -51,7 +51,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
         # Due to the nature of the nonlinear solver, different initial guesses can lead to 
         # small numerical differences in the solution.
 
-        x0 = 0.1 .* rand(num_stages - 2)
+        x0 = 0.1 .* rand(rng, num_stages - 2)
 
         sol = nlsolve(objective_function, x0, method = :trust_region,
                       ftol = 4e-16, # Enforce objective up to machine precision
