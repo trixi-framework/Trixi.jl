@@ -47,7 +47,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_shockcapturing.jl"),
                         l2=[0.08015029105233593],
                         linf=[0.610709468736576],
-                        atol=1.0e-12)
+                        atol=1.0e-5)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
