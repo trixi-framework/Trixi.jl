@@ -81,6 +81,22 @@ jobs:
           - mpi
           - threaded
         include:
+          - version: '1.10'
+            os:
+              - macos-latest
+              - windows-latest
+            arch: x64
+            trixi_test:
+              - tree_part2
+              - tree_part3
+              - structured
+          - version: '~1.11.0-0'
+            os: ubuntu-latest
+            arch: x64
+            trixi_test:
+              - tree_part2
+              - tree_part3
+              - structured
           - version: '1.8'
             os: ubuntu-latest
             arch: x64

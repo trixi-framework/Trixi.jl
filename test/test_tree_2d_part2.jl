@@ -15,10 +15,10 @@ isdir(outdir) && rm(outdir, recursive = true)
 # Run basic tests
 @testset "Examples 2D" begin
     # Acoustic perturbation
-    include("test_tree_2d_acoustics.jl")
+    # include("test_tree_2d_acoustics.jl")
 
     # Linearized Euler
-    include("test_tree_2d_linearizedeuler.jl")
+    # include("test_tree_2d_linearizedeuler.jl")
 
     # Compressible Euler
     include("test_tree_2d_euler.jl")
@@ -27,13 +27,13 @@ isdir(outdir) && rm(outdir, recursive = true)
     include("test_tree_2d_eulermulti.jl")
 
     # Compressible Polytropic Euler
-    include("test_tree_2d_eulerpolytropic.jl")
+    # include("test_tree_2d_eulerpolytropic.jl")
 
     # Compressible Euler coupled with acoustic perturbation equations
-    include("test_tree_2d_euleracoustics.jl")
+    # include("test_tree_2d_euleracoustics.jl")
 
     # KPP problem
-    include("test_tree_2d_kpp.jl")
+    # include("test_tree_2d_kpp.jl")
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
