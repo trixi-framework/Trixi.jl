@@ -44,6 +44,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+# Optimize 8-stage, third order P-ERK scheme for this semidiscretization
 ode_algorithm = Trixi.PairedExplicitRK3(8, tspan, semi)
 
 sol = Trixi.solve(ode, ode_algorithm,
