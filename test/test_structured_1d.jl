@@ -81,7 +81,8 @@ end
                         callbacks=CallbackSet(summary_callback, save_solution,
                                               analysis_callback, alive_callback),
                         l2=[5.725141913990915e-7],
-                        linf=[3.4298598041715422e-6])
+                        linf=[3.4298598041715422e-6],
+                        atol=1.0e-6)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
