@@ -30,7 +30,6 @@ using Trixi: Trixi, solve_a_unknown!, PairedExplicitRK3_butcher_tableau_objectiv
 # Hairer, Wanner: Solving Ordinary Differential Equations 2
 function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
                                 verbose, max_iter = 100000)
-    is_sol_valid = false
 
     # Define the objective_function
     function objective_function(x)
@@ -43,6 +42,8 @@ function Trixi.solve_a_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
     # To ensure consistency and reproducibility of results across runs, we use 
     # a seeded random initial guess.
     seed!(5555)
+
+    is_sol_valid = false
 
     for _ in 1:max_iter
         # Due to the nature of the nonlinear solver, different initial guesses can lead to 
