@@ -349,16 +349,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_sc_subcell_nonperiodic.jl"),
                         l2=[
-                            0.3221177942225801,
-                            0.1798478357478982,
-                            0.1798364616438908,
-                            0.6136884131056267,
+                            0.3221078812528291,
+                            0.17985175694043076,
+                            0.17983453493705628,
+                            0.6136916718599121,
                         ],
                         linf=[
-                            1.343766644801395,
-                            1.1749593109683463,
-                            1.1747613085307178,
-                            2.4216006041018785,
+                            1.343237509126809,
+                            1.1747101056222315,
+                            1.174585608472406,
+                            2.4216027326405487,
                         ],
                         tspan=(0.0, 0.5),
                         initial_refinement_level=4,
@@ -404,16 +404,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.41444427153173785,
-                            0.1460669409661223,
-                            0.14606693069201596,
-                            0.6168046457461059,
+                            0.4178958563460168,
+                            0.14704017244055603,
+                            0.14704017244056197,
+                            0.6167420173740439,
                         ],
                         linf=[
-                            1.5720584643579567,
-                            0.7946656826861964,
-                            0.7946656525739751,
-                            6.455520291414711,
+                            1.6101346845584459,
+                            0.8109759818235058,
+                            0.8109759818213118,
+                            6.451566849789292,
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
@@ -428,8 +428,8 @@ end
         # Run with coverage takes 6 time steps.
         @test startswith(lines[end], "6")
     else
-        # Run without coverage takes 89 time steps.
-        @test startswith(lines[end], "89")
+        # Run without coverage takes 1089 time steps.
+        @test startswith(lines[end], "108")
     end
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
