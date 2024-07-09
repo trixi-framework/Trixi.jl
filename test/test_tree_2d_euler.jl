@@ -404,23 +404,24 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.41789585634693327,
-                            0.14704017244085876,
-                            0.14704017244086084,
-                            0.61674201737405,
+                            0.4179865640652993,
+                            0.14706904562788856,
+                            0.14706904562788506,
+                            0.6168304034812941,
                         ],
                         linf=[
-                            1.6101346845382438,
-                            0.8109759818007722,
-                            0.8109759817999502,
-                            6.451566849789721,
+                            1.6131222543356176,
+                            0.8134688317331209,
+                            0.8134688317301121,
+                            6.452819227926641,
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
                         coverage_override=(maxiters = 6,),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
-    @test lines[1] == "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min"
+    @test lines[1] ==
+          "# iter, simu_time, rho_min, rho_max, entropy_guermond_etal_min, pressure_min"
     cmd = string(Base.julia_cmd())
     coverage = occursin("--code-coverage", cmd) &&
                !occursin("--code-coverage=none", cmd)
