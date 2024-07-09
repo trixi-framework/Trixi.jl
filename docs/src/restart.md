@@ -30,7 +30,7 @@ conditionals like `if restart` with a boolean variable `restart` that is user de
 
 First we need to define from which file we want to restart, e.g.
 ```julia
-restart_file = "restart_000021.h5"
+restart_file = "restart_000000021.h5"
 restart_filename = joinpath("out", restart_file)
 ```
 
