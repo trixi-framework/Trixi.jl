@@ -14,7 +14,8 @@ end
 using Random: seed!
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, solve_a_butcher_coeffs_unknown!, PairedExplicitRK3_butcher_tableau_objective_function,
+using Trixi: Trixi, solve_a_butcher_coeffs_unknown!,
+             PairedExplicitRK3_butcher_tableau_objective_function,
              @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
@@ -28,8 +29,9 @@ using Trixi: Trixi, solve_a_butcher_coeffs_unknown!, PairedExplicitRK3_butcher_t
 # non-linear equations that arise from the relation of the stability polynomial to the Butcher tableau.
 # For details, see Proposition 3.2, Equation (3.3) from 
 # Hairer, Wanner: Solving Ordinary Differential Equations 2
-function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_coeffs, c_s2, c;
-                                verbose, max_iter = 100000)
+function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_coeffs,
+                                               c_s2, c;
+                                               verbose, max_iter = 100000)
 
     # Define the objective_function
     function objective_function(x)
