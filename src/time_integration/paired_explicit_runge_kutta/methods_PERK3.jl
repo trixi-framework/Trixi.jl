@@ -312,62 +312,62 @@ function step!(integrator::PairedExplicitRK3Integrator)
 
     modify_dt_for_tstops!(integrator)
 
-    # if the next iteration would push the simulation beyond the end time, set dt accordingly
-    if integrator.t + integrator.dt > t_end ||
-       isapprox(integrator.t + integrator.dt, t_end)
-        integrator.dt = t_end - integrator.t
-        terminate!(integrator)
-    end
-
-    @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
-        # k1
-        integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
-        @threaded for i in eachindex(integrator.du)
-            integrator.k1[i] = integrator.du[i] * integrator.dt
+        # if the next iteration would push the simulation beyond the end time, set dt accordingly
+        if integrator.t + integrator.dt > t_end ||
+           isapprox(integrator.t + integrator.dt, t_end)
+            integrator.dt = t_end - integrator.t
+            terminate!(integrator)
         end
 
-        # Construct current state
-        @threaded for i in eachindex(integrator.du)
-            integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
-        end
-        # k2
-        integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                     integrator.t + alg.c[2] * integrator.dt)
+        @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
+            # k1
+            integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
+            @threaded for i in eachindex(integrator.du)
+                integrator.k1[i] = integrator.du[i] * integrator.dt
+            end
+
+            # Construct current state
+            @threaded for i in eachindex(integrator.du)
+                integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
+            end
+            # k2
+            integrator.f(integrator.du, integrator.u_tmp, prob.p,
+                         integrator.t + alg.c[2] * integrator.dt)
 
         @threaded for i in eachindex(integrator.du)
             integrator.k_higher[i] = integrator.du[i] * integrator.dt
         end
 
-        # Higher stages
-        for stage in 3:(alg.num_stages - 1)
-            # Construct current state
-            @threaded for i in eachindex(integrator.du)
-                integrator.u_tmp[i] = integrator.u[i] +
-                                      alg.a_matrix[stage - 2, 1] *
-                                      integrator.k1[i] +
-                                      alg.a_matrix[stage - 2, 2] *
-                                      integrator.k_higher[i]
-            end
+            # Higher stages
+            for stage in 3:(alg.num_stages - 1)
+                # Construct current state
+                @threaded for i in eachindex(integrator.du)
+                    integrator.u_tmp[i] = integrator.u[i] +
+                                          alg.a_matrix[stage - 2, 1] *
+                                          integrator.k1[i] +
+                                          alg.a_matrix[stage - 2, 2] *
+                                          integrator.k_higher[i]
+                end
 
-            integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                         integrator.t + alg.c[stage] * integrator.dt)
+                integrator.f(integrator.du, integrator.u_tmp, prob.p,
+                             integrator.t + alg.c[stage] * integrator.dt)
 
             @threaded for i in eachindex(integrator.du)
                 integrator.k_higher[i] = integrator.du[i] * integrator.dt
             end
         end
 
-        # Last stage
-        @threaded for i in eachindex(integrator.du)
-            integrator.u_tmp[i] = integrator.u[i] +
-                                  alg.a_matrix[alg.num_stages - 2, 1] *
-                                  integrator.k1[i] +
-                                  alg.a_matrix[alg.num_stages - 2, 2] *
-                                  integrator.k_higher[i]
-        end
+            # Last stage
+            @threaded for i in eachindex(integrator.du)
+                integrator.u_tmp[i] = integrator.u[i] +
+                                      alg.a_matrix[alg.num_stages - 2, 1] *
+                                      integrator.k1[i] +
+                                      alg.a_matrix[alg.num_stages - 2, 2] *
+                                      integrator.k_higher[i]
+            end
 
-        integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                     integrator.t + alg.c[alg.num_stages] * integrator.dt)
+            integrator.f(integrator.du, integrator.u_tmp, prob.p,
+                         integrator.t + alg.c[alg.num_stages] * integrator.dt)
 
         @threaded for i in eachindex(integrator.u)
             # "Own" PairedExplicitRK based on SSPRK33.
@@ -378,23 +378,24 @@ function step!(integrator::PairedExplicitRK3Integrator)
         end
     end # PairedExplicitRK step timer
 
-    integrator.iter += 1
-    integrator.t += integrator.dt
+        integrator.iter += 1
+        integrator.t += integrator.dt
 
-    # handle callbacks
-    if callbacks isa CallbackSet
-        for cb in callbacks.discrete_callbacks
-            if cb.condition(integrator.u, integrator.t, integrator)
-                cb.affect!(integrator)
+        # handle callbacks
+        if callbacks isa CallbackSet
+            for cb in callbacks.discrete_callbacks
+                if cb.condition(integrator.u, integrator.t, integrator)
+                    cb.affect!(integrator)
+                end
             end
         end
-    end
 
-    # respect maximum number of iterations
-    if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
-        @warn "Interrupted. Larger maxiters is needed."
-        terminate!(integrator)
-    end
+        # respect maximum number of iterations
+        if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
+            @warn "Interrupted. Larger maxiters is needed."
+            terminate!(integrator)
+        end
+    end # "main loop" timer
 end
 
 # used for AMR (Adaptive Mesh Refinement)
