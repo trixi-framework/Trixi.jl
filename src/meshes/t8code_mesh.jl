@@ -28,13 +28,9 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
 
     unsaved_changes::Bool
 
-    # Keeps a reference to the geometry handler in order to avoid gargabe
-    # collection if necessary.
-    geometry::Any
-
     function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
                                boundary_names,
-                               current_filename; geometry = nothing) where {NDIMS}
+                               current_filename) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
 
         mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
@@ -45,7 +41,6 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.current_filename = current_filename
         mesh.tree_node_coordinates = tree_node_coordinates
         mesh.unsaved_changes = true
-        mesh.geometry = geometry
 
         finalizer(mesh) do mesh
             # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are
@@ -60,6 +55,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
             # objects during long-running sessions.
             if !MPI.Finalized()
                 t8_forest_unref(Ref(mesh.forest))
+                mesh.forest = C_NULL
             end
         end
 
@@ -136,19 +132,13 @@ Returns a `T8codeMesh` object with a forest reconstructed by the input arguments
 function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
                     boundary_names, treeIDs, neighIDs, faces, duals,
                     orientations, levels, num_elements_per_tree)
-    # Initialize the `cmesh` object.
-    cmesh_ref = Ref(t8_cmesh_t())
-    t8_cmesh_init(cmesh_ref)
-    cmesh = cmesh_ref[]
+    # Allocate new cmesh object.
+    cmesh = t8_cmesh_new()
 
     # Use linear geometry for now. There is no real Lagrange geometry
-    # implementation (volume nodes) yet in t8code. Moreover, we need to store
-    # the pointer variables in the `mesh` object in order to avoid garbage
-    # collection. Otherwise t8code segfaults. This is an un-feature of t8code
-    # (recently introduced) and will be fixed in the near future.
+    # implementation (volume nodes) yet in t8code.
     linear_geom = t8_geometry_linear_new(ndims)
-    linear_geom_ptr = pointer_from_objref(Ref(linear_geom))
-    t8_cmesh_register_geometry(cmesh, linear_geom_ptr)
+    t8_cmesh_register_geometry(cmesh, linear_geom)
 
     # Determine element class.
     eclass = ndims > 2 ? T8_ECLASS_HEX : T8_ECLASS_QUAD
@@ -267,8 +257,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
         forest = partition(forest)
     end
 
-    return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "";
-                             geometry = linear_geom_ptr)
+    return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
 end
 
 """
@@ -1090,11 +1079,12 @@ function count_interfaces(forest::Ptr{t8_forest}, ndims)
                             end
                         end
                     end
-                end
 
-                t8_free(dual_faces_ref[])
-                t8_free(pneighbor_leaves_ref[])
-                t8_free(pelement_indices_ref[])
+                    t8_element_destroy(neighbor_scheme, num_neighbors, neighbor_leaves)
+                    t8_free(dual_faces_ref[])
+                    t8_free(pneighbor_leaves_ref[])
+                    t8_free(pelement_indices_ref[])
+                end
             end # for
 
             current_index += 1
@@ -1434,11 +1424,12 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                             end
                         end
                     end
-                end
 
-                t8_free(dual_faces_ref[])
-                t8_free(pneighbor_leaves_ref[])
-                t8_free(pelement_indices_ref[])
+                    t8_element_destroy(neighbor_scheme, num_neighbors, neighbor_leaves)
+                    t8_free(dual_faces_ref[])
+                    t8_free(pneighbor_leaves_ref[])
+                    t8_free(pelement_indices_ref[])
+                end # num_neighbors
             end # for iface
 
             current_index += 1
