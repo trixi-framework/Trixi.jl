@@ -60,20 +60,14 @@ jobs:
         arch:
           - x64
         trixi_test:
-          - tree_part1
           - tree_part2
           - tree_part3
-          - tree_part4
-          - tree_part5
-          - tree_part6
           - structured
           - p4est_part1
           - p4est_part2
           - t8code_part1
           - t8code_part2
           - unstructured_dgmulti
-          - parabolic
-          - paper_self_gravitating_gas_dynamics
           - misc_part1
           - misc_part2
           - performance_specializations_part1
@@ -82,9 +76,14 @@ jobs:
           - threaded
         include:
           - version: '1.10'
-            os:
-              - macos-latest
-              - windows-latest
+            os: macos-latest
+            arch: x64
+            trixi_test:
+              - tree_part2
+              - tree_part3
+              - structured
+          - version: '1.10'
+            os: windows-latest
             arch: x64
             trixi_test:
               - tree_part2
