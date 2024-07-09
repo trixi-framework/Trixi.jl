@@ -78,24 +78,39 @@ jobs:
           - version: '1.10'
             os: macos-latest
             arch: x64
-            trixi_test:
-              - tree_part2
-              - tree_part3
-              - structured
+            trixi_test: tree_part2
+          - version: '1.10'
+            os: macos-latest
+            arch: x64
+            trixi_test: tree_part3
+          - version: '1.10'
+            os: macos-latest
+            arch: x64
+            trixi_test: structured
           - version: '1.10'
             os: windows-latest
             arch: x64
-            trixi_test:
-              - tree_part2
-              - tree_part3
-              - structured
+            trixi_test: tree_part2
+          - version: '1.10'
+            os: windows-latest
+            arch: x64
+            trixi_test: tree_part3
+          - version: '1.10'
+            os: windows-latest
+            arch: x64
+            trixi_test: structured
           - version: '~1.11.0-0'
             os: ubuntu-latest
             arch: x64
-            trixi_test:
-              - tree_part2
-              - tree_part3
-              - structured
+            trixi_test: tree_part2
+          - version: '~1.11.0-0'
+            os: ubuntu-latest
+            arch: x64
+            trixi_test: tree_part3
+          - version: '~1.11.0-0'
+            os: ubuntu-latest
+            arch: x64
+            trixi_test: structured
           - version: '1.8'
             os: ubuntu-latest
             arch: x64
