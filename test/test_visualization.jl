@@ -335,9 +335,9 @@ end
                                    tspan = (0.0, 3.0))
 
     @testset "elixir_advection_amr_visualization.jl with save_plot" begin
-        @test isfile(joinpath(outdir, "solution_000000.png"))
-        @test isfile(joinpath(outdir, "solution_000020.png"))
-        @test isfile(joinpath(outdir, "solution_000022.png"))
+        @test isfile(joinpath(outdir, "solution_000000000.png"))
+        @test isfile(joinpath(outdir, "solution_000000020.png"))
+        @test isfile(joinpath(outdir, "solution_000000022.png"))
     end
 
     @testset "show" begin

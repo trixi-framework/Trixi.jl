@@ -26,13 +26,13 @@ from the Trixi Framework ecosystem:
 
 * [**Julia for Particle-Based Multiphysics with TrixiParticles.jl**](https://pretalx.com/juliacon2024/talk/TPFF8L/),<br/>
   [*Erik Faulhaber*](https://github.com/efaulhaber/), [*Niklas Neher*](https://github.com/lasnikas/),
-  10th July 2024, 11:30am–12:00pm, Function (4.1)
+  10th July 2024, 11:00–11:30, Function (4.1)
 * [**Towards Aerodynamic Simulations in Julia with Trixi.jl**](https://pretalx.com/juliacon2024/talk/XH8KBG/),<br/>
   [*Daniel Doehring*](https://github.com/danieldoehring/),
-  10th July 2024, 15:00pm–15:30pm, While Loop (4.2)
+  10th July 2024, 15:30–16:00, While Loop (4.2)
 * [**libtrixi: serving legacy codes in earth system modeling with fresh Julia CFD**](https://pretalx.com/juliacon2024/talk/SXC7LA/),<br/>
   [*Benedict Geihe*](https://github.com/benegee/),
-  12th July 2024, 14:00pm–17:00pm, Function (4.1)
+  12th July 2024, 14:00–17:00, Function (4.1)
 
 The last talk is part of the 
 [Julia for High-Performance Computing](https://juliacon.org/2024/minisymposia/hpc/)
@@ -259,8 +259,8 @@ In addition, you can also refer to Trixi.jl directly as
 
 ## Authors
 Trixi.jl was initiated by [Michael
-Schlottke-Lakemper](https://lakemper.eu)
-(RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
+Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
+(University of Augsburg, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
