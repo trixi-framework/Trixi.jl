@@ -18,8 +18,6 @@ mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2
 
     # Attributes partaining the views.
     parent::P4estMesh{NDIMS, RealT}
-#     # We need to store information about which cells are part of this mesh view.
-#     nodes::SVector
 end
 
 function P4estMeshView(parent::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
@@ -51,13 +49,6 @@ end
     return mesh.p4est.trees.elem_count[]
 end
 @inline ncellsglobal(mesh::P4estMeshView) = Int(mesh.p4est.global_num_quadrants[])
-# function Base.size(mesh::P4estMeshView)
-#     return 0
-# end
-# function Base.size(mesh::P4estMeshView, i)
-#     # TODO: Implement size function. This used to be with checking index_min and inde_max.
-#     return 0
-# end
 Base.axes(mesh::P4estMeshView) = map(Base.OneTo, size(mesh))
 Base.axes(mesh::P4estMeshView, i) = Base.OneTo(size(mesh, i))
 
@@ -88,36 +79,6 @@ function balance!(mesh::P4estMeshView{2}, init_fn = C_NULL)
 end
 
 @inline ncells(mesh::P4estMeshView) = Int(mesh.p4est.local_num_quadrants[])
-
-# function count_required_surfaces(mesh::P4estMeshView)
-#     # Let `p4est` iterate over all interfaces and call count_surfaces_iter_face
-#     iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh.parent)))
-#
-#     # interfaces, mortars, boundaries
-#     user_data = [0, 0, 0]
-#
-#     iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
-#
-#     # Return counters
-#     return (interfaces = user_data[1],
-#             mortars = user_data[2],
-#             boundaries = user_data[3])
-# end
-
-# function init_interfaces!(interfaces, mesh::P4estMeshView)
-#     init_surfaces!(interfaces, nothing, nothing, mesh.parent)
-#
-#     return interfaces
-# end
-
-# # Interpolate tree_node_coordinates to each quadrant at the specified nodes
-# function calc_node_coordinates!(node_coordinates,
-#         mesh::P4estMeshView{2},
-#         nodes::AbstractVector)
-#     @unpack parent = mesh
-#
-#     return node_coordinates
-# end
 
 function save_mesh_file(mesh::P4estMeshView, output_directory, timestep = 0;
                         system = "")
