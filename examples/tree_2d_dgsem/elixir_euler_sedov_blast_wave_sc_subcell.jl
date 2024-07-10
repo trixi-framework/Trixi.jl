@@ -42,6 +42,7 @@ surface_flux = flux_lax_friedrichs
 volume_flux = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
+                                positivity_variables_cons = [],
                                 local_twosided_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
