@@ -1151,58 +1151,58 @@ function calc_sources!(du, u, t, source_terms::Nothing,
     return nothing
 end
 
-# function calc_sources!(du, u, t, source_terms,
-#                        equations::AbstractEquations{2}, dg::DG, cache)
-#     @unpack node_coordinates = cache.elements
-# 
-#     @threaded for element in eachelement(dg, cache)
-#         for j in eachnode(dg), i in eachnode(dg)
-#             u_local = get_node_vars(u, equations, dg, i, j, element)
-#             x_local = get_node_coords(node_coordinates, equations, dg,
-#                                       i, j, element)
-#             du_local = source_terms(u_local, x_local, t, equations)
-#             add_to_node_vars!(du, du_local, equations, dg, i, j, element)
-#         end
-#     end
-# 
-#     return nothing
-# end
-
 function calc_sources!(du, u, t, source_terms,
                        equations::AbstractEquations{2}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(dg, cache)
-        source_terms(du, u, node_coordinates, t, element, equations, dg)
-
-        # N = length(dg.basis.nodes)
-        # u_local = Array{eltype(u),3}(undef, nvariables(equations), N, N)
-        # x_local = Array{eltype(u),3}(undef, 2, N, N)
-        # z = zero(eltype(u))
-
-        # for j in eachnode(dg), i in eachnode(dg)
-        #     u_local[:,i,j] = get_node_vars(u, equations, dg, i, j, element)
-        #     x_local[:,i,j] = get_node_coords(node_coordinates, equations, dg,
-        #                               i, j, element)
-        # end
-
-        # # du_local = source_terms(u_local, x_local, t, equations, dg)
-        # # display(du_local)
-
-        # for j in eachnode(dg), i in eachnode(dg)
-
-        #     # du[3,:,:] .= -u[1,:,:] * 9.81
-        #     # sv = SVector(du_local[:,i,j]...)
-
-        #     sv = SVector(z, z, -u_local[1,i,j] * 9.81, z, z)
-        #     # println(sv)
-        #     # add_to_node_vars!(du, @view(du_local[:,i,j]), equations, dg, i, j, element)
-        #     # add_to_node_vars!(du, du_local[:,i,j], equations, dg, i, j, element)
-        #     add_to_node_vars!(du, sv, equations, dg, i, j, element)
-        # end
+        for j in eachnode(dg), i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            x_local = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, element)
+            du_local = source_terms(u_local, x_local, t, equations)
+            add_to_node_vars!(du, du_local, equations, dg, i, j, element)
+        end
     end
 
     return nothing
 end
+
+## function calc_sources!(du, u, t, source_terms,
+##                        equations::AbstractEquations{2}, dg::DG, cache)
+##     @unpack node_coordinates = cache.elements
+## 
+##     @threaded for element in eachelement(dg, cache)
+##         source_terms(du, u, node_coordinates, t, element, equations, dg)
+## 
+##         # N = length(dg.basis.nodes)
+##         # u_local = Array{eltype(u),3}(undef, nvariables(equations), N, N)
+##         # x_local = Array{eltype(u),3}(undef, 2, N, N)
+##         # z = zero(eltype(u))
+## 
+##         # for j in eachnode(dg), i in eachnode(dg)
+##         #     u_local[:,i,j] = get_node_vars(u, equations, dg, i, j, element)
+##         #     x_local[:,i,j] = get_node_coords(node_coordinates, equations, dg,
+##         #                               i, j, element)
+##         # end
+## 
+##         # # du_local = source_terms(u_local, x_local, t, equations, dg)
+##         # # display(du_local)
+## 
+##         # for j in eachnode(dg), i in eachnode(dg)
+## 
+##         #     # du[3,:,:] .= -u[1,:,:] * 9.81
+##         #     # sv = SVector(du_local[:,i,j]...)
+## 
+##         #     sv = SVector(z, z, -u_local[1,i,j] * 9.81, z, z)
+##         #     # println(sv)
+##         #     # add_to_node_vars!(du, @view(du_local[:,i,j]), equations, dg, i, j, element)
+##         #     # add_to_node_vars!(du, du_local[:,i,j], equations, dg, i, j, element)
+##         #     add_to_node_vars!(du, sv, equations, dg, i, j, element)
+##         # end
+##     end
+## 
+##     return nothing
+## end
 
 end # @muladd

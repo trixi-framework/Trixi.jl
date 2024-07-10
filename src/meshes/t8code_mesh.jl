@@ -26,6 +26,8 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     nmpiinterfaces :: Int
     nmpimortars    :: Int
 
+    unsaved_changes::Bool
+
     function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
                                boundary_names,
                                current_filename) where {NDIMS}
@@ -38,6 +40,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.boundary_names = boundary_names
         mesh.current_filename = current_filename
         mesh.tree_node_coordinates = tree_node_coordinates
+        mesh.unsaved_changes = true
 
         finalizer(mesh) do mesh
             # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are

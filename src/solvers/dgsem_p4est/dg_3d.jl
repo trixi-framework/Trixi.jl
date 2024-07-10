@@ -359,7 +359,9 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              equations, surface_integral, dg::DG)
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
-    @unpack surface_flux = surface_integral
+    # @unpack surface_flux = surface_integral
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+
     index_range = eachnode(dg)
 
     @threaded for local_index in eachindex(boundary_indexing)
@@ -400,9 +402,12 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                 flux_ = boundary_condition(u_inner, normal_direction, x, t,
                                            surface_flux, equations)
 
+                noncons_ = nonconservative_flux(u_inner, u_inner, normal_direction,
+                                    normal_direction, equations)
+
                 # Copy flux to element storage in the correct orientation
                 for v in eachvariable(equations)
-                    surface_flux_values[v, i, j, direction, element] = flux_[v]
+                    surface_flux_values[v, i, j, direction, element] = flux_[v] + 0.5*noncons_[v]
                 end
 
                 i_node += i_node_step_i

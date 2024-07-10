@@ -8,8 +8,7 @@
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{SerialTreeMesh, StructuredMesh,
                                         StructuredMeshView,
-                                        UnstructuredMesh2D, SerialP4estMesh,
-                                        SerialT8codeMesh},
+                                        UnstructuredMesh2D, SerialP4estMesh},
                             equations, dg::DG, cache,
                             solution_callback,
                             element_variables = Dict{Symbol, Any}(),
@@ -89,6 +88,76 @@ function save_solution_file(u, time, dt, timestep,
 
     return filename
 end
+
+function save_solution_file(u, time, dt, timestep,
+                            mesh::SerialT8codeMesh{3},
+                            equations, dg::DG, cache,
+                            solution_callback,
+                            element_variables = Dict{Symbol, Any}(),
+                            node_variables = Dict{Symbol, Any}();
+                            system = "")
+    @unpack output_directory, solution_variables = solution_callback
+
+    # Filename based on current time step
+    if isempty(system)
+        file_prefix = joinpath(output_directory, @sprintf("solution_%06d", timestep))
+    else
+        file_prefix = joinpath(output_directory,
+                            @sprintf("solution_%s_%06d", system, timestep))
+    end
+
+    # Convert to different set of variables if requested
+    if solution_variables === cons2cons
+        data = u
+        n_vars = nvariables(equations)
+    else
+        # Reinterpret the solution array as an array of conservative variables,
+        # compute the solution variables via broadcasting, and reinterpret the
+        # result as a plain array of floating point numbers
+        data = Array(reinterpret(eltype(u),
+                                 solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                                         eltype(u)}, u),
+                                                     Ref(equations))))
+
+        # Find out variable count by looking at output from `solution_variables` function
+        n_vars = size(data, 1)
+    end
+
+    # Save the complete connectivity and `p4est` data to disk.
+    num_elements = ncells(mesh)
+
+    # We need to allocate a new array to store the data on their own.
+    # These arrays have one entry per local element.
+    vtk_array = Vector{Cdouble}(undef, num_elements)
+
+    # Copy the element's volumes from our data array to the output array.
+    for element in 1:num_elements
+      mean = zero(real(dg.basis))
+
+      for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        u_local = get_node_vars(data, equations, dg, i, j, k, element)
+        mean += u_local[1] * dg.basis.weights[i]*dg.basis.weights[j]*dg.basis.weights[k] * 0.125
+      end
+
+      vtk_array[element] = mean
+    end
+
+    # WARNING: This code hangs for Julia v1.8.* or older. Use at least Julia v1.9.
+    vtk_data = [
+        t8_vtk_data_field_t(T8_VTK_SCALAR,
+                            NTuple{8192, Cchar}(rpad("rho_alpha\0", 8192, ' ')),
+                            pointer(vtk_array)),
+    ]
+
+    # The number of user defined data fields to write.
+    num_data = length(vtk_data)
+
+    Trixi.t8_forest_write_vtk_ext(mesh.forest, file_prefix, 0, 0, 0, 0, 0, 1, 0, num_data, pointer(vtk_data))
+
+    return file_prefix
+end
+
+
 
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations,

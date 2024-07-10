@@ -227,9 +227,23 @@ end
 
 # TODO: Implement this function as soon as there is support for this in `t8code`.
 function save_mesh_file(mesh::T8codeMesh, output_directory, timestep, mpi_parallel)
-    error("Mesh file output not supported yet for `T8codeMesh`.")
+    # error("Mesh file output not supported yet for `T8codeMesh`.")
 
-    return joinpath(output_directory, "dummy_mesh.h5")
+    # Create output directory (if it does not exist)
+    mkpath(output_directory)
+
+    # Determine file name based on existence of meaningful time step
+    if timestep > 0
+        prefix = joinpath(output_directory, @sprintf("mesh_%06d", timestep))
+    else
+        prefix = joinpath(output_directory, "mesh")
+    end
+
+    file_prefix = joinpath(output_directory, prefix)
+
+    Trixi.t8_forest_write_vtk_ext(mesh.forest, file_prefix, 0, 0, 0, 0, 0, 1, 0, 0, C_NULL)
+
+    return file_prefix
 end
 
 """

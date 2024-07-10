@@ -511,6 +511,7 @@ abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
 abstract type AbstractThreeEquationsEquations{NDIMS, NVARS} <: 
               AbstractEquations{NDIMS, NVARS} end
 include("three_equations_2d.jl")
+include("three_equations_3d.jl")
 
 # Lighthill-Witham-Richards (LWR) traffic flow model
 abstract type AbstractTrafficFlowLWREquations{NDIMS, NVARS} <:

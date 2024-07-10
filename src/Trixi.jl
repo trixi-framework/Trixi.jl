@@ -162,7 +162,7 @@ export AcousticPerturbationEquations2D,
        ShallowWaterEquationsQuasi1D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
        PolytropicEulerEquations2D,
-       ThreeEquations2D,
+       ThreeEquations2D, ThreeEquations3D,
        TrafficFlowLWREquations1D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
@@ -188,6 +188,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxHydrostaticReconstruction,
+       flux_nonconservative_ThreeEquations,
        flux_nonconservative_ThreeEquations_well,
        FluxUpwind
 
