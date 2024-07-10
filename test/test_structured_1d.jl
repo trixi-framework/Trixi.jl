@@ -75,7 +75,8 @@ end
 
 # Testing the third-order paired explicit Runge-Kutta (PERK) method without stepsize callback
 @trixi_testset "elixir_burgers_perk3.jl(fixed time step)" begin
-    @test_trixi_include(dt=2.0e-3,
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
+                        dt=2.0e-3,
                         tspan=(0.0, 2.0),
                         save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8),
                         callbacks=CallbackSet(summary_callback, save_solution,
