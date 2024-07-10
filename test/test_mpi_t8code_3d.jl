@@ -87,6 +87,24 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
         end
     end
 
+    @trixi_testset "elixir_advection_restart.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+                            l2=[0.002590388934758452],
+                            linf=[0.01840757696885409],
+                            # With the default `maxiters = 1` in coverage tests,
+                            # there would be no time steps after the restart.
+                            coverage_override=(maxiters = 100_000,))
+
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+
     # Compressible Euler
     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,

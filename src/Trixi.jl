@@ -64,13 +64,13 @@ using Static: Static, One, True, False
 using StaticArrays: StaticArrays, MVector, MArray, SMatrix, @SMatrix
 using StrideArrays: PtrArray, StrideArray, StaticInt
 @reexport using StructArrays: StructArrays, StructArray
-using TimerOutputs: TimerOutputs, @notimeit, TimerOutput, print_timer, reset_timer!
+using TimerOutputs: TimerOutputs, @notimeit, print_timer, reset_timer!
 using Triangulate: Triangulate, TriangulateIO
 export TriangulateIO # for type parameter in DGMultiMesh
 using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using TrixiBase: trixi_include
-using TrixiBase: TrixiBase
+using TrixiBase: TrixiBase, @trixi_timeit, timer
 @reexport using SimpleUnPack: @unpack
 using SimpleUnPack: @pack!
 using DataStructures: BinaryHeap, FasterForward, extract_all!
@@ -163,7 +163,8 @@ export AcousticPerturbationEquations2D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
        PolytropicEulerEquations2D,
        ThreeEquations2D, ThreeEquations3D,
-       TrafficFlowLWREquations1D
+       TrafficFlowLWREquations1D,
+       MaxwellEquations1D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
@@ -310,6 +311,14 @@ function __init__()
     @static if !isdefined(Base, :get_extension)
         @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
             include("../ext/TrixiMakieExt.jl")
+        end
+    end
+
+    @static if !isdefined(Base, :get_extension)
+        @require Convex="f65535da-76fb-5f13-bab9-19810c17039a" begin
+            @require ECOS="e2685f51-7e38-5353-a97d-a921fd2c8199" begin
+                include("../ext/TrixiConvexECOSExt.jl")
+            end
         end
     end
 

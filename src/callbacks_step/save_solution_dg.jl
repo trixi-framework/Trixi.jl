@@ -18,10 +18,10 @@ function save_solution_file(u, time, dt, timestep,
 
     # Filename based on current time step
     if isempty(system)
-        filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("solution_%09d.h5", timestep))
     else
         filename = joinpath(output_directory,
-                            @sprintf("solution_%s_%06d.h5", system, timestep))
+                            @sprintf("solution_%s_%09d.h5", system, timestep))
     end
 
     # Convert to different set of variables if requested
@@ -90,77 +90,8 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 function save_solution_file(u, time, dt, timestep,
-                            mesh::SerialT8codeMesh{3},
-                            equations, dg::DG, cache,
-                            solution_callback,
-                            element_variables = Dict{Symbol, Any}(),
-                            node_variables = Dict{Symbol, Any}();
-                            system = "")
-    @unpack output_directory, solution_variables = solution_callback
-
-    # Filename based on current time step
-    if isempty(system)
-        file_prefix = joinpath(output_directory, @sprintf("solution_%06d", timestep))
-    else
-        file_prefix = joinpath(output_directory,
-                            @sprintf("solution_%s_%06d", system, timestep))
-    end
-
-    # Convert to different set of variables if requested
-    if solution_variables === cons2cons
-        data = u
-        n_vars = nvariables(equations)
-    else
-        # Reinterpret the solution array as an array of conservative variables,
-        # compute the solution variables via broadcasting, and reinterpret the
-        # result as a plain array of floating point numbers
-        data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
-                                                                         eltype(u)}, u),
-                                                     Ref(equations))))
-
-        # Find out variable count by looking at output from `solution_variables` function
-        n_vars = size(data, 1)
-    end
-
-    # Save the complete connectivity and `p4est` data to disk.
-    num_elements = ncells(mesh)
-
-    # We need to allocate a new array to store the data on their own.
-    # These arrays have one entry per local element.
-    vtk_array = Vector{Cdouble}(undef, num_elements)
-
-    # Copy the element's volumes from our data array to the output array.
-    for element in 1:num_elements
-      mean = zero(real(dg.basis))
-
-      for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        u_local = get_node_vars(data, equations, dg, i, j, k, element)
-        mean += u_local[1] * dg.basis.weights[i]*dg.basis.weights[j]*dg.basis.weights[k] * 0.125
-      end
-
-      vtk_array[element] = mean
-    end
-
-    # WARNING: This code hangs for Julia v1.8.* or older. Use at least Julia v1.9.
-    vtk_data = [
-        t8_vtk_data_field_t(T8_VTK_SCALAR,
-                            NTuple{8192, Cchar}(rpad("rho_alpha\0", 8192, ' ')),
-                            pointer(vtk_array)),
-    ]
-
-    # The number of user defined data fields to write.
-    num_data = length(vtk_data)
-
-    Trixi.t8_forest_write_vtk_ext(mesh.forest, file_prefix, 0, 0, 0, 0, 0, 1, 0, num_data, pointer(vtk_data))
-
-    return file_prefix
-end
-
-
-
-function save_solution_file(u, time, dt, timestep,
-                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations,
+                            mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                        ParallelT8codeMesh}, equations,
                             dg::DG, cache,
                             solution_callback,
                             element_variables = Dict{Symbol, Any}(),
@@ -170,10 +101,10 @@ function save_solution_file(u, time, dt, timestep,
 
     # Filename based on current time step
     if isempty(system)
-        filename = joinpath(output_directory, @sprintf("solution_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("solution_%09d.h5", timestep))
     else
         filename = joinpath(output_directory,
-                            @sprintf("solution_%s_%06d.h5", system, timestep))
+                            @sprintf("solution_%s_%09d.h5", system, timestep))
     end
 
     # Convert to different set of variables if requested
@@ -205,7 +136,8 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 function save_solution_file_parallel(data, time, dt, timestep, n_vars,
-                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                     mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                                 ParallelT8codeMesh},
                                      equations, dg::DG, cache,
                                      solution_variables, filename,
                                      element_variables = Dict{Symbol, Any}())
@@ -227,7 +159,7 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
         attributes(file)["equations"] = get_name(equations)
         attributes(file)["polydeg"] = polydeg(dg)
         attributes(file)["n_vars"] = n_vars
-        attributes(file)["n_elements"] = nelementsglobal(dg, cache)
+        attributes(file)["n_elements"] = nelementsglobal(mesh, dg, cache)
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
         attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
@@ -252,7 +184,7 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
             # Need to create dataset explicitly in parallel case
             var = create_dataset(file, "/element_variables_$v",
                                  datatype(eltype(element_variable)),
-                                 dataspace((nelementsglobal(dg, cache),)))
+                                 dataspace((nelementsglobal(mesh, dg, cache),)))
 
             # Write data of each process in slices (ranks start with 0)
             slice = (cum_element_counts[mpi_rank() + 1] + 1):cum_element_counts[mpi_rank() + 2]
@@ -267,7 +199,8 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
 end
 
 function save_solution_file_on_root(data, time, dt, timestep, n_vars,
-                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                                ParallelT8codeMesh},
                                     equations, dg::DG, cache,
                                     solution_variables, filename,
                                     element_variables = Dict{Symbol, Any}())
@@ -299,7 +232,7 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
         attributes(file)["equations"] = get_name(equations)
         attributes(file)["polydeg"] = polydeg(dg)
         attributes(file)["n_vars"] = n_vars
-        attributes(file)["n_elements"] = nelementsglobal(dg, cache)
+        attributes(file)["n_elements"] = nelementsglobal(mesh, dg, cache)
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
         attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar
