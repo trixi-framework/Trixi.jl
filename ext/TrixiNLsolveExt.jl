@@ -1,4 +1,4 @@
-# Package extension for adding Convex-based features to Trixi.jl
+# Package extension for adding NLsolve-based features to Trixi.jl
 module TrixiNLsolveExt
 
 # Required for coefficient optimization in P-ERK scheme integrators
@@ -14,9 +14,8 @@ end
 using StableRNGs: StableRNG, rand
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, solve_a_butcher_coeffs_unknown!,
-             PairedExplicitRK3_butcher_tableau_objective_function,
-             @muladd
+using Trixi: Trixi, PairedExplicitRK3_butcher_tableau_objective_function,
+             solve_a_butcher_coeffs_unknown!, @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
