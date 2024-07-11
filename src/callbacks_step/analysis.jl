@@ -9,11 +9,11 @@
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
 """
     AnalysisCallback(semi; interval=0,
-                           save_analysis=false,
-                           output_directory="out",
-                           analysis_filename="analysis.dat",
-                           extra_analysis_errors=Symbol[],
-                           extra_analysis_integrals=())
+                            save_analysis=false,
+                            output_directory="out",
+                            analysis_filename="analysis.dat",
+                            extra_analysis_errors=Symbol[],
+                            extra_analysis_integrals=())
 
 Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in
@@ -26,8 +26,8 @@ or `extra_analysis_errors = (:conservation_error,)`.
 If you want to omit the computation (to safe compute-time) of the [`default_analysis_errors`](@ref), specify
 `analysis_errors = Symbol[]`.
 Note: `default_analysis_errors` are `:l2_error` and `:linf_error` for all equations.
-If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e., 
-without `:l2_error, :linf_error` you need to specify 
+If you want to compute `extra_analysis_errors` such as `:conservation_error` solely, i.e.,
+without `:l2_error, :linf_error` you need to specify
 `analysis_errors = [:conservation_error]` instead of `extra_analysis_errors = [:conservation_error]`.
 
 Further scalar functions `func` in `extra_analysis_integrals` are applied to the numerical
@@ -119,9 +119,7 @@ function AnalysisCallback(mesh, equations::AbstractEquations, solver, cache;
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
     condition = (u, t, integrator) -> interval > 0 &&
-        ((integrator.stats.naccept % interval == 0 &&
-          !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
-         isfinished(integrator))
+        (integrator.stats.naccept % interval == 0 || isfinished(integrator))
 
     analyzer = SolutionAnalyzer(solver; kwargs...)
     cache_analysis = create_cache_analysis(analyzer, mesh, equations, solver, cache,
@@ -310,11 +308,11 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         mpi_println("                 " * "              " *
                     "               " *
                     " PID:            " * @sprintf("%10.8e s", performance_index))
-        mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofs(semi)) *
+        mpi_println(" #DOFs per field:" * @sprintf("% 14d", ndofsglobal(semi)) *
                     "               " *
                     " alloc'd memory: " * @sprintf("%14.3f MiB", memory_use))
         mpi_println(" #elements:      " *
-                    @sprintf("% 14d", nelements(mesh, solver, cache)))
+                    @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
 
         # Level information (only show for AMR)
         print_amr_information(integrator.opts.callback, mesh, solver, cache)
@@ -496,88 +494,53 @@ function print_amr_information(callbacks, mesh, solver, cache)
     # Return early if there is nothing to print
     uses_amr(callbacks) || return nothing
 
-    levels = Vector{Int}(undef, nelements(solver, cache))
-    min_level = typemax(Int)
-    max_level = typemin(Int)
-    for element in eachelement(solver, cache)
-        current_level = mesh.tree.levels[cache.elements.cell_ids[element]]
-        levels[element] = current_level
-        min_level = min(min_level, current_level)
-        max_level = max(max_level, current_level)
+    # Get global minimum and maximum level from the AMRController
+    min_level = max_level = 0
+    for cb in callbacks.discrete_callbacks
+        if cb.affect! isa AMRCallback
+            min_level = cb.affect!.controller.base_level
+            max_level = cb.affect!.controller.max_level
+        end
     end
 
+    # Get local element count per level
+    elements_per_level = get_elements_per_level(min_level, max_level, mesh, solver,
+                                                cache)
+
+    # Sum up across all ranks
+    MPI.Reduce!(elements_per_level, +, mpi_root(), mpi_comm())
+
+    # Print
     for level in max_level:-1:(min_level + 1)
         mpi_println(" ├── level $level:    " *
-                    @sprintf("% 14d", count(==(level), levels)))
+                    @sprintf("% 14d", elements_per_level[level + 1 - min_level]))
     end
     mpi_println(" └── level $min_level:    " *
-                @sprintf("% 14d", count(==(min_level), levels)))
+                @sprintf("% 14d", elements_per_level[1]))
 
     return nothing
 end
 
-# Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh::P4estMesh, solver, cache)
-
-    # Return early if there is nothing to print
-    uses_amr(callbacks) || return nothing
-
+function get_elements_per_level(min_level, max_level, mesh::P4estMesh, solver, cache)
     elements_per_level = zeros(P4EST_MAXLEVEL + 1)
 
     for tree in unsafe_wrap_sc(p4est_tree_t, mesh.p4est.trees)
         elements_per_level .+= tree.quadrants_per_level
     end
 
-    # levels start at zero but Julia's standard indexing starts at 1
-    min_level_1 = findfirst(i -> i > 0, elements_per_level)
-    max_level_1 = findlast(i -> i > 0, elements_per_level)
-
-    # Check if there is at least one level with an element
-    if isnothing(min_level_1) || isnothing(max_level_1)
-        return nothing
-    end
-
-    min_level = min_level_1 - 1
-    max_level = max_level_1 - 1
-
-    for level in max_level:-1:(min_level + 1)
-        mpi_println(" ├── level $level:    " *
-                    @sprintf("% 14d", elements_per_level[level + 1]))
-    end
-    mpi_println(" └── level $min_level:    " *
-                @sprintf("% 14d", elements_per_level[min_level + 1]))
-
-    return nothing
+    return @view(elements_per_level[(min_level + 1):(max_level + 1)])
 end
 
-# Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh::T8codeMesh, solver, cache)
-
-    # Return early if there is nothing to print
-    uses_amr(callbacks) || return nothing
-
-    # TODO: Switch to global element levels array when MPI supported or find
-    # another solution.
+function get_elements_per_level(min_level, max_level, mesh::T8codeMesh, solver, cache)
     levels = trixi_t8_get_local_element_levels(mesh.forest)
 
-    min_level = minimum(levels)
-    max_level = maximum(levels)
+    return [count(==(l), levels) for l in min_level:max_level]
+end
 
-    mpi_println(" minlevel = $min_level")
-    mpi_println(" maxlevel = $max_level")
-
-    if min_level > 0
-        elements_per_level = [count(==(l), levels) for l in 1:max_level]
-
-        for level in max_level:-1:(min_level + 1)
-            mpi_println(" ├── level $level:    " *
-                        @sprintf("% 14d", elements_per_level[level]))
-        end
-        mpi_println(" └── level $min_level:    " *
-                    @sprintf("% 14d", elements_per_level[min_level]))
-    end
-
-    return nothing
+function get_elements_per_level(min_level, max_level, mesh::TreeMesh, solver, cache)
+    levels = [mesh.tree.levels[cache.elements.cell_ids[element]]
+              for element in eachelement(solver, cache)]
+    return [count(==(l), levels) for l in min_level:max_level]
 end
 
 # Iterate over tuples of analysis integrals in a type-stable way using "lispy tuple programming".
@@ -634,9 +597,7 @@ pretty_form_utf(quantity) = get_name(quantity)
 pretty_form_ascii(quantity) = get_name(quantity)
 
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
-# precomputed gradients are available. For now only implemented for the `enstrophy`
-#!!! warning "Experimental code"
-#    This code is experimental and may be changed or removed in any future release.
+# precomputed gradients are available.
 function analyze(quantity::typeof(enstrophy), du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
@@ -695,3 +656,28 @@ include("analysis_surface_integral_2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
+
+# This version of `analyze` is used for [`AnalysisSurfaceIntegral`](@ref) which requires
+# `semi` to be passed along to retrieve the current boundary indices, which are non-static 
+# in the case of AMR.
+function analyze(quantity::AnalysisSurfaceIntegral, du, u, t,
+                 semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    analyze(quantity, du, u, t, mesh, equations, solver, cache, semi)
+end
+
+# Special analyze for `SemidiscretizationHyperbolicParabolic` such that
+# precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
+# Note that this needs to be included after `analysis_surface_integral_2d.jl` to
+# have `VariableViscous` available.
+function analyze(quantity::AnalysisSurfaceIntegral{Variable},
+                 du, u, t,
+                 semi::SemidiscretizationHyperbolicParabolic) where {
+                                                                     Variable <:
+                                                                     VariableViscous}
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    equations_parabolic = semi.equations_parabolic
+    cache_parabolic = semi.cache_parabolic
+    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, semi,
+            cache_parabolic)
+end

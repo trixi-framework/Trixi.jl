@@ -70,6 +70,30 @@ end
     end
 end
 
+@trixi_testset "elixir_advection_meshview.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_meshview.jl"),
+                        l2=[
+                            8.311947673083206e-6,
+                            8.311947673068427e-6,
+                        ],
+                        linf=[
+                            6.627000273318195e-5,
+                            6.62700027264096e-5,
+                        ],
+                        coverage_override=(maxiters = 10^5,))
+
+    @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+end
+
 @trixi_testset "elixir_advection_extended.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
                         l2=[4.220397559713772e-6],
@@ -232,7 +256,7 @@ end
                         linf=[0.0015194252169410394],
                         rtol=5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
                         elixir_file="elixir_advection_waving_flag.jl",
-                        restart_file="restart_000021.h5",
+                        restart_file="restart_000000021.h5",
                         # With the default `maxiters = 1` in coverage tests,
                         # there would be no time steps after the restart.
                         coverage_override=(maxiters = 100_000,))
@@ -251,7 +275,7 @@ end
                         l2=[7.841217436552029e-15],
                         linf=[1.0857981180834031e-13],
                         elixir_file="elixir_advection_free_stream.jl",
-                        restart_file="restart_000036.h5",
+                        restart_file="restart_000000036.h5",
                         # With the default `maxiters = 1` in coverage tests,
                         # there would be no time steps after the restart.
                         coverage_override=(maxiters = 100_000,))
@@ -602,6 +626,62 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (local bounds)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        l2=[
+                            0.6337774834710513,
+                            0.30377119245852724,
+                            0.3111372568571772,
+                            1.2976221893997268,
+                        ],
+                        linf=[
+                            2.2064877103138207,
+                            1.541067099687334,
+                            1.5487587769900337,
+                            6.271271639873466,
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (global bounds)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        positivity_variables_cons=["rho"],
+                        positivity_variables_nonlinear=[pressure],
+                        local_twosided_variables_cons=[],
+                        local_onesided_variables_nonlinear=[],
+                        l2=[
+                            0.7869912572385168,
+                            0.39170886758882073,
+                            0.39613257454431977,
+                            1.2951760266455101,
+                        ],
+                        linf=[
+                            5.156044534854053,
+                            3.6261667239538986,
+                            3.1807681416546085,
+                            6.3028422220287235,
+                        ],
+                        tspan=(0.0, 0.5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
 @trixi_testset "elixir_euler_rayleigh_taylor_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
@@ -849,15 +929,15 @@ end
 @trixi_testset "elixir_shallowwater_source_terms.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
-                            0.0017285599436729316,
-                            0.025584610912606776,
-                            0.028373834961180594,
+                            0.0017286908591070864,
+                            0.025585037307655684,
+                            0.028374244567802766,
                             6.274146767730866e-5,
                         ],
                         linf=[
-                            0.012972309788264802,
-                            0.108283714215621,
-                            0.15831585777928936,
+                            0.012973752001194772,
+                            0.10829375385832263,
+                            0.15832858475438094,
                             0.00018196759554722775,
                         ],
                         tspan=(0.0, 0.05))
@@ -915,6 +995,61 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_mhd_coupled.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_coupled.jl"),
+                        l2=[
+                            1.0743426980507015e-7, 0.030901698521864966,
+                            0.030901698662039206, 0.04370160129981656,
+                            8.259193827852516e-8, 0.03090169908364623,
+                            0.030901699039770684, 0.04370160128147447,
+                            8.735923402748945e-9, 1.0743426996067106e-7,
+                            0.03090169852186498, 0.030901698662039206,
+                            0.04370160129981657, 8.259193829690747e-8,
+                            0.03090169908364624, 0.030901699039770726,
+                            0.04370160128147445, 8.73592340076897e-9,
+                        ],
+                        linf=[
+                            9.021023431587949e-7, 0.043701454182710486,
+                            0.043701458294527366, 0.061803146322536154,
+                            9.487023335807976e-7, 0.043701561010342616,
+                            0.04370147392153734, 0.06180318786081025,
+                            3.430673132525334e-8, 9.02102342825728e-7,
+                            0.043701454182710764, 0.043701458294525895,
+                            0.06180314632253597, 9.487023254761695e-7,
+                            0.04370156101034084, 0.04370147392153745,
+                            0.06180318786081015, 3.430672973680963e-8,
+                        ],
+                        coverage_override=(maxiters = 10^5,))
+
+    @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
+        errors = analysis_callback(sol)
+        @test errors.l2≈[
+            1.0743426980507015e-7, 0.030901698521864966, 0.030901698662039206,
+            0.04370160129981656, 8.259193827852516e-8, 0.03090169908364623,
+            0.030901699039770684, 0.04370160128147447, 8.735923402748945e-9,
+            1.0743426996067106e-7, 0.03090169852186498, 0.030901698662039206,
+            0.04370160129981657, 8.259193829690747e-8, 0.03090169908364624,
+            0.030901699039770726, 0.04370160128147445, 8.73592340076897e-9,
+        ] rtol=1.0e-4
+        @test errors.linf≈[
+            9.021023431587949e-7, 0.043701454182710486, 0.043701458294527366,
+            0.061803146322536154, 9.487023335807976e-7, 0.043701561010342616,
+            0.04370147392153734, 0.06180318786081025, 3.430673132525334e-8,
+            9.02102342825728e-7, 0.043701454182710764, 0.043701458294525895,
+            0.06180314632253597, 9.487023254761695e-7, 0.04370156101034084,
+            0.04370147392153745, 0.06180318786081015, 3.430672973680963e-8,
+        ] rtol=1.0e-4
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 end
 end

@@ -15,7 +15,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended.jl"), a
 # Note: If you get a restart file from somewhere else, you need to provide
 # appropriate setups in the elixir loading a restart file
 
-restart_filename = joinpath("out", "restart_000040.h5")
+restart_filename = joinpath("out", "restart_000000040.h5")
 mesh = load_mesh(restart_filename)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -29,7 +29,8 @@ save_solution.condition.save_initial_solution = false
 
 integrator = init(ode, alg,
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  callback = callbacks, maxiters = 100_000; ode_default_options()...)
+                  callback = callbacks;
+                  ode_default_options()...); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
 
 # Load saved context for adaptive time integrator
 if integrator.opts.adaptive

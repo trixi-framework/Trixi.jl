@@ -12,10 +12,14 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
 @trixi_testset "elixir_shallowwater_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec.jl"),
-                        l2=[0.244729018751225, 0.8583565222389505, 0.07330427577586297],
+                        l2=[
+                            0.24476140682560343,
+                            0.8587309324660326,
+                            0.07330427577586297,
+                        ],
                         linf=[
-                            2.1635021283528504,
-                            3.8717508164234453,
+                            2.1636963952308372,
+                            3.8737770522883115,
                             1.7711213427919539,
                         ],
                         tspan=(0.0, 0.25))
@@ -32,13 +36,13 @@ end
 @trixi_testset "elixir_shallowwater_ec.jl with initial_condition_weak_blast_wave" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec.jl"),
                         l2=[
-                            0.39464782107209717,
-                            2.03880864210846,
+                            0.39472828074570576,
+                            2.0390687947320076,
                             4.1623084150546725e-10,
                         ],
                         linf=[
-                            0.778905801278281,
-                            3.2409883402608273,
+                            0.7793741954662221,
+                            3.2411927977882096,
                             7.419800190922032e-10,
                         ],
                         initial_condition=initial_condition_weak_blast_wave,

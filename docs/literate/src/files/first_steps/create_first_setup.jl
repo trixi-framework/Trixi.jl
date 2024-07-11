@@ -1,4 +1,4 @@
-#src # Create first setup
+#src # Create your first setup
 
 # In this part of the introductory guide, we will create a first Trixi.jl setup as an extension of
 # [`elixir_advection_basic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl).
@@ -19,7 +19,10 @@
 
 # The first step is to create and open a file with the .jl extension. You can do this with your
 # favorite text editor (if you do not have one, we recommend [VS Code](https://code.visualstudio.com/)).
-# In this file you will create your setup.
+# In this file, you will create your setup. The file can then be executed in Julia using, for example, `trixi_include()`.
+# Alternatively, you can execute each line of the following code one by one in the 
+# Julia REPL. This will generate useful output for nearly every
+# command and improve your comprehension of the process.
 
 # To be able to use functionalities of Trixi.jl, you always need to load Trixi.jl itself
 # and the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package.
@@ -65,7 +68,9 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # To approximate the solution of the defined model, we create a [`DGSEM`](@ref) solver.
 # The solution in each of the recently defined mesh elements will be approximated by a polynomial
 # of degree `polydeg`. For more information about discontinuous Galerkin methods,
-# check out the [Introduction to DG methods](@ref scalar_linear_advection_1d) tutorial.
+# check out the [Introduction to DG methods](@ref scalar_linear_advection_1d) tutorial. By default,
+# in the weak formulation `DGSEM` initializes the surface flux as `flux_central` and uses the physical flux for
+# the volume integral.
 
 solver = DGSEM(polydeg=3)
 
@@ -90,8 +95,8 @@ solver = DGSEM(polydeg=3)
 # [section about analyzing the solution](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/#Analyzing-the-numerical-solution).
 
 function initial_condition_sinpi(x, t, equations::LinearScalarAdvectionEquation2D)
-    scalar = sinpi(x[1]) * sinpi(x[2])
-    return SVector(scalar)
+    u = sinpi(x[1]) * sinpi(x[2])
+    return SVector(u)
 end
 initial_condition = initial_condition_sinpi
 
@@ -103,18 +108,20 @@ initial_condition = initial_condition_sinpi
 # equation itself as arguments and returns the source term as a static vector `SVector`.
 
 function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation2D)
-    scalar = - 2 * exp(-t) * sinpi(2*(x[1] - t)) * sinpi(2*(x[2] - t))
-    return SVector(scalar)
+    u = - 2 * exp(-t) * sinpi(2*(x[1] - t)) * sinpi(2*(x[2] - t))
+    return SVector(u)
 end
 
 # Now we collect all the information that is necessary to define a spatial discretization,
-# which leaves us with an ODE problem in time with a span from 0.0 to 1.0.
-# This approach is commonly referred to as the method of lines. 
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_term_exp_sinpi)
+
+# which leaves us with an ODE problem in time with a span from `0.0` to `1.0`.
+# This approach is commonly referred to as the method of lines. 
+
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At this point, our problem is defined. We will use the `solve` function defined in
 # [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) to get the solution.
@@ -126,22 +133,27 @@ ode = semidiscretize(semi, tspan);
 # We will show you how to use some of the common callbacks.
 
 # To print a summary of the simulation setup at the beginning
-# and to reset timers we use the [`SummaryCallback`](@ref).
-# When the returned callback is executed directly, the current timer values are shown.
+# and to reset timers to zero, we use the [`SummaryCallback`](@ref).
 
 summary_callback = SummaryCallback()
 
 # We also want to analyze the current state of the solution in regular intervals.
-# The [`AnalysisCallback`](@ref) outputs some useful statistical information during the solving process
+# The [`AnalysisCallback`](@ref) outputs some useful statistical information during the simulation
 # every `interval` time steps.
 
-analysis_callback = AnalysisCallback(semi, interval = 5)
+analysis_callback = AnalysisCallback(semi, interval = 20)
+
+# To indicate that a simulation is still running, we utilize the inexpensive [`AliveCallback`](@ref)
+# to periodically print information to the screen, such as the
+# current time, every `alive_interval` time steps.
+
+alive_callback = AliveCallback(alive_interval = 10)
 
 # It is also possible to control the time step size using the [`StepsizeCallback`](@ref) if the time
 # integration method isn't adaptive itself. To get more details, look at
 # [CFL based step size control](@ref CFL-based-step-size-control).
 
-stepsize_callback = StepsizeCallback(cfl = 1.6)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 # To save the current solution in regular intervals we use the [`SaveSolutionCallback`](@ref).
 # We would like to save the initial and final solutions as well. The data
@@ -149,7 +161,7 @@ stepsize_callback = StepsizeCallback(cfl = 1.6)
 # a solution from saved files using Trixi2Vtk.jl and ParaView, which is described below in the
 # section [Visualize the solution](@ref Visualize-the-solution).
 
-save_solution = SaveSolutionCallback(interval = 5,
+save_solution = SaveSolutionCallback(interval = 20,
                                      save_initial_solution = true,
                                      save_final_solution = true)
 
@@ -170,19 +182,19 @@ save_restart = SaveRestartCallback(interval = 100, save_final_restart = true)
 # Create a `CallbackSet` to collect all callbacks so that they can be passed to the `solve`
 # function.
 
-callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback, save_solution,
-                        save_restart)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback,
+                        save_solution, save_restart);
 
 # The last step is to choose the time integration method. OrdinaryDiffEq.jl defines a wide range of
-# [ODE solvers](https://docs.sciml.ai/DiffEqDocs/latest/solvers/ode_solve/), e.g.
-# `CarpenterKennedy2N54(williamson_condition = false)`. We will pass the ODE
-# problem, the ODE solver and the callbacks to the `solve` function. Also, to use
+# [ODE solvers](https://docs.sciml.ai/DiffEqDocs/latest/solvers/ode_solve/), including the
+# three-stage, third-order strong stability preserving Runge-Kutta method `SSPRK33`. We will pass
+# the ODE problem, the ODE solver and the callbacks to the `solve` function. Also, to use
 # `StepsizeCallback`, we must explicitly specify the initial trial time step `dt`, the selected
 # value is not important, because it will be overwritten by the `StepsizeCallback`. And there is no
-# need to save every step of the solution, we are only interested in the final result.
+# need to save every step of the solution, as we are only interested the output provided by 
+# our callback [`SaveSolutionCallback`](@ref).
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 1.0,
-            save_everystep = false, callback = callbacks);
+sol = solve(ode, SSPRK33(); dt = 1.0, save_everystep = false, callback = callbacks);
 
 # Finally, we print the timer summary.
 
@@ -202,17 +214,33 @@ summary_callback()
 # ### Using Plots.jl
 
 # The first option is to use the [Plots.jl](https://github.com/JuliaPlots/Plots.jl) package
-# directly after calculations, when the solution is saved in the `sol` variable. We load the
-# package and use the `plot` function.
+# directly after calculations, when the solution is saved in the `sol` variable.
 
 using Plots
-plot(sol)
 
-# To show the mesh on the plot, we need to extract the visualization data from the solution as
-# a [`PlotData2D`](@ref) object. Mesh extraction is possible using the [`getmesh`](@ref) function.
+# As was shown in the [Getting started](@ref getting_started) section, you can plot all
+# variables from the system of equations by executing the following.
+# ```julia
+# plot(sol)
+# ```
+# Alternatively, you can configure the plot more precisely. Trixi.jl provides a special data type,
+# [`PlotData2D`](@ref), to extract the visualization data from the solution.
+
+pd = PlotData2D(sol);
+
+# You can plot specific variables from the system of equations by referring to their names.
+# To obtain the names of all variables, execute the following.
+
+@show pd.variable_names;
+
+# Plot the variable named "scalar" (which is the name of the variable for the
+# linear advection equation in Trixi.jl).
+
+plot(pd["scalar"])
+
+# Mesh extraction is possible using the [`getmesh`](@ref) function.
 # Plots.jl has the `plot!` function that allows you to modify an already built graph.
 
-pd = PlotData2D(sol)
 plot!(getmesh(pd))
 
 
@@ -222,38 +250,38 @@ plot!(getmesh(pd))
 # `solve` function with [`SaveSolutionCallback`](@ref) there is a file with the final solution.
 # It is located in the `out` folder and is named as follows: `solution_index.h5`. The `index`
 # is the final time step of the solution that is padded to 6 digits with zeros from the beginning.
-# With [Trixi2Vtk](@ref) you can convert the HDF5 output file generated by Trixi.jl into a VTK file.
-# This can be used in visualization tools such as [ParaView](https://www.paraview.org) or
-# [VisIt](https://visit.llnl.gov) to plot the solution. The important thing is that currently
-# Trixi2Vtk.jl supports conversion only for solutions in 2D and 3D spatial domains.
+# With [Trixi2Vtk](@ref) you can convert the HDF5 output file generated by Trixi.jl into a VTK/VTU
+# files. VTK/VTU are specialized formats designed to store structured data required for
+# visualization purposes. This can be used in visualization tools such as
+# [ParaView](https://www.paraview.org) or [VisIt](https://visit.llnl.gov) to plot the solution.
 
 # If you haven't added Trixi2Vtk.jl to your project yet, you can add it as follows.
 # ```julia
 # import Pkg
 # Pkg.add(["Trixi2Vtk"])
 # ```
-# Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000018.h5` with
+# Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000000032.h5` with
 # the final solution using the [`trixi2vtk`](@ref) function saving the resulting file in the
 # `out` folder.
 
 using Trixi2Vtk
-trixi2vtk(joinpath("out", "solution_000018.h5"), output_directory="out")
+trixi2vtk(joinpath("out", "solution_000000032.h5"), output_directory="out")
 
-# Now two files `solution_000018.vtu` and `solution_000018_celldata.vtu` have been generated in the
+# Now two files `solution_000000032.vtu` and `solution_000000032_celldata.vtu` have been generated in the
 # `out` folder. The first one contains all the information for visualizing the solution, the
 # second one contains all the cell-based or discretization-based information.
 
 # Now let's visualize the solution from the generated files in ParaView. Follow this short
 # instruction to get the visualization.
 # - Download, install and open [ParaView](https://www.paraview.org/download/).
-# - Press `Ctrl+O` and select the generated files `solution_000018.vtu` and
-#   `solution_000018_celldata.vtu` from the `out` folder.
+# - Press `Ctrl+O` and select the generated files `solution_000000032.vtu` and
+#   `solution_000000032_celldata.vtu` from the `out` folder.
 # - In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near
-#   `solution_000018.vtu`.
+#   `solution_000000032.vtu`.
 # - In the lower-left corner in the Properties window, change the Coloring from Solid Color to
 #   scalar. This already generates the visualization of the final solution.
 # - Now let's add the mesh to the visualization. In the upper-left corner in the
-#   Pipeline Browser window, left-click on the eye-icon near `solution_000018_celldata.vtu`.
+#   Pipeline Browser window, left-click on the eye-icon near `solution_000000032_celldata.vtu`.
 # - In the lower-left corner in the Properties window, change the Representation from Surface
 #   to Wireframe. Then a white grid should appear on the visualization.
 # Now, if you followed the instructions exactly, you should get a similar image as shown in the

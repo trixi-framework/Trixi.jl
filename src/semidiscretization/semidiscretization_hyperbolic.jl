@@ -259,7 +259,8 @@ function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{1},
 end
 
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh{2},
-                                                                StructuredMesh{2}},
+                                                                StructuredMesh{2},
+                                                                StructuredMeshView{2}},
                                                     boundary_conditions::Union{NamedTuple,
                                                                                Tuple})
     check_periodicity_mesh_boundary_conditions_x(mesh, boundary_conditions[1],
@@ -314,7 +315,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
-        summary_line(io, "total #DOFs per field", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)
     end
 end
