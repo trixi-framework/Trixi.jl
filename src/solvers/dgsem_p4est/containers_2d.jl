@@ -39,7 +39,7 @@ end
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes
 function calc_node_coordinates!(node_coordinates,
-                                mesh::Union{P4estMesh{2}, P4estMeshView{2}},
+                                mesh::P4estMesh{2},
                                 nodes::AbstractVector)
     # We use `StrideArray`s here since these buffers are used in performance-critical
     # places and the additional information passed to the compiler makes them faster
