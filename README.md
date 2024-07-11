@@ -15,33 +15,8 @@
 <!-- [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.43.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl) -->
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 
-<p align="center">
-  <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
-</p>
-
-***
-**Trixi.jl at JuliaCon 2024**<br/>
-At this year's JuliaCon in Eindhoven, Netherlands, we will be present with several contributions
-from the Trixi Framework ecosystem:
-
-* [**Julia for Particle-Based Multiphysics with TrixiParticles.jl**](https://pretalx.com/juliacon2024/talk/TPFF8L/),<br/>
-  [*Erik Faulhaber*](https://github.com/efaulhaber/), [*Niklas Neher*](https://github.com/lasnikas/),
-  10th July 2024, 11:00–11:30, Function (4.1)
-* [**Towards Aerodynamic Simulations in Julia with Trixi.jl**](https://pretalx.com/juliacon2024/talk/XH8KBG/),<br/>
-  [*Daniel Doehring*](https://github.com/danieldoehring/),
-  10th July 2024, 15:30–16:00, While Loop (4.2)
-* [**libtrixi: serving legacy codes in earth system modeling with fresh Julia CFD**](https://pretalx.com/juliacon2024/talk/SXC7LA/),<br/>
-  [*Benedict Geihe*](https://github.com/benegee/),
-  12th July 2024, 14:00–17:00, Function (4.1)
-
-The last talk is part of the 
-[Julia for High-Performance Computing](https://juliacon.org/2024/minisymposia/hpc/)
-minisymposium, which this year is hosted by our own [*Hendrik Ranocha*](https://github.com/ranocha/).
-
-We are looking forward to seeing you there ♥️
-***
-
-**Trixi.jl** is a numerical simulation framework for conservation
+[**Trixi.jl**](https://github.com/trixi-framework/Trixi.jl)
+is a numerical simulation framework for conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
 having an extensible design with a fast implementation, Trixi.jl is
@@ -119,12 +94,12 @@ julia> using Pkg; Pkg.update("Trixi"); Pkg.status("Trixi")
 ```
 to the [latest release](https://github.com/trixi-framework/Trixi.jl/releases/latest).
 If the installed version does not match the current release, please check the
-*Troubleshooting* section in the [documentation](#documentation).
+[Troubleshooting](@ref old-release) section.
 
 The commands above can also be used to update Trixi.jl. A brief list of notable
-changes to Trixi.jl is available in [`NEWS.md`](NEWS.md).
+changes to Trixi.jl is available in the [`Changelog`](@ref).
 
-### For developers
+### [For developers](@id for-developers)
 If you plan on editing Trixi.jl itself, you can download Trixi.jl locally and use the
 code from the cloned directory:
 ```bash
@@ -132,19 +107,47 @@ git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
 mkdir run
 cd run
-julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Install local Trixi.jl clone
-julia --project=. -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])' # Install additional packages
+julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))'
 ```
-Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
-can be omitted.
-
 If you installed Trixi.jl this way, you always have to start Julia with the `--project`
 flag set to your `run` directory, e.g.,
 ```bash
 julia --project=.
 ```
 if already inside the `run` directory.
-Further details can be found in the [documentation](#documentation).
+
+The advantage of using a separate `run` directory is that you can also add other
+related packages (see below, e.g., for time integration or visualization) to the
+project in the `run` folder and always have a reproducible environment at hand
+to share with others.
+
+Since the postprocessing tool Trixi2Vtk.jl typically does not need to be modified,
+it is recommended to install it as a normal package.  Likewise, you can install
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+as ordinary packages. To achieve this, use the following REPL commands:
+```julia
+julia> using Pkg
+
+julia> Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])
+```
+Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
+can be omitted.
+
+
+
+### Example: Installing Trixi.jl as a package
+```@raw html
+  <script id="asciicast-373869"
+          src="https://asciinema.org/a/373869.js"
+          async
+          data-cols=100
+          data-rows=20
+          data-speed=3></script>
+```
+Please note that the playback speed is set to 3x, thus the entire installation
+procedure lasts around 45 seconds in real time (depending on the performance of
+your computer and on how many dependencies had already been installed before).
 
 
 ## Usage
@@ -166,9 +169,8 @@ and generate a heatmap plot of the results with
 julia> plot(sol) # No trailing semicolon, otherwise no plot is shown
 ```
 This will open a new window with a 2D visualization of the final solution:
-<p align="center">
-  <img width="300px" src="https://user-images.githubusercontent.com/26361975/177492363-74cee347-7abe-4522-8b2d-0dfadc317f7e.png">
-</p>
+
+![image](https://user-images.githubusercontent.com/26361975/177492363-74cee347-7abe-4522-8b2d-0dfadc317f7e.png)
 
 The method `trixi_include(...)` expects a single string argument with the path to a
 Trixi.jl elixir, i.e., a text file containing Julia code necessary to set up and run a
@@ -176,10 +178,22 @@ simulation. To quickly see Trixi.jl in action, `default_example()`
 returns the path to an example elixir with a short, two-dimensional
 problem setup. A list of all example elixirs packaged with Trixi.jl can be
 obtained by running `get_examples()`. Alternatively, you can also browse the
-[`examples/`](examples/) subdirectory.
+[`examples/`](https://github.com/trixi-framework/Trixi.jl/examples/) subdirectory.
 If you want to modify one of the elixirs to set up your own simulation,
 download it to your machine, edit the configuration, and pass the file path to
 `trixi_include(...)`.
+
+### Example: Running a simulation with Trixi.jl
+```@raw html
+  <script id="asciicast-372987"
+          src="https://asciinema.org/a/372987.js"
+          async
+          data-cols=100
+          data-rows=48></script>
+```
+If this produces weird symbols or question marks in the terminal on your system,
+you are probably using Mac OS with problematic fonts. In that case, please check
+the [Troubleshooting](@ref font-issues) section.
 
 *Note on performance:* Julia uses just-in-time compilation to transform its
 source code to native, optimized machine code at the *time of execution* and
@@ -188,6 +202,69 @@ of a Julia method is typically slow, with subsequent runs being much faster. For
 instance, in the example above the first execution of `trixi_include` takes about
 20 seconds, while subsequent runs require less than 60 *milli*seconds.
 
+
+### Performing a convergence analysis
+To automatically determine the experimental order of convergence (EOC) for a
+given setup, execute
+```julia
+julia> convergence_test(default_example(), 4)
+```
+This will run a convergence test with the elixir `default_example()`,
+using four iterations with different initial refinement levels. The initial
+iteration will use the elixir unchanged, while for each subsequent
+iteration the `initial_refinement_level` parameter is incremented by one.
+Finally, the measured ``l^2`` and ``l^\infty`` errors and the determined EOCs
+will be displayed like this:
+```
+[...]
+l2
+scalar
+error     EOC
+9.14e-06  -
+5.69e-07  4.01
+3.55e-08  4.00
+2.22e-09  4.00
+
+mean      4.00
+--------------------------------------------------------------------------------
+linf
+scalar
+error     EOC
+6.44e-05  -
+4.11e-06  3.97
+2.58e-07  3.99
+1.62e-08  4.00
+
+mean      3.99
+--------------------------------------------------------------------------------
+```
+
+An example with multiple variables looks like this:
+```julia
+julia> convergence_test(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_source_terms.jl"), 3)
+```
+```
+[...]
+l2
+rho                 rho_v1              rho_v2              rho_e
+error     EOC       error     EOC       error     EOC       error     EOC
+9.32e-07  -         1.42e-06  -         1.42e-06  -         4.82e-06  -
+7.03e-08  3.73      9.53e-08  3.90      9.53e-08  3.90      3.30e-07  3.87
+4.65e-09  3.92      6.09e-09  3.97      6.09e-09  3.97      2.12e-08  3.96
+
+mean      3.82      mean      3.93      mean      3.93      mean      3.91
+--------------------------------------------------------------------------------
+linf
+rho                 rho_v1              rho_v2              rho_e
+error     EOC       error     EOC       error     EOC       error     EOC
+9.58e-06  -         1.17e-05  -         1.17e-05  -         4.89e-05  -
+6.23e-07  3.94      7.48e-07  3.97      7.48e-07  3.97      3.22e-06  3.92
+4.05e-08  3.94      4.97e-08  3.91      4.97e-08  3.91      2.10e-07  3.94
+
+mean      3.94      mean      3.94      mean      3.94      mean      3.93
+--------------------------------------------------------------------------------
+```
+
 ### Showcase of advanced features
 The presentation [From Mesh Generation to Adaptive Simulation: A Journey in Julia](https://youtu.be/_N4ozHr-t9E),
 originally given as part of JuliaCon 2022, outlines how to use Trixi.jl for an adaptive simulation
@@ -195,14 +272,6 @@ of the compressible Euler equations in two spatial dimensions on a complex domai
 as well as code to run the simulation presented can be found at the
 [reproducibility repository](https://github.com/trixi-framework/talk-2022-juliacon_toolchain)
 for the presentation.
-
-## Documentation
-Additional documentation is available that contains more information on how to
-modify/extend Trixi.jl's implementation, how to visualize output files etc. It
-also includes a section on our preferred development workflow and some tips for
-using Git. The latest documentation can be accessed either
-[online](https://trixi-framework.github.io/Trixi.jl/stable) or under [`docs/src`](docs/src).
-
 
 ## Referencing
 If you use Trixi.jl in your own research or write a paper using results obtained
@@ -256,8 +325,7 @@ In addition, you can also refer to Trixi.jl directly as
 }
 ```
 
-
-## Authors
+## [Authors](@id authors-index-md)
 Trixi.jl was initiated by [Michael
 Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
 (University of Augsburg, Germany) and
@@ -266,79 +334,69 @@ Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
 (Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.jl.
-The full list of contributors can be found in [AUTHORS.md](AUTHORS.md).
+The full list of contributors can be found under [Authors](@ref).
 
 
 ## License and contributing
-Trixi.jl is licensed under the MIT license (see [LICENSE.md](LICENSE.md)). Since Trixi.jl is
+Trixi.jl is licensed under the MIT license (see [License](@ref)). Since Trixi.jl is
 an open-source project, we are very happy to accept contributions from the
-community. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+community. Please refer to [Contributing](@ref) for more details.
 Note that we strive to be a friendly, inclusive open-source community and ask all members
-of our community to adhere to our [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+of our community to adhere to our [Code of Conduct](@ref code-of-conduct).
 To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
-## Institutional Support
-Trixi.jl relies on institutions that provide infrastructure for coding and testing,
-as well as encourage students, post-docs, and scientists to contribute code.
-Some institutes and groups that supported us in the past and present are listed below,
-roughly in chronological order.
 
-<p align="left">
-  <img style="float:left;height:30px;margin-right:10px" 
-    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/e9432f4c-995f-434e-b393-d15efe68abf1">
-  <a href="https://www.mi.uni-koeln.de/NumSim/">Numerical Simulation Group, University of Cologne</a>
-</p>
-<p align="left">
-  <img style="float:left;height:30px;margin-right:10px" 
-    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/387319ba-9e08-4ad8-9154-628416b247b6">
-  <a href="https://liu.se/en/organisation/liu/mai/tima">Applied Mathematics, Linköping University, Sweden</a>
-</p>
-<p align="left">
-  <img style="float:left;height:30px;margin-right:10px" 
-    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/e2b9e54b-fe00-40f8-b6a1-1152ed677d0a">
-  <a href="https://www.uni-muenster.de/AMM/en/">Applied Mathematics, University of Münster, Germany</a>
-</p>
-<p align="left">
-  <img style="float:left;height:30px;margin-right:10px" 
-    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/17f64669-c581-4788-b20c-7a98055b743b">
-  <a href="https://cmor.rice.edu">Computational and Applied Mathematics, Rice University, USA</a>
-</p>
-<p align="left">
-  <img style="float:left;height:30px;margin-right:10px" 
-    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/34f243bc-cd6c-4935-8b4c-ec9898df59c3">
-  <a href="https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html">Applied Mathematics, University of Hamburg, Germany</a>
-</p>
-<p align="left">
-  <img style="float:left;height:30px;margin-right:10px" 
-    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/c3e1f6c9-4d13-4001-b817-b3ab405f177b">
-  <a href="https://www.acom.rwth-aachen.de">Applied and Computational Mathematics, RWTH Aachen, Germany</a>
-</p>
-<p align="left">
-  <img style="float:left;height:30px;margin-right:10px" 
-    src="https://github.com/torrilhon/Trixi.jl/assets/17232977/7d4c8e93-4efa-40f9-bbe9-f9a5ba52690a">
-  <a href="https://www.nummath.math.uni-mainz.de">Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz, Germany</a>
-</p>
+## Participating research groups
+Participating research groups in alphabetical order:
+
+[Applied and Computational Mathematics, RWTH Aachen University 🇩🇪](https://www.acom.rwth-aachen.de)
+
+[Applied Mathematics, Department of Mathematics, University of Hamburg 🇩🇪](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
+
+[Applied Mathematics, Linköping University 🇸🇪](https://liu.se/en/employee/andwi94)
+
+[Computational and Applied Mathematics, Rice University 🇺🇸](https://jlchan.github.io/)
+
+[High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) 🇩🇪](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
+
+[High-Performance Scientific Computing, University of Augsburg 🇩🇪](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
+
+[Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz 🇩🇪](https://ranocha.de)
+
+[Numerical Simulation, Department of Mathematics and Computer Science, University of Cologne 🇩🇪](https://www.mi.uni-koeln.de/NumSim/)
+
 
 ## Acknowledgments
-<p align="center" style="font-size:0;"><!--
-  BMBF     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" height="120"><!--
-  DFG      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" height="120"><!--
-  SRC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" height="120"><!--
-  ERC      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" height="120"><!--
-  NSF      --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/5325103c-ae81-4747-b87c-c6e4a1b1d7a8" height="120"><!--
-  DUBS     --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" height="120"><!--
-  NumFOCUS --><img align="middle" src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" height="120"><!--
-  -->
-</p>
+
+```@raw html
+<div style="width: 100%; text-align: center; font-size: 0;">
+  <div><!--
+    BMBF     --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/f59af636-3098-4be6-bf80-c6be3f17cbc6" style="height: 120px; width: auto"><!--
+    DFG      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/e67b9ed3-7699-466a-bdaf-2ba070a29a8e" style="height: 120px; width: auto"><!--
+    SRC      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/48f9da06-6f7a-4586-b23e-739bee3901c0" style="height: 120px; width: auto"><!--
+    -->
+  </div>
+  <div><!--
+    ERC      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/9371e7e4-3491-4433-ac5f-b3bfb215f5ca" style="height: 120px; width: auto"><!--
+    NSF      --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/5325103c-ae81-4747-b87c-c6e4a1b1d7a8" style="height: 120px; width: auto"><!--
+    DUBS     --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/bb021e6e-42e6-4fe1-a414-c847402e1937" style="height: 120px; width: auto"><!--
+    -->
+  </div>
+  <div><!--
+    NumFOCUS --><img src="https://github.com/trixi-framework/Trixi.jl/assets/3637659/8496ac9e-b586-475f-adb7-69bcfc415185" style="height: 120px; width: auto"><!--
+    -->
+  </div>
+</div>
+```
 
 This project has benefited from funding by the [Deutsche
 Forschungsgemeinschaft](https://www.dfg.de/) (DFG, German Research Foundation)
 through the following grants:
 * Excellence Strategy EXC 2044-390685587, Mathematics Münster: Dynamics-Geometry-Structure.
-* Research Unit FOR 5409 "[Structure-Preserving Numerical Methods for Bulk- and
-  Interface Coupling of Heterogeneous Models (SNuBIC)](https://www.snubic.io/)" (project number 463312734).
+* Research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
+  Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
 * Individual grant no. 528753982.
 
 This project has benefited from funding from the [European Research Council](https://erc.europa.eu)
