@@ -24,50 +24,6 @@ function compute_c_coeffs(num_stages, cS2)
     return c
 end
 
-# Compute residuals for nonlinear equations to match a stability polynomial with given coefficients,
-# in order to find A-matrix in the Butcher-Tableau
-function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_stages,
-                                                              num_stage_evals,
-                                                              monomial_coeffs, cS2)
-    c_ts = compute_c_coeffs(num_stages, cS2) # ts = timestep
-    # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
-    a_coeff = [0.0, c_ts[2], a_unknown...]
-    # Equality constraint array that ensures that the stability polynomial computed from 
-    # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
-    # optimized stability polynomial.
-    # For details, see Chapter4.3, Proposition 3.2, Equation (3.3) from 
-    # Hairer, Wanner: Solving Ordinary Differential Equations 2
-    c_eq = zeros(num_stage_evals - 2) # Add equality constraint that cS2 is equal to 1
-    # Lower-order terms: Two summands present
-    for i in 1:(num_stage_evals - 4)
-        term1 = a_coeff[num_stage_evals - 1]
-        term2 = a_coeff[num_stage_evals]
-        for j in 1:i
-            term1 *= a_coeff[num_stage_evals - 1 - j]
-            term2 *= a_coeff[num_stage_evals - j]
-        end
-        term1 *= c_ts[num_stages - 2 - i] * 1 / 6 # 1 / 6 = b_{S-1}
-        term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
-
-        c_eq[i] = monomial_coeffs[i] - (term1 + term2)
-    end
-
-    # Highest coefficient: Only one term present
-    i = num_stage_evals - 3
-    term2 = a_coeff[num_stage_evals]
-    for j in 1:i
-        term2 *= a_coeff[num_stage_evals - j]
-    end
-    term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
-
-    c_eq[i] = monomial_coeffs[i] - term2
-    # Third-order consistency condition (Cf. eq. (27) from https://doi.org/10.1016/j.jcp.2022.111470
-    c_eq[num_stage_evals - 2] = 1 - 4 * a_coeff[num_stage_evals] -
-                                a_coeff[num_stage_evals - 1]
-
-    return c_eq
-end
-
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 3
 # using a list of eigenvalues
 function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,

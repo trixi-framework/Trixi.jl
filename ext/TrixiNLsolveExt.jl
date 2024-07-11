@@ -1,7 +1,8 @@
 # Package extension for adding NLsolve-based features to Trixi.jl
 module TrixiNLsolveExt
 
-# Required for coefficient optimization in P-ERK scheme integrators
+# Required for finding coefficients in Butcher tableau in the third order of 
+# P-ERK scheme integrators
 if isdefined(Base, :get_extension)
     using NLsolve: nlsolve
 else
@@ -14,8 +15,7 @@ end
 using StableRNGs: StableRNG, rand
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, PairedExplicitRK3_butcher_tableau_objective_function,
-             solve_a_butcher_coeffs_unknown!, @muladd
+using Trixi: Trixi, solve_a_butcher_coeffs_unknown!, compute_c_coeffs, @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -23,6 +23,50 @@ using Trixi: Trixi, PairedExplicitRK3_butcher_tableau_objective_function,
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
 #! format: noindent
+
+# Compute residuals for nonlinear equations to match a stability polynomial with given coefficients,
+# in order to find A-matrix in the Butcher-Tableau
+function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_stages,
+                                                              num_stage_evals,
+                                                              monomial_coeffs, cS2)
+    c_ts = Trixi.compute_c_coeffs(num_stages, cS2) # ts = timestep
+    # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
+    a_coeff = [0.0, c_ts[2], a_unknown...]
+    # Equality constraint array that ensures that the stability polynomial computed from 
+    # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
+    # optimized stability polynomial.
+    # For details, see Chapter4.3, Proposition 3.2, Equation (3.3) from 
+    # Hairer, Wanner: Solving Ordinary Differential Equations 2
+    c_eq = zeros(num_stage_evals - 2) # Add equality constraint that cS2 is equal to 1
+    # Lower-order terms: Two summands present
+    for i in 1:(num_stage_evals - 4)
+        term1 = a_coeff[num_stage_evals - 1]
+        term2 = a_coeff[num_stage_evals]
+        for j in 1:i
+            term1 *= a_coeff[num_stage_evals - 1 - j]
+            term2 *= a_coeff[num_stage_evals - j]
+        end
+        term1 *= c_ts[num_stages - 2 - i] * 1 / 6 # 1 / 6 = b_{S-1}
+        term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
+
+        c_eq[i] = monomial_coeffs[i] - (term1 + term2)
+    end
+
+    # Highest coefficient: Only one term present
+    i = num_stage_evals - 3
+    term2 = a_coeff[num_stage_evals]
+    for j in 1:i
+        term2 *= a_coeff[num_stage_evals - j]
+    end
+    term2 *= c_ts[num_stages - 1 - i] * 2 / 3 # 2 / 3 = b_S
+
+    c_eq[i] = monomial_coeffs[i] - term2
+    # Third-order consistency condition (Cf. eq. (27) from https://doi.org/10.1016/j.jcp.2022.111470
+    c_eq[num_stage_evals - 2] = 1 - 4 * a_coeff[num_stage_evals] -
+                                a_coeff[num_stage_evals - 1]
+
+    return c_eq
+end
 
 # Find the values of the a_{i, i-1} in the Butcher tableau matrix A by solving a system of
 # non-linear equations that arise from the relation of the stability polynomial to the Butcher tableau.
@@ -34,10 +78,10 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
 
     # Define the objective_function
     function objective_function(x)
-        return Trixi.PairedExplicitRK3_butcher_tableau_objective_function(x, num_stages,
-                                                                          num_stages,
-                                                                          monomial_coeffs,
-                                                                          c_s2)
+        return PairedExplicitRK3_butcher_tableau_objective_function(x, num_stages,
+                                                                    num_stages,
+                                                                    monomial_coeffs,
+                                                                    c_s2)
     end
 
     # To ensure consistency and reproducibility of results across runs, we use 
