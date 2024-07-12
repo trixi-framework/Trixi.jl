@@ -559,6 +559,35 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (pure FV)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
+                        stage_callbacks=(),
+                        l2=[
+                            0.2956367176068476,
+                            0.11422070606289543,
+                            0.11422070606289544,
+                            0.6174845679019293,
+                        ],
+                        linf=[
+                            0.9329496312537306,
+                            0.5335710316368611,
+                            0.5335710316368614,
+                            6.490325306017452,
+                        ],
+                        tspan=(0.0, 1.0),
+                        initial_refinement_level=4,
+                        coverage_override=(maxiters = 6,))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 # @trixi_testset "elixir_euler_sedov_blast_wave.jl (HLLE)" begin
 #     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave.jl"),
 #                         l2=[
