@@ -15,7 +15,7 @@ end
 using StableRNGs: StableRNG, rand
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, solve_a_butcher_coeffs_unknown!, compute_c_coeffs, @muladd
+using Trixi: Trixi, compute_c_coeffs, @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
