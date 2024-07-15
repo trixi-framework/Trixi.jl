@@ -10,7 +10,13 @@ using Trixi
 
 const SUITE = BenchmarkGroup()
 
-for elixir in [joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_extended.jl"),
+for elixir in [# 1D
+               joinpath(examples_dir(), "structured_1d_dgsem", "elixir_euler_sedov"),
+               joinpath(examples_dir(), "tree_1d_dgsem", "elixir_mhd_ec.jl"), 
+               joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_walls_amr.jl"),
+               joinpath(examples_dir(), "tree_1d_dgsem", "elixir_shallowwater_well_balanced_nonperiodic.jl"),
+               # 2D
+               joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_extended.jl"),
                joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_amr_nonperiodic.jl"),
                joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"),
                joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_vortex_mortar.jl"),
@@ -27,6 +33,7 @@ for elixir in [joinpath(examples_dir(), "tree_2d_dgsem", "elixir_advection_exten
                joinpath(@__DIR__, "elixir_2d_euler_vortex_structured.jl"),
                joinpath(@__DIR__, "elixir_2d_euler_vortex_unstructured.jl"),
                joinpath(@__DIR__, "elixir_2d_euler_vortex_p4est.jl"),
+               # 3D
                joinpath(examples_dir(), "tree_3d_dgsem", "elixir_advection_extended.jl"),
                joinpath(examples_dir(), "tree_3d_dgsem", "elixir_euler_ec.jl"),
                joinpath(examples_dir(), "tree_3d_dgsem", "elixir_euler_mortar.jl"),
