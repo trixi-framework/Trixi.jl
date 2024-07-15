@@ -88,6 +88,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
     # a seeded random initial guess.
     rng = StableRNG(555)
 
+    # Flag for criteria going beyond satisfaction of non-linear equations
     is_sol_valid = false
 
     for _ in 1:max_iter
@@ -100,7 +101,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
                       ftol = 4e-16, # Enforce objective up to machine precision
                       iterations = 10^4, xtol = 1e-13)
 
-        a_unknown = sol.zero
+        a_unknown = sol.zero # Retrieve solution (root = zero)
 
         # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver) 
         # and also c[i] - a[i, i-1] >= 0.0 since all coefficients should be non-negative
