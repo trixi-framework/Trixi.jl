@@ -12,13 +12,8 @@ const SUITE = BenchmarkGroup()
 
 for elixir in [# 1D
                joinpath(examples_dir(), "structured_1d_dgsem", "elixir_advection_shockcapturing.jl"),
-               joinpath(examples_dir(), "structured_1d_dgsem", "elixir_euler_source_terms_nonperiodic.jl"),
-               joinpath(examples_dir(), "tree_1d_dgsem", "elixir_advection_amr.jl"),
-               joinpath(examples_dir(), "tree_1d_dgsem", "elixir_euler_ec.jl"),
-               joinpath(examples_dir(), "tree_1d_dgsem", "elixir_euler_quasi_1d_discontinuous.jl"),
                joinpath(examples_dir(), "tree_1d_dgsem", "elixir_euler_sedov_blast_wave.jl"),
                joinpath(examples_dir(), "tree_1d_dgsem", "elixir_mhd_ec.jl"), 
-               joinpath(examples_dir(), "tree_1d_dgsem", "elixir_mhdmulti_briowu_shock_tube.jl"),
                joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_walls_amr.jl"),
                joinpath(examples_dir(), "tree_1d_dgsem", "elixir_shallowwater_well_balanced_nonperiodic.jl"),
                # 2D
