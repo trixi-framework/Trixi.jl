@@ -71,6 +71,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
             MPI.Gatherv!(send_buffer, nothing, mpi_root(), mpi_comm())
         end
     else
+	@autoinfiltrate
         for key in keys(boundary_dictionary)
             if !(key in unique_names)
                 error("Key $(repr(key)) is not a valid boundary name. " *

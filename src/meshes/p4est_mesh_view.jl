@@ -19,25 +19,51 @@ mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2
 
     # Attributes pertaining the views.
     parent::P4estMesh{NDIMS, RealT}
-    mesh_cells::Array{Int32}
+    indices_min::NTuple{NDIMS, Int}
+    indices_max::NTuple{NDIMS, Int}
+#     view_cells::Array{Bool}
 end
 
-function P4estMeshView(parent::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT}
+# function P4estMeshView(parent::P4estMesh{NDIMS, RealT}, view_cells::Array{Bool}) where {NDIMS, RealT}
+function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
+                       indices_min = ntuple(_ -> 1, Val(NDIMS)),
+                       indices_max = size(parent),
+                       coordinates_min = nothing, coordinates_max = nothing) where {NDIMS, RealT}
+    @assert indices_min <= indices_max
+    @assert all(indices_min .> 0)
+#     @assert indices_max <= size(parent)
+
     ghost = ghost_new_p4est(parent.p4est)
     ghost_pw = PointerWrapper(ghost)
 
-    @autoinfiltrate
+    # Extract mapping
+    mapping = coordinates2mapping(coordinates_min, coordinates_max)
+
+    trees_per_dimension = indices_max .- indices_min
+    tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
+                                                    ntuple(_ -> length(parent.nodes),
+                                                           NDIMS)...,
+                                                    prod(trees_per_dimension))
+    calc_tree_node_coordinates!(tree_node_coordinates, parent.nodes, mapping,
+                                trees_per_dimension)
+
+    connectivity = connectivity_structured(trees_per_dimension..., (false, false))
+
+    # TODO: The initial refinment level of 1 should not be hard-coded.
+    p4est = new_p4est(connectivity, 1)
+    p4est_pw = PointerWrapper(p4est)
+
     return P4estMeshView{NDIMS, eltype(parent.tree_node_coordinates),
                          typeof(parent.is_parallel),
-                         typeof(parent.p4est), typeof(parent.ghost), NDIMS + 2,
-                         length(parent.nodes)}(parent.p4est, parent.is_parallel,
+                         typeof(p4est_pw), typeof(parent.ghost), NDIMS + 2,
+                         length(parent.nodes)}(PointerWrapper(p4est), parent.is_parallel,
                                                parent.ghost,
-                                               parent.tree_node_coordinates,
+                                               tree_node_coordinates,
                                                parent.nodes, parent.boundary_names,
                                                parent.current_filename,
                                                parent.unsaved_changes,
                                                parent.p4est_partition_allow_for_coarsening,
-                                               parent)
+                                               parent, indices_min, indices_max)
 end
 
 # TODO: Check if this is still needed.
@@ -136,6 +162,13 @@ function calc_node_coordinates!(node_coordinates,
     end
 
     return node_coordinates
+end
+
+function balance!(mesh::P4estMeshView{2}, init_fn = C_NULL)
+    p4est_balance(mesh.parent.p4est, P4EST_CONNECT_FACE, init_fn)
+    # Due to a bug in `p4est`, the forest needs to be rebalanced twice sometimes
+    # See https://github.com/cburstedde/p4est/issues/112
+    p4est_balance(mesh.parent.p4est, P4EST_CONNECT_FACE, init_fn)
 end
 
 function save_mesh_file(mesh::P4estMeshView, output_directory, timestep = 0;
