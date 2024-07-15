@@ -1,5 +1,8 @@
 
+# Convex and ECOS are imported because they are used for finding the optimal time step and optimal 
+# monomial coefficients in the stability polynomial of P-ERK time integrators.
 using Convex, ECOS
+
 using OrdinaryDiffEq
 using Trixi
 

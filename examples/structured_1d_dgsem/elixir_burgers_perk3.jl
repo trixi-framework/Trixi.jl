@@ -1,5 +1,11 @@
+# Convex and ECOS are imported because they are used for finding the optimal time step and optimal 
+# monomial coefficients in the stability polynomial of P-ERK time integrators.
 using Convex, ECOS
+
+# NLsolve is imported to solve the system of nonlinear equations to find a coefficients
+# in the Butcher tableau in the third order P-ERK time integrator.
 using NLsolve
+
 using OrdinaryDiffEq
 using Trixi
 
