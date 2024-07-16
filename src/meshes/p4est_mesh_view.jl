@@ -47,11 +47,16 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
     calc_tree_node_coordinates!(tree_node_coordinates, parent.nodes, mapping,
                                 trees_per_dimension)
 
-    connectivity = connectivity_structured(trees_per_dimension..., (false, false))
+    connectivity = connectivity_structured(trees_per_dimension..., (false, true))
 
     # TODO: The initial refinment level of 1 should not be hard-coded.
     p4est = new_p4est(connectivity, 1)
     p4est_pw = PointerWrapper(p4est)
+
+    # Non-periodic boundaries
+    boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
+
+    structured_boundary_names!(boundary_names, trees_per_dimension, (false, true))
 
     return P4estMeshView{NDIMS, eltype(parent.tree_node_coordinates),
                          typeof(parent.is_parallel),
@@ -59,7 +64,7 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
                          length(parent.nodes)}(PointerWrapper(p4est), parent.is_parallel,
                                                parent.ghost,
                                                tree_node_coordinates,
-                                               parent.nodes, parent.boundary_names,
+                                               parent.nodes, boundary_names,
                                                parent.current_filename,
                                                parent.unsaved_changes,
                                                parent.p4est_partition_allow_for_coarsening,
@@ -88,7 +93,7 @@ end
 Base.axes(mesh::P4estMeshView) = map(Base.OneTo, size(mesh))
 Base.axes(mesh::P4estMeshView, i) = Base.OneTo(size(mesh, i))
 
-function Base.show(io::IO, mesh::P4estMesh)
+function Base.show(io::IO, mesh::P4estMeshView)
     print(io, "P4estMeshView{", ndims(mesh), ", ", real(mesh), "}")
 end
 
