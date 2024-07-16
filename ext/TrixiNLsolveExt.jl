@@ -31,7 +31,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
                                                               monomial_coeffs, cS2)
     c_ts = compute_c_coeffs(num_stages, cS2) # ts = timestep
     # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
-    a_coeff = [0.0, c_ts[2], a_unknown...]
+    a_coeff = [0.0f0, c_ts[2], a_unknown...]
     # Equality constraint array that ensures that the stability polynomial computed from 
     # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
     # optimized stability polynomial.
@@ -62,7 +62,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
 
     c_eq[i] = monomial_coeffs[i] - term2
     # Third-order consistency condition (Cf. eq. (27) from https://doi.org/10.1016/j.jcp.2022.111470
-    c_eq[num_stage_evals - 2] = 1 - 4 * a_coeff[num_stage_evals] -
+    c_eq[num_stage_evals - 2] = 1.0f0 - 4.0f0 * a_coeff[num_stage_evals] -
                                 a_coeff[num_stage_evals - 1]
 
     return c_eq
@@ -95,11 +95,11 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
         # Due to the nature of the nonlinear solver, different initial guesses can lead to 
         # small numerical differences in the solution.
 
-        x0 = 0.1 .* rand(rng, num_stages - 2)
+        x0 = 0.1f0 .* rand(rng, num_stages - 2)
 
         sol = nlsolve(objective_function, x0, method = :trust_region,
-                      ftol = 4e-16, # Enforce objective up to machine precision
-                      iterations = 10^4, xtol = 1e-13)
+                      ftol = 4.0f-16, # Enforce objective up to machine precision
+                      iterations = 10^4, xtol = 1.0f-13)
 
         a_unknown = sol.zero # Retrieve solution (root = zero)
 
