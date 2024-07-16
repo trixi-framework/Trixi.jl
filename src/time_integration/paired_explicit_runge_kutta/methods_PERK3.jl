@@ -104,7 +104,7 @@ end
                       cS2 = 1.0)
     PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, cS2 = 1.0)
-    PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
+    PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
                       verbose = false, cS2 = 1.0)
 
     Parameters:
@@ -151,7 +151,7 @@ end
 
 # Constructor that computes Butcher matrix A coefficients from a semidiscretization
 function PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
-                           verbose = false, cS2 = 1)
+                           verbose = false, cS2 = 1.0)
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     return PairedExplicitRK3(num_stages, tspan, eig_vals; verbose, cS2)
@@ -159,7 +159,7 @@ end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
 function PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
-                           verbose = false, cS2 = 1)
+                           verbose = false, cS2 = 1.0)
     a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                             tspan,
                                                             eig_vals;
