@@ -31,7 +31,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
                                                               monomial_coeffs, cS2)
     c_ts = compute_c_coeffs(num_stages, cS2) # ts = timestep
     # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
-    a_coeff = [0.0f0, c_ts[2], a_unknown...]
+    a_coeff = [0, c_ts[2], a_unknown...]
     # Equality constraint array that ensures that the stability polynomial computed from 
     # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
     # optimized stability polynomial.
