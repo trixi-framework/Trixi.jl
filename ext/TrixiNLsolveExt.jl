@@ -98,8 +98,8 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
         x0 = convert(RealT, 0.1) .* rand(rng, RealT, num_stages - 2)
 
         sol = nlsolve(objective_function, x0, method = :trust_region,
-                      ftol = 4.0f-16, # Enforce objective up to machine precision
-                      iterations = 10^4, xtol = 1.0f-13)
+                      ftol = 4.0e-16, # Enforce objective up to machine precision
+                      iterations = 10^4, xtol = 1.0e-13)
 
         a_unknown = sol.zero # Retrieve solution (root = zero)
 
