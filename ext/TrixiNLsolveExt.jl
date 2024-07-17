@@ -84,6 +84,9 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
                                                                     c_s2)
     end
 
+    # RealT is determined as the type of the first element in monomial_coeffs to ensure type consistency
+    RealT = typeof(monomial_coeffs[1])
+
     # To ensure consistency and reproducibility of results across runs, we use 
     # a seeded random initial guess.
     rng = StableRNG(555)
