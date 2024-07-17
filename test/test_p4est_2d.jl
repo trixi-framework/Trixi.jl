@@ -127,8 +127,8 @@ end
 
 @trixi_testset "elixir_advection_p4estview.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_p4estview.jl"),
-                        l2=[8.311947672995606e-6],
-                        linf=[6.627000277448225e-5])
+                        l2=[1.842677076881425e-5],
+                        linf=[0.00013873258442609337])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

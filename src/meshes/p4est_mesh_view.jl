@@ -21,25 +21,33 @@ mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2
     parent::P4estMesh{NDIMS, RealT}
     indices_min::NTuple{NDIMS, Int}
     indices_max::NTuple{NDIMS, Int}
-#     view_cells::Array{Bool}
 end
 
 # function P4estMeshView(parent::P4estMesh{NDIMS, RealT}, view_cells::Array{Bool}) where {NDIMS, RealT}
 function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
                        indices_min = ntuple(_ -> 1, Val(NDIMS)),
                        indices_max = size(parent),
-                       coordinates_min = nothing, coordinates_max = nothing) where {NDIMS, RealT}
+                       coordinates_min = nothing, coordinates_max = nothing,
+                       periodicity = (true, true)) where {NDIMS, RealT}
+    trees_per_dimension = indices_max .- indices_min
+
     @assert indices_min <= indices_max
     @assert all(indices_min .> 0)
-#     @assert indices_max <= size(parent)
+    @assert prod(trees_per_dimension) <= size(parent)
 
     ghost = ghost_new_p4est(parent.p4est)
     ghost_pw = PointerWrapper(ghost)
 
     # Extract mapping
+    if isnothing(coordinates_min)
+        coordinates_min = minimum(parent.tree_node_coordinates)
+    end
+    if isnothing(coordinates_max)
+        coordinates_max = maximum(parent.tree_node_coordinates)
+    end
+
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
 
-    trees_per_dimension = indices_max .- indices_min
     tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
                                                     ntuple(_ -> length(parent.nodes),
                                                            NDIMS)...,
@@ -47,16 +55,16 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
     calc_tree_node_coordinates!(tree_node_coordinates, parent.nodes, mapping,
                                 trees_per_dimension)
 
-    connectivity = connectivity_structured(trees_per_dimension..., (false, true))
+    connectivity = connectivity_structured(trees_per_dimension..., periodicity)
 
-    # TODO: The initial refinment level of 1 should not be hard-coded.
+    # TODO: The initial refinement level of 1 should not be hard-coded.
     p4est = new_p4est(connectivity, 1)
     p4est_pw = PointerWrapper(p4est)
 
     # Non-periodic boundaries
     boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
 
-    structured_boundary_names!(boundary_names, trees_per_dimension, (false, true))
+    structured_boundary_names!(boundary_names, trees_per_dimension, periodicity)
 
     return P4estMeshView{NDIMS, eltype(parent.tree_node_coordinates),
                          typeof(parent.is_parallel),
@@ -184,8 +192,8 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep = 0;
     # Determine file name based on existence of meaningful time step
     if timestep > 0
         filename = joinpath(output_directory,
-                            @sprintf("mesh_%s_%06d.h5", system, timestep))
-        p4est_filename = @sprintf("p4est_data_%s_%06d", system, timestep)
+                            @sprintf("mesh_%s_%09d.h5", system, timestep))
+        p4est_filename = @sprintf("p4est_data_%s_%09d", system, timestep)
     else
         filename = joinpath(output_directory, "mesh.h5")
         p4est_filename = "p4est_data"

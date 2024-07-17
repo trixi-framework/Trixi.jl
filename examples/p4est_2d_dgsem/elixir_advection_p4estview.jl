@@ -22,12 +22,17 @@ trees_per_dimension = (8, 8)
 parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         coordinates_min = coordinates_min,
                         coordinates_max = coordinates_max,
-                        initial_refinement_level = 1)
-mesh = P4estMeshView(parent_mesh)
+                        initial_refinement_level = 1, periodicity = (false, true))
+mesh = P4estMeshView(parent_mesh; indices_min = (1, 1), indices_max = (4, 8),
+                     coordinates_min = coordinates_min, coordinates_max = (0.0, 1.0),
+                     periodicity = (false, true))
+
+boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition_convergence_test),
+                           :x_pos => BoundaryConditionDirichlet(initial_condition_convergence_test))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+                                    solver, boundary_conditions=boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
