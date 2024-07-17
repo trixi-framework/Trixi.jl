@@ -95,7 +95,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
         # Due to the nature of the nonlinear solver, different initial guesses can lead to 
         # small numerical differences in the solution.
 
-        x0 = 0.1f0 .* rand(rng, num_stages - 2)
+        x0 = convert(RealT, 0.1) .* rand(rng, RealT, num_stages - 2)
 
         sol = nlsolve(objective_function, x0, method = :trust_region,
                       ftol = 4.0f-16, # Enforce objective up to machine precision
