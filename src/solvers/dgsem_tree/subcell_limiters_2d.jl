@@ -2,7 +2,7 @@
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
-# @muladd begin
+@muladd begin
 #! format: noindent
 
 ###############################################################################
@@ -670,4 +670,4 @@ end
 @inline function final_check_nonnegative_newton_idp(bound, goal, newton_abstol)
     (goal <= eps()) && (goal > -max(newton_abstol, abs(bound) * newton_abstol))
 end
-# end # @muladd
+end # @muladd

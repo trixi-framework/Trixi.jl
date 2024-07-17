@@ -88,6 +88,14 @@ jobs:
             arch: x64
             trixi_test: structured
           - version: '1.10'
+            os: macos-latest
+            arch: aarch64
+            trixi_test: tree_part2
+          - version: '1.10'
+            os: macos-latest
+            arch: aarch64
+            trixi_test: structured
+          - version: '1.10'
             os: windows-latest
             arch: x64
             trixi_test: tree_part2
