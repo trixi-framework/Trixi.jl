@@ -32,7 +32,7 @@ boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_conditio
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver, boundary_conditions=boundary_conditions)
+                                    solver, boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
