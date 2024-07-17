@@ -443,14 +443,17 @@ end
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = nothing, Re = 1000)
     # Both Mach number and velocity set
-    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000, u0 = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000,
+                                                            u0 = 1.0)
     # Neither Reynolds number nor viscosity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = nothing)
     # Both Reynolds number and viscosity set
-    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000, nu = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000,
+                                                            nu = 1.0)
 
     # No non-dimensional values set
-    @test LatticeBoltzmannEquations2D(Ma = nothing, Re = nothing, u0 = 1, nu = 1) isa
+    @test LatticeBoltzmannEquations2D(Ma = nothing, Re = nothing, u0 = 1.0,
+                                      nu = 1.0) isa
           LatticeBoltzmannEquations2D
 end
 
@@ -458,14 +461,17 @@ end
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = nothing, Re = 1000)
     # Both Mach number and velocity set
-    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000, u0 = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000,
+                                                            u0 = 1.0)
     # Neither Reynolds number nor viscosity set
     @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = nothing)
     # Both Reynolds number and viscosity set
-    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000, nu = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000,
+                                                            nu = 1.0)
 
     # No non-dimensional values set
-    @test LatticeBoltzmannEquations3D(Ma = nothing, Re = nothing, u0 = 1, nu = 1) isa
+    @test LatticeBoltzmannEquations3D(Ma = nothing, Re = nothing, u0 = 1.0,
+                                      nu = 1.0) isa
           LatticeBoltzmannEquations3D
 end
 
