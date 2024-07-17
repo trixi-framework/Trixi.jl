@@ -77,16 +77,17 @@ A smooth initial condition used for convergence tests in combination with
 """
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations2D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
+    RealT = eltype(x)
     c = 7.0
-    omega_x = 2.0 * pi * sqrt(2.0)
-    omega_t = 2.0 * pi
+    omega_x = 2.0 * convert(RealT, pi) * sqrt(2.0)
+    omega_t = 2.0 * convert(RealT, pi)
 
     x1, x2 = x
 
     H = c + cos(omega_x * x1) * sin(omega_x * x2) * cos(omega_t * t)
     v1 = 0.5f0
     v2 = 1.5
-    b = 2.0 + 0.5f0 * sin(sqrt(2.0) * pi * x1) + 0.5f0 * sin(sqrt(2.0) * pi * x2)
+    b = 2.0 + 0.5f0 * sinpi(sqrt(2.0) * x1) + 0.5f0 * sinpi(sqrt(2.0) * x2)
     return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
@@ -98,17 +99,18 @@ Source terms used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
 This manufactured solution source term is specifically designed for the bottom topography function
-`b(x,y) = 2 + 0.5 * sin(sqrt(2)*pi*x) + 0.5 * sin(sqrt(2)*pi*y)`
+`b(x,y) = 2 + 0.5 * sinpi(sqrt(2) * x) + 0.5 * sinpi(sqrt(2) * y)`
 as defined in [`initial_condition_convergence_test`](@ref).
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::ShallowWaterEquations2D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocities are taken to be constants
+    RealT = eltype(u)
     c = 7.0
-    omega_x = 2.0 * pi * sqrt(2.0)
-    omega_t = 2.0 * pi
-    omega_b = sqrt(2.0) * pi
+    omega_x = 2.0 * convert(RealT, pi) * sqrt(2.0)
+    omega_t = 2.0 * convert(RealT, pi)
+    omega_b = sqrt(2.0) * convert(RealT, pi)
     v1 = 0.5f0
     v2 = 1.5
 
@@ -126,7 +128,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     H_t = -omega_t * cosX * sinY * sinT
 
     # bottom topography and its gradient
-    b = 2.0 + 0.5f0 * sin(sqrt(2.0) * pi * x1) + 0.5f0 * sin(sqrt(2.0) * pi * x2)
+    b = 2.0 + 0.5f0 * sinpi(sqrt(2.0) * x1) + 0.5f0 * sinpi(sqrt(2.0) * x2)
     tmp1 = 0.5f0 * omega_b
     b_x = tmp1 * cos(omega_b * x1)
     b_y = tmp1 * cos(omega_b * x2)

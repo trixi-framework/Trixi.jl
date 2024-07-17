@@ -72,7 +72,8 @@ function initial_condition_convergence_test(x, t,
                                             equations::ShallowWaterEquationsQuasi1D)
     # generates a manufactured solution. 
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
-    Omega = sqrt(2) * pi
+    RealT = eltype(x)
+    Omega = sqrt(2) * convert(RealT, pi)
     H = 2.0 + 0.5f0 * sin(Omega * x[1] - t)
     v = 0.25
     b = 0.2 - 0.05 * sin(Omega * x[1])
@@ -88,14 +89,15 @@ Source terms used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
 This manufactured solution source term is specifically designed for the bottom topography function
-`b(x) = 0.2 - 0.05 * sin(sqrt(2) * pi *x[1])` and channel width 'a(x)= 1 + 0.1 * cos(sqrt(2) * pi * x[1])'
+`b(x) = 0.2 - 0.05 * sinpi(sqrt(2) * x[1])` and channel width 'a(x)= 1 + 0.1 * cospi(sqrt(2) * x[1])'
 as defined in [`initial_condition_convergence_test`](@ref).
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::ShallowWaterEquationsQuasi1D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
-    Omega = sqrt(2) * pi
+    RealT = eltype(u)
+    Omega = sqrt(2) * convert(RealT, pi)
     H = 2.0 + 0.5f0 * sin(Omega * x[1] - t)
     H_x = 0.5f0 * cos(Omega * x[1] - t) * Omega
     H_t = -0.5f0 * cos(Omega * x[1] - t)
