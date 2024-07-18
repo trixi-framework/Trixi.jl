@@ -290,12 +290,11 @@ Further details are available in the paper:
     h_ll = waterheight(u_ll, equations)
     b_rr = u_rr[4]
 
-    z = 0
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     if orientation == 1
-        f = SVector(z, equations.gravity * h_ll * b_rr, z, z)
+        f = SVector(0, equations.gravity * h_ll * b_rr, 0, 0)
     else # orientation == 2
-        f = SVector(z, z, equations.gravity * h_ll * b_rr, z)
+        f = SVector(0, 0, equations.gravity * h_ll * b_rr, 0)
     end
     return f
 end
@@ -360,17 +359,16 @@ and for curvilinear 2D case in the paper:
     #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #        cross-averaging across a discontinuous bottom topography
     #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
-    z = 0
     if orientation == 1
-        f = SVector(z,
+        f = SVector(0,
                     equations.gravity * h_ll * b_ll +
                     equations.gravity * h_average * b_jump,
-                    z, z)
+                    0, 0)
     else # orientation == 2
-        f = SVector(z, z,
+        f = SVector(0, 0,
                     equations.gravity * h_ll * b_ll +
                     equations.gravity * h_average * b_jump,
-                    z)
+                    0)
     end
 
     return f
@@ -473,21 +471,20 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    z = 0
     # Includes two parts:
     #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #        cross-averaging across a discontinuous bottom topography
     #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
     if orientation == 1
-        f = SVector(z,
+        f = SVector(0,
                     equations.gravity * h_ll * b_ll +
                     equations.gravity * (h_ll^2 - h_ll_star^2),
-                    z, z)
+                    0, 0)
     else # orientation == 2
-        f = SVector(z, z,
+        f = SVector(0, 0,
                     equations.gravity * h_ll * b_ll +
                     equations.gravity * (h_ll^2 - h_ll_star^2),
-                    z)
+                    0)
     end
 
     return f
@@ -564,12 +561,11 @@ For further details see:
     # Calculate jump
     b_jump = b_rr - b_ll
 
-    z = 0
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     if orientation == 1
-        f = SVector(z, equations.gravity * h_ll * b_jump, z, z)
+        f = SVector(0, equations.gravity * h_ll * b_jump, 0, 0)
     else # orientation == 2
-        f = SVector(z, z, equations.gravity * h_ll * b_jump, z)
+        f = SVector(0, 0, equations.gravity * h_ll * b_jump, 0)
     end
     return f
 end

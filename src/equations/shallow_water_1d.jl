@@ -71,7 +71,6 @@ A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
-
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations1D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
     RealT = eltype(x)
@@ -256,12 +255,10 @@ and for curvilinear 2D case in the paper:
     #  (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #       cross-averaging across a discontinuous bottom topography
     #  (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
-    z = 0
-
-    f = SVector(z,
+    f = SVector(0,
                 equations.gravity * h_ll * b_ll +
                 equations.gravity * h_average * b_jump,
-                z)
+                0)
 
     return f
 end
@@ -296,15 +293,14 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    z = 0
     # Includes two parts:
     #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #        cross-averaging across a discontinuous bottom topography
     #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
-    return SVector(z,
+    return SVector(0,
                    equations.gravity * h_ll * b_ll +
                    equations.gravity * (h_ll^2 - h_ll_star^2),
-                   z)
+                   0)
 end
 
 """
@@ -337,10 +333,8 @@ For further details see:
     # Calculate jump
     b_jump = b_rr - b_ll
 
-    z = 0
-
     # Bottom gradient nonconservative term: (0, g h b_x, 0)
-    f = SVector(z, equations.gravity * h_ll * b_jump, z)
+    f = SVector(0, equations.gravity * h_ll * b_jump, 0)
 
     return f
 end

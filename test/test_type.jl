@@ -1949,6 +1949,24 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred lake_at_rest_error(u, equations)) == RealT
         end
     end
+
+    @timed_testset "Shallow Water 2D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred ShallowWaterEquations2D(gravity_constant = RealT(9.81))
+
+            x = SVector(zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT), one(RealT),
+                                                       one(RealT), one(RealT), one(RealT))
+            orientations = [1, 2]
+            directions = [1, 2, 3, 4]
+            normal_direction = SVector(one(RealT), zero(RealT))
+
+            surface_flux_function = flux_lax_friedrichs
+            dissipation = DissipationLocalLaxFriedrichs()
+            numflux = FluxHLL()
+        end
+    end
 end
 
 end # module
