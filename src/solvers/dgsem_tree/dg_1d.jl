@@ -61,8 +61,9 @@ end
 
 function create_cache(mesh::Union{TreeMesh{1}, StructuredMesh{1}, P4estMesh{1}},
                       equations,
-                      volume_integral::VolumeIntegralPureLGLFiniteVolume, dg::DG,
-                      uEltype)
+                      volume_integral::Union{VolumeIntegralPureLGLFiniteVolume,
+                                             VolumeIntegralPureLGLFiniteVolumeO2},
+                      dg::DG, uEltype)
     A2dp1_x = Array{uEltype, 2}
     fstar1_L_threaded = A2dp1_x[A2dp1_x(undef, nvariables(equations), nnodes(dg) + 1)
                                 for _ in 1:Threads.nthreads()]
@@ -309,6 +310,24 @@ function calc_volume_integral!(du, u,
     return nothing
 end
 
+function calc_volume_integral!(du, u,
+                               mesh::TreeMesh{1},
+                               nonconservative_terms, equations,
+                               volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
+                               dg::DGSEM, cache)
+    @unpack x_interfaces, volume_flux_fv, reconstruction_mode, slope_limiter = volume_integral
+
+    # Calculate LGL second-order FV volume integral
+    @threaded for element in eachelement(dg, cache)
+        fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
+                   dg, cache, element,
+                   x_interfaces, reconstruction_mode, slope_limiter,
+                   true)
+    end
+
+    return nothing
+end
+
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                             nonconservative_terms, equations,
@@ -322,6 +341,35 @@ end
     calcflux_fv!(fstar1_L, fstar1_R, u, mesh, nonconservative_terms, equations,
                  volume_flux_fv,
                  dg, element, cache)
+
+    # Calculate FV volume integral contribution
+    for i in eachnode(dg)
+        for v in eachvariable(equations)
+            du[v, i, element] += (alpha *
+                                  (inverse_weights[i] *
+                                   (fstar1_L[v, i + 1] - fstar1_R[v, i])))
+        end
+    end
+
+    return nothing
+end
+
+@inline function fv_kernel!(du, u,
+                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                            nonconservative_terms, equations,
+                            volume_flux_fv, dg::DGSEM, cache, element,
+                            x_interfaces, reconstruction_mode, slope_limiter,
+                            alpha = true)
+    @unpack fstar1_L_threaded, fstar1_R_threaded = cache
+    @unpack inverse_weights = dg.basis
+
+    # Calculate FV two-point fluxes
+    fstar1_L = fstar1_L_threaded[Threads.threadid()]
+    fstar1_R = fstar1_R_threaded[Threads.threadid()]
+    calcflux_fv!(fstar1_L, fstar1_R, u, mesh, nonconservative_terms, equations,
+                 volume_flux_fv,
+                 dg, element, cache,
+                 x_interfaces, reconstruction_mode, slope_limiter)
 
     # Calculate FV volume integral contribution
     for i in eachnode(dg)
@@ -383,6 +431,57 @@ end
         # Copy to temporary storage
         set_node_vars!(fstar1_L, f1_L, equations, dg, i)
         set_node_vars!(fstar1_R, f1_R, equations, dg, i)
+    end
+
+    return nothing
+end
+
+@inline function calcflux_fv!(fstar1_L, fstar1_R, u::AbstractArray{<:Any, 3},
+                              mesh::Union{TreeMesh{1}, StructuredMesh{1}},
+                              nonconservative_terms::False,
+                              equations, volume_flux_fv, dg::DGSEM, element, cache,
+                              x_interfaces, reconstruction_mode, slope_limiter)
+    fstar1_L[:, 1] .= zero(eltype(fstar1_L))
+    fstar1_L[:, nnodes(dg) + 1] .= zero(eltype(fstar1_L))
+    fstar1_R[:, 1] .= zero(eltype(fstar1_R))
+    fstar1_R[:, nnodes(dg) + 1] .= zero(eltype(fstar1_R))
+
+    for i in 2:nnodes(dg)
+        #             Reference element:             
+        #  -1 -----------------0----------------- 1 -> x
+        # Gauss Lobatto Legendre nodes (schematic for k = 3):
+        #   .         .                 .         .
+        #   ^         ^                 ^         ^
+        # i - 2,    i - 1,               i,     i + 1
+        # mm        ll                   rr     pp
+        # Cell boundaries (schematic for k = 3): 
+        # (note that only the inner three boundaries are stored)
+        #  -1 -----------------0----------------- 1 -> x
+        #   |     |            |             |    |
+        # Cell index:
+        #      1         2              3       4
+
+        # Obtain unlimited values in primal variables
+        # TODO: If i - 2 = 0 go to neighbor element?
+        u_mm = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
+                         equations)
+        u_ll = cons2prim(get_node_vars(u, equations, dg, i - 1, element), equations)
+        u_rr = cons2prim(get_node_vars(u, equations, dg, i, element), equations)
+        # TODO: If i + 1 > nnodes(dg) go to neighbor element?
+        u_pp = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1),
+                                       element), equations)
+
+        # Reconstruct values with limiting
+        u_ll, u_rr = reconstruction_mode(u_mm, u_ll, u_rr, u_pp,
+                                         x_interfaces,
+                                         i, slope_limiter, dg)
+
+        # Convert primal variables back to conservative variables
+        flux = volume_flux_fv(prim2cons(u_ll, equations), prim2cons(u_rr, equations),
+                              1, equations) # orientation 1: x direction
+
+        set_node_vars!(fstar1_L, flux, equations, dg, i)
+        set_node_vars!(fstar1_R, flux, equations, dg, i)
     end
 
     return nothing

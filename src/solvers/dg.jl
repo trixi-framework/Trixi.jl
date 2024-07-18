@@ -185,6 +185,64 @@ function Base.show(io::IO, ::MIME"text/plain",
 end
 
 """
+    VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
+                                        volume_flux_fv = flux_lax_friedrichs,
+                                        reconstruction_mode = reconstruction_small_stencil,
+                                        slope_limiter = minmod)
+
+This gives a formally O(2)-accurate finite volume scheme on an LGL-type subcell
+mesh (LGL = Legendre-Gauss-Lobatto).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+## References
+
+- Hennemann, Gassner (2020)
+  "A provably entropy stable subcell shock capturing approach for high order split form DG"
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+struct VolumeIntegralPureLGLFiniteVolumeO2{RealT, Basis, VolumeFluxFV, Reconstruction,
+                                           Limiter} <: AbstractVolumeIntegral
+    x_interfaces::Vector{RealT} # x-coordinates of the sub-cell element interfaces
+    volume_flux_fv::VolumeFluxFV # non-symmetric in general, e.g. entropy-dissipative
+    reconstruction_mode::Reconstruction # which type of FV reconstruction to use
+    slope_limiter::Limiter # which type of slope limiter function
+end
+
+function VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
+                                             volume_flux_fv = flux_lax_friedrichs,
+                                             reconstruction_mode = reconstruction_small_stencil,
+                                             slope_limiter = minmod) where {Basis}
+    # Suffices to store only the intermediate boundaries of the sub-cell elements                                             
+    x_interfaces = cumsum(basis.weights)[1:(end - 1)] .- 1
+    VolumeIntegralPureLGLFiniteVolumeO2{eltype(basis.weights),
+                                        typeof(basis),
+                                        typeof(volume_flux_fv),
+                                        typeof(reconstruction_mode),
+                                        typeof(slope_limiter)}(x_interfaces,
+                                                               volume_flux_fv,
+                                                               reconstruction_mode,
+                                                               slope_limiter)
+end
+
+function Base.show(io::IO, ::MIME"text/plain",
+                   integral::VolumeIntegralPureLGLFiniteVolumeO2)
+    @nospecialize integral # reduce precompilation time
+
+    if get(io, :compact, false)
+        show(io, integral)
+    else
+        setup = [
+            "FV flux" => integral.volume_flux_fv,
+            "Reconstruction" => integral.reconstruction_mode,
+            "Slope limiter" => integral.slope_limiter,
+        ]
+        summary_box(io, "VolumeIntegralPureLGLFiniteVolumeO2", setup)
+    end
+end
+
+"""
     VolumeIntegralSubcellLimiting(limiter;
                                   volume_flux_dg, volume_flux_fv)
 

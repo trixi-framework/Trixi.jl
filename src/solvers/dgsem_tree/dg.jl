@@ -63,6 +63,9 @@ include("dg_parallel.jl")
 # Helper structs for parabolic AMR
 include("containers_viscous.jl")
 
+# Some standard functions for the canonical second-order FV (MUSCL) scheme
+include("finite_volume_O2.jl")
+
 # 1D DG implementation
 include("dg_1d.jl")
 include("dg_1d_parabolic.jl")
