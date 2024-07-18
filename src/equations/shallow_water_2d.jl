@@ -78,16 +78,17 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations2D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]^2
     RealT = eltype(x)
-    c = 7.0
-    omega_x = 2.0 * convert(RealT, pi) * sqrt(2.0)
-    omega_t = 2.0 * convert(RealT, pi)
+    c = 7
+    omega_x = 2 * convert(RealT, pi) * sqrt(convert(RealT, 2))
+    omega_t = 2 * convert(RealT, pi)
 
     x1, x2 = x
 
     H = c + cos(omega_x * x1) * sin(omega_x * x2) * cos(omega_t * t)
     v1 = 0.5f0
-    v2 = 1.5
-    b = 2.0 + 0.5f0 * sinpi(sqrt(2.0) * x1) + 0.5f0 * sinpi(sqrt(2.0) * x2)
+    v2 = 1.5f0
+    b = 2 + 0.5f0 * sinpi(sqrt(convert(RealT, 2)) * x1) +
+        0.5f0 * sinpi(sqrt(convert(RealT, 2)) * x2)
     return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
@@ -107,12 +108,12 @@ as defined in [`initial_condition_convergence_test`](@ref).
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocities are taken to be constants
     RealT = eltype(u)
-    c = 7.0
-    omega_x = 2.0 * convert(RealT, pi) * sqrt(2.0)
-    omega_t = 2.0 * convert(RealT, pi)
-    omega_b = sqrt(2.0) * convert(RealT, pi)
+    c = 7
+    omega_x = 2 * convert(RealT, pi) * sqrt(convert(RealT, 2))
+    omega_t = 2 * convert(RealT, pi)
+    omega_b = sqrt(convert(RealT, 2)) * convert(RealT, pi)
     v1 = 0.5f0
-    v2 = 1.5
+    v2 = 1.5f0
 
     x1, x2 = x
 
@@ -128,7 +129,8 @@ as defined in [`initial_condition_convergence_test`](@ref).
     H_t = -omega_t * cosX * sinY * sinT
 
     # bottom topography and its gradient
-    b = 2.0 + 0.5f0 * sinpi(sqrt(2.0) * x1) + 0.5f0 * sinpi(sqrt(2.0) * x2)
+    b = 2 + 0.5f0 * sinpi(sqrt(convert(RealT, 2)) * x1) +
+        0.5f0 * sinpi(sqrt(convert(RealT, 2)) * x2)
     tmp1 = 0.5f0 * omega_b
     b_x = tmp1 * cos(omega_b * x1)
     b_y = tmp1 * cos(omega_b * x2)
@@ -136,7 +138,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     du1 = H_t + v1 * (H_x - b_x) + v2 * (H_y - b_y)
     du2 = v1 * du1 + equations.gravity * (H - b) * H_x
     du3 = v2 * du1 + equations.gravity * (H - b) * H_y
-    return SVector(du1, du2, du3, 0.0)
+    return SVector(du1, du2, du3, 0)
 end
 
 """
@@ -147,7 +149,7 @@ Note for the shallow water equations to the total energy acts as a mathematical 
 """
 function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations2D)
     # Set up polar coordinates
-    inicenter = SVector(0.7, 0.7)
+    inicenter = SVector(convert(RealT, 0.7), convert(RealT, 0.7))
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
@@ -155,10 +157,10 @@ function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquation
     sin_phi, cos_phi = sincos(phi)
 
     # Calculate primitive variables
-    H = r > 0.5f0 ? 3.25 : 4.0
-    v1 = r > 0.5f0 ? 0.0 : 0.1882 * cos_phi
-    v2 = r > 0.5f0 ? 0.0 : 0.1882 * sin_phi
-    b = 0.0 # by default assume there is no bottom topography
+    H = r > 0.5f0 ? 3.25f0 : 4.0f0
+    v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
+    v2 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * sin_phi
+    b = 0 # by default assume there is no bottom topography
 
     return prim2cons(SVector(H, v1, v2, b), equations)
 end
@@ -187,8 +189,8 @@ For details see Section 9.2.5 of the book:
 
     # create the "external" boundary solution state
     u_boundary = SVector(u_inner[1],
-                         u_inner[2] - 2.0 * u_normal * normal[1],
-                         u_inner[3] - 2.0 * u_normal * normal[2],
+                         u_inner[2] - 2 * u_normal * normal[1],
+                         u_inner[3] - 2 * u_normal * normal[2],
                          u_inner[4])
 
     # calculate the boundary flux
@@ -240,7 +242,7 @@ end
         f2 = h_v2 * v1
         f3 = h_v2 * v2 + p
     end
-    return SVector(f1, f2, f3, zero(eltype(u)))
+    return SVector(f1, f2, f3, 0)
 end
 
 # Calculate 1D flux for a single point in the normal direction
@@ -257,7 +259,7 @@ end
     f1 = h_v_normal
     f2 = h_v_normal * v1 + p * normal_direction[1]
     f3 = h_v_normal * v2 + p * normal_direction[2]
-    return SVector(f1, f2, f3, zero(eltype(u)))
+    return SVector(f1, f2, f3, 0)
 end
 
 """
@@ -288,7 +290,7 @@ Further details are available in the paper:
     h_ll = waterheight(u_ll, equations)
     b_rr = u_rr[4]
 
-    z = zero(eltype(u_ll))
+    z = 0
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     if orientation == 1
         f = SVector(z, equations.gravity * h_ll * b_rr, z, z)
@@ -307,10 +309,10 @@ end
     b_rr = u_rr[4]
     # Note this routine only uses the `normal_direction_average` and the average of the
     # bottom topography to get a quadratic split form DG gradient on curved elements
-    return SVector(zero(eltype(u_ll)),
+    return SVector(0,
                    normal_direction_average[1] * equations.gravity * h_ll * b_rr,
                    normal_direction_average[2] * equations.gravity * h_ll * b_rr,
-                   zero(eltype(u_ll)))
+                   0)
 end
 
 """
@@ -358,7 +360,7 @@ and for curvilinear 2D case in the paper:
     #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #        cross-averaging across a discontinuous bottom topography
     #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
-    z = zero(eltype(u_ll))
+    z = 0
     if orientation == 1
         f = SVector(z,
                     equations.gravity * h_ll * b_ll +
@@ -398,7 +400,7 @@ end
     f3 += normal_direction_ll[2] * equations.gravity * h_average * b_jump
 
     # First and last equations do not have a nonconservative flux
-    f1 = f4 = zero(eltype(u_ll))
+    f1 = f4 = 0
 
     return SVector(f1, f2, f3, f4)
 end
@@ -428,8 +430,8 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
     v1_rr, v2_rr = velocity(u_rr, equations)
 
     # Compute the reconstructed water heights
-    h_ll_star = max(zero(h_ll), h_ll + b_ll - max(b_ll, b_rr))
-    h_rr_star = max(zero(h_rr), h_rr + b_rr - max(b_ll, b_rr))
+    h_ll_star = max(0, h_ll + b_ll - max(b_ll, b_rr))
+    h_rr_star = max(0, h_rr + b_rr - max(b_ll, b_rr))
 
     # Create the conservative variables using the reconstruted water heights
     u_ll_star = SVector(h_ll_star, h_ll_star * v1_ll, h_ll_star * v2_ll, b_ll)
@@ -471,7 +473,7 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    z = zero(eltype(u_ll))
+    z = 0
     # Includes two parts:
     #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #        cross-averaging across a discontinuous bottom topography
@@ -518,7 +520,7 @@ end
     f3 += normal_direction_ll[2] * equations.gravity * (h_ll^2 - h_ll_star^2)
 
     # First and last equations do not have a nonconservative flux
-    f1 = f4 = zero(eltype(u_ll))
+    f1 = f4 = 0
 
     return SVector(f1, f2, f3, f4)
 end
@@ -562,7 +564,7 @@ For further details see:
     # Calculate jump
     b_jump = b_rr - b_ll
 
-    z = zero(eltype(u_ll))
+    z = 0
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     if orientation == 1
         f = SVector(z, equations.gravity * h_ll * b_jump, z, z)
@@ -585,10 +587,10 @@ end
     b_jump = b_rr - b_ll
     # Note this routine only uses the `normal_direction_average` and the average of the
     # bottom topography to get a quadratic split form DG gradient on curved elements
-    return SVector(zero(eltype(u_ll)),
+    return SVector(0,
                    normal_direction_average[1] * equations.gravity * h_ll * b_jump,
                    normal_direction_average[2] * equations.gravity * h_ll * b_jump,
-                   zero(eltype(u_ll)))
+                   0)
 end
 
 """
@@ -616,7 +618,7 @@ Details are available in Eq. (4.1) in the paper:
     h_avg = 0.5f0 * (h_ll + h_rr)
     v1_avg = 0.5f0 * (v1_ll + v1_rr)
     v2_avg = 0.5f0 * (v2_ll + v2_rr)
-    p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
+    p_avg = 0.25f0 * equations.gravity * (h_ll^2 + h_rr^2)
 
     # Calculate fluxes depending on orientation
     if orientation == 1
@@ -629,7 +631,7 @@ Details are available in Eq. (4.1) in the paper:
         f3 = f1 * v2_avg + p_avg
     end
 
-    return SVector(f1, f2, f3, zero(eltype(u_ll)))
+    return SVector(f1, f2, f3, 0)
 end
 
 @inline function flux_fjordholm_etal(u_ll, u_rr, normal_direction::AbstractVector,
@@ -656,7 +658,7 @@ end
     f2 = f1 * v1_avg + p_avg * normal_direction[1]
     f3 = f1 * v2_avg + p_avg * normal_direction[2]
 
-    return SVector(f1, f2, f3, zero(eltype(u_ll)))
+    return SVector(f1, f2, f3, 0)
 end
 
 """
@@ -699,7 +701,7 @@ Further details are available in Theorem 1 of the paper:
         f3 = f1 * v2_avg + p_avg
     end
 
-    return SVector(f1, f2, f3, zero(eltype(u_ll)))
+    return SVector(f1, f2, f3, 0)
 end
 
 @inline function flux_wintermeyer_etal(u_ll, u_rr, normal_direction::AbstractVector,
@@ -724,7 +726,7 @@ end
     f2 = f1 * v1_avg + p_avg * normal_direction[1]
     f3 = f1 * v2_avg + p_avg * normal_direction[2]
 
-    return SVector(f1, f2, f3, zero(eltype(u_ll)))
+    return SVector(f1, f2, f3, 0)
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
@@ -774,7 +776,7 @@ end
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
     diss = -0.5f0 * λ * (u_rr - u_ll)
-    return SVector(diss[1], diss[2], diss[3], zero(eltype(u_ll)))
+    return SVector(diss[1], diss[2], diss[3], 0)
 end
 
 # Specialized `FluxHLL` to avoid spurious dissipation in the bottom topography
@@ -796,7 +798,7 @@ end
         factor_diss = λ_min * λ_max * inv_λ_max_minus_λ_min
         diss = u_rr - u_ll
         return factor_ll * f_ll - factor_rr * f_rr +
-               factor_diss * SVector(diss[1], diss[2], diss[3], zero(eltype(u_ll)))
+               factor_diss * SVector(diss[1], diss[2], diss[3], 0)
     end
 end
 

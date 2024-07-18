@@ -75,13 +75,13 @@ A smooth initial condition used for convergence tests in combination with
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations1D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
     RealT = eltype(x)
-    c = 7.0
-    omega_x = 2.0 * convert(RealT, pi) * sqrt(2.0)
-    omega_t = 2.0 * convert(RealT, pi)
+    c = 7
+    omega_x = 2 * convert(RealT, pi) * sqrt(convert(RealT, 2))
+    omega_t = 2 * convert(RealT, pi)
 
     H = c + cos(omega_x * x[1]) * cos(omega_t * t)
     v = 0.5f0
-    b = 2.0 + 0.5f0 * sinpi(sqrt(2.0) * x[1])
+    b = 2 + 0.5f0 * sinpi(sqrt(convert(RealT, 2)) * x[1])
     return prim2cons(SVector(H, v, b), equations)
 end
 
@@ -102,10 +102,10 @@ as defined in [`initial_condition_convergence_test`](@ref).
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
     RealT = eltype(u)
-    c = 7.0
-    omega_x = 2.0 * convert(RealT, pi) * sqrt(2.0)
-    omega_t = 2.0 * convert(RealT, pi)
-    omega_b = sqrt(2.0) * convert(RealT, pi)
+    c = 7
+    omega_x = 2 * convert(RealT, pi) * sqrt(convert(RealT, 2))
+    omega_t = 2 * convert(RealT, pi)
+    omega_b = sqrt(convert(RealT, 2)) * convert(RealT, pi)
     v = 0.5f0
 
     sinX, cosX = sincos(omega_x * x[1])
@@ -118,12 +118,12 @@ as defined in [`initial_condition_convergence_test`](@ref).
     H_t = -omega_t * cosX * sinT
 
     # bottom topography and its spatial derivative
-    b = 2.0 + 0.5f0 * sinpi(sqrt(2.0) * x[1])
+    b = 2 + 0.5f0 * sinpi(sqrt(convert(RealT, 2)) * x[1])
     b_x = 0.5f0 * omega_b * cos(omega_b * x[1])
 
     du1 = H_t + v * (H_x - b_x)
     du2 = v * du1 + equations.gravity * (H - b) * H_x
-    return SVector(du1, du2, 0.0)
+    return SVector(du1, du2, 0)
 end
 
 """
@@ -133,13 +133,14 @@ A weak blast wave discontinuity useful for testing, e.g., total energy conservat
 Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
 function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations1D)
-    inicenter = 0.7
+    RealT = eltype(x)
+    inicenter = convert(RealT, 0.7)
     x_norm = x[1] - inicenter
     r = abs(x_norm)
 
     # Calculate primitive variables
-    H = r > 0.5f0 ? 3.25 : 4.0
-    v = r > 0.5f0 ? 0.0 : 0.1882
+    H = r > 0.5f0 ? 3.25f0 : 4.0f0
+    v = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882)
     b = sin(x[1]) # arbitrary continuous function
 
     return prim2cons(SVector(H, v, b), equations)
@@ -192,7 +193,7 @@ end
     f1 = h_v
     f2 = h_v * v + p
 
-    return SVector(f1, f2, zero(eltype(u)))
+    return SVector(f1, f2, 0)
 end
 
 """
@@ -214,7 +215,7 @@ Further details are available in the paper:
     h_ll = waterheight(u_ll, equations)
     b_rr = u_rr[3]
 
-    z = zero(eltype(u_ll))
+    z = 0
 
     # Bottom gradient nonconservative term: (0, g h b_x, 0)
     f = SVector(z, equations.gravity * h_ll * b_rr, z)
@@ -258,7 +259,7 @@ and for curvilinear 2D case in the paper:
     #  (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #       cross-averaging across a discontinuous bottom topography
     #  (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
-    z = zero(eltype(u_ll))
+    z = 0
 
     f = SVector(z,
                 equations.gravity * h_ll * b_ll +
@@ -298,7 +299,7 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    z = zero(eltype(u_ll))
+    z = 0
     # Includes two parts:
     #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #        cross-averaging across a discontinuous bottom topography
@@ -339,7 +340,7 @@ For further details see:
     # Calculate jump
     b_jump = b_rr - b_ll
 
-    z = zero(eltype(u_ll))
+    z = 0
 
     # Bottom gradient nonconservative term: (0, g h b_x, 0)
     f = SVector(z, equations.gravity * h_ll * b_jump, z)
@@ -371,13 +372,13 @@ Details are available in Eq. (4.1) in the paper:
     # Average each factor of products in flux
     h_avg = 0.5f0 * (h_ll + h_rr)
     v_avg = 0.5f0 * (v_ll + v_rr)
-    p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
+    p_avg = 0.25f0 * equations.gravity * (h_ll^2 + h_rr^2)
 
     # Calculate fluxes depending on orientation
     f1 = h_avg * v_avg
     f2 = f1 * v_avg + p_avg
 
-    return SVector(f1, f2, zero(eltype(u_ll)))
+    return SVector(f1, f2, 0)
 end
 
 """
@@ -412,7 +413,7 @@ Further details are available in Theorem 1 of the paper:
     f1 = 0.5f0 * (h_v_ll + h_v_rr)
     f2 = f1 * v_avg + p_avg
 
-    return SVector(f1, f2, zero(eltype(u_ll)))
+    return SVector(f1, f2, 0)
 end
 
 """
@@ -440,8 +441,8 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
     v1_rr = velocity(u_rr, equations)
 
     # Compute the reconstructed water heights
-    h_ll_star = max(zero(h_ll), h_ll + b_ll - max(b_ll, b_rr))
-    h_rr_star = max(zero(h_rr), h_rr + b_rr - max(b_ll, b_rr))
+    h_ll_star = max(0, h_ll + b_ll - max(b_ll, b_rr))
+    h_rr_star = max(0, h_rr + b_rr - max(b_ll, b_rr))
 
     # Create the conservative variables using the reconstruted water heights
     u_ll_star = SVector(h_ll_star, h_ll_star * v1_ll, b_ll)
@@ -474,7 +475,7 @@ end
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
     diss = -0.5f0 * λ * (u_rr - u_ll)
-    return SVector(diss[1], diss[2], zero(eltype(u_ll)))
+    return SVector(diss[1], diss[2], 0)
 end
 
 # Specialized `FluxHLL` to avoid spurious dissipation in the bottom topography
@@ -496,7 +497,7 @@ end
         factor_diss = λ_min * λ_max * inv_λ_max_minus_λ_min
         diss = u_rr - u_ll
         return factor_ll * f_ll - factor_rr * f_rr +
-               factor_diss * SVector(diss[1], diss[2], zero(eltype(u_ll)))
+               factor_diss * SVector(diss[1], diss[2], 0)
     end
 end
 

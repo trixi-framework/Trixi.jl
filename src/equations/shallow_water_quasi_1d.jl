@@ -73,11 +73,11 @@ function initial_condition_convergence_test(x, t,
     # generates a manufactured solution. 
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
     RealT = eltype(x)
-    Omega = sqrt(2) * convert(RealT, pi)
-    H = 2.0 + 0.5f0 * sin(Omega * x[1] - t)
-    v = 0.25
-    b = 0.2 - 0.05 * sin(Omega * x[1])
-    a = 1 + 0.1 * cos(Omega * x[1])
+    Omega = sqrt(convert(RealT, 2)) * convert(RealT, pi)
+    H = 2 + 0.5f0 * sin(Omega * x[1] - t)
+    v = 0.25f0
+    b = convert(RealT, 0.2) - convert(RealT, 0.05) * sin(Omega * x[1])
+    a = 1 + convert(RealT, 0.1) * cos(Omega * x[1])
     return prim2cons(SVector(H, v, b, a), equations)
 end
 
@@ -97,23 +97,23 @@ as defined in [`initial_condition_convergence_test`](@ref).
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
     RealT = eltype(u)
-    Omega = sqrt(2) * convert(RealT, pi)
-    H = 2.0 + 0.5f0 * sin(Omega * x[1] - t)
+    Omega = sqrt(convert(RealT, 2)) * convert(RealT, pi)
+    H = 2 + 0.5f0 * sin(Omega * x[1] - t)
     H_x = 0.5f0 * cos(Omega * x[1] - t) * Omega
     H_t = -0.5f0 * cos(Omega * x[1] - t)
 
-    v = 0.25
+    v = 0.25f0
 
-    b = 0.2 - 0.05 * sin(Omega * x[1])
-    b_x = -0.05 * cos(Omega * x[1]) * Omega
+    b = convert(RealT, 0.2) - convert(RealT, 0.05) * sin(Omega * x[1])
+    b_x = -convert(RealT, 0.05) * cos(Omega * x[1]) * Omega
 
-    a = 1 + 0.1 * cos(Omega * x[1])
-    a_x = -0.1 * sin(Omega * x[1]) * Omega
+    a = 1 + convert(RealT, 0.1) * cos(Omega * x[1])
+    a_x = -convert(RealT, 0.1) * sin(Omega * x[1]) * Omega
 
     du1 = a * H_t + v * (a_x * (H - b) + a * (H_x - b_x))
     du2 = v * du1 + a * (equations.gravity * (H - b) * H_x)
 
-    return SVector(du1, du2, 0.0, 0.0)
+    return SVector(du1, du2, 0, 0)
 end
 
 # Calculate 1D conservative flux for a single point
@@ -125,7 +125,7 @@ end
     f1 = a_h_v
     f2 = a_h_v * v
 
-    return SVector(f1, f2, zero(eltype(u)), zero(eltype(u)))
+    return SVector(f1, f2, 0, 0)
 end
 
 """
@@ -155,7 +155,7 @@ Further details are available in the paper:
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
 
-    z = zero(eltype(u_ll))
+    z = 0
 
     return SVector(z, equations.gravity * a_ll * h_ll * (h_rr + b_rr), z, z)
 end
@@ -205,7 +205,7 @@ Further details are available in the paper:
     f1 = 0.5f0 * (a_h_v_ll + a_h_v_rr)
     f2 = f1 * 0.5f0 * (v_ll + v_rr)
 
-    return SVector(f1, f2, zero(eltype(u_ll)), zero(eltype(u_ll)))
+    return SVector(f1, f2, 0, 0)
 end
 
 # While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
@@ -243,7 +243,7 @@ end
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
     diss = -0.5f0 * λ * (u_rr - u_ll)
-    return SVector(diss[1], diss[2], zero(eltype(u_ll)), zero(eltype(u_ll)))
+    return SVector(diss[1], diss[2], 0, 0)
 end
 
 @inline function max_abs_speeds(u, equations::ShallowWaterEquationsQuasi1D)
