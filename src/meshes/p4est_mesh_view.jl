@@ -208,7 +208,7 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep = 0;
     # Open file (clobber existing content)
     h5open(filename, "w") do file
         # Add context information as attributes
-        attributes(file)["mesh_type"] = get_name(mesh)
+        attributes(file)["mesh_type"] = get_name(mesh.parent)
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["p4est_file"] = p4est_filename
 
