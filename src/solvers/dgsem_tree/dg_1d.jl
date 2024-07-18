@@ -311,7 +311,7 @@ function calc_volume_integral!(du, u,
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{1},
+                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolumeO2,
                                dg::DGSEM, cache)
