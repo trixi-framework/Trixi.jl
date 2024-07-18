@@ -155,9 +155,7 @@ Further details are available in the paper:
     h_ll = waterheight(u_ll, equations)
     h_rr = waterheight(u_rr, equations)
 
-    z = 0
-
-    return SVector(z, equations.gravity * a_ll * h_ll * (h_rr + b_rr), z, z)
+    return SVector(0, equations.gravity * a_ll * h_ll * (h_rr + b_rr), 0, 0)
 end
 
 # While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 

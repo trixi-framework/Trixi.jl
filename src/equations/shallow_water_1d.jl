@@ -96,7 +96,6 @@ This manufactured solution source term is specifically designed for the bottom t
 `b(x) = 2.0 + 0.5 * sinpi(sqrt(2.0) * x[1])`
 as defined in [`initial_condition_convergence_test`](@ref).
 """
-
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::ShallowWaterEquations1D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
@@ -215,10 +214,8 @@ Further details are available in the paper:
     h_ll = waterheight(u_ll, equations)
     b_rr = u_rr[3]
 
-    z = 0
-
     # Bottom gradient nonconservative term: (0, g h b_x, 0)
-    f = SVector(z, equations.gravity * h_ll * b_rr, z)
+    f = SVector(0, equations.gravity * h_ll * b_rr, 0)
 
     return f
 end
