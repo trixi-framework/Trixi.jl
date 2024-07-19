@@ -1,14 +1,31 @@
-@inline function linear_reconstruction(u_ll, u_rr, ux_ll, ux_rr, x_ll, x_rr, x_interfaces, node_index)
+@inline function linear_reconstruction(u_ll, u_rr, ux_ll, ux_rr,
+                                       x_ll, x_rr, x_interfaces, node_index)
     # Linear reconstruction at the interface
     u_ll = u_ll + ux_ll * (x_interfaces[node_index - 1] - x_ll)
     u_rr = u_rr + ux_rr * (x_interfaces[node_index - 1] - x_rr)
 
     return u_ll, u_rr
 end
+# TODO: Different reconstructions, see
+# https://github.com/trixi-framework/Trixi.jl/pull/433/files
+
+"""
+    reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
+                            x_interfaces,
+                            node_index, limiter, dg)
+
+Returns the constant "reconstructed" values at the interface `x_interfaces[node_index - 1]`
+obtained from constant polynomials.
+Formally O(1) accurate.
+"""
+@inline function reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
+                                         x_interfaces,
+                                         node_index, limiter, dg)
+    return u_ll, u_rr
+end
 
 @inline function reconstruction_small_stencil(u_mm, u_ll, u_rr, u_pp,
-                                              x_interfaces,
-                                              node_index, limiter, dg)
+                                              x_interfaces, node_index, limiter, dg)
     #             Reference element:             
     #  -1 -----------------0----------------- 1 -> x
     # Gauss Lobatto Legendre nodes (schematic for k = 3):
@@ -48,30 +65,12 @@ end
     linear_reconstruction(u_ll, u_rr, ux_ll, ux_rr, x_ll, x_rr, x_interfaces, node_index)
 end
 
-# TODO: Different reconstructions, see
-# https://github.com/trixi-framework/Trixi.jl/pull/433/files
-
-"""
-    reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
-                            x_interfaces,
-                            node_index, limiter, dg)
-
-Returns the constant "reconstructed" values at the interface `x_interfaces[node_index - 1]`
-obtained from constant polynomials.
-Formally O(1) accurate.
-"""
-@inline function reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
-                                         x_interfaces,
-                                         node_index, limiter, dg)
-    return u_ll, u_rr
-end
-
 """
     central_recon(sl, sr)
 
 Central, non-TVD reconstruction given left and right slopes `sl` and `sr`.
-Gives formally full order of accuracy at the expense of sacrificied stability.
-"""    
+Gives formally full order of accuracy at the expense of sacrificied nonlinear stability.
+"""
 @inline function central_recon(sl, sr)
     s = 0.5 * (sl + sr)
     return s
