@@ -241,6 +241,8 @@ export DG,
        SurfaceIntegralUpwind,
        MortarL2
 
+export minmod, monotonized_central, superbee, vanLeer_limiter
+
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 

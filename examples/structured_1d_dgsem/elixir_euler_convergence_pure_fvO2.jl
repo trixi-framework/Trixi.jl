@@ -12,7 +12,8 @@ initial_condition = initial_condition_convergence_test
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 solver = DGSEM(polydeg = polydeg, surface_flux = flux_hllc,
-               volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis, volume_flux_fv = flux_hllc))
+               volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis, volume_flux_fv = flux_hllc,
+               slope_limiter = superbee))
 
 #=               
 coordinates_min = (0.0,) # minimum coordinate
