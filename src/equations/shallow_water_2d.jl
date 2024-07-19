@@ -148,8 +148,8 @@ A weak blast wave discontinuity useful for testing, e.g., total energy conservat
 Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
 function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations2D)
-    RealT = eltype(x)
     # Set up polar coordinates
+    RealT = eltype(x)
     inicenter = SVector(convert(RealT, 0.7), convert(RealT, 0.7))
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
