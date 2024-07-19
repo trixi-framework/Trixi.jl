@@ -101,12 +101,16 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
     # The relation between the isothermal speed of sound `c_s` and the mean thermal molecular velocity
     # `c` depends on the used phase space discretization, and is valid for D2Q9 (and others). For
     # details, see, e.g., [3] in the docstring above.
-    c_s = c / sqrt(3)
+    # c_s = c / sqrt(3) 
 
     # Calculate missing quantities
     if isnothing(Ma)
+        RealT = eltype(u0)
+        c_s = c / sqrt(convert(RealT, 3))
         Ma = u0 / c_s
     elseif isnothing(u0)
+        RealT = eltype(Ma)
+        c_s = c / sqrt(convert(RealT, 3))
         u0 = Ma * c_s
     end
     if isnothing(Re)
@@ -119,9 +123,10 @@ function LatticeBoltzmannEquations2D(; Ma, Re, collision_op = collision_bgk,
     Ma, Re, c, L, rho0, u0, nu = promote(Ma, Re, c, L, rho0, u0, nu)
 
     # Source for weights and speeds: [4] in the docstring above
-    weights = SVector(1 / 9, 1 / 9, 1 / 9, 1 / 9, 1 / 36, 1 / 36, 1 / 36, 1 / 36, 4 / 9)
-    v_alpha1 = SVector(c, 0, -c, 0, c, -c, -c, c, 0)
-    v_alpha2 = SVector(0, c, 0, -c, c, c, -c, -c, 0)
+    weights = SVector{9, RealT}(1 / 9, 1 / 9, 1 / 9, 1 / 9, 1 / 36, 1 / 36, 1 / 36,
+                                1 / 36, 4 / 9)
+    v_alpha1 = SVector{9, RealT}(c, 0, -c, 0, c, -c, -c, c, 0)
+    v_alpha2 = SVector{9, RealT}(0, c, 0, -c, c, c, -c, -c, 0)
 
     LatticeBoltzmannEquations2D(c, c_s, rho0, Ma, u0, Re, L, nu,
                                 weights, v_alpha1, v_alpha2,
@@ -154,7 +159,9 @@ A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations2D)
     @unpack u0 = equations
-    rho = pi
+
+    RealT = eltype(x)
+    rho = convert(RealT, pi)
     v1 = u0
     v2 = u0
 
@@ -253,7 +260,7 @@ end
     else
         v_alpha = equations.v_alpha2
     end
-    return 0.5 * (v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll))
+    return 0.5f0 * (v_alpha .* (u_ll + u_rr) - abs.(v_alpha) .* (u_rr - u_ll))
 end
 
 """
@@ -358,7 +365,7 @@ Collision operator for the Bhatnagar, Gross, and Krook (BGK) model.
 @inline function collision_bgk(u, dt, equations::LatticeBoltzmannEquations2D)
     @unpack c_s, nu = equations
     tau = nu / (c_s^2 * dt)
-    return -(u - equilibrium_distribution(u, equations)) / (tau + 1 / 2)
+    return -(u - equilibrium_distribution(u, equations)) / (tau + 0.5f0)
 end
 
 @inline have_constant_speed(::LatticeBoltzmannEquations2D) = True()

@@ -102,11 +102,21 @@ tutorials = create_tutorials(files)
 
 # Create changelog
 Changelog.generate(
-    Changelog.Documenter(),                    # output type
-    joinpath(@__DIR__, "..", "NEWS.md"),       # input file
-    joinpath(@__DIR__, "src", "changelog.md"); # output file
-    repo = "trixi-framework/Trixi.jl",         # default repository for links
+    Changelog.Documenter(),                        # output type
+    joinpath(@__DIR__, "..", "NEWS.md"),           # input file
+    joinpath(@__DIR__, "src", "changelog_tmp.md"); # output file
+    repo = "trixi-framework/Trixi.jl",             # default repository for links
+    branch = "main",                               # default branch for links
 )
+# Fix edit URL of changelog
+open(joinpath(@__DIR__, "src", "changelog.md"), "w") do io
+    for line in eachline(joinpath(@__DIR__, "src", "changelog_tmp.md"))
+        if startswith(line, "EditURL")
+            line = "EditURL = \"https://github.com/trixi-framework/Trixi.jl/blob/main/NEWS.md\""
+        end
+        println(io, line)
+    end
+end
 
 # Make documentation
 makedocs(
