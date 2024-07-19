@@ -675,8 +675,8 @@ end
                         # Let this test run longer to cover some lines in flux_hllc
                         coverage_override=(maxiters = 10^5, tspan = (0.0, 0.1)),
                         mesh=P4estMesh((64, 64), polydeg = 3,
-                                              coordinates_min = (-2.0, -2.0),
-                                              coordinates_max = (2.0, 2.0)))
+                                       coordinates_min = (-2.0, -2.0),
+                                       coordinates_max = (2.0, 2.0)))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
