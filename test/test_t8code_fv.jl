@@ -63,8 +63,8 @@ mkdir(outdir)
     @trixi_testset "second-order FV" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                             initial_refinement_level=2,
-                            l2=[0.05314637803882428],
-                            linf=[0.0720440648162668])
+                            l2=[0.08542305264254077],
+                            linf=[0.13412953018860274])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -91,8 +91,41 @@ end
     end
 end
 
+@trixi_testset "elixir_advection_basic_hybrid.jl" begin
+    @trixi_testset "first-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
+                            order=1,
+                            initial_refinement_level=2,
+                            l2=[0.2253867410593706],
+                            linf=[0.34092690256865166])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+    @trixi_testset "second-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
+                            initial_refinement_level=2,
+                            l2=[0.1296561675517274],
+                            linf=[0.25952934874433753])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+end
+
 @trixi_testset "elixir_advection_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic.jl"),
+                        order=1,
                         l2=[0.07215018673798403],
                         linf=[0.12087525707243896])
     # Ensure that we do not have excessive memory allocations
@@ -134,16 +167,16 @@ end
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                             order=2,
                             l2=[
-                                0.010837449943690536,
-                                0.005590075861862033,
-                                0.0055900758618617746,
-                                0.015718276021607858,
+                                0.031971635993647315,
+                                0.016631028330554957,
+                                0.016630833188111448,
+                                0.04813246238398825,
                             ],
                             linf=[
-                                0.019824129856828243,
-                                0.011179348522895705,
-                                0.011179348522897037,
-                                0.029674951836654806,
+                                0.055105654108624336,
+                                0.03647317645079773,
+                                0.03647020577993976,
+                                0.08112180586875883,
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -161,16 +194,16 @@ end
                                  "elixir_euler_blast_wave.jl"),
                         order=1,
                         l2=[
-                            0.49698968976388164,
-                            0.16934401479236502,
-                            0.16934401479236502,
-                            0.6743947137176176,
+                            0.5733341919395403,
+                            0.11399976571202451,
+                            0.11399976571202453,
+                            1.3548613737038324,
                         ],
                         linf=[
-                            1.1342505243873413,
-                            0.43853745700004154,
-                            0.4385374570000415,
-                            3.009703218658938,
+                            1.732836334678142,
+                            0.27645456051355827,
+                            0.27645456051355827,
+                            2.6624886901791407,
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -181,29 +214,6 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
-
-# TODO: Add some free stream test like the following
-# TODO: After parameter mapping is supported
-# @trixi_testset "elixir_euler_free_stream.jl" begin
-#     # This test is identical to the one in `test_p4est_2d.jl`.
-#     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
-#                         l2=[
-#                             2.063350241405049e-15,
-#                             1.8571016296925367e-14,
-#                             3.1769447886391905e-14,
-#                             1.4104095258528071e-14,
-#                         ],
-#                         linf=[1.9539925233402755e-14, 2e-12, 4.8e-12, 4e-12],
-#                         atol=2.0e-12,)
-#     # Ensure that we do not have excessive memory allocations
-#     # (e.g., from type instabilities)
-#     let
-#         t = sol.t[end]
-#         u_ode = sol.u[end]
-#         du_ode = similar(u_ode)
-#         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-#     end
-# end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,

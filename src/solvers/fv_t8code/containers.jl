@@ -19,7 +19,8 @@ mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
 
     reconstruction_stencil::Vector{Vector{Int}}             # Reconstruction stencil vector with neighbors per [element]
     reconstruction_distance::Vector{Vector{Vector{RealT}}}  # Reconstruction stencil vector with distances per [element]
-    reconstruction_gradient::Array{RealT, 3}
+    reconstruction_gradient::Array{RealT, 4}            # [dimension, variable, slope_stencils, element], slope_stencil: i = use all neighbors exclusive i, n_neighbors = use all neighbors
+    reconstruction_gradient_limited::Array{RealT, 3}    # [dimension, variable, element]
 
     # internal `resize!`able storage
     _midpoint::Vector{RealT}
@@ -27,6 +28,7 @@ mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
     _face_areas::Vector{RealT}
     _face_normals::Vector{RealT}
     _reconstruction_gradient::Vector{RealT}
+    _reconstruction_gradient_limited::Vector{RealT}
 end
 
 @inline Base.ndims(::T8codeFVElementContainer{NDIMS}) where {NDIMS} = NDIMS
@@ -42,7 +44,7 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(elements::T8codeFVElementContainer, capacity)
-    (; _midpoint, _face_midpoints, _face_areas, _face_normals, _reconstruction_gradient) = elements
+    (; _midpoint, _face_midpoints, _face_areas, _face_normals, _reconstruction_gradient, _reconstruction_gradient_limited) = elements
 
     n_dims = ndims(elements)
     n_variables = size(elements.reconstruction_gradient, 2)
@@ -71,10 +73,18 @@ function Base.resize!(elements::T8codeFVElementContainer, capacity)
     resize!(elements.reconstruction_stencil, capacity)
     resize!(elements.reconstruction_distance, capacity)
 
-    resize!(_reconstruction_gradient, n_dims * n_variables * capacity)
+    resize!(_reconstruction_gradient,
+            n_dims * n_variables * (max_number_faces + 1) * capacity)
     elements.reconstruction_gradient = unsafe_wrap(Array,
                                                    pointer(_reconstruction_gradient),
-                                                   (ndims, n_variables, capacity))
+                                                   (ndims, n_variables,
+                                                    (max_number_faces + 1), capacity))
+
+    resize!(_reconstruction_gradient_limited, n_dims * n_variables * capacity)
+    elements.reconstruction_gradient_limited = unsafe_wrap(Array,
+                                                           pointer(_reconstruction_gradient_limited),
+                                                           (ndims, n_variables,
+                                                            capacity))
 
     return nothing
 end
@@ -114,9 +124,18 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
     reconstruction_stencil = Vector{Vector{Int}}(undef, nelements)
     reconstruction_distance = Vector{Vector{Array{RealT, NDIMS}}}(undef, nelements)
 
-    _reconstruction_gradient = Vector{RealT}(undef, NDIMS * n_variables * nelements)
+    _reconstruction_gradient = Vector{RealT}(undef,
+                                             NDIMS * n_variables *
+                                             (max_number_faces + 1) * nelements)
     reconstruction_gradient = unsafe_wrap(Array, pointer(_reconstruction_gradient),
-                                          (NDIMS, n_variables, nelements))
+                                          (NDIMS, n_variables, max_number_faces + 1,
+                                           nelements))
+
+    _reconstruction_gradient_limited = Vector{RealT}(undef,
+                                                     NDIMS * n_variables * nelements)
+    reconstruction_gradient_limited = unsafe_wrap(Array,
+                                                  pointer(_reconstruction_gradient_limited),
+                                                  (NDIMS, n_variables, nelements))
 
     elements = T8codeFVElementContainer{NDIMS, RealT, uEltype}(level, volume, midpoint,
                                                                dx, num_faces,
@@ -125,11 +144,13 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
                                                                reconstruction_stencil,
                                                                reconstruction_distance,
                                                                reconstruction_gradient,
+                                                               reconstruction_gradient_limited,
                                                                _midpoint,
                                                                _face_midpoints,
                                                                _face_areas,
                                                                _face_normals,
-                                                               _reconstruction_gradient)
+                                                               _reconstruction_gradient,
+                                                               _reconstruction_gradient_limited)
 
     init_elements!(elements, mesh, solver)
 
@@ -454,18 +475,19 @@ function exchange_solution_data!(u, mesh, equations, solver, cache)
 end
 
 struct T8codeGradientContainer{NDIMS, NVARS}
-    reconstruction_gradient::NTuple{NVARS, SVector{NDIMS, Cdouble}}
+    reconstruction_gradient_limited::NTuple{NVARS, SVector{NDIMS, Cdouble}}
 
-    function T8codeGradientContainer(reconstruction_gradient)
-        new{length(reconstruction_gradient[1]), length(reconstruction_gradient)}(reconstruction_gradient)
+    function T8codeGradientContainer(reconstruction_gradient_limited)
+        new{length(reconstruction_gradient_limited[1]),
+            length(reconstruction_gradient_limited)}(reconstruction_gradient_limited)
     end
 end
 
-function exchange_gradient_data!(reconstruction_gradient, mesh, equations, solver,
-                                 cache)
+function exchange_gradient_data!(reconstruction_gradient_limited,
+                                 mesh, equations, solver, cache)
     (; gradient_data) = cache.communication_data
     for element in eachelement(mesh, solver, cache)
-        gradient_data[element] = T8codeGradientContainer(ntuple(v -> get_node_coords(reconstruction_gradient,
+        gradient_data[element] = T8codeGradientContainer(ntuple(v -> get_node_coords(reconstruction_gradient_limited,
                                                                                      equations,
                                                                                      solver,
                                                                                      v,

@@ -28,7 +28,8 @@ initial_condition = initial_condition_blast_wave
 solver = FV(order = 2, surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
-cmesh = Trixi.cmesh_new_periodic_hybrid2()
+# cmesh = Trixi.cmesh_new_periodic_hybrid2()
+cmesh = Trixi.cmesh_quad(periodicity = (true, true))
 mesh = T8codeMesh(cmesh, solver, initial_refinement_level = initial_refinement_level)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -45,7 +46,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 10,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, alive_callback,
                         stepsize_callback)

@@ -17,8 +17,9 @@ boundary_conditions = Dict(:all => boundary_condition)
 #                            :y_neg => boundary_condition_periodic,
 #                            :y_pos => boundary_condition_periodic)
 
-solver = FV(surface_flux = flux_lax_friedrichs)
+solver = FV(order = 2, surface_flux = flux_lax_friedrichs)
 
+# TODO: When using mesh construction as in elixir_advection_basic.jl boundary Symbol :all is not defined
 initial_refinement_level = 5
 cmesh = Trixi.cmesh_quad(periodicity = (false, false))
 mesh = T8codeMesh(cmesh, solver, initial_refinement_level = initial_refinement_level)
