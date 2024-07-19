@@ -113,9 +113,9 @@ function initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquat
     phi = atan(y_norm, x_norm)
 
     # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+    rho = r > 0.5f0 ? 1.0 : 1.1691
+    v1 = r > 0.5f0 ? 0.0 : 0.1882 * cos(phi)
+    v2 = r > 0.5f0 ? 0.0 : 0.1882 * sin(phi)
 
     return prim2cons(SVector(rho, v1, v2), equations)
 end
@@ -186,12 +186,12 @@ For details see Section 3.2 of the following reference
     else # equations.gamma > 1 # polytropic gas
         rho_mean = stolarsky_mean(rho_ll, rho_rr, equations.gamma)
     end
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    p_avg = 0.5 * (p_ll + p_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
 
     # Calculate fluxes depending on normal_direction
-    f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+    f1 = rho_mean * 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
     f2 = f1 * v1_avg + p_avg * normal_direction[1]
     f3 = f1 * v2_avg + p_avg * normal_direction[2]
 
@@ -212,16 +212,16 @@ end
     else # equations.gamma > 1 # polytropic gas
         rho_mean = stolarsky_mean(rho_ll, rho_rr, equations.gamma)
     end
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    p_avg = 0.5 * (p_ll + p_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
 
     if orientation == 1 # x-direction
-        f1 = rho_mean * 0.5 * (v1_ll + v1_rr)
+        f1 = rho_mean * 0.5f0 * (v1_ll + v1_rr)
         f2 = f1 * v1_avg + p_avg
         f3 = f1 * v2_avg
     else # y-direction
-        f1 = rho_mean * 0.5 * (v2_ll + v2_rr)
+        f1 = rho_mean * 0.5f0 * (v2_ll + v2_rr)
         f2 = f1 * v1_avg
         f3 = f1 * v2_avg + p_avg
     end
@@ -367,7 +367,7 @@ end
                           (equations.gamma - 1.0)
     end
 
-    w1 = internal_energy + p / rho - 0.5 * v_square
+    w1 = internal_energy + p / rho - 0.5f0 * v_square
     w2 = v1
     w3 = v2
 
