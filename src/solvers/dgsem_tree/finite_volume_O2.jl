@@ -48,6 +48,9 @@ end
     linear_reconstruction(u_ll, u_rr, ux_ll, ux_rr, x_ll, x_rr, x_interfaces, node_index)
 end
 
+# TODO: Different reconstructions, see
+# https://github.com/trixi-framework/Trixi.jl/pull/433/files
+
 """
     reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
                             x_interfaces,
@@ -126,6 +129,7 @@ For reference, see for instance Eq. (6.29) in
     return s
 end
 
+# Note: This is NOT a limiter, just a helper for the `superbee` limiter below.
 @inline function maxmod(sl, sr)
     #=
     if sign(sl) == sign(sr)
