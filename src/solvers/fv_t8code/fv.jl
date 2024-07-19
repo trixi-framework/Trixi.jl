@@ -351,7 +351,8 @@ function calc_gradient_reconstruction!(u, mesh, equations, solver, cache)
                 lambda_j = (j == n_stencil_neighbors + 1) ? lambda[2] : lambda[1]
                 weight = (lambda_j / (indicator + epsilon))^r
                 for x in axes(reconstruction_gradient_limited, 1)
-                    reconstruction_gradient_limited[x, v, element] += weight * gradient[x]
+                    reconstruction_gradient_limited[x, v, element] += weight *
+                                                                      gradient[x]
                 end
                 weight_sum += weight
             end
