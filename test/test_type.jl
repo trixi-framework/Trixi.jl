@@ -1862,6 +1862,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT), one(RealT))
             orientation = 1
             directions = [1, 2]
+            normal_direction = SVector(one(RealT))
 
             surface_flux_function = flux_lax_friedrichs
             dissipation = DissipationLocalLaxFriedrichs()
@@ -1924,7 +1925,11 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT
             @test eltype(@inferred dissipation(u_ll, u_rr, orientation, equations)) == RealT
+            @test eltype(@inferred dissipation(u_ll, u_rr, normal_direction, equations)) ==
+                  RealT
             @test eltype(@inferred numflux(u_ll, u_rr, orientation, equations)) == RealT
+            # no matching method 
+            # @test eltype(@inferred numflux(u_ll, u_rr, normal_direction, equations)) == RealT
             @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT
             @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation, equations)) ==
@@ -2106,6 +2111,58 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred energy_total(cons, equations)) == RealT
             @test typeof(@inferred energy_kinetic(u, equations)) == RealT
             @test typeof(@inferred energy_internal(cons, equations)) == RealT
+            @test typeof(@inferred lake_at_rest_error(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Shallow Water Quasi 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred ShallowWaterEquationsQuasi1D(gravity_constant = RealT(9.81))
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = cons = SVector(one(RealT), one(RealT), one(RealT), one(RealT))
+            orientation = 1
+            normal_direction = normal_ll = normal_rr = SVector(one(RealT))
+
+            dissipation = DissipationLocalLaxFriedrichs()
+
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) ==
+                  RealT
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+            @test eltype(@inferred flux_nonconservative_chan_etal(u_ll, u_rr,
+                                                                  orientation,
+                                                                  equations)) ==
+                  RealT
+            @test eltype(@inferred flux_nonconservative_chan_etal(u_ll, u_rr,
+                                                                  normal_direction,
+                                                                  equations)) ==
+                  RealT
+            @test eltype(@inferred flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll,
+                                                                  normal_rr,
+                                                                  equations)) == RealT
+            @test eltype(@inferred flux_chan_etal(u_ll, u_rr, orientation,
+                                                  equations)) == RealT
+            @test eltype(@inferred flux_chan_etal(u_ll, u_rr, normal_direction,
+                                                  equations)) == RealT
+
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred dissipation(u_ll, u_rr, orientation, equations)) == RealT
+            @test eltype(@inferred dissipation(u_ll, u_rr, normal_direction, equations)) ==
+                  RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+            @test typeof(@inferred velocity(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred prim2cons(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred Trixi.waterheight(u, equations)) == RealT
+
+            @test typeof(@inferred entropy(cons, equations)) == RealT
+            @test typeof(@inferred energy_total(cons, equations)) == RealT
             @test typeof(@inferred lake_at_rest_error(u, equations)) == RealT
         end
     end
