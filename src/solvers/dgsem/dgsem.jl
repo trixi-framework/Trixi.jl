@@ -9,9 +9,11 @@
 include("interpolation.jl")
 include("l2projection.jl")
 include("basis_lobatto_legendre.jl")
+include("basis_gauss_legendre.jl")
 
 """
     DGSEM(; RealT=Float64, polydeg::Integer,
+            basis = LobattoLegendreBasis(RealT, polydeg)
             surface_flux=flux_central,
             surface_integral=SurfaceIntegralWeakForm(surface_flux),
             volume_integral=VolumeIntegralWeakForm(),
@@ -20,7 +22,7 @@ include("basis_lobatto_legendre.jl")
 Create a discontinuous Galerkin spectral element method (DGSEM) using a
 [`LobattoLegendreBasis`](@ref) with polynomials of degree `polydeg`.
 """
-const DGSEM = DG{Basis} where {Basis <: LobattoLegendreBasis}
+const DGSEM = DG{Basis} where {Basis <: AbstractBasisSBP}
 
 # TODO: Deprecated in v0.3 (no longer documented)
 function DGSEM(basis::LobattoLegendreBasis,
@@ -51,6 +53,23 @@ function DGSEM(RealT, polydeg::Integer,
     return DGSEM(basis, surface_flux, volume_integral, mortar)
 end
 
+function DGSEM(basis::GaussLegendreBasis,
+               surface_flux = flux_central,
+               volume_integral = VolumeIntegralWeakForm())
+    surface_integral = SurfaceIntegralWeakForm(surface_flux)
+    mortar = nothing # not yet implemented for Legendre-Gauss basis
+    return DG{typeof(basis), typeof(mortar), typeof(surface_integral),
+              typeof(volume_integral)}(basis, mortar, surface_integral, volume_integral)
+end
+
+function DGSEM(basis::GaussLegendreBasis,
+               surface_integral::AbstractSurfaceIntegral,
+               volume_integral = VolumeIntegralWeakForm())
+    mortar = nothing
+    return DG{typeof(basis), typeof(mortar), typeof(surface_integral),
+              typeof(volume_integral)}(basis, mortar, surface_integral, volume_integral)
+end
+
 function DGSEM(polydeg, surface_flux = flux_central,
                volume_integral = VolumeIntegralWeakForm())
     DGSEM(Float64, polydeg, surface_flux, volume_integral)
@@ -61,10 +80,10 @@ end
 # `trixi_include`.
 function DGSEM(; RealT = Float64,
                polydeg::Integer,
+               basis = LobattoLegendreBasis(RealT, polydeg),
                surface_flux = flux_central,
                surface_integral = SurfaceIntegralWeakForm(surface_flux),
                volume_integral = VolumeIntegralWeakForm())
-    basis = LobattoLegendreBasis(RealT, polydeg)
     return DGSEM(basis, surface_integral, volume_integral)
 end
 
