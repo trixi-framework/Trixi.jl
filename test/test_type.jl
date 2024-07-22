@@ -1517,6 +1517,99 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Lattice Boltzmann 2D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred LatticeBoltzmannEquations2D(Ma = RealT(0.1), Re = 1000)
+
+            x = SVector(zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT),
+                                                one(RealT), one(RealT), one(RealT),
+                                                one(RealT), one(RealT), one(RealT))
+            orientations = [1, 2]
+            directions = [1, 2, 3, 4]
+            p = rho = dt = one(RealT)
+
+            surface_flux_function = flux_godunov
+
+            @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
+
+            for orientation in orientations
+                for direction in directions
+                    @test eltype(@inferred boundary_condition_noslip_wall(u_inner,
+                                                                          orientation,
+                                                                          direction, x, t,
+                                                                          surface_flux_function,
+                                                                          equations)) ==
+                          RealT
+                end
+
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_godunov(u_ll, u_rr, orientation, equations)) ==
+                      RealT
+
+                @test typeof(@inferred velocity(u, orientation, equations)) == RealT
+            end
+
+            @test typeof(@inferred density(p, equations)) == RealT
+            @test typeof(@inferred density(u, equations)) == RealT
+            @test eltype(@inferred velocity(u, equations)) == RealT
+            @test typeof(@inferred pressure(rho, equations)) == RealT
+            @test typeof(@inferred pressure(u, equations)) == RealT
+
+            @test eltype(@inferred Trixi.collision_bgk(u, dt, equations)) == RealT
+
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Lattice Boltzmann 3D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred LatticeBoltzmannEquations3D(Ma = RealT(0.1), Re = 1000)
+
+            x = SVector(zero(RealT), zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = SVector(one(RealT), one(RealT), one(RealT),
+                                      one(RealT), one(RealT), one(RealT),
+                                      one(RealT), one(RealT), one(RealT),
+                                      one(RealT), one(RealT), one(RealT),
+                                      one(RealT), one(RealT), one(RealT),
+                                      one(RealT), one(RealT), one(RealT),
+                                      one(RealT), one(RealT), one(RealT),
+                                      one(RealT), one(RealT), one(RealT),
+                                      one(RealT), one(RealT), one(RealT))
+            orientations = [1, 2, 3]
+            p = rho = dt = one(RealT)
+
+            @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_godunov(u_ll, u_rr, orientation, equations)) ==
+                      RealT
+
+                @test typeof(@inferred velocity(u, orientation, equations)) == RealT
+            end
+
+            @test typeof(@inferred density(p, equations)) == RealT
+            @test typeof(@inferred density(u, equations)) == RealT
+            @test eltype(@inferred velocity(u, equations)) == RealT
+            @test typeof(@inferred pressure(rho, equations)) == RealT
+            @test typeof(@inferred pressure(u, equations)) == RealT
+
+            @test eltype(@inferred Trixi.collision_bgk(u, dt, equations)) == RealT
+
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred energy_kinetic(u, equations)) == RealT
+            @test typeof(@inferred Trixi.energy_kinetic_nondimensional(u, equations)) ==
+                  RealT
+        end
+    end
+
     @timed_testset "Linear Scalar Advection 1D" begin
         for RealT in (Float32, Float64)
             equations = @inferred LinearScalarAdvectionEquation1D(RealT(1))
