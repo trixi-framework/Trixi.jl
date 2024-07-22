@@ -35,7 +35,7 @@ function init_t8code()
         MPI.add_finalize_hook!() do
             status = T8code.Libt8.sc_finalize_noabort()
             if status != 0
-              @warn("Inconsistent state detected after finalizing t8code. Have you finalized all `T8codeMesh` objects and/or properly freed/un-referenced all t8code related objects?")
+                @warn("Inconsistent state detected after finalizing t8code. Have you finalized all `T8codeMesh` objects and/or properly freed/un-referenced all t8code related objects?")
             end
         end
 
