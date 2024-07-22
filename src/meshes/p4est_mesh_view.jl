@@ -165,13 +165,6 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
-function balance!(mesh::P4estMeshView{2}, init_fn = C_NULL)
-    p4est_balance(mesh.parent.p4est, P4EST_CONNECT_FACE, init_fn)
-    # Due to a bug in `p4est`, the forest needs to be rebalanced twice sometimes
-    # See https://github.com/cburstedde/p4est/issues/112
-    p4est_balance(mesh.parent.p4est, P4EST_CONNECT_FACE, init_fn)
-end
-
 function save_mesh_file(mesh::P4estMeshView, output_directory, timestep = 0;
                         system = "")
     # Create output directory (if it does not exist)
