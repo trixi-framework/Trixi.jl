@@ -8,7 +8,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 initial_condition = initial_condition_gauss
 
-solver = FV(surface_flux = flux_lax_friedrichs)
+solver = FV(order = 2, surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
 cmesh = Trixi.cmesh_new_periodic_hybrid()

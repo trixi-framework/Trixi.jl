@@ -17,8 +17,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
         @trixi_testset "first-order FV" begin
             @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                                 order=1,
-                                l2=[0.1419061449384701],
-                                linf=[0.2086802087402776])
+                                l2=[0.08551397247817304],
+                                linf=[0.12087467695430498])
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
             let
@@ -31,8 +31,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
         @trixi_testset "second-order FV" begin
             @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                                 order=2,
-                                l2=[0.013669404880134087],
-                                linf=[0.03455999303991164])
+                                l2=[0.008142380494734178],
+                                linf=[0.018687916234977564])
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
             let
@@ -62,17 +62,34 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
     end
 
     @trixi_testset "elixir_advection_gauss.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_gauss.jl"),
-                            l2=[0.5598148317954682],
-                            linf=[0.6301130236005371])
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @trixi_testset "first-order FV" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                        "elixir_advection_gauss.jl"),
+                                order=1,
+                                l2=[0.5598148317954682],
+                                linf=[0.6301130236005371])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        @trixi_testset "second-order FV" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                        "elixir_advection_gauss.jl"),
+                                l2=[0.589931706182136],
+                                linf=[0.8974149172376802])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
         end
     end
 
@@ -105,16 +122,16 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
             @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                                 order=2,
                                 l2=[
-                                    0.010837449943690536,
-                                    0.005590075861862033,
-                                    0.0055900758618617746,
-                                    0.015718276021607858,
+                                    0.03197163553527166,
+                                    0.016630954670268164,
+                                    0.016630903171234897,
+                                    0.04813244943928423,
                                 ],
                                 linf=[
-                                    0.019824129856828243,
-                                    0.011179348522895705,
-                                    0.011179348522897037,
-                                    0.029674951836654806,
+                                    0.05510516525005804,
+                                    0.03647209595842771,
+                                    0.03647134447092659,
+                                    0.08111979778040102,
                                 ])
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
@@ -130,17 +147,18 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
     @trixi_testset "elixir_euler_blast_wave.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_blast_wave.jl"),
+                            order=1,
                             l2=[
-                                0.49698968976388164,
-                                0.16934401479236502,
-                                0.16934401479236502,
-                                0.6743947137176176,
+                                0.5733341919395405,
+                                0.11399976571202448,
+                                0.1139997657120245,
+                                1.3548613737038315,
                             ],
                             linf=[
-                                1.1342505243873413,
-                                0.43853745700004154,
-                                0.4385374570000415,
-                                3.009703218658938,
+                                1.7328363346781415,
+                                0.27645456051355827,
+                                0.27645456051355827,
+                                2.6624886901791407,
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
