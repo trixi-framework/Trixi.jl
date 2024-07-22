@@ -43,31 +43,14 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.unsaved_changes = true
 
         finalizer(mesh) do mesh
-            # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are
+            # When finalizing, `forest`, `scheme`, `cmesh`, and `geometry` are
             # also cleaned up from within `t8code`. The cleanup code for
             # `cmesh` does some MPI calls for deallocating shared memory
             # arrays. Due to garbage collection in Julia the order of shutdown
-            # is not deterministic. The following code might happen after MPI
-            # is already in finalized state.
-            # If the environment variable `TRIXI_T8CODE_SC_FINALIZE` is set the
-            # `finalize_hook` of the MPI module takes care of the cleanup. See
-            # further down. However, this might cause a pile-up of `mesh`
-            # objects during long-running sessions.
-            if !MPI.Finalized()
-                t8_forest_unref(Ref(mesh.forest))
-                mesh.forest = C_NULL
-            end
-        end
-
-        # This finalizer call is only recommended during development and not for
-        # production runs, especially long-running sessions since a reference to
-        # the `mesh` object will be kept throughout the lifetime of the session.
-        # See comments in `init_t8code()` in file `src/auxiliary/t8code.jl` for
-        # more information.
-        if haskey(ENV, "TRIXI_T8CODE_SC_FINALIZE")
-            MPI.add_finalize_hook!() do
-                t8_forest_unref(Ref(mesh.forest))
-            end
+            # is not deterministic. Hence, "manual" finalization might be
+            # necessary in order to avoid MPI-related error output when closing
+            # the Julia program/session.
+            t8_forest_unref(Ref(mesh.forest))
         end
 
         return mesh
