@@ -80,19 +80,6 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
                                                parent, indices_min, indices_max)
 end
 
-# TODO: Check if this is still needed.
-# At the end we will have every cell boundary with a boundary condition.
-# Check if mesh is periodic
-function isperiodic(mesh::P4estMeshView)
-    @unpack parent = mesh
-    return isperiodic(parent) && size(parent) == size(mesh)
-end
-
-function isperiodic(mesh::P4estMeshView, dimension)
-    @unpack parent = mesh
-    return (isperiodic(parent, dimension))
-end
-
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMeshView{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 @inline function ntrees(mesh::P4estMeshView)
