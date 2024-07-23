@@ -95,16 +95,6 @@ For reference, see for instance Eq. (6.27) in
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 @inline function minmod(sl, sr)
-    #=
-    if sign(sl) == sign(sr)
-        s = sign(sl) * min(abs(sl), abs(sr))
-    else
-        s = 0.0
-    end
-
-    return s
-    =#
-
     return 0.5 * (sign(sl) + sign(sr)) * min(abs(sl), abs(sr))
 end
 
@@ -121,14 +111,6 @@ For reference, see for instance Eq. (6.29) in
 """
 @inline function monotonized_central(sl, sr)
     # CARE: MC assumes equidistant grid in 0.5 * abs(sl + sr)!
-    #=
-    if sign(sl) == sign(sr)
-        s = sign(sl) * min(0.5 * abs(sl + sr), 2 * abs(sl), 2 * abs(sr))
-    else
-        s = 0.0
-    end
-    =#
-
     # Use recursive property of minmod function
     s = minmod(0.5 * (sl + sr), minmod(2 * sl, 2 * sr))
 
@@ -137,16 +119,6 @@ end
 
 # Note: This is NOT a limiter, just a helper for the `superbee` limiter below.
 @inline function maxmod(sl, sr)
-    #=
-    if sign(sl) == sign(sr)
-        s = sign(sl) * max(abs(sl), abs(sr))
-    else
-        s = 0.0
-    end
-
-    return s
-    =#
-
     return 0.5 * (sign(sl) + sign(sr)) * max(abs(sl), abs(sr))
 end
 
@@ -169,7 +141,7 @@ end
 """
     vanLeer_limiter(sl, sr)
 
-Symmetric Limiter by van Leer.
+Symmetric limiter by van Leer.
 See for reference page 70 in 
 
 - Siddhartha Mishra, Ulrik Skre Fjordholm and Rémi Abgrall
