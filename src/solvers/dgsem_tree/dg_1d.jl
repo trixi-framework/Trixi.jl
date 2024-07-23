@@ -462,16 +462,19 @@ end
         #      1         2              3       4
 
         # Obtain unlimited values in primal variables
-        # TODO: If i - 2 = 0 go to neighbor element?
+
+        # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
         u_mm = cons2prim(get_node_vars(u, equations, dg, max(1, i - 2), element),
                          equations)
         u_ll = cons2prim(get_node_vars(u, equations, dg, i - 1, element), equations)
         u_rr = cons2prim(get_node_vars(u, equations, dg, i, element), equations)
-        # TODO: If i + 1 > nnodes(dg) go to neighbor element?
+        # Note: If i + 1 > nnodes(dg) we do not go to neighbor element, as one would do in a finite volume scheme.
+        # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
         u_pp = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1),
                                        element), equations)
 
-        # Reconstruct values with limiting
+        # Reconstruct values at interfaces with limiting
         u_ll, u_rr = reconstruction_mode(u_mm, u_ll, u_rr, u_pp,
                                          x_interfaces,
                                          i, slope_limiter, dg)
