@@ -6,8 +6,6 @@
 
     return u_ll, u_rr
 end
-# TODO: Different reconstructions, see
-# https://github.com/trixi-framework/Trixi.jl/pull/433/files
 
 """
     reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
@@ -24,28 +22,29 @@ Formally O(1) accurate.
     return u_ll, u_rr
 end
 
+#             Reference element:             
+#  -1 -----------------0----------------- 1 -> x
+# Gauss Lobatto Legendre nodes (schematic for k = 3):
+#   .         .                 .         .
+#   ^         ^                 ^         ^
+# i - 2,    i - 1,               i,     i + 1
+# mm       ll                   rr     pp
+# Cell boundaries (schematic for k = 3): 
+# (note that only the inner three boundaries are stored)
+#  -1 -----------------0----------------- 1 -> x
+#   |     |            |             |    |
+# Cell index:
+#      1         2              3       4
+
 @inline function reconstruction_small_stencil(u_mm, u_ll, u_rr, u_pp,
                                               x_interfaces, node_index, limiter, dg)
-    #             Reference element:             
-    #  -1 -----------------0----------------- 1 -> x
-    # Gauss Lobatto Legendre nodes (schematic for k = 3):
-    #   .         .                 .         .
-    #   ^         ^                 ^         ^
-    # i - 2,    i - 1,               i,     i + 1
-    # mm       ll                   rr     pp
-    # Cell boundaries (schematic for k = 3): 
-    # (note that only the inner three boundaries are stored)
-    #  -1 -----------------0----------------- 1 -> x
-    #   |     |            |             |    |
-    # Cell index:
-    #      1         2              3       4
-
     @unpack nodes = dg.basis
     x_ll = nodes[node_index - 1]
     x_rr = nodes[node_index]
 
     # Middle element slope
     ux_m = (u_rr - u_ll) / (x_rr - x_ll)
+
     if node_index == 2 # Catch case mm == ll
         ux_ll = ux_m
     else
