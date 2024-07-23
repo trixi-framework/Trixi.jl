@@ -1,8 +1,8 @@
-@inline function linear_reconstruction(u_ll, u_rr, ux_ll, ux_rr,
+@inline function linear_reconstruction(u_ll, u_rr, s_l, s_r,
                                        x_ll, x_rr, x_interfaces, node_index)
     # Linear reconstruction at the interface
-    u_ll = u_ll + ux_ll * (x_interfaces[node_index - 1] - x_ll)
-    u_rr = u_rr + ux_rr * (x_interfaces[node_index - 1] - x_rr)
+    u_ll = u_ll + s_l * (x_interfaces[node_index - 1] - x_ll)
+    u_rr = u_rr + s_r * (x_interfaces[node_index - 1] - x_rr)
 
     return u_ll, u_rr
 end
@@ -36,6 +36,14 @@ end
 # Cell index:
 #      1         2              3       4
 
+"""
+    reconstruction_small_stencil(u_mm, u_ll, u_rr, u_pp,
+                                 x_interfaces, node_index, limiter, dg)
+
+Computes limited (linear) slopes on the subcells for a DGSEM element.
+The supplied `limiter` governs the choice of slopes given the nodal values
+`u_mm`, `u_ll`, `u_rr`, and `u_pp` at the (Gauss-Lobatto Legendre) nodes.
+"""
 @inline function reconstruction_small_stencil(u_mm, u_ll, u_rr, u_pp,
                                               x_interfaces, node_index, limiter, dg)
     @unpack nodes = dg.basis
@@ -43,25 +51,25 @@ end
     x_rr = nodes[node_index]
 
     # Middle element slope
-    ux_m = (u_rr - u_ll) / (x_rr - x_ll)
+    s_mm = (u_rr - u_ll) / (x_rr - x_ll)
 
     if node_index == 2 # Catch case mm == ll
-        ux_ll = ux_m
+        s_l = s_mm
     else
         # Left element slope
-        ux_l = (u_ll - u_mm) / (x_ll - nodes[node_index - 2])
-        ux_ll = limiter.(ux_l, ux_m)
+        s_ll = (u_ll - u_mm) / (x_ll - nodes[node_index - 2])
+        s_l = limiter.(s_ll, s_mm)
     end
 
     if node_index == nnodes(dg) # Catch case rr == pp
-        ux_rr = ux_m
+        s_r = s_mm
     else
         # Right element slope
-        ux_r = (u_pp - u_rr) / (nodes[node_index + 1] - x_rr)
-        ux_rr = limiter.(ux_m, ux_r)
+        s_rr = (u_pp - u_rr) / (nodes[node_index + 1] - x_rr)
+        s_r = limiter.(s_mm, s_rr)
     end
 
-    linear_reconstruction(u_ll, u_rr, ux_ll, ux_rr, x_ll, x_rr, x_interfaces, node_index)
+    linear_reconstruction(u_ll, u_rr, s_l, s_r, x_ll, x_rr, x_interfaces, node_index)
 end
 
 """
