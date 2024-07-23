@@ -48,9 +48,8 @@ mkdir(outdir)
     @trixi_testset "first-order FV" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                             order=1,
-                            initial_refinement_level=2,
-                            l2=[0.23262794278028587],
-                            linf=[0.3278746599076482])
+                            l2=[0.08551397247817498],
+                            linf=[0.12087467695430498])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -62,9 +61,8 @@ mkdir(outdir)
     end
     @trixi_testset "second-order FV" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                            initial_refinement_level=2,
-                            l2=[0.08542305264254077],
-                            linf=[0.13412953018860274])
+                            l2=[0.008142380494734171],
+                            linf=[0.018687916234976898])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let

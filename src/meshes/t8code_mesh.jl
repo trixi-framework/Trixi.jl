@@ -43,7 +43,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.current_filename = current_filename
         mesh.unsaved_changes = false # TODO: if set to `true`, the mesh will be saved to a mesh file.
         mesh.tree_node_coordinates = tree_node_coordinates
-        mesh.max_number_faces = 4 # TODO: How to automatically adapt for other element types, e.g. triangles?
+        mesh.max_number_faces = 2 * NDIMS # TODO: How to automatically adapt for other element types, e.g. triangles?
 
         finalizer(mesh) do mesh
             # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are

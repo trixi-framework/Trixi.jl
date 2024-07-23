@@ -17,7 +17,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
         @trixi_testset "first-order FV" begin
             @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                                 order=1,
-                                l2=[0.08551397247817304],
+                                l2=[0.08551397247817498],
                                 linf=[0.12087467695430498])
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
@@ -31,8 +31,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
         @trixi_testset "second-order FV" begin
             @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                                 order=2,
-                                l2=[0.008142380494734178],
-                                linf=[0.018687916234977564])
+                                l2=[0.008142380494734171],
+                                linf=[0.018687916234976898])
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
             let
@@ -80,8 +80,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
         @trixi_testset "second-order FV" begin
             @test_trixi_include(joinpath(EXAMPLES_DIR,
                                          "elixir_advection_gauss.jl"),
-                                l2=[0.589931706182136],
-                                linf=[0.8974149172376802])
+                                l2=[0.5899077806567905],
+                                linf=[0.8972489222157533])
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
             let
@@ -122,16 +122,16 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
             @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
                                 order=2,
                                 l2=[
-                                    0.03197163553527166,
-                                    0.016630954670268164,
-                                    0.016630903171234897,
-                                    0.04813244943928423,
+                                    0.031971635416962525,
+                                    0.016630983283552267,
+                                    0.016630873316960327,
+                                    0.04813244762272231,
                                 ],
                                 linf=[
-                                    0.05510516525005804,
-                                    0.03647209595842771,
-                                    0.03647134447092659,
-                                    0.08111979778040102,
+                                    0.055105205670854085,
+                                    0.03647221946045942,
+                                    0.036470504033139894,
+                                    0.0811201478913759,
                                 ])
             # Ensure that we do not have excessive memory allocations
             # (e.g., from type instabilities)
