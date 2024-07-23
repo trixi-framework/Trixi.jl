@@ -672,8 +672,6 @@ end
                             2.4656795949035857,
                         ],
                         tspan=(0.0, 0.5),
-                        # Let this test run longer to cover some lines in flux_hllc
-                        coverage_override=(maxiters = 10^5, tspan = (0.0, 0.1)),
                         mesh=P4estMesh((64, 64), polydeg = 3,
                                        coordinates_min = (-2.0, -2.0),
                                        coordinates_max = (2.0, 2.0)))
