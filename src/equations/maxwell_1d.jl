@@ -37,7 +37,7 @@ For reference, see
 struct MaxwellEquations1D{RealT <: Real} <: AbstractMaxwellEquations{1, 2}
     speed_of_light::RealT # c
 
-    function MaxwellEquations1D(c::Real = 299_792_458.0)
+    function MaxwellEquations1D(c::Real = 299792458.0)
         new{typeof(c)}(c)
     end
 end
