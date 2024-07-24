@@ -106,11 +106,11 @@ end
 @inline cons2entropy(u, equations::TrafficFlowLWREquations1D) = u
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::TrafficFlowLWREquations1D) = 0.5 * u^2
+@inline entropy(u::Real, ::TrafficFlowLWREquations1D) = 0.5f0 * u^2
 @inline entropy(u, equations::TrafficFlowLWREquations1D) = entropy(u[1], equations)
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::TrafficFlowLWREquations1D) = 0.5 * u^2
+@inline energy_total(u::Real, ::TrafficFlowLWREquations1D) = 0.5f0 * u^2
 @inline energy_total(u, equations::TrafficFlowLWREquations1D) = energy_total(u[1],
                                                                              equations)
 end # @muladd
