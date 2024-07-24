@@ -510,10 +510,17 @@ end
 function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
     n_boundaries = 2 * ndims(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
+    boundary_dictionary_names = [:x_neg, :x_pos, :y_neg, :y_pos]
 
     for direction in 1:n_boundaries
+        boundary_condition = nothing
+    if typeof(semi.boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes
+        if boundary_dictionary_names[direction] in keys(semi.boundary_conditions.boundary_dictionary)
+            boundary_condition = semi.boundary_conditions.boundary_dictionary[boundary_dictionary_names[direction]]
+        end
+    else
         boundary_condition = semi.boundary_conditions[direction]
-
+    end
         allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
                                             equations,
                                             solver)

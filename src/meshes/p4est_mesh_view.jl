@@ -165,7 +165,7 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
-function save_mesh_file(mesh::P4estMeshView, output_directory, timestep = 0;
+function save_mesh_file(mesh::P4estMeshView, output_directory; timestep = 0,
                         system = "")
     # Create output directory (if it does not exist)
     mkpath(output_directory)
