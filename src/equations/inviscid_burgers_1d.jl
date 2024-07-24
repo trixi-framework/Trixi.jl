@@ -26,7 +26,8 @@ varnames(::typeof(cons2prim), ::InviscidBurgersEquation1D) = ("scalar",)
 A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::InviscidBurgersEquation1D)
-    return SVector(2.0)
+    RealT = eltype(x)
+    return SVector(RealT(2))
 end
 
 """
@@ -35,11 +36,12 @@ end
 A smooth initial condition used for convergence tests.
 """
 function initial_condition_convergence_test(x, t, equation::InviscidBurgersEquation1D)
-    c = 2.0
-    A = 1.0
+    RealT = eltype(x)
+    c = 2
+    A = 1
     L = 1
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * (x[1] - t))
 
     return SVector(scalar)
@@ -54,11 +56,12 @@ Source terms used for convergence tests in combination with
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::InviscidBurgersEquation1D)
     # Same settings as in `initial_condition`
-    c = 2.0
-    A = 1.0
+    RealT = eltype(x)
+    c = 2
+    A = 1
     L = 1
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     du = omega * A * cos(omega * (x[1] - t)) * (c - 1 + A * sin(omega * (x[1] - t)))
 
     return SVector(du)
@@ -69,7 +72,7 @@ end
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
-    return SVector(0.5 * u[1]^2)
+    return SVector(0.5f0 * u[1]^2)
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
@@ -111,7 +114,7 @@ function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    return SVector(0.5 * max(max(u_L, zero(u_L))^2, min(u_R, zero(u_R))^2))
+    return SVector(0.5f0 * max(max(u_L, 0)^2, min(u_R, 0)^2))
 end
 
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
@@ -121,7 +124,7 @@ function flux_engquist_osher(u_ll, u_rr, orientation,
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    return SVector(0.5 * (max(u_L, zero(u_L))^2 + min(u_R, zero(u_R))^2))
+    return SVector(0.5f0 * (max(u_L, 0)^2 + min(u_R, 0)^2))
 end
 
 """
@@ -151,16 +154,16 @@ end
 
 @inline function splitting_lax_friedrichs(u, ::Val{:plus}, orientation::Integer,
                                           equations::InviscidBurgersEquation1D)
-    f = 0.5 * u[1]^2
+    f = 0.5f0 * u[1]^2
     lambda = abs(u[1])
-    return SVector(0.5 * (f + lambda * u[1]))
+    return SVector(0.5f0 * (f + lambda * u[1]))
 end
 
 @inline function splitting_lax_friedrichs(u, ::Val{:minus}, orientation::Integer,
                                           equations::InviscidBurgersEquation1D)
-    f = 0.5 * u[1]^2
+    f = 0.5f0 * u[1]^2
     lambda = abs(u[1])
-    return SVector(0.5 * (f - lambda * u[1]))
+    return SVector(0.5f0 * (f - lambda * u[1]))
 end
 
 # Convert conservative variables to primitive
@@ -168,13 +171,14 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::InviscidBurgersEquation1D) = u
+@inline entropy2cons(u, equation::InviscidBurgersEquation1D) = u
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
+@inline entropy(u::Real, ::InviscidBurgersEquation1D) = 0.5f0 * u^2
 @inline entropy(u, equation::InviscidBurgersEquation1D) = entropy(u[1], equation)
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5 * u^2
+@inline energy_total(u::Real, ::InviscidBurgersEquation1D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::InviscidBurgersEquation1D)
     energy_total(u[1], equation)
 end

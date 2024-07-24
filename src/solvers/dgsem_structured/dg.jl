@@ -8,7 +8,8 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::StructuredMesh, equations::AbstractEquations, dg::DG, ::Any,
+function create_cache(mesh::Union{StructuredMesh, StructuredMeshView},
+                      equations::AbstractEquations, dg::DG, ::Any,
                       ::Type{uEltype}) where {uEltype <: Real}
     elements = init_elements(mesh, equations, dg.basis, uEltype)
 
@@ -31,7 +32,9 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition::BoundaryConditionPeriodic,
-                                                  mesh::StructuredMesh, equations,
+                                                  mesh::Union{StructuredMesh,
+                                                              StructuredMeshView},
+                                                  equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
@@ -41,7 +44,9 @@ end
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
                                                   boundary_condition,
-                                                  mesh::StructuredMesh, equations,
+                                                  mesh::Union{StructuredMesh,
+                                                              StructuredMeshView},
+                                                  equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
                                                   surface_node_indices, element)
@@ -72,6 +77,14 @@ end
     end
 end
 
+@inline function get_inverse_jacobian(inverse_jacobian,
+                                      mesh::Union{StructuredMesh, StructuredMeshView,
+                                                  UnstructuredMesh2D, P4estMesh,
+                                                  T8codeMesh},
+                                      indices...)
+    return inverse_jacobian[indices...]
+end
+
 include("containers.jl")
 include("dg_1d.jl")
 include("dg_2d.jl")
@@ -80,6 +93,9 @@ include("dg_3d.jl")
 include("indicators_1d.jl")
 include("indicators_2d.jl")
 include("indicators_3d.jl")
+
+include("subcell_limiters_2d.jl")
+include("dg_2d_subcell_limiters.jl")
 
 # Specialized implementations used to improve performance
 include("dg_2d_compressible_euler.jl")

@@ -234,6 +234,57 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_free_stream_boundaries.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_boundaries.jl"),
+                        l2=[
+                            6.530157034651212e-16, 1.6057829680004379e-15,
+                            3.31107455378537e-15, 3.908829498281281e-15,
+                            5.048390610424672e-15,
+                        ],
+                        linf=[
+                            4.884981308350689e-15, 1.1921019726912618e-14,
+                            1.5432100042289676e-14, 2.298161660974074e-14,
+                            6.039613253960852e-14,
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_free_stream_extruded.jl with HLLC FLux" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream_extruded.jl"),
+                        l2=[
+                            8.444868392439035e-16,
+                            4.889826056731442e-15,
+                            2.2921260987087585e-15,
+                            4.268460455702414e-15,
+                            1.1356712092620279e-14,
+                        ],
+                        linf=[
+                            7.749356711883593e-14,
+                            4.513472928735496e-13,
+                            2.9790059308254513e-13,
+                            1.057154364048074e-12,
+                            1.6271428648906294e-12,
+                        ],
+                        tspan=(0.0, 0.1),
+                        surface_flux=flux_hllc)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
@@ -251,6 +302,35 @@ end
                             0.8099577682187109,
                         ],
                         tspan=(0.0, 0.2),
+                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_ec.jl (flux_chandrashekar)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
+                        l2=[
+                            0.010368548525287055,
+                            0.006216054794583285,
+                            0.006020401857347216,
+                            0.006019175682769779,
+                            0.026228080232814154,
+                        ],
+                        linf=[
+                            0.3169376449662026,
+                            0.28950510175646726,
+                            0.4402523227566396,
+                            0.4869168122387365,
+                            0.7999141641954051,
+                        ],
+                        tspan=(0.0, 0.2),
+                        volume_flux=flux_chandrashekar,
                         coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -352,18 +432,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_circular_wind_nonconforming.jl"),
                         l2=[
-                            1.573832094977477e-7,
-                            3.863090659429634e-5,
-                            3.867293305754584e-5,
-                            3.686550296950078e-5,
-                            0.05508968493733932,
+                            1.5737711609657832e-7,
+                            3.8630261900166194e-5,
+                            3.8672287531936816e-5,
+                            3.6865116098660796e-5,
+                            0.05508620970403884,
                         ],
                         linf=[
-                            2.2695202613887133e-6,
-                            0.0005314968179916946,
-                            0.0005314969614147458,
-                            0.0005130280733059617,
-                            0.7944959432352334,
+                            2.268845333053271e-6,
+                            0.000531462302113539,
+                            0.0005314624461298934,
+                            0.0005129931254772464,
+                            0.7942778058932163,
                         ],
                         tspan=(0.0, 2e2),
                         coverage_override=(trees_per_cube_face = (1, 1), polydeg = 3)) # Prevent long compile time in CI
@@ -381,18 +461,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_baroclinic_instability.jl"),
                         l2=[
-                            6.725065410642336e-7,
-                            0.00021710117340245454,
-                            0.000438679759422352,
-                            0.00020836356588024185,
-                            0.07602006689579247,
+                            6.725093801700048e-7,
+                            0.00021710076010951073,
+                            0.0004386796338203878,
+                            0.00020836270267103122,
+                            0.07601887903440395,
                         ],
                         linf=[
-                            1.9101671995258585e-5,
-                            0.029803626911022396,
-                            0.04847630924006063,
-                            0.022001371349740104,
-                            4.847761006938526,
+                            1.9107530539574924e-5,
+                            0.02980358831035801,
+                            0.048476331898047564,
+                            0.02200137344113612,
+                            4.848310144356219,
                         ],
                         tspan=(0.0, 1e2),
                         # Decrease tolerance of adaptive time stepping to get similar results across different systems
@@ -475,6 +555,28 @@ end
                         tspan=(0.0, 0.04),
                         coverage_override=(maxiters = 6, initial_refinement_level = 1,
                                            base_level = 1, max_level = 2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_linearizedeuler_convergence.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_linearizedeuler_convergence.jl"),
+                        l2=[
+                            0.04452389418193219, 0.03688186699434862,
+                            0.03688186699434861, 0.03688186699434858,
+                            0.044523894181932186,
+                        ],
+                        linf=[
+                            0.2295447498696467, 0.058369658071546704,
+                            0.05836965807154648, 0.05836965807154648, 0.2295447498696468,
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

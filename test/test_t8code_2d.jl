@@ -30,7 +30,49 @@ mkdir(outdir)
     end
 end
 
+@trixi_testset "test load mesh from path" begin
+    mktempdir() do path
+        @test_throws "Unknown file extension: .unknown_ext" begin
+            mesh = T8codeMesh(touch(joinpath(path, "dummy.unknown_ext")), 2)
+        end
+    end
+end
+
+@trixi_testset "test check_for_negative_volumes" begin
+    @test_throws "Discovered negative volumes" begin
+        # Unstructured mesh with six cells which have left-handed node ordering.
+        mesh_file = Trixi.download("https://gist.githubusercontent.com/jmark/bfe0d45f8e369298d6cc637733819013/raw/cecf86edecc736e8b3e06e354c494b2052d41f7a/rectangle_with_negative_volumes.msh",
+                                   joinpath(EXAMPLES_DIR,
+                                            "rectangle_with_negative_volumes.msh"))
+
+        # This call should throw a warning about negative volumes detected.
+        mesh = T8codeMesh(mesh_file, 2)
+    end
+end
+
+@trixi_testset "test t8code mesh from p4est connectivity" begin
+    @test begin
+        # Here we use the connectivity constructor from `P4est.jl` since the
+        # method dispatch works only on `Ptr{p4est_connectivity}` which
+        # actually is `Ptr{P4est.LibP4est.p4est_connectivity}`.
+        conn = Trixi.P4est.LibP4est.p4est_connectivity_new_brick(2, 3, 1, 1)
+        mesh = T8codeMesh(conn)
+        all(size(mesh.tree_node_coordinates) .== (2, 2, 2, 6))
+    end
+end
+
+@trixi_testset "test t8code mesh from ABAQUS HOHQMesh file" begin
+    @test begin
+        # Unstructured ABAQUS mesh file created with HOHQMesh..
+        file_path = Trixi.download("https://gist.githubusercontent.com/jmark/9e0da4306e266617eeb19bc56b0e7feb/raw/e6856e1deb648a807f6bb6d6dcacff9e55d94e2a/round_2d_tank.inp",
+                                   joinpath(EXAMPLES_DIR, "round_2d_tank.inp"))
+        mesh = T8codeMesh(file_path, 2)
+        all(size(mesh.tree_node_coordinates) .== (2, 4, 4, 340))
+    end
+end
+
 @trixi_testset "elixir_advection_basic.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[8.311947673061856e-6],
@@ -46,6 +88,7 @@ end
 end
 
 @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_nonconforming_flag.jl"),
                         l2=[3.198940059144588e-5],
@@ -61,6 +104,7 @@ end
 end
 
 @trixi_testset "elixir_advection_unstructured_flag.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_unstructured_flag.jl"),
                         l2=[0.0005379687442422346],
                         linf=[0.007438525029884735])
@@ -91,6 +135,7 @@ end
 end
 
 @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_solution_independent.jl"),
                         # Expected errors are exactly the same as with StructuredMesh!
@@ -108,6 +153,7 @@ end
 end
 
 @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                         l2=[
@@ -133,6 +179,7 @@ end
 end
 
 @trixi_testset "elixir_euler_free_stream.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
                         l2=[
                             2.063350241405049e-15,
@@ -153,6 +200,7 @@ end
 end
 
 @trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
                         l2=[
                             9.53984675e-02,
@@ -178,6 +226,8 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl` besides minor
+    # deviations in the expected error norms.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[
                             3.76149952e-01,
@@ -203,6 +253,7 @@ end
 end
 
 @trixi_testset "elixir_shallowwater_source_terms.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
                             9.168126407325352e-5,
@@ -228,6 +279,7 @@ end
 end
 
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
                         l2=[1.0513414461545583e-5, 1.0517900957166411e-6,
                             1.0517900957304043e-6, 1.511816606372376e-6,
@@ -250,6 +302,8 @@ end
 end
 
 @trixi_testset "elixir_mhd_rotor.jl" begin
+    # This test is identical to the one in `test_p4est_2d.jl` besides minor
+    # deviations in the expected error norms.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
                         l2=[0.44211360369891683, 0.8805178316216257, 0.8262710688468049,
                             0.0,

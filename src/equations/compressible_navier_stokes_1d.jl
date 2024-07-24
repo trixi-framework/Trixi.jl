@@ -21,6 +21,9 @@ the [`CompressibleEulerEquations1D`](@ref).
 
 Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
 [``\mu``] = kg m⁻¹ s⁻¹.
+The viscosity ``\mu`` may be a constant or a function of the current state, e.g., 
+depending on temperature (Sutherland's law): ``\mu = \mu(T)``.
+In the latter case, the function `mu` needs to have the signature `mu(u, equations)`.
 
 The particular form of the compressible Navier-Stokes implemented is
 ```math
@@ -80,7 +83,7 @@ where
 w_2 = \frac{\rho v1}{p},\, w_3 = -\frac{\rho}{p}
 ```
 """
-struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real,
+struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real, Mu,
                                            E <: AbstractCompressibleEulerEquations{1}} <:
        AbstractCompressibleNavierStokesDiffusion{1, 3, GradientVariables}
     # TODO: parabolic
@@ -89,7 +92,7 @@ struct CompressibleNavierStokesDiffusion1D{GradientVariables, RealT <: Real,
     gamma::RealT               # ratio of specific heats
     inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
 
-    mu::RealT                  # viscosity
+    mu::Mu                     # viscosity
     Pr::RealT                  # Prandtl number
     kappa::RealT               # thermal diffusivity for Fick's law
 
@@ -103,16 +106,17 @@ function CompressibleNavierStokesDiffusion1D(equations::CompressibleEulerEquatio
                                              gradient_variables = GradientVariablesPrimitive())
     gamma = equations.gamma
     inv_gamma_minus_one = equations.inv_gamma_minus_one
-    μ, Pr = promote(mu, Prandtl)
 
     # Under the assumption of constant Prandtl number the thermal conductivity
-    # constant is kappa = gamma μ / ((gamma-1) Pr).
+    # constant is kappa = gamma μ / ((gamma-1) Prandtl).
     # Important note! Factor of μ is accounted for later in `flux`.
-    kappa = gamma * inv_gamma_minus_one / Pr
+    # This avoids recomputation of kappa for non-constant μ.
+    kappa = gamma * inv_gamma_minus_one / Prandtl
 
     CompressibleNavierStokesDiffusion1D{typeof(gradient_variables), typeof(gamma),
+                                        typeof(mu),
                                         typeof(equations)}(gamma, inv_gamma_minus_one,
-                                                           μ, Pr, kappa,
+                                                           mu, Prandtl, kappa,
                                                            equations,
                                                            gradient_variables)
 end
@@ -159,13 +163,15 @@ function flux(u, gradients, orientation::Integer,
     # in the implementation
     q1 = equations.kappa * dTdx
 
-    # Constant dynamic viscosity is copied to a variable for readability.
-    # Offers flexibility for dynamic viscosity via Sutherland's law where it depends
-    # on temperature and reference values, Ts and Tref such that mu(T)
-    mu = equations.mu
+    # In the simplest cases, the user passed in `mu` or `mu()` 
+    # (which returns just a constant) but
+    # more complex functions like Sutherland's law are possible.
+    # `dynamic_viscosity` is a helper function that handles both cases
+    # by dispatching on the type of `equations.mu`.
+    mu = dynamic_viscosity(u, equations)
 
     # viscous flux components in the x-direction
-    f1 = zero(rho)
+    f1 = 0
     f2 = tau_11 * mu
     f3 = (v1 * tau_11 + q1) * mu
 
@@ -246,7 +252,7 @@ end
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion1D)
     rho, rho_v1, rho_e = u
 
-    p = (equations.gamma - 1) * (rho_e - 0.5 * rho_v1^2 / rho)
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1^2 / rho)
     T = p / rho
     return T
 end

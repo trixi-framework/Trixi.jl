@@ -36,7 +36,8 @@ end
 
 # The methods below are specialized on the volume integral type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                                  UnstructuredMesh2D,
                                   P4estMesh{2}, T8codeMesh{2}},
                       equations, volume_integral::VolumeIntegralFluxDifferencing,
                       dg::DG, uEltype)
@@ -180,8 +181,8 @@ end
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
-                                           UnstructuredMesh2D, P4estMesh{2},
-                                           T8codeMesh{2}},
+                                           StructuredMeshView{2}, UnstructuredMesh2D,
+                                           P4estMesh{2}, T8codeMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -234,6 +235,7 @@ end
 # from the evaluation of the physical fluxes in each Cartesian direction
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                           StructuredMeshView{2},
                                            UnstructuredMesh2D, P4estMesh{2},
                                            T8codeMesh{2}},
                                nonconservative_terms, equations,
@@ -1085,7 +1087,9 @@ end
     return nothing
 end
 
-function calc_surface_integral!(du, u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+function calc_surface_integral!(du, u,
+                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
+                                            StructuredMeshView{2}},
                                 equations, surface_integral::SurfaceIntegralWeakForm,
                                 dg::DG, cache)
     @unpack boundary_interpolation = dg.basis

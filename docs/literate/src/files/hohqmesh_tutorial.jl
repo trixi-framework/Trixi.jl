@@ -35,6 +35,7 @@
 # There is a default example for this mesh type that can be executed by
 
 using Trixi
+rm("out", force = true, recursive = true) #hide #md
 redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
 trixi_include(default_example_unstructured())
 end #hide #md
@@ -53,7 +54,7 @@ end #hide #md
 
 using Trixi2Vtk
 redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-trixi2vtk("out/solution_000180.h5", output_directory="out")
+trixi2vtk("out/solution_000000180.h5", output_directory="out")
 end #hide #md
 
 # Note this step takes about 15-30 seconds as the package `Trixi2Vtk` must be precompiled and executed for the first time
@@ -63,7 +64,7 @@ end #hide #md
 # visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
 
 redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-trixi2vtk("out/solution_000180.h5", output_directory="out", nvisnodes=12)
+trixi2vtk("out/solution_000000180.h5", output_directory="out", nvisnodes=12)
 end #hide #md
 
 # By default `trixi2vtk` sets `nvisnodes` to be the same as the number of nodes specified in

@@ -32,7 +32,7 @@ function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any, 4},
     outer_distance = 1.85
 
     # Iterate over all elements.
-    for element in 1:length(alpha)
+    for element in eachindex(alpha)
         # Calculate periodic distance between cell and center.
         # This requires an uncurved mesh!
         coordinates = SVector(0.5 * (cache.elements.node_coordinates[1, 1, 1, element] +
@@ -93,12 +93,10 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-5.0, -5.0)
 coordinates_max = (5.0, 5.0)
 
-mapping = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
-
 trees_per_dimension = (1, 1)
 
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
-                  mapping = mapping,
+                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   initial_refinement_level = 1)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

@@ -9,7 +9,7 @@
 #! format: noindent
 
 # 2D caches
-function create_cache(mesh::TreeMesh{2}, equations,
+function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
                       volume_integral::VolumeIntegralStrongForm, dg, uEltype)
     prototype = Array{SVector{nvariables(equations), uEltype}, ndims(mesh)}(undef,
                                                                             ntuple(_ -> nnodes(dg),
@@ -19,7 +19,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
     return (; f_threaded)
 end
 
-function create_cache(mesh::TreeMesh{2}, equations,
+function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
                       volume_integral::VolumeIntegralUpwind, dg, uEltype)
     u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype),
                                                             Val{nvariables(equations)}()))

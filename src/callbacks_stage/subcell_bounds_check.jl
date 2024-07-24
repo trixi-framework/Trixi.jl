@@ -38,34 +38,36 @@ function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
     (; t, iter, alg) = integrator
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
+    @trixi_timeit timer() "check_bounds" check_bounds(u, equations, solver, cache,
+                                                      solver.volume_integral)
+
     save_errors = callback.save_errors && (callback.interval > 0) &&
                   (stage == length(alg.c)) &&
-                  (iter % callback.interval == 0 || integrator.finalstep)
-    @trixi_timeit timer() "check_bounds" check_bounds(u, mesh, equations, solver, cache,
-                                                      solver.volume_integral, t,
-                                                      iter + 1,
-                                                      callback.output_directory,
-                                                      save_errors)
+                  ((iter + 1) % callback.interval == 0 ||   # Every `interval` time steps
+                   integrator.finalstep ||                  # Planned last time step
+                   (iter + 1) >= integrator.opts.maxiters)  # Maximum iterations reached
+    if save_errors
+        @trixi_timeit timer() "save_errors" save_bounds_check_errors(callback.output_directory,
+                                                                     t, iter + 1,
+                                                                     equations,
+                                                                     solver.volume_integral)
+    end
 end
 
-function check_bounds(u, mesh, equations, solver, cache,
-                      volume_integral::AbstractVolumeIntegral, t, iter,
-                      output_directory, save_errors)
-    return nothing
+@inline function check_bounds(u, equations, solver, cache,
+                              volume_integral::VolumeIntegralSubcellLimiting)
+    check_bounds(u, equations, solver, cache, volume_integral.limiter)
 end
 
-function check_bounds(u, mesh, equations, solver, cache,
-                      volume_integral::VolumeIntegralSubcellLimiting, t, iter,
-                      output_directory, save_errors)
-    check_bounds(u, mesh, equations, solver, cache, volume_integral.limiter, t, iter,
-                 output_directory, save_errors)
+@inline function save_bounds_check_errors(output_directory, t, iter, equations,
+                                          volume_integral::VolumeIntegralSubcellLimiting)
+    save_bounds_check_errors(output_directory, t, iter, equations,
+                             volume_integral.limiter)
 end
 
 function init_callback(callback::BoundsCheckCallback, semi)
     init_callback(callback, semi, semi.solver.volume_integral)
 end
-
-init_callback(callback::BoundsCheckCallback, semi, volume_integral::AbstractVolumeIntegral) = nothing
 
 function init_callback(callback::BoundsCheckCallback, semi,
                        volume_integral::VolumeIntegralSubcellLimiting)
@@ -77,25 +79,33 @@ function init_callback(callback::BoundsCheckCallback, semi, limiter::SubcellLimi
         return nothing
     end
 
-    (; local_minmax, positivity) = limiter
+    (; local_twosided, positivity, local_onesided) = limiter
     (; output_directory) = callback
     variables = varnames(cons2cons, semi.equations)
 
     mkpath(output_directory)
     open("$output_directory/deviations.txt", "a") do f
         print(f, "# iter, simu_time")
-        if local_minmax
-            for v in limiter.local_minmax_variables_cons
+        if local_twosided
+            for v in limiter.local_twosided_variables_cons
                 variable_string = string(variables[v])
                 print(f, ", " * variable_string * "_min, " * variable_string * "_max")
             end
         end
+        if local_onesided
+            for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+                print(f, ", " * string(variable) * "_" * string(min_or_max))
+            end
+        end
         if positivity
             for v in limiter.positivity_variables_cons
-                if v in limiter.local_minmax_variables_cons
+                if v in limiter.local_twosided_variables_cons
                     continue
                 end
                 print(f, ", " * string(variables[v]) * "_min")
+            end
+            for variable in limiter.positivity_variables_nonlinear
+                print(f, ", " * string(variable) * "_min")
             end
         end
         println(f)
@@ -108,8 +118,6 @@ function finalize_callback(callback::BoundsCheckCallback, semi)
     finalize_callback(callback, semi, semi.solver.volume_integral)
 end
 
-finalize_callback(callback::BoundsCheckCallback, semi, volume_integral::AbstractVolumeIntegral) = nothing
-
 function finalize_callback(callback::BoundsCheckCallback, semi,
                            volume_integral::VolumeIntegralSubcellLimiting)
     finalize_callback(callback, semi, volume_integral.limiter)
@@ -117,28 +125,45 @@ end
 
 @inline function finalize_callback(callback::BoundsCheckCallback, semi,
                                    limiter::SubcellLimiterIDP)
-    (; local_minmax, positivity) = limiter
-    (; idp_bounds_delta) = limiter.cache
+    (; local_twosided, positivity, local_onesided) = limiter
+    (; idp_bounds_delta_global) = limiter.cache
     variables = varnames(cons2cons, semi.equations)
 
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
-    if local_minmax
-        for v in limiter.local_minmax_variables_cons
+    if local_twosided
+        for v in limiter.local_twosided_variables_cons
             v_string = string(v)
             println("$(variables[v]):")
-            println("-lower bound: ", idp_bounds_delta[Symbol(v_string, "_min")][2])
-            println("-upper bound: ", idp_bounds_delta[Symbol(v_string, "_max")][2])
+            println("- lower bound: ",
+                    idp_bounds_delta_global[Symbol(v_string, "_min")])
+            println("- upper bound: ",
+                    idp_bounds_delta_global[Symbol(v_string, "_max")])
+        end
+    end
+    if local_onesided
+        for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
+            variable_string = string(variable)
+            minmax_string = string(min_or_max)
+            println("$variable_string:")
+            println("- $minmax_string bound: ",
+                    idp_bounds_delta_global[Symbol(variable_string, "_",
+                                                   minmax_string)])
         end
     end
     if positivity
         for v in limiter.positivity_variables_cons
-            if v in limiter.local_minmax_variables_cons
+            if v in limiter.local_twosided_variables_cons
                 continue
             end
             println(string(variables[v]) * ":\n- positivity: ",
-                    idp_bounds_delta[Symbol(string(v), "_min")][2])
+                    idp_bounds_delta_global[Symbol(string(v), "_min")])
+        end
+        for variable in limiter.positivity_variables_nonlinear
+            variable_string = string(variable)
+            println(variable_string * ":\n- positivity: ",
+                    idp_bounds_delta_global[Symbol(variable_string, "_min")])
         end
     end
     println("─"^100 * "\n")
