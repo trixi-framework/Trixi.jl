@@ -11,18 +11,10 @@ initial_condition = initial_condition_convergence_test
 
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
-solver = DGSEM(polydeg = polydeg, surface_flux = flux_hllc,
-               volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis, volume_flux_fv = flux_hllc,
+surf_flux = flux_hllc
+solver = DGSEM(polydeg = polydeg, surface_flux = surf_flux,
+               volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis, volume_flux_fv = surf_flux,
                slope_limiter = superbee))
-
-#=               
-coordinates_min = (0.0,) # minimum coordinate
-coordinates_max = (2.0,) # maximum coordinate
-cells_per_dimension = (16,)
-
-# Create curved mesh with 16 cells
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
-=#
 
 coordinates_min = 0.0
 coordinates_max = 2.0

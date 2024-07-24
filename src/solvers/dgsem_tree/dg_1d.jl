@@ -452,8 +452,8 @@ end
         # Gauss Lobatto Legendre nodes (schematic for k = 3):
         #   .         .                 .         .
         #   ^         ^                 ^         ^
-        # i - 2,    i - 1,               i,     i + 1
-        # mm        ll                   rr     pp
+        # i - 2,    i - 1,              i,      i + 1
+        # mm        ll                  rr      pp
         # Cell boundaries (schematic for k = 3): 
         # (note that only the inner three boundaries are stored)
         #  -1 -----------------0----------------- 1 -> x
