@@ -1855,7 +1855,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @timed_testset "Maxwell 1D" begin
         for RealT in (Float32, Float64)
-            c = RealT(299792458)
+            c = RealT(299_792_458)
             equations = @inferred MaxwellEquations1D(c)
 
             x = SVector(zero(RealT))
