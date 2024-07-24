@@ -43,6 +43,7 @@ end
 Computes limited (linear) slopes on the subcells for a DGSEM element.
 The supplied `limiter` governs the choice of slopes given the nodal values
 `u_mm`, `u_ll`, `u_rr`, and `u_pp` at the (Gauss-Lobatto Legendre) nodes.
+Formally O(2) accurate.
 """
 @inline function reconstruction_small_stencil(u_mm, u_ll, u_rr, u_pp,
                                               x_interfaces, node_index, limiter, dg)
@@ -126,7 +127,7 @@ end
     superbee(sl, sr)
 
 Superbee limiter function for a TVD reconstruction given left and right slopes `sl` and `sr`.
-There are many different ways how the monotonized central limiter can be implemented.
+There are many different ways how the superbee limiter can be implemented.
 For reference, see for instance Eq. (6.28) in
 
 - Randall J. LeVeque (2002)
@@ -134,7 +135,7 @@ For reference, see for instance Eq. (6.28) in
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 @inline function superbee(sl, sr)
-    s = maxmod(minmod(sl, 2 * sr), minmod(sl, 2 * sr))
+    s = maxmod(minmod(sl, 2 * sr), minmod(2 * sl, sr))
     return s
 end
 

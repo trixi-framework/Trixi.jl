@@ -15,7 +15,7 @@ surf_flux = flux_hllc
 solver = DGSEM(polydeg = polydeg, surface_flux = surf_flux,
                volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                                      volume_flux_fv = surf_flux,
-                                                                     slope_limiter = superbee))
+                                                                     slope_limiter = monotonized_central))
 
 coordinates_min = 0.0
 coordinates_max = 2.0
@@ -41,7 +41,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.4)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
