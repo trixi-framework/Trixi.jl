@@ -11,7 +11,7 @@ using Trixi
 const SUITE = BenchmarkGroup()
 
 for elixir in [# 1D
-               joinpath(examples_dir(), "structured_1d_dgsem", "elixir_euler_sedov"),
+               joinpath(examples_dir(), "structured_1d_dgsem", "elixir_euler_sedov.jl"),
                joinpath(examples_dir(), "tree_1d_dgsem", "elixir_mhd_ec.jl"), 
                joinpath(examples_dir(), "tree_1d_dgsem", "elixir_navierstokes_convergence_walls_amr.jl"),
                joinpath(examples_dir(), "tree_1d_dgsem", "elixir_shallowwater_well_balanced_nonperiodic.jl"),

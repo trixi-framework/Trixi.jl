@@ -71,16 +71,16 @@ A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref)
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 """
-
 function initial_condition_convergence_test(x, t, equations::ShallowWaterEquations1D)
     # some constants are chosen such that the function is periodic on the domain [0,sqrt(2)]
-    c = 7.0
-    omega_x = 2.0 * pi * sqrt(2.0)
-    omega_t = 2.0 * pi
+    RealT = eltype(x)
+    c = 7
+    omega_x = 2 * convert(RealT, pi) * sqrt(convert(RealT, 2))
+    omega_t = 2 * convert(RealT, pi)
 
     H = c + cos(omega_x * x[1]) * cos(omega_t * t)
-    v = 0.5
-    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
+    v = 0.5f0
+    b = 2 + 0.5f0 * sinpi(sqrt(convert(RealT, 2)) * x[1])
     return prim2cons(SVector(H, v, b), equations)
 end
 
@@ -92,19 +92,19 @@ Source terms used for convergence tests in combination with
 (and [`BoundaryConditionDirichlet(initial_condition_convergence_test)`](@ref) in non-periodic domains).
 
 This manufactured solution source term is specifically designed for the bottom topography function
-`b(x) = 2.0 + 0.5 * sin(sqrt(2.0)*pi*x[1])`
+`b(x) = 2.0 + 0.5 * sinpi(sqrt(2.0) * x[1])`
 as defined in [`initial_condition_convergence_test`](@ref).
 """
-
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::ShallowWaterEquations1D)
     # Same settings as in `initial_condition_convergence_test`. Some derivative simplify because
     # this manufactured solution velocity is taken to be constant
-    c = 7.0
-    omega_x = 2.0 * pi * sqrt(2.0)
-    omega_t = 2.0 * pi
-    omega_b = sqrt(2.0) * pi
-    v = 0.5
+    RealT = eltype(u)
+    c = 7
+    omega_x = 2 * convert(RealT, pi) * sqrt(convert(RealT, 2))
+    omega_t = 2 * convert(RealT, pi)
+    omega_b = sqrt(convert(RealT, 2)) * convert(RealT, pi)
+    v = 0.5f0
 
     sinX, cosX = sincos(omega_x * x[1])
     sinT, cosT = sincos(omega_t * t)
@@ -116,12 +116,12 @@ as defined in [`initial_condition_convergence_test`](@ref).
     H_t = -omega_t * cosX * sinT
 
     # bottom topography and its spatial derivative
-    b = 2.0 + 0.5 * sin(sqrt(2.0) * pi * x[1])
-    b_x = 0.5 * omega_b * cos(omega_b * x[1])
+    b = 2 + 0.5f0 * sinpi(sqrt(convert(RealT, 2)) * x[1])
+    b_x = 0.5f0 * omega_b * cos(omega_b * x[1])
 
     du1 = H_t + v * (H_x - b_x)
     du2 = v * du1 + equations.gravity * (H - b) * H_x
-    return SVector(du1, du2, 0.0)
+    return SVector(du1, du2, 0)
 end
 
 """
@@ -131,13 +131,14 @@ A weak blast wave discontinuity useful for testing, e.g., total energy conservat
 Note for the shallow water equations to the total energy acts as a mathematical entropy function.
 """
 function initial_condition_weak_blast_wave(x, t, equations::ShallowWaterEquations1D)
-    inicenter = 0.7
+    RealT = eltype(x)
+    inicenter = convert(RealT, 0.7)
     x_norm = x[1] - inicenter
     r = abs(x_norm)
 
     # Calculate primitive variables
-    H = r > 0.5 ? 3.25 : 4.0
-    v = r > 0.5 ? 0.0 : 0.1882
+    H = r > 0.5f0 ? 3.25f0 : 4.0f0
+    v = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882)
     b = sin(x[1]) # arbitrary continuous function
 
     return prim2cons(SVector(H, v, b), equations)
@@ -185,12 +186,12 @@ end
     h, h_v, _ = u
     v = velocity(u, equations)
 
-    p = 0.5 * equations.gravity * h^2
+    p = 0.5f0 * equations.gravity * h^2
 
     f1 = h_v
     f2 = h_v * v + p
 
-    return SVector(f1, f2, zero(eltype(u)))
+    return SVector(f1, f2, 0)
 end
 
 """
@@ -212,10 +213,8 @@ Further details are available in the paper:
     h_ll = waterheight(u_ll, equations)
     b_rr = u_rr[3]
 
-    z = zero(eltype(u_ll))
-
     # Bottom gradient nonconservative term: (0, g h b_x, 0)
-    f = SVector(z, equations.gravity * h_ll * b_rr, z)
+    f = SVector(0, equations.gravity * h_ll * b_rr, 0)
 
     return f
 end
@@ -249,19 +248,17 @@ and for curvilinear 2D case in the paper:
     h_ll, _, b_ll = u_ll
     h_rr, _, b_rr = u_rr
 
-    h_average = 0.5 * (h_ll + h_rr)
+    h_average = 0.5f0 * (h_ll + h_rr)
     b_jump = b_rr - b_ll
 
     # Includes two parts:
     #  (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #       cross-averaging across a discontinuous bottom topography
     #  (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
-    z = zero(eltype(u_ll))
-
-    f = SVector(z,
+    f = SVector(0,
                 equations.gravity * h_ll * b_ll +
                 equations.gravity * h_average * b_jump,
-                z)
+                0)
 
     return f
 end
@@ -296,15 +293,14 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    z = zero(eltype(u_ll))
     # Includes two parts:
     #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
     #        cross-averaging across a discontinuous bottom topography
     #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
-    return SVector(z,
+    return SVector(0,
                    equations.gravity * h_ll * b_ll +
                    equations.gravity * (h_ll^2 - h_ll_star^2),
-                   z)
+                   0)
 end
 
 """
@@ -337,10 +333,8 @@ For further details see:
     # Calculate jump
     b_jump = b_rr - b_ll
 
-    z = zero(eltype(u_ll))
-
     # Bottom gradient nonconservative term: (0, g h b_x, 0)
-    f = SVector(z, equations.gravity * h_ll * b_jump, z)
+    f = SVector(0, equations.gravity * h_ll * b_jump, 0)
 
     return f
 end
@@ -367,15 +361,15 @@ Details are available in Eq. (4.1) in the paper:
     v_rr = velocity(u_rr, equations)
 
     # Average each factor of products in flux
-    h_avg = 0.5 * (h_ll + h_rr)
-    v_avg = 0.5 * (v_ll + v_rr)
-    p_avg = 0.25 * equations.gravity * (h_ll^2 + h_rr^2)
+    h_avg = 0.5f0 * (h_ll + h_rr)
+    v_avg = 0.5f0 * (v_ll + v_rr)
+    p_avg = 0.25f0 * equations.gravity * (h_ll^2 + h_rr^2)
 
     # Calculate fluxes depending on orientation
     f1 = h_avg * v_avg
     f2 = f1 * v_avg + p_avg
 
-    return SVector(f1, f2, zero(eltype(u_ll)))
+    return SVector(f1, f2, 0)
 end
 
 """
@@ -403,14 +397,14 @@ Further details are available in Theorem 1 of the paper:
     v_rr = velocity(u_rr, equations)
 
     # Average each factor of products in flux
-    v_avg = 0.5 * (v_ll + v_rr)
-    p_avg = 0.5 * equations.gravity * h_ll * h_rr
+    v_avg = 0.5f0 * (v_ll + v_rr)
+    p_avg = 0.5f0 * equations.gravity * h_ll * h_rr
 
     # Calculate fluxes depending on orientation
-    f1 = 0.5 * (h_v_ll + h_v_rr)
+    f1 = 0.5f0 * (h_v_ll + h_v_rr)
     f2 = f1 * v_avg + p_avg
 
-    return SVector(f1, f2, zero(eltype(u_ll)))
+    return SVector(f1, f2, 0)
 end
 
 """
@@ -438,8 +432,8 @@ Further details on this hydrostatic reconstruction and its motivation can be fou
     v1_rr = velocity(u_rr, equations)
 
     # Compute the reconstructed water heights
-    h_ll_star = max(zero(h_ll), h_ll + b_ll - max(b_ll, b_rr))
-    h_rr_star = max(zero(h_rr), h_rr + b_rr - max(b_ll, b_rr))
+    h_ll_star = max(0, h_ll + b_ll - max(b_ll, b_rr))
+    h_rr_star = max(0, h_rr + b_rr - max(b_ll, b_rr))
 
     # Create the conservative variables using the reconstruted water heights
     u_ll_star = SVector(h_ll_star, h_ll_star * v1_ll, b_ll)
@@ -471,8 +465,8 @@ end
                                                               equations::ShallowWaterEquations1D)
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
-    diss = -0.5 * λ * (u_rr - u_ll)
-    return SVector(diss[1], diss[2], zero(eltype(u_ll)))
+    diss = -0.5f0 * λ * (u_rr - u_ll)
+    return SVector(diss[1], diss[2], 0)
 end
 
 # Specialized `FluxHLL` to avoid spurious dissipation in the bottom topography
@@ -494,7 +488,7 @@ end
         factor_diss = λ_min * λ_max * inv_λ_max_minus_λ_min
         diss = u_rr - u_ll
         return factor_ll * f_ll - factor_rr * f_rr +
-               factor_diss * SVector(diss[1], diss[2], zero(eltype(u_ll)))
+               factor_diss * SVector(diss[1], diss[2], 0)
     end
 end
 
@@ -581,7 +575,7 @@ end
 
     v = velocity(u, equations)
 
-    w1 = equations.gravity * (h + b) - 0.5 * v^2
+    w1 = equations.gravity * (h + b) - 0.5f0 * v^2
     w2 = v
 
     return SVector(w1, w2, b)
@@ -591,7 +585,7 @@ end
 @inline function entropy2cons(w, equations::ShallowWaterEquations1D)
     w1, w2, b = w
 
-    h = (w1 + 0.5 * w2^2) / equations.gravity - b
+    h = (w1 + 0.5f0 * w2^2) / equations.gravity - b
     h_v = h * w2
     return SVector(h, h_v, b)
 end
@@ -612,7 +606,7 @@ end
 
 @inline function pressure(u, equations::ShallowWaterEquations1D)
     h = waterheight(u, equations)
-    p = 0.5 * equations.gravity * h^2
+    p = 0.5f0 * equations.gravity * h^2
     return p
 end
 
@@ -638,7 +632,7 @@ Or equation (9.17) in [this lecture notes](https://metaphor.ethz.ch/x/2019/hs/40
     h_rr = waterheight(u_rr, equations)
     v_rr = velocity(u_rr, equations)
 
-    h_roe = 0.5 * (h_ll + h_rr)
+    h_roe = 0.5f0 * (h_ll + h_rr)
     c_roe = sqrt(equations.gravity * h_roe)
 
     h_ll_sqrt = sqrt(h_ll)
@@ -658,7 +652,7 @@ end
 @inline function energy_total(cons, equations::ShallowWaterEquations1D)
     h, h_v, b = cons
 
-    e = (h_v^2) / (2 * h) + 0.5 * equations.gravity * h^2 + equations.gravity * h * b
+    e = (h_v^2) / (2 * h) + 0.5f0 * equations.gravity * h^2 + equations.gravity * h * b
     return e
 end
 
