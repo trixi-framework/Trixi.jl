@@ -17,8 +17,8 @@ obtained from constant polynomials.
 Formally O(1) accurate.
 """
 @inline function reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
-                                         x_interfaces,
-                                         node_index, limiter, dg)
+                                         x_interfaces, node_index, 
+                                         limiter, dg)
     return u_ll, u_rr
 end
 
@@ -46,7 +46,8 @@ The supplied `limiter` governs the choice of slopes given the nodal values
 Formally O(2) accurate.
 """
 @inline function reconstruction_small_stencil(u_mm, u_ll, u_rr, u_pp,
-                                              x_interfaces, node_index, limiter, dg)
+                                              x_interfaces, node_index, 
+                                              limiter, dg)
     @unpack nodes = dg.basis
     x_ll = nodes[node_index - 1]
     x_rr = nodes[node_index]
@@ -74,12 +75,12 @@ Formally O(2) accurate.
 end
 
 """
-    central_recon(sl, sr)
+    central_slope(sl, sr)
 
 Central, non-TVD reconstruction given left and right slopes `sl` and `sr`.
 Gives formally full order of accuracy at the expense of sacrificed nonlinear stability.
 """
-@inline function central_recon(sl, sr)
+@inline function central_slope(sl, sr)
     s = 0.5 * (sl + sr)
     return s
 end

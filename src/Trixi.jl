@@ -241,8 +241,9 @@ export DG,
        SurfaceIntegralUpwind,
        MortarL2
 
-export reconstruction_small_stencil,
-       minmod, monotonized_central, superbee, vanLeer_limiter
+export reconstruction_small_stencil, reconstruction_constant,
+       minmod, monotonized_central, superbee, vanLeer_limiter,
+       central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection

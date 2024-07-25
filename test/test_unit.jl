@@ -1778,6 +1778,8 @@ end
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
     @test vanLeer_limiter(sl, sr) == 0.0
+
+    @test central_slope(sl, sr) == 0.5
 end
 end
 
