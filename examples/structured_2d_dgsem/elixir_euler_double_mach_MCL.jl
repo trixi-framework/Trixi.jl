@@ -63,8 +63,7 @@ boundary_condition_inflow_outflow = BoundaryConditionCharacteristic(initial_cond
                                                                   equations)
         # Calculate boundary flux
         if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-            flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal,
-                                         equations)
+            flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
         else
             flux = surface_flux_function(u_boundary, u_inner, normal_direction, equations)
         end
