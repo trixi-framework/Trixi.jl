@@ -17,7 +17,7 @@ obtained from constant polynomials.
 Formally O(1) accurate.
 """
 @inline function reconstruction_constant(u_mm, u_ll, u_rr, u_pp,
-                                         x_interfaces, node_index, 
+                                         x_interfaces, node_index,
                                          limiter, dg)
     return u_ll, u_rr
 end
@@ -46,7 +46,7 @@ The supplied `limiter` governs the choice of slopes given the nodal values
 Formally O(2) accurate.
 """
 @inline function reconstruction_small_stencil(u_mm, u_ll, u_rr, u_pp,
-                                              x_interfaces, node_index, 
+                                              x_interfaces, node_index,
                                               limiter, dg)
     @unpack nodes = dg.basis
     x_ll = nodes[node_index - 1]
