@@ -18,7 +18,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
     else
         filename = joinpath(output_directory, "mesh.h5")
     end
@@ -57,7 +57,7 @@ function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step
     if timestep >= 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
     else
         filename = joinpath(output_directory, "mesh.h5")
     end
@@ -156,8 +156,8 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%06d", timestep)
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+        p4est_filename = @sprintf("p4est_data_%09d", timestep)
     else
         filename = joinpath(output_directory, "mesh.h5")
         p4est_filename = "p4est_data"
@@ -191,8 +191,8 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep, mpi_paralle
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%06d", timestep)
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+        p4est_filename = @sprintf("p4est_data_%09d", timestep)
     else
         filename = joinpath(output_directory, "mesh.h5")
         p4est_filename = "p4est_data"
@@ -227,18 +227,19 @@ end
 
 # This routine works for both, serial and MPI parallel mode. The forest
 # information is collected on all ranks and then gathered by the root rank.
-# Since only the `levels` array of unsigned bytes is basicially independent per
-# rank it is not worth the effort to have a collective write to the HDF5 file.
-# Instead, `levels` gets gathered by the root rank and written in serial.
+# Since only the `levels` array of UInt8 and the global number of elements per
+# tree (Int32) is necessary to reconstruct the forest it is not worth the
+# effort to have a collective write to the HDF5 file. Instead, `levels` and
+# `num_elements_per_tree` gets gathered by the root rank and written to disk.
 function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
-                        mpi_parallel::Any)
+                        mpi_parallel::Union{False, True})
 
     # Create output directory (if it does not exist).
     mpi_isroot() && mkpath(output_directory)
 
     # Determine file name based on existence of meaningful time step.
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
     else
         filename = joinpath(output_directory, "mesh.h5")
     end

@@ -162,12 +162,12 @@ function flux(u, gradients, orientation::Integer,
     # Components of viscous stress tensor
 
     # Diagonal parts
-    # (4/3 * (v1)_x - 2/3 * ((v2)_y + (v3)_z)
-    tau_11 = 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * (dv2dy + dv3dz)
-    # (4/3 * (v2)_y - 2/3 * ((v1)_x + (v3)_z)
-    tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * (dv1dx + dv3dz)
-    # (4/3 * (v3)_z - 2/3 * ((v1)_x + (v2)_y)
-    tau_33 = 4.0 / 3.0 * dv3dz - 2.0 / 3.0 * (dv1dx + dv2dy)
+    # (4 * (v1)_x / 3 - 2 * ((v2)_y + (v3)_z)) / 3)
+    tau_11 = 4 * dv1dx / 3 - 2 * (dv2dy + dv3dz) / 3
+    # (4 * (v2)_y / 3 - 2 * ((v1)_x + (v3)_z) / 3)
+    tau_22 = 4 * dv2dy / 3 - 2 * (dv1dx + dv3dz) / 3
+    # (4 * (v3)_z / 3 - 2 * ((v1)_x + (v2)_y) / 3)
+    tau_33 = 4 * dv3dz / 3 - 2 * (dv1dx + dv2dy) / 3
 
     # Off diagonal parts, exploit that stress tensor is symmetric
     # ((v1)_y + (v2)_x)
@@ -194,7 +194,7 @@ function flux(u, gradients, orientation::Integer,
 
     if orientation == 1
         # viscous flux components in the x-direction
-        f1 = zero(rho)
+        f1 = 0
         f2 = tau_11 * mu
         f3 = tau_12 * mu
         f4 = tau_13 * mu
@@ -204,7 +204,7 @@ function flux(u, gradients, orientation::Integer,
     elseif orientation == 2
         # viscous flux components in the y-direction
         # Note, symmetry is exploited for tau_12 = tau_21
-        g1 = zero(rho)
+        g1 = 0
         g2 = tau_12 * mu # tau_21 * mu
         g3 = tau_22 * mu
         g4 = tau_23 * mu
@@ -214,7 +214,7 @@ function flux(u, gradients, orientation::Integer,
     else # if orientation == 3
         # viscous flux components in the z-direction
         # Note, symmetry is exploited for tau_13 = tau_31, tau_23 = tau_32
-        h1 = zero(rho)
+        h1 = 0
         h2 = tau_13 * mu # tau_31 * mu
         h3 = tau_23 * mu # tau_32 * mu
         h4 = tau_33 * mu
@@ -304,7 +304,7 @@ end
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e = u
 
-    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)
     T = p / rho
     return T
 end
@@ -313,7 +313,7 @@ end
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
     omega = vorticity(u, gradients, equations)
-    return 0.5 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
+    return 0.5f0 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
 end
 
 @inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion3D)

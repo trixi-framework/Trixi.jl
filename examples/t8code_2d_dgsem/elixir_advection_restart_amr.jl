@@ -6,7 +6,7 @@ using Trixi
 # create a restart file
 
 elixir_file = "elixir_advection_extended.jl"
-restart_file = "restart_000021.h5"
+restart_file = "restart_000000021.h5"
 
 trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
 
@@ -37,7 +37,15 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           dynamic_load_balancing = false)
+# We disable `dynamic_load_balancing` for now, since t8code does not support
+# partitioning for coarsening yet. That is, a complete family of elements always
+# stays on rank and is not split up due to partitioning. Without this feature
+# dynamic AMR simulations are not pefectly deterministic regarding to
+# convergent tests. Once this feature is available in t8code load balancing is
+# enabled again.
+
 callbacks_ext = CallbackSet(amr_callback, callbacks.discrete_callbacks...)
 
 integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
@@ -52,3 +60,7 @@ load_timestep!(integrator, restart_filename)
 
 sol = solve!(integrator)
 summary_callback() # print the timer summary
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)

@@ -6,7 +6,7 @@ using Trixi
 # create a restart file
 
 elixir_file = "elixir_advection_extended.jl"
-restart_file = "restart_000021.h5"
+restart_file = "restart_000000021.h5"
 
 trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
 
@@ -41,3 +41,7 @@ load_timestep!(integrator, restart_filename)
 
 sol = solve!(integrator)
 summary_callback() # print the timer summary
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)

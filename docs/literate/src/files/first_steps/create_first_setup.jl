@@ -260,28 +260,28 @@ plot!(getmesh(pd))
 # import Pkg
 # Pkg.add(["Trixi2Vtk"])
 # ```
-# Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000032.h5` with
+# Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000000032.h5` with
 # the final solution using the [`trixi2vtk`](@ref) function saving the resulting file in the
 # `out` folder.
 
 using Trixi2Vtk
-trixi2vtk(joinpath("out", "solution_000032.h5"), output_directory="out")
+trixi2vtk(joinpath("out", "solution_000000032.h5"), output_directory="out")
 
-# Now two files `solution_000032.vtu` and `solution_000032_celldata.vtu` have been generated in the
+# Now two files `solution_000000032.vtu` and `solution_000000032_celldata.vtu` have been generated in the
 # `out` folder. The first one contains all the information for visualizing the solution, the
 # second one contains all the cell-based or discretization-based information.
 
 # Now let's visualize the solution from the generated files in ParaView. Follow this short
 # instruction to get the visualization.
 # - Download, install and open [ParaView](https://www.paraview.org/download/).
-# - Press `Ctrl+O` and select the generated files `solution_000032.vtu` and
-#   `solution_000032_celldata.vtu` from the `out` folder.
+# - Press `Ctrl+O` and select the generated files `solution_000000032.vtu` and
+#   `solution_000000032_celldata.vtu` from the `out` folder.
 # - In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near
-#   `solution_000032.vtu`.
+#   `solution_000000032.vtu`.
 # - In the lower-left corner in the Properties window, change the Coloring from Solid Color to
 #   scalar. This already generates the visualization of the final solution.
 # - Now let's add the mesh to the visualization. In the upper-left corner in the
-#   Pipeline Browser window, left-click on the eye-icon near `solution_000032_celldata.vtu`.
+#   Pipeline Browser window, left-click on the eye-icon near `solution_000000032_celldata.vtu`.
 # - In the lower-left corner in the Properties window, change the Representation from Surface
 #   to Wireframe. Then a white grid should appear on the visualization.
 # Now, if you followed the instructions exactly, you should get a similar image as shown in the

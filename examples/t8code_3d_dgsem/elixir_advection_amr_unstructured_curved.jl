@@ -86,7 +86,14 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           dynamic_load_balancing = false)
+# We disable `dynamic_load_balancing` for now, since t8code does not support
+# partitioning for coarsening yet. That is, a complete family of elements always
+# stays on rank and is not split up due to partitioning. Without this feature
+# dynamic AMR simulations are not pefectly deterministic regarding to
+# convergent tests. Once this feature is available in t8code load balancing is
+# enabled again.
 
 stepsize_callback = StepsizeCallback(cfl = 1.2)
 
@@ -105,3 +112,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)

@@ -80,9 +80,9 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_solution_independent.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
-                            l2=[4.933027431215839e-5],
-                            linf=[0.00048678461161243136],
-                            coverage_override=(maxiters = 6,))
+                            l2=[4.949660644033807e-5],
+                            linf=[0.0004867846262313763],
+                            coverage_override=(maxiters = 6,), atol=1e-9)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -97,8 +97,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
     @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_flag.jl"),
-                            l2=[0.001980652042312077],
-                            linf=[0.0328882442132265],
+                            l2=[0.001993165013217687],
+                            linf=[0.032891018571625796],
                             coverage_override=(maxiters = 6,))
 
         # Ensure that we do not have excessive memory allocations
