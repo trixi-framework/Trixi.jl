@@ -31,11 +31,12 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability
 
-solver = FV(order = 1, surface_flux = flux_lax_friedrichs)
+solver = FV(order = 2, extended_reconstruction_stencil = false,
+            surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
 # cmesh = Trixi.cmesh_new_periodic_hybrid()
-# cmesh = Trixi.cmesh_new_periodic_quad()
+# cmesh = Trixi.cmesh_quad(periodicity = (true, true))
 # cmesh = Trixi.cmesh_new_periodic_tri()
 cmesh = Trixi.cmesh_new_periodic_tri2()
 mesh = T8codeMesh(cmesh, solver, initial_refinement_level = initial_refinement_level)

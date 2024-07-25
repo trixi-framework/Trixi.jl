@@ -171,28 +171,58 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
     end
 
     @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_kelvin_helmholtz_instability.jl"),
-                            l2=[
-                                0.2542045564471016,
-                                0.22153069577606582,
-                                0.11870840559952726,
-                                0.03626114330454897,
-                            ],
-                            linf=[
-                                0.5467901048636064,
-                                0.4156157765819209,
-                                0.26176688262532194,
-                                0.0920608815870434,
-                            ],
-                            tspan=(0.0, 1.0))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @trixi_testset "first-order FV" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                         "elixir_euler_kelvin_helmholtz_instability.jl"),
+                                order=1,
+                                l2=[
+                                    0.2542045564471016,
+                                    0.22153069577606582,
+                                    0.11870840559952726,
+                                    0.03626114330454897,
+                                ],
+                                linf=[
+                                    0.5467901048636064,
+                                    0.4156157765819209,
+                                    0.26176688262532194,
+                                    0.0920608815870434,
+                                ],
+                                tspan=(0.0, 1.0))
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        @trixi_testset "second-order FV" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                         "elixir_euler_kelvin_helmholtz_instability.jl"),
+                                order=2,
+                                cmesh=Trixi.cmesh_quad(periodicity = (true, true)),
+                                l2=[
+                                    0.2307463806750956,
+                                    0.19300049982364456,
+                                    0.11761779688825669,
+                                    0.020439515334349196,
+                                ],
+                                linf=[
+                                    0.5069318322100549,
+                                    0.365584194964112,
+                                    0.24224645130314845,
+                                    0.04918806108930651,
+                                ],
+                                tspan=(0.0, 1.0))
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
         end
     end
 end

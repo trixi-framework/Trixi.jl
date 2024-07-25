@@ -72,6 +72,20 @@ mkdir(outdir)
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
+    @trixi_testset "second-order FV, extended reconstruction stencil" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                            extended_reconstruction_stencil=true,
+                            l2=[0.028436326251639936],
+                            linf=[0.08696815845435057])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
 end
 
 @trixi_testset "elixir_advection_gauss.jl" begin
@@ -202,57 +216,138 @@ end
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
+    @trixi_testset "second-order FV, extended reconstruction stencil" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_source_terms.jl"),
+                            order=2,
+                            extended_reconstruction_stencil=true,
+                            l2=[
+                                0.058781550112786296,
+                                0.02676026477370241,
+                                0.02673090935979779,
+                                0.08033279155463603,
+                            ],
+                            linf=[
+                                0.09591263836601072,
+                                0.05351985245787505,
+                                0.05264935415308125,
+                                0.14318629241962988,
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
 end
 
 @trixi_testset "elixir_euler_blast_wave.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_blast_wave.jl"),
-                        order=1,
-                        l2=[
-                            0.5733341919395403,
-                            0.11399976571202451,
-                            0.11399976571202453,
-                            1.3548613737038324,
-                        ],
-                        linf=[
-                            1.732836334678142,
-                            0.27645456051355827,
-                            0.27645456051355827,
-                            2.6624886901791407,
-                        ])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    @trixi_testset "first-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_blast_wave.jl"),
+                            order=1,
+                            l2=[
+                                0.5733341919395403,
+                                0.11399976571202451,
+                                0.11399976571202453,
+                                1.3548613737038324,
+                            ],
+                            linf=[
+                                1.732836334678142,
+                                0.27645456051355827,
+                                0.27645456051355827,
+                                2.6624886901791407,
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+    @trixi_testset "second-order FV, extended reconstruction stencil" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_blast_wave.jl"),
+                            l2=[
+                                0.7331398527938754,
+                                0.15194349346989244,
+                                0.1519434934698924,
+                                1.299914264830515,
+                            ],
+                            linf=[
+                                2.2864127304524726,
+                                0.3051023693829176,
+                                0.30510236938291757,
+                                2.6171402581107936,
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 end
 
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_kelvin_helmholtz_instability.jl"),
-                        l2=[
-                            0.2542045564471016,
-                            0.22153069577606582,
-                            0.11870840559952726,
-                            0.03626114330454897,
-                        ],
-                        linf=[
-                            0.5467901048636064,
-                            0.4156157765819209,
-                            0.26176688262532194,
-                            0.0920608815870434,
-                        ],
-                        tspan=(0.0, 1.0))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    @trixi_testset "first-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_kelvin_helmholtz_instability.jl"),
+                            order=1,
+                            l2=[
+                                0.2542045564471016,
+                                0.22153069577606582,
+                                0.11870840559952726,
+                                0.03626114330454897,
+                            ],
+                            linf=[
+                                0.5467901048636064,
+                                0.4156157765819209,
+                                0.26176688262532194,
+                                0.0920608815870434,
+                            ],
+                            tspan=(0.0, 1.0))
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+    @trixi_testset "second-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_euler_kelvin_helmholtz_instability.jl"),
+                            order=2,
+                            cmesh=Trixi.cmesh_quad(periodicity = (true, true)),
+                            l2=[
+                                0.2307463806750956,
+                                0.19300049982364456,
+                                0.11761779688825669,
+                                0.020439515334349196,
+                            ],
+                            linf=[
+                                0.5069318322100549,
+                                0.365584194964112,
+                                0.24224645130314845,
+                                0.04918806108930651,
+                            ],
+                            tspan=(0.0, 1.0))
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
     end
 end
 end

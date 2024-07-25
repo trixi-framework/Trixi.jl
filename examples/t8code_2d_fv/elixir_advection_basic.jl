@@ -20,7 +20,8 @@ mesh = T8codeMesh(trees_per_dimension,
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
-ode = semidiscretize(semi, (0.0, 1.0));
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 

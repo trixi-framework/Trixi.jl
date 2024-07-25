@@ -19,6 +19,7 @@ mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
 
     reconstruction_stencil::Vector{Vector{Int}}             # Reconstruction stencil vector with neighbors per [element]
     reconstruction_distance::Vector{Vector{Vector{RealT}}}  # Reconstruction stencil vector with distances per [element]
+    reconstruction_corner_elements::Array{Vector{Int}, 2}   # Reconstruction stencil array with neighbor elements at corner per [corner, element]
     reconstruction_gradient::Array{RealT, 4}            # [dimension, variable, slope_stencils, element], slope_stencil: i = use all neighbors exclusive i, n_neighbors = use all neighbors
     reconstruction_gradient_limited::Array{RealT, 3}    # [dimension, variable, element]
 
@@ -27,6 +28,7 @@ mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
     _face_midpoints::Vector{RealT}
     _face_areas::Vector{RealT}
     _face_normals::Vector{RealT}
+    _reconstruction_corner_elements::Vector{Vector{Int}}
     _reconstruction_gradient::Vector{RealT}
     _reconstruction_gradient_limited::Vector{RealT}
 end
@@ -44,7 +46,7 @@ end
 
 # See explanation of Base.resize! for the element container
 function Base.resize!(elements::T8codeFVElementContainer, capacity)
-    (; _midpoint, _face_midpoints, _face_areas, _face_normals, _reconstruction_gradient, _reconstruction_gradient_limited) = elements
+    (; _midpoint, _face_midpoints, _face_areas, _face_normals, _reconstruction_gradient, _reconstruction_gradient_limited, _reconstruction_corner_elements) = elements
 
     n_dims = ndims(elements)
     n_variables = size(elements.reconstruction_gradient, 2)
@@ -72,6 +74,11 @@ function Base.resize!(elements::T8codeFVElementContainer, capacity)
 
     resize!(elements.reconstruction_stencil, capacity)
     resize!(elements.reconstruction_distance, capacity)
+
+    resize!(_reconstruction_corner_elements, max_number_faces * capacity)
+    elements.reconstruction_corner_elements = unsafe_wrap(Array,
+                                                          pointer(_reconstruction_corner_elements),
+                                                          (max_number_faces, capacity))
 
     resize!(_reconstruction_gradient,
             n_dims * n_variables * (max_number_faces + 1) * capacity)
@@ -124,6 +131,12 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
     reconstruction_stencil = Vector{Vector{Int}}(undef, nelements)
     reconstruction_distance = Vector{Vector{Array{RealT, NDIMS}}}(undef, nelements)
 
+    _reconstruction_corner_elements = Vector{Vector{Int}}(undef,
+                                                          max_number_faces * nelements)
+    reconstruction_corner_elements = unsafe_wrap(Array,
+                                                 pointer(_reconstruction_corner_elements),
+                                                 (max_number_faces, nelements))
+
     _reconstruction_gradient = Vector{RealT}(undef,
                                              NDIMS * n_variables *
                                              (max_number_faces + 1) * nelements)
@@ -143,12 +156,14 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
                                                                face_areas, face_normals,
                                                                reconstruction_stencil,
                                                                reconstruction_distance,
+                                                               reconstruction_corner_elements,
                                                                reconstruction_gradient,
                                                                reconstruction_gradient_limited,
                                                                _midpoint,
                                                                _face_midpoints,
                                                                _face_areas,
                                                                _face_normals,
+                                                               _reconstruction_corner_elements,
                                                                _reconstruction_gradient,
                                                                _reconstruction_gradient_limited)
 
@@ -237,13 +252,16 @@ end
     if solver.order != 2
         return nothing
     end
-    (; reconstruction_stencil, reconstruction_distance) = elements
+    (; reconstruction_stencil, reconstruction_distance, reconstruction_corner_elements) = elements
     (; volume, num_faces) = elements
 
     # Create empty vectors for every element
     for element in eachindex(volume)
         reconstruction_stencil[element] = []
         reconstruction_distance[element] = []
+        for corner in 1:num_faces[element]
+            reconstruction_corner_elements[corner, element] = []
+        end
     end
 
     # Add all stencil neighbors to list; including doubled elements
@@ -255,20 +273,23 @@ end
                 corner_coords = view(corners, :, corner, element)
                 # loop over all corners of `possible_stencil_neighbor`
                 for possible_corner in 1:num_faces[possible_stencil_neighbor]
-                    if corner_coords ==
-                       view(corners, :, possible_corner, possible_stencil_neighbor)
+                    possible_corner_coords = view(corners, :, possible_corner,
+                                                  possible_stencil_neighbor)
+                    if corner_coords == possible_corner_coords
                         neighbor = possible_stencil_neighbor
 
                         midpoint_element = view(elements.midpoint, :, element)
                         midpoint_neighbor = view(elements.midpoint, :, neighbor)
 
                         distance = midpoint_neighbor .- midpoint_element
-                        append!(reconstruction_stencil[element],
-                                possible_stencil_neighbor)
+                        append!(reconstruction_stencil[element], neighbor)
                         push!(reconstruction_distance[element], distance)
-                        append!(reconstruction_stencil[possible_stencil_neighbor],
-                                element)
+                        append!(reconstruction_stencil[neighbor], element)
                         push!(reconstruction_distance[neighbor], -distance)
+                        append!(reconstruction_corner_elements[corner, element],
+                                neighbor)
+                        append!(reconstruction_corner_elements[possible_corner,
+                                                               neighbor], element)
 
                         # elseif # TODO: Handle periodic boundaries; Something like:
                         #     distance = (face_midpoint_element .- midpoint_element) .+
@@ -286,6 +307,17 @@ end
             if neighbor in reconstruction_stencil[element][1:(i - 1)]
                 popat!(reconstruction_stencil[element], i)
                 popat!(reconstruction_distance[element], i)
+            end
+        end
+    end
+
+    for element in eachindex(volume)
+        for corner in 1:num_faces[element]
+            for i in length(reconstruction_corner_elements[corner, element]):-1:1
+                neighbor = reconstruction_corner_elements[corner, element][i]
+                if neighbor in reconstruction_corner_elements[corner, element][1:(i - 1)]
+                    popat!(reconstruction_corner_elements[corner, element], i)
+                end
             end
         end
     end
