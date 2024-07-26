@@ -514,13 +514,13 @@ function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
 
     for direction in 1:n_boundaries
         boundary_condition = nothing
-    if typeof(semi.boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes
-        if boundary_dictionary_names[direction] in keys(semi.boundary_conditions.boundary_dictionary)
-            boundary_condition = semi.boundary_conditions.boundary_dictionary[boundary_dictionary_names[direction]]
+        if typeof(semi.boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes
+            if boundary_dictionary_names[direction] in keys(semi.boundary_conditions.boundary_dictionary)
+                boundary_condition = semi.boundary_conditions.boundary_dictionary[boundary_dictionary_names[direction]]
+            end
+        else
+            boundary_condition = semi.boundary_conditions[direction]
         end
-    else
-        boundary_condition = semi.boundary_conditions[direction]
-    end
         allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
                                             equations,
                                             solver)
