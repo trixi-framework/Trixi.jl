@@ -88,6 +88,11 @@ end
 @inline ncellsglobal(mesh::P4estMeshView) = Int(mesh.p4est.global_num_quadrants[])
 Base.axes(mesh::P4estMeshView) = map(Base.OneTo, size(mesh))
 Base.axes(mesh::P4estMeshView, i) = Base.OneTo(size(mesh, i))
+Base.size(mesh::P4estMeshView) = size(mesh.tree_node_coordinates)[end]
+function Base.size(mesh::P4estMeshView, i)
+    @unpack indices_min, indices_max = mesh
+    return indices_max[i] - indices_min[i] + 1
+end
 
 function Base.show(io::IO, mesh::P4estMeshView)
     print(io, "P4estMeshView{", ndims(mesh), ", ", real(mesh), "}")
