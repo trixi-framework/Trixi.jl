@@ -293,6 +293,8 @@ end
     var_max = variable_bounds[Symbol(variable_string, "_max")]
     calc_bounds_twosided!(var_min, var_max, variable, u, t, semi)
 
+    dt_inv = 1 / dt
+
     @threaded for element in eachelement(dg, semi.cache)
         for j in eachnode(dg), i in eachnode(dg)
             inverse_jacobian = get_inverse_jacobian(cache.elements.inverse_jacobian,
@@ -304,8 +306,8 @@ end
             #   Note: The Zalesak limiter has to be computed, even if the state is valid, because the correction is
             #         for each interface, not each node
 
-            Qp = max(0, (var_max[i, j, element] - var) / dt)
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
+            Qp = max(0, (var_max[i, j, element] - var) * dt_inv)
+            Qm = min(0, (var_min[i, j, element] - var) * dt_inv)
 
             # Calculate Pp and Pm
             # Note: Boundaries of antidiffusive_flux1/2 are constant 0, so they make no difference here.
@@ -322,9 +324,6 @@ end
                  max(0, val_flux2_local) + max(0, val_flux2_local_jp1)
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
-
-            Qp = max(0, (var_max[i, j, element] - var) / dt)
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
 
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm
