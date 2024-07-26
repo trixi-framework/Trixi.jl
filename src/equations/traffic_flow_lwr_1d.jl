@@ -40,7 +40,7 @@ function initial_condition_convergence_test(x, t, equations::TrafficFlowLWREquat
     c = 2
     A = 1
     L = 1
-    f = 1 / L
+    f = 1.0f0 / L
     omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * (x[1] - t))
 
@@ -60,7 +60,7 @@ Source terms used for convergence tests in combination with
     c = 2
     A = 1
     L = 1
-    f = 1 / L
+    f = 1.0f0 / L
     omega = 2 * convert(RealT, pi) * f
     du = omega * cos(omega * (x[1] - t)) *
          (-1 - equations.v_max * (2 * sin(omega * (x[1] - t)) + 3))
