@@ -36,11 +36,12 @@ varnames(::typeof(cons2prim), ::TrafficFlowLWREquations1D) = ("car-density",)
 A smooth initial condition used for convergence tests.
 """
 function initial_condition_convergence_test(x, t, equations::TrafficFlowLWREquations1D)
-    c = 2.0
-    A = 1.0
+    RealT = eltype(x)
+    c = 2
+    A = 1
     L = 1
     f = 1 / L
-    omega = 2 * pi * f
+    omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * (x[1] - t))
 
     return SVector(scalar)
@@ -55,11 +56,12 @@ Source terms used for convergence tests in combination with
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::TrafficFlowLWREquations1D)
     # Same settings as in `initial_condition`
-    c = 2.0
-    A = 1.0
+    RealT = eltype(x)
+    c = 2
+    A = 1
     L = 1
     f = 1 / L
-    omega = 2 * pi * f
+    omega = 2 * convert(RealT, pi) * f
     du = omega * cos(omega * (x[1] - t)) *
          (-1 - equations.v_max * (2 * sin(omega * (x[1] - t)) + 3))
 
@@ -68,21 +70,21 @@ end
 
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::TrafficFlowLWREquations1D)
-    return SVector(equations.v_max * u[1] * (1.0 - u[1]))
+    return SVector(equations.v_max * u[1] * (1 - u[1]))
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    λ_max = max(abs(equations.v_max * (1.0 - 2 * u_ll[1])),
-                abs(equations.v_max * (1.0 - 2 * u_rr[1])))
+    λ_max = max(abs(equations.v_max * (1 - 2 * u_ll[1])),
+                abs(equations.v_max * (1 - 2 * u_rr[1])))
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    jac_L = equations.v_max * (1.0 - 2 * u_ll[1])
-    jac_R = equations.v_max * (1.0 - 2 * u_rr[1])
+    jac_L = equations.v_max * (1 - 2 * u_ll[1])
+    jac_R = equations.v_max * (1 - 2 * u_rr[1])
 
     λ_min = min(jac_L, jac_R)
     λ_max = max(jac_L, jac_R)
@@ -96,7 +98,7 @@ end
 end
 
 @inline function max_abs_speeds(u, equations::TrafficFlowLWREquations1D)
-    return (abs(equations.v_max * (1.0 - 2 * u[1])),)
+    return (abs(equations.v_max * (1 - 2 * u[1])),)
 end
 
 # Convert conservative variables to primitive
