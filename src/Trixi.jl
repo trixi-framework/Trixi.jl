@@ -50,7 +50,7 @@ using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
-using StaticArrayInterface: static_length # used by LoopVectorization
+using StaticArrayInterface: static_length, static_size # used by LoopVectorization
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
 using Polyester: Polyester, @batch # You know, the cheapest threads you can find...

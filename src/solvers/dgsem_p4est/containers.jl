@@ -6,14 +6,16 @@
 #! format: noindent
 
 mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIMSP1,
-                                     NDIMSP2, NDIMSP3} <: AbstractContainer
+                                     NDIMSP2, NDIMSP3,
+                                     ContravariantVectors <:
+                                     AbstractArray{RealT, NDIMSP3}} <: AbstractContainer
     # Physical coordinates at each node
     node_coordinates::Array{RealT, NDIMSP2}   # [orientation, node_i, node_j, node_k, element]
     # Jacobian matrix of the transformation
     # [jacobian_i, jacobian_j, node_i, node_j, node_k, element] where jacobian_i is the first index of the Jacobian matrix,...
     jacobian_matrix::Array{RealT, NDIMSP3}
     # Contravariant vectors, scaled by J, in Kopriva's blue book called Ja^i_n (i index, n dimension)
-    contravariant_vectors::Array{RealT, NDIMSP3}   # [dimension, index, node_i, node_j, node_k, element]
+    contravariant_vectors::ContravariantVectors  # [dimension, index, node_i, node_j, node_k, element]
     # 1/J where J is the Jacobian determinant (determinant of Jacobian matrix)
     inverse_jacobian::Array{RealT, NDIMSP1}   # [node_i, node_j, node_k, element]
     # Buffer for calculated surface flux
@@ -106,10 +108,10 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, Re
     _contravariant_vectors = Vector{RealT}(undef,
                                            ndims_spa^2 * nnodes(basis)^NDIMS *
                                            nelements)
-    contravariant_vectors = unsafe_wrap(Array, pointer(_contravariant_vectors),
-                                        (ndims_spa, ndims_spa,
-                                         ntuple(_ -> nnodes(basis), NDIMS)...,
-                                         nelements))
+    contravariant_vectors = PtrArray(pointer(_contravariant_vectors),
+                                     (StaticInt(ndims_spa), ndims_spa,
+                                      ntuple(_ -> nnodes(basis), NDIMS)...,
+                                      nelements))
 
     _inverse_jacobian = Vector{RealT}(undef, nnodes(basis)^NDIMS * nelements)
     inverse_jacobian = unsafe_wrap(Array, pointer(_inverse_jacobian),
@@ -125,12 +127,16 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, Re
                                        NDIMS * 2, nelements))
 
     elements = P4estElementContainer{NDIMS, RealT, uEltype, NDIMS + 1, NDIMS + 2,
-                                     NDIMS + 3}(node_coordinates, jacobian_matrix,
-                                                contravariant_vectors,
-                                                inverse_jacobian, surface_flux_values,
-                                                _node_coordinates, _jacobian_matrix,
-                                                _contravariant_vectors,
-                                                _inverse_jacobian, _surface_flux_values)
+                                     NDIMS + 3, typeof(contravariant_vectors)}(node_coordinates,
+                                                                               jacobian_matrix,
+                                                                               contravariant_vectors,
+                                                                               inverse_jacobian,
+                                                                               surface_flux_values,
+                                                                               _node_coordinates,
+                                                                               _jacobian_matrix,
+                                                                               _contravariant_vectors,
+                                                                               _inverse_jacobian,
+                                                                               _surface_flux_values)
 
     init_elements!(elements, mesh, basis)
     return elements
