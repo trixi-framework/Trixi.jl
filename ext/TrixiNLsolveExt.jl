@@ -26,10 +26,11 @@ using Trixi: Trixi, compute_c_coeffs, @muladd
 
 # Compute residuals for nonlinear equations to match a stability polynomial with given coefficients,
 # in order to find A-matrix in the Butcher-Tableau
-function PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, a_unknown, num_stages,
-                                                              num_stage_evals,
-                                                              monomial_coeffs,
-                                                              cS2)
+function PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, a_unknown,
+                                                               num_stages,
+                                                               num_stage_evals,
+                                                               monomial_coeffs,
+                                                               cS2)
     c_ts = compute_c_coeffs(num_stages, cS2) # ts = timestep
     # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
     a_coeff = [0, c_ts[2], a_unknown...]
@@ -65,8 +66,6 @@ function PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, a_unknown, 
     # Third-order consistency condition (Cf. eq. (27) from https://doi.org/10.1016/j.jcp.2022.111470
     c_eq[num_stage_evals - 2] = 1 - 4 * a_coeff[num_stage_evals] -
                                 a_coeff[num_stage_evals - 1]
-
-    return c_eq
 end
 
 # Find the values of the a_{i, i-1} in the Butcher tableau matrix A by solving a system of
@@ -77,13 +76,13 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
                                                c_s2, c;
                                                verbose, max_iter = 100000)
 
-
     # Define the objective_function
     function objective_function!(c_eq, x)
-        return PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, x, num_stages,
-                                                                    num_stages,
-                                                                    monomial_coeffs,
-                                                                    c_s2)
+        return PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, x,
+                                                                     num_stages,
+                                                                     num_stages,
+                                                                     monomial_coeffs,
+                                                                     c_s2)
     end
 
     # RealT is determined as the type of the first element in monomial_coeffs to ensure type consistency
@@ -102,7 +101,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
 
         x0 = convert(RealT, 0.1) .* rand(rng, RealT, num_stages - 2)
 
-        sol = nlsolve(objective_function, x0, method = :trust_region,
+        sol = nlsolve(objective_function!, x0, method = :trust_region,
                       ftol = 4.0e-16, # Enforce objective up to machine precision
                       iterations = 10^4, xtol = 1.0e-13)
 
