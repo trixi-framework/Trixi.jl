@@ -170,7 +170,7 @@ end
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
-# which are used in Trixi.
+# which are used in Trixi.jl.
 mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F, Alg,
                                            PairedExplicitRKOptions} <:
                AbstractPairedExplicitRKSingleIntegrator
