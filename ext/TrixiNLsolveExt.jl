@@ -26,9 +26,9 @@ using Trixi: Trixi, compute_c_coeffs, @muladd
 
 # Compute residuals for nonlinear equations to match a stability polynomial with given coefficients,
 # in order to find A-matrix in the Butcher-Tableau
-function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_stages,
+function PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, a_unknown, num_stages,
                                                               num_stage_evals,
-                                                              monomial_coeffs, c_eq,
+                                                              monomial_coeffs,
                                                               cS2)
     c_ts = compute_c_coeffs(num_stages, cS2) # ts = timestep
     # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
