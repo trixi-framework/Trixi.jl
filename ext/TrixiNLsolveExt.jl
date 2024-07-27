@@ -83,11 +83,10 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
     c_eq = zeros(num_stages - 2)
 
     # Define the objective_function
-    function objective_function(x)
-        return PairedExplicitRK3_butcher_tableau_objective_function(x, num_stages,
+    function objective_function!(c_eq, x)
+        return PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, x, num_stages,
                                                                     num_stages,
                                                                     monomial_coeffs,
-                                                                    c_eq,
                                                                     c_s2)
     end
 
