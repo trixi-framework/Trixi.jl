@@ -108,7 +108,7 @@ end
                       verbose = false, cS2 = 1.0f0)
 
     Parameters:
-    - `num_stages` (`Int`): Number of stages in the PERK method.
+    - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.
     - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
       the Butcher tableau of the Runge Kutta method.
       The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
