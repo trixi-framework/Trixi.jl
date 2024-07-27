@@ -1704,11 +1704,13 @@ end
 end
 
 @testset "PERK Single p3 Constructors" begin
-    path_coeff_file = mktempdir()
-    Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/32889062fd5dcf7f450748f4f5f0797c8155a18d/a_8_8.txt",
-                   joinpath(path_coeff_file, "a_8.txt"))
+    base_path_coeff_file = mktempdir()
 
-    ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
+    path_a_coeffs = joinpath(base_path_coeff_file, "a_8.txt")
+    Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/32889062fd5dcf7f450748f4f5f0797c8155a18d/a_8_8.txt",
+                   path_a_coeffs)
+
+    ode_algorithm = Trixi.PairedExplicitRK3(path_a_coeffs)
 
     @test isapprox(ode_algorithm.a_matrix,
                    [0.33551678438002486 0.06448322158043965
@@ -1718,10 +1720,11 @@ end
                     0.7522972036571336 0.2477027963428664
                     0.31192569908571666 0.18807430091428337], atol = 1e-13)
 
+    path_spectrum = joinpath(base_path_coeff_file, "spectrum.txt")
     Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
-                   joinpath(path_coeff_file, "spectrum.txt"))
+                   path_spectrum)
 
-    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    eig_vals = readdlm(path_spectrum, ComplexF64)
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
 
