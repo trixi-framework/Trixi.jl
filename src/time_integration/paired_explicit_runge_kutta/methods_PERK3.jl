@@ -87,7 +87,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     path_a_coeffs = joinpath(base_path_a_coeffs,
                              "a_" * string(num_stages) * ".txt")
 
-    @assert isfile(path_a_coeffs) "Couldn't find file"
+    @assert isfile(path_a_coeffs) "Couldn't find file $path_a_coeffs"
     a_coeffs = readdlm(path_a_coeffs, Float64)
     num_a_coeffs = size(a_coeffs, 1)
 
