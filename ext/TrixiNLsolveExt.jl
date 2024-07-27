@@ -28,7 +28,8 @@ using Trixi: Trixi, compute_c_coeffs, @muladd
 # in order to find A-matrix in the Butcher-Tableau
 function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_stages,
                                                               num_stage_evals,
-                                                              monomial_coeffs, cS2)
+                                                              monomial_coeffs, c_eq,
+                                                              cS2)
     c_ts = compute_c_coeffs(num_stages, cS2) # ts = timestep
     # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
     a_coeff = [0, c_ts[2], a_unknown...]
@@ -37,7 +38,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function(a_unknown, num_sta
     # optimized stability polynomial.
     # For details, see Chapter4.3, Proposition 3.2, Equation (3.3) from 
     # Hairer, Wanner: Solving Ordinary Differential Equations 2
-    c_eq = zeros(num_stage_evals - 2) # Add equality constraint that cS2 is equal to 1
+
     # Lower-order terms: Two summands present
     for i in 1:(num_stage_evals - 4)
         term1 = a_coeff[num_stage_evals - 1]
@@ -76,11 +77,17 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
                                                c_s2, c;
                                                verbose, max_iter = 100000)
 
+    # c_eq is a vector initialized with zeros with length num_stages - 2.
+    # It is used to store the coefficients of the non-linear equations arise from the relation of 
+    # the coefficients of the stability polynomial and the coefficients of the Butcher tableau.
+    c_eq = zeros(num_stages - 2)
+
     # Define the objective_function
     function objective_function(x)
         return PairedExplicitRK3_butcher_tableau_objective_function(x, num_stages,
                                                                     num_stages,
                                                                     monomial_coeffs,
+                                                                    c_eq,
                                                                     c_s2)
     end
 
