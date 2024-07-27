@@ -77,10 +77,6 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
                                                c_s2, c;
                                                verbose, max_iter = 100000)
 
-    # c_eq is a vector initialized with zeros with length num_stages - 2.
-    # It is used to store the coefficients of the non-linear equations arise from the relation of 
-    # the coefficients of the stability polynomial and the coefficients of the Butcher tableau.
-    c_eq = zeros(num_stages - 2)
 
     # Define the objective_function
     function objective_function!(c_eq, x)
