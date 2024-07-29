@@ -424,7 +424,8 @@ end
 
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{3},
+                               mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)
