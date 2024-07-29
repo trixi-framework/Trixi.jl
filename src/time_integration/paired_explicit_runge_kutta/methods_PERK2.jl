@@ -286,7 +286,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
     # initialize callbacks
     if callback isa CallbackSet
         for cb in callback.continuous_callbacks
-            error("unsupported")
+            error("Continuous callbacks are unsupported with paired explicit Runge-Kutta methods.")
         end
         for cb in callback.discrete_callbacks
             cb.initialize(cb, integrator.u, integrator.t, integrator)

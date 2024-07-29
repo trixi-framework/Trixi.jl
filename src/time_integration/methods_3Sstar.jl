@@ -189,7 +189,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
     # initialize callbacks
     if callback isa CallbackSet
         foreach(callback.continuous_callbacks) do cb
-            error("unsupported")
+            error("Continuous callbacks are unsupported with the 2nd order, 5-stage explicit Runge-Kutta scheme.")
         end
         foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
