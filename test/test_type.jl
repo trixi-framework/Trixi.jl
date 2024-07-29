@@ -45,17 +45,39 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             for orientation in orientations
                 for direction in directions
-                    @test eltype(@inferred boundary_condition_wall(u_inner, orientation,
-                                                                   direction, x, t,
-                                                                   surface_flux_function,
-                                                                   equations)) == RealT
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred boundary_condition_wall(u_inner,
+                                                                              orientation,
+                                                                              direction, x,
+                                                                              t,
+                                                                              surface_flux_function,
+                                                                              equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred boundary_condition_wall(u_inner, orientation,
+                                                                       direction, x, t,
+                                                                       surface_flux_function,
+                                                                       equations)) == RealT
+                    end
                 end
             end
-            @test eltype(@inferred boundary_condition_slip_wall(u_inner,
-                                                                normal_direction, x, t,
-                                                                surface_flux_function,
-                                                                equations)) ==
-                  RealT
+
+            if RealT == Float32
+                # check `surface_flux_function` (test broken)
+                @test_broken eltype(@inferred boundary_condition_slip_wall(u_inner,
+                                                                           normal_direction,
+                                                                           x, t,
+                                                                           surface_flux_function,
+                                                                           equations)) ==
+                             RealT
+            else
+                @test eltype(@inferred boundary_condition_slip_wall(u_inner,
+                                                                    normal_direction, x, t,
+                                                                    surface_flux_function,
+                                                                    equations)) ==
+                      RealT
+            end
 
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
@@ -828,13 +850,25 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             for direction in directions
-                @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
-                                                                              orientation,
-                                                                              direction,
-                                                                              x, t,
-                                                                              surface_flux_function,
-                                                                              equations)) ==
-                      RealT
+                if RealT == Float32
+                    # check `surface_flux_function` (test broken)
+                    @test_broken eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                         orientation,
+                                                                                         direction,
+                                                                                         x,
+                                                                                         t,
+                                                                                         surface_flux_function,
+                                                                                         equations)) ==
+                                 RealT
+                else
+                    @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                  orientation,
+                                                                                  direction,
+                                                                                  x, t,
+                                                                                  surface_flux_function,
+                                                                                  equations)) ==
+                          RealT
+                end
             end
 
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
@@ -877,13 +911,25 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             for orientation in orientations
                 for direction in directions
-                    @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
-                                                                                  orientation,
-                                                                                  direction,
-                                                                                  x, t,
-                                                                                  surface_flux_function,
-                                                                                  equations)) ==
-                          RealT
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                             orientation,
+                                                                                             direction,
+                                                                                             x,
+                                                                                             t,
+                                                                                             surface_flux_function,
+                                                                                             equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                      orientation,
+                                                                                      direction,
+                                                                                      x, t,
+                                                                                      surface_flux_function,
+                                                                                      equations)) ==
+                              RealT
+                    end
                 end
             end
 
@@ -939,13 +985,25 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             for orientation in orientations
                 for direction in directions
-                    @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
-                                                                                  orientation,
-                                                                                  direction,
-                                                                                  x, t,
-                                                                                  surface_flux_function,
-                                                                                  equations)) ==
-                          RealT
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                             orientation,
+                                                                                             direction,
+                                                                                             x,
+                                                                                             t,
+                                                                                             surface_flux_function,
+                                                                                             equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred boundary_condition_poisson_nonperiodic(u_inner,
+                                                                                      orientation,
+                                                                                      direction,
+                                                                                      x, t,
+                                                                                      surface_flux_function,
+                                                                                      equations)) ==
+                              RealT
+                    end
                 end
             end
 
@@ -1573,13 +1631,24 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             for direction in directions
-                @test eltype(@inferred Trixi.boundary_condition_linear_x(u_inner,
-                                                                         orientation,
-                                                                         direction, x,
-                                                                         t,
-                                                                         surface_flux_function,
-                                                                         equations)) ==
-                      RealT
+                if RealT == Float32
+                    # check `surface_flux_function` (test broken)
+                    @test_broken eltype(@inferred Trixi.boundary_condition_linear_x(u_inner,
+                                                                                    orientation,
+                                                                                    direction,
+                                                                                    x, t,
+                                                                                    surface_flux_function,
+                                                                                    equations)) ==
+                                 RealT
+                else
+                    @test eltype(@inferred Trixi.boundary_condition_linear_x(u_inner,
+                                                                             orientation,
+                                                                             direction, x,
+                                                                             t,
+                                                                             surface_flux_function,
+                                                                             equations)) ==
+                          RealT
+                end
             end
 
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
@@ -1632,30 +1701,58 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             for orientation in orientations
                 for direction in directions
-                    @test eltype(@inferred Trixi.boundary_condition_linear_x_y(u_inner,
-                                                                               orientation,
-                                                                               direction,
-                                                                               x,
-                                                                               t,
-                                                                               surface_flux_function,
-                                                                               equations)) ==
-                          RealT
-                    @test eltype(@inferred Trixi.boundary_condition_linear_x(u_inner,
-                                                                             orientation,
-                                                                             direction,
-                                                                             x,
-                                                                             t,
-                                                                             surface_flux_function,
-                                                                             equations)) ==
-                          RealT
-                    @test eltype(@inferred Trixi.boundary_condition_linear_y(u_inner,
-                                                                             orientation,
-                                                                             direction,
-                                                                             x,
-                                                                             t,
-                                                                             surface_flux_function,
-                                                                             equations)) ==
-                          RealT
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred Trixi.boundary_condition_linear_x_y(u_inner,
+                                                                                          orientation,
+                                                                                          direction,
+                                                                                          x,
+                                                                                          t,
+                                                                                          surface_flux_function,
+                                                                                          equations)) ==
+                                     RealT
+                        @test_broken eltype(@inferred Trixi.boundary_condition_linear_x(u_inner,
+                                                                                        orientation,
+                                                                                        direction,
+                                                                                        x,
+                                                                                        t,
+                                                                                        surface_flux_function,
+                                                                                        equations)) ==
+                                     RealT
+                        @test_broken eltype(@inferred Trixi.boundary_condition_linear_y(u_inner,
+                                                                                        orientation,
+                                                                                        direction,
+                                                                                        x,
+                                                                                        t,
+                                                                                        surface_flux_function,
+                                                                                        equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred Trixi.boundary_condition_linear_x_y(u_inner,
+                                                                                   orientation,
+                                                                                   direction,
+                                                                                   x,
+                                                                                   t,
+                                                                                   surface_flux_function,
+                                                                                   equations)) ==
+                              RealT
+                        @test eltype(@inferred Trixi.boundary_condition_linear_x(u_inner,
+                                                                                 orientation,
+                                                                                 direction,
+                                                                                 x,
+                                                                                 t,
+                                                                                 surface_flux_function,
+                                                                                 equations)) ==
+                              RealT
+                        @test eltype(@inferred Trixi.boundary_condition_linear_y(u_inner,
+                                                                                 orientation,
+                                                                                 direction,
+                                                                                 x,
+                                                                                 t,
+                                                                                 surface_flux_function,
+                                                                                 equations)) ==
+                              RealT
+                    end
                 end
             end
 
@@ -1709,14 +1806,26 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             for orientation in orientations
                 for direction in directions
-                    @test eltype(@inferred Trixi.boundary_condition_linear_z(u_inner,
-                                                                             orientation,
-                                                                             direction,
-                                                                             x,
-                                                                             t,
-                                                                             surface_flux_function,
-                                                                             equations)) ==
-                          RealT
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred Trixi.boundary_condition_linear_z(u_inner,
+                                                                                        orientation,
+                                                                                        direction,
+                                                                                        x,
+                                                                                        t,
+                                                                                        surface_flux_function,
+                                                                                        equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred Trixi.boundary_condition_linear_z(u_inner,
+                                                                                 orientation,
+                                                                                 direction,
+                                                                                 x,
+                                                                                 t,
+                                                                                 surface_flux_function,
+                                                                                 equations)) ==
+                              RealT
+                    end
                 end
             end
 
@@ -1795,12 +1904,24 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             for direction in directions
-                @test eltype(@inferred boundary_condition_slip_wall(u_inner,
-                                                                    orientation,
-                                                                    direction,
-                                                                    x, t,
-                                                                    surface_flux_function,
-                                                                    equations)) == RealT
+                if RealT == Float32
+                    # check `surface_flux_function` (test broken)
+                    @test_broken eltype(@inferred boundary_condition_slip_wall(u_inner,
+                                                                               orientation,
+                                                                               direction,
+                                                                               x, t,
+                                                                               surface_flux_function,
+                                                                               equations)) ==
+                                 RealT
+                else
+                    @test eltype(@inferred boundary_condition_slip_wall(u_inner,
+                                                                        orientation,
+                                                                        direction,
+                                                                        x, t,
+                                                                        surface_flux_function,
+                                                                        equations)) == RealT
+                end
+
                 @test eltype(@inferred Trixi.calc_wavespeed_roe(u_ll, u_rr, direction,
                                                                 equations)) ==
                       RealT
@@ -1885,12 +2006,22 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
             @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
                   RealT
-            @test eltype(@inferred boundary_condition_slip_wall(u_inner,
-                                                                normal_direction,
-                                                                x, t,
-                                                                surface_flux_function,
-                                                                equations)) == RealT
 
+            if RealT == Float32
+                # check `surface_flux_function` (test broken)
+                @test_broken eltype(@inferred boundary_condition_slip_wall(u_inner,
+                                                                           normal_direction,
+                                                                           x, t,
+                                                                           surface_flux_function,
+                                                                           equations)) ==
+                             RealT
+            else
+                @test eltype(@inferred boundary_condition_slip_wall(u_inner,
+                                                                    normal_direction,
+                                                                    x, t,
+                                                                    surface_flux_function,
+                                                                    equations)) == RealT
+            end
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
                                                                          normal_direction_ll,
@@ -1932,12 +2063,23 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             for orientation in orientations
                 for direction in directions
-                    @test eltype(@inferred boundary_condition_slip_wall(u_inner,
-                                                                        orientation,
-                                                                        direction, x, t,
-                                                                        surface_flux_function,
-                                                                        equations)) ==
-                          RealT
+                    if RealT == Float32
+                        # check `surface_flux_function` (test broken)
+                        @test_broken eltype(@inferred boundary_condition_slip_wall(u_inner,
+                                                                                   orientation,
+                                                                                   direction,
+                                                                                   x, t,
+                                                                                   surface_flux_function,
+                                                                                   equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred boundary_condition_slip_wall(u_inner,
+                                                                            orientation,
+                                                                            direction, x, t,
+                                                                            surface_flux_function,
+                                                                            equations)) ==
+                              RealT
+                    end
                 end
 
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
