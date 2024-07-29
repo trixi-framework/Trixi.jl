@@ -103,7 +103,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
 
         sol = nlsolve(objective_function!, x0, method = :trust_region,
                       ftol = 4.0e-16, # Enforce objective up to machine precision
-                      iterations = 10^4, xtol = 1.0e-13)
+                      iterations = 10^4, xtol = 1.0e-13, autodiff = :forward)
 
         a_unknown = sol.zero # Retrieve solution (root = zero)
 
