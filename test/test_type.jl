@@ -1853,6 +1853,34 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Maxwell 1D" begin
+        for RealT in (Float32, Float64)
+            c = RealT(299_792_458)
+            equations = @inferred MaxwellEquations1D(c)
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = SVector(one(RealT), one(RealT))
+            orientation = 1
+
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                  RealT
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+        end
+    end
+
     @timed_testset "Shallow Water 1D" begin
         for RealT in (Float32, Float64)
             equations = @inferred ShallowWaterEquations1D(gravity_constant = RealT(9.81))
@@ -2164,6 +2192,39 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred entropy(cons, equations)) == RealT
             @test typeof(@inferred energy_total(cons, equations)) == RealT
             @test typeof(@inferred lake_at_rest_error(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Traffic Flow LWR 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred TrafficFlowLWREquations1D(RealT(1))
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = SVector(one(RealT))
+            orientation = 1
+            c = one(RealT)
+
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                  RealT
+            @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) ==
+                  RealT
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test typeof(@inferred entropy(c, equations)) == RealT
+            @test typeof(@inferred entropy(u, equations)) == RealT
+            @test typeof(@inferred energy_total(c, equations)) == RealT
+            @test typeof(@inferred energy_total(u, equations)) == RealT
         end
     end
 end
