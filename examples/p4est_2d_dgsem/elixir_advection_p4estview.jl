@@ -18,21 +18,26 @@ coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (8, 8)
 
-# Create P4estMesh with 8 x 8 trees and 16 x 16 elements
-parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
-                        coordinates_min = coordinates_min,
-                        coordinates_max = coordinates_max,
-                        initial_refinement_level = 1, periodicity = (false, true))
-mesh = P4estMeshView(parent_mesh; indices_min = (1, 1), indices_max = (4, 8),
-                     coordinates_min = coordinates_min, coordinates_max = (0.0, 1.0),
-                     periodicity = (false, true))
+# Create P4estMesh with 8 x 8 trees and 16 x 16 elements and the mesh views
+parent_mesh = P4estMesh(trees_per_dimension, polydeg=3,
+                        coordinates_min=coordinates_min, coordinates_max=coordinates_max,
+                        initial_refinement_level=1, periodicity=(false, true))
+mesh1 = P4estMeshView(parent_mesh; indices_min = (1, 1), indices_max = (4, 8),
+                      coordinates_min = coordinates_min, coordinates_max = (0.0, 1.0),
+                      periodicity = (false, true))
+mesh2 = P4estMeshView(parent_mesh; indices_min = (5, 1), indices_max = (8, 8),
+                      coordinates_min = (0.0, -1.0), coordinates_max = coordinates_max,
+                      periodicity = (false, true))
 
 boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition_convergence_test),
                            :x_pos => BoundaryConditionDirichlet(initial_condition_convergence_test))
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver, boundary_conditions = boundary_conditions)
+semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test, solver, boundary_conditions=boundary_conditions)
+semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test, solver, boundary_conditions=boundary_conditions)
+
+# Create a semidiscretization that bundles semi1 and semi2
+semi = SemidiscretizationCoupled(semi1, semi2)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -45,7 +50,9 @@ ode = semidiscretize(semi, (0.0, 1.0));
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100)
+analysis_callback1 = AnalysisCallback(semi1, interval=100)
+analysis_callback2 = AnalysisCallback(semi2, interval=100)
+analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback1, analysis_callback2)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,
