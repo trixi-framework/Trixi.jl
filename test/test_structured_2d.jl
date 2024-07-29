@@ -256,7 +256,7 @@ end
                         linf=[0.0015194252169410394],
                         rtol=5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
                         elixir_file="elixir_advection_waving_flag.jl",
-                        restart_file="restart_000021.h5",
+                        restart_file="restart_000000021.h5",
                         # With the default `maxiters = 1` in coverage tests,
                         # there would be no time steps after the restart.
                         coverage_override=(maxiters = 100_000,))
@@ -275,7 +275,7 @@ end
                         l2=[7.841217436552029e-15],
                         linf=[1.0857981180834031e-13],
                         elixir_file="elixir_advection_free_stream.jl",
-                        restart_file="restart_000036.h5",
+                        restart_file="restart_000000036.h5",
                         # With the default `maxiters = 1` in coverage tests,
                         # there would be no time steps after the restart.
                         coverage_override=(maxiters = 100_000,))
