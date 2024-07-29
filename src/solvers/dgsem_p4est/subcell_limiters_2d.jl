@@ -114,7 +114,7 @@ end
                 u_inner = get_node_vars(u, equations, dg, i_node, j_node, element)
 
                 u_outer = get_boundary_outer_state(u_inner, t, boundary_condition,
-                                                   normal_direction, direction,
+                                                   normal_direction,
                                                    mesh, equations, dg, cache,
                                                    i_node, j_node, element)
                 var_outer = u_outer[variable]
@@ -237,7 +237,7 @@ end
                 u_inner = get_node_vars(u, equations, dg, i_node, j_node, element)
 
                 u_outer = get_boundary_outer_state(u_inner, t, boundary_condition,
-                                                   normal_direction, direction,
+                                                   normal_direction,
                                                    mesh, equations, dg, cache,
                                                    i_node, j_node, element)
                 var_outer = variable(u_outer, equations)
