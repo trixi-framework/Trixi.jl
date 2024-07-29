@@ -119,7 +119,7 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
     # initialize callbacks
     if callback isa CallbackSet
         foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with the low-storage RK method (Carpenter, Kennedy 1994, 4th order, Solution 3)."))
+            throw(ArgumentError("Continuous callbacks are unsupported with the 2N storage time integration methods."))
         end
         foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
