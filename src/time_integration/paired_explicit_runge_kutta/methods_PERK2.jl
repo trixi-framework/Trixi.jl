@@ -261,7 +261,7 @@ function Base.getproperty(integrator::PairedExplicitRK, field::Symbol)
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK2;
-              dt, callback = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u0 = copy(ode.u0)
     du = zero(u0)
     u_tmp = zero(u0)
@@ -291,8 +291,6 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
         for cb in callback.discrete_callbacks
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
-    elseif !isnothing(callback)
-        error("unsupported")
     end
 
     return integrator

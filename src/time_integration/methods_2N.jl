@@ -105,7 +105,7 @@ function Base.getproperty(integrator::SimpleIntegrator2N, field::Symbol)
 end
 
 function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
-              dt, callback = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp = similar(u)
@@ -124,8 +124,6 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm2N;
         foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
-    elseif !isnothing(callback)
-        error("unsupported")
     end
 
     return integrator
