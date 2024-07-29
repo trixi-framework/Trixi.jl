@@ -71,30 +71,36 @@ end
 
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 3
 # using provided values of coefficients a in A-matrix of Butcher tableau
-function compute_PairedExplicitRK3_butcher_tableau(path_a_coeffs::AbstractString;
+function compute_PairedExplicitRK3_butcher_tableau(num_stages,
+                                                   base_path_a_coeffs::AbstractString;
                                                    cS2)
-    @assert isfile(path_a_coeffs) "Couldn't find file $path_a_coeffs"
-    a_coeffs = readdlm(path_a_coeffs, Float64)
-    num_a_coeffs = size(a_coeffs, 1)
-
-    # + 2 Since the first entry of A is always zero (explicit method) and the second is given by c_2 (consistency)
-    num_stages = num_a_coeffs + 2
 
     # Initialize array of c
     c = compute_c_coeffs(num_stages, cS2)
 
-    a_matrix = zeros(num_a_coeffs, 2)
+    # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
+    a_coeffs_max = num_stages - 2
+
+    a_matrix = zeros(a_coeffs_max, 2)
     a_matrix[:, 1] = c[3:end]
 
+    path_a_coeffs = joinpath(base_path_a_coeffs,
+                             "a_" * string(num_stages) * ".txt")
+
+    @assert isfile(path_a_coeffs) "Couldn't find file $path_a_coeffs"
+    a_coeffs = readdlm(path_a_coeffs, Float64)
+    num_a_coeffs = size(a_coeffs, 1)
+
+    @assert num_a_coeffs == a_coeffs_max
     # Fill A-matrix in P-ERK style
     a_matrix[:, 1] -= a_coeffs
     a_matrix[:, 2] = a_coeffs
 
-    return num_stages, a_matrix, c
+    return a_matrix, c
 end
 
 @doc raw"""
-    PairedExplicitRK3(path_a_coeffs::AbstractString;
+    PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString;
                       cS2 = 1.0f0)
     PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, cS2 = 1.0f0)
@@ -102,9 +108,10 @@ end
                       verbose = false, cS2 = 1.0f0)
 
     Parameters:
-    - `path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
-      the Butcher tableau of the Runge Kutta method.
     - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.
+    - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
+      the Butcher tableau of the Runge Kutta method.
+      The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
     -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
@@ -133,10 +140,11 @@ mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
 end # struct PairedExplicitRK3
 
 # Constructor for previously computed A Coeffs
-function PairedExplicitRK3(path_a_coeffs::AbstractString;
+function PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString;
                            cS2 = 1.0f0)
-    num_stages, a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(path_a_coeffs;
-                                                                        cS2)
+    a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
+                                                            base_path_a_coeffs;
+                                                            cS2)
 
     return PairedExplicitRK3(num_stages, a_matrix, c)
 end
