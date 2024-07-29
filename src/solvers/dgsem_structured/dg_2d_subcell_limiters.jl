@@ -10,7 +10,7 @@
 #
 # See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::StructuredMesh{2},
+                                mesh::Union{StructuredMesh{2}, P4estMesh{2}},
                                 nonconservative_terms::False, equations,
                                 volume_flux, dg::DGSEM, element, cache)
     (; contravariant_vectors) = cache.elements
