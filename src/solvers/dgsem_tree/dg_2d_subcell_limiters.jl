@@ -766,10 +766,10 @@ end
             if neighbor_side == 2 # Element is on the right, boundary on the left
                 for j in eachnode(dg)
                     u_inner = get_node_vars(u, equations, dg, 1, j, element)
-                    u_outer = get_boundary_outer_state(u_inner, cache, t,
+                    u_outer = get_boundary_outer_state(u_inner, t,
                                                        boundary_conditions[1],
                                                        orientation, 1,
-                                                       mesh, equations, dg,
+                                                       mesh, equations, dg, cache,
                                                        1, j, element)
                     lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer,
                                                                  orientation, equations)
@@ -787,10 +787,10 @@ end
             else # Element is on the left, boundary on the right
                 for j in eachnode(dg)
                     u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
-                    u_outer = get_boundary_outer_state(u_inner, cache, t,
+                    u_outer = get_boundary_outer_state(u_inner, t,
                                                        boundary_conditions[2],
                                                        orientation, 2,
-                                                       mesh, equations, dg,
+                                                       mesh, equations, dg, cache,
                                                        nnodes(dg), j, element)
                     lambda1[nnodes(dg) + 1, j, element] = max_abs_speed_naive(u_inner,
                                                                               u_outer,
@@ -813,10 +813,10 @@ end
             if neighbor_side == 2 # Element is on the right, boundary on the left
                 for i in eachnode(dg)
                     u_inner = get_node_vars(u, equations, dg, i, 1, element)
-                    u_outer = get_boundary_outer_state(u_inner, cache, t,
+                    u_outer = get_boundary_outer_state(u_inner, t,
                                                        boundary_conditions[3],
                                                        orientation, 3,
-                                                       mesh, equations, dg,
+                                                       mesh, equations, dg, cache,
                                                        i, 1, element)
                     lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer,
                                                                  orientation, equations)
@@ -834,10 +834,10 @@ end
             else # Element is on the left, boundary on the right
                 for i in eachnode(dg)
                     u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
-                    u_outer = get_boundary_outer_state(u_inner, cache, t,
+                    u_outer = get_boundary_outer_state(u_inner, t,
                                                        boundary_conditions[4],
                                                        orientation, 4,
-                                                       mesh, equations, dg,
+                                                       mesh, equations, dg, cache,
                                                        i, nnodes(dg), element)
                     lambda2[i, nnodes(dg) + 1, element] = max_abs_speed_naive(u_inner,
                                                                               u_outer,
@@ -1814,32 +1814,25 @@ end
     return nothing
 end
 
-@inline function get_boundary_outer_state(u_inner, cache, t,
-                                          boundary_condition::typeof(boundary_condition_slip_wall),
-                                          orientation::Integer, direction,
-                                          mesh, equations::CompressibleEulerEquations2D,
-                                          dg, indices...)
-    return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
-end
+"""
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::BoundaryConditionDirichlet,
+                             orientation_or_normal, direction,
+                             mesh, equations, dg, cache, indices...)
+For subcell limiting, the calculation of local bounds for non-periodic domains requires the boundary
+outer state. This function returns the boundary value  for [`BoundaryConditionDirichlet`](@ref) at
+time `t` and for node with spatial indices `indices` at the boundary with `orientation_or_normal`
+and `direction`.
 
-@inline function get_boundary_outer_state(u_inner, cache, t,
-                                          boundary_condition::typeof(boundary_condition_slip_wall),
-                                          normal_direction::AbstractVector, direction,
-                                          mesh, equations::CompressibleEulerEquations2D,
-                                          dg, indices...)
-    factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
-    u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
+Should be used together with [`TreeMesh`](@ref) or [`StructuredMesh`](@ref).
 
-    return SVector(u_inner[1],
-                   u_inner[2] - 2.0 * u_normal[1],
-                   u_inner[3] - 2.0 * u_normal[2],
-                   u_inner[4])
-end
-
-@inline function get_boundary_outer_state(u_inner, cache, t,
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function get_boundary_outer_state(u_inner, t,
                                           boundary_condition::BoundaryConditionDirichlet,
-                                          orientation_or_normal, direction, mesh,
-                                          equations, dg, indices...)
+                                          orientation_or_normal, direction,
+                                          mesh, equations, dg, cache, indices...)
     (; node_coordinates) = cache.elements
 
     x = get_node_coords(node_coordinates, equations, dg, indices...)
@@ -1848,12 +1841,12 @@ end
     return u_outer
 end
 
-@inline function get_boundary_outer_state(u_inner, cache, t,
+@inline function get_boundary_outer_state(u_inner, t,
                                           boundary_condition::BoundaryConditionCharacteristic,
                                           orientation_or_normal, direction,
                                           mesh::Union{TreeMesh, StructuredMesh},
                                           equations,
-                                          dg, indices...)
+                                          dg, cache, indices...)
     (; node_coordinates) = cache.elements
 
     x = get_node_coords(node_coordinates, equations, dg, indices...)
@@ -1864,10 +1857,11 @@ end
     return u_outer
 end
 
-@inline function get_boundary_outer_state(u_inner, cache, t,
+@inline function get_boundary_outer_state(u_inner, t,
                                           boundary_condition::BoundaryConditionCharacteristic,
-                                          normal_direction::AbstractVector, direction,
-                                          mesh::P4estMesh, equations, dg, indices...)
+                                          normal_direction::AbstractVector,
+                                          mesh::P4estMesh, equations, dg, cache,
+                                          indices...)
     (; node_coordinates) = cache.elements
 
     x = get_node_coords(node_coordinates, equations, dg, indices...)

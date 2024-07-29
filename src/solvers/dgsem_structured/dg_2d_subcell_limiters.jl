@@ -244,9 +244,9 @@ end
             for j in eachnode(dg)
                 Ja1 = get_contravariant_vector(1, contravariant_vectors, 1, j, element)
                 u_inner = get_node_vars(u, equations, dg, 1, j, element)
-                u_outer = get_boundary_outer_state(u_inner, cache, t,
+                u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[1], Ja1, 1,
-                                                   mesh, equations, dg,
+                                                   mesh, equations, dg, cache,
                                                    1, j, element)
                 lambda1[1, j, element] = max_abs_speed_naive(u_inner, u_outer, Ja1,
                                                              equations)
@@ -270,9 +270,9 @@ end
                 Ja1 = get_contravariant_vector(1, contravariant_vectors, nnodes(dg), j,
                                                element)
                 u_inner = get_node_vars(u, equations, dg, nnodes(dg), j, element)
-                u_outer = get_boundary_outer_state(u_inner, cache, t,
+                u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[2], Ja1, 2,
-                                                   mesh, equations, dg,
+                                                   mesh, equations, dg, cache,
                                                    nnodes(dg), j, element)
                 lambda1[nnodes(dg) + 1, j, element] = max_abs_speed_naive(u_inner,
                                                                           u_outer, Ja1,
@@ -301,9 +301,9 @@ end
             for i in eachnode(dg)
                 Ja2 = get_contravariant_vector(2, contravariant_vectors, i, 1, element)
                 u_inner = get_node_vars(u, equations, dg, i, 1, element)
-                u_outer = get_boundary_outer_state(u_inner, cache, t,
+                u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[3], Ja2, 3,
-                                                   mesh, equations, dg,
+                                                   mesh, equations, dg, cache,
                                                    i, 1, element)
                 lambda2[i, 1, element] = max_abs_speed_naive(u_inner, u_outer, Ja2,
                                                              equations)
@@ -327,9 +327,9 @@ end
                 Ja2 = get_contravariant_vector(2, contravariant_vectors, i, nnodes(dg),
                                                element)
                 u_inner = get_node_vars(u, equations, dg, i, nnodes(dg), element)
-                u_outer = get_boundary_outer_state(u_inner, cache, t,
+                u_outer = get_boundary_outer_state(u_inner, t,
                                                    boundary_conditions[4], Ja2, 4,
-                                                   mesh, equations, dg,
+                                                   mesh, equations, dg, cache,
                                                    i, nnodes(dg), element)
                 lambda2[i, nnodes(dg) + 1, element] = max_abs_speed_naive(u_inner,
                                                                           u_outer, Ja2,

@@ -13,7 +13,6 @@
 #
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -48,10 +47,10 @@ initial_condition = initial_condition_mach3_flow
     return flux
 end
 
-@inline function Trixi.get_boundary_outer_state(u_inner, cache, t,
+@inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_supersonic_inflow),
-                                                normal_direction::AbstractVector, direction,
-                                                mesh::P4estMesh{2}, equations, dg,
+                                                normal_direction::AbstractVector,
+                                                mesh::P4estMesh{2}, equations, dg, cache,
                                                 indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
 
@@ -69,10 +68,10 @@ end
     return flux
 end
 
-@inline function Trixi.get_boundary_outer_state(u_inner, cache, t,
+@inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_outflow),
-                                                orientation_or_normal, direction,
-                                                mesh::P4estMesh{2}, equations, dg,
+                                                normal_direction::AbstractVector,
+                                                mesh::P4estMesh{2}, equations, dg, cache,
                                                 indices...)
     return u_inner
 end
@@ -91,28 +90,26 @@ boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
                            :Right => boundary_condition_outflow,
                            :Left => boundary_condition_supersonic_inflow)
 
+volume_flux = flux_ranocha_turbo
 surface_flux = flux_lax_friedrichs
-volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
-                                positivity_variables_cons = ["rho"],
+                                local_twosided_variables_cons = ["rho"],
                                 positivity_variables_nonlinear = [pressure],
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
                                                                        min)],
-                                max_iterations_newton = 100,
+                                max_iterations_newton = 50, # Default value of 10 iterations is too low to fulfill bounds.
                                 bar_states = false)
+
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Get the unstructured quad mesh from a file (downloads the file if not available locally)
-default_mesh_file = joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp")
-isfile(default_mesh_file) ||
-    download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
-             default_mesh_file)
-mesh_file = default_mesh_file
+mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/a08f78f6b185b63c3baeff911a63f628/raw/addac716ea0541f588b9d2bd3f92f643eb27b88f/abaqus_cylinder_in_channel.inp",
+                           joinpath(@__DIR__, "abaqus_cylinder_in_channel.inp"))
 
 mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 0)
 
@@ -134,21 +131,21 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
+save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.4)
+stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        stepsize_callback,
-                        save_solution)
+                        save_solution,
+                        stepsize_callback)
 
-stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_errors = false))
+stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks);
+                  callback = callbacks);
 summary_callback() # print the timer summary

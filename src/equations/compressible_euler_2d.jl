@@ -403,6 +403,76 @@ Should be used together with [`StructuredMesh`](@ref).
     return boundary_flux
 end
 
+"""
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::typeof(boundary_condition_slip_wall),
+                             normal_direction::AbstractVector,
+                             mesh, equations::CompressibleEulerEquations2D,
+                             dg, cache, indices...)
+For subcell limiting, the calculation of local bounds for non-periodic domains requires the boundary
+outer state. This function returns the boundary value for [`boundary_condition_slip_wall`](@ref) at
+time `t` and for node with spatial indices `indices` and at the boundary with `normal_direction`.
+
+Should be used together with [`P4estMesh`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          normal_direction::AbstractVector,
+                                          mesh, equations::CompressibleEulerEquations2D,
+                                          dg, cache, indices...)
+    factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
+    u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
+
+    return SVector(u_inner[1],
+                   u_inner[2] - 2.0 * u_normal[1],
+                   u_inner[3] - 2.0 * u_normal[2],
+                   u_inner[4])
+end
+
+"""
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::typeof(boundary_condition_slip_wall),
+                             normal_direction::AbstractVector, direction,
+                             mesh, equations::CompressibleEulerEquations2D,
+                             dg, cache, indices...)
+
+Should be used together with [`StructuredMesh`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          normal_direction::AbstractVector, direction,
+                                          mesh, equations::CompressibleEulerEquations2D,
+                                          dg, cache, indices...)
+    get_boundary_outer_state(u_inner, t, boundary_condition, normal_direction,
+                             mesh, equations, dg, cache, indices...)
+end
+
+"""
+    get_boundary_outer_state(u_inner, t,
+                             boundary_condition::typeof(boundary_condition_slip_wall),
+                             orientation::Integer, direction,
+                             mesh, equations::CompressibleEulerEquations2D,
+                             dg, cache, indices...)
+
+Should be used together with [`TreeMesh`](@ref).
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+@inline function get_boundary_outer_state(u_inner, t,
+                                          boundary_condition::typeof(boundary_condition_slip_wall),
+                                          orientation::Integer, direction,
+                                          mesh, equations::CompressibleEulerEquations2D,
+                                          dg, cache, indices...)
+    return SVector(u_inner[1], -u_inner[2], -u_inner[3], u_inner[4])
+end
+
 # TODO: Add docstring when about to merge.
 # Using with TreeMesh{2}
 @inline function characteristic_boundary_value_function(outer_boundary_value_function,

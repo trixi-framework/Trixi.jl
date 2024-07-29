@@ -237,8 +237,14 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
                 ]
             end
             if positivity
-                string = "Positivity limiting for conservative variables $(limiter.positivity_variables_cons) and $(limiter.positivity_variables_nonlinear)"
-                setup = [setup..., "" => string]
+                if !isempty(limiter.positivity_variables_cons)
+                    string = "conservative variables $(limiter.positivity_variables_cons)"
+                    setup = [setup..., "" => "Positivity limiting for " * string]
+                end
+                if !isempty(limiter.positivity_variables_nonlinear)
+                    string = "$(limiter.positivity_variables_nonlinear)"
+                    setup = [setup..., "" => "Positivity limiting for " * string]
+                end
                 setup = [
                     setup...,
                     "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)",

@@ -76,13 +76,12 @@ boundary_condition_inflow_outflow = BoundaryConditionCharacteristic(initial_cond
     return flux
 end
 
-# Note: Only for StructuredMesh
-@inline function Trixi.get_boundary_outer_state(u_inner, cache, t,
+@inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_mixed_characteristic_wall),
                                                 normal_direction::AbstractVector, direction,
                                                 mesh::StructuredMesh{2},
                                                 equations::CompressibleEulerEquations2D,
-                                                dg, indices...)
+                                                dg, cache, indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
     if x[1] < 1 / 6 # BoundaryConditionCharacteristic
         u_outer = Trixi.characteristic_boundary_value_function(initial_condition_double_mach_reflection,
@@ -164,7 +163,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (BoundsCheckCallback(save_errors = false),)
+stage_callbacks = (BoundsCheckCallback(),)
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

@@ -179,10 +179,10 @@ end
                 boundary_index += 2
             end
             u_inner = get_node_vars(u, equations, dg, index..., element)
-            u_outer = get_boundary_outer_state(u_inner, cache, t,
+            u_outer = get_boundary_outer_state(u_inner, t,
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
-                                               mesh, equations, dg,
+                                               mesh, equations, dg, cache,
                                                index..., element)
             var_outer = u_outer[variable]
 
@@ -284,10 +284,10 @@ end
                 boundary_index += 2
             end
             u_inner = get_node_vars(u, equations, dg, index..., element)
-            u_outer = get_boundary_outer_state(u_inner, cache, t,
+            u_outer = get_boundary_outer_state(u_inner, t,
                                                boundary_conditions[boundary_index],
                                                orientation, boundary_index,
-                                               mesh, equations, dg,
+                                               mesh, equations, dg, cache,
                                                index..., element)
             var_outer = variable(u_outer, equations)
 
