@@ -655,6 +655,35 @@ end
     @test isapprox(lift, 0.029076443678087403, atol = 1e-13)
     @test isapprox(drag, 0.13564720009197903, atol = 1e-13)
 end
+
+@trixi_testset "elixir_euler_blast_wave_pure_fv.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "tree_2d_dgsem"),
+                                 "elixir_euler_blast_wave_pure_fv.jl"),
+                        l2=[
+                            0.39957047631960346,
+                            0.21006912294983154,
+                            0.21006903549932,
+                            0.6280328163981136,
+                        ],
+                        linf=[
+                            2.20417889887697,
+                            1.5487238480003327,
+                            1.5486788679247812,
+                            2.4656795949035857,
+                        ],
+                        tspan=(0.0, 0.5),
+                        mesh=P4estMesh((64, 64), polydeg = 3,
+                                       coordinates_min = (-2.0, -2.0),
+                                       coordinates_max = (2.0, 2.0)))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
