@@ -175,7 +175,14 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
     @trixi_timeit timer() "copy to coupled boundaries" begin
         foreach(semi.semis) do semi_
-            copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
+            boundary_conditions = semi_.boundary_conditions
+            # For p4est meshes we define the boundary conditions as dictionaries.
+            # But for the cop routine we need them as NamedTuple.
+            # Hence, the conversion here.
+            if typeof(boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes
+                boundary_conditions = NamedTuple{Tuple(keys(boundary_conditions.boundary_dictionary))}(values(boundary_conditions.boundary_dictionary))
+            end
+            copy_to_coupled_boundary!(boundary_conditions, u_ode, semi, semi_)
         end
     end
 
@@ -507,6 +514,26 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
     return flux
 end
 
+function (boundary_condition::BoundaryConditionCoupled)(u_inner, normal_direction,
+                                                        x, t, surface_flux_function,
+                                                        equations)
+    # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
+    # but we don't have a solver here
+    u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
+                                                                   1...,
+                                                                   1...],
+                                Val(nvariables(equations))))
+
+    # Calculate boundary flux
+    # if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+    # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+    #     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+    # end
+
+    return flux
+end
+
 function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
     n_boundaries = 2 * ndims(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
@@ -585,6 +612,8 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     u_ode_other = get_system_u_ode(u_ode, other_semi_index, semi_coupled)
     u_other = wrap_array(u_ode_other, mesh_other, equations_other, solver_other,
                          cache_other)
+
+    @autoinfiltrate
 
     linear_indices = LinearIndices(size(mesh_other))
 
