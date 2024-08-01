@@ -255,13 +255,15 @@ function correction_term_3d(x, y, z, faces)
                              linear_interpolate(x, faces[1](1, z), faces[2](1, z)) +
                              linear_interpolate(z, faces[5](x, 1), faces[6](x, 1)))
 
-    # Correction for x-terms
+    # Correction for z-terms
     c_z = linear_interpolate(z,
                              linear_interpolate(x, faces[1](y, -1), faces[2](y, -1)) +
                              linear_interpolate(y, faces[3](x, -1), faces[4](x, -1)),
                              linear_interpolate(x, faces[1](y, 1), faces[2](y, 1)) +
                              linear_interpolate(y, faces[3](x, 1), faces[4](x, 1)))
 
+    # Each of the 12 edges are counted twice above
+    # so we divide the correction term by one half
     return 0.5 * (c_x + c_y + c_z)
 end
 
