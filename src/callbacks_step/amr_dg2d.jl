@@ -77,10 +77,72 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
 end
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
+function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
+                 equations, dg::DGSEM, cache, elements_to_refine)
+    # Return early if there is nothing to do
+    if isempty(elements_to_refine)
+        if mpi_isparallel()
+            # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+            # locally (there still might be other MPI ranks that have refined elements)
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
+        return
+    end
+
+    # Determine for each existing element whether it needs to be refined
+    needs_refinement = falses(nelements(dg, cache))
+    needs_refinement[elements_to_refine] .= true
+
+    # Retain current solution data
+    old_n_elements = nelements(dg, cache)
+    old_u_ode = copy(u_ode)
+    old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
+    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        reinitialize_containers!(mesh, equations, dg, cache)
+
+        resize!(u_ode,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) *
+                nelements(dg, cache))
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+        # Loop over all elements in old container and either copy them or refine them
+        element_id = 1
+        for old_element_id in 1:old_n_elements
+            if needs_refinement[old_element_id]
+                # Refine element and store solution directly in new data structure
+                refine_element!(u, element_id, old_u, old_element_id,
+                                adaptor, equations, dg)
+                element_id += 2^ndims(mesh)
+            else
+                # Copy old element data to new element container
+                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                element_id += 1
+            end
+        end
+        # If everything is correct, we should have processed all elements.
+        # Depending on whether the last element processed above had to be refined or not,
+        # the counter `element_id` can have two different values at the end.
+        @assert element_id ==
+                nelements(dg, cache) +
+                1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+    end # GC.@preserve old_u_ode
+
+    # Sanity check
+    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
+       !mpi_isparallel()
+        @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    end
+
+    return nothing
+end
+
+# Refine elements in the DG solver based on a list of cell_ids that should be refined
 # If an element refines the solution scaled by the Jacobian `J*u` is interpolated from
 # the parent element into the four children elements. The solution on each child
 # element is then recovered by dividing by the new element Jacobians.
-function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
+function refine!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{2},
                  equations, dg::DGSEM, cache, elements_to_refine)
     # Return early if there is nothing to do
     if isempty(elements_to_refine)
@@ -276,11 +338,80 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
 end
 
 # Coarsen elements in the DG solver based on a list of cell_ids that should be removed
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
+                  equations, dg::DGSEM, cache, elements_to_remove)
+    # Return early if there is nothing to do
+    if isempty(elements_to_remove)
+        if mpi_isparallel()
+            # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+            # locally (there still might be other MPI ranks that have coarsened elements)
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
+        return
+    end
+
+    # Determine for each old element whether it needs to be removed
+    to_be_removed = falses(nelements(dg, cache))
+    to_be_removed[elements_to_remove] .= true
+
+    # Retain current solution data and Jacobians
+    old_n_elements = nelements(dg, cache)
+    old_u_ode = copy(u_ode)
+    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        reinitialize_containers!(mesh, equations, dg, cache)
+
+        resize!(u_ode,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) *
+                nelements(dg, cache))
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+        # Loop over all elements in old container and either copy them or coarsen them
+        skip = 0
+        element_id = 1
+        for old_element_id in 1:old_n_elements
+            # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
+            if skip > 0
+                skip -= 1
+                continue
+            end
+
+            if to_be_removed[old_element_id]
+                # If an element is to be removed, sanity check if the following elements
+                # are also marked - otherwise there would be an error in the way the
+                # cells/elements are sorted
+                @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
+
+                # Coarsen elements and store solution directly in new data structure
+                coarsen_elements!(u, element_id, old_u, old_element_id,
+                                  adaptor, equations, dg)
+                element_id += 1
+                skip = 2^ndims(mesh) - 1
+            else
+                # Copy old element data to new element container
+                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                element_id += 1
+            end
+        end
+        # If everything is correct, we should have processed all elements.
+        @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+    end # GC.@preserve old_u_ode
+
+    # Sanity check
+    if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
+       !mpi_isparallel()
+        @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+    end
+
+    return nothing
+end
+
+# Coarsen elements in the DG solver based on a list of cell_ids that should be removed
 # If an element coarsens the solution scaled by the Jacobian `J*u` is projected from
 # the four children elements back onto the parent element. The solution on the parent
 # element is then recovered by dividing by the new element Jacobian.
-function coarsen!(u_ode::AbstractVector, adaptor,
-                  mesh::Union{TreeMesh{2}, P4estMesh{2}},
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{2},
                   equations, dg::DGSEM, cache, elements_to_remove)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
