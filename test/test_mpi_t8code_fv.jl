@@ -176,16 +176,16 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
                                          "elixir_euler_kelvin_helmholtz_instability.jl"),
                                 order=1,
                                 l2=[
-                                    0.2542045564471016,
-                                    0.22153069577606582,
-                                    0.11870840559952726,
-                                    0.03626114330454897,
+                                    0.25420413805862135,
+                                    0.22153054262689362,
+                                    0.11870842058617848,
+                                    0.03626117501911353,
                                 ],
                                 linf=[
-                                    0.5467901048636064,
-                                    0.4156157765819209,
-                                    0.26176688262532194,
-                                    0.0920608815870434,
+                                    0.5467894727797227,
+                                    0.4156157752497065,
+                                    0.26176691230685767,
+                                    0.0920609123083227,
                                 ],
                                 tspan=(0.0, 1.0))
             # Ensure that we do not have excessive memory allocations
@@ -197,22 +197,48 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
                 @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
             end
         end
-        @trixi_testset "second-order FV" begin
+        @trixi_testset "second-order FV - quads" begin
             @test_trixi_include(joinpath(EXAMPLES_DIR,
                                          "elixir_euler_kelvin_helmholtz_instability.jl"),
                                 order=2,
                                 cmesh=Trixi.cmesh_quad(periodicity = (true, true)),
                                 l2=[
-                                    0.2307463806750956,
-                                    0.19300049982364456,
-                                    0.11761779688825669,
-                                    0.020439515334349196,
+                                    0.2307479238046326,
+                                    0.19300139957275295,
+                                    0.1176326315506721,
+                                    0.020439850138732837,
                                 ],
                                 linf=[
-                                    0.5069318322100549,
-                                    0.365584194964112,
-                                    0.24224645130314845,
-                                    0.04918806108930651,
+                                    0.5069212604421109,
+                                    0.365579474379667,
+                                    0.24226411409222004,
+                                    0.049201093470609525,
+                                ],
+                                tspan=(0.0, 1.0))
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        @trixi_testset "second-order FV - triangles" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                         "elixir_euler_kelvin_helmholtz_instability.jl"),
+                                order=2,
+                                l2=[
+                                    0.16181566308374545,
+                                    0.10090964843765918,
+                                    0.15229553744179888,
+                                    0.0395037796064376,
+                                ],
+                                linf=[
+                                    0.6484515918189779,
+                                    0.3067327488921227,
+                                    0.34771083375083534,
+                                    0.10713502930441887,
                                 ],
                                 tspan=(0.0, 1.0))
             # Ensure that we do not have excessive memory allocations

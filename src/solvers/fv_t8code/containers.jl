@@ -325,6 +325,53 @@ end
     return nothing
 end
 
+function init_reconstruction_stencil!(elements, interfaces, boundaries,
+                                      communication_data,
+                                      mesh, equations, solver)
+    if solver.order != 2
+        return nothing
+    end
+    (; reconstruction_stencil, reconstruction_distance) = elements
+    (; neighbor_ids, faces) = interfaces
+    (; domain_data) = communication_data
+
+    # Create empty vectors for every element
+    for element in eachindex(reconstruction_stencil)
+        reconstruction_stencil[element] = []
+        reconstruction_distance[element] = []
+    end
+
+    for interface in axes(neighbor_ids, 2)
+        element1 = neighbor_ids[1, interface]
+        element2 = neighbor_ids[2, interface]
+        face_element1 = faces[1, interface]
+        face_element2 = faces[2, interface]
+
+        midpoint_element1 = domain_data[element1].midpoint
+        midpoint_element2 = domain_data[element2].midpoint
+        face_midpoint_element1 = domain_data[element1].face_midpoints[face_element1]
+        face_midpoint_element2 = domain_data[element2].face_midpoints[face_element2]
+
+        # How to handle periodic boundaries?
+        if isapprox(face_midpoint_element1, face_midpoint_element2)
+            distance = midpoint_element2 .- midpoint_element1
+        else
+            distance = (face_midpoint_element1 .- midpoint_element1) .+
+                       (midpoint_element2 .- face_midpoint_element2)
+        end
+        append!(reconstruction_stencil[element1], element2)
+        push!(reconstruction_distance[element1], distance)
+        # only if element2 is local element
+        if element2 <= ncells(mesh)
+            append!(reconstruction_stencil[element2], element1)
+            push!(reconstruction_distance[element2], -distance)
+        end
+    end
+
+    return nothing
+end
+
+
 # Container data structure (structure-of-arrays style) for FV interfaces
 mutable struct T8codeFVInterfaceContainer{uEltype <: Real} <: AbstractContainer
     u::Array{uEltype, 3}                # [primary/secondary, variable, interface]
