@@ -29,7 +29,7 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
                        indices_max = size(parent),
                        coordinates_min = nothing, coordinates_max = nothing,
                        periodicity = (true, true)) where {NDIMS, RealT}
-    trees_per_dimension = indices_max .- indices_min
+    trees_per_dimension = indices_max .- indices_min .+ (1, 1)
 
     @assert indices_min <= indices_max
     @assert all(indices_min .> 0)
