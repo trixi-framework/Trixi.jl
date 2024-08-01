@@ -353,7 +353,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     to_be_removed = falses(nelements(dg, cache))
     to_be_removed[elements_to_remove] .= true
 
-    # Retain current solution data and Jacobians
+    # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
