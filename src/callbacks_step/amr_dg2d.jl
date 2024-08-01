@@ -96,7 +96,6 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
     GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
