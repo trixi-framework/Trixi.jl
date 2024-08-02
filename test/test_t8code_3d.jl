@@ -61,7 +61,7 @@ mkdir(outdir)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonconforming.jl"),
                             l2=[0.00253595715323843],
                             linf=[0.016486952252155795])
-        # Ensure that we do not have excessive memory allocations 
+        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
@@ -80,7 +80,7 @@ mkdir(outdir)
                             linf=[0.0007889950196294793],
                             coverage_override=(maxiters = 6, initial_refinement_level = 1,
                                                base_level = 1, med_level = 2, max_level = 3))
-        # Ensure that we do not have excessive memory allocations 
+        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
@@ -95,12 +95,12 @@ mkdir(outdir)
     @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_curved.jl"),
-                            l2=[2.0556575425846923e-5],
-                            linf=[0.00105682693484822],
+                            l2=[2.0535121347526814e-5],
+                            linf=[0.0010586603797777504],
                             tspan=(0.0, 1.0),
                             coverage_override=(maxiters = 6, initial_refinement_level = 0,
                                                base_level = 0, med_level = 1, max_level = 2))
-        # Ensure that we do not have excessive memory allocations 
+        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
@@ -129,7 +129,7 @@ mkdir(outdir)
                                 0.008526972236273522,
                             ],
                             tspan=(0.0, 0.01))
-        # Ensure that we do not have excessive memory allocations 
+        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
@@ -158,7 +158,7 @@ mkdir(outdir)
                                 0.01562861968368434,
                             ],
                             tspan=(0.0, 1.0))
-        # Ensure that we do not have excessive memory allocations 
+        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
@@ -186,7 +186,7 @@ mkdir(outdir)
                                 9.412914891981927e-12,
                             ],
                             tspan=(0.0, 0.03))
-        # Ensure that we do not have excessive memory allocations 
+        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
@@ -214,7 +214,7 @@ mkdir(outdir)
                                 9.592326932761353e-13,
                             ],
                             tspan=(0.0, 0.1), atol=5.0e-13,)
-        # Ensure that we do not have excessive memory allocations 
+        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
@@ -243,7 +243,7 @@ mkdir(outdir)
                             ],
                             tspan=(0.0, 0.2),
                             coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
-        # Ensure that we do not have excessive memory allocations 
+        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
@@ -273,7 +273,7 @@ mkdir(outdir)
                             ],
                             tspan=(0.0, 0.3),
                             coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
-        # Ensure that we do not have excessive memory allocations 
+        # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
             t = sol.t[end]
