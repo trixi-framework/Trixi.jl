@@ -131,50 +131,17 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
                     # Refine element and store solution directly in new data structure
                     refine_element!(u, element_id, old_u, old_element_id,
                                     adaptor, equations, dg, u_tmp1, u_tmp2)
-                    # Before `element_id` is incremented, divide off by the new Jacobians and save
-                    # the result again in the appropriate places
-                    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                        for v in eachvariable(equations)
-                            u[v, i, j, k, element_id] *= (0.125 *
-                                                          cache.elements.inverse_jacobian[i,
-                                                                                          j,
-                                                                                          k,
-                                                                                          element_id])
-                            u[v, i, j, k, element_id + 1] *= (0.125 *
-                                                              cache.elements.inverse_jacobian[i,
-                                                                                              j,
-                                                                                              k,
-                                                                                              element_id + 1])
-                            u[v, i, j, k, element_id + 2] *= (0.125 *
-                                                              cache.elements.inverse_jacobian[i,
-                                                                                              j,
-                                                                                              k,
-                                                                                              element_id + 2])
-                            u[v, i, j, k, element_id + 3] *= (0.125 *
-                                                              cache.elements.inverse_jacobian[i,
-                                                                                              j,
-                                                                                              k,
-                                                                                              element_id + 3])
-                            u[v, i, j, k, element_id + 4] *= (0.125 *
-                                                              cache.elements.inverse_jacobian[i,
-                                                                                              j,
-                                                                                              k,
-                                                                                              element_id + 4])
-                            u[v, i, j, k, element_id + 5] *= (0.125 *
-                                                              cache.elements.inverse_jacobian[i,
-                                                                                              j,
-                                                                                              k,
-                                                                                              element_id + 5])
-                            u[v, i, j, k, element_id + 6] *= (0.125 *
-                                                              cache.elements.inverse_jacobian[i,
-                                                                                              j,
-                                                                                              k,
-                                                                                              element_id + 6])
-                            u[v, i, j, k, element_id + 7] *= (0.125 *
-                                                              cache.elements.inverse_jacobian[i,
-                                                                                              j,
-                                                                                              k,
-                                                                                              element_id + 7])
+                    # Before `element_id` is incremented, divide by the new Jacobians on each
+                    # child element and save the result
+                    for m in 0:7 # loop over the children
+                        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                            for v in eachvariable(equations)
+                                u[v, i, j, k, element_id + m] *= (0.125 *
+                                                                  cache.elements.inverse_jacobian[i,
+                                                                                                  j,
+                                                                                                  k,
+                                                                                                  element_id + m])
+                            end
                         end
                     end
                     element_id += 2^ndims(mesh)
@@ -378,7 +345,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     to_be_removed = falses(nelements(dg, cache))
     to_be_removed[elements_to_remove] .= true
 
-    # Retain current solution data
+    # Retain current solution data and Jacobians
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
@@ -429,8 +396,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                     # Coarsen elements and store solution directly in new data structure
                     coarsen_elements!(u, element_id, old_u, old_element_id,
                                       adaptor, equations, dg, u_tmp1, u_tmp2)
-                    # Before `element_id` is incremented, divide off by the new Jacobian and save
-                    # the result again in the appropriate place
+                    # Before `element_id` is incremented, divide by the new Jacobian and save
+                    # the result in the parent element
                     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
                             u[v, i, j, k, element_id] *= (8 *
@@ -625,50 +592,17 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                                     dg,
                                     u_tmp1, u_tmp2)
 
-                    # Before indices are incremented divide off by the new Jacobians and save
-                    # the result again in the appropriate places
-                    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                        for v in eachvariable(equations)
-                            u[v, i, j, k, new_index] *= (0.125 *
-                                                         cache.elements.inverse_jacobian[i,
-                                                                                         j,
-                                                                                         k,
-                                                                                         new_index])
-                            u[v, i, j, k, new_index + 1] *= (0.125 *
-                                                             cache.elements.inverse_jacobian[i,
-                                                                                             j,
-                                                                                             k,
-                                                                                             new_index + 1])
-                            u[v, i, j, k, new_index + 2] *= (0.125 *
-                                                             cache.elements.inverse_jacobian[i,
-                                                                                             j,
-                                                                                             k,
-                                                                                             new_index + 2])
-                            u[v, i, j, k, new_index + 3] *= (0.125 *
-                                                             cache.elements.inverse_jacobian[i,
-                                                                                             j,
-                                                                                             k,
-                                                                                             new_index + 3])
-                            u[v, i, j, k, new_index + 4] *= (0.125 *
-                                                             cache.elements.inverse_jacobian[i,
-                                                                                             j,
-                                                                                             k,
-                                                                                             new_index + 4])
-                            u[v, i, j, k, new_index + 5] *= (0.125 *
-                                                             cache.elements.inverse_jacobian[i,
-                                                                                             j,
-                                                                                             k,
-                                                                                             new_index + 5])
-                            u[v, i, j, k, new_index + 6] *= (0.125 *
-                                                             cache.elements.inverse_jacobian[i,
-                                                                                             j,
-                                                                                             k,
-                                                                                             new_index + 6])
-                            u[v, i, j, k, new_index + 7] *= (0.125 *
-                                                             cache.elements.inverse_jacobian[i,
-                                                                                             j,
-                                                                                             k,
-                                                                                             new_index + 7])
+                    # Before indices are incremented divide by the new Jacobians on each
+                    # child element and save the result
+                    for m in 0:7 # loop over the children
+                        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                            for v in eachvariable(equations)
+                                u[v, i, j, k, new_index + m] *= (0.125 *
+                                                                 cache.elements.inverse_jacobian[i,
+                                                                                                 j,
+                                                                                                 k,
+                                                                                                 new_index + m])
+                            end
                         end
                     end
 
@@ -688,8 +622,8 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                                       equations,
                                       dg, u_tmp1, u_tmp2)
 
-                    # Before the indices are incremented divide off by the new Jacobian and save
-                    # the result again in the appropriate place
+                    # Before the indices are incremented divide by the new Jacobian and save
+                    # the result again in the parent element
                     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
                             u[v, i, j, k, new_index] *= (8 *

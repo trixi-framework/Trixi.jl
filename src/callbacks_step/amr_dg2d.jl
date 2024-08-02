@@ -191,26 +191,16 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{2},
                     # Refine element and store solution directly in new data structure
                     refine_element!(u, element_id, old_u, old_element_id,
                                     adaptor, equations, dg)
-                    # Before `element_id` is incremented, divide off by the new Jacobians and save
-                    # the result again in the appropriate places
-                    for j in eachnode(dg), i in eachnode(dg)
-                        for v in eachvariable(equations)
-                            u[v, i, j, element_id] *= (0.25 *
-                                                       cache.elements.inverse_jacobian[i,
-                                                                                       j,
-                                                                                       element_id])
-                            u[v, i, j, element_id + 1] *= (0.25 *
-                                                           cache.elements.inverse_jacobian[i,
-                                                                                           j,
-                                                                                           element_id + 1])
-                            u[v, i, j, element_id + 2] *= (0.25 *
-                                                           cache.elements.inverse_jacobian[i,
-                                                                                           j,
-                                                                                           element_id + 2])
-                            u[v, i, j, element_id + 3] *= (0.25 *
-                                                           cache.elements.inverse_jacobian[i,
-                                                                                           j,
-                                                                                           element_id + 3])
+                    # Before `element_id` is incremented, divide by the new Jacobians on each
+                    # child element and save the result
+                    for m in 0:3 # loop over the children
+                        for j in eachnode(dg), i in eachnode(dg)
+                            for v in eachvariable(equations)
+                                u[v, i, j, element_id + m] *= (0.25 *
+                                                               cache.elements.inverse_jacobian[i,
+                                                                                               j,
+                                                                                               element_id + m])
+                            end
                         end
                     end
                     element_id += 2^ndims(mesh)
@@ -472,8 +462,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{2},
                     # Coarsen elements and store solution directly in new data structure
                     coarsen_elements!(u, element_id, old_u, old_element_id,
                                       adaptor, equations, dg)
-                    # Before `element_id` is incremented, divide off by the new Jacobian and save
-                    # the result again in the appropriate place
+                    # Before `element_id` is incremented, divide by the new Jacobian and save
+                    # the result in the parent element
                     for j in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
                             u[v, i, j, element_id] *= (4 *
@@ -650,26 +640,16 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
                     refine_element!(u, new_index, old_u, old_index, adaptor, equations,
                                     dg)
 
-                    # Before indices are incremented divide off by the new Jacobians and save
-                    # the result again in the appropriate places
-                    for j in eachnode(dg), i in eachnode(dg)
-                        for v in eachvariable(equations)
-                            u[v, i, j, new_index] *= (0.25 *
-                                                      cache.elements.inverse_jacobian[i,
-                                                                                      j,
-                                                                                      new_index])
-                            u[v, i, j, new_index + 1] *= (0.25 *
-                                                          cache.elements.inverse_jacobian[i,
-                                                                                          j,
-                                                                                          new_index + 1])
-                            u[v, i, j, new_index + 2] *= (0.25 *
-                                                          cache.elements.inverse_jacobian[i,
-                                                                                          j,
-                                                                                          new_index + 2])
-                            u[v, i, j, new_index + 3] *= (0.25 *
-                                                          cache.elements.inverse_jacobian[i,
-                                                                                          j,
-                                                                                          new_index + 3])
+                    # Before indices are incremented divide by the new Jacobians on each
+                    # child element and save the result
+                    for m in 0:3 # loop over the children
+                        for j in eachnode(dg), i in eachnode(dg)
+                            for v in eachvariable(equations)
+                                u[v, i, j, new_index + m] *= (0.25 *
+                                                              cache.elements.inverse_jacobian[i,
+                                                                                              j,
+                                                                                              new_index + m])
+                            end
                         end
                     end
 
@@ -689,8 +669,8 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
                                       equations,
                                       dg)
 
-                    # Before the indices are incremented divide off by the new Jacobian and save
-                    # the result again in the appropriate place
+                    # Before the indices are incremented divide by the new Jacobian and save
+                    # the result again in the parent element
                     for j in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
                             u[v, i, j, new_index] *= (4 *
