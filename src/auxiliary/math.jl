@@ -8,6 +8,21 @@
 const TRIXI_UUID = UUID("a7f1ee26-1774-49b1-8366-f1abc58fbfcb")
 
 """
+    Trixi.set_polyester(toggle::Bool; force = true)
+
+Toggle the usage of [Polyester.jl](https://github.com/JuliaSIMD/Polyester.jl) for multithreading.
+By default, Polyester.jl is enabled, but it can
+be useful for performance comparisons to switch to the Julia core backend.
+
+This does not fully disable Polyester.jl,
+buy only its use as part of Trixi.jl's `@threaded` macro.
+"""
+function set_polyester(toggle::Bool; force = true)
+    set_preferences!(TRIXI_UUID, "polyester" => string(toggle), force = force)
+    @info "Please restart Julia and reload Trixi.jl for the `polyester` change to take effect"
+end
+
+"""
     Trixi.set_sqrt_type(type; force = true)
 
 Set the `type` of the square root function to be used in Trixi.jl.
