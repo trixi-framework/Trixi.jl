@@ -6,9 +6,6 @@
 #! format: noindent
 
 # Refine elements in the DG solver based on a list of cell_ids that should be refined
-# If an element refines the solution scaled by the Jacobian `J*u` is interpolated from
-# the parent element into the eight children elements. The solution on each child
-# element is then recovered by dividing by the new element Jacobians.
 function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
                  equations, dg::DGSEM, cache, elements_to_refine)
     # Return early if there is nothing to do
