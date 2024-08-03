@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>4 Unstructured meshes with HOHQMesh.jl · Trixi.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/hohqmesh_tutorial/"/><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.png" alt="Trixi.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Trixi.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../overview/">Overview</a></li><li><a class="tocitem" href="../../visualization/">Visualization</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../introduction/">Introduction</a></li><li><a class="tocitem" href="../scalar_linear_advection_1d/">1 Introduction to DG methods</a></li><li><input class="collapse-toggle" id="menuitem-3-3" type="checkbox"/><label class="tocitem" for="menuitem-3-3"><span class="docs-label">2 Adding a new equation</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../adding_new_equations/cubic_conservation_law/">2.1 Scalar conservation law</a></li><li><a class="tocitem" href="../adding_new_equations/nonconservative_advection/">2.2 Nonconservative equation</a></li></ul></li><li><a class="tocitem" href="../differentiable_programming/">3 Differentiable programming</a></li><li class="is-active"><a class="tocitem" href>4 Unstructured meshes with HOHQMesh.jl</a><ul class="internal"><li><a class="tocitem" href="#Running-and-visualizing-an-unstructured-simulation"><span>Running and visualizing an unstructured simulation</span></a></li><li><a class="tocitem" href="#Creating-a-mesh-using-HOHQMesh"><span>Creating a mesh using HOHQMesh</span></a></li><li><a class="tocitem" href="#Example-simulation-on-ice_cream_straight_sides.mesh"><span>Example simulation on <code>ice_cream_straight_sides.mesh</code></span></a></li><li><a class="tocitem" href="#Making-a-mesh-with-a-curved-outer-boundary"><span>Making a mesh with a curved outer boundary</span></a></li><li><a class="tocitem" href="#Running-Trixi.jl-on-ice_cream_curved_sides.mesh"><span>Running Trixi.jl on <code>ice_cream_curved_sides.mesh</code></span></a></li></ul></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox"/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li><li><a class="tocitem" href="../../meshes/p4est_mesh/">P4est-based mesh</a></li><li><a class="tocitem" href="../../meshes/dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../callbacks/">Callbacks</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../development/">Development</a></li><li><a class="tocitem" href="../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../testing/">Testing</a></li><li><a class="tocitem" href="../../performance/">Performance</a></li><li><a class="tocitem" href="../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../authors/">Authors</a></li><li><a class="tocitem" href="../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>4 Unstructured meshes with HOHQMesh.jl</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>4 Unstructured meshes with HOHQMesh.jl</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/trixi-framework/Trixi.jl/blob/master/docs/literate/src/files/hohqmesh_tutorial.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="hohqmesh_tutorial"><a class="docs-heading-anchor" href="#hohqmesh_tutorial">4: Unstructured meshes with HOHQMesh.jl</a><a id="hohqmesh_tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#hohqmesh_tutorial" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=tutorials/notebooks/hohqmesh_tutorial.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/tutorials/notebooks/hohqmesh_tutorial.ipynb"><img src="https://raw.githubusercontent.com/jupyter/design/master/logos/Badges/nbviewer_badge.svg" alt/></a> <a href="https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/tutorials/notebooks/hohqmesh_tutorial.ipynb"><img src="https://camo.githubusercontent.com/aea75103f6d9f690a19cb0e17c06f984ab0f472d9e6fe4eadaa0cc438ba88ada/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f646f776e6c6f61642d6e6f7465626f6f6b2d627269676874677265656e" alt/></a></p><p>Trixi.jl supports numerical approximations on unstructured quadrilateral meshes with the <a href="../../reference-trixi/#Trixi.UnstructuredMesh2D"><code>UnstructuredMesh2D</code></a> mesh type.</p><p>The purpose of this tutorial is to demonstrate how to use the <code>UnstructuredMesh2D</code> functionality of Trixi.jl. This begins by running and visualizing an available unstructured quadrilateral mesh example. Then, the tutorial will demonstrate how to conceptualize a problem with curved boundaries, generate a curvilinear mesh using the available software in the Trixi.jl ecosystem, and then run a simulation using Trixi.jl on said mesh.</p><p>Unstructured quadrilateral meshes can be made with the <a href="https://github.com/trixi-framework/HOHQMesh">High-Order Hex-Quad Mesh (HOHQMesh) generator</a> created and developed by David Kopriva. HOHQMesh is a mesh generator specifically designed for spectral element methods. It provides high-order boundary curve information (needed to accurately set boundary conditions) and elements can be larger (due to the high accuracy of the spatial approximation) compared to traditional finite element mesh generators. For more information about the design and features of HOHQMesh one can refer to its <a href="https://trixi-framework.github.io/HOHQMesh/">official documentation</a>.</p><p>HOHQMesh is incorporated into the Trixi.jl framework via the registered Julia package <a href="https://github.com/trixi-framework/HOHQMesh.jl">HOHQMesh.jl</a>. This package provides a Julia wrapper for the HOHQMesh generator that allows users to easily create mesh files without the need to build HOHQMesh from source. To install the HOHQMesh package execute</p><pre><code class="language-julia hljs">import Pkg; Pkg.add(&quot;HOHQMesh&quot;)</code></pre><p>Now we are ready to generate an unstructured quadrilateral mesh that can be used by Trixi.jl.</p><h2 id="Running-and-visualizing-an-unstructured-simulation"><a class="docs-heading-anchor" href="#Running-and-visualizing-an-unstructured-simulation">Running and visualizing an unstructured simulation</a><a id="Running-and-visualizing-an-unstructured-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Running-and-visualizing-an-unstructured-simulation" title="Permalink"></a></h2><p>Trixi.jl supports solving hyperbolic problems on several mesh types. There is a default example for this mesh type that can be executed by</p><pre><code class="language-julia hljs">using Trixi
+trixi_include(default_example_unstructured())</code></pre><p>This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations on the curved quadrilateral mesh described in the <a href="https://trixi-framework.github.io/Trixi.jl/stable/meshes/unstructured_quad_mesh/">Trixi documentation</a>.</p><p>Apart from the usual error and timing output provided by the Trixi.jl run, it is useful to visualize and inspect the solution. One option available in the Trixi.jl framework to visualize the solution on unstructured quadrilateral meshes is post-processing the Trixi.jl output file(s) with the <a href="https://github.com/trixi-framework/Trixi2Vtk.jl"><code>Trixi2Vtk</code></a> tool and plotting them with <a href="https://www.paraview.org/download/">ParaView</a>.</p><p>To convert the HDF5-formatted <code>.h5</code> output file(s) from Trixi into VTK format execute the following</p><pre><code class="language-julia hljs">using Trixi2Vtk
+trixi2vtk(&quot;out/solution_000180.h5&quot;, output_directory=&quot;out&quot;)</code></pre><p>Note this step takes about 15-30 seconds as the package <code>Trixi2Vtk</code> must be precompiled and executed for the first time in your REPL session. The <code>trixi2vtk</code> command above will convert the solution file at the final time into a <code>.vtu</code> file which can be read in and visualized with ParaView. Optional arguments for <code>trixi2vtk</code> are: (1) Pointing to the <code>output_directory</code> where the new files will be saved; it defaults to the current directory. (2) Specifying a higher number of visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute</p><pre><code class="language-julia hljs">trixi2vtk(&quot;out/solution_000180.h5&quot;, output_directory=&quot;out&quot;, nvisnodes=12)</code></pre><p>By default <code>trixi2vtk</code> sets <code>nvisnodes</code> to be the same as the number of nodes specified in the <code>elixir</code> file used to run the simulation.</p><p>Finally, if you want to convert all the solution files to VTK execute</p><pre><code class="language-julia hljs">trixi2vtk(&quot;out/solution_000*.h5&quot;, output_directory=&quot;out&quot;, nvisnodes=12)</code></pre><p>then it is possible to open the <code>.pvd</code> file with ParaView and create a video of the simulation.</p><h2 id="Creating-a-mesh-using-HOHQMesh"><a class="docs-heading-anchor" href="#Creating-a-mesh-using-HOHQMesh">Creating a mesh using HOHQMesh</a><a id="Creating-a-mesh-using-HOHQMesh-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-a-mesh-using-HOHQMesh" title="Permalink"></a></h2><p>The creation of an unstructured quadrilateral mesh using HOHQMesh.jl is driven by a <strong>control file</strong>. In this file the user dictates the domain to be meshed, prescribes any desired boundary curvature, the polynomial order of said boundaries, etc. In this tutorial we cover several basic features of the possible control inputs. For a complete discussion on this topic see the <a href="https://trixi-framework.github.io/HOHQMesh/the-control-file/">HOHQMesh control file documentation</a>.</p><p>To begin, we provide a complete control file in this tutorial. After this we give a breakdown of the control file components to explain the chosen parameters.</p><p>Suppose we want to create a mesh of a domain with straight sided outer boundaries and a curvilinear &quot;ice cream cone&quot; shaped object at its center.</p><p><img src="https://user-images.githubusercontent.com/25242486/129603954-9788500d-bba8-49be-8e6f-7555099dbf7c.png" alt="mesh_boundary_cartoon"/></p><p>The associated <code>ice_cream_straight_sides.control</code> file is created below.</p><pre><code class="language-julia hljs">open(&quot;out/ice_cream_straight_sides.control&quot;, &quot;w&quot;) do io
+  println(io, raw&quot;&quot;&quot;
+\begin{CONTROL_INPUT}
+    \begin{RUN_PARAMETERS}
+        mesh file name   = ice_cream_straight_sides.mesh
+        plot file name   = ice_cream_straight_sides.tec
+        stats file name  = none
+        mesh file format = ISM-v2
+        polynomial order = 4
+        plot file format = skeleton
+    \end{RUN_PARAMETERS}
+
+    \begin{BACKGROUND_GRID}
+        x0 = [-8.0, -8.0, 0.0]
+        dx = [1.0, 1.0, 0.0]
+        N  = [16,16,1]
+    \end{BACKGROUND_GRID}
+
+    \begin{SPRING_SMOOTHER}
+        smoothing            = ON
+        smoothing type       = LinearAndCrossBarSpring
+        number of iterations = 25
+    \end{SPRING_SMOOTHER}
+
+\end{CONTROL_INPUT}
+
+\begin{MODEL}
+
+    \begin{INNER_BOUNDARIES}
+
+        \begin{CHAIN}
+            name = IceCreamCone
+            \begin{END_POINTS_LINE}
+                name = LeftSlant
+                xStart = [-2.0, 1.0, 0.0]
+                xEnd   = [ 0.0, -3.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{END_POINTS_LINE}
+                name = RightSlant
+                xStart = [ 0.0, -3.0, 0.0]
+                xEnd   = [ 2.0, 1.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{CIRCULAR_ARC}
+                name        = IceCream
+                units       = degrees
+                center      = [ 0.0, 1.0, 0.0]
+                radius      = 2.0
+                start angle = 0.0
+                end angle   = 180.0
+            \end{CIRCULAR_ARC}
+        \end{CHAIN}
+
+    \end{INNER_BOUNDARIES}
+
+\end{MODEL}
+\end{FILE}
+&quot;&quot;&quot;)
+end</code></pre><p>The first three blocks of information are wrapped within a <code>CONTROL_INPUT</code> environment block as they define the core components of the quadrilateral mesh that will be generated.</p><p>The first block of information in <code>RUN_PARAMETERS</code> is</p><pre><code class="nohighlight hljs">\begin{RUN_PARAMETERS}
+   mesh file name   = ice_cream_straight_sides.mesh
+   plot file name   = ice_cream_straight_sides.tec
+   stats file name  = none
+   mesh file format = ISM-v2
+   polynomial order = 4
+   plot file format = skeleton
+\end{RUN_PARAMETERS}</code></pre><p>The mesh and plot file names will be the files created by HOHQMesh once successfully executed. The stats file name is available if you wish to also save a collection of mesh statistics. For this example it is deactivated. These file names given within <code>RUN_PARAMETERS</code> <strong>should match</strong> that of the control file, and although this is not required by HOHQMesh, it is a useful style convention. The mesh file format <code>ISM-v2</code> in the format currently required by Trixi. The <code>polynomial order</code> prescribes the order of an interpolant constructed on the Chebyshev-Gauss-Lobatto nodes that is used to represent any curved boundaries on a particular element. The plot file format of <code>skeleton</code> means that visualizing the plot file will only draw the element boundaries (and no internal nodes). Alternatively, the format can be set to <code>sem</code> to visualize the interior nodes of the approximation as well.</p><p>The second block of information in <code>BACKGOUND_GRID</code> is</p><pre><code class="nohighlight hljs">\begin{BACKGROUND_GRID}
+  x0 = [-8.0, -8.0, 0.0]
+  dx = [1.0, 1.0, 0.0]
+  N  = [16,16,1]
+\end{BACKGROUND_GRID}</code></pre><p>This lays a grid of Cartesian elements for the domain beginning at the point <code>x0</code> as its bottom-left corner. The value of <code>dx</code>, which could differ in each direction if desired, controls the step size taken in each Cartesian direction. The values in <code>N</code> set how many Cartesian box elements are set in each coordinate direction. The above parameters define a <span>$16\times 16$</span> element square mesh on <span>$[-8,8]^2$</span>. Further, this sets up four outer boundaries of the domain that are given the default names: <code>Top, Left, Bottom, Right</code>.</p><p>The third block of information in <code>SPRING_SMOOTHER</code> is</p><pre><code class="nohighlight hljs">\begin{SPRING_SMOOTHER}
+   smoothing            = ON
+   smoothing type       = LinearAndCrossBarSpring
+   number of iterations = 25
+\end{SPRING_SMOOTHER}</code></pre><p>Once HOHQMesh generates the mesh, a spring-mass-dashpot model is created to smooth the mesh and create &quot;nicer&quot; quadrilateral elements. The <a href="https://trixi-framework.github.io/HOHQMesh/the-control-input/#the-smoother">default parameters of Hooke&#39;s law</a> for the spring-mass-dashpot model have been selected after a fair amount of experimentation across many meshes. If you wish to deactivate this feature you can set <code>smoothing = OFF</code> (or remove this block from the control file).</p><p>After the <code>CONTROL_INPUT</code> environment block comes the <code>MODEL</code> environment block. It is here where the user prescribes curved boundary information with either:</p><ul><li>An <code>OUTER_BOUNDARY</code> (covered in the next section of this tutorial).</li><li>One or more <code>INNER_BOUNDARIES</code>.</li></ul><p>There are several options to describe the boundary curve data to HOHQMesh like splines or parametric curves.</p><p>For the example <code>ice_cream_straight_sides.control</code> we define three internal boundaries; two straight-sided and one as a circular arc. Within the HOHQMesh control input each curve must be assigned to a <code>CHAIN</code> as shown below in the complete <code>INNER_BOUNDARIES</code> block.</p><pre><code class="nohighlight hljs">\begin{INNER_BOUNDARIES}
+
+   \begin{CHAIN}
+   name = IceCreamCone
+   \begin{END_POINTS_LINE}
+      name = LeftSlant
+      xStart = [-2.0, 1.0, 0.0]
+      xEnd   = [ 0.0, -3.0, 0.0]
+   \end{END_POINTS_LINE}
+
+   \begin{END_POINTS_LINE}
+      name = RightSlant
+      xStart = [ 0.0, -3.0, 0.0]
+      xEnd   = [ 2.0, 1.0, 0.0]
+   \end{END_POINTS_LINE}
+
+   \begin{CIRCULAR_ARC}
+      name        = IceCream
+      units       = degrees
+      center      = [ 0.0, 1.0, 0.0]
+      radius      = 2.0
+      start angle = 0.0
+      end angle   = 180.0
+   \end{CIRCULAR_ARC}
+   \end{CHAIN}
+
+\end{INNER_BOUNDARIES}</code></pre><p>It is important to note there are two <code>name</code> quantities one for the <code>CHAIN</code> and one for the <code>PARAMETRIC_EQUATION_CURVE</code>. The name for the <code>CHAIN</code> is used internally by HOHQMesh, so if you have multiple <code>CHAIN</code>s they <strong>must be given a unique name</strong>. The name for the <code>PARAMETRIC_EQUATION_CURVE</code> will be printed to the appropriate boundaries within the <code>.mesh</code> file produced by HOHQMesh.</p><p>We create the mesh file <code>ice_cream_straight_sides.mesh</code> and its associated file for plotting <code>ice_cream_straight_sides.tec</code> by using HOHQMesh.jl&#39;s function <code>generate_mesh</code>.</p><pre><code class="language-julia hljs">using HOHQMesh
+control_file = joinpath(&quot;out&quot;, &quot;ice_cream_straight_sides.control&quot;)
+output = generate_mesh(control_file);</code></pre><p>The mesh file <code>ice_cream_straight_sides.mesh</code> and its associated file for plotting <code>ice_cream_straight_sides.tec</code> are placed in the <code>out</code> folder. The resulting mesh generated by HOHQMesh.jl is given in the following figure.</p><p><img src="https://user-images.githubusercontent.com/25242486/129603958-08e4b874-53d5-4511-9a54-6daf4c21edca.png" alt="mesh_straight_sides"/></p><p>We note that Trixi.jl uses the boundary name information from the control file to assign boundary conditions in an elixir file. Therefore, the name should start with a letter and consist only of alphanumeric characters and underscores. Please note that the name will be treated as case sensitive.</p><h2 id="Example-simulation-on-ice_cream_straight_sides.mesh"><a class="docs-heading-anchor" href="#Example-simulation-on-ice_cream_straight_sides.mesh">Example simulation on <code>ice_cream_straight_sides.mesh</code></a><a id="Example-simulation-on-ice_cream_straight_sides.mesh-1"></a><a class="docs-heading-anchor-permalink" href="#Example-simulation-on-ice_cream_straight_sides.mesh" title="Permalink"></a></h2><p>With this newly generated mesh we are ready to run a Trixi.jl simulation on an unstructured quadrilateral mesh. For this we must create a new elixir file.</p><p>The elixir file given below creates an initial condition for a uniform background flow state with a free stream Mach number of 0.3. A focus for this part of the tutorial is to specify the boundary conditions and to construct the new mesh from the file that was generated in the previous exercise.</p><p>It is straightforward to set the different boundary condition types in an elixir by assigning a particular function to a boundary name inside a Julia dictionary, <code>Dict</code>, variable. Observe that the names of these boundaries match those provided by HOHQMesh either by default, e.g. <code>Bottom</code>, or user assigned, e.g. <code>IceCream</code>. For this problem setup use</p><ul><li>Freestream boundary conditions on the four box edges.</li><li>Free slip wall boundary condition on the interior curved boundaries.</li></ul><p>To construct the unstructured quadrilateral mesh from the HOHQMesh file we point to the appropriate location with the variable <code>mesh_file</code> and then feed this into the constructor for the <a href="../../reference-trixi/#Trixi.UnstructuredMesh2D"><code>UnstructuredMesh2D</code></a> type in Trixi.jl</p><pre><code class="language-julia hljs"># create the unstructured mesh from your mesh file
+using Trixi
+mesh_file = joinpath(&quot;out&quot;, &quot;ice_cream_straight_sides.mesh&quot;)
+mesh = UnstructuredMesh2D(mesh_file);</code></pre><p>The complete elixir file for this simulation example is given below.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq, Trixi
+
+equations = CompressibleEulerEquations2D(1.4) # set gas gamma = 1.4
+
+# freestream flow state with Ma_inf = 0.3
+@inline function uniform_flow_state(x, t, equations::CompressibleEulerEquations2D)
+
+  # set the freestream flow parameters
+  rho_freestream = 1.0
+  u_freestream = 0.3
+  p_freestream = inv(equations.gamma)
+
+  theta = 0.0 # zero angle of attack
+  si, co = sincos(theta)
+  v1 = u_freestream * co
+  v2 = u_freestream * si
+
+  prim = SVector(rho_freestream, v1, v2, p_freestream)
+  return prim2cons(prim, equations)
+end
+
+# initial condition
+initial_condition = uniform_flow_state
+
+# boundary condition types
+boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
+
+# boundary condition dictionary
+boundary_conditions = Dict( :Bottom     =&gt; boundary_condition_uniform_flow,
+                            :Top        =&gt; boundary_condition_uniform_flow,
+                            :Right      =&gt; boundary_condition_uniform_flow,
+                            :Left       =&gt; boundary_condition_uniform_flow,
+                            :LeftSlant  =&gt; boundary_condition_slip_wall,
+                            :RightSlant =&gt; boundary_condition_slip_wall,
+                            :IceCream   =&gt; boundary_condition_slip_wall );
+
+# DGSEM solver.
+#    1) polydeg must be &gt;= the polynomial order set in the HOHQMesh control file to guarantee
+#       freestream preservation. As a extra task try setting polydeg=3
+#    2) VolumeIntegralFluxDifferencing with central volume flux is activated
+#       for dealiasing
+volume_flux = flux_ranocha
+solver = DGSEM(polydeg=4, surface_flux=flux_hll,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+
+# create the unstructured mesh from your mesh file
+mesh_file = joinpath(&quot;out&quot;, &quot;ice_cream_straight_sides.mesh&quot;)
+mesh = UnstructuredMesh2D(mesh_file)
+
+# Create semidiscretization with all spatial discretization-related components
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions=boundary_conditions)
+
+# Create ODE problem from semidiscretization with time span from 0.0 to 2.0
+tspan = (0.0, 2.0)
+ode = semidiscretize(semi, tspan)
+
+
+# Create the callbacks to output solution files and adapt the time step
+summary_callback = SummaryCallback()
+save_solution = SaveSolutionCallback(interval=10,
+                                     save_initial_solution=true,
+                                     save_final_solution=true)
+stepsize_callback = StepsizeCallback(cfl=1.0)
+
+callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
+
+# Evolve ODE problem in time using `solve` from OrdinaryDiffEq
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
+            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep=false, callback=callbacks);
+# print the timer summary
+summary_callback()</code></pre><p>Visualization of the solution is carried out in a similar way as above. That is, one converts the <code>.h5</code> output files with <code>trixi2vtk</code> and then plot the solution in ParaView. An example plot of the pressure at the final time is shown below.</p><p><img src="https://user-images.githubusercontent.com/25242486/129733926-6ef80676-779b-4f1e-9826-3ebf750cf382.png" alt="simulation_straight_sides"/></p><h2 id="Making-a-mesh-with-a-curved-outer-boundary"><a class="docs-heading-anchor" href="#Making-a-mesh-with-a-curved-outer-boundary">Making a mesh with a curved outer boundary</a><a id="Making-a-mesh-with-a-curved-outer-boundary-1"></a><a class="docs-heading-anchor-permalink" href="#Making-a-mesh-with-a-curved-outer-boundary" title="Permalink"></a></h2><p>Let us modify the mesh from the previous task and place a circular outer boundary instead of straight-sided outer boundaries. Note, the &quot;ice cream cone&quot; shape is still placed at the center of the domain.</p><p>We create the new control file <code>ice_cream_curved_sides.control</code> file below and will then highlight the major differences compared to <code>ice_cream_straight_sides.control</code>.</p><pre><code class="language-julia hljs">open(&quot;out/ice_cream_curved_sides.control&quot;, &quot;w&quot;) do io
+  println(io, raw&quot;&quot;&quot;
+\begin{CONTROL_INPUT}
+    \begin{RUN_PARAMETERS}
+        mesh file name   = ice_cream_curved_sides.mesh
+        plot file name   = ice_cream_curved_sides.tec
+        stats file name  = none
+        mesh file format = ISM-v2
+        polynomial order = 4
+        plot file format = skeleton
+    \end{RUN_PARAMETERS}
+
+    \begin{BACKGROUND_GRID}
+        background grid size = [1.0, 1.0, 0.0]
+    \end{BACKGROUND_GRID}
+
+    \begin{SPRING_SMOOTHER}
+        smoothing            = ON
+        smoothing type       = LinearAndCrossBarSpring
+        number of iterations = 25
+    \end{SPRING_SMOOTHER}
+
+\end{CONTROL_INPUT}
+
+\begin{MODEL}
+
+    \begin{OUTER_BOUNDARY}
+        \begin{PARAMETRIC_EQUATION_CURVE}
+            name = OuterCircle
+            xEqn = x(t) = 8.0*sin(2.0*pi*t)
+            yEqn = y(t) = 8.0*cos(2.0*pi*t)
+            zEqn = z(t) = 0.0
+        \end{PARAMETRIC_EQUATION_CURVE}
+
+    \end{OUTER_BOUNDARY}
+
+    \begin{INNER_BOUNDARIES}
+
+        \begin{CHAIN}
+            name = IceCreamCone
+            \begin{END_POINTS_LINE}
+                name = LeftSlant
+                xStart = [-2.0, 1.0, 0.0]
+                xEnd   = [ 0.0, -3.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{END_POINTS_LINE}
+                name = RightSlant
+                xStart = [ 0.0, -3.0, 0.0]
+                xEnd   = [ 2.0, 1.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{CIRCULAR_ARC}
+                name        = IceCream
+                units       = degrees
+                center      = [ 0.0, 1.0, 0.0]
+                radius      = 2.0
+                start angle = 0.0
+                end angle   = 180.0
+            \end{CIRCULAR_ARC}
+        \end{CHAIN}
+
+    \end{INNER_BOUNDARIES}
+
+\end{MODEL}
+\end{FILE}
+&quot;&quot;&quot;)
+end</code></pre><p>The first alteration is that we have altered the second block of information <code>BACKGOUND_GRID</code> within the <code>CONTROL_INPUT</code> to be</p><pre><code class="nohighlight hljs">\begin{BACKGROUND_GRID}
+   background grid size = [1.0, 1.0, 0.0]
+\end{BACKGROUND_GRID}</code></pre><p>This mesh control file has an outer boundary that determines the extent of the domain to be meshed. Therefore, we only need to supply the <code>background grid size</code> to the <code>BACKGROUND_GRID</code> control input.</p><p>The second alteration is that the <code>MODEL</code> now contains information for an <code>OUTER_BOUNDARY</code>. In this case it is a circle of radius <code>8</code> centered at <code>[0.0, 0.0, 0.0]</code> written as a set of <code>PARAMETRIC_EQUATION_CURVE</code>s.</p><pre><code class="nohighlight hljs">   \begin{OUTER_BOUNDARY}
+
+      \begin{PARAMETRIC_EQUATION_CURVE}
+         name = OuterCircle
+         xEqn = x(t) = 8.0*sin(2.0*pi*t)
+         yEqn = y(t) = 8.0*cos(2.0*pi*t)
+         zEqn = z(t) = 0.0
+      \end{PARAMETRIC_EQUATION_CURVE}
+
+   \end{OUTER_BOUNDARY}</code></pre><p>Just as with the inner boundary curves, we must assign a name to the <code>OUTER_BOUNDARY</code>. It will be included in the generated <code>.mesh</code> file and is used within the Trixi.jl elixir file to set boundary conditions.</p><p>Again, we create the <code>.mesh</code> and <code>.tec</code> files with HOHQMesh.jl&#39;s function <code>generate_mesh</code></p><pre><code class="language-julia hljs">control_file = joinpath(&quot;out&quot;, &quot;ice_cream_curved_sides.control&quot;)
+output = generate_mesh(control_file);</code></pre><p>The files are placed in the <code>out</code> folder.</p><p>The resulting mesh generated by HOHQMesh.jl is given in the following figure.</p><p><img src="https://user-images.githubusercontent.com/25242486/129603957-6a92618f-9ed8-4072-b6ab-05533bea746a.png" alt="mesh_curved_sides"/></p><h2 id="Running-Trixi.jl-on-ice_cream_curved_sides.mesh"><a class="docs-heading-anchor" href="#Running-Trixi.jl-on-ice_cream_curved_sides.mesh">Running Trixi.jl on <code>ice_cream_curved_sides.mesh</code></a><a id="Running-Trixi.jl-on-ice_cream_curved_sides.mesh-1"></a><a class="docs-heading-anchor-permalink" href="#Running-Trixi.jl-on-ice_cream_curved_sides.mesh" title="Permalink"></a></h2><p>We can reuse much of the elixir file to setup the uniform flow over an ice cream cone from the previous part of this tutorial. The only component of the elixir file that must be changed is the boundary condition dictionary because we now have a boundary named <code>OuterCirle</code> instead of four edges of a bounding box.</p><pre><code class="language-julia hljs"># boundary condition dictionary
+boundary_conditions = Dict( :OuterCircle =&gt; boundary_condition_uniform_flow,
+                            :LeftSlant   =&gt; boundary_condition_slip_wall,
+                            :RightSlant  =&gt; boundary_condition_slip_wall,
+                            :IceCream    =&gt; boundary_condition_slip_wall );</code></pre><p>Also, we must update the construction of the mesh from our new mesh file <code>ice_cream_curved_sides.mesh</code> that is located in the <code>out</code> folder.</p><pre><code class="language-julia hljs"># create the unstructured mesh from your mesh file
+mesh_file = joinpath(&quot;out&quot;, &quot;ice_cream_curved_sides.mesh&quot;)
+mesh = UnstructuredMesh2D(mesh_file);</code></pre><p>We can then post-process the solution file at the final time on the new mesh with <code>Trixi2Vtk</code> and visualize with ParaView.</p><p><img src="https://user-images.githubusercontent.com/25242486/129733924-778795c1-9119-419a-8b89-bcbe13e33cd7.png" alt="simulation_curved_sides"/></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../differentiable_programming/">« 3 Differentiable programming</a><a class="docs-footer-nextpage" href="../../meshes/tree_mesh/">Tree mesh »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.10 on <span class="colophon-date" title="Monday 3 January 2022 06:01">Monday 3 January 2022</span>. Using Julia version 1.6.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
