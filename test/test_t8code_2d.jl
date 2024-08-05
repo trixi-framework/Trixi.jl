@@ -325,6 +325,40 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
+                        l2=[
+                            0.10823279736983638,
+                            0.1158152939803735,
+                            0.11633970342992006,
+                            0.751152651902375,
+                        ],
+                        linf=[
+                            0.5581611332828653,
+                            0.8354026029724041,
+                            0.834485181423738,
+                            3.923553028014343,
+                        ],
+                        tspan=(0.0, 0.1),
+                        coverage_override=(maxiters = 6,))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+    # Check for conservation
+    state_integrals = Trixi.integrate(sol.u[2], semi)
+    initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+    @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
+    @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+    @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+    @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
