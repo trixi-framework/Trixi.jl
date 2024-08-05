@@ -21,6 +21,7 @@ mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2
     parent::P4estMesh{NDIMS, RealT}
     indices_min::NTuple{NDIMS, Int}
     indices_max::NTuple{NDIMS, Int}
+    trees_per_dimension::NTuple{NDIMS, Int}
 end
 
 # function P4estMeshView(parent::P4estMesh{NDIMS, RealT}, view_cells::Array{Bool}) where {NDIMS, RealT}
@@ -77,7 +78,7 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
                                                parent.current_filename,
                                                parent.unsaved_changes,
                                                parent.p4est_partition_allow_for_coarsening,
-                                               parent, indices_min, indices_max)
+                                               parent, indices_min, indices_max, trees_per_dimension)
 end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
@@ -88,7 +89,8 @@ end
 @inline ncellsglobal(mesh::P4estMeshView) = Int(mesh.p4est.global_num_quadrants[])
 Base.axes(mesh::P4estMeshView) = map(Base.OneTo, size(mesh))
 Base.axes(mesh::P4estMeshView, i) = Base.OneTo(size(mesh, i))
-Base.size(mesh::P4estMeshView) = size(mesh.tree_node_coordinates)[end]
+# Base.size(mesh::P4estMeshView) = size(mesh.tree_node_coordinates)[end]
+Base.size(mesh::P4estMeshView) = mesh.trees_per_dimension
 function Base.size(mesh::P4estMeshView, i)
     @unpack indices_min, indices_max = mesh
     return indices_max[i] - indices_min[i] + 1

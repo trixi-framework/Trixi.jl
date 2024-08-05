@@ -524,6 +524,7 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, normal_directio
                                                                    1...],
                                 Val(nvariables(equations))))
 
+    @autoinfiltrate
     # Calculate boundary flux
     # if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
@@ -612,8 +613,6 @@ function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{
     u_ode_other = get_system_u_ode(u_ode, other_semi_index, semi_coupled)
     u_other = wrap_array(u_ode_other, mesh_other, equations_other, solver_other,
                          cache_other)
-
-    @autoinfiltrate
 
     linear_indices = LinearIndices(size(mesh_other))
 
