@@ -66,9 +66,9 @@ callbacks = CallbackSet(analysis_callback,
             save_everystep=false, callback=callbacks);
 
 using Plots
-plot(sol)</code></pre><img src="86518b07.svg" alt="Example block output"/><pre><code class="language-julia hljs">pd = PlotData2D(sol)
+plot(sol)</code></pre><img src="927ed5fa.svg" alt="Example block output"/><pre><code class="language-julia hljs">pd = PlotData2D(sol)
 plot(pd[&quot;p&quot;])
-plot!(getmesh(pd))</code></pre><img src="61f58052.svg" alt="Example block output"/><h2 id="Mesh-directly-defined-by-the-transformation-mapping"><a class="docs-heading-anchor" href="#Mesh-directly-defined-by-the-transformation-mapping">Mesh directly defined by the transformation mapping</a><a id="Mesh-directly-defined-by-the-transformation-mapping-1"></a><a class="docs-heading-anchor-permalink" href="#Mesh-directly-defined-by-the-transformation-mapping" title="Permalink"></a></h2><p>As mentioned before, you can also define the domain for a <code>StructuredMesh</code> by directly setting up a transformation mapping. Here, we want to present a nice mapping, which is often used to test free-stream preservation. Exact free-stream preservation is a crucial property of any numerical method on curvilinear grids. The mapping is a reduced 2D version of the mapping described in <a href="https://arxiv.org/abs/2012.12040">Rueda-Ramírez et al. (2021), p.18</a>.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq
+plot!(getmesh(pd))</code></pre><img src="9f5ffc2c.svg" alt="Example block output"/><h2 id="Mesh-directly-defined-by-the-transformation-mapping"><a class="docs-heading-anchor" href="#Mesh-directly-defined-by-the-transformation-mapping">Mesh directly defined by the transformation mapping</a><a id="Mesh-directly-defined-by-the-transformation-mapping-1"></a><a class="docs-heading-anchor-permalink" href="#Mesh-directly-defined-by-the-transformation-mapping" title="Permalink"></a></h2><p>As mentioned before, you can also define the domain for a <code>StructuredMesh</code> by directly setting up a transformation mapping. Here, we want to present a nice mapping, which is often used to test free-stream preservation. Exact free-stream preservation is a crucial property of any numerical method on curvilinear grids. The mapping is a reduced 2D version of the mapping described in <a href="https://arxiv.org/abs/2012.12040">Rueda-Ramírez et al. (2021), p.18</a>.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq
 using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -122,11 +122,11 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       7.22000000e-07 s
+ #timesteps:                  0                run time:       6.82000000e-07 s
  Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:          4096                alloc&#39;d memory:       1170.632 MiB
+ #DOFs per field:          4096                alloc&#39;d memory:       1300.344 MiB
  #elements:                 256
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -139,11 +139,11 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                250                run time:       2.00378958e-01 s
+ #timesteps:                250                run time:       2.00669741e-01 s
  Δt:             2.33008558e-03                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      5.82521395e-01 (58.252%)      time/DOF/rhs!:  3.49538239e-08 s
-                                               PID:            3.89202009e-08 s
- #DOFs per field:          4096                alloc&#39;d memory:       1175.265 MiB
+ sim. time:      5.82521395e-01 (58.252%)      time/DOF/rhs!:  3.50141011e-08 s
+                                               PID:            3.89716342e-08 s
+ #DOFs per field:          4096                alloc&#39;d memory:       1304.977 MiB
  #elements:                 256
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -156,11 +156,11 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                430                run time:       3.44625212e-01 s
+ #timesteps:                430                run time:       3.44890416e-01 s
  Δt:             3.93286656e-04                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  3.49170542e-08 s
-                                               PID:            3.88680783e-08 s
- #DOFs per field:          4096                alloc&#39;d memory:       1179.969 MiB
+ sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  3.48858224e-08 s
+                                               PID:            3.88452241e-08 s
+ #DOFs per field:          4096                alloc&#39;d memory:       1309.681 MiB
  #elements:                 256
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -174,7 +174,7 @@ pd = ScalarPlotData2D(error_density, semi)
 
 using Plots
 plot(pd, title=&quot;Error in density&quot;)
-plot!(getmesh(pd))</code></pre><img src="e1770d25.svg" alt="Example block output"/><p>We observe that the errors in the variable <code>density</code> are at the level of machine accuracy. Moreover, the plot shows the mesh structure resulting from our transformation mapping.</p><p>Of course, you can also use other mappings as for instance shifts by <span>$(x, y)$</span></p><pre><code class="language-julia hljs">mapping(xi, eta) = SVector(xi + x, eta + y)</code></pre><p>or rotations with a rotation matrix <span>$T$</span></p><pre><code class="language-julia hljs">mapping(xi, eta) = T * SVector(xi, eta).</code></pre><p>For more curved mesh mappings, please have a look at some <a href="https://github.com/trixi-framework/Trixi.jl/tree/main/examples">elixirs for <code>StructuredMesh</code></a>. For another curved mesh type, there is a <a href="../hohqmesh_tutorial/#hohqmesh_tutorial">tutorial</a> about Trixi.jl&#39;s unstructured mesh type [<code>UnstructuredMesh2D</code>] and its use of the <a href="https://github.com/trixi-framework/HOHQMesh">High-Order Hex-Quad Mesh (HOHQMesh) generator</a>, created and developed by David Kopriva.</p><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+plot!(getmesh(pd))</code></pre><img src="897ef908.svg" alt="Example block output"/><p>We observe that the errors in the variable <code>density</code> are at the level of machine accuracy. Moreover, the plot shows the mesh structure resulting from our transformation mapping.</p><p>Of course, you can also use other mappings as for instance shifts by <span>$(x, y)$</span></p><pre><code class="language-julia hljs">mapping(xi, eta) = SVector(xi + x, eta + y)</code></pre><p>or rotations with a rotation matrix <span>$T$</span></p><pre><code class="language-julia hljs">mapping(xi, eta) = T * SVector(xi, eta).</code></pre><p>For more curved mesh mappings, please have a look at some <a href="https://github.com/trixi-framework/Trixi.jl/tree/main/examples">elixirs for <code>StructuredMesh</code></a>. For another curved mesh type, there is a <a href="../hohqmesh_tutorial/#hohqmesh_tutorial">tutorial</a> about Trixi.jl&#39;s unstructured mesh type [<code>UnstructuredMesh2D</code>] and its use of the <a href="https://github.com/trixi-framework/HOHQMesh">High-Order Hex-Quad Mesh (HOHQMesh) generator</a>, created and developed by David Kopriva.</p><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
 versioninfo()
 
 using Pkg
@@ -196,4 +196,4 @@ Environment:
 <span class="sgr32">⌃</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
   <span class="sgr90">[91a5bcdd] </span>Plots v1.40.5
   <span class="sgr90">[a7f1ee26] </span>Trixi v0.8.5-DEV `~/work/Trixi.jl/Trixi.jl`
-<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adaptive_mesh_refinement/">« 15 Adaptive mesh refinement</a><a class="docs-footer-nextpage" href="../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Monday 5 August 2024 13:11">Monday 5 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adaptive_mesh_refinement/">« 15 Adaptive mesh refinement</a><a class="docs-footer-nextpage" href="../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Wednesday 7 August 2024 09:43">Wednesday 7 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
