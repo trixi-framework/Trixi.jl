@@ -1517,6 +1517,12 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Laplace Diffusion 1D" begin end
+
+    @timed_testset "Laplace Diffusion 2D" begin end
+
+    @timed_testset "Laplace Diffusion 3D" begin end
+
     @timed_testset "Lattice Boltzmann 2D" begin
         for RealT in (Float32, Float64)
             equations = @inferred LatticeBoltzmannEquations2D(Ma = RealT(0.1), Re = 1000)
