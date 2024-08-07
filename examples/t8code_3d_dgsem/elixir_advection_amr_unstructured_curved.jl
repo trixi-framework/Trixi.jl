@@ -81,8 +81,8 @@ save_solution = SaveSolutionCallback(interval = 100,
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
                                       base_level = 1,
-                                      med_level = 2, med_threshold = 0.1,
-                                      max_level = 3, max_threshold = 0.6)
+                                      med_level = 3, med_threshold = 0.1,
+                                      max_level = 4, max_threshold = 0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
@@ -112,3 +112,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)

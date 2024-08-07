@@ -359,8 +359,7 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
                              equations, surface_integral, dg::DG)
     @unpack boundaries = cache
     @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
-    # @unpack surface_flux = surface_integral
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
+    @unpack surface_flux = surface_integral
 
     index_range = eachnode(dg)
 
@@ -387,28 +386,11 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
         k_node = k_node_start
         for j in eachnode(dg)
             for i in eachnode(dg)
-                # Extract solution data from boundary container
-                u_inner = get_node_vars(boundaries.u, equations, dg, i, j, boundary)
-
-                # Outward-pointing normal direction (not normalized)
-                normal_direction = get_normal_direction(direction,
-                                                        contravariant_vectors,
-                                                        i_node, j_node, k_node, element)
-
-                # Coordinates at boundary node
-                x = get_node_coords(node_coordinates, equations, dg,
-                                    i_node, j_node, k_node, element)
-
-                flux_ = boundary_condition(u_inner, normal_direction, x, t,
-                                           surface_flux, equations)
-
-                noncons_ = nonconservative_flux(u_inner, u_inner, normal_direction,
-                                    normal_direction, equations)
-
-                # Copy flux to element storage in the correct orientation
-                for v in eachvariable(equations)
-                    surface_flux_values[v, i, j, direction, element] = flux_[v] + 0.5*noncons_[v]
-                end
+                calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                mesh, have_nonconservative_terms(equations),
+                                equations, surface_integral, dg, cache,
+                                i_node, j_node, k_node,
+                                i, j, direction, element, boundary)
 
                 i_node += i_node_step_i
                 j_node += j_node_step_i
@@ -418,6 +400,80 @@ function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
             j_node += j_node_step_j
             k_node += k_node_step_j
         end
+    end
+end
+
+# Inlined version of the boundary flux calculation along a physical interface.
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                     nonconservative_terms::False, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_node, j_node, k_node,
+                                     i, j, direction, element,
+                                     boundary)
+
+    @unpack boundaries = cache
+    @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    # Extract solution data from boundary container.
+    u_inner = get_node_vars(boundaries.u, equations, dg, i, j, boundary)
+
+    # Outward-pointing normal direction (not normalized).
+    normal_direction = get_normal_direction(direction,
+                                            contravariant_vectors,
+                                            i_node, j_node, k_node, element)
+
+    # Coordinates at boundary node.
+    x = get_node_coords(node_coordinates, equations, dg,
+                        i_node, j_node, k_node, element)
+
+    # Flux computation.
+    flux_ = boundary_condition(u_inner, normal_direction, x, t,
+                               surface_flux, equations)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, i, j, direction, element] = flux_[v]
+    end
+end
+
+# Inlined version of the boundary flux calculation along a physical interface.
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                     nonconservative_terms::True, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_node, j_node, k_node,
+                                     i, j, direction, element,
+                                     boundary)
+
+    @unpack boundaries = cache
+    @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+    # Extract solution data from boundary container.
+    u_inner = get_node_vars(boundaries.u, equations, dg, i, j, boundary)
+
+    # Outward-pointing normal direction (not normalized).
+    normal_direction = get_normal_direction(direction,
+                                            contravariant_vectors,
+                                            i_node, j_node, k_node, element)
+
+    # Coordinates at boundary node.
+    x = get_node_coords(node_coordinates, equations, dg,
+                        i_node, j_node, k_node, element)
+
+    # Flux computation.
+    flux_ = boundary_condition(u_inner, normal_direction, x, t,
+                               surface_flux, equations)
+
+    # Non-conservative flux computation.
+    noncons_ = nonconservative_flux(u_inner, u_inner, normal_direction,
+                        normal_direction, equations)
+
+    # Copy flux to element storage in the correct orientation.
+    for v in eachvariable(equations)
+        surface_flux_values[v, i, j, direction, element] = flux_[v] + 0.5*noncons_[v]
     end
 end
 

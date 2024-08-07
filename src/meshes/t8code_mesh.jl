@@ -43,31 +43,14 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.unsaved_changes = true
 
         finalizer(mesh) do mesh
-            # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are
+            # When finalizing, `forest`, `scheme`, `cmesh`, and `geometry` are
             # also cleaned up from within `t8code`. The cleanup code for
             # `cmesh` does some MPI calls for deallocating shared memory
             # arrays. Due to garbage collection in Julia the order of shutdown
-            # is not deterministic. The following code might happen after MPI
-            # is already in finalized state.
-            # If the environment variable `TRIXI_T8CODE_SC_FINALIZE` is set the
-            # `finalize_hook` of the MPI module takes care of the cleanup. See
-            # further down. However, this might cause a pile-up of `mesh`
-            # objects during long-running sessions.
-            if !MPI.Finalized()
-                t8_forest_unref(Ref(mesh.forest))
-                mesh.forest = C_NULL
-            end
-        end
-
-        # This finalizer call is only recommended during development and not for
-        # production runs, especially long-running sessions since a reference to
-        # the `mesh` object will be kept throughout the lifetime of the session.
-        # See comments in `init_t8code()` in file `src/auxiliary/t8code.jl` for
-        # more information.
-        if haskey(ENV, "TRIXI_T8CODE_SC_FINALIZE")
-            MPI.add_finalize_hook!() do
-                t8_forest_unref(Ref(mesh.forest))
-            end
+            # is not deterministic. Hence, "manual" finalization might be
+            # necessary in order to avoid MPI-related error output when closing
+            # the Julia program/session.
+            t8_forest_unref(Ref(mesh.forest))
         end
 
         return mesh
@@ -230,12 +213,14 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
 
         # Check if we are already in the next tree in terms of the `global_element_id`.
         global_tree_id = t8_forest_global_tree_id(forest, local_tree_id)
+
         if global_element_id + 1 > cum_sum_num_elements_per_tree[global_tree_id + 1]
             return 0
         end
 
         # Test if we already reached the targeted level.
         level = t8_element_level(eclass_scheme, elements[1])
+
         if level < levels[global_element_id + 1]
             return 1 # Go one refinement level deeper.
         end
@@ -818,12 +803,15 @@ function adapt_callback_wrapper(forest,
                                 is_family,
                                 num_elements,
                                 elements_ptr)::Cint
+
     passthrough = unsafe_pointer_to_objref(t8_forest_get_user_data(forest))[]
 
     elements = unsafe_wrap(Array, elements_ptr, num_elements)
 
-    return passthrough.adapt_callback(forest_from, which_tree, ts, lelement_id, elements,
+    result = passthrough.adapt_callback(forest_from, which_tree, ts, lelement_id, elements,
                                       Bool(is_family), passthrough.user_data)
+
+    return result
 end
 
 """
@@ -874,12 +862,15 @@ function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance
     # Check out `examples/t8_step4_partition_balance_ghost.jl` in
     # https://github.com/DLR-AMR/T8code.jl for detailed explanations.
     let set_from = C_NULL, set_for_coarsening = 0, no_repartition = !partition
-        t8_forest_set_user_data(new_forest,
-                                pointer_from_objref(Ref(adapt_callback_passthrough(adapt_callback,
-                                                                                   user_data))))
+        user_data_wrapper = adapt_callback_passthrough(adapt_callback, user_data)
+        user_data_pointer = pointer_from_objref(Ref(user_data_wrapper))
+
+        t8_forest_set_user_data(new_forest, user_data_pointer)
+
         t8_forest_set_adapt(new_forest, forest,
                             @t8_adapt_callback(adapt_callback_wrapper),
                             recursive)
+
         if balance
             t8_forest_set_balance(new_forest, set_from, no_repartition)
         end
@@ -892,15 +883,17 @@ function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance
             t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES)
         end
 
-        # The old forest is destroyed here.
-        # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
+        # Julias's GC leads to segfaults here. Temporarily switch it off.
+        GC.enable(false)
         t8_forest_commit(new_forest)
+        GC.enable(true)
     end
 
     return new_forest
 end
 
 function adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+    # The old `mesh.forest` is destroyed here.
     # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
     mesh.forest = adapt(mesh.forest, adapt_callback; kwargs...)
 end

@@ -18,6 +18,7 @@ function init_t8code()
         # `SC_LP_ERROR` to prevent a lot of output in AMR simulations
         # For development, log level `SC_LP_DEBUG` is recommended.
         LOG_LEVEL = T8code.Libt8.SC_LP_ERROR
+        # LOG_LEVEL = T8code.Libt8.SC_LP_DEBUG
 
         if T8code.Libt8.sc_is_initialized() == 0
             # Initialize the sc library, has to happen before we initialize t8code.
@@ -31,20 +32,16 @@ function init_t8code()
         if T8code.Libt8.p4est_is_initialized() == 0
             T8code.Libt8.p4est_init(C_NULL, LOG_LEVEL)
         end
+  
+        MPI.add_finalize_hook!() do
+            status = T8code.Libt8.sc_finalize_noabort()
+            if status != 0
+              @warn("Inconsistent state detected after finalizing t8code. Have you finalized all `T8codeMesh` objects and/or properly freed/un-referenced all t8code related objects?")
+            end
+        end
 
         # Initialize t8code.
         t8_init(LOG_LEVEL)
-
-        if haskey(ENV, "TRIXI_T8CODE_SC_FINALIZE")
-            # Normally, `sc_finalize` should always be called during shutdown of an
-            # application. It checks whether there is still un-freed memory by t8code
-            # and/or T8code.jl and throws an exception if this is the case. For
-            # production runs this is not mandatory, but is helpful during
-            # development. Hence, this option is only activated when environment
-            # variable TRIXI_T8CODE_SC_FINALIZE exists.
-            @info "T8code.jl: `sc_finalize` will be called during shutdown of Trixi.jl."
-            MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
-        end
     else
         @warn "Preferences for T8code.jl are not set correctly. Until fixed, using `T8codeMesh` will result in a crash. " *
               "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
