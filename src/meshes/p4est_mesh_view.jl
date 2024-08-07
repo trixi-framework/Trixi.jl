@@ -172,6 +172,40 @@ function calc_node_coordinates!(node_coordinates,
     return node_coordinates
 end
 
+# # inlined version of the boundary flux calculation along a physical interface
+# @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+#                                      mesh::Union{P4estMeshView{2}},
+#                                      nonconservative_terms::False, equations,
+#                                      surface_integral, dg::DG, cache,
+#                                      i_index, j_index,
+#                                      node_index, direction_index, element_index,
+#                                      boundary_index)
+#     @unpack boundaries = cache
+#     @unpack node_coordinates, contravariant_vectors = cache.elements
+#     @unpack surface_flux = surface_integral
+#
+#     # Extract solution data from boundary container
+#     u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+#
+#     # Outward-pointing normal direction (not normalized)
+#     normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+#                                             i_index, j_index, element_index)
+#
+#     # Coordinates at boundary node
+#     x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
+#                         element_index)
+#
+#     println(i_index, " ", j_index, " ", node_index, " ", element_index, " ", boundary_index, " ", x)
+#
+#     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+# #     flux_ = boundary_condition(u_inner, orientation, direction, cell_indices, surface_node_indices, surface_flux_function, equations)
+#
+#     # Copy flux to element storage in the correct orientation
+#     for v in eachvariable(equations)
+#         surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+#     end
+# end
+
 function save_mesh_file(mesh::P4estMeshView, output_directory; timestep = 0,
                         system = "")
     # Create output directory (if it does not exist)
