@@ -291,6 +291,54 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_mhd_diffusive_alfven_wave.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_diffusive_alfven_wave.jl"),
+                        l2=[
+                            0.009723896964276463,
+                            0.0013111262214223665,
+                            0.000639632696039887,
+                            0.0014689482873199698,
+                            0.00036585344043155426,
+                            0.0013294252402214933,
+                            0.0006389697014878424,
+                            0.0014688601323265813,
+                            0.00022638993249319084,
+                        ],
+                        linf=[
+                            0.014222841419814558,
+                            0.002288228859293565,
+                            0.001110821298443975,
+                            0.0026433825065787994,
+                            0.0008390577089585349,
+                            0.0024549005206054852,
+                            0.0012253189393660602,
+                            0.0027498258638988405,
+                            0.0007904248596911075,
+                        ])
+
+    @testset "analysis_callback(sol) for AnalysisCallbackViscoResistiveMHD" begin
+        errors = analysis_callback(sol)
+        @test errors.l2≈[
+            0.009723896964276463, 0.0013111262214223665, 0.000639632696039887,
+            0.0014689482873199698, 0.00036585344043155426, 0.0013294252402214933,
+            0.0006389697014878424, 0.0014688601323265813, 0.00022638993249319084,
+        ] rtol=1.0e-4
+        @test errors.linf≈[
+            0.014222841419814558, 0.002288228859293565, 0.001110821298443975,
+            0.0026433825065787994, 0.0008390577089585349, 0.0024549005206054852,
+            0.0012253189393660602, 0.0027498258638988405, 0.0007904248596911075,
+        ] rtol=1.0e-4
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+end
 end
 
 end # module
