@@ -37,6 +37,7 @@ function set_sqrt_type!(type; force = true)
     @info "Please restart Julia and reload Trixi.jl for the `sqrt` computation change to take effect"
 end
 
+# TODO: deprecation introduced in v0.8
 @deprecate set_sqrt_type(type; force = true) set_sqrt_type!(type; force = true) false
 
 @static if _PREFERENCE_SQRT == "sqrt_Trixi_NaN"
@@ -90,6 +91,7 @@ function set_log_type!(type; force = true)
     @info "Please restart Julia and reload Trixi.jl for the `log` computation change to take effect"
 end
 
+# TODO: deprecation introduced in v0.8
 @deprecate set_log_type(type; force = true) set_log_type!(type; force = true) false
 
 @static if _PREFERENCE_LOG == "log_Trixi_NaN"
