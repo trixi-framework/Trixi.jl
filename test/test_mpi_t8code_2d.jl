@@ -99,6 +99,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
                                      "elixir_advection_amr_unstructured_flag.jl"),
                             l2=[0.002019623611753929],
                             linf=[0.03542375961299987],
+                            dynamic_load_balancing=false,
                             coverage_override=(maxiters = 6,))
 
         # Ensure that we do not have excessive memory allocations
