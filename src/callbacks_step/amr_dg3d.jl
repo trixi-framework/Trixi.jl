@@ -47,7 +47,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
                 refine_element!(u, element_id, old_u, old_element_id,
                                 adaptor, equations, dg, u_tmp1, u_tmp2)
                 # Increment `element_id` on the refined mesh with the number
-                # of children, i.e., 8 in 2D
+                # of children, i.e., 8 in 3D
                 element_id += 2^ndims(mesh)
             else
                 # Copy old element data to new element container
@@ -145,7 +145,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
                         end
                     end
                     # Increment `element_id` on the refined mesh with the number
-                    # of children, i.e., 8 in 2D
+                    # of children, i.e., 8 in 3D
                     element_id += 2^ndims(mesh)
                 else
                     # Copy old element data to new element container and remove Jacobian scaling
