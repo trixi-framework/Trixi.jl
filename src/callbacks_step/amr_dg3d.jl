@@ -325,8 +325,7 @@ end
 # If an element coarsens the solution scaled by the Jacobian `J*u` is projected from
 # the eight children elements back onto the parent element. The solution on the parent
 # element is then recovered by dividing by the new element Jacobian.
-function coarsen!(u_ode::AbstractVector, adaptor,
-                  mesh::Union{TreeMesh{3}, P4estMesh{3}},
+function coarsen!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
                   equations, dg::DGSEM, cache, elements_to_remove)
     # Return early if there is nothing to do
     if isempty(elements_to_remove)
