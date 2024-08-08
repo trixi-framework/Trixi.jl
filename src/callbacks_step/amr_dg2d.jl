@@ -119,7 +119,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
             else
                 # Copy old element data to new element container
                 @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-                # No refinement occured, so increment `element_id` on the new mesh by one
+                # No refinement occurred, so increment `element_id` on the new mesh by one
                 element_id += 1
             end
         end
@@ -218,7 +218,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{2},
                                                                            old_element_id])
                         end
                     end
-                    # No refinement occured, so increment `element_id` on the new mesh by one
+                    # No refinement occurred, so increment `element_id` on the new mesh by one
                     element_id += 1
                 end
             end
@@ -388,7 +388,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
             else
                 # Copy old element data to new element container
                 @views u[:, .., element_id] .= old_u[:, .., old_element_id]
-                # No coarsening occured, so increment `element_id` on the new mesh by one
+                # No coarsening occurred, so increment `element_id` on the new mesh by one
                 element_id += 1
             end
         end
@@ -494,7 +494,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{2},
                                                                            old_element_id])
                         end
                     end
-                    # No coarsening occured, so increment `element_id` on the new mesh by one
+                    # No coarsening occurred, so increment `element_id` on the new mesh by one
                     element_id += 1
                 end
             end
@@ -711,7 +711,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
                         end
                     end
 
-                    # No refinement / coarsening occured, so increment element index
+                    # No refinement / coarsening occurred, so increment element index
                     # on each mesh by one
                     old_index += 1
                     new_index += 1
