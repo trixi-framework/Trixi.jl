@@ -121,8 +121,8 @@ end
 @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
-                        l2=[0.001993165013217687],
-                        linf=[0.032891018571625796],
+                        l2=[0.002019623611753929],
+                        linf=[0.03542375961299987],
                         coverage_override=(maxiters = 6,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -305,16 +305,16 @@ end
     # This test is identical to the one in `test_p4est_2d.jl` besides minor
     # deviations in the expected error norms.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
-                        l2=[0.44211360369891683, 0.8805178316216257, 0.8262710688468049,
+                        l2=[0.44207324634847545, 0.8804644301177857, 0.8262542320669426,
                             0.0,
-                            0.9616090460973586, 0.10386643568745411,
-                            0.15403457366543802, 0.0,
-                            2.8399715649715473e-5],
-                        linf=[10.04369305341599, 17.995640564998403, 9.576041548174265,
+                            0.9615023124189027, 0.10386709616755131, 0.1540308191628843,
                             0.0,
-                            19.429658884314534, 1.3821395681242314, 1.818559351543182,
+                            2.8350276854372125e-5],
+                        linf=[10.04548675437385, 17.998696852394836, 9.575802136190026,
                             0.0,
-                            0.002261930217575465],
+                            19.431290746184473, 1.3821685018474321, 1.8186235976551453,
+                            0.0,
+                            0.002309422702635547],
                         tspan=(0.0, 0.02))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -324,6 +324,40 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
+
+@trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
+                        l2=[
+                            0.10823279736983638,
+                            0.1158152939803735,
+                            0.11633970342992006,
+                            0.751152651902375,
+                        ],
+                        linf=[
+                            0.5581611332828653,
+                            0.8354026029724041,
+                            0.834485181423738,
+                            3.923553028014343,
+                        ],
+                        tspan=(0.0, 0.1),
+                        coverage_override=(maxiters = 6,))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+    # Check for conservation
+    state_integrals = Trixi.integrate(sol.u[2], semi)
+    initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+    @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
+    @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+    @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+    @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
 end
 end
 

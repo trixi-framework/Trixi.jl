@@ -69,8 +69,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
     @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_curved.jl"),
-                            l2=[2.0556575425846923e-5],
-                            linf=[0.00105682693484822],
+                            l2=[2.0535121347526814e-5],
+                            linf=[0.0010586603797777504],
                             tspan=(0.0, 1.0),
                             coverage_override=(maxiters = 6,
                                                initial_refinement_level = 0,

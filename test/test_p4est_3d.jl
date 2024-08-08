@@ -78,8 +78,8 @@ end
 @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_curved.jl"),
-                        l2=[1.6236411810065552e-5],
-                        linf=[0.0010554006923731395],
+                        l2=[1.6163120948209677e-5],
+                        linf=[0.0010572201890564834],
                         tspan=(0.0, 1.0),
                         coverage_override=(maxiters = 6, initial_refinement_level = 0,
                                            base_level = 0, med_level = 1, max_level = 2))
@@ -542,16 +542,16 @@ end
 
 @trixi_testset "elixir_mhd_shockcapturing_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_amr.jl"),
-                        l2=[0.006298541670176575, 0.0064368506652601265,
-                            0.007108729762852636, 0.006530420607206385,
-                            0.02061185869237284, 0.005562033787605515,
-                            0.007571716276627825, 0.005571862660453231,
-                            3.909755063709152e-6],
-                        linf=[0.20904054009050665, 0.18622917151105936,
-                            0.2347957890323218, 0.19432508025509926,
-                            0.6858860133405615, 0.15172116633332622,
-                            0.22432820727833747, 0.16805989780225183,
-                            0.000535219040687628],
+                        l2=[0.006297229188299052, 0.0064363477630573936,
+                            0.007109134822960387, 0.0065295379843073945,
+                            0.02061487028361094, 0.005561406556868266,
+                            0.007570747563219415, 0.005571060186624124,
+                            3.910359570546058e-6],
+                        linf=[0.20904050617411984, 0.18630026905465372,
+                            0.23476537952044518, 0.19430178061639747,
+                            0.6858488631108304, 0.15169972134884624,
+                            0.22431157069631724, 0.16823638724229162,
+                            0.0005352202836463904],
                         tspan=(0.0, 0.04),
                         coverage_override=(maxiters = 6, initial_refinement_level = 1,
                                            base_level = 1, max_level = 2))
@@ -585,6 +585,43 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+end
+
+@trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
+                        l2=[
+                            0.011345993108796831,
+                            0.018525073963833696,
+                            0.019102348105917946,
+                            0.01920515438943838,
+                            0.15060493968460148,
+                        ],
+                        linf=[
+                            0.2994949779783401,
+                            0.5530175050084679,
+                            0.5335803757792128,
+                            0.5647252867336123,
+                            3.6462732329242566,
+                        ],
+                        tspan=(0.0, 0.025),
+                        coverage_override=(maxiters = 6,))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+    # Check for conservation
+    state_integrals = Trixi.integrate(sol.u[2], semi)
+    initial_state_integrals = analysis_callback.affect!.initial_state_integrals
+
+    @test isapprox(state_integrals[1], initial_state_integrals[1], atol = 1e-13)
+    @test isapprox(state_integrals[2], initial_state_integrals[2], atol = 1e-13)
+    @test isapprox(state_integrals[3], initial_state_integrals[3], atol = 1e-13)
+    @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
+    @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
 end
 

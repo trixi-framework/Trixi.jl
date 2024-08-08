@@ -52,7 +52,7 @@ function derivative_at(s, boundary_curve::CurvedSurface)
            y_coordinate_at_s_on_boundary_curve_prime
 end
 
-# Chebysehv-Gauss-Lobatto nodes and weights for use with curved boundaries
+# Chebyshev-Gauss-Lobatto nodes and weights for use with curved boundaries
 function chebyshev_gauss_lobatto_nodes_weights(n_nodes::Integer)
 
     # Initialize output
