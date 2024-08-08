@@ -46,10 +46,13 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
                 # Refine element and store solution directly in new data structure
                 refine_element!(u, element_id, old_u, old_element_id,
                                 adaptor, equations, dg, u_tmp1, u_tmp2)
+                # Increment `element_id` on the refined mesh with the number
+                # of children, i.e., 8 in 2D
                 element_id += 2^ndims(mesh)
             else
                 # Copy old element data to new element container
                 @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                # No refinement occured, so increment `element_id` on the new mesh by one
                 element_id += 1
             end
         end
@@ -141,6 +144,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
                             end
                         end
                     end
+                    # Increment `element_id` on the refined mesh with the number
+                    # of children, i.e., 8 in 2D
                     element_id += 2^ndims(mesh)
                 else
                     # Copy old element data to new element container and remove Jacobian scaling
@@ -152,6 +157,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
                                                                               old_element_id])
                         end
                     end
+                    # No refinement occured, so increment `element_id` on the new mesh by one
                     element_id += 1
                 end
             end
@@ -301,11 +307,14 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{3},
                 # Coarsen elements and store solution directly in new data structure
                 coarsen_elements!(u, element_id, old_u, old_element_id,
                                   adaptor, equations, dg, u_tmp1, u_tmp2)
+                # Increment `element_id` on the coarsened mesh by one and `skip` = 7 in 3D
+                # because 8 children elements become 1 parent element
                 element_id += 1
                 skip = 2^ndims(mesh) - 1
             else
                 # Copy old element data to new element container
                 @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                # No coarsening occured, so increment `element_id` on the new mesh by one
                 element_id += 1
             end
         end
@@ -403,6 +412,8 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
                                                                                           element_id])
                         end
                     end
+                    # Increment `element_id` on the coarsened mesh by one and `skip` = 7 in 3D
+                    # because 8 children elements become 1 parent element
                     element_id += 1
                     skip = 2^ndims(mesh) - 1
                 else
@@ -415,6 +426,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
                                                                               old_element_id])
                         end
                     end
+                    # No coarsening occured, so increment `element_id` on the new mesh by one
                     element_id += 1
                 end
             end
@@ -602,6 +614,8 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                         end
                     end
 
+                    # Increment `old_index` on the original mesh and the `new_index`
+                    # on the refined mesh with the number of children, i.e., T8_CHILDREN = 8
                     old_index += 1
                     new_index += T8_CHILDREN
 
@@ -630,6 +644,9 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                         end
                     end
 
+                    # Increment `old_index` on the original mesh with the number of children
+                    # (T8_CHILDREN = 8 in 3D) and the `new_index` by one for the single
+                    # coarsened element
                     old_index += T8_CHILDREN
                     new_index += 1
 
@@ -644,6 +661,8 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                         end
                     end
 
+                    # No refinement / coarsening occured, so increment element index
+                    # on each mesh by one
                     old_index += 1
                     new_index += 1
                 end
