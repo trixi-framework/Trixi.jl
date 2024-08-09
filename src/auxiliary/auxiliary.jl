@@ -204,36 +204,31 @@ Some discussion can be found at [https://discourse.julialang.org/t/overhead-of-t
 and [https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435](https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435).
 """
 macro threaded(expr)
-    # Use `esc(quote ... end)` for nested macro calls as suggested in
-    # https://github.com/JuliaLang/julia/issues/23221
-    #
-    # The following code is a simple version using only `Threads.@threads` from the
-    # standard library with an additional check whether only a single thread is used
-    # to reduce some overhead (and allocations) for serial execution.
-    #
-    # return esc(quote
-    #   let
-    #     if Threads.nthreads() == 1
-    #       $(expr)
-    #     else
-    #       Threads.@threads $(expr)
-    #     end
-    #   end
-    # end)
-    #
-    # However, the code below using `@batch` from Polyester.jl is more efficient,
-    # since this packages provides threads with less overhead. Since it is written
-    # by Chris Elrod, the author of LoopVectorization.jl, we expect this package
-    # to provide the most efficient and useful implementation of threads (as we use
-    # them) available in Julia.
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
-
-    # By using `Trixi.@batch` we allow users of Trixi.jl to use `@threaded` without having
-    # Polyester.jl in their namespace.
-    return esc(quote
-                   Trixi.@batch $(expr)
-               end)
+    expr = if _PREFERENCE_POLYESTER
+        # Currently using `@batch` from Polyester.jl is more efficient, 
+        # bypasses the Julia task scheduler and provides parallelization with less overhead.
+        quote
+            $Trixi.@batch $(expr)
+        end
+    else
+        # The following code is a simple version using only `Threads.@threads` from the
+        # standard library with an additional check whether only a single thread is used
+        # to reduce some overhead (and allocations) for serial execution.
+        quote
+            let
+                if $Threads.nthreads() == 1
+                    $(expr)
+                else
+                    $Threads.@threads :static $(expr)
+                end
+            end
+        end
+    end
+    # Use `esc(quote ... end)` for nested macro calls as suggested in
+    # https://github.com/JuliaLang/julia/issues/23221
+    return esc(expr)
 end
 
 """
