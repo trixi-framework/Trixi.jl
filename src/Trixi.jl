@@ -48,6 +48,7 @@ using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using IfElse: ifelse
+using Kronecker: Kronecker
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
