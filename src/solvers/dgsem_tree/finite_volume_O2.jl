@@ -24,7 +24,7 @@ end
 
 #             Reference element:             
 #  -1 -----------------0----------------- 1 -> x
-# Gauss Lobatto Legendre nodes (schematic for k = 3):
+# Gauss-Lobatto-Legendre nodes (schematic for k = 3):
 #   .         .                 .         .
 #   ^         ^                 ^         ^
 # i - 2,    i - 1,              i,      i + 1
