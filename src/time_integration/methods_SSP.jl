@@ -157,7 +157,7 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     # initialize callbacks
     if callback isa CallbackSet
         foreach(callback.continuous_callbacks) do cb
-            throw(ArgumentError("Continuous callbacks are unsupported with the SSP storage time integration methods."))
+            throw(ArgumentError("Continuous callbacks are unsupported with the SSP time integration methods."))
         end
         foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
