@@ -1738,7 +1738,7 @@ end
                    1.803e-5, atol = 5e-8)
 end
 
-@testset "Limiters" begin
+@testset "Slope Limiters" begin
     sl = 1.0
     sr = -1.0
 
