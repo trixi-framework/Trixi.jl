@@ -178,6 +178,15 @@ function flux(u, gradients, orientation::Integer,
     return SVector(f1, f2, f3)
 end
 
+# The dynamic viscosity `mu` may be a function of temperature
+@inline have_constant_diffusivity(::CompressibleNavierStokesDiffusion1D) = False()
+
+@inline function max_diffusivity(u,
+                                 equations_parabolic::CompressibleNavierStokesDiffusion1D)
+    # Eigenvalues of diffusivity matrix: mu, mu * kappa
+    return dynamic_viscosity(u, equations_parabolic) * max(1, equations_parabolic.kappa)
+end
+
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::CompressibleNavierStokesDiffusion1D)
     rho, rho_v1, _ = u

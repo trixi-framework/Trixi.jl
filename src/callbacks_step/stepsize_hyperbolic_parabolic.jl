@@ -8,8 +8,12 @@
 """
     StepsizeCallbackHyperbolicParabolic(; cfl_convective=1.0, cfl_diffusive=1.0)
 
-Set the time step size according to a CFL condition with CFL number `cfl`
-if the time integration method isn't adaptive itself.
+Set the time step size according to a CFL condition with 
+CFL numbers `cfl_convective` for the convective stability estimate and
+`cfl_diffusive` for the diffusive stability estimate.
+This callback should be used if convection-dominance cannot be assured over the 
+course of the simulation.
+This callback is only relevant for non-adaptive time integrators.
 """
 mutable struct StepsizeCallbackHyperbolicParabolic{RealT}
     cfl_convective::RealT
@@ -100,11 +104,11 @@ function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt_convective = cfl_convective * max_dt(u, t, mesh,
-                           have_constant_speed(equations),
-                           equations, solver, cache)
+                           have_constant_speed(equations), equations,
+                           solver, cache)
 
     dt_diffusive = cfl_diffusive * max_dt(u, t, mesh,
-                          have_constant_diffusivity(equations_parabolic),
+                          have_constant_diffusivity(equations_parabolic), equations,
                           equations_parabolic, solver, cache)
 
     return min(dt_convective, dt_diffusive)
@@ -128,11 +132,12 @@ function (cb::DiscreteCallback{Condition, Affect!})(ode::ODEProblem) where {Cond
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt_convective = dt_convective *
-                    max_dt(u, t, mesh, have_constant_speed(equations),
-                           equations, solver, cache)
+                    max_dt(u, t, mesh,
+                           have_constant_speed(equations), equations, solver, cache)
 
     dt_diffusive = dt_diffusive *
-                   max_dt(u, t, mesh, have_constant_diffusivity(equations_parabolic),
+                   max_dt(u, t, mesh,
+                          have_constant_diffusivity(equations_parabolic), equations,
                           equations_parabolic, solver, cache)
 
     return min(dt_convective, dt_diffusive)
