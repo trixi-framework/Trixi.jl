@@ -183,7 +183,20 @@ end
 
 @inline function max_diffusivity(u,
                                  equations_parabolic::CompressibleNavierStokesDiffusion1D)
-    # Eigenvalues of diffusivity matrix: mu, mu * kappa
+    # For the diffusive estimate we use the eigenvalues of the diffusivity matrix, as suggested in
+
+    # FLEXI: A high order discontinuous Galerkin framework for hyperbolic–parabolic conservation laws
+    # https://doi.org/10.1016/j.camwa.2020.05.004
+
+    # Here, the diffusive flux is given by
+    # [0,                       [0, 
+    #  mu * τ,                =  mu * dv/dx,
+    #  mu * (v * τ + q1)]        mu * (v * dv/dx + kappa * dT/dx)]
+    # which can be rewritten as 
+    # [0, 0, 0
+    #  0, mu, 0,
+    #  0, mu * v, mu * q1] * grad(u) .
+    # Thus, the eigenvalues of the diffusivity matrix are {0, mu, mu * kappa}.
     return dynamic_viscosity(u, equations_parabolic) * max(1, equations_parabolic.kappa)
 end
 
