@@ -87,8 +87,16 @@ end
 @trixi_testset "TreeMesh1D: elixir_navierstokes_convergence_periodic_cfl.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_periodic_cfl.jl"),
-                        l2=[0.00011338560756751962, 6.240158271610694e-5, 0.0002848510206540238],
-                        linf=[0.0006233189520368221, 0.0003592942992138859, 0.0016105764529221744])
+                        l2=[
+                            0.00011338560756751962,
+                            6.240158271610694e-5,
+                            0.0002848510206540238,
+                        ],
+                        linf=[
+                            0.0006233189520368221,
+                            0.0003592942992138859,
+                            0.0016105764529221744,
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
