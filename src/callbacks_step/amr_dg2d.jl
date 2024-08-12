@@ -140,7 +140,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     return nothing
 end
 
-# Refine elements in the DG solver based on a list of cell_ids that should be refined
+# Refine elements in the DG solver based on a list of cell_ids that should be refined.
 # If an element refines the solution scaled by the Jacobian `J*u` is interpolated from
 # the parent element into the four children elements. The solution on each child
 # element is then recovered by dividing by the new element Jacobians.
@@ -405,7 +405,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{2},
     return nothing
 end
 
-# Coarsen elements in the DG solver based on a list of cell_ids that should be removed
+# Coarsen elements in the DG solver based on a list of cell_ids that should be removed.
 # If an element coarsens the solution scaled by the Jacobian `J*u` is projected from
 # the four children elements back onto the parent element. The solution on the parent
 # element is then recovered by dividing by the new element Jacobian.
