@@ -128,5 +128,6 @@ end
 # Note: `max_dt` is not implemented for `StructuredMesh{1}` since 
 # for the `StructuredMesh` there is no support of parabolic terms (yet), see the overview in the docs:
 # https://trixi-framework.github.io/Trixi.jl/stable/overview/#overview-semidiscretizations
+# Thus, there is also no need to implement the `max_dt` function for the `StructuredMesh{1}` case (yet).
 
 end # @muladd
