@@ -154,8 +154,10 @@ function (cb::DiscreteCallback{Condition, Affect!})(ode::ODEProblem) where {Cond
                     max_dt(u, t, mesh, have_constant_speed(equations), equations,
                            solver, cache)
 
-    #if hasfield(semi, :equations_parabolic) # Check if we have a hyperbolic-parabolic semidiscretization
-    if cfl_diffusive > 0.0 # Check if diffusive CFL should be considered
+    # Check if diffusive CFL should be considered.
+    # NOTE: 
+    # For non-zero `cfl_diffusive`, `semi` is expected to be a `SemidiscretizationHyperbolicParabolic`.
+    if cfl_diffusive > 0.0
         dt_diffusive = cfl_diffusive *
                        max_dt(u, t, mesh,
                               have_constant_diffusivity(semi.equations_parabolic),
@@ -165,9 +167,6 @@ function (cb::DiscreteCallback{Condition, Affect!})(ode::ODEProblem) where {Cond
     else
         return dt_convective
     end
-    #else
-    #    return dt_convective
-    #end
 end
 
 include("stepsize_dg1d.jl")
