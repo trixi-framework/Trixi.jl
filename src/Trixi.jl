@@ -262,7 +262,7 @@ export SemidiscretizationCoupled
 export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        SaveRestartCallback, SaveSolutionCallback, TimeSeriesCallback, VisualizationCallback,
        AveragingCallback,
-       AMRCallback, StepsizeCallback, StepsizeCallbackHyperbolicParabolic,
+       AMRCallback, StepsizeCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled,
        AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure,

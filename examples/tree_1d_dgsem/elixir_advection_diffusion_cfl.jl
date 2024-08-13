@@ -78,7 +78,7 @@ alive_callback = AliveCallback(analysis_interval = 100)
 # Stepsize callback which selects the timestep according to the most restrictive CFL condition.
 # For coarser grids, linear stability is governed by the convective CFL condition,
 # while for high refinements the flow becomes diffusion-dominated.
-stepsize_callback = StepsizeCallbackHyperbolicParabolic(cfl_convective = 1.6,
+stepsize_callback = StepsizeCallback(cfl = 1.6,
                                                         cfl_diffusive = 0.4)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
