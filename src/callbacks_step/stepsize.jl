@@ -165,6 +165,8 @@ function (cb::DiscreteCallback{Condition, Affect!})(ode::ODEProblem) where {Cond
         else
             return dt_convective
         end
+    else
+        return dt_convective
     end
 end
 
