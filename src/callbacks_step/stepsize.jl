@@ -85,8 +85,9 @@ end
         @unpack cfl_convective, cfl_diffusive = stepsize_callback
 
         # Dispatch based on semidiscretization
-        dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, 
-                                                               cfl_convective, cfl_diffusive,
+        dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t,
+                                                               cfl_convective,
+                                                               cfl_diffusive,
                                                                semi)
 
         set_proposed_dt!(integrator, dt)
@@ -100,7 +101,8 @@ end
 end
 
 # General case for a single semidiscretization
-function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive, semi::AbstractSemidiscretization)
+function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
+                      semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
@@ -123,8 +125,8 @@ function calculate_dt(u_ode, t, cfl_convective, cfl_diffusive,
 
     if cfl_diffusive > 0.0 # Check if diffusive CFL should be considered
         dt_diffusive = cfl_diffusive * max_dt(u, t, mesh,
-                            have_constant_diffusivity(equations_parabolic), equations,
-                            equations_parabolic, solver, cache)
+                              have_constant_diffusivity(equations_parabolic), equations,
+                              equations_parabolic, solver, cache)
 
         return min(dt_convective, dt_diffusive)
     else
@@ -149,13 +151,15 @@ function (cb::DiscreteCallback{Condition, Affect!})(ode::ODEProblem) where {Cond
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     dt_convective = cfl_convective *
-           max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
+                    max_dt(u, t, mesh, have_constant_speed(equations), equations,
+                           solver, cache)
 
     if hasfield(semi, :equations_parabolic) # Check if we have a hyperbolic-parabolic semidiscretization
         if cfl_diffusive > 0.0 # Check if diffusive CFL should be considered
             dt_diffusive = cfl_diffusive *
-                max_dt(u, t, mesh, have_constant_diffusivity(semi.equations_parabolic),
-                        equations, semi.equations_parabolic, solver, cache)
+                           max_dt(u, t, mesh,
+                                  have_constant_diffusivity(semi.equations_parabolic),
+                                  equations, semi.equations_parabolic, solver, cache)
 
             return min(dt_convective, dt_diffusive)
         else
