@@ -49,7 +49,6 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-###############################################################################
 
 # Affine type mapping to take the [-1,1]^2 domain
 # and warp it as described in https://arxiv.org/abs/2012.12040
@@ -61,9 +60,8 @@ function mapping_twist(xi, eta)
 end
 
 # The mesh below can be made periodic
-trees_per_dimension = (8, 8)
-
 # Create T8codeMesh with 8 x 8 trees
+trees_per_dimension = (8, 8)
 mesh = T8codeMesh(trees_per_dimension, polydeg = 4,
                   mapping = mapping_twist,
                   initial_refinement_level = 0,
