@@ -176,7 +176,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @timed_testset "Compressible Euler 2D" begin
         for RealT in (Float32, Float64)
-            # set gamma = 2 for the coupling convergence test\
+            # set gamma = 2 for the coupling convergence test
             equations = @inferred CompressibleEulerEquations2D(RealT(2))
 
             x = SVector(zero(RealT), zero(RealT))
@@ -1780,8 +1780,35 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             x = SVector(zero(RealT))
             t = zero(RealT)
-            u = u_ll = u_rr = SVector(one(RealT), one(RealT), one(RealT))
+            u = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT))
             orientation = 1
+            directions = [1, 2]
+
+            surface_flux_function = flux_hll
+
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                  RealT
+
+            for direction in directions
+                @test eltype(@inferred boundary_condition_wall(u_inner, orientation,
+                                                               direction, x, t,
+                                                               surface_flux_function,
+                                                               equations)) == RealT
+            end
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+
+            @test typeof(@inferred Trixi.max_abs_speeds(equations)) ==
+                  RealT
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
         end
     end
 
