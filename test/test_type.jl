@@ -1772,6 +1772,19 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Linearized Euler 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred LinearizedEulerEquations1D(v_mean_global = RealT(0),
+                                                             c_mean_global = RealT(1),
+                                                             rho_mean_global = RealT(1))
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = SVector(one(RealT), one(RealT), one(RealT))
+            orientation = 1
+        end
+    end
+
     @timed_testset "Shallow Water 1D" begin
         for RealT in (Float32, Float64)
             equations = @inferred ShallowWaterEquations1D(gravity_constant = RealT(9.81))
