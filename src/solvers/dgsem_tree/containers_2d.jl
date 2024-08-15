@@ -941,8 +941,8 @@ end
 mutable struct MPIL2MortarContainer2D{uEltype <: Real} <: AbstractContainer
     u_upper::Array{uEltype, 4} # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4} # [leftright, variables, i, mortars]
-    local_neighbor_ids::Vector{Vector{Int}}       # [mortars]
-    local_neighbor_positions::Vector{Vector{Int}} # [mortars]
+    local_neighbor_ids::Vector{Vector{Int}}       # [mortars][ids]
+    local_neighbor_positions::Vector{Vector{Int}} # [mortars][positions]
     # Large sides: left -> 1, right -> 2
     large_sides::Vector{Int}  # [mortars]
     orientations::Vector{Int} # [mortars]
