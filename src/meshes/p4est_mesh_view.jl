@@ -1,6 +1,13 @@
 @muladd begin
 #! format: noindent
 
+"""
+    P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2,
+                             NNODES} <:
+               AbstractMesh{NDIMS}
+
+A view on a p4est mesh.
+"""
 mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2,
                              NNODES} <:
                AbstractMesh{NDIMS}
