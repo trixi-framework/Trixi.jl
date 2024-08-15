@@ -376,7 +376,7 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_well_balanced.jl with flux_nonconservative_ersing_etal" begin
+@trixi_testset "elixir_shallowwater_well_balanced.jl with flux_nonconservative_wintermeyer_etal" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
                         l2=[
                             1.2164292510839083,
@@ -391,9 +391,7 @@ end
                             1.513851228231574,
                         ],
                         surface_flux=(flux_wintermeyer_etal,
-                                      flux_nonconservative_ersing_etal),
-                        volume_flux=(flux_wintermeyer_etal,
-                                     flux_nonconservative_ersing_etal),
+                                      flux_nonconservative_wintermeyer_etal),
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -458,7 +456,7 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl with flux_nonconservative_ersing_etal" begin
+@trixi_testset "elixir_shallowwater_source_terms.jl with flux_nonconservative_wintermeyer_etal" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
                             0.001118046975499805,
@@ -473,9 +471,7 @@ end
                             2.6407324614341476e-5,
                         ],
                         surface_flux=(flux_wintermeyer_etal,
-                                      flux_nonconservative_ersing_etal),
-                        volume_flux=(flux_wintermeyer_etal,
-                                     flux_nonconservative_ersing_etal),
+                                      flux_nonconservative_wintermeyer_etal),
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
