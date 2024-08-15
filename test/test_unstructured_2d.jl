@@ -351,15 +351,15 @@ end
 @trixi_testset "elixir_shallowwater_well_balanced.jl with FluxHydrostaticReconstruction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
                         l2=[
-                            1.2164292510839072,
-                            1.2468591672366558e-11,
-                            1.2361577595429122e-11,
+                            1.2164292510839063,
+                            1.2676379081600215e-12,
+                            1.255855785593831e-12,
                             1.2164292510839074,
                         ],
                         linf=[
-                            1.5138512282315648,
-                            1.618570986774988e-10,
-                            1.6841124730672774e-10,
+                            1.5138512282315604,
+                            1.658245722058109e-11,
+                            1.8665562182185795e-11,
                             1.5138512282315737,
                         ],
                         surface_flux=(FluxHydrostaticReconstruction(flux_lax_friedrichs,
