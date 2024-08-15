@@ -49,7 +49,6 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
-
 # Affine type mapping to take the [-1,1]^2 domain
 # and warp it as described in https://arxiv.org/abs/2012.12040
 # Warping with the coefficient 0.2 is even more extreme.
