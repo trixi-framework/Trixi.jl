@@ -96,78 +96,77 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
-        GC.@preserve old_inverse_jacobian begin # OBS! If we don't GC.@preserve old_inverse_jacobian, it might be GC'ed
-            old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    GC.@preserve old_u_ode old_inverse_jacobian begin
+        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-            # Loop over all elements in old container and scale the old solution by the Jacobian
-            # prior to projection
-            for old_element in 1:old_n_elements
-                for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                    for v in eachvariable(equations)
-                        old_u[v, i, j, k, old_element] = (old_u[v, i, j, k,
-                                                                old_element] /
-                                                          old_inverse_jacobian[i, j, k,
-                                                                               old_element])
-                    end
+        # Loop over all elements in old container and scale the old solution by the Jacobian
+        # prior to projection
+        for old_element in 1:old_n_elements
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                for v in eachvariable(equations)
+                    old_u[v, i, j, k, old_element] = (old_u[v, i, j, k,
+                                                            old_element] /
+                                                      old_inverse_jacobian[i, j, k,
+                                                                           old_element])
                 end
             end
+        end
 
-            reinitialize_containers!(mesh, equations, dg, cache)
+        reinitialize_containers!(mesh, equations, dg, cache)
 
-            resize!(u_ode,
-                    nvariables(equations) * nnodes(dg)^ndims(mesh) *
-                    nelements(dg, cache))
-            u = wrap_array(u_ode, mesh, equations, dg, cache)
+        resize!(u_ode,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) *
+                nelements(dg, cache))
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
 
-            # Loop over all elements in old container and either copy them or refine them
-            u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),
-                                         nnodes(dg), nnodes(dg))
-            u_tmp2 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),
-                                         nnodes(dg), nnodes(dg))
-            element_id = 1
-            for old_element_id in 1:old_n_elements
-                if needs_refinement[old_element_id]
-                    # Refine element and store solution directly in new data structure
-                    refine_element!(u, element_id, old_u, old_element_id,
-                                    adaptor, equations, dg, u_tmp1, u_tmp2)
-                    # Before `element_id` is incremented, divide by the new Jacobians on each
-                    # child element and save the result
-                    for m in 0:7 # loop over the children
-                        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                            for v in eachvariable(equations)
-                                u[v, i, j, k, element_id + m] *= (0.125 *
-                                                                  cache.elements.inverse_jacobian[i,
-                                                                                                  j,
-                                                                                                  k,
-                                                                                                  element_id + m])
-                            end
-                        end
-                    end
-                    # Increment `element_id` on the refined mesh with the number
-                    # of children, i.e., 8 in 3D
-                    element_id += 2^ndims(mesh)
-                else
-                    # Copy old element data to new element container and remove Jacobian scaling
+        # Loop over all elements in old container and either copy them or refine them
+        u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),
+                                     nnodes(dg), nnodes(dg))
+        u_tmp2 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),
+                                     nnodes(dg), nnodes(dg))
+        element_id = 1
+        for old_element_id in 1:old_n_elements
+            if needs_refinement[old_element_id]
+                # Refine element and store solution directly in new data structure
+                refine_element!(u, element_id, old_u, old_element_id,
+                                adaptor, equations, dg, u_tmp1, u_tmp2)
+                # Before `element_id` is incremented, divide by the new Jacobians on each
+                # child element and save the result
+                for m in 0:7 # loop over the children
                     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                         for v in eachvariable(equations)
-                            u[v, i, j, k, element_id] = (old_u[v, i, j, k,
-                                                               old_element_id] *
-                                                         old_inverse_jacobian[i, j, k,
-                                                                              old_element_id])
+                            u[v, i, j, k, element_id + m] *= (0.125 *
+                                                              cache.elements.inverse_jacobian[i,
+                                                                                              j,
+                                                                                              k,
+                                                                                              element_id + m])
                         end
                     end
-                    # No refinement occurred, so increment `element_id` on the new mesh by one
-                    element_id += 1
                 end
+                # Increment `element_id` on the refined mesh with the number
+                # of children, i.e., 8 in 3D
+                element_id += 2^ndims(mesh)
+            else
+                # Copy old element data to new element container and remove Jacobian scaling
+                for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                    for v in eachvariable(equations)
+                        u[v, i, j, k, element_id] = (old_u[v, i, j, k,
+                                                           old_element_id] *
+                                                     old_inverse_jacobian[i, j, k,
+                                                                          old_element_id])
+                    end
+                end
+                # No refinement occurred, so increment `element_id` on the new mesh by one
+                element_id += 1
             end
-            # If everything is correct, we should have processed all elements.
-            # Depending on whether the last element processed above had to be refined or not,
-            # the counter `element_id` can have two different values at the end.
-            @assert element_id ==
-                    nelements(dg, cache) +
-                    1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-        end # GC.@preserve old_inverse_jacobian
+        end
+        # If everything is correct, we should have processed all elements.
+        # Depending on whether the last element processed above had to be refined or not,
+        # the counter `element_id` can have two different values at the end.
+        @assert element_id ==
+                nelements(dg, cache) +
+                1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode
 
     # Sanity check
@@ -354,85 +353,84 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::P4estMesh{3},
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
     old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
-    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
-        GC.@preserve old_inverse_jacobian begin # OBS! If we don't GC.@preserve old_inverse_jacobian, it might be GC'ed
-            old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    GC.@preserve old_u_ode old_inverse_jacobian begin
+        old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
-            # Loop over all elements in old container and scale the old solution by the Jacobian
-            # prior to projection
-            for old_element in 1:old_n_elements
+        # Loop over all elements in old container and scale the old solution by the Jacobian
+        # prior to projection
+        for old_element in 1:old_n_elements
+            for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                for v in eachvariable(equations)
+                    old_u[v, i, j, k, old_element] = (old_u[v, i, j, k,
+                                                            old_element] /
+                                                      old_inverse_jacobian[i, j, k,
+                                                                           old_element])
+                end
+            end
+        end
+
+        reinitialize_containers!(mesh, equations, dg, cache)
+
+        resize!(u_ode,
+                nvariables(equations) * nnodes(dg)^ndims(mesh) *
+                nelements(dg, cache))
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+
+        # Loop over all elements in old container and either copy them or coarsen them
+        u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),
+                                     nnodes(dg), nnodes(dg))
+        u_tmp2 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),
+                                     nnodes(dg), nnodes(dg))
+        skip = 0
+        element_id = 1
+        for old_element_id in 1:old_n_elements
+            # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
+            if skip > 0
+                skip -= 1
+                continue
+            end
+
+            if to_be_removed[old_element_id]
+                # If an element is to be removed, sanity check if the following elements
+                # are also marked - otherwise there would be an error in the way the
+                # cells/elements are sorted
+                @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
+
+                # Coarsen elements and store solution directly in new data structure
+                coarsen_elements!(u, element_id, old_u, old_element_id,
+                                  adaptor, equations, dg, u_tmp1, u_tmp2)
+                # Before `element_id` is incremented, divide by the new Jacobian and save
+                # the result in the parent element
                 for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
                     for v in eachvariable(equations)
-                        old_u[v, i, j, k, old_element] = (old_u[v, i, j, k,
-                                                                old_element] /
-                                                          old_inverse_jacobian[i, j, k,
-                                                                               old_element])
+                        u[v, i, j, k, element_id] *= (8 *
+                                                      cache.elements.inverse_jacobian[i,
+                                                                                      j,
+                                                                                      k,
+                                                                                      element_id])
                     end
                 end
+                # Increment `element_id` on the coarsened mesh by one and `skip` = 7 in 3D
+                # because 8 children elements become 1 parent element
+                element_id += 1
+                skip = 2^ndims(mesh) - 1
+            else
+                # Copy old element data to new element container and remove Jacobian scaling
+                for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+                    for v in eachvariable(equations)
+                        u[v, i, j, k, element_id] = (old_u[v, i, j, k,
+                                                           old_element_id] *
+                                                     old_inverse_jacobian[i, j, k,
+                                                                          old_element_id])
+                    end
+                end
+                # No coarsening occurred, so increment `element_id` on the new mesh by one
+                element_id += 1
             end
-
-            reinitialize_containers!(mesh, equations, dg, cache)
-
-            resize!(u_ode,
-                    nvariables(equations) * nnodes(dg)^ndims(mesh) *
-                    nelements(dg, cache))
-            u = wrap_array(u_ode, mesh, equations, dg, cache)
-
-            # Loop over all elements in old container and either copy them or coarsen them
-            u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),
-                                         nnodes(dg), nnodes(dg))
-            u_tmp2 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),
-                                         nnodes(dg), nnodes(dg))
-            skip = 0
-            element_id = 1
-            for old_element_id in 1:old_n_elements
-                # If skip is non-zero, we just coarsened 2^ndims elements and need to omit the following elements
-                if skip > 0
-                    skip -= 1
-                    continue
-                end
-
-                if to_be_removed[old_element_id]
-                    # If an element is to be removed, sanity check if the following elements
-                    # are also marked - otherwise there would be an error in the way the
-                    # cells/elements are sorted
-                    @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
-
-                    # Coarsen elements and store solution directly in new data structure
-                    coarsen_elements!(u, element_id, old_u, old_element_id,
-                                      adaptor, equations, dg, u_tmp1, u_tmp2)
-                    # Before `element_id` is incremented, divide by the new Jacobian and save
-                    # the result in the parent element
-                    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                        for v in eachvariable(equations)
-                            u[v, i, j, k, element_id] *= (8 *
-                                                          cache.elements.inverse_jacobian[i,
-                                                                                          j,
-                                                                                          k,
-                                                                                          element_id])
-                        end
-                    end
-                    # Increment `element_id` on the coarsened mesh by one and `skip` = 7 in 3D
-                    # because 8 children elements become 1 parent element
-                    element_id += 1
-                    skip = 2^ndims(mesh) - 1
-                else
-                    # Copy old element data to new element container and remove Jacobian scaling
-                    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-                        for v in eachvariable(equations)
-                            u[v, i, j, k, element_id] = (old_u[v, i, j, k,
-                                                               old_element_id] *
-                                                         old_inverse_jacobian[i, j, k,
-                                                                              old_element_id])
-                        end
-                    end
-                    # No coarsening occurred, so increment `element_id` on the new mesh by one
-                    element_id += 1
-                end
-            end
-            # If everything is correct, we should have processed all elements.
-            @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-        end # GC.@preserve old_inverse_jacobian
+        end
+        # If everything is correct, we should have processed all elements.
+        @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode
 
     # Sanity check
