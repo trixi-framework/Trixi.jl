@@ -351,16 +351,16 @@ end
 @trixi_testset "elixir_shallowwater_well_balanced.jl with FluxHydrostaticReconstruction" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
                         l2=[
-                            1.2164292510839085,
-                            1.2643106818778908e-12,
-                            1.269230436589819e-12,
-                            1.2164292510839079,
+                            1.2164292510839072,
+                            1.2468591672366558e-11,
+                            1.2361577595429122e-11,
+                            1.2164292510839074,
                         ],
                         linf=[
-                            1.513851228231562,
-                            1.6670644673575802e-11,
-                            1.8426585188623954e-11,
-                            1.513851228231574,
+                            1.5138512282315648,
+                            1.618570986774988e-10,
+                            1.6841124730672774e-10,
+                            1.5138512282315737,
                         ],
                         surface_flux=(FluxHydrostaticReconstruction(flux_lax_friedrichs,
                                                                     hydrostatic_reconstruction_audusse_etal),
@@ -513,12 +513,16 @@ end
 @trixi_testset "elixir_shallowwater_dirichlet.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_dirichlet.jl"),
                         l2=[
-                            1.1577518608938916e-5, 4.859252379740366e-13,
-                            4.639600837197925e-13, 1.1577518608952174e-5,
+                            1.1577518608950964e-5,
+                            4.761947272222427e-13,
+                            4.546045873135486e-13,
+                            1.157751860893347e-5,
                         ],
                         linf=[
-                            8.3940638787805e-5, 1.1446362498574484e-10,
-                            1.1124515748367981e-10, 8.39406387962427e-5,
+                            8.394063879002545e-5,
+                            1.1211566736150389e-10,
+                            1.0890426250906834e-10,
+                            8.394063879602065e-5,
                         ],
                         tspan=(0.0, 2.0))
     # Ensure that we do not have excessive memory allocations
