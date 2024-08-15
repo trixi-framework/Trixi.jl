@@ -70,7 +70,7 @@ mesh = P4estMesh(trees_per_dimension,
                  initial_refinement_level = 1,
                  periodicity = true)
 
-# Create the semi discretization object
+# Create the semidiscretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################

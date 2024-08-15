@@ -61,9 +61,8 @@ function mapping_twist(xi, eta)
 end
 
 # The mesh below can be made periodic
-trees_per_dimension = (8, 8)
-
 # Create P4estMesh with 8 x 8 trees
+trees_per_dimension = (8, 8)
 mesh = P4estMesh(trees_per_dimension, polydeg = 4,
                  mapping = mapping_twist,
                  initial_refinement_level = 0,
