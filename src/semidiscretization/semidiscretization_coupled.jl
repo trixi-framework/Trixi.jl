@@ -459,7 +459,8 @@ mutable struct BoundaryConditionCoupled{NDIMS,
             other_orientation = 1
         elseif indices[2] in (:begin, :end)
             other_orientation = 2
-        else # indices[3] in (:begin, :end)
+
+       else # indices[3] in (:begin, :end)
             other_orientation = 3
         end
 
@@ -515,11 +516,10 @@ end
 function (boundary_condition::BoundaryConditionCoupled)(u_inner, normal_direction,
                                                         x, t, surface_flux_function,
                                                         equations)
-    n_vars, n_nodes, n_cells = size(boundary_condition.u_boundary)
-    cell_index = Int(round((x[2]+1) / n_cells + 1))
-    node_index = cell_index%4
-    u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, node_index, cell_index],
-                                Val(nvariables(equations))))
+#     u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, node_index, cell_index],
+#                                 Val(nvariables(equations))))
+    u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, 1, 1],
+                                Val(nvariables(equations)))) .* 10.0
 
     @autoinfiltrate
 

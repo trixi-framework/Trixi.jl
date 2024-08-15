@@ -337,7 +337,7 @@ end
     x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
                         element_index)
 
-#     println(i_index, " ", j_index, " ", node_index, " ", direction_index, " ", element_index, " ", boundary_index, " ", x)
+#    println(i_index, " ", j_index, " ", node_index, " ", direction_index, " ", element_index, " ", boundary_index, " ", x)
 
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
