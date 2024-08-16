@@ -11,10 +11,10 @@
 function transfinite_quad_map(xi, eta, surface_curves::AbstractVector{<:CurvedSurface})
 
     # evaluate the gamma curves to get the four corner points of the element
-    x_corner1, y_corner1 = evaluate_at(-1.0, surface_curves[1])
-    x_corner2, y_corner2 = evaluate_at(1.0, surface_curves[1])
-    x_corner3, y_corner3 = evaluate_at(1.0, surface_curves[3])
-    x_corner4, y_corner4 = evaluate_at(-1.0, surface_curves[3])
+    x_corner1, y_corner1 = evaluate_at(-1, surface_curves[1])
+    x_corner2, y_corner2 = evaluate_at(1, surface_curves[1])
+    x_corner3, y_corner3 = evaluate_at(1, surface_curves[3])
+    x_corner4, y_corner4 = evaluate_at(-1, surface_curves[3])
 
     # evaluate along the gamma curves at a particular point (ξ, η) in computational space to get
     # the value (x,y) in physical space
@@ -23,17 +23,15 @@ function transfinite_quad_map(xi, eta, surface_curves::AbstractVector{<:CurvedSu
     x3, y3 = evaluate_at(xi, surface_curves[3])
     x4, y4 = evaluate_at(eta, surface_curves[4])
 
-    x = (0.5 *
-         ((1.0 - xi) * x4 + (1.0 + xi) * x2 + (1.0 - eta) * x1 + (1.0 + eta) * x3)
+    x = (0.5f0 * ((1 - xi) * x4 + (1 + xi) * x2 + (1 - eta) * x1 + (1 + eta) * x3)
          -
-         0.25 * ((1.0 - xi) * ((1.0 - eta) * x_corner1 + (1.0 + eta) * x_corner4) +
-          (1.0 + xi) * ((1.0 - eta) * x_corner2 + (1.0 + eta) * x_corner3)))
+         0.25f0 * ((1 - xi) * ((1 - eta) * x_corner1 + (1 + eta) * x_corner4) +
+          (1 + xi) * ((1 - eta) * x_corner2 + (1 + eta) * x_corner3)))
 
-    y = (0.5 *
-         ((1.0 - xi) * y4 + (1.0 + xi) * y2 + (1.0 - eta) * y1 + (1.0 + eta) * y3)
+    y = (0.5f0 * ((1 - xi) * y4 + (1 + xi) * y2 + (1 - eta) * y1 + (1 + eta) * y3)
          -
-         0.25 * ((1.0 - xi) * ((1.0 - eta) * y_corner1 + (1.0 + eta) * y_corner4) +
-          (1.0 + xi) * ((1.0 - eta) * y_corner2 + (1.0 + eta) * y_corner3)))
+         0.25f0 * ((1 - xi) * ((1 - eta) * y_corner1 + (1 + eta) * y_corner4) +
+          (1 + xi) * ((1 - eta) * y_corner2 + (1 + eta) * y_corner3)))
 
     return x, y
 end
@@ -44,10 +42,10 @@ function transfinite_quad_map_metrics(xi, eta,
                                       surface_curves::AbstractVector{<:CurvedSurface})
 
     # evaluate the gamma curves to get the four corner points of the element
-    x_corner1, y_corner1 = evaluate_at(-1.0, surface_curves[1])
-    x_corner2, y_corner2 = evaluate_at(1.0, surface_curves[1])
-    x_corner3, y_corner3 = evaluate_at(1.0, surface_curves[3])
-    x_corner4, y_corner4 = evaluate_at(-1.0, surface_curves[3])
+    x_corner1, y_corner1 = evaluate_at(-1, surface_curves[1])
+    x_corner2, y_corner2 = evaluate_at(1, surface_curves[1])
+    x_corner3, y_corner3 = evaluate_at(1, surface_curves[3])
+    x_corner4, y_corner4 = evaluate_at(-1, surface_curves[3])
 
     # evaluate along the gamma curves at a particular point (ξ, η) in computational space to get
     # the value (x,y) in physical space
@@ -63,25 +61,21 @@ function transfinite_quad_map_metrics(xi, eta,
     x3_prime, y3_prime = derivative_at(xi, surface_curves[3])
     x4_prime, y4_prime = derivative_at(eta, surface_curves[4])
 
-    X_xi = (0.5 * (x2 - x4 + (1.0 - eta) * x1_prime + (1.0 + eta) * x3_prime)
-            -
-            0.25 * ((1.0 - eta) * (x_corner2 - x_corner1) +
-             (1.0 + eta) * (x_corner3 - x_corner4)))
+    X_xi = (0.5f0 * (x2 - x4 + (1 - eta) * x1_prime + (1 + eta) * x3_prime)
+            - 0.25f0 * ((1 - eta) * (x_corner2 - x_corner1) +
+             (1 + eta) * (x_corner3 - x_corner4)))
 
-    X_eta = (0.5 * ((1.0 - xi) * x4_prime + (1.0 + xi) * x2_prime + x3 - x1)
-             -
-             0.25 * ((1.0 - xi) * (x_corner4 - x_corner1) +
-              (1.0 + xi) * (x_corner3 - x_corner2)))
+    X_eta = (0.5f0 * ((1 - xi) * x4_prime + (1 + xi) * x2_prime + x3 - x1)
+             - 0.25f0 * ((1 - xi) * (x_corner4 - x_corner1) +
+              (1 + xi) * (x_corner3 - x_corner2)))
 
-    Y_xi = (0.5 * (y2 - y4 + (1.0 - eta) * y1_prime + (1.0 + eta) * y3_prime)
-            -
-            0.25 * ((1.0 - eta) * (y_corner2 - y_corner1) +
-             (1.0 + eta) * (y_corner3 - y_corner4)))
+    Y_xi = (0.5f0 * (y2 - y4 + (1 - eta) * y1_prime + (1 + eta) * y3_prime)
+            - 0.25f0 * ((1 - eta) * (y_corner2 - y_corner1) +
+             (1 + eta) * (y_corner3 - y_corner4)))
 
-    Y_eta = (0.5 * ((1.0 - xi) * y4_prime + (1.0 + xi) * y2_prime + y3 - y1)
-             -
-             0.25 * ((1.0 - xi) * (y_corner4 - y_corner1) +
-              (1.0 + xi) * (y_corner3 - y_corner2)))
+    Y_eta = (0.5f0 * ((1 - xi) * y4_prime + (1 + xi) * y2_prime + y3 - y1)
+             - 0.25f0 * ((1 - xi) * (y_corner4 - y_corner1) +
+              (1 + xi) * (y_corner3 - y_corner2)))
 
     return X_xi, X_eta, Y_xi, Y_eta
 end
@@ -127,14 +121,14 @@ function calc_normal_directions!(normal_directions, element, nodes,
     # normal directions on the boundary for the left (local side 4) and right (local side 2)
     for j in eachindex(nodes)
         # side 2
-        X_xi, X_eta, Y_xi, Y_eta = transfinite_quad_map_metrics(1.0, nodes[j],
+        X_xi, X_eta, Y_xi, Y_eta = transfinite_quad_map_metrics(1, nodes[j],
                                                                 surface_curves)
         Jtemp = X_xi * Y_eta - X_eta * Y_xi
         normal_directions[1, j, 2, element] = sign(Jtemp) * (Y_eta)
         normal_directions[2, j, 2, element] = sign(Jtemp) * (-X_eta)
 
         # side 4
-        X_xi, X_eta, Y_xi, Y_eta = transfinite_quad_map_metrics(-1.0, nodes[j],
+        X_xi, X_eta, Y_xi, Y_eta = transfinite_quad_map_metrics(-1, nodes[j],
                                                                 surface_curves)
         Jtemp = X_xi * Y_eta - X_eta * Y_xi
         normal_directions[1, j, 4, element] = -sign(Jtemp) * (Y_eta)
@@ -144,14 +138,14 @@ function calc_normal_directions!(normal_directions, element, nodes,
     # normal directions on the boundary for the top (local side 3) and bottom (local side 1)
     for i in eachindex(nodes)
         # side 1
-        X_xi, X_eta, Y_xi, Y_eta = transfinite_quad_map_metrics(nodes[i], -1.0,
+        X_xi, X_eta, Y_xi, Y_eta = transfinite_quad_map_metrics(nodes[i], -1,
                                                                 surface_curves)
         Jtemp = X_xi * Y_eta - X_eta * Y_xi
         normal_directions[1, i, 1, element] = -sign(Jtemp) * (-Y_xi)
         normal_directions[2, i, 1, element] = -sign(Jtemp) * (X_xi)
 
         # side 3
-        X_xi, X_eta, Y_xi, Y_eta = transfinite_quad_map_metrics(nodes[i], 1.0,
+        X_xi, X_eta, Y_xi, Y_eta = transfinite_quad_map_metrics(nodes[i], 1,
                                                                 surface_curves)
         Jtemp = X_xi * Y_eta - X_eta * Y_xi
         normal_directions[1, i, 3, element] = sign(Jtemp) * (-Y_xi)

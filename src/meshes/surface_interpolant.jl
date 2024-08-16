@@ -80,7 +80,9 @@ function lagrange_interpolation(x, nodes, fvals, wbary)
     denominator = zero(eltype(fvals))
 
     for j in eachindex(nodes)
-        if isapprox(x, nodes[j], rtol = eps(x))
+        # using eps(nodes[j]) instead of eps(x) allows us to use integer
+        # coordinates for the target location x
+        if isapprox(x, nodes[j], rtol = eps(nodes[j]))
             return fvals[j]
         end
         t = wbary[j] / (x - nodes[j])

@@ -20,7 +20,7 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
 
     # perform a check on the sufficient metric identities condition for free-stream preservation
     # and halt computation if it fails
-    if !isapprox(max_discrete_metric_identities(dg, cache), 0, atol = 1e-12)
+    if !isapprox(max_discrete_metric_identities(dg, cache), 0, atol = 100 * eps(RealT))
         error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
     end
 
@@ -260,10 +260,10 @@ function calc_interface_flux!(surface_flux_values,
                 # the interpretation of global SBP operators coupled discontinuously via
                 # central fluxes/SATs
                 surface_flux_values[v, primary_index, primary_side, primary_element] = (flux[v] +
-                                                                                        0.5 *
+                                                                                        0.5f0 *
                                                                                         noncons_primary[v])
                 surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -(flux[v] +
-                                                                                               0.5 *
+                                                                                               0.5f0 *
                                                                                                noncons_secondary[v])
             end
 
@@ -459,7 +459,7 @@ end
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
         surface_flux_values[v, node_index, side_index, element_index] = flux[v] +
-                                                                        0.5 *
+                                                                        0.5f0 *
                                                                         noncons_flux[v]
     end
 end
