@@ -519,12 +519,10 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, normal_directio
 #     u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, node_index, cell_index],
 #                                 Val(nvariables(equations))))
     u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, 1, 1],
-                                Val(nvariables(equations)))) .* 10.0
-
-    @autoinfiltrate
+                                Val(nvariables(equations))))
 
     # Calculate boundary flux
-    if (normal_direction[1] > 0) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+    if (normal_direction[1] >= 0) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, normal_direction, equations)
