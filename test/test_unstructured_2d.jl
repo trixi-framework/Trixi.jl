@@ -323,6 +323,33 @@ end
     end
 end
 
+@trixi_testset "elixir_shallowwater_ec_float32.jl" begin
+    # Expected errors are nearly all taken from elixir_shallowwater_ec.jl
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec_float32.jl"),
+                        l2=[
+                            Float32(0.6107326269462766),
+                            Float32(0.48666631722018877),
+                            Float32(0.48309775159067053),
+                            Float32(0.29467422718511704),
+                        ],
+                        linf=[
+                            Float32(2.776782342826098),
+                            Float32(3.2158378644333707),
+                            3.6707287f0, # this needed to be adapted
+                            Float32(2.052861364219655),
+                        ],
+                        tspan=(0.0f0, 0.25f0),
+                        RealT=Float32)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
                         l2=[

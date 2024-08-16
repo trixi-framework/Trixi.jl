@@ -29,6 +29,22 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
+@trixi_testset "elixir_advection_float32.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_float32.jl"),
+                        # Expected errors are taken from elixir_advection_basic.jl
+                        l2=[Float32(8.311947673061856e-6)],
+                        linf=[Float32(6.627000273229378e-5)],
+                        RealT=Float32)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_advection_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
                         l2=[

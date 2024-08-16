@@ -17,8 +17,16 @@ as absolute/relative tolerance.
 macro test_trixi_include(elixir, args...)
     local l2 = get_kwarg(args, :l2, nothing)
     local linf = get_kwarg(args, :linf, nothing)
-    local atol = get_kwarg(args, :atol, 500 * eps())
-    local rtol = get_kwarg(args, :rtol, sqrt(eps()))
+    local RealT = get_kwarg(args, :RealT, :Float64)
+    if RealT === :Float64
+        atol_default = 500 * eps(Float64)
+        rtol_default = sqrt(eps(Float64))
+    elseif RealT === :Float32
+        atol_default = 500 * eps(Float32)
+        rtol_default = sqrt(eps(Float32))
+    end
+    local atol = get_kwarg(args, :atol, atol_default)
+    local rtol = get_kwarg(args, :rtol, rtol_default)
     local skip_coverage = get_kwarg(args, :skip_coverage, false)
     local coverage_override = expr_to_named_tuple(get_kwarg(args, :coverage_override, :()))
     if !(:maxiters in keys(coverage_override))
@@ -33,7 +41,7 @@ macro test_trixi_include(elixir, args...)
     local kwargs = Pair{Symbol, Any}[]
     for arg in args
         if (arg.head == :(=) &&
-            !(arg.args[1] in (:l2, :linf, :atol, :rtol, :coverage_override, :skip_coverage))
+            !(arg.args[1] in (:l2, :linf, :RealT, :atol, :rtol, :coverage_override, :skip_coverage))
             && !(coverage && arg.args[1] in keys(coverage_override)))
             push!(kwargs, Pair(arg.args...))
         end
