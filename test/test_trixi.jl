@@ -41,7 +41,8 @@ macro test_trixi_include(elixir, args...)
     local kwargs = Pair{Symbol, Any}[]
     for arg in args
         if (arg.head == :(=) &&
-            !(arg.args[1] in (:l2, :linf, :RealT, :atol, :rtol, :coverage_override, :skip_coverage))
+            !(arg.args[1] in (:l2, :linf, :RealT, :atol, :rtol, :coverage_override,
+                              :skip_coverage))
             && !(coverage && arg.args[1] in keys(coverage_override)))
             push!(kwargs, Pair(arg.args...))
         end
