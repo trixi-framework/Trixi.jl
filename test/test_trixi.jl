@@ -4,8 +4,8 @@ import Trixi
 # Use a macro to avoid world age issues when defining new initial conditions etc.
 # inside an elixir.
 """
-    @test_trixi_include(elixir; l2=nothing, linf=nothing,
-                                atol=500*eps(), rtol=sqrt(eps()),
+    @test_trixi_include(elixir; l2=nothing, linf=nothing, RealT=Float64,
+                                atol=500*eps(RealT), rtol=sqrt(eps(RealT)),
                                 parameters...)
 
 Test Trixi by calling `trixi_include(elixir; parameters...)`.

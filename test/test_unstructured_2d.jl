@@ -679,9 +679,9 @@ end
                             7.191792537723135e-5,
                             0.0002177522206115571],
                         linf=[0.0004054489124620808,
-                            0.0006164432358217731,
-                            0.0006164432358186644,
-                            0.001363103391379461],
+                              0.0006164432358217731,
+                              0.0006164432358186644,
+                              0.001363103391379461],
                         tspan=(0.0, 0.05),
                         atol=1.0e-10)
     # Ensure that we do not have excessive memory allocations
@@ -726,11 +726,28 @@ end
                             2.106144937311659e-14,
                             8.609642264224197e-13],
                         linf=[3.354871935812298e-11,
-                            7.006478730531285e-12,
-                            1.148153794261475e-11,
-                            7.461231632532872e-10],
+                              7.006478730531285e-12,
+                              1.148153794261475e-11,
+                              7.461231632532872e-10],
                         tspan=(0.0, 0.05),
                         atol=1.0e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "FDSBP (upwind): elixir_euler_free_stream_upwind_float32.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_free_stream_upwind_float32.jl"),
+                        l2=[0, 0, 0, 0],
+                        linf=[0, 0, 0, 0],
+                        tspan=(0.0f0, 0.05f0),
+                        atol=9f-4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
