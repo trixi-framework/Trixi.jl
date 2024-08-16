@@ -968,9 +968,9 @@ function calc_mortar_flux!(surface_flux_values,
                 noncons_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
                                                      orientation, equations)
                 # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_upper, 0.5, noncons_upper, equations,
+                multiply_add_to_node_vars!(fstar_upper, 0.5f0, noncons_upper, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_lower, 0.5, noncons_lower, equations,
+                multiply_add_to_node_vars!(fstar_lower, 0.5f0, noncons_lower, equations,
                                            dg, i)
             end
         else # large_sides[mortar] == 2 -> small elements on the left
@@ -986,9 +986,9 @@ function calc_mortar_flux!(surface_flux_values,
                 noncons_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
                                                      orientation, equations)
                 # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_upper, 0.5, noncons_upper, equations,
+                multiply_add_to_node_vars!(fstar_upper, 0.5f0, noncons_upper, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_lower, 0.5, noncons_lower, equations,
+                multiply_add_to_node_vars!(fstar_lower, 0.5f0, noncons_lower, equations,
                                            dg, i)
             end
         end
