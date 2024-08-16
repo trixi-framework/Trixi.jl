@@ -20,7 +20,8 @@ function apply_smoothing!(mesh::StructuredMesh{1}, alpha, alpha_tmp, dg, cache)
 
         # Apply smoothing
         alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[element], alpha[left])
-        alpha[element] = max(alpha_tmp[element], 0.5f0 * alpha_tmp[left], alpha[element])
+        alpha[element] = max(alpha_tmp[element], 0.5f0 * alpha_tmp[left],
+                             alpha[element])
     end
 end
 end # @muladd

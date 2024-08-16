@@ -21,7 +21,7 @@ runtime of all measurements added so far via `take!(counter)`, resetting the
 """
 mutable struct PerformanceCounter
     ncalls_since_readout::Int
-    runtime::Float64
+    runtime::Float32
 end
 
 PerformanceCounter() = PerformanceCounter(0, 0.0)
@@ -207,7 +207,7 @@ macro threaded(expr)
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
     expr = if _PREFERENCE_POLYESTER
-        # Currently using `@batch` from Polyester.jl is more efficient, 
+        # Currently using `@batch` from Polyester.jl is more efficient,
         # bypasses the Julia task scheduler and provides parallelization with less overhead.
         quote
             $Trixi.@batch $(expr)

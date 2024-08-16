@@ -338,10 +338,10 @@ end
             # central fluxes/SATs
             ftilde1_L = ftilde1 +
                         0.5f0 * nonconservative_flux(u_ll, u_rr, normal_direction,
-                                                     normal_direction, equations)
+                                             normal_direction, equations)
             ftilde1_R = ftilde1 +
                         0.5f0 * nonconservative_flux(u_rr, u_ll, normal_direction,
-                                                     normal_direction, equations)
+                                             normal_direction, equations)
 
             set_node_vars!(fstar1_L, ftilde1_L, equations, dg, i, j)
             set_node_vars!(fstar1_R, ftilde1_R, equations, dg, i, j)
@@ -378,10 +378,10 @@ end
             # central fluxes/SATs
             ftilde2_L = ftilde2 +
                         0.5f0 * nonconservative_flux(u_ll, u_rr, normal_direction,
-                                                     normal_direction, equations)
+                                             normal_direction, equations)
             ftilde2_R = ftilde2 +
                         0.5f0 * nonconservative_flux(u_rr, u_ll, normal_direction,
-                                                     normal_direction, equations)
+                                             normal_direction, equations)
 
             set_node_vars!(fstar2_L, ftilde2_L, equations, dg, i, j)
             set_node_vars!(fstar2_R, ftilde2_R, equations, dg, i, j)

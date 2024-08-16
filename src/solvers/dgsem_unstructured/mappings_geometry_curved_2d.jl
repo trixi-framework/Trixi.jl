@@ -62,19 +62,23 @@ function transfinite_quad_map_metrics(xi, eta,
     x4_prime, y4_prime = derivative_at(eta, surface_curves[4])
 
     X_xi = (0.5f0 * (x2 - x4 + (1 - eta) * x1_prime + (1 + eta) * x3_prime)
-            - 0.25f0 * ((1 - eta) * (x_corner2 - x_corner1) +
+            -
+            0.25f0 * ((1 - eta) * (x_corner2 - x_corner1) +
              (1 + eta) * (x_corner3 - x_corner4)))
 
     X_eta = (0.5f0 * ((1 - xi) * x4_prime + (1 + xi) * x2_prime + x3 - x1)
-             - 0.25f0 * ((1 - xi) * (x_corner4 - x_corner1) +
+             -
+             0.25f0 * ((1 - xi) * (x_corner4 - x_corner1) +
               (1 + xi) * (x_corner3 - x_corner2)))
 
     Y_xi = (0.5f0 * (y2 - y4 + (1 - eta) * y1_prime + (1 + eta) * y3_prime)
-            - 0.25f0 * ((1 - eta) * (y_corner2 - y_corner1) +
+            -
+            0.25f0 * ((1 - eta) * (y_corner2 - y_corner1) +
              (1 + eta) * (y_corner3 - y_corner4)))
 
     Y_eta = (0.5f0 * ((1 - xi) * y4_prime + (1 + xi) * y2_prime + y3 - y1)
-             - 0.25f0 * ((1 - xi) * (y_corner4 - y_corner1) +
+             -
+             0.25f0 * ((1 - xi) * (y_corner4 - y_corner1) +
               (1 + xi) * (y_corner3 - y_corner2)))
 
     return X_xi, X_eta, Y_xi, Y_eta
