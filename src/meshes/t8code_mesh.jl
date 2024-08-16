@@ -731,9 +731,14 @@ function adapt!(mesh::T8codeMesh, adapt_callback; recursive = true, balance = tr
 
         t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
 
-        # The old forest is destroyed here.
-        # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
-        t8_forest_commit(new_forest)
+        # Julias's GC leads to random segfaults here. Temporarily switch it off.
+        GC.enable(false)
+
+          # The old forest is destroyed here.
+          # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
+          t8_forest_commit(new_forest)
+
+        GC.enable(true)
     end
 
     mesh.forest = new_forest
