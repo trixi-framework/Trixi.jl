@@ -48,8 +48,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
         reinitialize_containers!(mesh, equations, dg, cache)
 
         resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) *
-                nelements(dg, cache))
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Loop over all elements in old container and either copy them or refine them
@@ -61,8 +60,8 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
         for old_element_id in 1:old_n_elements
             if needs_refinement[old_element_id]
                 # Refine element and store solution directly in new data structure
-                refine_element!(u, element_id, old_u, old_element_id,
-                                adaptor, equations, dg, u_tmp1, u_tmp2)
+                refine_element!(u, element_id, old_u, old_element_id, adaptor,
+                                equations, dg, u_tmp1, u_tmp2)
 
                 if mesh isa P4estMesh
                     # Before `element_id` is incremented, divide by the new Jacobians on each
@@ -230,8 +229,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         reinitialize_containers!(mesh, equations, dg, cache)
 
         resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) *
-                nelements(dg, cache))
+                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Loop over all elements in old container and either copy them or coarsen them
@@ -255,8 +253,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                 @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
 
                 # Coarsen elements and store solution directly in new data structure
-                coarsen_elements!(u, element_id, old_u, old_element_id,
-                                  adaptor, equations, dg, u_tmp1, u_tmp2)
+                coarsen_elements!(u, element_id, old_u, old_element_id, adaptor,
+                                  equations, dg, u_tmp1, u_tmp2)
 
                 if mesh isa P4estMesh
                     # Before `element_id` is incremented, divide by the new Jacobian and save
@@ -436,8 +434,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
 
         reinitialize_containers!(mesh, equations, dg, cache)
 
-        resize!(u_ode,
-                nvariables(equations) * ndofs(mesh, dg, cache))
+        resize!(u_ode, nvariables(equations) * ndofs(mesh, dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         u_tmp1 = Array{eltype(u), 4}(undef, nvariables(equations), nnodes(dg),
@@ -449,8 +446,8 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
             if difference[old_index] > 0 # Refine.
 
                 # Refine element and store solution directly in new data structure.
-                refine_element!(u, new_index, old_u, old_index, adaptor, equations,
-                                dg, u_tmp1, u_tmp2)
+                refine_element!(u, new_index, old_u, old_index, adaptor, equations, dg,
+                                u_tmp1, u_tmp2)
 
                 # Before indices are incremented divide by the new Jacobians on each
                 # child element and save the result
@@ -472,8 +469,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                 # If an element is to be removed, sanity check if the following elements
                 # are also marked - otherwise there would be an error in the way the
                 # cells/elements are sorted.
-                @assert all(difference[old_index:(old_index + T8_CHILDREN - 1)] .<
-                            0) "bad cell/element order"
+                @assert all(difference[old_index:(old_index + T8_CHILDREN - 1)] .< 0) "bad cell/element order"
 
                 # Coarsen elements and store solution directly in new data structure.
                 coarsen_elements!(u, new_index, old_u, old_index, adaptor, equations,
@@ -482,8 +478,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                 # Before the indices are incremented divide by the new Jacobian and save
                 # the result again in the parent element
                 for v in eachvariable(equations)
-                    u[v, .., new_index] .*= (8 .*
-                                             cache.elements.inverse_jacobian[..,
+                    u[v, .., new_index] .*= (8 .* cache.elements.inverse_jacobian[..,
                                                                              new_index])
                 end
 
