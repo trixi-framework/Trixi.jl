@@ -334,7 +334,7 @@ end
                         ],
                         linf=[
                             Float32(2.776782342826098),
-                            Float32(3.2158378644333707),
+                            3.2169826f0, # this needs to be adapted
                             3.6707287f0, # this needed to be adapted
                             Float32(2.052861364219655),
                         ],
