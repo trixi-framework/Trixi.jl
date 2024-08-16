@@ -734,9 +734,9 @@ function adapt!(mesh::T8codeMesh, adapt_callback; recursive = true, balance = tr
         # Julias's GC leads to random segfaults here. Temporarily switch it off.
         GC.enable(false)
 
-          # The old forest is destroyed here.
-          # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
-          t8_forest_commit(new_forest)
+        # The old forest is destroyed here.
+        # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
+        t8_forest_commit(new_forest)
 
         GC.enable(true)
     end
