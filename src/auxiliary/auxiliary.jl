@@ -21,7 +21,7 @@ runtime of all measurements added so far via `take!(counter)`, resetting the
 """
 mutable struct PerformanceCounter
     ncalls_since_readout::Int
-    runtime::Float64
+    runtime::Float32 #64
 end
 
 PerformanceCounter() = PerformanceCounter(0, 0.0)

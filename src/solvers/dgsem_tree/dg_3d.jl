@@ -1147,11 +1147,13 @@ function calc_mortar_flux!(surface_flux_values,
                 # Add to primary and secondary temporary storage
                 multiply_add_to_node_vars!(fstar_upper_left, 0.5f0, noncons_upper_left,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_upper_right, 0.5f0, noncons_upper_right,
+                multiply_add_to_node_vars!(fstar_upper_right, 0.5f0,
+                                           noncons_upper_right,
                                            equations, dg, i, j)
                 multiply_add_to_node_vars!(fstar_lower_left, 0.5f0, noncons_lower_left,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_lower_right, 0.5f0, noncons_lower_right,
+                multiply_add_to_node_vars!(fstar_lower_right, 0.5f0,
+                                           noncons_lower_right,
                                            equations, dg, i, j)
             end
         else # large_sides[mortar] == 2 -> small elements on the left
@@ -1187,11 +1189,13 @@ function calc_mortar_flux!(surface_flux_values,
                 # Add to primary and secondary temporary storage
                 multiply_add_to_node_vars!(fstar_upper_left, 0.5f0, noncons_upper_left,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_upper_right, 0.5f0, noncons_upper_right,
+                multiply_add_to_node_vars!(fstar_upper_right, 0.5f0,
+                                           noncons_upper_right,
                                            equations, dg, i, j)
                 multiply_add_to_node_vars!(fstar_lower_left, 0.5f0, noncons_lower_left,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_lower_right, 0.5f0, noncons_lower_right,
+                multiply_add_to_node_vars!(fstar_lower_right, 0.5f0,
+                                           noncons_lower_right,
                                            equations, dg, i, j)
             end
         end
