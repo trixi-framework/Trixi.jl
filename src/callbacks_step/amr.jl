@@ -788,6 +788,8 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
         reinitialize_boundaries!(semi.boundary_conditions, cache)
     end
 
+    mesh.unsaved_changes |= has_changed
+
     # Return true if there were any cells coarsened or refined, otherwise false.
     return has_changed
 end
