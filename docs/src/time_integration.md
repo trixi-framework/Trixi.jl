@@ -42,3 +42,81 @@ are the following. Further documentation can be found in the
     of stages, e.g. to allow for interpolation (dense output), root-finding for continuous callbacks,
     and error-based time step control. In general, you often should not need to worry about this if you
     use Trixi.jl.
+
+## Optimized Schemes
+
+Optimized schemes aim to maximize the stability region or to tailor the stability polynomial to specific problems, such as stiff equations. By optimizing the stability polynomial, these schemes can achieve greater accuracy and efficiency. One of the optimized schemes that is implemented in Trixi.jl is the Paired Explicit Runge-Kutta method.
+
+### Paired explicit Runge-Kutta schemes Schemes
+
+Paired Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ordinary differential equations (ODEs). They work by pairing stages in the Runge-Kutta process, reducing redundant computations and minimizing storage requirements while maintaining high-order accuracy. The stability polynomial in PERK schemes is optimized to allow for larger time steps, making them particularly effective in handling mildly stiff systems where traditional explicit methods would struggle. This combination of efficiency, reduced computational cost, and enhanced stability makes PERK schemes a powerful tool for solving ODEs in scenarios where both precision and performance are critical. In this type of schemes, additional libraries have to be imported to perform the aforementioned optimization.
+
+### Tutorial: Using `PairedExplicitRK2`
+
+In this following tutorial, we will demonstrate how you can use the second order paired explicit Runge-Kutta schemes time integrator.
+
+1. First, ensure you have the necessary packages installed. For the paired explicit Runge-Kutta scheme of the second order, you need an additional package of `Convex.jl` and `ECOS.jl`. You can install them using Julia's package manager:
+
+```julia
+using Pkg
+Pkg.add("Trixi")
+Pkg.add("Convex")
+Pkg.add("ECOS")
+```
+
+2. In order to use the time integrator, you also need to import these packages in the script you are running as well:
+
+```julia
+using Convex, ECOS
+using Trixi
+```
+
+3. Define the ODE problem and the semidiscretization setup. For this example, we will use a simple advection problem.
+
+```julia
+# Define the mesh
+cells_per_dimension = 100
+coordinates_min = 0.0
+coordinates_max = 1.0
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+
+# Define the equations and initial condition
+equations = LinearScalarAdvectionEquation()
+initial_condition = (x, t) -> sin(2π * x)
+
+# Define the solver
+solver = FluxBasedSolver()
+
+# Define the semidiscretization
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+```
+
+4. Define the necessary callbacks for the simulation. Callbacks are used to perform actions at specific points during the integration process.
+
+```julia
+# Define the callbacks
+summary_callback = SummaryCallback()
+alive_callback = AliveCallback()
+save_solution = SaveSolutionCallback(dt = 0.1, save_initial_solution = true, save_final_solution = true)
+analysis_callback = AnalysisCallback(semi, interval = 200)
+stepsize_callback = StepsizeCallback(cfl = 3.7)
+
+# Create a CallbackSet to collect all callbacks
+callbacks = CallbackSet(summary_callback, alive_callback, save_solution, analysis_callback, stepsize_callback)
+```
+
+5. In this step we will construct the time integrator. In order to do this, you need the following components:
+
+  - Number of Stages: The number of stages in the Runge-Kutta method. In this example, we use `6` stages.
+  - Time Span (`tspan`): A tuple `(t_start, t_end)` that defines the time span over which the ODE will be solved. This is used to calculate the maximum time step allowed for the bisection algorithm used in calculating the polynomial coefficients in the ODE algorithm.
+  - Semidiscretization (`semi`): The semidiscretization setup that includes the mesh, equations, initial condition, and solver. In this example, this variable is already defined in step 3.
+
+```julia
+# Define the time span
+tspan = (0.0, 1.0)
+
+# Construct second order paired explicit Runge-Kutta method with 6 stages for given simulation setup.
+# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
+# in calculating the polynomial coefficients in the ODE algorithm.
+ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
+```
