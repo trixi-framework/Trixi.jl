@@ -1480,8 +1480,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     @timed_testset "Laplace Diffusion 2D" begin
         for RealT in (Float32, Float64)
             equations = LinearScalarAdvectionEquation2D(RealT(1), RealT(1))
-            diffusivity() = RealT(0.1)
-            equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
+            equations_parabolic = LaplaceDiffusion2D(RealT(0.1), equations)
 
             x = SVector(zero(RealT), zero(RealT))
             t = zero(RealT)
