@@ -8,7 +8,7 @@ for human readability.
 
 #### Changed
 
-- The AMR routing for `P4estMesh` and `T8codeMesh` was changed to work on the product
+- The AMR routines for `P4estMesh` and `T8codeMesh` were changed to work on the product
   of the Jacobian and the conserved variables instead of the conserved variables only
   to make AMR fully conservative ([#2028]). This may change AMR results slightly.
 
