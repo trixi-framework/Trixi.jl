@@ -62,7 +62,7 @@ in combination with [`source_terms_convergence_test`](@ref).
 function initial_condition_convergence_test(x, t, equations::PolytropicEulerEquations2D)
     # manufactured initial condition from Winters (2019) [0.1007/s10543-019-00789-w]
     # domain must be set to [0, 1] x [0, 1]
-    h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
+    h = 8 + cospi(2 * x[1]) * sinpi(2 * x[2]) * cospi(2 * t)
 
     return SVector(h, h / 2, 3 * h / 2)
 end
@@ -78,19 +78,20 @@ Source terms used for convergence tests in combination with
     rho, v1, v2 = cons2prim(u, equations)
 
     # Residual from Winters (2019) [0.1007/s10543-019-00789-w] eq. (5.2).
-    h = 8 + cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
-    h_t = -2 * pi * cos(2 * pi * x[1]) * sin(2 * pi * x[2]) * sin(2 * pi * t)
-    h_x = -2 * pi * sin(2 * pi * x[1]) * sin(2 * pi * x[2]) * cos(2 * pi * t)
-    h_y = 2 * pi * cos(2 * pi * x[1]) * cos(2 * pi * x[2]) * cos(2 * pi * t)
+    RealT = eltype(u)
+    h = 8 + cospi(2 * x[1]) * sinpi(2 * x[2]) * cospi(2 * t)
+    h_t = -2 * convert(RealT, pi) * cospi(2 * x[1]) * sinpi(2 * x[2]) * sinpi(2 * t)
+    h_x = -2 * convert(RealT, pi) * sinpi(2 * x[1]) * sinpi(2 * x[2]) * cospi(2 * t)
+    h_y = 2 * convert(RealT, pi) * cospi(2 * x[1]) * cospi(2 * x[2]) * cospi(2 * t)
 
     rho_x = h_x
     rho_y = h_y
 
     b = equations.kappa * equations.gamma * h^(equations.gamma - 1)
 
-    r_1 = h_t + h_x / 2 + 3 / 2 * h_y
-    r_2 = h_t / 2 + h_x / 4 + b * rho_x + 3 / 4 * h_y
-    r_3 = 3 / 2 * h_t + 3 / 4 * h_x + 9 / 4 * h_y + b * rho_y
+    r_1 = h_t + h_x / 2 + 3 * h_y / 2
+    r_2 = h_t / 2 + h_x / 4 + b * rho_x + 3 * h_y / 4
+    r_3 = 3 * h_t / 2 + 3 * h_x / 4 + 9 * h_y / 4 + b * rho_y
 
     return SVector(r_1, r_2, r_3)
 end
@@ -113,9 +114,10 @@ function initial_condition_weak_blast_wave(x, t, equations::PolytropicEulerEquat
     phi = atan(y_norm, x_norm)
 
     # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+    RealT = eltype(x)
+    rho = r > 0.5f0 ? one(RealT) : convert(RealT, 1.1691)
+    v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(phi)
+    v2 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * sin(phi)
 
     return prim2cons(SVector(rho, v1, v2), equations)
 end
@@ -181,17 +183,17 @@ For details see Section 3.2 of the following reference
     v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
 
     # Compute the necessary mean values
-    if equations.gamma == 1.0 # isothermal gas
+    if equations.gamma == 1 # isothermal gas
         rho_mean = ln_mean(rho_ll, rho_rr)
     else # equations.gamma > 1 # polytropic gas
         rho_mean = stolarsky_mean(rho_ll, rho_rr, equations.gamma)
     end
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    p_avg = 0.5 * (p_ll + p_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
 
     # Calculate fluxes depending on normal_direction
-    f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+    f1 = rho_mean * 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
     f2 = f1 * v1_avg + p_avg * normal_direction[1]
     f3 = f1 * v2_avg + p_avg * normal_direction[2]
 
@@ -207,21 +209,21 @@ end
     p_rr = equations.kappa * rho_rr^equations.gamma
 
     # Compute the necessary mean values
-    if equations.gamma == 1.0 # isothermal gas
+    if equations.gamma == 1 # isothermal gas
         rho_mean = ln_mean(rho_ll, rho_rr)
     else # equations.gamma > 1 # polytropic gas
         rho_mean = stolarsky_mean(rho_ll, rho_rr, equations.gamma)
     end
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    v2_avg = 0.5 * (v2_ll + v2_rr)
-    p_avg = 0.5 * (p_ll + p_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
 
     if orientation == 1 # x-direction
-        f1 = rho_mean * 0.5 * (v1_ll + v1_rr)
+        f1 = rho_mean * 0.5f0 * (v1_ll + v1_rr)
         f2 = f1 * v1_avg + p_avg
         f3 = f1 * v2_avg
     else # y-direction
-        f1 = rho_mean * 0.5 * (v2_ll + v2_rr)
+        f1 = rho_mean * 0.5f0 * (v2_ll + v2_rr)
         f2 = f1 * v1_avg
         f3 = f1 * v2_avg + p_avg
     end
@@ -360,14 +362,14 @@ end
     v_square = v1^2 + v2^2
     p = pressure(u, equations)
     # Form of the internal energy depends on gas type
-    if equations.gamma == 1.0 # isothermal gas
+    if equations.gamma == 1 # isothermal gas
         internal_energy = equations.kappa * log(rho)
     else # equations.gamma > 1 # polytropic gas
         internal_energy = equations.kappa * rho^(equations.gamma - 1) /
-                          (equations.gamma - 1.0)
+                          (equations.gamma - 1)
     end
 
-    w1 = internal_energy + p / rho - 0.5 * v_square
+    w1 = internal_energy + p / rho - 0.5f0 * v_square
     w2 = v1
     w3 = v2
 
