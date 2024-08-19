@@ -43,7 +43,8 @@ function calc_node_coordinates!(node_coordinates,
     # places and the additional information passed to the compiler makes them faster
     # than native `Array`s.
     tmp1 = StrideArray(undef, real(mesh),
-                       StaticInt(2), static_length(nodes), static_length(mesh.nodes))
+                       StaticInt(size(mesh.tree_node_coordinates, 1)),
+                       static_length(nodes), static_length(mesh.nodes))
     matrix1 = StrideArray(undef, real(mesh),
                           static_length(nodes), static_length(mesh.nodes))
     matrix2 = similar(matrix1)
