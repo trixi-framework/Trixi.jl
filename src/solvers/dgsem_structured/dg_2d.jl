@@ -104,7 +104,7 @@ end
                                            mesh::Union{StructuredMesh{2},
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
-                                                       T8codeMesh{2}},
+                                                       P4estMeshView{2}, T8codeMesh{2}},
                                            nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
