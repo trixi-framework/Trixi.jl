@@ -1459,11 +1459,71 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
-    @timed_testset "Laplace Diffusion 1D" begin end
+    @timed_testset "Laplace Diffusion 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred LinearScalarAdvectionEquation1D(RealT(1))
+            diffusivity() = RealT(0.1)
+            equations_parabolic = @inferred LaplaceDiffusion1D(diffusivity(), equations)
 
-    @timed_testset "Laplace Diffusion 2D" begin end
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = gradients = SVector(one(RealT))
+            orientation = 1
 
-    @timed_testset "Laplace Diffusion 3D" begin end
+            @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                  RealT
+
+            # TODO: BC tests for BoundaryConditionDirichlet
+            # TODO: BC tests for BoundaryConditionNeumann
+        end
+    end
+
+    @timed_testset "Laplace Diffusion 2D" begin
+        for RealT in (Float32, Float64)
+            equations = LinearScalarAdvectionEquation2D(RealT(1), RealT(1))
+            diffusivity() = RealT(0.1)
+            equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
+
+            x = SVector(zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_inner = u_outer = inv_h = gradients = SVector(one(RealT), one(RealT))
+            orientations = [1, 2]
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
+
+            parabolic_solver = ViscousFormulationLocalDG(RealT(0.1))
+            @test eltype(@inferred Trixi.penalty(u_outer, u_inner, inv_h,
+                                                 equations_parabolic, parabolic_solver)) ==
+                  RealT
+        end
+    end
+
+    @timed_testset "Laplace Diffusion 3D" begin
+        for RealT in (Float32, Float64)
+            equations = LinearScalarAdvectionEquation3D(RealT(1), RealT(1), RealT(1))
+            diffusivity() = RealT(0.1)
+            equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
+
+            x = SVector(zero(RealT), zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_inner = u_outer = inv_h = gradients = SVector(one(RealT), one(RealT),
+                                                                one(RealT))
+            orientations = [1, 2, 3]
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
+
+            parabolic_solver = ViscousFormulationLocalDG(RealT(0.1))
+            @test eltype(@inferred Trixi.penalty(u_outer, u_inner, inv_h,
+                                                 equations_parabolic, parabolic_solver)) ==
+                  RealT
+        end
+    end
 
     @timed_testset "Lattice Boltzmann 2D" begin
         for RealT in (Float32, Float64)
