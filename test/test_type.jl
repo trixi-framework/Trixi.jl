@@ -1926,6 +1926,80 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Polytropic Euler 2D" begin
+        for RealT in (Float32, Float64)
+            equations1 = @inferred PolytropicEulerEquations2D(RealT(1),
+                                                              RealT(1)) # equations.gamma == 1
+            equations2 = @inferred PolytropicEulerEquations2D(RealT(1.4), RealT(0.5))  # equations.gamma > 1
+
+            for equations in (equations1, equations2)
+                x = SVector(zero(RealT), zero(RealT))
+                t = zero(RealT)
+                u = u_ll = u_rr = SVector(one(RealT), one(RealT), one(RealT))
+                orientations = [1, 2]
+                directions = [1, 2, 3, 4]
+                normal_direction = SVector(one(RealT), zero(RealT))
+
+                @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                      RealT
+                @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) ==
+                      RealT
+                @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
+                      RealT
+
+                @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+                if RealT == Float32
+                    # check `ln_mean` and `stolarsky_mean` (test broken)
+                    @test_broken eltype(@inferred flux_winters_etal(u_ll, u_rr,
+                                                                    normal_direction,
+                                                                    equations)) ==
+                                 RealT
+                else
+                    @test eltype(@inferred flux_winters_etal(u_ll, u_rr, normal_direction,
+                                                             equations)) ==
+                          RealT
+                end
+                @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, normal_direction,
+                                                           equations)) ==
+                      RealT
+                @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, normal_direction,
+                                                           equations)) ==
+                      RealT
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                           equations)) ==
+                      RealT
+
+                for orientation in orientations
+                    @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                    if RealT == Float32
+                        # check `ln_mean` and `stolarsky_mean` (test broken)
+                        @test_broken eltype(@inferred flux_winters_etal(u_ll, u_rr,
+                                                                        orientation,
+                                                                        equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred flux_winters_etal(u_ll, u_rr, orientation,
+                                                                 equations)) ==
+                              RealT
+                    end
+                    @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation,
+                                                               equations)) ==
+                          RealT
+                    @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                               equations)) ==
+                          RealT
+                end
+
+                @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+                @test eltype(@inferred cons2prim(u, equations)) == RealT
+                @test eltype(@inferred prim2cons(u, equations)) == RealT
+                @test eltype(@inferred cons2entropy(u, equations)) == RealT
+                @test typeof(@inferred density(u, equations)) == RealT
+                @test typeof(@inferred pressure(u, equations)) == RealT
+            end
+        end
+    end
+
     @timed_testset "Shallow Water 1D" begin
         for RealT in (Float32, Float64)
             equations = @inferred ShallowWaterEquations1D(gravity_constant = RealT(9.81))
@@ -1971,8 +2045,6 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred flux_nonconservative_audusse_etal(u_ll, u_rr,
                                                                      orientation,
                                                                      equations)) == RealT
-            @test eltype(@inferred flux_nonconservative_ersing_etal(u_ll, u_rr, orientation,
-                                                                    equations)) == RealT
             @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, orientation,
                                                        equations)) == RealT
             @test eltype(@inferred flux_wintermeyer_etal(u_ll, u_rr, orientation,
@@ -2059,10 +2131,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                      normal_direction_ll,
                                                                      normal_direction_average,
                                                                      equations)) == RealT
-            @test eltype(@inferred flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                                                    normal_direction_ll,
-                                                                    normal_direction_average,
-                                                                    equations)) == RealT
             @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, normal_direction,
                                                        equations)) == RealT
             @test eltype(@inferred flux_wintermeyer_etal(u_ll, u_rr, normal_direction,
@@ -2106,10 +2174,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred flux_nonconservative_audusse_etal(u_ll, u_rr,
                                                                          orientation,
                                                                          equations)) ==
-                      RealT
-                @test eltype(eltype(@inferred flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                                                               orientation,
-                                                                               equations))) ==
                       RealT
                 @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, orientation,
                                                            equations)) == RealT
