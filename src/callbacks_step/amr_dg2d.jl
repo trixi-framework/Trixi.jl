@@ -135,7 +135,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
                     # child element and save the result
                     for m in 0:3 # loop over the children
                         for v in eachvariable(equations)
-                            u[v, .., element_id + m] .*= (0.25 .*
+                            u[v, .., element_id + m] .*= (0.25f0 .*
                                                           cache.elements.inverse_jacobian[..,
                                                                                           element_id + m])
                         end
@@ -517,7 +517,7 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
                 # child element and save the result
                 for m in 0:3 # loop over the children
                     for v in eachvariable(equations)
-                        u[v, .., new_index + m] .*= (0.25 .*
+                        u[v, .., new_index + m] .*= (0.25f0 .*
                                                      cache.elements.inverse_jacobian[..,
                                                                                      new_index + m])
                     end
