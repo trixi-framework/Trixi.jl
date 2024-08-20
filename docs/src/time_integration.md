@@ -80,6 +80,7 @@ coordinates_min = 0.0
 coordinates_max = 1.0
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
+
 # Define the equations and initial condition
 equations = LinearScalarAdvectionEquation()
 initial_condition = (x, t) -> sin(2π * x)
@@ -105,18 +106,34 @@ stepsize_callback = StepsizeCallback(cfl = 3.7)
 callbacks = CallbackSet(summary_callback, alive_callback, save_solution, analysis_callback, stepsize_callback)
 ```
 
-5. In this step we will construct the time integrator. In order to do this, you need the following components:
-
-  - Number of Stages: The number of stages in the Runge-Kutta method. In this example, we use `6` stages.
-  - Time Span (`tspan`): A tuple `(t_start, t_end)` that defines the time span over which the ODE will be solved. This is used to calculate the maximum time step allowed for the bisection algorithm used in calculating the polynomial coefficients in the ODE algorithm.
-  - Semidiscretization (`semi`): The semidiscretization setup that includes the mesh, equations, initial condition, and solver. In this example, this variable is already defined in step 3.
+5. Define the ODE problem by specifying the time span over which the ODE will be solved. The `tspan` parameter is a tuple `(t_start, t_end)` that defines the start and end times for the simulation. The `semidiscretize` function is used to create the ODE problem from the semidiscretization setup.
 
 ```julia
 # Define the time span
 tspan = (0.0, 1.0)
 
+# Create ODE problem with time span from 0.0 to 1.0
+ode = semidiscretize(semi, tspan)
+```
+
+6. In this step we will construct the time integrator. In order to do this, you need the following components:
+
+  - Number of Stages: The number of stages in the Runge-Kutta method. In this example, we use `6` stages.
+  - Time Span (`tspan`): A tuple `(t_start, t_end)` that defines the time span over which the ODE will be solved. This is used to calculate the maximum time step allowed for the bisection algorithm used in calculating the polynomial coefficients in the ODE algorithm. This variable is already defined in step 5.
+  - Semidiscretization (`semi`): The semidiscretization setup that includes the mesh, equations, initial condition, and solver. In this example, this variable is already defined in step 3.
+
+```julia
 # Construct second order paired explicit Runge-Kutta method with 6 stages for given simulation setup.
 # Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
 # in calculating the polynomial coefficients in the ODE algorithm.
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
+```
+
+7. With everything now set up, you can now use `Trixi.solve` to solve the ODE problem. The `solve` function takes the ODE problem, the time integrator, and some options such as the time step (`dt`), whether to save every step (`save_everystep`), and the callbacks.
+
+```julia
+# Solve the ODE problem using PERK2
+sol = Trixi.solve(ode, ode_algorithm,
+                  dt = 1.0, # Manual time step value, will be overwritten by the stepsize_callback when it is specified.
+                  save_everystep = false, callback = callbacks)
 ```
