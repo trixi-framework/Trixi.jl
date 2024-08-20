@@ -176,7 +176,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @timed_testset "Compressible Euler 2D" begin
         for RealT in (Float32, Float64)
-            # set gamma = 2 for the coupling convergence test\
+            # set gamma = 2 for the coupling convergence test
             equations = @inferred CompressibleEulerEquations2D(RealT(2))
 
             x = SVector(zero(RealT), zero(RealT))
@@ -1459,6 +1459,69 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Laplace Diffusion 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred LinearScalarAdvectionEquation1D(RealT(1))
+            equations_parabolic = @inferred LaplaceDiffusion1D(RealT(0.1), equations)
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = gradients = SVector(one(RealT))
+            orientation = 1
+
+            @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                  RealT
+
+            # TODO: BC tests for BoundaryConditionDirichlet
+            # TODO: BC tests for BoundaryConditionNeumann
+        end
+    end
+
+    @timed_testset "Laplace Diffusion 2D" begin
+        for RealT in (Float32, Float64)
+            equations = LinearScalarAdvectionEquation2D(RealT(1), RealT(1))
+            equations_parabolic = LaplaceDiffusion2D(RealT(0.1), equations)
+
+            x = SVector(zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_inner = u_outer = inv_h = gradients = SVector(one(RealT), one(RealT))
+            orientations = [1, 2]
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
+
+            parabolic_solver = ViscousFormulationLocalDG(RealT(0.1))
+            @test eltype(@inferred Trixi.penalty(u_outer, u_inner, inv_h,
+                                                 equations_parabolic, parabolic_solver)) ==
+                  RealT
+        end
+    end
+
+    @timed_testset "Laplace Diffusion 3D" begin
+        for RealT in (Float32, Float64)
+            equations = LinearScalarAdvectionEquation3D(RealT(1), RealT(1), RealT(1))
+            equations_parabolic = LaplaceDiffusion3D(RealT(0.1), equations)
+
+            x = SVector(zero(RealT), zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_inner = u_outer = inv_h = gradients = SVector(one(RealT), one(RealT),
+                                                                one(RealT))
+            orientations = [1, 2, 3]
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
+                      RealT
+            end
+
+            parabolic_solver = ViscousFormulationLocalDG(RealT(0.1))
+            @test eltype(@inferred Trixi.penalty(u_outer, u_inner, inv_h,
+                                                 equations_parabolic, parabolic_solver)) ==
+                  RealT
+        end
+    end
+
     @timed_testset "Lattice Boltzmann 2D" begin
         for RealT in (Float32, Float64)
             equations = @inferred LatticeBoltzmannEquations2D(Ma = RealT(0.1), Re = 1000)
@@ -1772,6 +1835,234 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Linearized Euler 1D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred LinearizedEulerEquations1D(v_mean_global = RealT(0),
+                                                             c_mean_global = RealT(1),
+                                                             rho_mean_global = RealT(1))
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT))
+            orientation = 1
+            directions = [1, 2]
+
+            surface_flux_function = flux_hll
+
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                  RealT
+
+            for direction in directions
+                @test eltype(@inferred boundary_condition_wall(u_inner, orientation,
+                                                               direction, x, t,
+                                                               surface_flux_function,
+                                                               equations)) == RealT
+            end
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+
+            @test typeof(@inferred Trixi.max_abs_speeds(equations)) ==
+                  RealT
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Linearized Euler 2D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred LinearizedEulerEquations2D(v_mean_global = (RealT(0),
+                                                                              RealT(0)),
+                                                             c_mean_global = RealT(1),
+                                                             rho_mean_global = RealT(1))
+
+            x = SVector(zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT),
+                                                one(RealT))
+            orientations = [1, 2]
+            directions = [1, 2, 3, 4]
+            normal_direction = SVector(one(RealT), zero(RealT))
+
+            surface_flux_function = flux_hll
+
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                  RealT
+
+            for orientation in orientations
+                for direction in directions
+                    @test eltype(@inferred boundary_condition_wall(u_inner, orientation,
+                                                                   direction, x, t,
+                                                                   surface_flux_function,
+                                                                   equations)) == RealT
+                end
+
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_godunov(u_ll, u_rr, orientation, equations)) ==
+                      RealT
+
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) ==
+                      RealT
+                @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) ==
+                      RealT
+                @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation,
+                                                           equations)) ==
+                      RealT
+            end
+
+            @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+            @test eltype(@inferred flux_godunov(u_ll, u_rr, normal_direction, equations)) ==
+                  RealT
+
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Linearized Euler 3D" begin
+        for RealT in (Float32, Float64)
+            equations = @inferred LinearizedEulerEquations3D(v_mean_global = (RealT(0),
+                                                                              RealT(0),
+                                                                              RealT(0)),
+                                                             c_mean_global = RealT(1),
+                                                             rho_mean_global = RealT(1))
+
+            x = SVector(zero(RealT), zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = u_inner = SVector(one(RealT), one(RealT), one(RealT),
+                                                one(RealT), one(RealT))
+            orientations = [1, 2, 3]
+            directions = [1, 2, 3, 4, 5, 6]
+            normal_direction = SVector(one(RealT), zero(RealT), zero(RealT))
+
+            surface_flux_function = flux_hll
+
+            @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                  RealT
+
+            for orientation in orientations
+                for direction in directions
+                    @test eltype(@inferred boundary_condition_wall(u_inner, orientation,
+                                                                   direction, x, t,
+                                                                   surface_flux_function,
+                                                                   equations)) == RealT
+                end
+
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+                @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+                @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
+            end
+
+            @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+
+            @test eltype(@inferred Trixi.max_abs_speeds(equations)) == RealT
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+            @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, normal_direction,
+                                                       equations)) == RealT
+
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Polytropic Euler 2D" begin
+        for RealT in (Float32, Float64)
+            equations1 = @inferred PolytropicEulerEquations2D(RealT(1),
+                                                              RealT(1)) # equations.gamma == 1
+            equations2 = @inferred PolytropicEulerEquations2D(RealT(1.4), RealT(0.5))  # equations.gamma > 1
+
+            for equations in (equations1, equations2)
+                x = SVector(zero(RealT), zero(RealT))
+                t = zero(RealT)
+                u = u_ll = u_rr = SVector(one(RealT), one(RealT), one(RealT))
+                orientations = [1, 2]
+                directions = [1, 2, 3, 4]
+                normal_direction = SVector(one(RealT), zero(RealT))
+
+                @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
+                      RealT
+                @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) ==
+                      RealT
+                @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
+                      RealT
+
+                @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
+                if RealT == Float32
+                    # check `ln_mean` and `stolarsky_mean` (test broken)
+                    @test_broken eltype(@inferred flux_winters_etal(u_ll, u_rr,
+                                                                    normal_direction,
+                                                                    equations)) ==
+                                 RealT
+                else
+                    @test eltype(@inferred flux_winters_etal(u_ll, u_rr, normal_direction,
+                                                             equations)) ==
+                          RealT
+                end
+                @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, normal_direction,
+                                                           equations)) ==
+                      RealT
+                @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, normal_direction,
+                                                           equations)) ==
+                      RealT
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
+                                                           equations)) ==
+                      RealT
+
+                for orientation in orientations
+                    @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                    if RealT == Float32
+                        # check `ln_mean` and `stolarsky_mean` (test broken)
+                        @test_broken eltype(@inferred flux_winters_etal(u_ll, u_rr,
+                                                                        orientation,
+                                                                        equations)) ==
+                                     RealT
+                    else
+                        @test eltype(@inferred flux_winters_etal(u_ll, u_rr, orientation,
+                                                                 equations)) ==
+                              RealT
+                    end
+                    @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation,
+                                                               equations)) ==
+                          RealT
+                    @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                               equations)) ==
+                          RealT
+                end
+
+                @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+                @test eltype(@inferred cons2prim(u, equations)) == RealT
+                @test eltype(@inferred prim2cons(u, equations)) == RealT
+                @test eltype(@inferred cons2entropy(u, equations)) == RealT
+                @test typeof(@inferred density(u, equations)) == RealT
+                @test typeof(@inferred pressure(u, equations)) == RealT
+            end
+        end
+    end
+
     @timed_testset "Shallow Water 1D" begin
         for RealT in (Float32, Float64)
             equations = @inferred ShallowWaterEquations1D(gravity_constant = RealT(9.81))
@@ -1817,8 +2108,6 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred flux_nonconservative_audusse_etal(u_ll, u_rr,
                                                                      orientation,
                                                                      equations)) == RealT
-            @test eltype(@inferred flux_nonconservative_ersing_etal(u_ll, u_rr, orientation,
-                                                                    equations)) == RealT
             @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, orientation,
                                                        equations)) == RealT
             @test eltype(@inferred flux_wintermeyer_etal(u_ll, u_rr, orientation,
@@ -1905,10 +2194,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                      normal_direction_ll,
                                                                      normal_direction_average,
                                                                      equations)) == RealT
-            @test eltype(@inferred flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                                                    normal_direction_ll,
-                                                                    normal_direction_average,
-                                                                    equations)) == RealT
             @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, normal_direction,
                                                        equations)) == RealT
             @test eltype(@inferred flux_wintermeyer_etal(u_ll, u_rr, normal_direction,
@@ -1952,10 +2237,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred flux_nonconservative_audusse_etal(u_ll, u_rr,
                                                                          orientation,
                                                                          equations)) ==
-                      RealT
-                @test eltype(eltype(@inferred flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                                                               orientation,
-                                                                               equations))) ==
                       RealT
                 @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, orientation,
                                                            equations)) == RealT
