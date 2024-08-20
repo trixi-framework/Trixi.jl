@@ -98,7 +98,7 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_well_balanced.jl with flux_nonconservative_ersing_etal" begin
+@trixi_testset "elixir_shallowwater_well_balanced.jl with flux_nonconservative_wintermeyer_etal" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
                         l2=[
                             0.10416666834254838,
@@ -107,9 +107,7 @@ end
                         ],
                         linf=[2.0000000000000004, 3.0610625110157164e-14, 2.0],
                         surface_flux=(flux_wintermeyer_etal,
-                                      flux_nonconservative_ersing_etal),
-                        volume_flux=(flux_wintermeyer_etal,
-                                     flux_nonconservative_ersing_etal),
+                                      flux_nonconservative_wintermeyer_etal),
                         tspan=(0.0, 0.25))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -169,7 +167,7 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl with flux_nonconservative_ersing_etal" begin
+@trixi_testset "elixir_shallowwater_source_terms.jl with flux_nonconservative_wintermeyer_etal" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         l2=[
                             0.005774284062933275,
@@ -182,9 +180,7 @@ end
                             9.098379777450205e-5,
                         ],
                         surface_flux=(flux_wintermeyer_etal,
-                                      flux_nonconservative_ersing_etal),
-                        volume_flux=(flux_wintermeyer_etal,
-                                     flux_nonconservative_ersing_etal),
+                                      flux_nonconservative_wintermeyer_etal),
                         tspan=(0.0, 0.025))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -200,13 +196,13 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_shallowwater_source_terms_dirichlet.jl"),
                         l2=[
-                            0.0022851099219788917,
-                            0.01560453773635554,
-                            4.43649172558535e-5,
+                            0.0022667320585353927,
+                            0.01571629729279524,
+                            4.4364917255842716e-5,
                         ],
                         linf=[
-                            0.008934615705174398,
-                            0.059403169140869405,
+                            0.008945234652224965,
+                            0.059403165802872415,
                             9.098379777405796e-5,
                         ],
                         tspan=(0.0, 0.025))
@@ -224,13 +220,13 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_shallowwater_source_terms_dirichlet.jl"),
                         l2=[
-                            0.0022956052733432287,
-                            0.015540053559855601,
-                            4.43649172558535e-5,
+                            0.0022774071143995952,
+                            0.01566214422689219,
+                            4.4364917255842716e-5,
                         ],
                         linf=[
-                            0.008460440313118323,
-                            0.05720939349382359,
+                            0.008451721489057373,
+                            0.05720939055279217,
                             9.098379777405796e-5,
                         ],
                         surface_flux=(FluxHydrostaticReconstruction(FluxHLL(min_max_speed_naive),

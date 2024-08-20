@@ -2051,8 +2051,6 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred flux_nonconservative_audusse_etal(u_ll, u_rr,
                                                                      orientation,
                                                                      equations)) == RealT
-            @test eltype(@inferred flux_nonconservative_ersing_etal(u_ll, u_rr, orientation,
-                                                                    equations)) == RealT
             @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, orientation,
                                                        equations)) == RealT
             @test eltype(@inferred flux_wintermeyer_etal(u_ll, u_rr, orientation,
@@ -2139,10 +2137,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                      normal_direction_ll,
                                                                      normal_direction_average,
                                                                      equations)) == RealT
-            @test eltype(@inferred flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                                                    normal_direction_ll,
-                                                                    normal_direction_average,
-                                                                    equations)) == RealT
             @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, normal_direction,
                                                        equations)) == RealT
             @test eltype(@inferred flux_wintermeyer_etal(u_ll, u_rr, normal_direction,
@@ -2186,10 +2180,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred flux_nonconservative_audusse_etal(u_ll, u_rr,
                                                                          orientation,
                                                                          equations)) ==
-                      RealT
-                @test eltype(eltype(@inferred flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                                                               orientation,
-                                                                               equations))) ==
                       RealT
                 @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, orientation,
                                                            equations)) == RealT
