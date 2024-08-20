@@ -274,28 +274,30 @@ end
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
 
-On curvilinear meshes, this nonconservative flux depends on both the
-contravariant vector (normal direction) at the current node and the averaged
-one. This is different from numerical fluxes used to discretize conservative
-terms.
+For the `surface_flux` either [`flux_wintermeyer_etal`](@ref) or [`flux_fjordholm_etal`](@ref) can
+be used to ensure well-balancedness and entropy conservation.
 
-Further details are available in the paper:
+Further details are available in the papers:
 - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
   An entropy stable nodal discontinuous Galerkin method for the two dimensional
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+- Patrick Ersing, Andrew R. Winters (2023)
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
+  curvilinear meshes
+  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
 """
 @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
                                                        equations::ShallowWaterEquations2D)
     # Pull the necessary left and right state information
     h_ll = waterheight(u_ll, equations)
-    b_rr = u_rr[4]
+    b_jump = u_rr[4] - u_ll[4]
 
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     if orientation == 1
-        f = SVector(0, equations.gravity * h_ll * b_rr, 0, 0)
+        f = SVector(0, equations.gravity * h_ll * b_jump, 0, 0)
     else # orientation == 2
-        f = SVector(0, 0, equations.gravity * h_ll * b_rr, 0)
+        f = SVector(0, 0, equations.gravity * h_ll * b_jump, 0)
     end
     return f
 end
@@ -306,12 +308,12 @@ end
                                                        equations::ShallowWaterEquations2D)
     # Pull the necessary left and right state information
     h_ll = waterheight(u_ll, equations)
-    b_rr = u_rr[4]
-    # Note this routine only uses the `normal_direction_average` and the average of the
-    # bottom topography to get a quadratic split form DG gradient on curved elements
+    b_jump = u_rr[4] - u_ll[4]
+
+    # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     return SVector(0,
-                   normal_direction_average[1] * equations.gravity * h_ll * b_rr,
-                   normal_direction_average[2] * equations.gravity * h_ll * b_rr,
+                   normal_direction_average[1] * equations.gravity * h_ll * b_jump,
+                   normal_direction_average[2] * equations.gravity * h_ll * b_jump,
                    0)
 end
 
@@ -326,16 +328,8 @@ end
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
 that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
 
-On curvilinear meshes, this nonconservative flux depends on both the
-contravariant vector (normal direction) at the current node and the averaged
-one. This is different from numerical fluxes used to discretize conservative
-terms.
-
-This contains additional terms compared to [`flux_nonconservative_wintermeyer_etal`](@ref)
-that account for possible discontinuities in the bottom topography function.
-Thus, this flux should be used in general at interfaces. For flux differencing volume terms,
-[`flux_nonconservative_wintermeyer_etal`](@ref) is analytically equivalent but slightly
-cheaper.
+This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces to ensure entropy
+conservation and well-balancedness.
 
 Further details for the original finite volume formulation are available in
 - Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
@@ -356,18 +350,13 @@ and for curvilinear 2D case in the paper:
     h_average = 0.5f0 * (h_ll + h_rr)
     b_jump = b_rr - b_ll
 
-    # Includes two parts:
-    #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
-    #        cross-averaging across a discontinuous bottom topography
-    #   (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
+    # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     if orientation == 1
         f = SVector(0,
-                    equations.gravity * h_ll * b_ll +
                     equations.gravity * h_average * b_jump,
                     0, 0)
     else # orientation == 2
         f = SVector(0, 0,
-                    equations.gravity * h_ll * b_ll +
                     equations.gravity * h_average * b_jump,
                     0)
     end
@@ -383,20 +372,12 @@ end
     h_ll, _, _, b_ll = u_ll
     h_rr, _, _, b_rr = u_rr
 
-    # Comes in two parts:
-    #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
-    #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
-
-    f2 = normal_direction_average[1] * equations.gravity * h_ll * b_ll
-    f3 = normal_direction_average[2] * equations.gravity * h_ll * b_ll
-
-    #   (ii) True surface part that uses `normal_direction_ll`, `h_average` and `b_jump`
-    #        to handle discontinuous bathymetry
     h_average = 0.5f0 * (h_ll + h_rr)
     b_jump = b_rr - b_ll
 
-    f2 += normal_direction_ll[1] * equations.gravity * h_average * b_jump
-    f3 += normal_direction_ll[2] * equations.gravity * h_average * b_jump
+    # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
+    f2 = normal_direction_average[1] * equations.gravity * h_average * b_jump
+    f3 = normal_direction_average[2] * equations.gravity * h_average * b_jump
 
     # First and last equations do not have a nonconservative flux
     f1 = f4 = 0
@@ -472,18 +453,12 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    # Includes two parts:
-    #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
-    #        cross-averaging across a discontinuous bottom topography
-    #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
     if orientation == 1
         f = SVector(0,
-                    equations.gravity * h_ll * b_ll +
                     equations.gravity * (h_ll^2 - h_ll_star^2),
                     0, 0)
     else # orientation == 2
         f = SVector(0, 0,
-                    equations.gravity * h_ll * b_ll +
                     equations.gravity * (h_ll^2 - h_ll_star^2),
                     0)
     end
@@ -504,90 +479,13 @@ end
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    # Comes in two parts:
-    #   (i)  Diagonal (consistent) term from the volume flux that uses `normal_direction_average`
-    #        but we use `b_ll` to avoid cross-averaging across a discontinuous bottom topography
-
-    f2 = normal_direction_average[1] * equations.gravity * h_ll * b_ll
-    f3 = normal_direction_average[2] * equations.gravity * h_ll * b_ll
-
-    #   (ii) True surface part that uses `normal_direction_ll`, `h_ll` and `h_ll_star`
-    #        to handle discontinuous bathymetry
-
-    f2 += normal_direction_ll[1] * equations.gravity * (h_ll^2 - h_ll_star^2)
-    f3 += normal_direction_ll[2] * equations.gravity * (h_ll^2 - h_ll_star^2)
+    f2 = normal_direction_average[1] * equations.gravity * (h_ll^2 - h_ll_star^2)
+    f3 = normal_direction_average[2] * equations.gravity * (h_ll^2 - h_ll_star^2)
 
     # First and last equations do not have a nonconservative flux
     f1 = f4 = 0
 
     return SVector(f1, f2, f3, f4)
-end
-
-"""
-    flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
-                                     equations::ShallowWaterEquations2D)
-    flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                     normal_direction_ll::AbstractVector,
-                                     normal_direction_average::AbstractVector,
-                                     equations::ShallowWaterEquations2D)
-
-!!! warning "Experimental code"
-    This numerical flux is experimental and may change in any future release.
-
-Non-symmetric path-conservative two-point volume flux discretizing the nonconservative (source) term
-that contains the gradient of the bottom topography [`ShallowWaterEquations2D`](@ref).
-
-On curvilinear meshes, this nonconservative flux depends on both the
-contravariant vector (normal direction) at the current node and the averaged
-one. This is different from numerical fluxes used to discretize conservative
-terms.
-
-This is a modified version of [`flux_nonconservative_wintermeyer_etal`](@ref) that gives entropy 
-conservation and well-balancedness in both the volume and surface when combined with 
-[`flux_wintermeyer_etal`](@ref).
-
-For further details see:
-- Patrick Ersing, Andrew R. Winters (2023)
-  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
-  curvilinear meshes
-  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
-"""
-@inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
-                                                  equations::ShallowWaterEquations2D)
-    # Pull the necessary left and right state information
-    h_ll = waterheight(u_ll, equations)
-    b_rr = u_rr[4]
-    b_ll = u_ll[4]
-
-    # Calculate jump
-    b_jump = b_rr - b_ll
-
-    # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
-    if orientation == 1
-        f = SVector(0, equations.gravity * h_ll * b_jump, 0, 0)
-    else # orientation == 2
-        f = SVector(0, 0, equations.gravity * h_ll * b_jump, 0)
-    end
-    return f
-end
-
-@inline function flux_nonconservative_ersing_etal(u_ll, u_rr,
-                                                  normal_direction_ll::AbstractVector,
-                                                  normal_direction_average::AbstractVector,
-                                                  equations::ShallowWaterEquations2D)
-    # Pull the necessary left and right state information
-    h_ll = waterheight(u_ll, equations)
-    b_rr = u_rr[4]
-    b_ll = u_ll[4]
-
-    # Calculate jump
-    b_jump = b_rr - b_ll
-    # Note this routine only uses the `normal_direction_average` and the average of the
-    # bottom topography to get a quadratic split form DG gradient on curved elements
-    return SVector(0,
-                   normal_direction_average[1] * equations.gravity * h_ll * b_jump,
-                   normal_direction_average[2] * equations.gravity * h_ll * b_jump,
-                   0)
 end
 
 """
@@ -664,7 +562,8 @@ end
 
 Total energy conservative (mathematical entropy for shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
-The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref).
+For the `surface_flux` either [`flux_wintermeyer_etal`](@ref) or [`flux_fjordholm_etal`](@ref) can
+be used to ensure well-balancedness and entropy conservation.
 
 Further details are available in Theorem 1 of the paper:
 - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
