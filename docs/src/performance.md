@@ -42,7 +42,8 @@ For example, the following steps were used to benchmark the changes introduced i
    ```julia
    julia> using BenchmarkTools, Revise; using Trixi
 
-   julia> trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
+   julia> # nowadays "examples/tree_2d_dgsem/elixir_euler_sedov_blast_wave.jl"
+          trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
 
    julia> du_test = copy(sol.u[end]); u_test = copy(sol.u[end]);
 
@@ -65,7 +66,8 @@ For example, the following steps were used to benchmark the changes introduced i
 
    shell> git checkout 222241ff54f8a4ca9876cc1fc25ae262416a4ea0
 
-   julia> trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
+   julia> # nowadays "examples/tree_2d_dgsem/elixir_euler_sedov_blast_wave.jl"
+          trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
 
    julia> @benchmark Trixi.rhs!(
              $(du_test),
@@ -85,6 +87,10 @@ For example, the following steps were used to benchmark the changes introduced i
     evals/sample:     1
    ```
    Run the `@benchmark ...` commands multiple times to see whether there are any significant fluctuations.
+   Note that the elixir name has changed since
+   [PR #256](https://github.com/trixi-framework/Trixi.jl/pull/256).
+   Nowadays, the relevant elixir is
+   [`examples/tree_2d_dgsem/elixir_euler_sedov_blast_wave.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_sedov_blast_wave.jl).
 
 Follow these steps for both commits you want to compare. The relevant benchmark results you should typically be looking at
 are the median and mean values of the runtime and the memory/allocs estimate. In this example, the differences
