@@ -66,8 +66,8 @@ function chebyshev_gauss_lobatto_nodes_weights(n_nodes::Integer)
         nodes[j] = -cospi((j - 1) / N)
         weights[j] = pi / N
     end
-    weights[1] = 0.5 * weights[1]
-    weights[end] = 0.5 * weights[end]
+    weights[1] = 0.5f0 * weights[1]
+    weights[end] = 0.5f0 * weights[end]
 
     return nodes, weights
 end
