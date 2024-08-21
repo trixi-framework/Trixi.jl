@@ -70,7 +70,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 mesh_file = joinpath(@__DIR__, "mesh_NACA6412.inp")
 isfile(mesh_file) ||
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/e2a389f04f1e37b33819b9637e8ee4c3/raw/4bf7607a2ce4432fdb5cb87d5e264949b11bd5d7/mesh_NACA6412.inp",
-             mesh_file)
+                   mesh_file)
 
 boundary_symbols = [:PhysicalLine1, :PhysicalLine2, :PhysicalLine3, :PhysicalLine4]
 
