@@ -236,7 +236,8 @@ end
                             0.3972956f0,
                             1.0810697f0,
                         ],
-                        tspan=(0.0f0, 1.0f0))
+                        tspan=(0.0f0, 1.0f0),
+                        RealT=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
