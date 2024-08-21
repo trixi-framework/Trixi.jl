@@ -379,7 +379,7 @@ end
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
         surface_flux_values[v, node_index, direction_index, element_index] = flux_[v] +
-                                                                             0.5 *
+                                                                             0.5f0 *
                                                                              noncons_[v]
     end
 end
