@@ -18,7 +18,8 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred Trixi.inv_ln_mean(RealT1(1), RealT2(2))) == RealT
             for RealT3 in (Float32, Float64)
                 RealT = promote_type(RealT1, RealT2, RealT3)
-                @test typeof(@inferred Trixi.stolarsky_mean(RealT1(1), RealT2(2), RealT3(3))) ==
+                @test typeof(@inferred Trixi.stolarsky_mean(RealT1(1), RealT2(2),
+                                                            RealT3(3))) ==
                       RealT
             end
         end
