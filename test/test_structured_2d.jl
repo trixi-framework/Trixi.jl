@@ -30,6 +30,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 end
 
 @trixi_testset "elixir_advection_float32.jl" begin
+    # Expected errors are taken from elixir_advection_basic.jl
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_float32.jl"),
                         # Expected errors are taken from elixir_advection_basic.jl
                         l2=[Float32(8.311947673061856e-6)],
