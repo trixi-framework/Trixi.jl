@@ -1,7 +1,6 @@
 # Similar to p4est_3d_dgsem/elixir_euler_free_stream_boundaries.jl
 # but using Float32 instead of the default Float64
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -20,7 +19,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs, RealT = Fl
 
 default_mesh_file = joinpath(@__DIR__, "mesh_cube_with_boundaries.inp")
 isfile(default_mesh_file) ||
-    download("https://gist.githubusercontent.com/DanielDoehring/710eab379fe3042dc08af6f2d1076e49/raw/38e9803bc0dab9b32a61d9542feac5343c3e6f4b/mesh_cube_with_boundaries.inp",
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/710eab379fe3042dc08af6f2d1076e49/raw/38e9803bc0dab9b32a61d9542feac5343c3e6f4b/mesh_cube_with_boundaries.inp",
              default_mesh_file)
 mesh_file = default_mesh_file
 
