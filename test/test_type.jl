@@ -12,7 +12,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 # Run unit tests for various equations
 @testset "Test Type Stability" begin
     @timed_testset "mean values" begin
-        for RealT1 in (Float32, Float64), RealT2
+        for RealT1 in (Float32, Float64), RealT2 in (Float32, Float64)
             RealT = promote_type(RealT1, RealT2)
             @test typeof(@inferred Trixi.ln_mean(RealT1(1), RealT2(2))) == RealT
             @test typeof(@inferred Trixi.inv_ln_mean(RealT1(1), RealT2(2))) == RealT
