@@ -11,6 +11,20 @@ isdir(outdir) && rm(outdir, recursive = true)
 
 # Run unit tests for various equations
 @testset "Test Type Stability" begin
+    @timed_testset "mean values" begin
+        for RealT1 in (Float32, Float64), RealT2 in (Float32, Float64)
+            RealT = promote_type(RealT1, RealT2)
+            @test typeof(@inferred Trixi.ln_mean(RealT1(1), RealT2(2))) == RealT
+            @test typeof(@inferred Trixi.inv_ln_mean(RealT1(1), RealT2(2))) == RealT
+            for RealT3 in (Float32, Float64)
+                RealT = promote_type(RealT1, RealT2, RealT3)
+                @test typeof(@inferred Trixi.stolarsky_mean(RealT1(1), RealT2(2),
+                                                            RealT3(3))) ==
+                      RealT
+            end
+        end
+    end
+
     @timed_testset "Acoustic Perturbation 2D" begin
         for RealT in (Float32, Float64)
             v_mean_global = (zero(RealT), zero(RealT))
@@ -121,25 +135,11 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred flux_kennedy_gruber(u_ll, u_rr, orientation, equations)) ==
                   RealT
             @test eltype(@inferred flux_hllc(u_ll, u_rr, orientation, equations)) == RealT
-            if RealT == Float32
-                # check `ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
-                                                                 equations)) ==
-                             RealT
-            else
-                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
-                                                          equations)) ==
-                      RealT
-            end
-            if RealT == Float32
-                # check `ln_mean` and `inv_ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, orientation,
-                                                           equations)) ==
-                             RealT
-            else
-                @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
-                      RealT
-            end
+            @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
+                                                      equations)) ==
+                  RealT
+            @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
+                  RealT
 
             @test eltype(eltype(@inferred splitting_steger_warming(u, orientation,
                                                                    equations))) ==
@@ -228,26 +228,11 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
             @test eltype(@inferred flux_hllc(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
-            if RealT == Float32
-                # check `ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_chandrashekar(u_ll, u_rr,
-                                                                 normal_direction,
-                                                                 equations)) ==
-                             RealT
-            else
-                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, normal_direction,
-                                                          equations)) ==
-                      RealT
-            end
-            if RealT == Float32
-                # check `ln_mean` and `inv_ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
-                                                           equations)) ==
-                             RealT
-            else
-                @test eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
-                                                    equations)) == RealT
-            end
+            @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, normal_direction,
+                                                      equations)) ==
+                  RealT
+            @test eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
+                                                equations)) == RealT
 
             @test eltype(eltype(@inferred splitting_drikakis_tsangaris(u, normal_direction,
                                                                        equations))) == RealT
@@ -282,26 +267,11 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
                 @test eltype(@inferred flux_hllc(u_ll, u_rr, orientation, equations)) ==
                       RealT
-                if RealT == Float32
-                    # check `ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_chandrashekar(u_ll, u_rr,
-                                                                     orientation,
-                                                                     equations)) ==
-                                 RealT
-                else
-                    @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
-                                                              equations)) ==
-                          RealT
-                end
-                if RealT == Float32
-                    # check `ln_mean` and `inv_ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, orientation,
-                                                               equations)) ==
-                                 RealT
-                else
-                    @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
-                          RealT
-                end
+                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
+                                                          equations)) ==
+                      RealT
+                @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
+                      RealT
 
                 @test eltype(eltype(@inferred splitting_steger_warming(u, orientation,
                                                                        equations))) ==
@@ -357,7 +327,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @timed_testset "Compressible Euler 3D" begin
         for RealT in (Float32, Float64)
-            # set gamma = 2 for the coupling convergence test 
+            # set gamma = 2 for the coupling convergence test
             equations = @inferred CompressibleEulerEquations3D(RealT(2))
 
             x = SVector(zero(RealT), zero(RealT), zero(RealT))
@@ -406,24 +376,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
             @test eltype(@inferred flux_hllc(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
-            if RealT == Float32
-                # check `ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_chandrashekar(u_ll, u_rr,
-                                                                 normal_direction,
-                                                                 equations)) == RealT
-            else
-                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, normal_direction,
-                                                          equations)) == RealT
-            end
-            if RealT == Float32
-                # check `ln_mean` and `inv_ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
-                                                           equations)) ==
-                             RealT
-            else
-                @test eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
-                                                    equations)) == RealT
-            end
+            @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, normal_direction,
+                                                      equations)) == RealT
+            @test eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
+                                                equations)) == RealT
 
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
                                                        equations)) ==
@@ -446,24 +402,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
                 @test eltype(@inferred flux_hllc(u_ll, u_rr, orientation, equations)) ==
                       RealT
-                if RealT == Float32
-                    # check `ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_chandrashekar(u_ll, u_rr,
-                                                                     orientation,
-                                                                     equations)) == RealT
-                else
-                    @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
-                                                              equations)) == RealT
-                end
-                if RealT == Float32
-                    # check `ln_mean` and `inv_ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, orientation,
-                                                               equations)) ==
-                                 RealT
-                else
-                    @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
-                          RealT
-                end
+                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
+                                                          equations)) == RealT
+                @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
+                      RealT
 
                 @test eltype(eltype(@inferred splitting_steger_warming(u, orientation,
                                                                        equations))) ==
@@ -515,23 +457,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
-            if RealT == Float32
-                # check `ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
-                                                                 equations)) == RealT
-            else
-                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
-                                                          equations)) == RealT
-            end
-            if RealT == Float32
-                # check `ln_mean` and `inv_ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, orientation,
-                                                           equations)) ==
-                             RealT
-            else
-                @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
-                      RealT
-            end
+            @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
+                                                      equations)) == RealT
+            @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
+                  RealT
 
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT
@@ -571,34 +500,15 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
-            if RealT == Float32
-                # check `ln_mean` and `inv_ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
-                                                           equations)) == RealT
-            else
-                @test eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
-                                                    equations)) == RealT
-            end
+            @test eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
+                                                equations)) == RealT
 
             for orientation in orientations
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
-                if RealT == Float32
-                    # check `ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_chandrashekar(u_ll, u_rr,
-                                                                     orientation,
-                                                                     equations)) == RealT
-                else
-                    @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
-                                                              equations)) == RealT
-                end
-                if RealT == Float32
-                    # check `ln_mean` and `inv_ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_ranocha(u_ll, u_rr, orientation,
-                                                               equations)) == RealT
-                else
-                    @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
-                          RealT
-                end
+                @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
+                                                          equations)) == RealT
+                @test eltype(@inferred flux_ranocha(u_ll, u_rr, orientation, equations)) ==
+                      RealT
 
                 @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
                                                            equations)) ==
@@ -643,15 +553,8 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred flux_nonconservative_chan_etal(u_ll, u_rr, normal_ll,
                                                                   normal_rr, equations)) ==
                   RealT
-            if RealT == Float32
-                # check `ln_mean` and `inv_ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_chan_etal(u_ll, u_rr, orientation,
-                                                             equations)) ==
-                             RealT
-            else
-                @test eltype(@inferred flux_chan_etal(u_ll, u_rr, orientation, equations)) ==
-                      RealT
-            end
+            @test eltype(@inferred flux_chan_etal(u_ll, u_rr, orientation, equations)) ==
+                  RealT
 
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT
@@ -995,21 +898,11 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
             @test eltype(@inferred flux_hllc(u_ll, u_rr, orientation, equations)) == RealT
-            if RealT == Float32
-                # check `ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
-                                                               equations)) == RealT
-                # check `ln_mean` and `inv_ln_mean` (test broken) 
-                @test_broken eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
-                                                                      orientation,
-                                                                      equations)) == RealT
-            else
-                @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation, equations)) ==
-                      RealT
-                @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
-                                                               orientation,
-                                                               equations)) == RealT
-            end
+            @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
+                                                           orientation,
+                                                           equations)) == RealT
 
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT
@@ -1079,15 +972,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                normal_direction_ll,
                                                                normal_direction_average,
                                                                equations)) == RealT
-            if RealT == Float32
-                # check `ln_mean` and `inv_ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
-                                                                      normal_direction,
-                                                                      equations)) == RealT
-            else
-                @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, normal_direction,
-                                                               equations)) == RealT
-            end
+            @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, normal_direction,
+                                                           equations)) == RealT
 
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
                                                        equations)) == RealT
@@ -1107,22 +993,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                                    orientation,
                                                                                    equations)) ==
                       RealT
-                if RealT == Float32
-                    # check `ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
-                                                                   equations)) ==
-                                 RealT
-                    # check `ln_mean` and `inv_ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
-                                                                          orientation,
-                                                                          equations)) ==
-                                 RealT
-                else
-                    @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
-                                                            equations)) == RealT
-                    @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, orientation,
-                                                                   equations)) == RealT
-                end
+                @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
+                                                        equations)) == RealT
+                @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, orientation,
+                                                               equations)) == RealT
                 for nonconservative_term in nonconservative_terms
                     @test eltype(@inferred flux_nonconservative_powell_local_symmetric(u_ll,
                                                                                        orientation,
@@ -1216,15 +1090,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                normal_direction_ll,
                                                                normal_direction_average,
                                                                equations)) == RealT
-            if RealT == Float32
-                # check `ln_mean` and `inv_ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
-                                                                      normal_direction,
-                                                                      equations)) == RealT
-            else
-                @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, normal_direction,
-                                                               equations)) == RealT
-            end
+            @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, normal_direction,
+                                                           equations)) == RealT
 
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, normal_direction,
                                                        equations)) == RealT
@@ -1239,22 +1106,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr, orientation,
                                                                    equations)) == RealT
-                if RealT == Float32
-                    # check `ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
-                                                                   equations)) ==
-                                 RealT
-                    # check `ln_mean` and `inv_ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
-                                                                          orientation,
-                                                                          equations)) ==
-                                 RealT
-                else
-                    @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
-                                                            equations)) == RealT
-                    @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, orientation,
-                                                                   equations)) == RealT
-                end
+                @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
+                                                        equations)) == RealT
+                @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, orientation,
+                                                               equations)) == RealT
 
                 @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
                                                            equations)) == RealT
@@ -1324,21 +1179,10 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
-            if RealT == Float32
-                # check `ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
-                                                               equations)) ==
-                             RealT
-                # check `ln_mean` and `inv_ln_mean` (test broken)
-                @test_broken eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
-                                                                      orientation,
-                                                                      equations)) == RealT
-            else
-                @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation, equations)) ==
-                      RealT
-                @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, orientation,
-                                                               equations)) == RealT
-            end
+            @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+            @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, orientation,
+                                                           equations)) == RealT
 
             @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT
@@ -1387,22 +1231,11 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr, orientation,
                                                                    equations)) ==
                       RealT
-                if RealT == Float32
-                    # check `ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
-                                                                   equations)) == RealT
-                    # check `ln_mean` and `inv_ln_mean` (test broken)
-                    @test_broken eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr,
-                                                                          orientation,
-                                                                          equations)) ==
-                                 RealT
-                else
-                    @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
-                                                            equations)) ==
-                          RealT
-                    @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, orientation,
-                                                                   equations)) == RealT
-                end
+                @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation,
+                                                        equations)) ==
+                      RealT
+                @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, orientation,
+                                                               equations)) == RealT
 
                 @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
                                                            equations)) ==
@@ -2017,17 +1850,9 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
 
                 @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
-                if RealT == Float32
-                    # check `ln_mean` and `stolarsky_mean` (test broken)
-                    @test_broken eltype(@inferred flux_winters_etal(u_ll, u_rr,
-                                                                    normal_direction,
-                                                                    equations)) ==
-                                 RealT
-                else
-                    @test eltype(@inferred flux_winters_etal(u_ll, u_rr, normal_direction,
-                                                             equations)) ==
-                          RealT
-                end
+                @test eltype(@inferred flux_winters_etal(u_ll, u_rr, normal_direction,
+                                                         equations)) ==
+                      RealT
                 @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, normal_direction,
                                                            equations)) ==
                       RealT
@@ -2040,17 +1865,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
                 for orientation in orientations
                     @test eltype(@inferred flux(u, orientation, equations)) == RealT
-                    if RealT == Float32
-                        # check `ln_mean` and `stolarsky_mean` (test broken)
-                        @test_broken eltype(@inferred flux_winters_etal(u_ll, u_rr,
-                                                                        orientation,
-                                                                        equations)) ==
-                                     RealT
-                    else
-                        @test eltype(@inferred flux_winters_etal(u_ll, u_rr, orientation,
-                                                                 equations)) ==
-                              RealT
-                    end
+                    @test eltype(@inferred flux_winters_etal(u_ll, u_rr, orientation,
+                                                             equations)) ==
+                          RealT
                     @test eltype(@inferred min_max_speed_davis(u_ll, u_rr, orientation,
                                                                equations)) ==
                           RealT
@@ -2130,7 +1947,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred dissipation(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
             @test eltype(@inferred numflux(u_ll, u_rr, orientation, equations)) == RealT
-            # no matching method 
+            # no matching method
             # @test eltype(@inferred numflux(u_ll, u_rr, normal_direction, equations)) == RealT
             @test eltype(@inferred min_max_speed_naive(u_ll, u_rr, orientation, equations)) ==
                   RealT

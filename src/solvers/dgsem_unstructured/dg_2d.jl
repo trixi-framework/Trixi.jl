@@ -20,6 +20,8 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
 
     # perform a check on the sufficient metric identities condition for free-stream preservation
     # and halt computation if it fails
+    # For `Float64`, this gives 1.8189894035458565e-12
+    # For `Float32`, this gives 1.1920929f-5
     atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
     if !isapprox(max_discrete_metric_identities(dg, cache), 0, atol = atol)
         error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
