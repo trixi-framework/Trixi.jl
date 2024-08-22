@@ -1,3 +1,5 @@
+# Similar to p4est_3d_dgsem/elixir_euler_free_stream_boundaries.jl
+# but using Float32 instead of the default Float64
 
 using OrdinaryDiffEq
 using Trixi
@@ -5,12 +7,12 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
-equations = CompressibleEulerEquations3D(1.4)
+equations = CompressibleEulerEquations3D(1.4f0)
 
 initial_condition = initial_condition_constant
 
 polydeg = 3
-solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = polydeg, surface_flux = flux_lax_friedrichs, RealT = Float32)
 
 ###############################################################################
 # Get the uncurved mesh from a file (downloads the file if not available locally)
@@ -23,7 +25,8 @@ mesh_file = default_mesh_file
 
 boundary_symbols = [:PhysicalSurface1, :PhysicalSurface2]
 
-mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
+mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols,
+                    RealT = Float32)
 
 boundary_conditions = Dict(:PhysicalSurface1 => BoundaryConditionDirichlet(initial_condition),
                            :PhysicalSurface2 => BoundaryConditionDirichlet(initial_condition))
@@ -34,7 +37,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0f0, 1.0f0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -44,7 +47,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 1.5)
+stepsize_callback = StepsizeCallback(cfl = 1.5f0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -54,6 +57,6 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1.0f0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

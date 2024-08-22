@@ -66,8 +66,8 @@ function chebyshev_gauss_lobatto_nodes_weights(n_nodes::Integer)
         nodes[j] = -cospi((j - 1) / N)
         weights[j] = pi / N
     end
-    weights[1] = 0.5 * weights[1]
-    weights[end] = 0.5 * weights[end]
+    weights[1] = 0.5f0 * weights[1]
+    weights[end] = 0.5f0 * weights[end]
 
     return nodes, weights
 end
@@ -80,7 +80,9 @@ function lagrange_interpolation(x, nodes, fvals, wbary)
     denominator = zero(eltype(fvals))
 
     for j in eachindex(nodes)
-        if isapprox(x, nodes[j], rtol = eps(x))
+        # using eps(nodes[j]) instead of eps(x) allows us to use integer
+        # coordinates for the target location x
+        if isapprox(x, nodes[j], rtol = eps(nodes[j]))
             return fvals[j]
         end
         t = wbary[j] / (x - nodes[j])
