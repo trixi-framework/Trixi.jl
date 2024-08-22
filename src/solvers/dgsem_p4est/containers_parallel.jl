@@ -13,11 +13,10 @@ mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                           uVector <: DenseVector{uEltype},
                                           ArrayType, Bool} <:
                AbstractHeterogeneousContainer{ArrayType, Bool}
-    u::uArray      # [primary/secondary, variable, i, j, interface]
-    local_neighbor_ids::VecInt                   # [interface]
+    u::uArray                   # [primary/secondary, variable, i, j, interface]
+    local_neighbor_ids::VecInt  # [interface]
     node_indices::IndicesVector # [interface]
-    local_sides::VecInt                   # [interface]
-
+    local_sides::VecInt         # [interface]
     # internal `resize!`able storage
     _u::uVector
 end
@@ -126,11 +125,11 @@ mutable struct P4estMPIMortarContainer{NDIMS, uEltype <: Real, RealT <: Real, ND
                                        uVector <: DenseVector{uEltype},
                                        ArrayType, Bool} <:
                AbstractHeterogeneousContainer{ArrayType, Bool}
-    u::uArray # [small/large side, variable, position, i, j, mortar]
-    local_neighbor_ids::Vector{Vector{Int}} # [mortar]
-    local_neighbor_positions::Vector{Vector{Int}} # [mortar]
+    u::uArray                                      # [small/large side, variable, position, i, j, mortar]
+    local_neighbor_ids::Vector{Vector{Int}}        # [mortar][ids]
+    local_neighbor_positions::Vector{Vector{Int}}  # [mortar][positions]
     node_indices::Matrix{NTuple{NDIMS, IndexInfo}} # [small/large, mortar]
-    normal_directions::Array{RealT, NDIMSP2} # [dimension, i, j, position, mortar]
+    normal_directions::Array{RealT, NDIMSP2}       # [dimension, i, j, position, mortar]
     # internal `resize!`able storage
     _u::uVector
     _node_indices::Vector{NTuple{NDIMS, IndexInfo}}

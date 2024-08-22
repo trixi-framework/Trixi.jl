@@ -323,10 +323,10 @@ end
         # central fluxes/SATs
         surface_flux_values[v, primary_i_node_index, primary_j_node_index,
         primary_direction_index, primary_element_index] = flux_[v] +
-                                                          0.5 * noncons_primary[v]
+                                                          0.5f0 * noncons_primary[v]
         surface_flux_values[v, secondary_i_node_index, secondary_j_node_index,
         secondary_direction_index, secondary_element_index] = -(flux_[v] +
-                                                                0.5 *
+                                                                0.5f0 *
                                                                 noncons_secondary[v])
     end
 end
@@ -632,10 +632,10 @@ end
         # copying in the correct orientation
         u_buffer = cache.u_threaded[Threads.threadid()]
 
-        # in calc_interface_flux!, the interface flux is computed once over each 
-        # interface using the normal from the "primary" element. The result is then 
-        # passed back to the "secondary" element, flipping the sign to account for the 
-        # change in the normal direction. For mortars, this sign flip occurs in 
+        # in calc_interface_flux!, the interface flux is computed once over each
+        # interface using the normal from the "primary" element. The result is then
+        # passed back to the "secondary" element, flipping the sign to account for the
+        # change in the normal direction. For mortars, this sign flip occurs in
         # "mortar_fluxes_to_elements!" instead.
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache,
@@ -687,7 +687,7 @@ end
     # central fluxes/SATs
     noncons = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction,
                                    equations)
-    flux_plus_noncons = flux + 0.5 * noncons
+    flux_plus_noncons = flux + 0.5f0 * noncons
 
     # Copy to buffer
     set_node_vars!(fstar, flux_plus_noncons, equations, dg, i_node_index, j_node_index,

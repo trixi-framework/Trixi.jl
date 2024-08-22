@@ -50,8 +50,8 @@ function rhs!(du, u, t,
 end
 
 #=
-`weak_form_kernel!` is only implemented for conserved terms as 
-non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+`weak_form_kernel!` is only implemented for conserved terms as
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
 see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
@@ -101,6 +101,7 @@ end
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{StructuredMesh{2},
+                                                       StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
                                            nonconservative_terms::False, equations,
@@ -127,7 +128,7 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j,
                                                    element)
-            Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+            Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
@@ -143,7 +144,7 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj,
                                                    element)
-            Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+            Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
@@ -158,6 +159,7 @@ end
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{StructuredMesh{2},
+                                                       StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
                                            nonconservative_terms::True, equations,
@@ -191,7 +193,7 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j,
                                                    element)
-            Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+            Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # Compute the contravariant nonconservative flux.
             fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_node, Ja1_avg,
                                               equations)
@@ -205,7 +207,7 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj,
                                                    element)
-            Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+            Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
             fluxtilde2 = nonconservative_flux(u_node, u_node_jj, Ja2_node, Ja2_avg,
@@ -215,7 +217,7 @@ end
         end
 
         # The factor 0.5 cancels the factor 2 in the flux differencing form
-        multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations,
+        multiply_add_to_node_vars!(du, alpha * 0.5f0, integral_contribution, equations,
                                    dg, i, j, element)
     end
 end
@@ -226,7 +228,8 @@ end
 # "A provably entropy stable subcell shock capturing approach for high order split form DG for the compressible Euler equations"
 # [arXiv: 2008.12044v2](https://arxiv.org/pdf/2008.12044)
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u,
-                              mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                              mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                          UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
                               nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
@@ -296,7 +299,8 @@ end
 # Calculate the finite volume fluxes inside curvilinear elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               u::AbstractArray{<:Any, 4},
-                              mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
+                              mesh::Union{StructuredMesh{2}, StructuredMesh{2},
+                                          UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
                               nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
@@ -333,10 +337,10 @@ end
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
             ftilde1_L = ftilde1 +
-                        0.5 * nonconservative_flux(u_ll, u_rr, normal_direction,
+                        0.5f0 * nonconservative_flux(u_ll, u_rr, normal_direction,
                                              normal_direction, equations)
             ftilde1_R = ftilde1 +
-                        0.5 * nonconservative_flux(u_rr, u_ll, normal_direction,
+                        0.5f0 * nonconservative_flux(u_rr, u_ll, normal_direction,
                                              normal_direction, equations)
 
             set_node_vars!(fstar1_L, ftilde1_L, equations, dg, i, j)
@@ -373,10 +377,10 @@ end
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
             ftilde2_L = ftilde2 +
-                        0.5 * nonconservative_flux(u_ll, u_rr, normal_direction,
+                        0.5f0 * nonconservative_flux(u_ll, u_rr, normal_direction,
                                              normal_direction, equations)
             ftilde2_R = ftilde2 +
-                        0.5 * nonconservative_flux(u_rr, u_ll, normal_direction,
+                        0.5f0 * nonconservative_flux(u_rr, u_ll, normal_direction,
                                              normal_direction, equations)
 
             set_node_vars!(fstar2_L, ftilde2_L, equations, dg, i, j)
@@ -475,7 +479,8 @@ end
 
 @inline function calc_interface_flux!(surface_flux_values, left_element, right_element,
                                       orientation, u,
-                                      mesh::StructuredMesh{2},
+                                      mesh::Union{StructuredMesh{2},
+                                                  StructuredMeshView{2}},
                                       nonconservative_terms::True, equations,
                                       surface_integral, dg::DG, cache)
     # See comment on `calc_interface_flux!` with `nonconservative_terms::False`
@@ -540,10 +545,10 @@ end
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
             surface_flux_values[v, i, right_direction, left_element] = flux[v] +
-                                                                       0.5 *
+                                                                       0.5f0 *
                                                                        noncons_left[v]
             surface_flux_values[v, i, left_direction, right_element] = flux[v] +
-                                                                       0.5 *
+                                                                       0.5f0 *
                                                                        noncons_right[v]
         end
     end
