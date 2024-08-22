@@ -350,7 +350,7 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
                                                 independent of domain partitioning. Should be `false` for static meshes
                                                 to permit more fine-grained partitioning.
 - `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
-                                      If `nothing` is passed then all boundaries are named `:all`.                                                
+                                      If `nothing` is passed then all boundaries are named `:all`.
 """
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping = nothing, polydeg = 1, RealT = Float64,
@@ -535,7 +535,7 @@ function parse_elements(meshfile, n_trees, n_dims)
     element_types = n_dims == 2 ?
                     ["*ELEMENT, type=CPS4", "*ELEMENT, type=C2D4",
         "*ELEMENT, type=S4"] : ["*ELEMENT, type=C3D8"]
-    # 2D quads: 4 nodes + element index, 3D hexes: 8 nodes + element index                                                               
+    # 2D quads: 4 nodes + element index, 3D hexes: 8 nodes + element index
     expected_content_length = n_dims == 2 ? 5 : 9
 
     element_node_matrix = Matrix{Int64}(undef, n_trees, expected_content_length - 1)
@@ -618,7 +618,7 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             ::Val{2}) # 2D version
     for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
-        # For node labeling, see 
+        # For node labeling, see
         # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
         # and search for "Node ordering and face numbering on elements"
         for boundary in keys(node_set_dict) # Loop over specified boundaries
@@ -659,7 +659,7 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             ::Val{3}) # 3D version
     for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
-        # For node labeling, see 
+        # For node labeling, see
         # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
         for boundary in keys(node_set_dict) # Loop over specified boundaries
             # Check "front face" (y_min)
@@ -1461,7 +1461,7 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
     r = sqrt(1 + x^2 + y^2)
 
     # Radius of the sphere
-    R = inner_radius + thickness * (0.5 * (zeta + 1))
+    R = inner_radius + thickness * (0.5f0 * (zeta + 1))
 
     # Projection onto the sphere
     return R / r * cube_coordinates[direction]
@@ -1651,7 +1651,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                                        nodes[q])
                     end
                 else # curved_check[face] == 1
-                    # Curved face boundary information is supplied by 
+                    # Curved face boundary information is supplied by
                     # the mesh file. Just read it into a work array
                     for q in 1:nnodes, p in 1:nnodes
                         file_idx += 1
@@ -1724,7 +1724,7 @@ end
 # and return the 3D coordinate point (x, y, z)
 function bilinear_interpolation!(coordinate, face_vertices, u, v)
     for j in 1:3
-        coordinate[j] = 0.25 * (face_vertices[j, 1] * (1 - u) * (1 - v)
+        coordinate[j] = 0.25f0 * (face_vertices[j, 1] * (1 - u) * (1 - v)
                          + face_vertices[j, 2] * (1 + u) * (1 - v)
                          + face_vertices[j, 3] * (1 + u) * (1 + v)
                          + face_vertices[j, 4] * (1 - u) * (1 + v))

@@ -262,11 +262,11 @@ end
                 flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations,
                                                     NonConservativeSymmetric(), noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           0.5 * derivative_split[i, ii],
+                                           0.5f0 * derivative_split[i, ii],
                                            flux1_noncons,
                                            equations, dg, noncons, i, j)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           0.5 * derivative_split[ii, i],
+                                           0.5f0 * derivative_split[ii, i],
                                            flux1_noncons,
                                            equations, dg, noncons, ii, j)
             end

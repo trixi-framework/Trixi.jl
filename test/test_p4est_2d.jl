@@ -235,6 +235,34 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_shockcapturing_ec_float32.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shockcapturing_ec_float32.jl"),
+                        l2=[
+                            0.09539953f0,
+                            0.10563527f0,
+                            0.105637245f0,
+                            0.3507514f0,
+                        ],
+                        linf=[
+                            0.2942562f0,
+                            0.4079147f0,
+                            0.3972956f0,
+                            1.0810697f0,
+                        ],
+                        tspan=(0.0f0, 1.0f0),
+                        rtol=10 * sqrt(eps(Float32)), # to make CI pass
+                        RealT=Float32)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[
