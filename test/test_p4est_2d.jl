@@ -237,7 +237,7 @@ end
                             1.0810697f0,
                         ],
                         tspan=(0.0f0, 1.0f0),
-                        rtol=10*sqrt(eps(Float32)), # to make CI pass
+                        rtol=10 * sqrt(eps(Float32)), # to make CI pass
                         RealT=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
