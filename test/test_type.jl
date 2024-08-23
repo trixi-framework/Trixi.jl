@@ -315,7 +315,13 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred Trixi.entropy_thermodynamic(cons, equations)) == RealT
             @test typeof(@inferred energy_internal(cons, equations)) == RealT
 
-            # TODO: test `gradient_conservative`, not necessary but good to have
+            @test eltype(@inferred Trixi.gradient_conservative(pressure, u, equations)) ==
+                  RealT
+            @test eltype(@inferred Trixi.gradient_conservative(Trixi.entropy_math, u,
+                                                               equations)) == RealT
+            @test eltype(@inferred Trixi.gradient_conservative(Trixi.entropy_guermond_etal,
+                                                               u,
+                                                               equations)) == RealT
         end
     end
 
@@ -577,10 +583,32 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                                         Prandtl = prandtl_number,
                                                                                         gradient_variables = GradientVariablesEntropy())
 
-            u = u_transformed = SVector(one(RealT), zero(RealT),
-                                        zero(RealT))
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_inner = u_transformed = flux_inner = SVector(one(RealT), zero(RealT),
+                                                               zero(RealT))
             orientation = 1
+            directions = [1, 2]
             gradients = SVector(RealT(0.1), RealT(0.1), RealT(0.1))
+
+            operator_gradient = Trixi.Gradient()
+            operator_divergence = Trixi.Divergence()
+
+            # For BC tests
+            function initial_condition_navier_stokes_convergence_test(x, t, equations)
+                RealT_local = eltype(x)
+                A = 0.5f0
+                c = 2
+
+                pi_x = convert(RealT_local, pi) * x[1]
+                pi_t = convert(RealT_local, pi) * t
+
+                rho = c + A * cos(pi_x) * cos(pi_t)
+                v1 = log(x[1] + 2) * (1 - exp(-A * (x[1] - 1))) * cos(pi_t)
+                p = rho^2
+
+                return prim2cons(SVector(rho, v1, p), equations)
+            end
 
             for equations_parabolic in (equations_parabolic_primitive,
                                         equations_parabolic_entropy)
@@ -599,10 +627,49 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradients,
                                                                              equations_parabolic)) ==
                       RealT
-            end
 
-            # TODO: BC tests for GradientVariablesPrimitive
-            # TODO: BC tests for GradientVariablesEntropy
+                # For BC tests
+                velocity_bc_left_right = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                      t,
+                                                                                                                      equations)[2])
+                heat_bc_left = Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                                  t,
+                                                                                                                                  equations),
+                                                                                 equations_parabolic))
+                heat_bc_right = Adiabatic((x, t, equations) -> oftype(t, 0))
+
+                boundary_condition_left = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
+                                                                            heat_bc_left)
+                boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
+                                                                             heat_bc_right)
+                # BC tests
+                for direction in directions
+                    @test eltype(@inferred boundary_condition_right(flux_inner, u_inner,
+                                                                    orientation, direction,
+                                                                    x,
+                                                                    t, operator_gradient,
+                                                                    equations_parabolic)) ==
+                          RealT
+                    @test eltype(@inferred boundary_condition_right(flux_inner, u_inner,
+                                                                    orientation, direction,
+                                                                    x,
+                                                                    t, operator_divergence,
+                                                                    equations_parabolic)) ==
+                          RealT
+                    @test eltype(@inferred boundary_condition_left(flux_inner, u_inner,
+                                                                   orientation, direction,
+                                                                   x,
+                                                                   t, operator_gradient,
+                                                                   equations_parabolic)) ==
+                          RealT
+                    @test eltype(@inferred boundary_condition_left(flux_inner, u_inner,
+                                                                   orientation, direction,
+                                                                   x,
+                                                                   t, operator_divergence,
+                                                                   equations_parabolic)) ==
+                          RealT
+                end
+            end
         end
     end
 
@@ -620,10 +687,36 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                                         Prandtl = prandtl_number,
                                                                                         gradient_variables = GradientVariablesEntropy())
 
-            u = u_transformed = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT))
+            x = SVector(zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = w_inner = u_transformed = flux_inner = normal = SVector(one(RealT),
+                                                                        zero(RealT),
+                                                                        zero(RealT),
+                                                                        zero(RealT))
             orientations = [1, 2]
             gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
             gradients = SVector(gradient, gradient)
+
+            operator_gradient = Trixi.Gradient()
+            operator_divergence = Trixi.Divergence()
+
+            # For BC tests
+            function initial_condition_navier_stokes_convergence_test(x, t, equations)
+                RealT_local = eltype(x)
+                A = 0.5f0
+                c = 2
+
+                pi_x = convert(RealT_local, pi) * x[1]
+                pi_y = convert(RealT_local, pi) * x[2]
+                pi_t = convert(RealT_local, pi) * t
+
+                rho = c + A * sin(pi_x) * cos(pi_y) * cos(pi_t)
+                v1 = sin(pi_x) * log(x[2] + 2) * (1 - exp(-A * (x[2] - 1))) * cos(pi_t)
+                v2 = v1
+                p = rho^2
+
+                return prim2cons(SVector(rho, v1, v2, p), equations)
+            end
 
             for equations_parabolic in (equations_parabolic_primitive,
                                         equations_parabolic_entropy)
@@ -648,10 +741,50 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradient,
                                                                              equations_parabolic)) ==
                       RealT
-            end
 
-            # TODO: BC tests for GradientVariablesPrimitive
-            # TODO: BC tests for GradientVariablesEntropy
+                # For BC tests
+                velocity_bc_left_right = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                      t,
+                                                                                                                      equations)[2:3])
+                heat_bc_left = Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                                  t,
+                                                                                                                                  equations),
+                                                                                 equations_parabolic))
+                heat_bc_right = Adiabatic((x, t, equations) -> oftype(t, 0))
+
+                boundary_condition_left = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
+                                                                            heat_bc_left)
+                boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
+                                                                             heat_bc_right)
+
+                # BC tests
+                @test eltype(@inferred boundary_condition_right(flux_inner, w_inner,
+                                                                normal,
+                                                                x,
+                                                                t,
+                                                                operator_gradient,
+                                                                equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred boundary_condition_right(flux_inner, w_inner,
+                                                                normal,
+                                                                x,
+                                                                t,
+                                                                operator_divergence,
+                                                                equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred boundary_condition_left(flux_inner, w_inner,
+                                                               normal,
+                                                               x,
+                                                               t, operator_gradient,
+                                                               equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred boundary_condition_left(flux_inner, w_inner,
+                                                               normal,
+                                                               x,
+                                                               t, operator_divergence,
+                                                               equations_parabolic)) ==
+                      RealT
+            end
         end
     end
 
@@ -669,11 +802,42 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                                         Prandtl = prandtl_number,
                                                                                         gradient_variables = GradientVariablesEntropy())
 
-            u = u_transformed = SVector(one(RealT), zero(RealT), zero(RealT), zero(RealT),
-                                        zero(RealT))
+            x = SVector(zero(RealT), zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = w_inner = u_transformed = flux_inner = normal = SVector(one(RealT),
+                                                                        zero(RealT),
+                                                                        zero(RealT),
+                                                                        zero(RealT),
+                                                                        zero(RealT))
             orientations = [1, 2, 3]
             gradient = SVector(RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1), RealT(0.1))
             gradients = SVector(gradient, gradient, gradient)
+
+            operator_gradient = Trixi.Gradient()
+            operator_divergence = Trixi.Divergence()
+
+            # For BC tests
+            function initial_condition_navier_stokes_convergence_test(x, t, equations)
+                RealT_local = eltype(x)
+                c = 2
+                A1 = 0.5f0
+                A2 = 1
+                A3 = 0.5f0
+
+                pi_x = convert(RealT_local, pi) * x[1]
+                pi_y = convert(RealT_local, pi) * x[2]
+                pi_z = convert(RealT_local, pi) * x[3]
+                pi_t = convert(RealT_local, pi) * t
+
+                rho = c + A1 * sin(pi_x) * cos(pi_y) * sin(pi_z) * cos(pi_t)
+                v1 = A2 * sin(pi_x) * log(x[2] + 2) * (1 - exp(-A3 * (x[2] - 1))) *
+                     sin(pi_z) * cos(pi_t)
+                v2 = v1
+                v3 = v1
+                p = rho^2
+
+                return prim2cons(SVector(rho, v1, v2, v3, p), equations)
+            end
 
             for equations_parabolic in (equations_parabolic_primitive,
                                         equations_parabolic_entropy)
@@ -698,10 +862,50 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred Trixi.convert_derivative_to_primitive(u, gradient,
                                                                              equations_parabolic)) ==
                       RealT
-            end
 
-            # TODO: BC tests for GradientVariablesPrimitive
-            # TODO: BC tests for GradientVariablesEntropy
+                # For BC tests
+                velocity_bc_left_right = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                      t,
+                                                                                                                      equations)[2:4])
+                heat_bc_left = Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
+                                                                                                                                  t,
+                                                                                                                                  equations),
+                                                                                 equations_parabolic))
+                heat_bc_right = Adiabatic((x, t, equations) -> oftype(t, 0))
+
+                boundary_condition_left = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
+                                                                            heat_bc_left)
+                boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
+                                                                             heat_bc_right)
+
+                # BC tests
+                @test eltype(@inferred boundary_condition_right(flux_inner, w_inner,
+                                                                normal,
+                                                                x,
+                                                                t,
+                                                                operator_gradient,
+                                                                equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred boundary_condition_right(flux_inner, w_inner,
+                                                                normal,
+                                                                x,
+                                                                t,
+                                                                operator_divergence,
+                                                                equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred boundary_condition_left(flux_inner, w_inner,
+                                                               normal,
+                                                               x,
+                                                               t, operator_gradient,
+                                                               equations_parabolic)) ==
+                      RealT
+                @test eltype(@inferred boundary_condition_left(flux_inner, w_inner,
+                                                               normal,
+                                                               x,
+                                                               t, operator_divergence,
+                                                               equations_parabolic)) ==
+                      RealT
+            end
         end
     end
 
@@ -1299,14 +1503,53 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             x = SVector(zero(RealT))
             t = zero(RealT)
-            u = gradients = SVector(one(RealT))
+            u = u_inner = flux_inner = normal = gradients = SVector(one(RealT))
             orientation = 1
+
+            operator_gradient = Trixi.Gradient()
+            operator_divergence = Trixi.Divergence()
 
             @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
                   RealT
 
-            # TODO: BC tests for BoundaryConditionDirichlet
-            # TODO: BC tests for BoundaryConditionNeumann
+            # For BC tests
+            function initial_condition_convergence_test(x, t,
+                                                        equation::LaplaceDiffusion1D)
+                RealT_local = eltype(x)
+                x_trans = x[1] - equation.diffusivity * t
+
+                c = 1
+                A = 0.5f0
+                L = 2
+                f = 1.0f0 / L
+                omega = 2 * convert(RealT_local, pi) * f
+                scalar = c + A * sin(omega * sum(x_trans))
+                return SVector(scalar)
+            end
+
+            boundary_condition_dirichlet = BoundaryConditionDirichlet(initial_condition_convergence_test)
+            boundary_condition_neumann = BoundaryConditionNeumann((x, t, equations) -> oftype(t,
+                                                                                              0))
+
+            # BC tests
+            @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, normal,
+                                                                x, t,
+                                                                operator_gradient,
+                                                                equations_parabolic)) ==
+                  RealT
+            @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, normal,
+                                                                x, t,
+                                                                operator_divergence,
+                                                                equations_parabolic)) ==
+                  RealT
+            @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, normal,
+                                                              x, t,
+                                                              operator_gradient,
+                                                              equations_parabolic)) == RealT
+            @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, normal,
+                                                              x, t,
+                                                              operator_divergence,
+                                                              equations_parabolic)) == RealT
         end
     end
 
