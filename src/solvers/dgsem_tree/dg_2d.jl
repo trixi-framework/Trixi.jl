@@ -119,6 +119,7 @@ function rhs!(du, u, t,
               dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+#     println("reset ∂u/∂t: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
@@ -126,12 +127,14 @@ function rhs!(du, u, t,
                               have_nonconservative_terms(equations), equations,
                               dg.volume_integral, dg, cache)
     end
+#     println("volume integral: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, u, mesh, equations,
                             dg.surface_integral, dg)
     end
+#     println("prolong2interfaces: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
@@ -139,24 +142,28 @@ function rhs!(du, u, t,
                              have_nonconservative_terms(equations), equations,
                              dg.surface_integral, dg, cache)
     end
+#     println("interface flux: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u, mesh, equations,
                             dg.surface_integral, dg)
     end
+#     println("prolong2boundaries: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
         calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg)
     end
+#     println("boundary flux: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u, mesh, equations,
                          dg.mortar, dg.surface_integral, dg)
     end
+#     println("prolong2mortarst: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
@@ -164,20 +171,24 @@ function rhs!(du, u, t,
                           have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
+#     println("mortar flux: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations,
                                dg.surface_integral, dg, cache)
     end
+#     println("surface integral: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+#     println("Jacobian: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
         calc_sources!(du, u, t, source_terms, equations, dg, cache)
     end
+#     println("source terms: ", sum(isnan.(du)), " ", sum(isnan.(cache.boundaries.u)))
 
     return nothing
 end

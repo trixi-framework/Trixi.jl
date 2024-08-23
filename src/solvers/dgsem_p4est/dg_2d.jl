@@ -256,6 +256,9 @@ function prolong2boundaries!(cache, u,
     @unpack boundaries = cache
     index_range = eachnode(dg)
 
+#     println("pre #nans u: ", sum(isnan.(u)))
+#     println("pre #nans boundaries.u: ", sum(isnan.(u)))
+
     @threaded for boundary in eachboundary(dg, cache)
         # Copy solution data from the element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.
@@ -270,11 +273,19 @@ function prolong2boundaries!(cache, u,
         for i in eachnode(dg)
             for v in eachvariable(equations)
                 boundaries.u[v, i, boundary] = u[v, i_node, j_node, element]
+#                 if isnan(boundaries.u[v, i, boundary])
+#                     println("NaN at ", v, " ", i, " ", boundary, " ", u[v, i_node, j_node, element])
+#                     println("u_indices: ", v, " ", i_node, " ", j_node, " ", element)
+#                     @autoinfiltrate
+#                 end
             end
             i_node += i_node_step
             j_node += j_node_step
         end
     end
+
+#     println("post #nans u: ", sum(isnan.(u)))
+#     println("post #nans boundaries.u: ", sum(isnan.(u)))
 
     return nothing
 end

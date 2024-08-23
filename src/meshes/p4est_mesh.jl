@@ -2052,4 +2052,9 @@ function collect_new_cells(mesh::P4estMesh)
 
     return new_cells
 end
+
+Base.size(mesh::P4estMesh) = return (16, 16)
+Base.size(mesh::P4estMesh, i::Int) = return 16
+Base.axes(mesh::P4estMesh) = map(Base.OneTo, size(mesh))
+Base.axes(mesh::P4estMesh, i) = Base.OneTo(size(mesh, i))
 end # @muladd
