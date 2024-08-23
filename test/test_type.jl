@@ -1503,14 +1503,53 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             x = SVector(zero(RealT))
             t = zero(RealT)
-            u = gradients = SVector(one(RealT))
+            u = u_inner = flux_inner = normal = gradients = SVector(one(RealT))
             orientation = 1
+
+            operator_gradient = Trixi.Gradient()
+            operator_divergence = Trixi.Divergence()
 
             @test eltype(@inferred flux(u, gradients, orientation, equations_parabolic)) ==
                   RealT
 
-            # TODO: BC tests for BoundaryConditionDirichlet
-            # TODO: BC tests for BoundaryConditionNeumann
+            # For BC tests
+            function initial_condition_convergence_test(x, t,
+                                                        equation::LaplaceDiffusion1D)
+                RealT_local = eltype(x)
+                x_trans = x[1] - equation.diffusivity * t
+
+                c = 1
+                A = 0.5f0
+                L = 2
+                f = 1.0f0 / L
+                omega = 2 * convert(RealT_local, pi) * f
+                scalar = c + A * sin(omega * sum(x_trans))
+                return SVector(scalar)
+            end
+
+            boundary_condition_dirichlet = BoundaryConditionDirichlet(initial_condition_convergence_test)
+            boundary_condition_neumann = BoundaryConditionNeumann((x, t, equations) -> oftype(t,
+                                                                                              0))
+
+            # BC tests
+            @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, normal,
+                                                                x, t,
+                                                                operator_gradient,
+                                                                equations_parabolic)) ==
+                  RealT
+            @test eltype(@inferred boundary_condition_dirichlet(flux_inner, u_inner, normal,
+                                                                x, t,
+                                                                operator_divergence,
+                                                                equations_parabolic)) ==
+                  RealT
+            @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, normal,
+                                                              x, t,
+                                                              operator_gradient,
+                                                              equations_parabolic)) == RealT
+            @test eltype(@inferred boundary_condition_neumann(flux_inner, u_inner, normal,
+                                                              x, t,
+                                                              operator_divergence,
+                                                              equations_parabolic)) == RealT
         end
     end
 
