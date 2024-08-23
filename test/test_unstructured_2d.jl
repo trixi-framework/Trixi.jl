@@ -323,6 +323,33 @@ end
     end
 end
 
+@trixi_testset "elixir_shallowwater_ec_float32.jl" begin
+    # Expected errors are nearly all taken from elixir_shallowwater_ec.jl
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_ec_float32.jl"),
+                        l2=[
+                            Float32(0.6107326269462766),
+                            Float32(0.48666631722018877),
+                            Float32(0.48309775159067053),
+                            Float32(0.29467422718511704),
+                        ],
+                        linf=[
+                            Float32(2.776782342826098),
+                            3.2162943f0, # this needs to be adapted
+                            3.6683278f0, # this needed to be adapted
+                            Float32(2.052861364219655),
+                        ],
+                        tspan=(0.0f0, 0.25f0),
+                        RealT=Float32)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_shallowwater_well_balanced.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
                         l2=[
@@ -704,6 +731,23 @@ end
                             7.461231632532872e-10],
                         tspan=(0.0, 0.05),
                         atol=1.0e-10)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "FDSBP (upwind): elixir_euler_free_stream_upwind_float32.jl" begin
+    @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
+                                 "elixir_euler_free_stream_upwind_float32.jl"),
+                        l2=[0, 0, 0, 0],
+                        linf=[0, 0, 0, 0],
+                        tspan=(0.0f0, 0.05f0),
+                        atol=9.0f-4)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
