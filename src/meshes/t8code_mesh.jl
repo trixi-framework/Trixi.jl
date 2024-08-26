@@ -127,7 +127,7 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
                                   mapping = nothing) where {NDIMS, RealT}
     # In t8code reference space is [0,1].
     basis = LobattoLegendreBasis(RealT, polydeg)
-    nodes = 0.5 .* (basis.nodes .+ 1.0)
+    nodes = 0.5f0 .* (basis.nodes .+ 1)
 
     cmesh = t8_forest_get_cmesh(forest)
     number_of_trees = t8_forest_get_num_global_trees(forest)
@@ -578,7 +578,7 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `RealT::Type`: The type that should be used for coordinates.
 - `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
 - `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
-                                      If `nothing` is passed then all boundaries are named `:all`.                                                
+                                      If `nothing` is passed then all boundaries are named `:all`.
 """
 function T8codeMesh(meshfile::AbaqusFile{NDIMS};
                     mapping = nothing, polydeg = 1, RealT = Float64,
@@ -737,9 +737,14 @@ function adapt!(mesh::T8codeMesh, adapt_callback; recursive = true, balance = tr
 
         t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
 
+        # Julias's GC leads to random segfaults here. Temporarily switch it off.
+        GC.enable(false)
+
         # The old forest is destroyed here.
         # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
         t8_forest_commit(new_forest)
+
+        GC.enable(true)
     end
 
     mesh.forest = new_forest
