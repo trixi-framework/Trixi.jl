@@ -371,7 +371,6 @@ function init_reconstruction_stencil!(elements, interfaces, boundaries,
     return nothing
 end
 
-
 # Container data structure (structure-of-arrays style) for FV interfaces
 mutable struct T8codeFVInterfaceContainer{uEltype <: Real} <: AbstractContainer
     u::Array{uEltype, 3}                # [primary/secondary, variable, interface]
