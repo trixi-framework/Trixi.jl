@@ -445,7 +445,7 @@ end
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (default tolerances)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        newton_tolerances = (1.0e-13, 1.0e-14),
+                        newton_tolerances=(1.0e-13, 1.0e-14),
                         l2=[
                             0.42274929059688193,
                             0.14825614518724087,
@@ -474,7 +474,7 @@ end
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (reduce max iterations to 50)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        max_iterations_newton = 50,
+                        max_iterations_newton=50,
                         l2=[
                             0.42274929059594274,
                             0.1482561451879357,
@@ -503,7 +503,7 @@ end
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (reduce max iterations to 30)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        max_iterations_newton = 30,
+                        max_iterations_newton=30,
                         l2=[
                             0.42274929059594274,
                             0.1482561451879357,
@@ -532,8 +532,8 @@ end
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (reduce max iterations to 30 and default tolerances)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        max_iterations_newton = 30,
-                        newton_tolerances = (1.0e-13, 1.0e-14),
+                        max_iterations_newton=30,
+                        newton_tolerances=(1.0e-13, 1.0e-14),
                         l2=[
                             0.42274929059594274,
                             0.1482561451879357,
