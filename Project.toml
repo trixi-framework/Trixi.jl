@@ -4,6 +4,7 @@ authors = ["Michael Schlottke-Lakemper <m.schlottke-lakemper@hlrs.de>", "Gregor 
 version = "0.8.9-DEV"
 
 [deps]
+Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
@@ -50,15 +51,16 @@ TrixiBase = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [weakdeps]
-Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 
 [extensions]
-TrixiMakieExt = "Makie"
 TrixiConvexECOSExt = ["Convex", "ECOS"]
+TrixiMakieExt = "Makie"
 
 [compat]
+Accessors = "0.1.37"
 CodeTracking = "1.0.5"
 ConstructionBase = "1.3"
 Convex = "0.16"
@@ -109,6 +111,6 @@ UUIDs = "1.6"
 julia = "1.8"
 
 [extras]
-Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
