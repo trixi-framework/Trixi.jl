@@ -24,6 +24,10 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, 
                                        cache)
     empty!(element_ids_dg)
     empty!(element_ids_dgfv)
+    # For `Float64`, this gives 1.8189894035458565e-12
+    # For `Float32`, this gives 1.1920929f-5
+    RealT = eltype(alpha)
+    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
 
     for element in eachelement(dg, cache)
         # Clip blending factor for values close to zero (-> pure DG)
