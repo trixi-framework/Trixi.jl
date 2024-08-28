@@ -138,7 +138,7 @@ of type `SimpleAlgorithmSSP`.
     This is an experimental feature and may change in future releases.
 """
 function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
-               dt, callback = nothing, kwargs...)
+               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     r0 = similar(u)
@@ -157,13 +157,11 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     # initialize callbacks
     if callback isa CallbackSet
         foreach(callback.continuous_callbacks) do cb
-            error("unsupported")
+            throw(ArgumentError("Continuous callbacks are unsupported with the SSP time integration methods."))
         end
         foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
-    elseif !isnothing(callback)
-        error("unsupported")
     end
 
     for stage_callback in alg.stage_callbacks

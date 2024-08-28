@@ -38,34 +38,36 @@ function (callback::BoundsCheckCallback)(u_ode, integrator, stage)
     (; t, iter, alg) = integrator
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
+    @trixi_timeit timer() "check_bounds" check_bounds(u, equations, solver, cache,
+                                                      solver.volume_integral)
+
     save_errors = callback.save_errors && (callback.interval > 0) &&
                   (stage == length(alg.c)) &&
-                  (iter % callback.interval == 0 || integrator.finalstep)
-    @trixi_timeit timer() "check_bounds" check_bounds(u, mesh, equations, solver, cache,
-                                                      solver.volume_integral, t,
-                                                      iter + 1,
-                                                      callback.output_directory,
-                                                      save_errors)
+                  ((iter + 1) % callback.interval == 0 ||   # Every `interval` time steps
+                   integrator.finalstep ||                  # Planned last time step
+                   (iter + 1) >= integrator.opts.maxiters)  # Maximum iterations reached
+    if save_errors
+        @trixi_timeit timer() "save_errors" save_bounds_check_errors(callback.output_directory,
+                                                                     t, iter + 1,
+                                                                     equations,
+                                                                     solver.volume_integral)
+    end
 end
 
-function check_bounds(u, mesh, equations, solver, cache,
-                      volume_integral::AbstractVolumeIntegral, t, iter,
-                      output_directory, save_errors)
-    return nothing
+@inline function check_bounds(u, equations, solver, cache,
+                              volume_integral::VolumeIntegralSubcellLimiting)
+    check_bounds(u, equations, solver, cache, volume_integral.limiter)
 end
 
-function check_bounds(u, mesh, equations, solver, cache,
-                      volume_integral::VolumeIntegralSubcellLimiting, t, iter,
-                      output_directory, save_errors)
-    check_bounds(u, mesh, equations, solver, cache, volume_integral.limiter, t, iter,
-                 output_directory, save_errors)
+@inline function save_bounds_check_errors(output_directory, t, iter, equations,
+                                          volume_integral::VolumeIntegralSubcellLimiting)
+    save_bounds_check_errors(output_directory, t, iter, equations,
+                             volume_integral.limiter)
 end
 
 function init_callback(callback::BoundsCheckCallback, semi)
     init_callback(callback, semi, semi.solver.volume_integral)
 end
-
-init_callback(callback::BoundsCheckCallback, semi, volume_integral::AbstractVolumeIntegral) = nothing
 
 function init_callback(callback::BoundsCheckCallback, semi,
                        volume_integral::VolumeIntegralSubcellLimiting)
@@ -115,8 +117,6 @@ end
 function finalize_callback(callback::BoundsCheckCallback, semi)
     finalize_callback(callback, semi, semi.solver.volume_integral)
 end
-
-finalize_callback(callback::BoundsCheckCallback, semi, volume_integral::AbstractVolumeIntegral) = nothing
 
 function finalize_callback(callback::BoundsCheckCallback, semi,
                            volume_integral::VolumeIntegralSubcellLimiting)

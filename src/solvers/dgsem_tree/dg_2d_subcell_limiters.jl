@@ -5,8 +5,9 @@
 @muladd begin
 #! format: noindent
 
-function create_cache(mesh::TreeMesh{2}, equations,
-                      volume_integral::VolumeIntegralSubcellLimiting, dg::DG, uEltype)
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}},
+                      equations, volume_integral::VolumeIntegralSubcellLimiting,
+                      dg::DG, uEltype)
     cache = create_cache(mesh, equations,
                          VolumeIntegralPureLGLFiniteVolume(volume_integral.volume_flux_fv),
                          dg, uEltype)
@@ -56,7 +57,7 @@ function create_cache(mesh::TreeMesh{2}, equations,
 end
 
 function calc_volume_integral!(du, u,
-                               mesh::TreeMesh{2},
+                               mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
@@ -70,8 +71,8 @@ function calc_volume_integral!(du, u,
     end
 end
 
-@inline function subcell_limiting_kernel!(du, u,
-                                          element, mesh::TreeMesh{2},
+@inline function subcell_limiting_kernel!(du, u, element,
+                                          mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                           nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
@@ -261,11 +262,11 @@ end
                 flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations,
                                                     NonConservativeSymmetric(), noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           0.5 * derivative_split[i, ii],
+                                           0.5f0 * derivative_split[i, ii],
                                            flux1_noncons,
                                            equations, dg, noncons, i, j)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                           0.5 * derivative_split[ii, i],
+                                           0.5f0 * derivative_split[ii, i],
                                            flux1_noncons,
                                            equations, dg, noncons, ii, j)
             end
@@ -391,7 +392,7 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh,
+                                         u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                          nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
@@ -429,7 +430,7 @@ end
 # Calculate the antidiffusive flux `antidiffusive_flux` as the subtraction between `fhat` and `fstar` for conservative systems.
 @inline function calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                                          fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                                         u, mesh,
+                                         u, mesh::Union{TreeMesh{2}, StructuredMesh{2}},
                                          nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes

@@ -41,8 +41,6 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
                                                                       SourceTerms,
                                                                       Solver,
                                                                       Cache}
-        @assert ndims(mesh) == ndims(equations)
-
         performance_counter = PerformanceCounter()
 
         new(mesh, equations, initial_condition, boundary_conditions, source_terms,
@@ -67,6 +65,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT = real(solver), uEltype = RealT,
                                       initial_cache = NamedTuple())
+    @assert ndims(mesh) == ndims(equations)
+
     cache = (; create_cache(mesh, equations, solver, RealT, uEltype)...,
              initial_cache...)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
@@ -315,7 +315,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
 
         summary_line(io, "source terms", semi.source_terms)
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
-        summary_line(io, "total #DOFs per field", ndofs(semi))
+        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
         summary_footer(io)
     end
 end
