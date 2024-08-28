@@ -388,7 +388,7 @@ end
     get_boundary_outer_state(u_inner, t,
                              boundary_condition::typeof(boundary_condition_slip_wall),
                              normal_direction::AbstractVector,
-                             mesh, equations::CompressibleEulerEquations2D,
+                             equations::CompressibleEulerEquations2D,
                              dg, cache, indices...)
 For subcell limiting, the calculation of local bounds for non-periodic domains requires the boundary
 outer state. This function returns the boundary value for [`boundary_condition_slip_wall`](@ref) at
@@ -402,14 +402,14 @@ Should be used together with [`P4estMesh`](@ref).
 @inline function get_boundary_outer_state(u_inner, t,
                                           boundary_condition::typeof(boundary_condition_slip_wall),
                                           normal_direction::AbstractVector,
-                                          mesh, equations::CompressibleEulerEquations2D,
+                                          equations::CompressibleEulerEquations2D,
                                           dg, cache, indices...)
     factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
     u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
 
     return SVector(u_inner[1],
-                   u_inner[2] - 2.0 * u_normal[1],
-                   u_inner[3] - 2.0 * u_normal[2],
+                   u_inner[2] - 2 * u_normal[1],
+                   u_inner[3] - 2 * u_normal[2],
                    u_inner[4])
 end
 

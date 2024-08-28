@@ -47,10 +47,11 @@ initial_condition = initial_condition_mach3_flow
     return flux
 end
 
+# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_supersonic_inflow),
                                                 normal_direction::AbstractVector,
-                                                mesh::P4estMesh{2}, equations, dg, cache,
+                                                equations, dg, cache,
                                                 indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
 
@@ -68,10 +69,11 @@ end
     return flux
 end
 
+# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_outflow),
                                                 normal_direction::AbstractVector,
-                                                mesh::P4estMesh{2}, equations, dg, cache,
+                                                equations, dg, cache,
                                                 indices...)
     return u_inner
 end

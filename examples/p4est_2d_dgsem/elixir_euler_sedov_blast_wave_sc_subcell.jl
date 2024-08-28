@@ -46,7 +46,7 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
                                                                        min)],
                                 max_iterations_newton = 40, # Default parameters are not sufficient to fulfill bounds properly.
-                                newton_tolerances=(1.0e-14, 1.0e-15))
+                                newton_tolerances = (1.0e-14, 1.0e-15))
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
