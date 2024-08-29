@@ -61,7 +61,8 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           dynamic_load_balancing = true)
 
 stepsize_callback = StepsizeCallback(cfl = 0.7)
 
@@ -77,3 +78,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             save_everystep = false, callback = callbacks);
 
 summary_callback() # print the timer summary
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)
