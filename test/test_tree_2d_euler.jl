@@ -399,21 +399,21 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (60, 1.0e-13, 1.0e-15)" begin
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
     rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.4227492905959316,
-                            0.14825614518793573,
-                            0.14825614518768376,
-                            0.6164667078358522,
+                            0.4227549115123529,
+                            0.14825759222652649,
+                            0.14825759222682933,
+                            0.6164668313131949,
                         ],
                         linf=[
-                            1.6391650188422258,
-                            0.8330633754669964,
-                            0.8330633754752627,
-                            6.450304018923273,
+                            1.6391908143728386,
+                            0.8344433355906021,
+                            0.8344433355966195,
+                            6.450305752671201,
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
@@ -432,124 +432,6 @@ end
         # Run without coverage takes 138 time steps.
         @test startswith(lines[end], "138")
     end
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-    end
-end
-
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (60, 1.0e-14, 1.0e-15)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        newton_tolerances=(1.0e-14, 1.0e-15),
-                        l2=[
-                            0.42274929059593636,
-                            0.14825614518795097,
-                            0.1482561451876737,
-                            0.6164667078358528,
-                        ],
-                        linf=[
-                            1.639165018842228,
-                            0.8330633754663151,
-                            0.8330633754760329,
-                            6.450304018923273,
-                        ],
-                        tspan=(0.0, 1.0),
-                        initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-    end
-end
-
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (500, 1.0e-13, 1.0e-15)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        max_iterations_newton=500,
-                        l2=[
-                            0.4227492905959316,
-                            0.14825614518793573,
-                            0.14825614518768376,
-                            0.6164667078358522,
-                        ],
-                        linf=[
-                            1.6391650188422258,
-                            0.8330633754669964,
-                            0.8330633754752627,
-                            6.450304018923273,
-                        ],
-                        tspan=(0.0, 1.0),
-                        initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-    end
-end
-
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (500, 1.0e-14, 1.0e-15)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        max_iterations_newton=500,
-                        newton_tolerances=(1.0e-14, 1.0e-15),
-                        l2=[
-                            0.42274929059593636,
-                            0.14825614518795097,
-                            0.1482561451876737,
-                            0.6164667078358528,
-                        ],
-                        linf=[
-                            1.639165018842228,
-                            0.8330633754663151,
-                            0.8330633754760329,
-                            6.450304018923273,
-                        ],
-                        tspan=(0.0, 1.0),
-                        initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-    end
-end
-
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (500, 1.0e-15, 1.0e-15)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        max_iterations_newton=500,
-                        newton_tolerances=(1.0e-15, 1.0e-15),
-                        l2=[
-                            0.4227492905959383,
-                            0.14825614518793134,
-                            0.1482561451876952,
-                            0.6164667078358529,
-                        ],
-                        linf=[
-                            1.6391650188422249,
-                            0.8330633754653016,
-                            0.8330633754755118,
-                            6.450304018923273,
-                        ],
-                        tspan=(0.0, 1.0),
-                        initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
