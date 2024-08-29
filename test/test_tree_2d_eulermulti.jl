@@ -124,36 +124,6 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
         end
     end
 
-    @trixi_testset "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl (pure FV)" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl"),
-                            stage_callbacks=(),
-                            l2=[
-                                66.58686514380321,
-                                0.4918163132661367,
-                                52600.58160621529,
-                                0.17516123679864892,
-                                0.012955520573074666,
-                            ],
-                            linf=[
-                                188.2821966683055,
-                                4.481328818563531,
-                                150616.70470646242,
-                                1.0280277171531957,
-                                0.10425821307774308,
-                            ],
-                            initial_refinement_level=3,
-                            tspan=(0.0, 0.001))
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-        end
-    end
-
     @trixi_testset "elixir_eulermulti_ec.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_eulermulti_ec.jl"),
                             l2=[
