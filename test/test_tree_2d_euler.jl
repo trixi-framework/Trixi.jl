@@ -399,7 +399,7 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (60, 1.0e-13, 1.0e-15)" begin
     rm(joinpath("out", "deviations.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
@@ -442,49 +442,20 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (default tolerances)" begin
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (60, 1.0e-14, 1.0e-15)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        newton_tolerances=(1.0e-13, 1.0e-14),
+                        newton_tolerances=(1.0e-14, 1.0e-15),
                         l2=[
-                            0.42274929059688193,
-                            0.14825614518724087,
-                            0.14825614518730942,
-                            0.6164667078359055,
+                            0.42274929059593636,
+                            0.14825614518795097,
+                            0.1482561451876737,
+                            0.6164667078358528,
                         ],
                         linf=[
-                            1.6391650187809268,
-                            0.8330633753164917,
-                            0.8330633753190381,
-                            6.450304018924978,
-                        ],
-                        tspan=(0.0, 1.0),
-                        initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-    end
-end
-
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (reduce max iterations to 50)" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                 "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        max_iterations_newton=50,
-                        l2=[
-                            0.42274929059594274,
-                            0.1482561451879357,
-                            0.14825614518769567,
-                            0.61646670783585332,
-                        ],
-                        linf=[
-                            1.6391650188422262,
-                            0.8330633754662947,
-                            0.8330633754749769,
+                            1.639165018842228,
+                            0.8330633754663151,
+                            0.8330633754760329,
                             6.450304018923273,
                         ],
                         tspan=(0.0, 1.0),
@@ -500,20 +471,20 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (reduce max iterations to 30)" begin
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (500, 1.0e-13, 1.0e-15)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        max_iterations_newton=30,
+                        max_iterations_newton=500,
                         l2=[
-                            0.42274929059594274,
-                            0.1482561451879357,
-                            0.14825614518769567,
-                            0.61646670783585332,
+                            0.4227492905959316,
+                            0.14825614518793573,
+                            0.14825614518768376,
+                            0.6164667078358522,
                         ],
                         linf=[
-                            1.6391650188422262,
-                            0.8330633754662947,
-                            0.8330633754749769,
+                            1.6391650188422258,
+                            0.8330633754669964,
+                            0.8330633754752627,
                             6.450304018923273,
                         ],
                         tspan=(0.0, 1.0),
@@ -529,21 +500,21 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (reduce max iterations to 30 and default tolerances)" begin
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (500, 1.0e-14, 1.0e-15)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        max_iterations_newton=30,
-                        newton_tolerances=(1.0e-13, 1.0e-14),
+                        max_iterations_newton=500,
+                        newton_tolerances=(1.0e-14, 1.0e-15),
                         l2=[
-                            0.42274929059594274,
-                            0.1482561451879357,
-                            0.14825614518769567,
-                            0.61646670783585332,
+                            0.42274929059593636,
+                            0.14825614518795097,
+                            0.1482561451876737,
+                            0.6164667078358528,
                         ],
                         linf=[
-                            1.6391650188422262,
-                            0.8330633754662947,
-                            0.8330633754749769,
+                            1.639165018842228,
+                            0.8330633754663151,
+                            0.8330633754760329,
                             6.450304018923273,
                         ],
                         tspan=(0.0, 1.0),
@@ -559,21 +530,22 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (pure FV)" begin
+@trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl (500, 1.0e-15, 1.0e-15)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
-                        stage_callbacks=(),
+                        max_iterations_newton=500,
+                        newton_tolerances=(1.0e-15, 1.0e-15),
                         l2=[
-                            0.2956367176068476,
-                            0.11422070606289543,
-                            0.11422070606289544,
-                            0.6174845679019293,
+                            0.4227492905959383,
+                            0.14825614518793134,
+                            0.1482561451876952,
+                            0.6164667078358529,
                         ],
                         linf=[
-                            0.9329496312537306,
-                            0.5335710316368611,
-                            0.5335710316368614,
-                            6.490325306017452,
+                            1.6391650188422249,
+                            0.8330633754653016,
+                            0.8330633754755118,
+                            6.450304018923273,
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
