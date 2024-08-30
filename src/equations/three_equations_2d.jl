@@ -260,6 +260,23 @@
         return SVector(f1, f2, f3, f4, f5, f6)
     end
 
+    @inline function flux_nonconservative_ThreeEquations(u_ll, u_rr, orientation::Integer,
+                                                  equations::ThreeEquations2D)
+        v1_ll = u_ll[2] / u_ll[1]
+        v2_ll = u_ll[3] / u_ll[1]
+        alpha_rr = u_rr[4]
+
+        z = zero(eltype(u_ll))
+
+        if orientation == 1
+            f = SVector(z, z, z, v1_ll * alpha_rr, z, z)
+        else
+            f = SVector(z, z, z, v2_ll * alpha_rr, z, z)
+        end
+
+        return f
+    end
+
     # Calculate 1D flux for a single point in the normal direction
     # Note, this directional vector is not normalized
     @inline function flux(u, normal_direction::AbstractVector, equations::ThreeEquations2D)
@@ -280,23 +297,6 @@
         return SVector(f1, f2, f3, f4, f5, f6)
     end
 
-    @inline function flux_nonconservative_ThreeEquations(u_ll, u_rr, orientation::Integer,
-                                                  equations::ThreeEquations2D)
-        v1_ll = u_ll[2] / u_ll[1]
-        v2_ll = u_ll[3] / u_ll[1]
-        alpha_rr = u_rr[4]
-
-        z = zero(eltype(u_ll))
-
-        if orientation == 1
-            f = SVector(z, z, z, v1_ll * alpha_rr, z, z)
-        else
-            f = SVector(z, z, z, v2_ll * alpha_rr, z, z)
-        end
-
-        return f
-    end
-
     @inline function flux_nonconservative_ThreeEquations(u_ll, u_rr,
                                                   normal_direction_ll::AbstractVector,
                                                   normal_direction_average::AbstractVector,
@@ -313,6 +313,137 @@
 
         return f
     end
+
+    @inline function flux_entropy_cons_ThreeEquations(u_ll, u_rr,
+                                                  normal_direction::AbstractVector,
+                                                  equations::ThreeEquations2D)
+        z = zero(eltype(u_ll))
+
+        rho_ll, v1_ll, v2_ll, alpha_ll, phi_ll, dummy_ll = cons2prim(u_ll, equations)
+        rho_rr, v1_rr, v2_rr, alpha_rr, phi_rr, dummy_rr = cons2prim(u_rr, equations)
+
+        rho_mean = stolarsky_mean(rho_ll, rho_rr, equations.gamma)
+
+        v1_avg = 0.5f0 * (v1_ll + v1_rr)
+        v2_avg = 0.5f0 * (v2_ll + v2_rr)
+
+        alpha_avg = 0.5f0 * (alpha_ll + alpha_rr)
+
+        v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+        v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+        v_dot_n_avg = 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
+
+        p_ll = pressure(u_ll, equations)
+        p_rr = pressure(u_rr, equations)
+
+        p_avg = 0.5f0 * (p_ll + p_rr)
+
+        f1 = alpha_avg * rho_mean * v_dot_n_avg
+        f2 = f1 * v1_avg + alpha_avg * p_avg * normal_direction[1]
+        f3 = f1 * v2_avg + alpha_avg * p_avg * normal_direction[2]
+        f4 = z
+        f5 = z
+
+        return SVector(f1, f2, f3, f4, f5, z)
+    end
+
+    @inline function flux_non_cons_entropy_cons_ThreeEquations(u_ll, u_rr,
+                                                       normal_direction_ll::AbstractVector,
+                                                       normal_direction_average::AbstractVector,
+                                                       equations::ThreeEquations2D)
+        z = zero(eltype(u_ll))
+
+        rho_ll, v1_ll, v2_ll, alpha_ll, phi_ll, dummy_ll = cons2prim(u_ll, equations)
+        rho_rr, v1_rr, v2_rr, alpha_rr, phi_rr, dummy_rr = cons2prim(u_rr, equations)
+
+        phi_jump = phi_rr - phi_ll
+        alpha_jump = alpha_rr - alpha_ll
+
+        alpha_avg = 0.5f0 * (alpha_ll + alpha_rr)
+
+        rho_mean = stolarsky_mean(rho_ll, rho_rr, equations.gamma)
+        # rho_mean = 0.5f0 * (rho_ll + rho_rr)
+
+        v_dot_n_ll = v1_ll * normal_direction_average[1] + v2_ll * normal_direction_average[2]
+        v_dot_n_rr = v1_rr * normal_direction_average[1] + v2_rr * normal_direction_average[2]
+
+        v_dot_n_avg = 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
+
+        f1 = z
+        f2 = phi_jump * alpha_avg * rho_mean * normal_direction_average[1]
+        f3 = phi_jump * alpha_avg * rho_mean * normal_direction_average[2]
+        # f4 = alpha_jump * v_dot_n_avg
+        f4 = alpha_jump * v_dot_n_ll
+        f5 = z
+
+        return SVector(f1, f2, f3, f4, f5, z)
+    end
+
+    ## @inline function flux_entropy_cons_gamma_one_ThreeEquations(u_ll, u_rr,
+    ##                                               normal_direction::AbstractVector,
+    ##                                               equations::ThreeEquations2D)
+    ##     z = zero(eltype(u_ll))
+
+    ##     rho_ll, v1_ll, v2_ll, alpha_ll, phi_ll, dummy_ll = cons2prim(u_ll, equations)
+    ##     rho_rr, v1_rr, v2_rr, alpha_rr, phi_rr, dummy_rr = cons2prim(u_rr, equations)
+
+    ##     rho_mean = ln_mean(rho_ll, rho_rr)
+
+    ##     v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    ##     v2_avg = 0.5f0 * (v2_ll + v2_rr)
+
+    ##     alpha_avg = 0.5f0 * (alpha_ll + alpha_rr)
+
+    ##     v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    ##     v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    ##     v_dot_n_avg = 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
+
+    ##     p_ll = pressure(u_ll, equations)
+    ##     p_rr = pressure(u_rr, equations)
+
+    ##     p_avg = 0.5f0 * (p_ll + p_rr)
+
+    ##     f1 = alpha_avg * rho_mean * v_dot_n_avg
+    ##     f2 = f1 * v1_avg + alpha_avg * p_avg * normal_direction[1]
+    ##     f3 = f1 * v2_avg + alpha_avg * p_avg * normal_direction[2]
+    ##     f4 = z
+    ##     f5 = z
+
+    ##     return SVector(f1, f2, f3, f4, f5, z)
+    ## end
+
+    ## @inline function flux_non_cons_entropy_cons_gamma_one_ThreeEquations(u_ll, u_rr,
+    ##                                                    normal_direction_ll::AbstractVector,
+    ##                                                    normal_direction_average::AbstractVector,
+    ##                                                    equations::ThreeEquations2D)
+    ##     z = zero(eltype(u_ll))
+
+    ##     rho_ll, v1_ll, v2_ll, alpha_ll, phi_ll, dummy_ll = cons2prim(u_ll, equations)
+    ##     rho_rr, v1_rr, v2_rr, alpha_rr, phi_rr, dummy_rr = cons2prim(u_rr, equations)
+
+    ##     phi_jump = phi_rr - phi_ll
+    ##     alpha_jump = alpha_rr - alpha_ll
+
+    ##     alpha_avg = 0.5f0 * (alpha_ll + alpha_rr)
+
+    ##     rho_mean = ln_mean(rho_ll, rho_rr)
+    ##     # rho_mean = 0.5f0 * (rho_ll + rho_rr)
+
+    ##     v_dot_n_ll = v1_ll * normal_direction_average[1] + v2_ll * normal_direction_average[2]
+    ##     v_dot_n_rr = v1_rr * normal_direction_average[1] + v2_rr * normal_direction_average[2]
+
+    ##     v_dot_n_avg = 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
+
+    ##     f1 = z
+    ##     f2 = phi_jump * alpha_avg * rho_mean * normal_direction_average[1]
+    ##     f3 = phi_jump * alpha_avg * rho_mean * normal_direction_average[2]
+    ##     f4 = alpha_jump * v_dot_n_avg
+    ##     f5 = z
+
+    ##     return SVector(f1, f2, f3, f4, f5, z)
+    ## end
 
     @inline function flux_nonconservative_ThreeEquations_well(u_ll, u_rr, orientation::Integer,
                                                        equations::ThreeEquations2D)
@@ -351,9 +482,9 @@
         v_dot_n_ll = v1_ll * normal_direction_ll[1] + v2_ll * normal_direction_ll[2]
 
         # Non well-balanced force contribution.
-        force = -u_ll[1] * phi_rr
+        force = u_ll[1] * phi_rr
          
-        # Well-balanced force contribution.
+        # # Well-balanced force contribution.
         # force = -u_ll[1] * (equations.k0/equations.rho_0) *
         #                 exp(-equations.rho_0/equations.k0 * phi_ll) *
         #                 exp( equations.rho_0/equations.k0 * phi_rr)
@@ -472,24 +603,17 @@
 
     # Convert conservative variables to primitive
     @inline function cons2entropy(u, equations::ThreeEquations2D)
-        alpha_rho, alpha_rho_v1, alpha_rho_v2, alpha, phi, dummy = u
-
-        rho = alpha_rho / alpha
-        v1 = alpha_rho_v1 / alpha_rho
-        v2 = alpha_rho_v2 / alpha_rho
-
-        phi = max(1e-6, max(max_abs_speeds(u, equations)...) )
-
-        # vn = sqrt(v1*v1 + v2*v2)
-        # vn = log10(sqrt(alpha_rho_v1^2 + alpha_rho_v2^2))
-        vn = log10(max(1e-6, sqrt(v1^2 + v2^2)))
-
-        alpha_log = log10(max(1e-6, alpha))
+        rho, v1, v2, alpha, phi, dummy = cons2prim(u, equations)
         p = pressure(u, equations)
 
-        # return SVector(alpha_rho, vn, log10(alpha), alpha, phi)
-        # return SVector(alpha_rho, vn, alpha_log, alpha, phi)
-        return SVector(alpha_rho, p, alpha_log, alpha, phi, dummy)
+        w1 = internal_energy_density(u, equations) - 0.5*(v1^2 + v2^2) + p/rho + phi
+        w2 = v1
+        w3 = v2
+        w4 = -p
+        w5 = alpha*rho
+        w6 = 0.0
+
+        return SVector(w1, w2, w3, w4, w5, w6)
     end
 
     # Convert primitive to conservative variables
@@ -524,8 +648,35 @@
 
     @inline function pressure(u, equations::ThreeEquations2D)
         alpha_rho, alpha_rho_v1, alpha_rho_v2, alpha, phi, dummy = u
-        # return alpha * equations.k0 * ((alpha_rho / alpha / equations.rho_0)^(equations.gamma) - 1)
         return equations.k0 * ((alpha_rho / alpha / equations.rho_0)^(equations.gamma) - 1)
+    end
+
+    @inline function internal_energy_density(u, equations::ThreeEquations2D)
+        alpha_rho, alpha_rho_v1, alpha_rho_v2, alpha, phi, dummy = u
+        return alpha*equations.k0/alpha_rho * ((alpha_rho / alpha / equations.rho_0)^(equations.gamma)/(equations.gamma-1) + 1)
+    end
+
+    @inline function internal_energy(u, equations::ThreeEquations2D)
+        alpha_rho, alpha_rho_v1, alpha_rho_v2, alpha, phi, dummy = u
+        return alpha_rho * internal_energy_density(u, equations)
+    end
+
+    @inline function kinetic_energy(u, equations::ThreeEquations2D)
+        alpha_rho, alpha_rho_v1, alpha_rho_v2, alpha, phi, dummy = u
+        return 0.5*(alpha_rho_v1^2 + alpha_rho_v2^2)/alpha_rho
+    end
+
+    @inline function potential_energy(u, equations::ThreeEquations2D)
+        alpha_rho, alpha_rho_v1, alpha_rho_v2, alpha, phi, dummy = u
+        return alpha_rho*phi
+    end
+
+    @inline function total_energy(u, equations::ThreeEquations2D)
+        return kinetic_energy(u, equations) + internal_energy(u, equations) + potential_energy(u, equations)
+    end
+
+    @inline function entropy(u, equations::ThreeEquations2D)
+        return total_energy(u, equations)
     end
 
     @inline function density_pressure(u, equations::ThreeEquations2D)
