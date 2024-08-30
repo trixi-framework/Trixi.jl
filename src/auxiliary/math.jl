@@ -285,7 +285,7 @@ end
 # [Fortran](https://godbolt.org/z/Yrsa1js7P)
 # or [C++](https://godbolt.org/z/674G7Pccv).
 #
-# Note however that such a custom reimplementation can cause incompatibilites with other
+# Note however that such a custom reimplementation can cause incompatibilities with other
 # packages. Currently we are affected by an issue with MPI.jl on ARM, see
 # https://github.com/trixi-framework/Trixi.jl/issues/1922
 # The workaround is to resort to Base.min / Base.max when using MPI reductions.
