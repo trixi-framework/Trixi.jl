@@ -231,40 +231,32 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
         else
             setup = ["Limiter" => ""]
             if local_twosided
-                setup = [
-                    setup...,
-                    "" => "Local two-sided limiting for conservative variables $(limiter.local_twosided_variables_cons)",
-                ]
+                push!(setup,
+                      "" => "Local two-sided limiting for conservative variables $(limiter.local_twosided_variables_cons)")
             end
             if positivity
                 if !isempty(limiter.positivity_variables_cons)
                     string = "conservative variables $(limiter.positivity_variables_cons)"
-                    setup = [setup..., "" => "Positivity limiting for " * string]
+                    push!(setup, "" => "Positivity limiting for " * string)
                 end
                 if !isempty(limiter.positivity_variables_nonlinear)
                     string = "$(limiter.positivity_variables_nonlinear)"
-                    setup = [setup..., "" => "Positivity limiting for " * string]
+                    push!(setup, "" => "Positivity limiting for " * string)
                 end
-                setup = [
-                    setup...,
-                    "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)",
-                ]
+                push!(setup,
+                      "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)")
             end
             if local_onesided
                 for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
-                    setup = [setup..., "" => "Local $min_or_max limiting for $variable"]
+                    push!(setup, "" => "Local $min_or_max limiting for $variable")
                 end
             end
-            setup = [
-                setup...,
-                "Local bounds with" => (limiter.bar_states ? "Bar States" :
-                                        "FV solution"),
-            ]
+            push!(setup,
+                  "Local bounds with" => (limiter.bar_states ? "Bar States" :
+                                          "FV solution"))
             if limiter.smoothness_indicator
-                setup = [
-                    setup...,
-                    "Smoothness indicator" => "$(limiter.IndicatorHG) using threshold $(limiter.threshold_smoothness_indicator)",
-                ]
+                push!(setup,
+                      "Smoothness indicator" => "$(limiter.IndicatorHG) using threshold $(limiter.threshold_smoothness_indicator)")
             end
         end
         summary_box(io, "SubcellLimiterIDP", setup)

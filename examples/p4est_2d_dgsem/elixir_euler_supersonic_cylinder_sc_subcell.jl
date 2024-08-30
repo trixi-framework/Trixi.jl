@@ -47,6 +47,9 @@ initial_condition = initial_condition_mach3_flow
     return flux
 end
 
+# For subcell limiting, the calculation of local bounds for non-periodic domains requires the
+# boundary outer state. Those functions return the boundary value for a specific boundary condition
+# at time `t`, for the node with spatial indices `indices` and the given `normal_direction`.
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_supersonic_inflow),
                                                 normal_direction::AbstractVector,
@@ -75,6 +78,21 @@ end
                                                 indices...)
     return u_inner
 end
+
+# In `compressible_euler_2d.jl`
+# @inline function Trixi.get_boundary_outer_state(u_inner, t,
+#                                                 boundary_condition::typeof(boundary_condition_slip_wall),
+#                                                 normal_direction::AbstractVector,
+#                                                 mesh::P4estMesh{2}, equations::CompressibleEulerEquations2D,
+#                                                 dg, cache, indices...)
+#     factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
+#     u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
+
+#     return SVector(u_inner[1],
+#                    u_inner[2] - 2 * u_normal[1],
+#                    u_inner[3] - 2 * u_normal[2],
+#                    u_inner[4])
+# end
 
 # boundary_condition_inflow_outflow = BoundaryConditionCharacteristic(initial_condition)
 

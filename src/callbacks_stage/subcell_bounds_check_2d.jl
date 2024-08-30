@@ -5,9 +5,8 @@
 @muladd begin
 #! format: noindent
 
-@inline function check_bounds(u::AbstractArray{<:Any, 4},
-                              equations, solver, cache,
-                              limiter::SubcellLimiterIDP)
+@inline function check_bounds(u, equations::AbstractEquations{2}, # only works for 2D
+                              solver, cache, limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta_local, idp_bounds_delta_global) = limiter.cache
@@ -104,9 +103,8 @@
     return nothing
 end
 
-@inline function check_bounds(u::AbstractArray{<:Any, 4},
-                              equations, solver, cache,
-                              limiter::SubcellLimiterMCL)
+@inline function check_bounds(u, equations::AbstractEquations{2}, # only works for 2D
+                              solver, cache, limiter::SubcellLimiterMCL)
     (; var_min, var_max) = limiter.cache.subcell_limiter_coefficients
     (; bar_states1, bar_states2, lambda1, lambda2) = limiter.cache.container_bar_states
     (; mcl_bounds_delta_local, mcl_bounds_delta_global) = limiter.cache
