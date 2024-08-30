@@ -434,7 +434,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
             res = maximum(abs, view(du, v, ..))
             if mpi_isparallel()
                 # TODO: Debugging, here is a type instability
-                # Base.max needed, see comment in src/auxiliary/math.jl
+                # Base.max instead of max needed, see comment in src/auxiliary/math.jl
                 global_res = MPI.Reduce!(Ref(res), Base.max, mpi_root(), mpi_comm())
                 if mpi_isroot()
                     res::eltype(du) = global_res[]

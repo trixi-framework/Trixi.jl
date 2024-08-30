@@ -49,7 +49,7 @@ function calc_error_norms(func, u, t, analyzer,
     global_l2_error = Vector(l2_error)
     global_linf_error = Vector(linf_error)
     MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
-    # Base.max needed, see comment in src/auxiliary/math.jl
+    # Base.max instead of max needed, see comment in src/auxiliary/math.jl
     MPI.Reduce!(global_linf_error, Base.max, mpi_root(), mpi_comm())
     total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
     if mpi_isroot()
