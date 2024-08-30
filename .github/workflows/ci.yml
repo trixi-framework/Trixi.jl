@@ -91,9 +91,11 @@ jobs:
             trixi_test: threaded_legacy
           - version: '1.10'
             os: macos-latest
+            arch: aarch64
             trixi_test: mpi
           - version: '1.10'
             os: macos-latest
+            arch: aarch64
             trixi_test: threaded
           - version: '1.10'
             os: windows-latest
