@@ -48,7 +48,7 @@
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j,
                                                    element)
-            Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+            Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
 
             # compute the contravariant sharp flux in the direction of the averaged contravariant vector
             fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
@@ -85,7 +85,7 @@
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj,
                                                    element)
-            Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+            Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the averaged contravariant vector
             fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
             multiply_add_to_node_vars!(flux_temp, derivative_split[j, jj], fluxtilde2,

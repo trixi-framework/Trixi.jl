@@ -594,7 +594,7 @@ end
         # Check bounds
         if (beta < beta_L) || (beta > beta_R) || (dgoal_dbeta == 0) || isnan(beta)
             # Out of bounds, do a bisection step
-            beta = 0.5 * (beta_L + beta_R)
+            beta = 0.5f0 * (beta_L + beta_R)
             # Get new u
             u_curr = u + beta * dt * antidiffusive_flux
 
