@@ -18,16 +18,16 @@ isdir(outdir) && rm(outdir, recursive = true)
     include("test_tree_2d_mhd.jl")
 
     # MHD Multicomponent
-    # include("test_tree_2d_mhdmulti.jl")
+    include("test_tree_2d_mhdmulti.jl")
 
     # Lattice-Boltzmann
-    # include("test_tree_2d_lbm.jl")
+    include("test_tree_2d_lbm.jl")
 
     # Shallow water
-    # include("test_tree_2d_shallowwater.jl")
+    include("test_tree_2d_shallowwater.jl")
 
     # FDSBP methods on the TreeMesh
-    # include("test_tree_2d_fdsbp.jl")
+    include("test_tree_2d_fdsbp.jl")
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
