@@ -44,13 +44,13 @@ function calc_node_coordinates!(node_coordinates,
                                                pointer(element_coords))
 
             nodes_out_x = (2 *
-                           (element_length * 0.5 * (nodes .+ 1) .+ element_coords[1]) .-
+                           (element_length * 0.5f0 * (nodes .+ 1) .+ element_coords[1]) .-
                            1)
             nodes_out_y = (2 *
-                           (element_length * 0.5 * (nodes .+ 1) .+ element_coords[2]) .-
+                           (element_length * 0.5f0 * (nodes .+ 1) .+ element_coords[2]) .-
                            1)
             nodes_out_z = (2 *
-                           (element_length * 0.5 * (nodes .+ 1) .+ element_coords[3]) .-
+                           (element_length * 0.5f0 * (nodes .+ 1) .+ element_coords[3]) .-
                            1)
 
             polynomial_interpolation_matrix!(matrix1, mesh.nodes, nodes_out_x,
