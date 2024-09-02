@@ -256,11 +256,14 @@ function calc_volume_integral!(du, u,
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
+    println("pre: ", sum(isnan.(du)), " ", sum(isnan.(u)))
+    @autoinfiltrate
     @threaded for element in eachelement(dg, cache)
         flux_differencing_kernel!(du, u, element, mesh,
                                   nonconservative_terms, equations,
                                   volume_integral.volume_flux, dg, cache)
     end
+    println("post: ", sum(isnan.(du)), " ", sum(isnan.(u)))
 end
 
 @inline function flux_differencing_kernel!(du, u,

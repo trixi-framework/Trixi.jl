@@ -110,8 +110,6 @@ end
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
 
-#     @autoinfiltrate
-    println("pre flux_differencing_kernel: ", sum(isnan.(du)))
     # Calculate volume integral in one element
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
@@ -157,7 +155,6 @@ end
                                        equations, dg, i, jj, element)
         end
     end
-    println("post flux_differencing_kernel: ", sum(isnan.(du)))
 end
 
 @inline function flux_differencing_kernel!(du, u,
