@@ -68,8 +68,8 @@ function flux_rusanov(u_ll, u_rr, orientation::Int,
     f1 = 0.5 * (b * p_ll + b * p_rr) - 0.5 * (b) * (v_rr - v_ll)
     f2 = 0.5 * (b * v_ll + b * v_rr) - 0.5 * (b) * (p_rr - p_ll)
 
-    #  f1 = 0.5*(b*p_ll + b*p_rr) 
-    #  f2 = 0.5*(b*v_ll + b*v_rr) 
+    # f1 = 0.5*(b*p_ll + b*p_rr) 
+    # f2 = 0.5*(b*v_ll + b*v_rr) 
 
     return SVector(f1, f2)
 end

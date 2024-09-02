@@ -12,8 +12,6 @@ abstract type SimpleAlgorithmIMEX end
 """
     SimpleIMEX(; stage_callbacks=())
 
-    Pareschi - Russo IMEX Explicit Implicit IMEX-SSP2(3,3,2) Stiffly Accurate Scheme
-
 ## References
 
 - missing
@@ -30,6 +28,7 @@ struct SimpleIMEX{StageCallbacks} <: SimpleAlgorithmIMEX
     rkstages::Int64
 
     stage_callbacks::StageCallbacks
+
 
     function SimpleIMEX(; stage_callbacks = ())
         rkstages = 5
@@ -240,8 +239,9 @@ function solve!(integrator::SimpleIntegratorIMEX)
             if stage == 1
                 Yn[stage] .= integrator.u
             else
-                solveODEMIS!(Yn, integrator.dZn, integrator.Zn0, dts,
-                             alg.d[stage] * integrator.dt, integrator, prob, stage)
+                solveODEMIS_SE!(Yn, integrator.dZn, integrator.Zn0, dts,
+                                alg.d[stage] * integrator.dt, integrator, prob, stage,
+                                semi)
             end
 
             integrator.u_tmp .= Yn[stage]
@@ -315,7 +315,7 @@ function PreparationODEMIS!(dZn, Yn, Sdu, u, d, gamma, beta, dtL, stage)
     end
 end
 
-function solveODEMIS!(Yn, dZn, Zn0, dt, dtL, integrator, prob, stage)
+function solveODEMIS_RK4!(Yn, dZn, Zn0, dt, dtL, integrator, prob, stage, semi)
     yn = copy(Zn0)
     y = zeros(size(yn))
     du = [zeros(size(dZn)) for _ in 1:4]
@@ -352,6 +352,45 @@ function solveODEMIS!(Yn, dZn, Zn0, dt, dtL, integrator, prob, stage)
         yn .= y
     end
     Yn[stage] .= yn
+end
+
+function solveODEMIS_SE!(Yn, dZn, Zn0, dt, dtL, integrator, prob, stage, semi)
+    numit = round(dtL / dt)
+    dtloc = dtL / numit
+    integrator.u_tmp .= Zn0
+
+    for ii in 1:numit
+        integrator.f2(integrator.du, integrator.u_tmp, prob.p,
+                      integrator.t + integrator.dt)
+        time_stepping_symplectic!(integrator.u_tmp, integrator.du, dt, semi, dZn, 1)
+        integrator.f2(integrator.du, integrator.u_tmp, prob.p,
+                      integrator.t + integrator.dt)
+        time_stepping_symplectic!(integrator.u_tmp, integrator.du, dt, semi, dZn, 2)
+    end
+    Yn[stage] .= integrator.u_tmp
+end
+
+function time_stepping_symplectic!(u, du, dt, semi, dZn, var)
+    mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
+
+    u_wrap = Trixi.wrap_array(u, semi)
+    du_wrap = Trixi.wrap_array(du, semi)
+    dZn_wrap = Trixi.wrap_array(dZn, semi)
+    perform_time_step_se!(u_wrap, du_wrap, dZn_wrap, var, dt, semi, solver, cache,
+                          equations, mesh)
+    return nothing
+end
+
+function perform_time_step_se!(u, du, dZn, var, dt, semi, solver, cache, equations,
+                               mesh)
+    for element in eachelement(solver, cache)
+        for i in eachnode(solver)
+            u[var, i, element] = u[var, i, element] +
+                                 dt * (du[var, i, element] + dZn[var, i, element])
+        end
+    end
+
+    return nothing
 end
 
 # get a cache where the RHS can be stored
