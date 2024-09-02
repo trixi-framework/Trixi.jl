@@ -68,6 +68,7 @@ function calc_error_norms(func, u, t, analyzer,
                                         equations)
             diff = func(u_exact, equations) -
                    func(get_node_vars(u_local, equations, dg, i), equations)
+
             l2_error += diff .^ 2 * (weights[i] * jacobian_local[i])
             linf_error = @. max(linf_error, abs(diff))
             total_volume += weights[i] * jacobian_local[i]

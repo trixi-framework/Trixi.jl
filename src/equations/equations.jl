@@ -395,6 +395,16 @@ include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
 
+abstract type AbstractLinearAcousticAdvectionEquation{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("linear_acoustic_advection_1d.jl")
+abstract type AbstractLinearAcousticAdvectionSlowEquation{NDIMS, NVARS} <:
+    AbstractEquations{NDIMS, NVARS} end
+include("linear_acoustic_advection_slow_1d.jl")
+abstract type AbstractLinearAcousticAdvectionFastEquation{NDIMS, NVARS} <:
+    AbstractEquations{NDIMS, NVARS} end
+include("linear_acoustic_advection_fast_1d.jl")
+
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end

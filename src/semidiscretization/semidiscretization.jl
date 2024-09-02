@@ -114,6 +114,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan,
     return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
 
+
 """
     compute_coefficients(func, t, semi::AbstractSemidiscretization)
 

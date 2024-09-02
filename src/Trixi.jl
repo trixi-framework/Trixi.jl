@@ -129,6 +129,7 @@ include("equations/equations_parabolic.jl") # these depend on parabolic solver t
 include("semidiscretization/semidiscretization.jl")
 include("semidiscretization/semidiscretization_hyperbolic.jl")
 include("semidiscretization/semidiscretization_hyperbolic_parabolic.jl")
+include("semidiscretization/semidiscretization_hyperbolic_split.jl")
 include("semidiscretization/semidiscretization_euler_acoustics.jl")
 include("semidiscretization/semidiscretization_coupled.jl")
 include("time_integration/time_integration.jl")
@@ -154,6 +155,7 @@ export AcousticPerturbationEquations2D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D,
        HyperbolicDiffusionEquations3D,
+       LinearAcousticAdvectionEquation1D, LinearAcousticAdvectionFastEquation1D, LinearAcousticAdvectionSlowEquation1D
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
        LinearScalarAdvectionEquation3D,
        InviscidBurgersEquation1D,
@@ -171,7 +173,7 @@ export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
 export GradientVariablesConservative, GradientVariablesPrimitive, GradientVariablesEntropy
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
-       flux_godunov,
+       flux_godunov, flux_rusanov
        flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
        flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
        flux_kennedy_gruber, flux_shima_etal, flux_ec,
@@ -196,7 +198,8 @@ export splitting_steger_warming, splitting_vanleer_haenel,
 export initial_condition_constant,
        initial_condition_gauss,
        initial_condition_density_wave,
-       initial_condition_weak_blast_wave
+       initial_condition_weak_blast_wave,
+       initial_condition_fast_slow
 
 export boundary_condition_do_nothing,
        boundary_condition_periodic,
@@ -246,9 +249,11 @@ export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
 
-export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
+export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate, semidiscretizesplit
 
 export SemidiscretizationHyperbolicParabolic
+
+export SemidiscretizationHyperbolicSplit
 
 export SemidiscretizationEulerAcoustics
 

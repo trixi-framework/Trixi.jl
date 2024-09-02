@@ -140,6 +140,7 @@ function _precompile_manual_()
 
     function equations_types_1d(RealT)
         (LinearScalarAdvectionEquation1D{RealT},
+         LinearAcousticAdvectionEquation1D{RealT},
          HyperbolicDiffusionEquations1D{RealT},
          CompressibleEulerEquations1D{RealT},
          IdealGlmMhdEquations1D{RealT})
@@ -162,6 +163,7 @@ function _precompile_manual_()
         (LinearScalarAdvectionEquation1D{RealT},
          LinearScalarAdvectionEquation2D{RealT},
          LinearScalarAdvectionEquation3D{RealT},
+         LinearAcousticAdvectionEquation1D{RealT},
          HyperbolicDiffusionEquations1D{RealT},
          HyperbolicDiffusionEquations2D{RealT},
          HyperbolicDiffusionEquations3D{RealT},
