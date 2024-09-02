@@ -34,7 +34,7 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
 
     @assert indices_min <= indices_max
     @assert all(indices_min .> 0)
-    @assert prod(trees_per_dimension) <= size(parent)
+    @assert trees_per_dimension <= size(parent)
 
     ghost = ghost_new_p4est(parent.p4est)
     ghost_pw = PointerWrapper(ghost)
