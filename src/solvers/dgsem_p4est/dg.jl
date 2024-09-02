@@ -54,4 +54,6 @@ include("dg_2d_parabolic.jl")
 include("dg_3d.jl")
 include("dg_3d_parabolic.jl")
 include("dg_parallel.jl")
+
+include("subcell_limiters_2d.jl")
 end # @muladd
