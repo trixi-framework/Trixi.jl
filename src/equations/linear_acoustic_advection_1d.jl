@@ -21,25 +21,25 @@ struct LinearAcousticAdvectionEquation1D{RealT <: Real} <:
     b::RealT
 end
 
-function LinearAcousticAdvectionEquation1D(a::Real,b::Real)
-    LinearAcousticAdvectionEquation1D(a,b)
+function LinearAcousticAdvectionEquation1D(a::Real, b::Real)
+    LinearAcousticAdvectionEquation1D(a, b)
 end
 
 function varnames(::typeof(cons2cons), ::LinearAcousticAdvectionEquation1D)
-    ("v","p")
+    ("v", "p")
 end
-varnames(::typeof(cons2prim), ::LinearAcousticAdvectionEquation1D) = ("v","p")
+varnames(::typeof(cons2prim), ::LinearAcousticAdvectionEquation1D) = ("v", "p")
 
 # Set initial conditions at physical location `x` for time `t`
 function initial_condition_fast_slow(x, t, equation::LinearAcousticAdvectionEquation1D)
     sigma = 0.1
     x0 = 0.75
     x1 = 0.25
-    p0 = exp(-((x[1]-x0)/sigma)^2)
-    p01 = exp(-((x[1]-x1)/sigma)^2)
-    p1 = p01*cos(7.0*2.0*pi*x[1]/sigma)
+    p0 = exp(-((x[1] - x0) / sigma)^2)
+    p01 = exp(-((x[1] - x1) / sigma)^2)
+    p1 = p01 * cos(7.0 * 2.0 * pi * x[1] / sigma)
     p = p0 + p1
-    v = p/equation.b[1]
+    v = p / equation.b[1]
 
     return SVector(v, p)
 end
@@ -61,15 +61,16 @@ end
 
 function flux_rusanov(u_ll, u_rr, orientation::Int,
                       equation::LinearAcousticAdvectionEquation1D)
-v_ll, p_ll = u_ll
-v_rr, p_rr = u_rr
-a = equation.a
-b = equation.b
-f1 = 0.5*(a*v_ll + b*p_ll + a*v_rr + b*p_rr) - 0.5*(b+a)*(v_rr - v_ll)
-f2 = 0.5*(a*p_ll + b*v_ll + a*p_rr + b*v_rr) - 0.5*(b+a)*(p_rr - p_ll)
+    v_ll, p_ll = u_ll
+    v_rr, p_rr = u_rr
+    a = equation.a
+    b = equation.b
+    f1 = 0.5 * (a * v_ll + b * p_ll + a * v_rr + b * p_rr) -
+         0.5 * (b + a) * (v_rr - v_ll)
+    f2 = 0.5 * (a * p_ll + b * v_ll + a * p_rr + b * v_rr) -
+         0.5 * (b + a) * (p_rr - p_ll)
 
-return SVector(f1,f2)
-
+    return SVector(f1, f2)
 end
 
 @inline have_constant_speed(::LinearAcousticAdvectionEquation1D) = True()
@@ -85,5 +86,4 @@ end
 
 # Convert conservative variables to entropy variables
 @inline cons2entropy(u, equation::LinearAcousticAdvectionEquation1D) = u
-
 end # @muladd

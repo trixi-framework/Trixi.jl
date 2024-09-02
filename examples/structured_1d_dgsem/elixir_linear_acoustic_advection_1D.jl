@@ -7,7 +7,7 @@ using Plots
 
 a = 0.1
 b = 1.0
-equations = LinearAcousticAdvectionEquation1D(a,b)
+equations = LinearAcousticAdvectionEquation1D(a, b)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_rusanov)

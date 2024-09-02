@@ -155,16 +155,17 @@ export AcousticPerturbationEquations2D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D,
        HyperbolicDiffusionEquations3D,
-       LinearAcousticAdvectionEquation1D, LinearAcousticAdvectionFastEquation1D, LinearAcousticAdvectionSlowEquation1D
-       LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
-       LinearScalarAdvectionEquation3D,
-       InviscidBurgersEquation1D,
-       LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
-       ShallowWaterEquations1D, ShallowWaterEquations2D,
-       ShallowWaterEquationsQuasi1D,
-       LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
-       PolytropicEulerEquations2D,
-       TrafficFlowLWREquations1D
+       LinearAcousticAdvectionEquation1D, LinearAcousticAdvectionFastEquation1D,
+       LinearAcousticAdvectionSlowEquation1D
+LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
+LinearScalarAdvectionEquation3D,
+InviscidBurgersEquation1D,
+LatticeBoltzmannEquations2D, LatticeBoltzmannEquations3D,
+ShallowWaterEquations1D, ShallowWaterEquations2D,
+ShallowWaterEquationsQuasi1D,
+LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
+PolytropicEulerEquations2D,
+TrafficFlowLWREquations1D
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
@@ -174,22 +175,22 @@ export GradientVariablesConservative, GradientVariablesPrimitive, GradientVariab
 
 export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_godunov, flux_rusanov
-       flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
-       flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
-       flux_kennedy_gruber, flux_shima_etal, flux_ec,
-       flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
-       flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
-       flux_nonconservative_ersing_etal,
-       flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
-       hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
-       FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
-       FluxLaxFriedrichs, max_abs_speed_naive,
-       FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
-       FluxLMARS,
-       FluxRotated,
-       flux_shima_etal_turbo, flux_ranocha_turbo,
-       FluxHydrostaticReconstruction,
-       FluxUpwind
+flux_chandrashekar, flux_ranocha, flux_derigs_etal, flux_hindenlang_gassner,
+flux_nonconservative_powell, flux_nonconservative_powell_local_symmetric,
+flux_kennedy_gruber, flux_shima_etal, flux_ec,
+flux_fjordholm_etal, flux_nonconservative_fjordholm_etal,
+flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal,
+flux_nonconservative_ersing_etal,
+flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
+hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
+FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
+FluxLaxFriedrichs, max_abs_speed_naive,
+FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
+FluxLMARS,
+FluxRotated,
+flux_shima_etal_turbo, flux_ranocha_turbo,
+FluxHydrostaticReconstruction,
+FluxUpwind
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
@@ -249,7 +250,8 @@ export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
 export nelements, nnodes, nvariables,
        eachelement, eachnode, eachvariable
 
-export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate, semidiscretizesplit
+export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate,
+       semidiscretizesplit
 
 export SemidiscretizationHyperbolicParabolic
 

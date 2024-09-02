@@ -399,10 +399,10 @@ abstract type AbstractLinearAcousticAdvectionEquation{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("linear_acoustic_advection_1d.jl")
 abstract type AbstractLinearAcousticAdvectionSlowEquation{NDIMS, NVARS} <:
-    AbstractEquations{NDIMS, NVARS} end
+              AbstractEquations{NDIMS, NVARS} end
 include("linear_acoustic_advection_slow_1d.jl")
 abstract type AbstractLinearAcousticAdvectionFastEquation{NDIMS, NVARS} <:
-    AbstractEquations{NDIMS, NVARS} end
+              AbstractEquations{NDIMS, NVARS} end
 include("linear_acoustic_advection_fast_1d.jl")
 
 # Inviscid Burgers
