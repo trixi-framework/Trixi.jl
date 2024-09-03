@@ -29,7 +29,6 @@ struct SimpleIMEX{StageCallbacks} <: SimpleAlgorithmIMEX
 
     stage_callbacks::StageCallbacks
 
-
     function SimpleIMEX(; stage_callbacks = ())
         rkstages = 5
         beta = zeros(rkstages, rkstages)
