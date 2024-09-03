@@ -136,6 +136,38 @@ end
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
+    @trixi_testset "first-order FV - triangles" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
+                            order=1,
+                            cmesh = Trixi.cmesh_new_periodic_tri(),
+                            initial_refinement_level=2,
+                            l2=[0.29924666807083133],
+                            linf=[0.4581996753014146])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+    @trixi_testset "first-order FV - hybrid2" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
+                            order=1,
+                            cmesh = Trixi.cmesh_new_periodic_hybrid2(),
+                            initial_refinement_level=2,
+                            l2=[0.20740154468889108],
+                            linf=[0.4659917007721659])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
     @trixi_testset "second-order FV" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
                             initial_refinement_level=2,
