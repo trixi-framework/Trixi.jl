@@ -35,11 +35,11 @@ The unknowns are the acoustic velocities ``v' = (v_1', v_2')``, the pressure ``p
 struct LinearizedGravityWaveEquations2D{RealT <: Real} <:
        AbstractLinearizedEulerEquations{2, 4}
     cs::RealT  # speed of sound
-    f_b::RealT # Buoyancy frequency
+    fb::RealT # Buoyancy frequency
 end
 
-function LinearizedGravityWaveEquations2D(cs::Real, f_b::Real)
-    return LinearizedGravityWaveEquations2D(cs, b)
+function LinearizedGravityWaveEquations2D(cs::Real, fb::Real)
+    return LinearizedGravityWaveEquations2D(cs, fb)
 end
 
 function varnames(::typeof(cons2cons), ::LinearizedGravityWaveEquations2D)
@@ -115,15 +115,15 @@ Should be used together with [`TreeMesh`](@ref).
     return flux
 end
 
-@inline function source_terms(u, x, t,
+@inline function source_terms_convergence_test(u, x, t,
                               equations::LinearizedGravityWaveEquations2D)
     # Same settings as in `initial_condition`
-    @unpack f_b = equations
+    @unpack fb = equations
     _, v2, _, b = u
     du1 = 0.0
     du2 = b
     du3 = 0
-    du4 = -N^2 * v2
+    du4 = -fb^2 * v2
 
     return SVector(du1, du2, du3, du4)
 end
