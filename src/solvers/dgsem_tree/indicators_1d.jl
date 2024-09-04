@@ -221,7 +221,7 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 3},
             u_local = get_node_vars(u, equations, dg, i, element)
             mean += indicator_clamp.variable(u_local, equations) * weights[i]
         end
-        mean *= 0.5
+        mean *= 0.5 # Divide by reference element length
 
         if indicator_clamp.min <= mean <= indicator_clamp.max
             alpha[element] = 1.0
