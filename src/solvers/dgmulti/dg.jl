@@ -7,9 +7,7 @@
 
 # out <- A*x
 mul_by!(A) = @inline (out, x) -> matmul!(out, A, x)
-mul_by!(A::T) where {T <: Union{<:Kronecker.KroneckerProduct, SimpleKronecker}} = @inline (out, x) -> mul!(out,
-                                                                                                           A,
-                                                                                                           x)
+mul_by!(A::T) where {T <: SimpleKronecker} = @inline (out, x) -> mul!(out, A, x)
 mul_by!(A::AbstractSparseMatrix) = @inline (out, x) -> mul!(out, A, x)
 function mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S <: AbstractSparseMatrix}
     @inline (out, x) -> mul!(out, A, x)
