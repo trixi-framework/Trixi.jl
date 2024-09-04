@@ -247,14 +247,10 @@ function calc_interface_flux!(surface_flux_values,
             flux = surface_flux(u_ll, u_rr, outward_direction, equations)
 
             # Compute both nonconservative fluxes
-            # In general, nonconservative fluxes can depend on both the contravariant
-            # vectors (normal direction) at the current node and the averaged ones.
-            # However, both are the same at watertight interfaces, so we pass the
-            # `outward_direction` twice.
             noncons_primary = nonconservative_flux(u_ll, u_rr, outward_direction,
-                                                   outward_direction, equations)
+                                                   equations)
             noncons_secondary = nonconservative_flux(u_rr, u_ll, outward_direction,
-                                                     outward_direction, equations)
+                                                     equations)
 
             # Copy flux to primary and secondary element storage
             # Note the sign change for the components in the secondary element!
@@ -449,13 +445,8 @@ end
     flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
 
     # Compute pointwise nonconservative numerical flux at the boundary.
-    # In general, nonconservative fluxes can depend on both the contravariant
-    # vectors (normal direction) at the current node and the averaged ones.
-    # However, both are the same at watertight interfaces, so we pass the
-    # `outward_direction` twice.
-    # Note: This does not set any type of boundary condition for the nonconservative term
-    noncons_flux = nonconservative_flux(u_inner, u_inner, outward_direction,
-                                        outward_direction, equations)
+    noncons_flux = boundary_condition(u_inner, outward_direction, x, t,
+                                      nonconservative_flux, equations)
 
     for v in eachvariable(equations)
         # Note the factor 0.5 necessary for the nonconservative fluxes based on

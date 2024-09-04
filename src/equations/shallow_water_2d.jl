@@ -267,8 +267,7 @@ end
     flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
                                           equations::ShallowWaterEquations2D)
     flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                          normal_direction_ll     ::AbstractVector,
-                                          normal_direction_average::AbstractVector,
+                                          normal_direction::AbstractVector,
                                           equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
@@ -303,8 +302,7 @@ Further details are available in the papers:
 end
 
 @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                                       normal_direction_ll::AbstractVector,
-                                                       normal_direction_average::AbstractVector,
+                                                       normal_direction::AbstractVector,
                                                        equations::ShallowWaterEquations2D)
     # Pull the necessary left and right state information
     h_ll = waterheight(u_ll, equations)
@@ -312,8 +310,8 @@ end
 
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     return SVector(0,
-                   normal_direction_average[1] * equations.gravity * h_ll * b_jump,
-                   normal_direction_average[2] * equations.gravity * h_ll * b_jump,
+                   normal_direction[1] * equations.gravity * h_ll * b_jump,
+                   normal_direction[2] * equations.gravity * h_ll * b_jump,
                    0)
 end
 
@@ -321,8 +319,7 @@ end
     flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
                                         equations::ShallowWaterEquations2D)
     flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                        normal_direction_ll     ::AbstractVector,
-                                        normal_direction_average::AbstractVector,
+                                        normal_direction::AbstractVector,
                                         equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
@@ -365,8 +362,7 @@ and for curvilinear 2D case in the paper:
 end
 
 @inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                                     normal_direction_ll::AbstractVector,
-                                                     normal_direction_average::AbstractVector,
+                                                     normal_direction::AbstractVector,
                                                      equations::ShallowWaterEquations2D)
     # Pull the necessary left and right state information
     h_ll, _, _, b_ll = u_ll
@@ -376,8 +372,8 @@ end
     b_jump = b_rr - b_ll
 
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
-    f2 = normal_direction_average[1] * equations.gravity * h_average * b_jump
-    f3 = normal_direction_average[2] * equations.gravity * h_average * b_jump
+    f2 = normal_direction[1] * equations.gravity * h_average * b_jump
+    f3 = normal_direction[2] * equations.gravity * h_average * b_jump
 
     # First and last equations do not have a nonconservative flux
     f1 = f4 = 0
@@ -424,8 +420,7 @@ end
     flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
                                       equations::ShallowWaterEquations2D)
     flux_nonconservative_audusse_etal(u_ll, u_rr,
-                                      normal_direction_ll     ::AbstractVector,
-                                      normal_direction_average::AbstractVector,
+                                      normal_direction::AbstractVector,
                                       equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point surface flux that discretizes the nonconservative (source) term.
@@ -467,8 +462,7 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
 end
 
 @inline function flux_nonconservative_audusse_etal(u_ll, u_rr,
-                                                   normal_direction_ll::AbstractVector,
-                                                   normal_direction_average::AbstractVector,
+                                                   normal_direction::AbstractVector,
                                                    equations::ShallowWaterEquations2D)
     # Pull the water height and bottom topography on the left
     h_ll, _, _, b_ll = u_ll
@@ -479,8 +473,8 @@ end
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    f2 = normal_direction_average[1] * equations.gravity * (h_ll^2 - h_ll_star^2)
-    f3 = normal_direction_average[2] * equations.gravity * (h_ll^2 - h_ll_star^2)
+    f2 = normal_direction[1] * equations.gravity * (h_ll^2 - h_ll_star^2)
+    f3 = normal_direction[2] * equations.gravity * (h_ll^2 - h_ll_star^2)
 
     # First and last equations do not have a nonconservative flux
     f1 = f4 = 0
