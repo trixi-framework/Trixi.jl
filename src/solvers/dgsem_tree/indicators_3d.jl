@@ -281,7 +281,7 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 5},
             mean += indicator_clamp.variable(u_local, equations) * weights[i] *
                     weights[j] * weights[k]
         end
-        mean *= 0.125
+        mean *= 0.125 # Divide by reference element volume
 
         if indicator_clamp.min <= mean <= indicator_clamp.max
             alpha[element] = 1.0
