@@ -255,7 +255,7 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 4},
             mean += indicator_clamp.variable(u_local, equations) * weights[i] *
                     weights[j]
         end
-        mean *= 0.25
+        mean *= 0.25 # Divide by reference element area
 
         if indicator_clamp.min <= mean <= indicator_clamp.max
             alpha[element] = 1.0
