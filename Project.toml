@@ -60,6 +60,7 @@ TrixiConvexECOSExt = ["Convex", "ECOS"]
 TrixiMakieExt = "Makie"
 
 [compat]
+Accessors = "0.1"
 CodeTracking = "1.0.5"
 ConstructionBase = "1.3"
 Convex = "0.16"
