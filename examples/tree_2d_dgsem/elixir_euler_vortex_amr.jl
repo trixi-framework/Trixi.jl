@@ -27,7 +27,6 @@ function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any, 4},
                                              t, kwargs...)
     mesh = indicator_vortex.cache.mesh
     alpha = indicator_vortex.cache.alpha
-    indicator_threaded = indicator_vortex.cache.indicator_threaded
     resize!(alpha, nelements(dg, cache))
 
     # get analytical vortex center (based on assumption that center=[0.0,0.0]
@@ -55,6 +54,11 @@ function periodic_distance_2d(coordinates, center, domain_length)
     dx = @. abs(coordinates - center)
     dx_periodic = @. min(dx, domain_length - dx)
     return sqrt(sum(abs2, dx_periodic))
+end
+
+# Optional: Nicer display of the indicator
+function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorVortex)
+    Trixi.summary_box(io, "IndicatorVortex")
 end
 
 end # module TrixiExtension
