@@ -637,6 +637,9 @@ function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     analyze(quantity, du, u, t, mesh, equations, solver, cache)
 end
+# `analyze` function that passes also the iteration number `iter`along.
+# Required for callbacks that handle the write-off of results to disk themselves,
+# such as `AnalysisSurfacePointwise`.
 function analyze(quantity, du, u, t, semi::AbstractSemidiscretization, iter)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     analyze(quantity, du, u, t, mesh, equations, solver, cache, iter)
@@ -712,7 +715,8 @@ include("analysis_dg3d_parallel.jl")
 # This version of `analyze` is used for [`AnalysisSurfaceIntegral`](@ref) which requires
 # `semi` to be passed along to retrieve the current boundary indices, which are non-static 
 # in the case of AMR.
-function analyze(quantity::AnalysisSurfaceIntegral{Variable}, du, u, t,
+function analyze(quantity::AnalysisSurfaceIntegral{Variable}, 
+                 du, u, t,
                  semi::AbstractSemidiscretization) where {Variable}
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     analyze(quantity, du, u, t, mesh, equations, solver, cache, semi)
@@ -720,8 +724,10 @@ end
 
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
-# Note that this needs to be included after `analysis_surface_integral_2d.jl` to
-# have `VariableViscous` available.
+# Note that this needs to be defined after `analysis_surface_integral_2d.jl` is included 
+# to have `VariableViscous` available.
+# We require `semi` to be passed along to retrieve the current boundary indices, which are non-static 
+# in the case of AMR.
 function analyze(quantity::AnalysisSurfaceIntegral{Variable},
                  du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic) where {
@@ -734,6 +740,9 @@ function analyze(quantity::AnalysisSurfaceIntegral{Variable},
             cache_parabolic)
 end
 
+# This version of `analyze` is used for `AnalysisSurfacePointwise` such as `SurfacePressureCoefficient`.
+# We need the iteration number `iter` to be passed in here 
+# as for `AnalysisSurfacePointwise` the writing to disk is handled by the callback itself.
 function analyze(quantity::AnalysisSurfacePointwise{Variable},
                  du, u, t,
                  semi::AbstractSemidiscretization,
@@ -741,6 +750,11 @@ function analyze(quantity::AnalysisSurfacePointwise{Variable},
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     analyze(quantity, du, u, t, mesh, equations, solver, cache, semi, iter)
 end
+# Special analyze for `SemidiscretizationHyperbolicParabolic` such that
+# precomputed gradients are available. Required for `AnalysisSurfacePointwise` equipped 
+# with `VariableViscous` such as `SurfaceFrictionCoefficient`.
+# As for the inviscid version, we need to pass in the iteration number `iter` as 
+# for `AnalysisSurfacePointwise` the writing to disk is handled by the callback itself.
 function analyze(quantity::AnalysisSurfacePointwise{Variable},
                  du, u, t,
                  semi::SemidiscretizationHyperbolicParabolic,
