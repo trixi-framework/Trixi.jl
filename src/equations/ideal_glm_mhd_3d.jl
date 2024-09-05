@@ -11,8 +11,8 @@
 The ideal compressible GLM-MHD equations for an ideal gas with ratio of
 specific heats `gamma` in three space dimensions.
 """
-mutable struct IdealGlmMhdEquations3D{RealT <: Real} <:
-               AbstractIdealGlmMhdEquations{3, 9}
+struct IdealGlmMhdEquations3D{RealT <: Real} <:
+       AbstractIdealGlmMhdEquations{3, 9}
     gamma::RealT               # ratio of specific heats
     inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
     c_h::RealT                 # GLM cleaning speed
@@ -26,6 +26,10 @@ end
 function IdealGlmMhdEquations3D(gamma; initial_c_h = convert(typeof(gamma), NaN))
     # Use `promote` to ensure that `gamma` and `initial_c_h` have the same type
     IdealGlmMhdEquations3D(promote(gamma, initial_c_h)...)
+end
+
+function IdealGlmMhdEquations3D(gamma, inv_gamma_minus_one, c_h)
+    IdealGlmMhdEquations3D(gamma, c_h)
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations3D) = True()

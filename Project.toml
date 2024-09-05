@@ -6,7 +6,6 @@ version = "0.8.9-DEV"
 [deps]
 Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
-Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
@@ -62,7 +61,6 @@ TrixiConvexECOSExt = ["Convex", "ECOS"]
 TrixiMakieExt = "Makie"
 
 [compat]
-Accessors = "0.1.37"
 CodeTracking = "1.0.5"
 ConstructionBase = "1.3"
 Convex = "0.16"

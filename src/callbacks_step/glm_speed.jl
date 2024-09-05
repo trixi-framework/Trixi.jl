@@ -83,7 +83,8 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt)
     c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
 
     # c_h is proportional to its own time step divided by the complete MHD time step
-    equations.c_h = glm_scale * c_h_deltat / dt
+    @reset equations.c_h = glm_scale * c_h_deltat / dt
+    semi.equations = equations
 
     return semi
 end
