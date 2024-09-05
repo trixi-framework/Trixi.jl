@@ -107,7 +107,7 @@ end
 @inline ncellsglobal(mesh::P4estMesh) = Int(mesh.p4est.global_num_quadrants[])
 
 function Base.show(io::IO, mesh::P4estMesh)
-    print(io, "P4estMesh{", ndims(mesh), ", ", ndims_ambient(mesh), ", " real(mesh), "}")
+    print(io, "P4estMesh{", ndims(mesh), ", ", ndims_ambient(mesh), ", ", real(mesh), "}")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
