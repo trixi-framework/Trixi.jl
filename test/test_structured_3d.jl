@@ -11,7 +11,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "structured_3d_dgsem")
 outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
-@testset "Structured mesh" begin
+@testset "StructuredMesh3D" begin
 #! format: noindent
 
 @trixi_testset "elixir_advection_basic.jl" begin
