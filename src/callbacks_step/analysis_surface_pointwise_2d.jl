@@ -136,7 +136,7 @@ function analyze(surface_variable::AnalysisSurfacePointwise, du, u, t,
 
     index_range = eachnode(dg)
 
-    global_node_index = 1 # Keeps track of solution point number on the surface
+    global_node_counter = 1 # Keeps track of solution point number on the surface
     for boundary in indices
         element = boundaries.neighbor_ids[boundary]
         node_indices = boundaries.node_indices[boundary]
@@ -154,13 +154,13 @@ function analyze(surface_variable::AnalysisSurfacePointwise, du, u, t,
                                 element)
             value = variable(u_node, equations)
 
-            coordinates[global_node_index, 1] = x[1]
-            coordinates[global_node_index, 2] = x[2]
-            values[global_node_index] = value
+            coordinates[global_node_counter, 1] = x[1]
+            coordinates[global_node_counter, 2] = x[2]
+            values[global_node_counter] = value
 
             i_node += i_node_step
             j_node += j_node_step
-            global_node_index += 1
+            global_node_counter += 1
         end
     end
 
@@ -196,7 +196,7 @@ function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
     gradients_x, gradients_y = gradients
 
     index_range = eachnode(dg)
-    global_node_index = 1 # Keeps track of solution point number on the surface
+    global_node_counter = 1 # Keeps track of solution point number on the surface
     for boundary in indices
         element = boundaries.neighbor_ids[boundary]
         node_indices = boundaries.node_indices[boundary]
@@ -228,13 +228,13 @@ function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
             value = variable(u_node, normal_direction, x, t, equations_parabolic,
                              gradients_1, gradients_2)
 
-            coordinates[global_node_index, 1] = x[1]
-            coordinates[global_node_index, 2] = x[2]
-            values[global_node_index] = value
+            coordinates[global_node_counter, 1] = x[1]
+            coordinates[global_node_counter, 2] = x[2]
+            values[global_node_counter] = value
 
             i_node += i_node_step
             j_node += j_node_step
-            global_node_index += 1
+            global_node_counter += 1
         end
     end
 
