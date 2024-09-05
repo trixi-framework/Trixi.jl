@@ -128,3 +128,10 @@ parallel execution of Trixi.jl.
 See the "Miscellaneous" section of the [documentation](https://docs.sciml.ai/DiffEqDocs/stable/basics/common_solver_opts/).
 """
 ode_unstable_check(dt, u, semi, t) = isnan(dt)
+
+# Custom MPI operators to work around
+# https://github.com/trixi-framework/Trixi.jl/issues/1922
+function reduce_vector_plus(x, y)
+    x .+ y
+end
+MPI.@Op(reduce_vector_plus, SVector)

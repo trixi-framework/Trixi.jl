@@ -116,6 +116,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
+      - run: julia -e 'using Pkg; Pkg.add("MPI#vc/custom_ops")'
       - name: Run tests without coverage
         uses: julia-actions/julia-runtest@v1
         with:

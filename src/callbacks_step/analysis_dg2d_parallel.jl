@@ -162,7 +162,7 @@ function integrate_via_indices(func::Func, u,
                             normalize = normalize)
 
     # OBS! Global results are only calculated on MPI root, all other domains receive `nothing`
-    global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())
+    global_integral = MPI.Reduce!(Ref(local_integral), reduce_vector_plus, mpi_root(), mpi_comm())
     if mpi_isroot()
         integral = convert(typeof(local_integral), global_integral[])
     else
@@ -195,7 +195,7 @@ function integrate_via_indices(func::Func, u,
         end
     end
 
-    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
+    global_integral = MPI.Reduce!(Ref(integral), reduce_vector_plus, mpi_root(), mpi_comm())
     total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
     if mpi_isroot()
         integral = convert(typeof(integral), global_integral[])
