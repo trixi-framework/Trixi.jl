@@ -160,10 +160,14 @@ function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha,
                                        mesh::DGMultiMesh, dg::DGMulti)
     empty!(element_ids_dg)
     empty!(element_ids_dgfv)
+    # For `Float64`, this gives 1.8189894035458565e-12
+    # For `Float32`, this gives 1.1920929f-5
+    RealT = eltype(alpha)
+    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
 
     for element in eachelement(mesh, dg)
         # Clip blending factor for values close to zero (-> pure DG)
-        dg_only = isapprox(alpha[element], 0, atol = 1e-12)
+        dg_only = isapprox(alpha[element], 0, atol = atol)
         if dg_only
             push!(element_ids_dg, element)
         else

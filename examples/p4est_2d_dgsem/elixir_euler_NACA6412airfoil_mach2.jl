@@ -1,7 +1,6 @@
 
 using Trixi
 using OrdinaryDiffEq
-using Downloads: download
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -62,7 +61,7 @@ volume_integral = VolumeIntegralShockCapturingHG(shock_indicator;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
 
-# DG Solver                                                 
+# DG Solver
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
@@ -70,8 +69,8 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 # https://gist.githubusercontent.com/DanielDoehring/5ade6d93629f0d8c23a598812dbee2a9/raw/d2bc904fe92146eae1a36156e7f5c535dc1a80f1/NACA6412.geo
 mesh_file = joinpath(@__DIR__, "mesh_NACA6412.inp")
 isfile(mesh_file) ||
-    download("https://gist.githubusercontent.com/DanielDoehring/e2a389f04f1e37b33819b9637e8ee4c3/raw/4bf7607a2ce4432fdb5cb87d5e264949b11bd5d7/mesh_NACA6412.inp",
-             mesh_file)
+    Trixi.download("https://gist.githubusercontent.com/DanielDoehring/e2a389f04f1e37b33819b9637e8ee4c3/raw/4bf7607a2ce4432fdb5cb87d5e264949b11bd5d7/mesh_NACA6412.inp",
+                   mesh_file)
 
 boundary_symbols = [:PhysicalLine1, :PhysicalLine2, :PhysicalLine3, :PhysicalLine4]
 
@@ -79,7 +78,7 @@ mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_sy
 
 boundary_conditions = Dict(:PhysicalLine1 => boundary_condition_supersonic_inflow, # Left boundary
                            :PhysicalLine2 => boundary_condition_supersonic_outflow, # Right boundary
-                           :PhysicalLine3 => boundary_condition_supersonic_outflow, # Top and bottom boundary 
+                           :PhysicalLine3 => boundary_condition_supersonic_outflow, # Top and bottom boundary
                            :PhysicalLine4 => boundary_condition_slip_wall) # Airfoil
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
