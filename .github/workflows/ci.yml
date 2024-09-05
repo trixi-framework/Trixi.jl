@@ -90,8 +90,8 @@ jobs:
             arch: x64
             trixi_test: threaded_legacy
           - version: '1.10'
-            os: macos-latest
-            arch: aarch64
+            os: macos-13
+            arch: x64
             trixi_test: mpi
           - version: '1.10'
             os: macos-latest
