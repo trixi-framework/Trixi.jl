@@ -93,6 +93,9 @@ function SurfaceFrictionCoefficient(rhoinf, uinf, linf)
     return SurfaceFrictionCoefficient(FlowState(rhoinf, uinf, linf))
 end
 
+# Compute local pressure coefficient.
+# Works for both purely hyperbolic and hyperbolic-parabolic systems.
+# C_p(x) = (p(x) - p_inf) / (0.5 * rho_inf * u_inf^2 * l_inf)
 function (pressure_coefficient::SurfacePressureCoefficient)(u, equations)
     p = pressure(u, equations)
     @unpack pinf = pressure_coefficient
@@ -100,6 +103,9 @@ function (pressure_coefficient::SurfacePressureCoefficient)(u, equations)
     return (p - pinf) / (0.5 * rhoinf * uinf^2 * linf)
 end
 
+# Compute local friction coefficient.
+# Works only in conjunction with a hyperbolic-parabolic system.
+# C_f(x) = (tau_w(x) * n_perp(x)) / (0.5 * rho_inf * u_inf^2 * l_inf)
 function (surface_friction::SurfaceFrictionCoefficient)(u, normal_direction, x, t,
                                                         equations_parabolic,
                                                         gradients_1, gradients_2)
@@ -110,12 +116,18 @@ function (surface_friction::SurfaceFrictionCoefficient)(u, normal_direction, x, 
 
     # Normalize as `normal_direction` is not necessarily a unit vector
     n = normal_direction / norm(normal_direction)
-    n_perp = (-n[2], n[1])
-    return (viscous_stress_vector_[1] * n_perp[1] +
-            viscous_stress_vector_[2] * n_perp[2]) /
+    # Tangent vector = perpendicular vector to normal vector
+    t = (-n[2], n[1])
+    return (viscous_stress_vector_[1] * t[1] +
+            viscous_stress_vector_[2] * t[2]) /
            (0.5 * rhoinf * uinf^2 * linf)
 end
 
+# Compute and save to disk a space-dependent `surface_variable`.
+# For the purely hyperbolic, i.e., non-parabolic case, this is for instance 
+# the pressure coefficient `SurfacePressureCoefficient`.
+# The boundary/boundaries along which this quantity is to be integrated is determined by
+# `boundary_symbols`, which is retrieved from `surface_variable`.
 function analyze(surface_variable::AnalysisSurfacePointwise, du, u, t,
                  mesh::P4estMesh{2},
                  equations, dg::DGSEM, cache, semi, iter)
@@ -164,11 +176,16 @@ function analyze(surface_variable::AnalysisSurfacePointwise, du, u, t,
         end
     end
 
+    # Save to disk
     save_pointwise_file(surface_variable.output_directory, varname(variable),
-                        coordinates,
-                        values, t, iter)
+                        coordinates, values, t, iter)
 end
 
+# Compute and save to disk a space-dependent `surface_variable`.
+# For the purely hyperbolic-parabolic case, this is may be for instance 
+# the surface skin fricition coefficient `SurfaceFrictionCoefficient`.
+# The boundary/boundaries along which this quantity is to be integrated is determined by
+# `boundary_symbols`, which is retrieved from `surface_variable`.
 function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
                  du, u, t, mesh::P4estMesh{2},
                  equations, equations_parabolic,
@@ -213,16 +230,16 @@ function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
 
             x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
                                 element)
-            # Extract normal direction at nodes which points from the elements outwards,
-            # i.e., *into* the structure.
-            normal_direction = get_normal_direction(direction, contravariant_vectors,
-                                                    i_node, j_node,
-                                                    element)
 
-            gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg, i_node,
-                                        j_node, element)
-            gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg, i_node,
-                                        j_node, element)
+            gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg,
+                                        i_node, j_node, element)
+            gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg,
+                                        i_node, j_node, element)
+
+            # Extract normal direction at nodes which points from the 
+            # fluid cells *outwards*, i.e., *into* the structure.
+            normal_direction = get_normal_direction(direction, contravariant_vectors,
+                                                    i_node, j_node, element)
 
             # Integral over whole boundary surface
             value = variable(u_node, normal_direction, x, t, equations_parabolic,
@@ -238,15 +255,21 @@ function analyze(surface_variable::AnalysisSurfacePointwise{Variable},
         end
     end
 
+    # Save to disk
     save_pointwise_file(surface_variable.output_directory, varname(variable),
-                        coordinates,
-                        values, t, iter)
+                        coordinates, values, t, iter)
 end
 
 varname(::Any) = @assert false "Surface variable name not assigned" # This makes sure default behaviour is not overwriting
 varname(pressure_coefficient::SurfacePressureCoefficient) = "CP_x"
 varname(friction_coefficient::SurfaceFrictionCoefficient) = "CF_x"
 
+# Helper function that saves a space-dependent quantity `values`
+# at every solution/quadrature point `coordinates` at 
+# time `t` and iteration `iter` to disk.
+# The file is written to the `output_directory` with name `varname` in HDF5 (.h5) format.
+# The latter two are retrieved from the `surface_variable`,
+# an instantiation of `AnalysisSurfacePointwise`.
 function save_pointwise_file(output_directory, varname, coordinates, values, t, iter)
     n_points = length(values)
 
