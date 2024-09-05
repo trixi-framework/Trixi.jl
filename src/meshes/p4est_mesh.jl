@@ -9,7 +9,7 @@
     P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
 
 An unstructured curved mesh based on trees that uses the C library `p4est`
-to manage trees and mesh refinement.
+to manage trees and mesh refinement. 
 """
 mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
                          NDIMSP2, NNODES} <:
@@ -49,6 +49,11 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
         ghost = ghost_new_p4est(p4est)
         ghost_pw = PointerWrapper(ghost)
 
+        # To enable the treatment of a manifold of dimension NDIM embedded within an 
+        # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
+        # allow them to differ in the general case (e.g. when considering 2D surfaces in 3D).
+        # The ambient dimension NDIMS_AMBIENT is therefore set here in the inner constructor to
+        # size(mesh.tree_node_coordinates, 1).
         mesh = new{NDIMS, size(mesh.tree_node_coordinates, 1),
                    eltype(tree_node_coordinates), typeof(is_parallel),
                    typeof(p4est_pw), typeof(ghost_pw), NDIMS + 2, length(nodes)}(p4est_pw,
@@ -68,8 +73,10 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
     end
 end
 
-const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, NDIMS_AMBIENT, <:Real, <:False}
-const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, NDIMS_AMBIENT, <:Real, <:True}
+const SerialP4estMesh{NDIMS, NDIMS_AMBIENT} = P4estMesh{NDIMS, NDIMS_AMBIENT, <:Real,
+                                                        <:False}
+const ParallelP4estMesh{NDIMS, NDIMS_AMBIENT} = P4estMesh{NDIMS, NDIMS_AMBIENT, <:Real,
+                                                          <:True}
 
 @inline mpi_parallel(mesh::SerialP4estMesh) = False()
 @inline mpi_parallel(mesh::ParallelP4estMesh) = True()
