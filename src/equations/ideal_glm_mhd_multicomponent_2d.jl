@@ -10,8 +10,8 @@
 
 The ideal compressible multicomponent GLM-MHD equations in two space dimensions.
 """
-mutable struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
-               AbstractIdealGlmMhdMulticomponentEquations{2, NVARS, NCOMP}
+struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
+       AbstractIdealGlmMhdMulticomponentEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT}
     gas_constants::SVector{NCOMP, RealT}
     cv::SVector{NCOMP, RealT}
@@ -51,6 +51,10 @@ function IdealGlmMhdMulticomponentEquations2D(; gammas, gas_constants)
 
     return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
                                                                      __gas_constants)
+end
+
+function IdealGlmMhdMulticomponentEquations2D(gammas, gas_constants, cv, cp, c_h)
+    IdealGlmMhdMulticomponentEquations2D(gammas = gammas, gas_constants = gas_constants)
 end
 
 @inline function Base.real(::IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}) where {

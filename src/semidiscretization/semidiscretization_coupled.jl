@@ -16,7 +16,8 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-struct SemidiscretizationCoupled{S, Indices, EquationList} <: AbstractSemidiscretization
+mutable struct SemidiscretizationCoupled{S, Indices, EquationList} <:
+               AbstractSemidiscretization
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
@@ -383,7 +384,8 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
         c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
 
         # c_h is proportional to its own time step divided by the complete MHD time step
-        equations.c_h = glm_scale * c_h_deltat / dt
+        @reset equations.c_h = glm_scale * c_h_deltat / dt
+        semi.equations = equations
     end
 
     return semi_coupled
