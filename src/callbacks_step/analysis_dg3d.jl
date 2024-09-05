@@ -35,9 +35,51 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{3},
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2)
 end
 
+# Specialized cache for P4estMesh to allow for different ambient dimension from mesh dimension
 function create_cache_analysis(analyzer,
-                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
-                                           T8codeMesh{3}},
+                               mesh::P4estMesh{3, NDIMS_AMBIENT},
+                               equations, dg::DG, cache,
+                               RealT, uEltype) where {NDIMS_AMBIENT}
+
+    # pre-allocate buffers
+    # We use `StrideArray`s here since these buffers are used in performance-critical
+    # places and the additional information passed to the compiler makes them faster
+    # than native `Array`s.
+    u_local = StrideArray(undef, uEltype,
+                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+    u_tmp1 = StrideArray(undef, uEltype,
+                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    u_tmp2 = StrideArray(undef, uEltype,
+                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    x_local = StrideArray(undef, RealT,
+                          StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+    x_tmp1 = StrideArray(undef, RealT,
+                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    x_tmp2 = StrideArray(undef, RealT,
+                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    jacobian_local = StrideArray(undef, RealT,
+                                 StaticInt(nnodes(analyzer)),
+                                 StaticInt(nnodes(analyzer)),
+                                 StaticInt(nnodes(analyzer)))
+    jacobian_tmp1 = StrideArray(undef, RealT,
+                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)),
+                                StaticInt(nnodes(dg)))
+    jacobian_tmp2 = StrideArray(undef, RealT,
+                                StaticInt(nnodes(analyzer)),
+                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+
+    return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
+            jacobian_tmp1, jacobian_tmp2)
+end
+
+function create_cache_analysis(analyzer,
+                               mesh::Union{StructuredMesh{3}, T8codeMesh{3}},
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
