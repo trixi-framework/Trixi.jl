@@ -53,8 +53,8 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
         # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
         # allow them to differ in the general case (e.g. when considering 2D surfaces in 3D).
         # The ambient dimension NDIMS_AMBIENT is therefore set here in the inner constructor to
-        # size(mesh.tree_node_coordinates, 1).
-        mesh = new{NDIMS, size(mesh.tree_node_coordinates, 1),
+        # size(tree_node_coordinates, 1).
+        mesh = new{NDIMS, size(tree_node_coordinates, 1),
                    eltype(tree_node_coordinates), typeof(is_parallel),
                    typeof(p4est_pw), typeof(ghost_pw), NDIMS + 2, length(nodes)}(p4est_pw,
                                                                                  is_parallel,
