@@ -162,10 +162,19 @@ function integrate_via_indices(func::Func, u,
                             normalize = normalize)
 
     # OBS! Global results are only calculated on MPI root, all other domains receive `nothing`
-    global_integral = MPI.Reduce!(Ref(local_integral), reduce_vector_plus, mpi_root(),
-                                  mpi_comm())
+    if local_integral isa Real
+        global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())
+    else
+        global_integral = MPI.Reduce!(Base.unsafe_convert(Ptr{Float64}, Ref(local_integral)), +, mpi_root(), mpi_comm())
+    end
+
     if mpi_isroot()
-        integral = convert(typeof(local_integral), global_integral[])
+        if local_integral isa Real
+            integral = global_integral[]
+        else
+            global_wrapped = unsafe_wrap(Array, global_integral, length(local_integral))
+            integral = convert(typeof(local_integral), global_wrapped)
+        end
     else
         integral = convert(typeof(local_integral), NaN * local_integral)
     end
