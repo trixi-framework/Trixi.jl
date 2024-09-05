@@ -221,10 +221,8 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
             for quantity in analysis_integrals
                 @printf(io, "   %-14s", pretty_form_ascii(quantity))
             end
-
-            for quantity in analysis_pointwise
-                @printf(io, "   %-14s", pretty_form_ascii(quantity))
-            end
+            # Pointwise quantities are not saved in `analysis_filename`,
+            # i.e., `analysis.dat` but handle their own output.
 
             println(io)
         end
