@@ -205,8 +205,7 @@ function integrate_via_indices(func::Func, u,
         end
     end
 
-    global_integral = MPI.Reduce!(Ref(integral), reduce_vector_plus, mpi_root(),
-                                  mpi_comm())
+    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
     total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
     if mpi_isroot()
         integral = convert(typeof(integral), global_integral[])
