@@ -715,7 +715,7 @@ include("analysis_dg3d_parallel.jl")
 # This version of `analyze` is used for [`AnalysisSurfaceIntegral`](@ref) which requires
 # `semi` to be passed along to retrieve the current boundary indices, which are non-static 
 # in the case of AMR.
-function analyze(quantity::AnalysisSurfaceIntegral{Variable}, 
+function analyze(quantity::AnalysisSurfaceIntegral{Variable},
                  du, u, t,
                  semi::AbstractSemidiscretization) where {Variable}
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
