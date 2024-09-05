@@ -9,11 +9,15 @@
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
 """
     AnalysisCallback(semi; interval=0,
-                            save_analysis=false,
-                            output_directory="out",
-                            analysis_filename="analysis.dat",
-                            extra_analysis_errors=Symbol[],
-                            extra_analysis_integrals=())
+                           save_analysis=false,
+                           output_directory="out",
+                           analysis_filename="analysis.dat",
+                           analysis_errors = union(default_analysis_errors(equations),
+                                                   extra_analysis_errors),
+                           extra_analysis_integrals = (),
+                           analysis_integrals = union(default_analysis_integrals(equations),
+                                                      extra_analysis_integrals),
+                           analysis_pointwise = ())
 
 Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in
@@ -35,6 +39,16 @@ solution and integrated over the computational domain. Some examples for this ar
 [`entropy`](@ref), [`energy_kinetic`](@ref), [`energy_internal`](@ref), and [`energy_total`](@ref).
 You can also write your own function with the same signature as the examples listed above and
 pass it via `extra_analysis_integrals`.
+The default `analysis_integrals` is `(entropy_timederivative,)`.
+You can also request `extra_analysis_integrals` such as [`LiftCoefficientPressure`](@ref) or
+[`DragCoefficientPressure`](@ref) by constructing an [`AnalysisSurfaceIntegral`](@ref) with one of 
+the previously mentioned functions.
+
+Similarly, pointwise, i.e., per quadrature/interpolation point, quantities such at
+[`SurfacePressureCoefficient`](@ref) or [`SurfaceFrictionCoefficient`](@ref) can be computed.
+Instances of these need to be passed into [`AnalysisSurfacePointwise`](@ref) which is then in turn
+passed to `analysis_pointwise`.
+
 See the developer comments about `Trixi.analyze`, `Trixi.pretty_form_utf`, and
 `Trixi.pretty_form_ascii` for further information on how to create custom analysis quantities.
 
