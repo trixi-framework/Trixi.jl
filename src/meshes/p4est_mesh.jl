@@ -73,10 +73,8 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
     end
 end
 
-const SerialP4estMesh{NDIMS, NDIMS_AMBIENT} = P4estMesh{NDIMS, NDIMS_AMBIENT, <:Real,
-                                                        <:False}
-const ParallelP4estMesh{NDIMS, NDIMS_AMBIENT} = P4estMesh{NDIMS, NDIMS_AMBIENT, <:Real,
-                                                          <:True}
+const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:False}
+const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:True}
 
 @inline mpi_parallel(mesh::SerialP4estMesh) = False()
 @inline mpi_parallel(mesh::ParallelP4estMesh) = True()
