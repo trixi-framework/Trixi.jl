@@ -9,7 +9,7 @@
     P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
 
 An unstructured curved mesh based on trees that uses the C library `p4est`
-to manage trees and mesh refinement. 
+to manage trees and mesh refinement.
 """
 mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
                          NDIMSP2, NNODES} <:
@@ -119,8 +119,9 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
             "polydeg" => length(mesh.nodes) - 1,
         ]
         summary_box(io,
-                    "P4estMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
-                    "}", setup)
+                    "P4estMesh{" * string(ndims(mesh)) * ", " *
+                    string(ndims_ambient(mesh)) *
+                    ", " * string(real(mesh)) * "}", setup)
     end
 end
 
