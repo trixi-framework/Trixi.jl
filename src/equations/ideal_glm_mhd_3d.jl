@@ -226,11 +226,6 @@ Non-symmetric two-point flux discretizing the nonconservative (source) term of
 Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations3D`](@ref).
 
-On curvilinear meshes, this nonconservative flux depends on both the
-contravariant vector (normal direction) at the current node and the averaged
-one. This is different from numerical fluxes used to discretize conservative
-terms.
-
 ## References
 - Marvin Bohm, Andrew R.Winters, Gregor J. Gassner, Dominik Derigs,
   Florian Hindenlang, Joachim Saur
