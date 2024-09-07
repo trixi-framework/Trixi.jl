@@ -66,6 +66,10 @@ end
         semi = integrator.p
         @unpack cfl_number = stepsize_callback
 
+        if isa(integrator.alg, AbstractPairedExplicitRKSingle)
+            cfl_number = calculate_cfl(u_ode, t, integrator.alg.dt_opt, cfl_number, semi)
+        end
+
         # Dispatch based on semidiscretization
         dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number,
                                                                semi)
@@ -88,6 +92,29 @@ function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
     dt = cfl_number * max_dt(u, t, mesh,
                 have_constant_speed(equations), equations,
                 solver, cache)
+end
+
+# For Paired Explicit Runge-Kutta methods, attempt to use optimal time step obtained from optimizing
+# the stability polynomials of the Butcher tableau. If this is not possible, fall back to the CFL condition
+# that is either specified by the user in stepsize_callback or the default one.
+function calculate_cfl(u_ode, t, dt_opt, default_cfl_number, semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    cfl_number = dt_opt / max_dt(u, t, mesh,
+                have_constant_speed(equations), equations,
+                solver, cache)
+
+    println("cfl calculated: ", cfl_number)
+
+    # Ensure that the default CFL number is not exceeded
+    if cfl_number <= default_cfl_number && cfl_number > 0.0
+        println("cfl (using optimal time step): ", cfl_number)
+        return cfl_number
+    else
+        println("cfl (default): ", default_cfl_number)
+        return default_cfl_number
+    end
 end
 
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own

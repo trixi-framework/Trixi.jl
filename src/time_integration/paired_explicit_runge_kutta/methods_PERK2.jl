@@ -68,7 +68,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
 
-    return a_matrix, c
+    return a_matrix, c, dt_opt
 end
 
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 2
@@ -77,6 +77,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                    base_path_monomial_coeffs::AbstractString,
                                                    bS, cS)
 
+    #TODO: If the user has a specific set of monomial coefficients, they must also have already obtained dt_opt
+    #TODO: where did I get this monomial in unit test....
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
     for k in 2:num_stages
@@ -106,6 +108,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
     return a_matrix, c
 end
 
+#TODO: add dt_opt to docstring
 @doc raw"""
     PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
                       bS = 1.0, cS = 0.5)
@@ -144,6 +147,7 @@ mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     b1::Float64
     bS::Float64
     cS::Float64
+    dt_opt::Float64
 end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
@@ -171,12 +175,12 @@ end
 function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false,
                            bS = 1.0, cS = 0.5)
-    a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
+    a_matrix, c, dt_opt = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             eig_vals, tspan,
                                                             bS, cS;
                                                             verbose)
 
-    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS)
+    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS, dt_opt)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
