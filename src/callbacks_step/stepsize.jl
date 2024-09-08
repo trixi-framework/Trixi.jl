@@ -105,8 +105,6 @@ function calculate_cfl(u_ode, t, dt_opt, default_cfl_number, semi::AbstractSemid
                 have_constant_speed(equations), equations,
                 solver, cache)
 
-    println("cfl calculated: ", cfl_number)
-
     # Ensure that the default CFL number is not exceeded
     if cfl_number <= default_cfl_number && cfl_number > 0.0
         println("cfl (using optimal time step): ", cfl_number)
