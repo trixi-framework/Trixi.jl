@@ -28,6 +28,7 @@ function IdealGlmMhdEquations2D(gamma; initial_c_h = convert(typeof(gamma), NaN)
     IdealGlmMhdEquations2D(promote(gamma, initial_c_h)...)
 end
 
+# Outer constructor for `@reset` works correctly
 function IdealGlmMhdEquations2D(gamma, inv_gamma_minus_one, c_h)
     IdealGlmMhdEquations2D(gamma, c_h)
 end

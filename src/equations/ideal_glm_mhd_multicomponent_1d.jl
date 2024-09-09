@@ -51,6 +51,7 @@ function IdealGlmMhdMulticomponentEquations1D(; gammas, gas_constants)
                                                                      __gas_constants)
 end
 
+# Outer constructor for `@reset` works correctly
 function IdealGlmMhdMulticomponentEquations1D(gammas, gas_constants, cv, cp, c_h)
     IdealGlmMhdMulticomponentEquations1D(gammas = gammas, gas_constants = gas_constants)
 end

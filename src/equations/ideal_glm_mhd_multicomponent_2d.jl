@@ -36,6 +36,23 @@ struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
 
         new(gammas, gas_constants, cv, cp, c_h)
     end
+
+    # Inner constructor for `@reset` works correctly
+    function IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
+                                                                                       RealT},
+                                                                       gas_constants::SVector{NCOMP,
+                                                                                              RealT},
+                                                                       c_h::RealT) where {
+                                                                                          NVARS,
+                                                                                          NCOMP,
+                                                                                          RealT <:
+                                                                                          Real
+                                                                                          }
+        cv = gas_constants ./ (gammas .- 1)
+        cp = gas_constants + gas_constants ./ (gammas .- 1)
+
+        new(gammas, gas_constants, cv, cp, c_h)
+    end
 end
 
 function IdealGlmMhdMulticomponentEquations2D(; gammas, gas_constants)
@@ -53,8 +70,23 @@ function IdealGlmMhdMulticomponentEquations2D(; gammas, gas_constants)
                                                                      __gas_constants)
 end
 
+# Outer constructor for `@reset` works correctly
 function IdealGlmMhdMulticomponentEquations2D(gammas, gas_constants, cv, cp, c_h)
-    IdealGlmMhdMulticomponentEquations2D(gammas = gammas, gas_constants = gas_constants)
+    _gammas = promote(gammas...)
+    _gas_constants = promote(gas_constants...)
+    RealT = promote_type(eltype(_gammas), eltype(_gas_constants))
+
+    NVARS = length(_gammas) + 8
+    NCOMP = length(_gammas)
+
+    __gammas = SVector(map(RealT, _gammas))
+    __gas_constants = SVector(map(RealT, _gas_constants))
+
+    c_h = convert(RealT, c_h)
+
+    return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
+                                                                     __gas_constants,
+                                                                     c_h)
 end
 
 @inline function Base.real(::IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}) where {

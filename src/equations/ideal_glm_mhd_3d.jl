@@ -28,6 +28,7 @@ function IdealGlmMhdEquations3D(gamma; initial_c_h = convert(typeof(gamma), NaN)
     IdealGlmMhdEquations3D(promote(gamma, initial_c_h)...)
 end
 
+# Outer constructor for `@reset` works correctly
 function IdealGlmMhdEquations3D(gamma, inv_gamma_minus_one, c_h)
     IdealGlmMhdEquations3D(gamma, c_h)
 end
