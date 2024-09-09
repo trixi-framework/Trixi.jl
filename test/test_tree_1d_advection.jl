@@ -82,10 +82,11 @@ end
     end
 end
 
+#TODO: replace l2 and linf errors with the values in CI
 @trixi_testset "elixir_advection_perk2.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_perk2.jl"),
-                        l2=[0.011288030389423475],
-                        linf=[0.01596735472556976])
+                        l2=[2.11731099e-03],
+                        linf=[3.00261319e-03])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

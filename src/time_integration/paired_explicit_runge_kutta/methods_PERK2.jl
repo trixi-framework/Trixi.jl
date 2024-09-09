@@ -60,7 +60,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                           eig_vals; verbose)
     monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
                                           num_stages)
-
+    
     num_monomial_coeffs = length(monomial_coeffs)
     @assert num_monomial_coeffs == coeffs_max
     A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
@@ -108,9 +108,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
     return a_matrix, c
 end
 
-#TODO: add dt_opt to docstring
 @doc raw"""
-    PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
+    PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt,
                       bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, bS = 1.0, cS = 0.5)
@@ -121,6 +120,7 @@ end
     - `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
       monomial coefficients of the stability polynomial of PERK method.
       The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
+    - `dt_opt` (`Float64`): Optimal time step size for the simulation.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
     -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
@@ -151,7 +151,7 @@ mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
 end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
-function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
+function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt,
                            bS = 1.0, cS = 0.5)
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             base_path_monomial_coeffs,
