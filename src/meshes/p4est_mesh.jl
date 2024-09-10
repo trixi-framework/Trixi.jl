@@ -6,10 +6,16 @@
 #! format: noindent
 
 """
-    P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
+    P4estMesh{NDIMS, NDIMS_AMBIENT} <: AbstractMesh{NDIMS}
 
 An unstructured curved mesh based on trees that uses the C library `p4est`
 to manage trees and mesh refinement.
+
+The parameter `NDIMS` denotes the dimension of the spatial domain or manifold represented
+by the mesh itself, while `NDIMS_AMBIENT` denotes the dimension of the ambient space in
+which the mesh is embedded. For example, the type `P4estMesh{3, 3}` corresponds to a
+standard mesh for a three-dimensional volume, whereas `P4estMesh{2, 3}` corresponds to a
+mesh for a two-dimensional surface or shell in three-dimensional space.
 """
 mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
                          NDIMSP2, NNODES} <:
@@ -49,11 +55,14 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
         ghost = ghost_new_p4est(p4est)
         ghost_pw = PointerWrapper(ghost)
 
-        # To enable the treatment of a manifold of dimension NDIM embedded within an 
+        # To enable the treatment of a manifold of dimension NDIM embedded within an
         # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
-        # allow them to differ in the general case (e.g. when considering 2D surfaces in 3D).
-        # The ambient dimension NDIMS_AMBIENT is therefore set here in the inner constructor to
-        # size(tree_node_coordinates, 1). See https://github.com/trixi-framework/Trixi.jl/pull/2068.
+        # allow them to differ in the general case. This functionality is used in the
+        # (currently alpha-stage) package TrixiAtmo.jl for constructing discretizations
+        # on spherical shell domains for appplications in global atmospheric modelling.
+        # The ambient dimension NDIMS_AMBIENT is therefore set here in the inner
+        # constructor to size(tree_node_coordinates, 1).
+        # See https://github.com/trixi-framework/Trixi.jl/pull/2068.
         mesh = new{NDIMS, size(tree_node_coordinates, 1),
                    eltype(tree_node_coordinates), typeof(is_parallel),
                    typeof(p4est_pw), typeof(ghost_pw), NDIMS + 2, length(nodes)}(p4est_pw,
