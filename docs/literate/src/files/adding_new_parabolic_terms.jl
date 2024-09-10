@@ -27,12 +27,12 @@ equations_hyperbolic = LinearScalarAdvectionEquation2D(advection_velocity);
 # [`CompressibleNavierStokesDiffusion2D`](@ref), which can utilize either "primitive" or "entropy" variables.
 
 struct ConstantAnisotropicDiffusion2D{E, T} <: Trixi.AbstractEquationsParabolic{2, 1, GradientVariablesConservative}
-  diffusivity::T
-  equations_hyperbolic::E
+    diffusivity::T
+    equations_hyperbolic::E
 end
 
 varnames(variable_mapping, equations_parabolic::ConstantAnisotropicDiffusion2D) =
-  varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
+    varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 
 # Next, we define the viscous flux function. We assume that the mixed hyperbolic-parabolic system
 # is of the form
@@ -47,13 +47,13 @@ varnames(variable_mapping, equations_parabolic::ConstantAnisotropicDiffusion2D) 
 # Here, we specialize the flux to our new parabolic equation type `ConstantAnisotropicDiffusion2D`.
 
 function Trixi.flux(u, gradients, orientation::Integer, equations_parabolic::ConstantAnisotropicDiffusion2D)
-  @unpack diffusivity = equations_parabolic
-  dudx, dudy = gradients
-  if orientation == 1
-    return SVector(diffusivity[1, 1] * dudx + diffusivity[1, 2] * dudy)
-  else # if orientation == 2
-    return SVector(diffusivity[2, 1] * dudx + diffusivity[2, 2] * dudy)
-  end
+    @unpack diffusivity = equations_parabolic
+    dudx, dudy = gradients
+    if orientation == 1
+        return SVector(diffusivity[1, 1] * dudx + diffusivity[1, 2] * dudy)
+    else # if orientation == 2
+        return SVector(diffusivity[2, 1] * dudx + diffusivity[2, 2] * dudy)
+    end
 end
 
 # ## Defining boundary conditions
@@ -76,7 +76,7 @@ end
 # As an example, let us introduce a Dirichlet boundary condition with constant boundary data.
 
 struct BoundaryConditionConstantDirichlet{T <: Real}
-  boundary_value::T
+    boundary_value::T
 end
 
 # This boundary condition contains only the field `boundary_value`, which we assume to be some
@@ -87,10 +87,12 @@ end
 # the `Gradient` and `Divergence`. Since the gradient is operating on the solution `u`, the boundary
 # data should be the value of `u`, and we can directly impose Dirichlet data.
 
-@inline function (boundary_condition::BoundaryConditionConstantDirichlet)(flux_inner, u_inner, normal::AbstractVector,
-                                                                          x, t, operator_type::Trixi.Gradient,
-                                                                          equations_parabolic::ConstantAnisotropicDiffusion2D)
-  return boundary_condition.boundary_value
+@inline function (boundary_condition::BoundaryConditionConstantDirichlet)(
+        flux_inner, u_inner, normal::AbstractVector,
+        x, t, operator_type::Trixi.Gradient,
+        equations_parabolic::ConstantAnisotropicDiffusion2D
+    )
+    return boundary_condition.boundary_value
 end
 
 # While the gradient acts on the solution `u`, the divergence acts on the viscous flux ``\bm{\sigma}``.
@@ -102,10 +104,12 @@ end
 # `flux_inner`, which is boundary data for ``\bm{\sigma}`` computed using the "inner" or interior solution.
 # This way, we supply boundary data for the divergence operation without imposing any additional conditions.
 
-@inline function (boundary_condition::BoundaryConditionConstantDirichlet)(flux_inner, u_inner, normal::AbstractVector,
-                                                                          x, t, operator_type::Trixi.Divergence,
-                                                                          equations_parabolic::ConstantAnisotropicDiffusion2D)
-  return flux_inner
+@inline function (boundary_condition::BoundaryConditionConstantDirichlet)(
+        flux_inner, u_inner, normal::AbstractVector,
+        x, t, operator_type::Trixi.Divergence,
+        equations_parabolic::ConstantAnisotropicDiffusion2D
+    )
+    return flux_inner
 end
 
 # ### A note on the choice of gradient variables
@@ -130,37 +134,49 @@ using Trixi: SMatrix
 diffusivity = 5.0e-2 * SMatrix{2, 2}([2 -1; -1 2])
 equations_parabolic = ConstantAnisotropicDiffusion2D(diffusivity, equations_hyperbolic);
 
-boundary_conditions_hyperbolic = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(1.0)),
-                                    y_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(2.0)),
-                                    y_pos = boundary_condition_do_nothing,
-                                    x_pos = boundary_condition_do_nothing)
+boundary_conditions_hyperbolic = (;
+    x_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(1.0)),
+    y_neg = BoundaryConditionDirichlet((x, t, equations) -> SVector(2.0)),
+    y_pos = boundary_condition_do_nothing,
+    x_pos = boundary_condition_do_nothing,
+)
 
-boundary_conditions_parabolic = (; x_neg = BoundaryConditionConstantDirichlet(1.0),
-                                   y_neg = BoundaryConditionConstantDirichlet(2.0),
-                                   y_pos = BoundaryConditionConstantDirichlet(0.0),
-                                   x_pos = BoundaryConditionConstantDirichlet(0.0));
+boundary_conditions_parabolic = (;
+    x_neg = BoundaryConditionConstantDirichlet(1.0),
+    y_neg = BoundaryConditionConstantDirichlet(2.0),
+    y_pos = BoundaryConditionConstantDirichlet(0.0),
+    x_pos = BoundaryConditionConstantDirichlet(0.0),
+);
 
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
-                periodicity=false, n_cells_max=30_000) # set maximum capacity of tree data structure
+coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 4,
+    periodicity = false, n_cells_max = 30_000
+) # set maximum capacity of tree data structure
 
 initial_condition = (x, t, equations) -> SVector(0.0)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations_hyperbolic, equations_parabolic),
-                                             initial_condition, solver;
-                                             boundary_conditions=(boundary_conditions_hyperbolic,
-                                                                  boundary_conditions_parabolic))
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh,
+    (equations_hyperbolic, equations_parabolic),
+    initial_condition, solver;
+    boundary_conditions = (
+        boundary_conditions_hyperbolic,
+        boundary_conditions_parabolic,
+    )
+)
 
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 callbacks = CallbackSet(SummaryCallback())
 time_int_tol = 1.0e-6
-sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
-            ode_default_options()..., callback=callbacks);
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+);
 
 using Plots
 plot(sol)
@@ -174,6 +190,7 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode=PKGMODE_MANIFEST)
-
+Pkg.status(
+    ["Trixi", "OrdinaryDiffEq", "Plots"],
+    mode = PKGMODE_MANIFEST
+)

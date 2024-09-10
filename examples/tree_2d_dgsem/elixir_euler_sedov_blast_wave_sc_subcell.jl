@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -41,20 +40,30 @@ initial_condition = initial_condition_sedov_blast_wave
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_chandrashekar
 basis = LobattoLegendreBasis(3)
-limiter_idp = SubcellLimiterIDP(equations, basis;
-                                local_twosided_variables_cons = ["rho"],
-                                local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
-                                                                       min)])
-volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
-                                                volume_flux_dg = volume_flux,
-                                                volume_flux_fv = surface_flux)
+limiter_idp = SubcellLimiterIDP(
+    equations, basis;
+    local_twosided_variables_cons = ["rho"],
+    local_onesided_variables_nonlinear = [
+        (
+            Trixi.entropy_guermond_etal,
+            min,
+        ),
+    ]
+)
+volume_integral = VolumeIntegralSubcellLimiting(
+    limiter_idp;
+    volume_flux_dg = volume_flux,
+    volume_flux_fv = surface_flux
+)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
-                n_cells_max = 100_000)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 3,
+    n_cells_max = 100_000
+)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -71,25 +80,33 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 1000,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 1000,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = cons2prim
+)
 
 stepsize_callback = StepsizeCallback(cfl = 0.6)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        stepsize_callback,
-                        save_solution)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    stepsize_callback,
+    save_solution
+)
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(),
-                   BoundsCheckCallback(save_errors = false, interval = 100))
+stage_callbacks = (
+    SubcellLimiterIDPCorrection(),
+    BoundsCheckCallback(save_errors = false, interval = 100),
+)
 # `interval` is used when calling this elixir in the tests with `save_errors=true`.
 
-sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks);
+sol = Trixi.solve(
+    ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

@@ -27,7 +27,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         # see the discussion at https://github.com/trixi-framework/Trixi.jl/pull/1062#issuecomment-1035901020
         cmd = string(Base.julia_cmd())
         coverage = occursin("--code-coverage", cmd) &&
-                   !occursin("--code-coverage=none", cmd)
+            !occursin("--code-coverage=none", cmd)
         if !(coverage && Sys.iswindows()) && !(coverage && Sys.isapple())
             # We provide a `--heap-size-hint` to avoid/reduce out-of-memory errors during CI testing
             mpiexec() do cmd
@@ -37,7 +37,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     end
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "threaded" ||
-             TRIXI_TEST == "threaded_legacy"
+            TRIXI_TEST == "threaded_legacy"
         # Do a dummy `@test true`:
         # If the process errors out the testset would error out as well,
         # cf. https://github.com/JuliaParallel/MPI.jl/pull/391

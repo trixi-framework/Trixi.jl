@@ -3,9 +3,9 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-#! format: noindent
+    #! format: noindent
 
-include("positivity_zhang_shu.jl")
-include("subcell_limiter_idp_correction.jl")
-include("subcell_bounds_check.jl")
+    include("positivity_zhang_shu.jl")
+    include("subcell_limiter_idp_correction.jl")
+    include("subcell_bounds_check.jl")
 end # @muladd

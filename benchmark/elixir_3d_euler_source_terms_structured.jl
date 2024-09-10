@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -16,8 +15,10 @@ coordinates_max = (2.0, 2.0, 2.0)
 cells_per_dimension = (4, 4, 4)
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    source_terms = source_terms_convergence_test
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -37,6 +38,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, BS3(),
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, BS3(),
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

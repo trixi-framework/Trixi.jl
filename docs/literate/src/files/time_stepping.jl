@@ -83,5 +83,7 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq"],
-           mode=PKGMODE_MANIFEST)
+Pkg.status(
+    ["Trixi", "OrdinaryDiffEq"],
+    mode = PKGMODE_MANIFEST
+)

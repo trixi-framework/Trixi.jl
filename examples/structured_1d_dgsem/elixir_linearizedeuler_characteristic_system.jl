@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using LinearAlgebra: dot
 using Trixi
@@ -23,12 +22,14 @@ mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 # https://www.nas.nasa.gov/assets/nas/pdf/ams/2018/introtocfd/Intro2CFD_Lecture1_Pulliam_Euler_WaveEQ.pdf
 # Linearized Euler: Eigensystem
 lin_euler_eigvals = [v_0 - c_0; v_0; v_0 + c_0]
-lin_euler_eigvecs = [-rho_0/c_0 1 rho_0/c_0;
-                     1 0 1;
-                     -rho_0*c_0 0 rho_0*c_0]
+lin_euler_eigvecs = [
+    -rho_0 / c_0 1 rho_0 / c_0;
+    1 0 1;
+    -rho_0 * c_0 0 rho_0 * c_0
+]
 lin_euler_eigvecs_inv = inv(lin_euler_eigvecs)
 
-# Trace back characteristics. 
+# Trace back characteristics.
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf, p.95
 function compute_char_initial_pos(x, t)
     return SVector(x[1], x[1], x[1]) .- t * lin_euler_eigvals
@@ -94,8 +95,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback
+)
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
@@ -105,8 +108,10 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 summary_callback() # print the timer summary

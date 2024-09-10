@@ -22,9 +22,11 @@ end
 ###############################################################################
 # semidiscretization of the acoustic perturbation equations
 
-equations = AcousticPerturbationEquations2D(v_mean_global = (-0.5, 0.25),
-                                            c_mean_global = 1.0,
-                                            rho_mean_global = 1.0)
+equations = AcousticPerturbationEquations2D(
+    v_mean_global = (-0.5, 0.25),
+    c_mean_global = 1.0,
+    rho_mean_global = 1.0
+)
 
 initial_condition = initial_condition_constant
 
@@ -35,13 +37,17 @@ coordinates_min = (-3.0, -3.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (3.0, 3.0) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 4,
+    n_cells_max = 30_000
+) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_gauss)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    source_terms = source_terms_gauss
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -58,8 +64,10 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 100)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval = 100,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 100,
+    solution_variables = cons2prim
+)
 
 # The TimeSeriesCallback records the solution at the given points over time
 time_series = TimeSeriesCallback(semi, [(0.0, 0.0), (-1.0, 0.5)])
@@ -68,16 +76,20 @@ time_series = TimeSeriesCallback(semi, [(0.0, 0.0), (-1.0, 0.5)])
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, time_series,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback, analysis_callback, save_solution, time_series,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 # Print the timer summary
 summary_callback()

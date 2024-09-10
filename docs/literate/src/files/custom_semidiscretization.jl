@@ -65,10 +65,12 @@ solver = DGSEM(polydeg = 3)
 
 coordinates_min = (-1.0,)
 coordinates_max = (+1.0,)
-mesh = TreeMesh(coordinates_min, coordinates_max;
-                initial_refinement_level = 4,
-                n_cells_max = 10^4,
-                periodicity = true)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max;
+    initial_refinement_level = 4,
+    n_cells_max = 10^4,
+    periodicity = true
+)
 
 # We wrap everything in in a semidiscretization and pass the source
 # terms as a standard Julia function. Please note that Trixi.jl uses
@@ -86,9 +88,11 @@ function source_terms_standard(u, x, t, equations)
     return -initial_condition(x, t, equations)
 end
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                    solver;
-                                    source_terms = source_terms_standard)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition,
+    solver;
+    source_terms = source_terms_standard
+)
 
 # Now, we can create the `ODEProblem`, solve the resulting ODE
 # using a time integration method from
@@ -108,9 +112,11 @@ plot(sol; label = "numerical sol.", legend = :topright)
 # (and only) component to get the scalar value for manual plotting.
 
 let
-   x = range(-1.0, 1.0; length = 200)
-   plot!(x, first.(initial_condition.(x, sol.t[end], equations)),
-         label = "analytical sol.", linestyle = :dash, legend = :topright)
+    x = range(-1.0, 1.0; length = 200)
+    plot!(
+        x, first.(initial_condition.(x, sol.t[end], equations)),
+        label = "analytical sol.", linestyle = :dash, legend = :topright
+    )
 end
 
 # We can also add the initial condition to the plot.
@@ -125,12 +131,16 @@ summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi; interval = analysis_interval)
 alive_callback = AliveCallback(; analysis_interval)
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback
+)
 
-sol = solve(ode, RDPK3SpFSAL49();
-            ode_default_options()..., callback = callbacks)
+sol = solve(
+    ode, RDPK3SpFSAL49();
+    ode_default_options()..., callback = callbacks
+)
 summary_callback()
 
 
@@ -158,18 +168,24 @@ end
 # Next, we create an `ODEProblem` manually copying over the data from
 # the one we got from [`semidiscretize`](@ref) earlier.
 
-ode_source_custom = ODEProblem(rhs_source_custom!,
-                               ode.u0,
-                               ode.tspan,
-                               ode.p #= semi =#)
-sol_source_custom = solve(ode_source_custom, RDPK3SpFSAL49();
-                          ode_default_options()...)
+ode_source_custom = ODEProblem(
+    rhs_source_custom!,
+    ode.u0,
+    ode.tspan,
+    ode.p #= semi =#
+)
+sol_source_custom = solve(
+    ode_source_custom, RDPK3SpFSAL49();
+    ode_default_options()...
+)
 
 plot(sol_source_custom; label = "numerical sol.")
 let
     x = range(-1.0, 1.0; length = 200)
-    plot!(x, first.(initial_condition.(x, sol_source_custom.t[end], equations)),
-          label = "analytical sol.", linestyle = :dash, legend = :topleft)
+    plot!(
+        x, first.(initial_condition.(x, sol_source_custom.t[end], equations)),
+        label = "analytical sol.", linestyle = :dash, legend = :topleft
+    )
 end
 plot!(sol_source_custom.u[1], semi, label = "u0", linestyle = :dot, legend = :topleft)
 
@@ -179,12 +195,16 @@ summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi; interval = analysis_interval)
 alive_callback = AliveCallback(; analysis_interval)
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback
+)
 
-sol = solve(ode_source_custom, RDPK3SpFSAL49();
-            ode_default_options()..., callback = callbacks)
+sol = solve(
+    ode_source_custom, RDPK3SpFSAL49();
+    ode_default_options()..., callback = callbacks
+)
 summary_callback()
 
 
@@ -232,12 +252,16 @@ end
 
 # Finally, we set up an `ODEProblem` and solve it numerically.
 
-ode_semi_custom = ODEProblem(rhs_semi_custom!,
-                             ode.u0,
-                             ode.tspan,
-                             semi_custom)
-sol_semi_custom = solve(ode_semi_custom, RDPK3SpFSAL49();
-                        ode_default_options()...)
+ode_semi_custom = ODEProblem(
+    rhs_semi_custom!,
+    ode.u0,
+    ode.tspan,
+    semi_custom
+)
+sol_semi_custom = solve(
+    ode_semi_custom, RDPK3SpFSAL49();
+    ode_default_options()...
+)
 
 # If we want to make use of additional functionality provided by
 # Trixi.jl, e.g., for plotting, we need to implement a few additional
@@ -255,8 +279,10 @@ end
 plot(sol_semi_custom; label = "numerical sol.")
 let
     x = range(-1.0, 1.0; length = 200)
-    plot!(x, first.(initial_condition.(x, sol_semi_custom.t[end], equations)),
-          label = "analytical sol.", linestyle = :dash, legend = :topleft)
+    plot!(
+        x, first.(initial_condition.(x, sol_semi_custom.t[end], equations)),
+        label = "analytical sol.", linestyle = :dash, legend = :topleft
+    )
 end
 plot!(sol_semi_custom.u[1], semi, label = "u0", linestyle = :dot, legend = :topleft)
 
@@ -281,27 +307,37 @@ end
 # calculations. We also need to forward them to the wrapped
 # semidiscretization.
 
-function Trixi.calc_error_norms(func, u, t, analyzer,
-                                semi::CustomSemidiscretization,
-                                cache_analysis)
-    Trixi.calc_error_norms(func, u, t, analyzer,
-                           semi.semi,
-                           cache_analysis)
+function Trixi.calc_error_norms(
+        func, u, t, analyzer,
+        semi::CustomSemidiscretization,
+        cache_analysis
+    )
+    Trixi.calc_error_norms(
+        func, u, t, analyzer,
+        semi.semi,
+        cache_analysis
+    )
 end
 
 # Now, we can work with the callbacks used before as usual.
 
 summary_callback = SummaryCallback()
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi_custom;
-                                     interval = analysis_interval)
+analysis_callback = AnalysisCallback(
+    semi_custom;
+    interval = analysis_interval
+)
 alive_callback = AliveCallback(; analysis_interval)
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback
+)
 
-sol = solve(ode_semi_custom, RDPK3SpFSAL49();
-            ode_default_options()..., callback = callbacks)
+sol = solve(
+    ode_semi_custom, RDPK3SpFSAL49();
+    ode_default_options()..., callback = callbacks
+)
 summary_callback()
 
 # For even more advanced usage of custom semidiscretizations, you
@@ -320,5 +356,7 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode=PKGMODE_MANIFEST)
+Pkg.status(
+    ["Trixi", "OrdinaryDiffEq", "Plots"],
+    mode = PKGMODE_MANIFEST
+)

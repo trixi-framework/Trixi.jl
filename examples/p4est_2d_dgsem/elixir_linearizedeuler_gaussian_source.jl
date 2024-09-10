@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -36,8 +35,10 @@ mapping(xi, eta) = rot_mat * SVector(3.0 * xi, 3.0 * eta)
 
 # Mean density and speed of sound are slightly off from 1.0 to allow proper verification of
 # curved LEE implementation using this elixir (some things in the LEE cancel if both are 1.0)
-equations = LinearizedEulerEquations2D(v_mean_global = Tuple(rot_mat * SVector(-0.5, 0.25)),
-                                       c_mean_global = 1.02, rho_mean_global = 1.01)
+equations = LinearizedEulerEquations2D(
+    v_mean_global = Tuple(rot_mat * SVector(-0.5, 0.25)),
+    c_mean_global = 1.02, rho_mean_global = 1.01
+)
 
 initial_condition = initial_condition_zero
 
@@ -46,13 +47,17 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_godunov)
 
 # Create a uniformly refined mesh with periodic boundaries
 trees_per_dimension = (4, 4)
-mesh = P4estMesh(trees_per_dimension, polydeg = 1,
-                 mapping = mapping,
-                 periodicity = true, initial_refinement_level = 2)
+mesh = P4estMesh(
+    trees_per_dimension, polydeg = 1,
+    mapping = mapping,
+    periodicity = true, initial_refinement_level = 2
+)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_gauss)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    source_terms = source_terms_gauss
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -75,16 +80,20 @@ save_solution = SaveSolutionCallback(interval = 100)
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback, analysis_callback, save_solution,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 # Print the timer summary
 summary_callback()

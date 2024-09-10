@@ -8,21 +8,27 @@ prandtl_number() = 0.72
 mu() = 0.01
 
 equations = CompressibleEulerEquations3D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
-                                                          Prandtl = prandtl_number(),
-                                                          gradient_variables = GradientVariablesPrimitive())
+equations_parabolic = CompressibleNavierStokesDiffusion3D(
+    equations, mu = mu(),
+    Prandtl = prandtl_number(),
+    gradient_variables = GradientVariablesPrimitive()
+)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
-             volume_integral = VolumeIntegralWeakForm())
+dg = DGMulti(
+    polydeg = 3, element_type = Hex(), approximation_type = Polynomial(),
+    surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+    volume_integral = VolumeIntegralWeakForm()
+)
 
 top_bottom(x, tol = 50 * eps()) = abs(abs(x[2]) - 1) < tol
 is_on_boundary = Dict(:top_bottom => top_bottom)
 
 cells_per_dimension = (8, 8, 8)
-mesh = DGMultiMesh(dg, cells_per_dimension; periodicity = (true, false, true),
-                   is_on_boundary)
+mesh = DGMultiMesh(
+    dg, cells_per_dimension; periodicity = (true, false, true),
+    is_on_boundary
+)
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion3D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion3D`)
@@ -43,7 +49,7 @@ function initial_condition_navier_stokes_convergence_test(x, t, equations)
 
     rho = c + A1 * sin(pi_x) * cos(pi_y) * sin(pi_z) * cos(pi_t)
     v1 = A2 * sin(pi_x) * log(x[2] + 2.0) * (1.0 - exp(-A3 * (x[2] - 1.0))) * sin(pi_z) *
-         cos(pi_t)
+        cos(pi_t)
     v2 = v1
     v3 = v1
     p = rho^2
@@ -74,11 +80,15 @@ end
     # Define auxiliary functions for the strange function of the y variable
     # to make expressions easier to read
     g = log(x[2] + 2.0) * (1.0 - exp(-A3 * (x[2] - 1.0)))
-    g_y = (A3 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)) +
-           (1.0 - exp(-A3 * (x[2] - 1.0))) / (x[2] + 2.0))
-    g_yy = (2.0 * A3 * exp(-A3 * (x[2] - 1.0)) / (x[2] + 2.0) -
+    g_y = (
+        A3 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)) +
+            (1.0 - exp(-A3 * (x[2] - 1.0))) / (x[2] + 2.0)
+    )
+    g_yy = (
+        2.0 * A3 * exp(-A3 * (x[2] - 1.0)) / (x[2] + 2.0) -
             (1.0 - exp(-A3 * (x[2] - 1.0))) / ((x[2] + 2.0)^2) -
-            A3^2 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0)))
+            A3^2 * log(x[2] + 2.0) * exp(-A3 * (x[2] - 1.0))
+    )
 
     # Density and its derivatives
     rho = c + A1 * sin(pi_x) * cos(pi_y) * sin(pi_z) * cos(pi_t)
@@ -168,52 +178,68 @@ end
 
     # Compute the source terms
     # Density equation
-    du1 = (rho_t + rho_x * v1 + rho * v1_x
-           + rho_y * v2 + rho * v2_y
-           + rho_z * v3 + rho * v3_z)
+    du1 = (
+        rho_t + rho_x * v1 + rho * v1_x
+            + rho_y * v2 + rho * v2_y
+            + rho_z * v3 + rho * v3_z
+    )
     # x-momentum equation
-    du2 = (rho_t * v1 + rho * v1_t + p_x + rho_x * v1^2
-           + 2.0 * rho * v1 * v1_x
-           + rho_y * v1 * v2
-           + rho * v1_y * v2
-           + rho * v1 * v2_y
-           + rho_z * v1 * v3
-           + rho * v1_z * v3
-           + rho * v1 * v3_z -
-           mu_ * (tau11_x + tau12_y + tau13_z))
+    du2 = (
+        rho_t * v1 + rho * v1_t + p_x + rho_x * v1^2
+            + 2.0 * rho * v1 * v1_x
+            + rho_y * v1 * v2
+            + rho * v1_y * v2
+            + rho * v1 * v2_y
+            + rho_z * v1 * v3
+            + rho * v1_z * v3
+            + rho * v1 * v3_z -
+            mu_ * (tau11_x + tau12_y + tau13_z)
+    )
     # y-momentum equation
-    du3 = (rho_t * v2 + rho * v2_t + p_y + rho_x * v1 * v2
-           + rho * v1_x * v2
-           + rho * v1 * v2_x
-           + rho_y * v2^2
-           + 2.0 * rho * v2 * v2_y
-           + rho_z * v2 * v3
-           + rho * v2_z * v3
-           + rho * v2 * v3_z -
-           mu_ * (tau12_x + tau22_y + tau23_z))
+    du3 = (
+        rho_t * v2 + rho * v2_t + p_y + rho_x * v1 * v2
+            + rho * v1_x * v2
+            + rho * v1 * v2_x
+            + rho_y * v2^2
+            + 2.0 * rho * v2 * v2_y
+            + rho_z * v2 * v3
+            + rho * v2_z * v3
+            + rho * v2 * v3_z -
+            mu_ * (tau12_x + tau22_y + tau23_z)
+    )
     # z-momentum equation
-    du4 = (rho_t * v3 + rho * v3_t + p_z + rho_x * v1 * v3
-           + rho * v1_x * v3
-           + rho * v1 * v3_x
-           + rho_y * v2 * v3
-           + rho * v2_y * v3
-           + rho * v2 * v3_y
-           + rho_z * v3^2
-           + 2.0 * rho * v3 * v3_z -
-           mu_ * (tau13_x + tau23_y + tau33_z))
+    du4 = (
+        rho_t * v3 + rho * v3_t + p_z + rho_x * v1 * v3
+            + rho * v1_x * v3
+            + rho * v1 * v3_x
+            + rho_y * v2 * v3
+            + rho * v2_y * v3
+            + rho * v2 * v3_y
+            + rho_z * v3^2
+            + 2.0 * rho * v3 * v3_z -
+            mu_ * (tau13_x + tau23_y + tau33_z)
+    )
     # Total energy equation
-    du5 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x)
-           + v2_y * (E + p) + v2 * (E_y + p_y)
-           + v3_z * (E + p) + v3 * (E_z + p_z) -
-           # stress tensor and temperature gradient from x-direction
-           mu_ * (q_xx + v1_x * tau11 + v2_x * tau12 + v3_x * tau13
-            + v1 * tau11_x + v2 * tau12_x + v3 * tau13_x) -
-           # stress tensor and temperature gradient terms from y-direction
-           mu_ * (q_yy + v1_y * tau12 + v2_y * tau22 + v3_y * tau23
-            + v1 * tau12_y + v2 * tau22_y + v3 * tau23_y) -
-           # stress tensor and temperature gradient terms from z-direction
-           mu_ * (q_zz + v1_z * tau13 + v2_z * tau23 + v3_z * tau33
-            + v1 * tau13_z + v2 * tau23_z + v3 * tau33_z))
+    du5 = (
+        E_t + v1_x * (E + p) + v1 * (E_x + p_x)
+            + v2_y * (E + p) + v2 * (E_y + p_y)
+            + v3_z * (E + p) + v3 * (E_z + p_z) -
+            # stress tensor and temperature gradient from x-direction
+            mu_ * (
+            q_xx + v1_x * tau11 + v2_x * tau12 + v3_x * tau13
+                + v1 * tau11_x + v2 * tau12_x + v3 * tau13_x
+        ) -
+            # stress tensor and temperature gradient terms from y-direction
+            mu_ * (
+            q_yy + v1_y * tau12 + v2_y * tau22 + v3_y * tau23
+                + v1 * tau12_y + v2 * tau22_y + v3 * tau23_y
+        ) -
+            # stress tensor and temperature gradient terms from z-direction
+            mu_ * (
+            q_zz + v1_z * tau13 + v2_z * tau23 + v3_z * tau33
+                + v1 * tau13_z + v2 * tau23_z + v3 * tau33_z
+        )
+    )
 
     return SVector(du1, du2, du3, du4, du5)
 end
@@ -221,12 +247,18 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 # BC types
-velocity_bc_top_bottom = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
-                                                                                                      t,
-                                                                                                      equations)[2:4])
+velocity_bc_top_bottom = NoSlip(
+    (x, t, equations) -> initial_condition_navier_stokes_convergence_test(
+        x,
+        t,
+        equations
+    )[2:4]
+)
 heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
-boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom,
-                                                                  heat_bc_top_bottom)
+boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(
+    velocity_bc_top_bottom,
+    heat_bc_top_bottom
+)
 
 # define inviscid boundary conditions
 boundary_conditions = (; :top_bottom => boundary_condition_slip_wall)
@@ -234,11 +266,15 @@ boundary_conditions = (; :top_bottom => boundary_condition_slip_wall)
 # define viscous boundary conditions
 boundary_conditions_parabolic = (; :top_bottom => boundary_condition_top_bottom)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, dg;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic),
-                                             source_terms = source_terms_navier_stokes_convergence_test)
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh, (equations, equations_parabolic),
+    initial_condition, dg;
+    boundary_conditions = (
+        boundary_conditions,
+        boundary_conditions_parabolic,
+    ),
+    source_terms = source_terms_navier_stokes_convergence_test
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -256,7 +292,9 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+time_int_tol = 1.0e-8
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+)
 summary_callback() # print the timer summary

@@ -62,16 +62,20 @@ else
     # Otherwise, figure out all direct dependencies and add them instead
     # Inspired by: https://github.com/CliMA/ClimateMachine.jl/blob/8c57fb55acc20ee824ea37478395a7cb07c5a93c/.dev/systemimage/climate_machine_image.jl
     trixi_uuid = Base.UUID("a7f1ee26-1774-49b1-8366-f1abc58fbfcb")
-    append!(packages,
-            Symbol[Symbol(v) for v in keys(Pkg.dependencies()[trixi_uuid].dependencies)])
+    append!(
+        packages,
+        Symbol[Symbol(v) for v in keys(Pkg.dependencies()[trixi_uuid].dependencies)]
+    )
 end
 
 map(Pkg.add ∘ string, packages)
 Pkg.precompile()
 
 # Collect remaining arguments
-sysimage_path = get(ENV, "TRIXI_SYSIMAGE_PATH",
-                    joinpath(@__DIR__, "TrixiSysimage." * Libdl.dlext))
+sysimage_path = get(
+    ENV, "TRIXI_SYSIMAGE_PATH",
+    joinpath(@__DIR__, "TrixiSysimage." * Libdl.dlext)
+)
 precompile_execution_file = joinpath(@__DIR__, "precompile_execution_file.jl")
 
 # Create system image
@@ -80,10 +84,12 @@ precompile_execution_file = joinpath(@__DIR__, "precompile_execution_file.jl")
 @info "Precompile execution file: $precompile_execution_file"
 
 using PackageCompiler
-PackageCompiler.create_sysimage(packages,
-                                sysimage_path = sysimage_path,
-                                precompile_execution_file = precompile_execution_file,
-                                cpu_target = PackageCompiler.default_app_cpu_target())
+PackageCompiler.create_sysimage(
+    packages,
+    sysimage_path = sysimage_path,
+    precompile_execution_file = precompile_execution_file,
+    cpu_target = PackageCompiler.default_app_cpu_target()
+)
 
 duration = time() - start_time
 @info "Done. Created sysimage in $duration seconds."

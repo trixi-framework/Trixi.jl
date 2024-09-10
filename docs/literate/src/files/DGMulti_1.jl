@@ -21,31 +21,39 @@ initial_condition = initial_condition_weak_blast_wave
 # To use the Gauss-Lobatto nodes again, we choose `approximation_type=SBP()` in the solver.
 # Since we want to start with a Cartesian domain discretized with squares, we use the element
 # type `Quad()`.
-dg = DGMulti(polydeg = 3,
-             element_type = Quad(),
-             approximation_type = SBP(),
-             surface_flux = flux_lax_friedrichs,
-             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+dg = DGMulti(
+    polydeg = 3,
+    element_type = Quad(),
+    approximation_type = SBP(),
+    surface_flux = flux_lax_friedrichs,
+    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
+)
 
 cells_per_dimension = (32, 32)
-mesh = DGMultiMesh(dg,
-                   cells_per_dimension, # initial_refinement_level = 5
-                   coordinates_min=(-2.0, -2.0),
-                   coordinates_max=( 2.0,  2.0),
-                   periodicity=true)
+mesh = DGMultiMesh(
+    dg,
+    cells_per_dimension, # initial_refinement_level = 5
+    coordinates_min = (-2.0, -2.0),
+    coordinates_max = (2.0, 2.0),
+    periodicity = true
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    boundary_conditions=boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, dg,
+    boundary_conditions = boundary_condition_periodic
+)
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
-alive_callback = AliveCallback(alive_interval=10)
-analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
+alive_callback = AliveCallback(alive_interval = 10)
+analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
 # Run the simulation with the same time integration algorithm as before.
-sol = solve(ode, RDPK3SpFSAL49(), abstol=1.0e-6, reltol=1.0e-6,
-            callback=callbacks, save_everystep=false);
+sol = solve(
+    ode, RDPK3SpFSAL49(), abstol = 1.0e-6, reltol = 1.0e-6,
+    callback = callbacks, save_everystep = false
+);
 #-
 using Plots
 pd = PlotData2D(sol)
@@ -70,30 +78,38 @@ initial_condition = initial_condition_weak_blast_wave
 # We now use Gauss nodes instead of Gauss-Lobatto nodes which can be done for the element types
 # `Quad()` and `Hex()`. Therefore, we set `approximation_type=GaussSBP()`. Alternatively, we
 # can use a modal approach using the approximation type `Polynomial()`.
-dg = DGMulti(polydeg = 3,
-             element_type = Quad(),
-             approximation_type = GaussSBP(),
-             surface_flux = flux_lax_friedrichs,
-             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+dg = DGMulti(
+    polydeg = 3,
+    element_type = Quad(),
+    approximation_type = GaussSBP(),
+    surface_flux = flux_lax_friedrichs,
+    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
+)
 
 cells_per_dimension = (32, 32)
-mesh = DGMultiMesh(dg,
-             cells_per_dimension, # initial_refinement_level = 5
-             coordinates_min=(-2.0, -2.0),
-             coordinates_max=( 2.0,  2.0),
-             periodicity=true)
+mesh = DGMultiMesh(
+    dg,
+    cells_per_dimension, # initial_refinement_level = 5
+    coordinates_min = (-2.0, -2.0),
+    coordinates_max = (2.0, 2.0),
+    periodicity = true
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                              boundary_conditions=boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, dg,
+    boundary_conditions = boundary_condition_periodic
+)
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
-alive_callback = AliveCallback(alive_interval=10)
-analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
+alive_callback = AliveCallback(alive_interval = 10)
+analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
-            ode_default_options()..., callback=callbacks);
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+    ode_default_options()..., callback = callbacks
+);
 #-
 using Plots
 pd = PlotData2D(sol)
@@ -110,30 +126,38 @@ initial_condition = initial_condition_weak_blast_wave
 # `SBP()` now uses Gauss-Lobatto nodes on faces and special nodes in the interior of the triangular.
 # More details can be found in the documentation of
 # [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/RefElemData/#RefElemData-based-on-SBP-finite-differences).
-dg = DGMulti(polydeg = 3,
-             element_type = Tri(),
-             approximation_type = SBP(),
-             surface_flux = flux_lax_friedrichs,
-             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+dg = DGMulti(
+    polydeg = 3,
+    element_type = Tri(),
+    approximation_type = SBP(),
+    surface_flux = flux_lax_friedrichs,
+    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
+)
 
 cells_per_dimension = (32, 32)
-mesh = DGMultiMesh(dg,
-                   cells_per_dimension, # initial_refinement_level = 5
-                   coordinates_min=(-2.0, -2.0),
-                   coordinates_max=( 2.0,  2.0),
-                   periodicity=true)
+mesh = DGMultiMesh(
+    dg,
+    cells_per_dimension, # initial_refinement_level = 5
+    coordinates_min = (-2.0, -2.0),
+    coordinates_max = (2.0, 2.0),
+    periodicity = true
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    boundary_conditions=boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, dg,
+    boundary_conditions = boundary_condition_periodic
+)
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan)
 
-alive_callback = AliveCallback(alive_interval=10)
-analysis_callback = AnalysisCallback(semi, interval=100, uEltype=real(dg))
+alive_callback = AliveCallback(alive_interval = 10)
+analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
-            ode_default_options()..., callback=callbacks);
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+    ode_default_options()..., callback = callbacks
+);
 #-
 using Plots
 pd = PlotData2D(sol)
@@ -156,10 +180,12 @@ initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test
 
 # We create the solver `DGMulti` with triangular elements (`Tri()`) as before.
-dg = DGMulti(polydeg = 3, element_type = Tri(),
-             approximation_type=Polynomial(),
-             surface_flux = flux_lax_friedrichs,
-             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+dg = DGMulti(
+    polydeg = 3, element_type = Tri(),
+    approximation_type = Polynomial(),
+    surface_flux = flux_lax_friedrichs,
+    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
+)
 
 # StartUpDG.jl provides for instance a pre-defined Triangulate geometry for a rectangular domain with
 # hole `RectangularDomainWithHole`. Other pre-defined Triangulate geometries are e.g., `SquareDomain`,
@@ -168,25 +194,31 @@ meshIO = StartUpDG.triangulate_domain(StartUpDG.RectangularDomainWithHole());
 
 # The pre-defined Triangulate geometry in StartUpDG has integer boundary tags. With [`DGMultiMesh`](@ref)
 # we assign boundary faces based on these integer boundary tags and create a mesh compatible with Trixi.jl.
-mesh = DGMultiMesh(dg, meshIO, Dict(:outer_boundary=>1, :inner_boundary=>2))
+mesh = DGMultiMesh(dg, meshIO, Dict(:outer_boundary => 1, :inner_boundary => 2))
 #-
 boundary_condition_convergence_test = BoundaryConditionDirichlet(initial_condition)
-boundary_conditions = (; :outer_boundary => boundary_condition_convergence_test,
-                         :inner_boundary => boundary_condition_convergence_test)
+boundary_conditions = (;
+    :outer_boundary => boundary_condition_convergence_test,
+    :inner_boundary => boundary_condition_convergence_test,
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
-                                    source_terms = source_terms,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, dg,
+    source_terms = source_terms,
+    boundary_conditions = boundary_conditions
+)
 
 tspan = (0.0, 0.2)
 ode = semidiscretize(semi, tspan)
 
-alive_callback = AliveCallback(alive_interval=20)
-analysis_callback = AnalysisCallback(semi, interval=200, uEltype=real(dg))
+alive_callback = AliveCallback(alive_interval = 20)
+analysis_callback = AnalysisCallback(semi, interval = 200, uEltype = real(dg))
 callbacks = CallbackSet(alive_callback, analysis_callback);
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt = 0.5 * estimate_dt(mesh, dg), save_everystep=false, callback=callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 0.5 * estimate_dt(mesh, dg), save_everystep = false, callback = callbacks
+);
 #-
 using Plots
 pd = PlotData2D(sol)
@@ -204,5 +236,7 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "StartUpDG", "OrdinaryDiffEq", "Plots"],
-           mode=PKGMODE_MANIFEST)
+Pkg.status(
+    ["Trixi", "StartUpDG", "OrdinaryDiffEq", "Plots"],
+    mode = PKGMODE_MANIFEST
+)

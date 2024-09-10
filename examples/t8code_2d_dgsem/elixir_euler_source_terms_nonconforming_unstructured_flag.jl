@@ -29,15 +29,21 @@ mapping_flag = Trixi.transfinite_mapping(faces)
 
 # Get the uncurved mesh from a file (downloads the file if not available locally)
 # Unstructured mesh with 24 cells of the square domain [-1, 1]^n
-mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
-                           joinpath(@__DIR__, "square_unstructured_2.inp"))
+mesh_file = Trixi.download(
+    "https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
+    joinpath(@__DIR__, "square_unstructured_2.inp")
+)
 
-mesh = T8codeMesh(mesh_file, 2; polydeg = 3,
-                  mapping = mapping_flag,
-                  initial_refinement_level = 1)
+mesh = T8codeMesh(
+    mesh_file, 2; polydeg = 3,
+    mapping = mapping_flag,
+    initial_refinement_level = 1
+)
 
-function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(
+        forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
+        user_data
+    )
     vertex = Vector{Cdouble}(undef, 3)
 
     Trixi.t8_element_vertex_reference_coords(eclass_scheme, elements[1], 0, pointer(vertex))
@@ -45,7 +51,7 @@ function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_
     level = Trixi.t8_element_level(eclass_scheme, elements[1])
 
     # TODO: Make this condition more general.
-    if vertex[1] < 1e-8 && vertex[2] < 1e-8 && level < 2
+    if vertex[1] < 1.0e-8 && vertex[2] < 1.0e-8 && level < 2
         # return true (refine)
         return 1
     else
@@ -56,9 +62,11 @@ end
 
 Trixi.adapt!(mesh, adapt_callback)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    source_terms = source_terms,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -75,15 +83,19 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    stepsize_callback
+)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary
 
 # Finalize `T8codeMesh` to make sure MPI related objects in t8code are

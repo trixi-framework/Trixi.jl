@@ -16,8 +16,10 @@ function init_t8code()
 
         # Initialize the sc library, has to happen before we initialize t8code.
         let catch_signals = 0, print_backtrace = 0, log_handler = C_NULL
-            T8code.Libt8.sc_init(mpi_comm(), catch_signals, print_backtrace, log_handler,
-                                 T8code.Libt8.SC_LP_ERROR)
+            T8code.Libt8.sc_init(
+                mpi_comm(), catch_signals, print_backtrace, log_handler,
+                T8code.Libt8.SC_LP_ERROR
+            )
         end
 
         if T8code.Libt8.p4est_is_initialized() == 0
@@ -40,7 +42,7 @@ function init_t8code()
         end
     else
         @warn "Preferences for T8code.jl are not set correctly. Until fixed, using `T8codeMesh` will result in a crash. " *
-              "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
+            "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
     end
 
     return nothing
@@ -79,7 +81,7 @@ end
 # form a family and we decide whether this family should be coarsened
 # or only the first element should be refined.
 # Otherwise `is_family` must equal zero and we consider the first entry
-# of the element array for refinement. 
+# of the element array for refinement.
 # Entries of the element array beyond the first `num_elements` are undefined.
 # \param [in] forest       the forest to which the new elements belong
 # \param [in] forest_from  the forest that is adapted.
@@ -93,14 +95,16 @@ end
 # \return greater zero if the first entry in `elements` should be refined,
 #         smaller zero if the family `elements` shall be coarsened,
 #         zero else.
-function adapt_callback(forest,
-                        forest_from,
-                        which_tree,
-                        lelement_id,
-                        ts,
-                        is_family,
-                        num_elements,
-                        elements)::Cint
+function adapt_callback(
+        forest,
+        forest_from,
+        which_tree,
+        lelement_id,
+        ts,
+        is_family,
+        num_elements,
+        elements
+    )::Cint
     num_levels = t8_forest_get_local_num_elements(forest_from)
 
     indicator_ptr = Ptr{Int}(t8_forest_get_user_data(forest))
@@ -123,8 +127,10 @@ function trixi_t8_adapt_new(old_forest, indicators)
 
     let set_from = C_NULL, recursive = 0, no_repartition = 1, do_ghost = 1
         t8_forest_set_user_data(new_forest, pointer(indicators))
-        t8_forest_set_adapt(new_forest, old_forest, @t8_adapt_callback(adapt_callback),
-                            recursive)
+        t8_forest_set_adapt(
+            new_forest, old_forest, @t8_adapt_callback(adapt_callback),
+            recursive
+        )
         t8_forest_set_balance(new_forest, set_from, no_repartition)
         t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
         t8_forest_commit(new_forest)

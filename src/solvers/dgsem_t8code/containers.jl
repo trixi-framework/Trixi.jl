@@ -18,8 +18,10 @@ function reinitialize_containers!(mesh::T8codeMesh, equations, dg::DGSEM, cache)
     @unpack boundaries = cache
     resize!(boundaries, mesh.nboundaries)
 
-    fill_mesh_info!(mesh, interfaces, mortars, boundaries,
-                    mesh.boundary_names)
+    fill_mesh_info!(
+        mesh, interfaces, mortars, boundaries,
+        mesh.boundary_names
+    )
 
     return nothing
 end
@@ -39,11 +41,13 @@ end
 
 # Compatibility to `dgsem_p4est/containers.jl`.
 function count_required_surfaces(mesh::T8codeMesh)
-    return (interfaces = mesh.ninterfaces,
-            mortars = mesh.nmortars,
-            boundaries = mesh.nboundaries,
-            mpi_interfaces = mesh.nmpiinterfaces,
-            mpi_mortars = mesh.nmpimortars)
+    return (
+        interfaces = mesh.ninterfaces,
+        mortars = mesh.nmortars,
+        boundaries = mesh.nboundaries,
+        mpi_interfaces = mesh.nmpiinterfaces,
+        mpi_mortars = mesh.nmpimortars,
+    )
 end
 
 # Compatibility to `dgsem_p4est/containers.jl`.

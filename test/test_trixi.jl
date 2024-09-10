@@ -36,14 +36,20 @@ macro test_trixi_include(elixir, args...)
 
     local cmd = string(Base.julia_cmd())
     local coverage = occursin("--code-coverage", cmd) &&
-                     !occursin("--code-coverage=none", cmd)
+        !occursin("--code-coverage=none", cmd)
 
     local kwargs = Pair{Symbol, Any}[]
     for arg in args
-        if (arg.head == :(=) &&
-            !(arg.args[1] in (:l2, :linf, :RealT, :atol, :rtol, :coverage_override,
-                              :skip_coverage))
-            && !(coverage && arg.args[1] in keys(coverage_override)))
+        if (
+                arg.head == :(=) &&
+                    !(
+                    arg.args[1] in (
+                        :l2, :linf, :RealT, :atol, :rtol, :coverage_override,
+                        :skip_coverage,
+                    )
+                )
+                    && !(coverage && arg.args[1] in keys(coverage_override))
+            )
             push!(kwargs, Pair(arg.args...))
         end
     end
@@ -74,7 +80,8 @@ macro test_trixi_include(elixir, args...)
         if any(==(:maxiters) ∘ first, $kwargs)
             additional_ignore_content = [
                 r"┌ Warning: Interrupted\. Larger maxiters is needed\..*\n└ @ SciMLBase .+\n",
-                r"┌ Warning: Interrupted\. Larger maxiters is needed\..*\n└ @ Trixi .+\n"]
+                r"┌ Warning: Interrupted\. Larger maxiters is needed\..*\n└ @ Trixi .+\n",
+            ]
         else
             additional_ignore_content = []
         end
@@ -151,23 +158,24 @@ macro test_nowarn_mod(expr, additional_ignore_content = String[])
                 # passed as arguments can also be regular expressions, so we just use the
                 # type `Any` for `ignore_content`.
                 ignore_content = Any[
-                                     # We need to ignore steady state information reported by our callbacks
-                                     r"┌ Info:   Steady state tolerance reached\n│   steady_state_callback .+\n└   t = .+\n",
-                                     # We also ignore our own compilation messages
-                                     "[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.\n",
-                                     # TODO: Upstream (PlotUtils). This should be removed again once the
-                                     #       deprecated stuff is fixed upstream.
-                                     "WARNING: importing deprecated binding Colors.RGB1 into Plots.\n",
-                                     "WARNING: importing deprecated binding Colors.RGB4 into Plots.\n",
-                                     r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
-                                     r"┌ Warning: `parse\(::Type, ::Coloarant\)` is deprecated.+\n│.+\n│.+\n└ @ Plots.+\n",
-                                     # TODO: Silence warning introduced by Flux v0.13.13. Should be properly fixed.
-                                     r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n",
-                                     # NOTE: These warnings arose from Julia 1.10 onwards
-                                     r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
-                                     # Warnings from third party packages
-                                     r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
-                                     r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n"]
+                    # We need to ignore steady state information reported by our callbacks
+                    r"┌ Info:   Steady state tolerance reached\n│   steady_state_callback .+\n└   t = .+\n",
+                    # We also ignore our own compilation messages
+                    "[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.\n",
+                    # TODO: Upstream (PlotUtils). This should be removed again once the
+                    #       deprecated stuff is fixed upstream.
+                    "WARNING: importing deprecated binding Colors.RGB1 into Plots.\n",
+                    "WARNING: importing deprecated binding Colors.RGB4 into Plots.\n",
+                    r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
+                    r"┌ Warning: `parse\(::Type, ::Coloarant\)` is deprecated.+\n│.+\n│.+\n└ @ Plots.+\n",
+                    # TODO: Silence warning introduced by Flux v0.13.13. Should be properly fixed.
+                    r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n",
+                    # NOTE: These warnings arose from Julia 1.10 onwards
+                    r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
+                    # Warnings from third party packages
+                    r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
+                    r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
+                ]
                 append!(ignore_content, $additional_ignore_content)
                 for pattern in ignore_content
                     stderr_content = replace(stderr_content, pattern => "")
@@ -199,8 +207,10 @@ macro timed_testset(name, expr)
         local time_stop = time_ns()
         if Trixi.mpi_isroot()
             flush(stdout)
-            @info("Testset "*$name*" finished in "
-                  *string(1.0e-9 * (time_stop - time_start))*" seconds.\n")
+            @info(
+                "Testset " * $name * " finished in "
+                    * string(1.0e-9 * (time_stop - time_start)) * " seconds.\n"
+            )
             flush(stdout)
         end
     end
@@ -244,8 +254,10 @@ macro trixi_testset(name, expr)
         local time_stop = time_ns()
         if Trixi.mpi_isroot()
             flush(stdout)
-            @info("Testset "*$name*" finished in "
-                  *string(1.0e-9 * (time_stop - time_start))*" seconds.\n")
+            @info(
+                "Testset " * $name * " finished in "
+                    * string(1.0e-9 * (time_stop - time_start)) * " seconds.\n"
+            )
         end
         nothing
     end

@@ -14,10 +14,10 @@ function tabulate_benchmarks(args...; kwargs...)
     result = run_benchmarks(args...; kwargs...)
     println("#Elements | Runtime in seconds")
     for (level, runtime) in zip(result.levels, result.runtimes)
-        @printf("%9d | %.2e\n", 4^level, 1.0e-9*runtime)
+        @printf("%9d | %.2e\n", 4^level, 1.0e-9 * runtime)
     end
     for (level, runtime) in zip(result.levels, result.runtimes)
-        @printf("%.16e\n", 1.0e-9*runtime)
+        @printf("%.16e\n", 1.0e-9 * runtime)
     end
 end
 
@@ -31,12 +31,16 @@ function benchmark_euler(; initial_refinement_level = 1, polydeg = 3)
 
     coordinates_min = (-2.0, -2.0)
     coordinates_max = (2.0, 2.0)
-    mesh = TreeMesh(coordinates_min, coordinates_max,
-                    initial_refinement_level = initial_refinement_level,
-                    n_cells_max = 100_000)
+    mesh = TreeMesh(
+        coordinates_min, coordinates_max,
+        initial_refinement_level = initial_refinement_level,
+        n_cells_max = 100_000
+    )
 
-    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_weak_blast_wave,
-                                        solver)
+    semi = SemidiscretizationHyperbolic(
+        mesh, equations, initial_condition_weak_blast_wave,
+        solver
+    )
 
     t0 = 0.0
     u0 = compute_coefficients(t0, semi)

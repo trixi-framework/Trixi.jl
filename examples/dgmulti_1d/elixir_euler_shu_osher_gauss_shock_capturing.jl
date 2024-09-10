@@ -5,8 +5,8 @@ gamma_gas = 1.4
 equations = CompressibleEulerEquations1D(gamma_gas)
 
 ###############################################################################
-# setup the GSBP DG discretization that uses the Gauss operators from 
-# Chan, Del Rey Fernandez, Carpenter (2019). 
+# setup the GSBP DG discretization that uses the Gauss operators from
+# Chan, Del Rey Fernandez, Carpenter (2019).
 # [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
 # Shu-Osher initial condition for 1D compressible Euler equations
@@ -27,8 +27,10 @@ function initial_condition_shu_osher(x, t, equations::CompressibleEulerEquations
     v = ifelse(x[1] > x0, v_right, v_left)
     p = ifelse(x[1] > x0, p_right, p_left)
 
-    return prim2cons(SVector(rho, v, p),
-                     equations)
+    return prim2cons(
+        SVector(rho, v, p),
+        equations
+    )
 end
 
 initial_condition = initial_condition_shu_osher
@@ -39,18 +41,24 @@ volume_flux = flux_ranocha
 polydeg = 3
 basis = DGMultiBasis(Line(), polydeg, approximation_type = GaussSBP())
 
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.5,
-                                         alpha_min = 0.001,
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+indicator_sc = IndicatorHennemannGassner(
+    equations, basis,
+    alpha_max = 0.5,
+    alpha_min = 0.001,
+    alpha_smooth = true,
+    variable = density_pressure
+)
+volume_integral = VolumeIntegralShockCapturingHG(
+    indicator_sc;
+    volume_flux_dg = volume_flux,
+    volume_flux_fv = surface_flux
+)
 
-dg = DGMulti(basis,
-             surface_integral = SurfaceIntegralWeakForm(surface_flux),
-             volume_integral = volume_integral)
+dg = DGMulti(
+    basis,
+    surface_integral = SurfaceIntegralWeakForm(surface_flux),
+    volume_integral = volume_integral
+)
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :entire_boundary => boundary_condition)
@@ -59,15 +67,19 @@ boundary_conditions = (; :entire_boundary => boundary_condition)
 #  setup the 1D mesh
 
 cells_per_dimension = (64,)
-mesh = DGMultiMesh(dg, cells_per_dimension,
-                   coordinates_min = (-5.0,), coordinates_max = (5.0,),
-                   periodicity = false)
+mesh = DGMultiMesh(
+    dg, cells_per_dimension,
+    coordinates_min = (-5.0,), coordinates_max = (5.0,),
+    periodicity = false
+)
 
 ###############################################################################
 #  setup the semidiscretization and ODE problem
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition,
-                                    dg, boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition,
+    dg, boundary_conditions = boundary_conditions
+)
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)

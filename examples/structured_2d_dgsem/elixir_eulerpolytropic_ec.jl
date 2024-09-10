@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -15,8 +14,10 @@ initial_condition = initial_condition_weak_blast_wave
 # Get the DG approximation space
 
 volume_flux = flux_winters_etal
-solver = DGSEM(polydeg = 4, surface_flux = flux_winters_etal,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 4, surface_flux = flux_winters_etal,
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 ###############################################################################
 # Get the curved quad mesh from a mapping function
@@ -27,11 +28,15 @@ function mapping(xi_, eta_)
     xi = 1.5 * xi_ + 1.5
     eta = 1.5 * eta_ + 1.5
 
-    y = eta + 3 / 8 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
-                       cos(0.5 * pi * (2 * eta - 3) / 3))
+    y = eta + 3 / 8 * (
+        cos(1.5 * pi * (2 * xi - 3) / 3) *
+            cos(0.5 * pi * (2 * eta - 3) / 3)
+    )
 
-    x = xi + 3 / 8 * (cos(0.5 * pi * (2 * xi - 3) / 3) *
-                      cos(2 * pi * (2 * y - 3) / 3))
+    x = xi + 3 / 8 * (
+        cos(0.5 * pi * (2 * xi - 3) / 3) *
+            cos(2 * pi * (2 * y - 3) / 3)
+    )
 
     return SVector(x, y)
 end
@@ -59,22 +64,28 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true)
+save_solution = SaveSolutionCallback(
+    interval = 100,
+    save_initial_solution = true,
+    save_final_solution = true
+)
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
-                        save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback,
+    save_solution,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

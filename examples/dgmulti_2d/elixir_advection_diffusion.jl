@@ -1,8 +1,10 @@
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
-             volume_integral = VolumeIntegralWeakForm())
+dg = DGMulti(
+    polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
+    surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+    volume_integral = VolumeIntegralWeakForm()
+)
 
 equations = LinearScalarAdvectionEquation2D(1.5, 1.0)
 equations_parabolic = LaplaceDiffusion2D(5.0e-2, equations)
@@ -21,28 +23,40 @@ cells_per_dimension = (16, 16)
 mesh = DGMultiMesh(dg, cells_per_dimension; is_on_boundary)
 
 # BC types
-boundary_condition_left = BoundaryConditionDirichlet((x, t, equations) -> SVector(1 +
-                                                                                  0.1 *
-                                                                                  x[2]))
+boundary_condition_left = BoundaryConditionDirichlet(
+    (x, t, equations) -> SVector(
+        1 +
+            0.1 *
+            x[2]
+    )
+)
 boundary_condition_zero = BoundaryConditionDirichlet((x, t, equations) -> SVector(0.0))
 boundary_condition_neumann_zero = BoundaryConditionNeumann((x, t, equations) -> SVector(0.0))
 
 # define inviscid boundary conditions
-boundary_conditions = (; :left => boundary_condition_left,
-                       :bottom => boundary_condition_zero,
-                       :top => boundary_condition_do_nothing,
-                       :right => boundary_condition_do_nothing)
+boundary_conditions = (;
+    :left => boundary_condition_left,
+    :bottom => boundary_condition_zero,
+    :top => boundary_condition_do_nothing,
+    :right => boundary_condition_do_nothing,
+)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; :left => boundary_condition_left,
-                                 :bottom => boundary_condition_zero,
-                                 :top => boundary_condition_zero,
-                                 :right => boundary_condition_neumann_zero)
+boundary_conditions_parabolic = (;
+    :left => boundary_condition_left,
+    :bottom => boundary_condition_zero,
+    :top => boundary_condition_zero,
+    :right => boundary_condition_neumann_zero,
+)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, dg;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh, (equations, equations_parabolic),
+    initial_condition, dg;
+    boundary_conditions = (
+        boundary_conditions,
+        boundary_conditions_parabolic,
+    )
+)
 
 tspan = (0.0, 1.5)
 ode = semidiscretize(semi, tspan)
@@ -56,7 +70,9 @@ callbacks = CallbackSet(summary_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-6
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+time_int_tol = 1.0e-6
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+)
 summary_callback() # print the timer summary

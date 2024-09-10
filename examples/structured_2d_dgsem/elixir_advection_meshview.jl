@@ -54,29 +54,43 @@ coupling_function = (x, u, equations_other, equations_own) -> u
 # The indices (:end, :i_forward) and (:begin, :i_forward) denote the interface indexing.
 # For a system with coupling in x and y see examples/structured_2d_dgsem/elixir_advection_coupled.jl.
 boundary_conditions1 = (
-                        # Connect left boundary with right boundary of left mesh
-                        x_neg = BoundaryConditionCoupled(2, (:end, :i_forward), Float64,
-                                                         coupling_function),
-                        x_pos = BoundaryConditionCoupled(2, (:begin, :i_forward), Float64,
-                                                         coupling_function),
-                        y_neg = boundary_condition_periodic,
-                        y_pos = boundary_condition_periodic)
+    # Connect left boundary with right boundary of left mesh
+    x_neg = BoundaryConditionCoupled(
+        2, (:end, :i_forward), Float64,
+        coupling_function
+    ),
+    x_pos = BoundaryConditionCoupled(
+        2, (:begin, :i_forward), Float64,
+        coupling_function
+    ),
+    y_neg = boundary_condition_periodic,
+    y_pos = boundary_condition_periodic,
+)
 boundary_conditions2 = (
-                        # Connect left boundary with right boundary of left mesh
-                        x_neg = BoundaryConditionCoupled(1, (:end, :i_forward), Float64,
-                                                         coupling_function),
-                        x_pos = BoundaryConditionCoupled(1, (:begin, :i_forward), Float64,
-                                                         coupling_function),
-                        y_neg = boundary_condition_periodic,
-                        y_pos = boundary_condition_periodic)
+    # Connect left boundary with right boundary of left mesh
+    x_neg = BoundaryConditionCoupled(
+        1, (:end, :i_forward), Float64,
+        coupling_function
+    ),
+    x_pos = BoundaryConditionCoupled(
+        1, (:begin, :i_forward), Float64,
+        coupling_function
+    ),
+    y_neg = boundary_condition_periodic,
+    y_pos = boundary_condition_periodic,
+)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = boundary_conditions1)
-semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test,
-                                     solver,
-                                     boundary_conditions = boundary_conditions2)
+semi1 = SemidiscretizationHyperbolic(
+    mesh1, equations, initial_condition_convergence_test,
+    solver,
+    boundary_conditions = boundary_conditions1
+)
+semi2 = SemidiscretizationHyperbolic(
+    mesh2, equations, initial_condition_convergence_test,
+    solver,
+    boundary_conditions = boundary_conditions2
+)
 semi = SemidiscretizationCoupled(semi1, semi2)
 
 ###############################################################################
@@ -98,25 +112,31 @@ analysis_interval = 100
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 100,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = cons2prim
+)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback, analysis_callback, save_solution,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 # Print the timer summary
 summary_callback()

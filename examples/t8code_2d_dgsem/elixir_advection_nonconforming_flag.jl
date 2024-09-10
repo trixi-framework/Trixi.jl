@@ -22,10 +22,12 @@ faces = (f1, f2, f3, f4)
 # Create T8codeMesh with 3 x 2 trees and 6 x 4 elements,
 # approximate the geometry with a smaller polydeg for testing.
 trees_per_dimension = (3, 2)
-mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
-                  faces = faces,
-                  initial_refinement_level = 1,
-                  periodicity = (true, true))
+mesh = T8codeMesh(
+    trees_per_dimension, polydeg = 3,
+    faces = faces,
+    initial_refinement_level = 1,
+    periodicity = (true, true)
+)
 
 # Note: This is actually a `p4est_quadrant_t` which is much bigger than the
 # following struct. But we only need the first three fields for our purpose.
@@ -37,8 +39,10 @@ struct t8_dquad_t
 end
 
 # Refine quadrants of each tree at lower left edge to level 4.
-function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(
+        forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
+        user_data
+    )
     el = unsafe_load(Ptr{t8_dquad_t}(elements[1]))
 
     if el.x == 0 && el.y == 0 && el.level < 4
@@ -53,8 +57,10 @@ end
 Trixi.adapt!(mesh, adapt_callback)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition_convergence_test,
+    solver
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -79,9 +85,11 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 # Print the timer summary
 summary_callback()

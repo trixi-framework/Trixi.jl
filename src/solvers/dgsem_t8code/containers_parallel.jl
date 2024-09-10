@@ -1,6 +1,6 @@
 function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM, cache)
     @unpack elements, interfaces, boundaries, mortars, mpi_interfaces, mpi_mortars,
-    mpi_cache = cache
+        mpi_cache = cache
     resize!(elements, ncells(mesh))
     init_elements!(elements, mesh, dg.basis)
 
@@ -17,21 +17,29 @@ function reinitialize_containers!(mesh::ParallelT8codeMesh, equations, dg::DGSEM
 
     resize!(mpi_mortars, required.mpi_mortars)
 
-    mpi_mesh_info = (mpi_mortars = mpi_mortars,
-                     mpi_interfaces = mpi_interfaces,
+    mpi_mesh_info = (
+        mpi_mortars = mpi_mortars,
+        mpi_interfaces = mpi_interfaces,
 
-                     # Temporary arrays for updating `mpi_cache`.
-                     global_mortar_ids = fill(UInt64(0), nmpimortars(mpi_mortars)),
-                     global_interface_ids = fill(UInt64(0), nmpiinterfaces(mpi_interfaces)),
-                     neighbor_ranks_mortar = Vector{Vector{Int}}(undef,
-                                                                 nmpimortars(mpi_mortars)),
-                     neighbor_ranks_interface = fill(-1, nmpiinterfaces(mpi_interfaces)))
+        # Temporary arrays for updating `mpi_cache`.
+        global_mortar_ids = fill(UInt64(0), nmpimortars(mpi_mortars)),
+        global_interface_ids = fill(UInt64(0), nmpiinterfaces(mpi_interfaces)),
+        neighbor_ranks_mortar = Vector{Vector{Int}}(
+            undef,
+            nmpimortars(mpi_mortars)
+        ),
+        neighbor_ranks_interface = fill(-1, nmpiinterfaces(mpi_interfaces)),
+    )
 
-    fill_mesh_info!(mesh, interfaces, mortars, boundaries,
-                    mesh.boundary_names; mpi_mesh_info = mpi_mesh_info)
+    fill_mesh_info!(
+        mesh, interfaces, mortars, boundaries,
+        mesh.boundary_names; mpi_mesh_info = mpi_mesh_info
+    )
 
-    init_mpi_cache!(mpi_cache, mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
-                    eltype(elements))
+    init_mpi_cache!(
+        mpi_cache, mesh, mpi_mesh_info, nvariables(equations), nnodes(dg),
+        eltype(elements)
+    )
 
     empty!(mpi_mesh_info.global_mortar_ids)
     empty!(mpi_mesh_info.global_interface_ids)

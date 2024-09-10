@@ -17,9 +17,11 @@ trees_per_dimension = (1, 1, 1)
 # Note that it is not necessary to use mesh polydeg lower than the solver polydeg
 # on a Cartesian mesh.
 # See https://doi.org/10.1007/s10915-018-00897-9, Section 6.
-mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
-                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                  initial_refinement_level = 2)
+mesh = T8codeMesh(
+    trees_per_dimension, polydeg = 3,
+    coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+    initial_refinement_level = 2
+)
 
 # Note: This is actually a `p8est_quadrant_t` which is much bigger than the
 # following struct. But we only need the first four fields for our purpose.
@@ -32,12 +34,14 @@ struct t8_dhex_t
 end
 
 # Refine bottom left quadrant of each second tree to level 2
-function adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
-                        user_data)
+function adapt_callback(
+        forest, ltreeid, eclass_scheme, lelemntid, elements, is_family,
+        user_data
+    )
     el = unsafe_load(Ptr{t8_dhex_t}(elements[1]))
 
     if iseven(convert(Int, ltreeid)) && el.x == 0 && el.y == 0 && el.z == 0 &&
-       el.level < 3
+            el.level < 3
         # return true (refine)
         return 1
     else
@@ -49,8 +53,10 @@ end
 Trixi.adapt!(mesh, adapt_callback)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition_convergence_test,
+    solver
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -70,16 +76,20 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback, analysis_callback,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 # Print the timer summary
 summary_callback()

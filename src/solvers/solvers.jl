@@ -3,11 +3,11 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-#! format: noindent
+    #! format: noindent
 
-# define types for parabolic solvers
-include("solvers_parabolic.jl")
+    # define types for parabolic solvers
+    include("solvers_parabolic.jl")
 
-include("dg.jl")
-include("dgmulti.jl")
+    include("dg.jl")
+    include("dgmulti.jl")
 end # @muladd

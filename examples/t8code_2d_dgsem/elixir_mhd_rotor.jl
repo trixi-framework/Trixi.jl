@@ -47,14 +47,18 @@ surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell)
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.5,
-                                         alpha_min = 0.001,
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+indicator_sc = IndicatorHennemannGassner(
+    equations, basis,
+    alpha_max = 0.5,
+    alpha_min = 0.001,
+    alpha_smooth = true,
+    variable = density_pressure
+)
+volume_integral = VolumeIntegralShockCapturingHG(
+    indicator_sc;
+    volume_flux_dg = volume_flux,
+    volume_flux_fv = surface_flux
+)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Affine type mapping to take the [-1,1]^2 domain from the mesh file
@@ -67,18 +71,24 @@ function mapping_twist(xi, eta)
     return SVector(x, y)
 end
 
-mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
-                           joinpath(@__DIR__, "square_unstructured_2.inp"))
+mesh_file = Trixi.download(
+    "https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
+    joinpath(@__DIR__, "square_unstructured_2.inp")
+)
 
-mesh = T8codeMesh(mesh_file, 2; polydeg = 4,
-                  mapping = mapping_twist,
-                  initial_refinement_level = 1)
+mesh = T8codeMesh(
+    mesh_file, 2; polydeg = 4,
+    mapping = mapping_twist,
+    initial_refinement_level = 1
+)
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(:all => boundary_condition)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -93,36 +103,46 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-amr_indicator = IndicatorLöhner(semi,
-                                variable = density_pressure)
+amr_indicator = IndicatorLöhner(
+    semi,
+    variable = density_pressure
+)
 
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 1,
-                                      med_level = 3, med_threshold = 0.05,
-                                      max_level = 5, max_threshold = 0.1)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+amr_controller = ControllerThreeLevel(
+    semi, amr_indicator,
+    base_level = 1,
+    med_level = 3, med_threshold = 0.05,
+    max_level = 5, max_threshold = 0.1
+)
+amr_callback = AMRCallback(
+    semi, amr_controller,
+    interval = 5,
+    adapt_initial_condition = true,
+    adapt_initial_condition_only_refine = true
+)
 
 cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
-                        amr_callback,
-                        stepsize_callback,
-                        glm_speed_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback,
+    amr_callback,
+    stepsize_callback,
+    glm_speed_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary
 
 # Finalize `T8codeMesh` to make sure MPI related objects in t8code are

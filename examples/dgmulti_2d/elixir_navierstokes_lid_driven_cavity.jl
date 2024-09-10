@@ -8,13 +8,17 @@ prandtl_number() = 0.72
 mu = 0.001
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
-                                                          Prandtl = prandtl_number())
+equations_parabolic = CompressibleNavierStokesDiffusion2D(
+    equations, mu = mu,
+    Prandtl = prandtl_number()
+)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = GaussSBP(),
-             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
-             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+dg = DGMulti(
+    polydeg = 3, element_type = Quad(), approximation_type = GaussSBP(),
+    surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
+)
 
 top(x, tol = 50 * eps()) = abs(x[2] - 1) < tol
 rest_of_boundary(x, tol = 50 * eps()) = !top(x, tol)
@@ -40,17 +44,25 @@ boundary_condition_lid = BoundaryConditionNavierStokesWall(velocity_bc_lid, heat
 boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity, heat_bc)
 
 # define inviscid boundary conditions
-boundary_conditions = (; :top => boundary_condition_slip_wall,
-                       :rest_of_boundary => boundary_condition_slip_wall)
+boundary_conditions = (;
+    :top => boundary_condition_slip_wall,
+    :rest_of_boundary => boundary_condition_slip_wall,
+)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; :top => boundary_condition_lid,
-                                 :rest_of_boundary => boundary_condition_cavity)
+boundary_conditions_parabolic = (;
+    :top => boundary_condition_lid,
+    :rest_of_boundary => boundary_condition_cavity,
+)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, dg;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh, (equations, equations_parabolic),
+    initial_condition, dg;
+    boundary_conditions = (
+        boundary_conditions,
+        boundary_conditions_parabolic,
+    )
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -68,7 +80,9 @@ callbacks = CallbackSet(summary_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+time_int_tol = 1.0e-8
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+)
 summary_callback() # print the timer summary

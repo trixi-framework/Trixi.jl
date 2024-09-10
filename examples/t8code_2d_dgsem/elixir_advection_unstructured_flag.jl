@@ -27,16 +27,22 @@ Trixi.validate_faces(faces)
 mapping_flag = Trixi.transfinite_mapping(faces)
 
 # Unstructured mesh with 24 cells of the square domain [-1, 1]^n.
-mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
-                           joinpath(@__DIR__, "square_unstructured_2.inp"))
+mesh_file = Trixi.download(
+    "https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
+    joinpath(@__DIR__, "square_unstructured_2.inp")
+)
 
-mesh = T8codeMesh(mesh_file, 2;
-                  mapping = mapping_flag, polydeg = 3,
-                  initial_refinement_level = 2)
+mesh = T8codeMesh(
+    mesh_file, 2;
+    mapping = mapping_flag, polydeg = 3,
+    initial_refinement_level = 2
+)
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -65,9 +71,11 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # Run the simulation.
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks.
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # Solve needs some value here but it will be overwritten by the stepsize_callback.
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # Solve needs some value here but it will be overwritten by the stepsize_callback.
+    save_everystep = false, callback = callbacks
+);
 
 # Print the timer summary.
 summary_callback()

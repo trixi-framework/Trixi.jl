@@ -22,20 +22,22 @@ authors_text = replace(authors_text, "in the [LICENSE.md](LICENSE.md) file" => "
 write(joinpath(@__DIR__, "src", "authors.md"), authors_text)
 
 # Define module-wide setups such that the respective modules are available in doctests
-DocMeta.setdocmeta!(Trixi,     :DocTestSetup, :(using Trixi);     recursive=true)
-DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive=true)
+DocMeta.setdocmeta!(Trixi, :DocTestSetup, :(using Trixi); recursive = true)
+DocMeta.setdocmeta!(Trixi2Vtk, :DocTestSetup, :(using Trixi2Vtk); recursive = true)
 
 # Copy some files from the repository root directory to the docs and modify them
 # as necessary
 # Based on: https://github.com/ranocha/SummationByPartsOperators.jl/blob/0206a74140d5c6eb9921ca5021cb7bf2da1a306d/docs/make.jl#L27-L41
 open(joinpath(@__DIR__, "src", "code_of_conduct.md"), "w") do io
     # Point to source license file
-    println(io,
-            """
-            ```@meta
-            EditURL = "https://github.com/trixi-framework/Trixi.jl/blob/main/CODE_OF_CONDUCT.md"
-            ```
-            """)
+    println(
+        io,
+        """
+        ```@meta
+        EditURL = "https://github.com/trixi-framework/Trixi.jl/blob/main/CODE_OF_CONDUCT.md"
+        ```
+        """
+    )
     # Write the modified contents
     println(io, "# [Code of Conduct](@id code-of-conduct)")
     println(io, "")
@@ -47,17 +49,19 @@ end
 
 open(joinpath(@__DIR__, "src", "contributing.md"), "w") do io
     # Point to source license file
-    println(io,
-            """
-            ```@meta
-            EditURL = "https://github.com/trixi-framework/Trixi.jl/blob/main/CONTRIBUTING.md"
-            ```
-            """)
+    println(
+        io,
+        """
+        ```@meta
+        EditURL = "https://github.com/trixi-framework/Trixi.jl/blob/main/CONTRIBUTING.md"
+        ```
+        """
+    )
     # Write the modified contents
     for line in eachline(joinpath(dirname(@__DIR__), "CONTRIBUTING.md"))
-      line = replace(line, "[LICENSE.md](LICENSE.md)" => "[License](@ref)")
-      line = replace(line, "[AUTHORS.md](AUTHORS.md)" => "[Authors](@ref)")
-      println(io, line)
+        line = replace(line, "[LICENSE.md](LICENSE.md)" => "[License](@ref)")
+        line = replace(line, "[AUTHORS.md](AUTHORS.md)" => "[Authors](@ref)")
+        println(io, line)
     end
 end
 
@@ -97,7 +101,7 @@ files = [
     "Explicit time stepping" => "time_stepping.jl",
     "Differentiable programming" => "differentiable_programming.jl",
     "Custom semidiscretizations" => "custom_semidiscretization.jl",
-    ]
+]
 tutorials = create_tutorials(files)
 
 # Create changelog
@@ -153,10 +157,10 @@ makedocs(
             ],
             "Time integration" => "time_integration.md",
             "Callbacks" => "callbacks.md",
-            "Coupling" => "multi-physics_coupling.md"
+            "Coupling" => "multi-physics_coupling.md",
         ],
         "Advanced topics & developers" => [
-            "Conventions" =>"conventions.md",
+            "Conventions" => "conventions.md",
             "Development" => "development.md",
             "GitHub & Git" => "github-git.md",
             "Style guide" => "styleguide.md",
@@ -166,10 +170,10 @@ makedocs(
         ],
         "Troubleshooting and FAQ" => "troubleshooting.md",
         "Reference" => [
-                        "Trixi.jl" => "reference-trixi.md",
-                        "TrixiBase.jl" => "reference-trixibase.md",
-                        "Trixi2Vtk.jl" => "reference-trixi2vtk.md"
-                       ],
+            "Trixi.jl" => "reference-trixi.md",
+            "TrixiBase.jl" => "reference-trixibase.md",
+            "Trixi2Vtk.jl" => "reference-trixi2vtk.md",
+        ],
         "Changelog" => "changelog.md",
         "Authors" => "authors.md",
         "Contributing" => "contributing.md",

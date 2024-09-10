@@ -1,4 +1,3 @@
-
 # From here on, this file contains specializations of DG methods on the
 # curved 3D meshes `StructuredMesh{3}, P4estMesh{3}` to the compressible
 # Euler equations.
@@ -17,29 +16,43 @@
 # We specialize on `PtrArray` since these will be returned by `Trixi.wrap_array`
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element,
-                                           mesh::Union{StructuredMesh{2},
-                                                       UnstructuredMesh2D, P4estMesh{2}},
-                                           nonconservative_terms::False,
-                                           equations::CompressibleEulerEquations2D,
-                                           volume_flux::typeof(flux_shima_etal_turbo),
-                                           dg::DGSEM, cache, alpha)
+@inline function flux_differencing_kernel!(
+        _du::PtrArray, u_cons::PtrArray,
+        element,
+        mesh::Union{
+            StructuredMesh{2},
+            UnstructuredMesh2D, P4estMesh{2},
+        },
+        nonconservative_terms::False,
+        equations::CompressibleEulerEquations2D,
+        volume_flux::typeof(flux_shima_etal_turbo),
+        dg::DGSEM, cache, alpha
+    )
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
 
     # Create a temporary array that will be used to store the RHS with permuted
     # indices `[i, j, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
-    du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
-                                      StaticInt(nvariables(equations))))
+    du = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+            StaticInt(nvariables(equations)),
+        )
+    )
 
     # Convert conserved to primitive variables on the given `element`.
-    u_prim = StrideArray{eltype(u_cons)}(undef,
-                                         (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
-                                          StaticInt(nvariables(equations))))
+    u_prim = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            ntuple(
+                _ -> StaticInt(nnodes(dg)),
+                ndims(mesh)
+            )...,
+            StaticInt(nvariables(equations)),
+        )
+    )
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
         rho = u_cons[1, i, j, element]
@@ -61,28 +74,40 @@
     # At first, we create new temporary arrays with permuted memory layout to
     # allow using SIMD instructions along the first dimension (which is contiguous
     # in memory).
-    du_permuted = StrideArray{eltype(u_cons)}(undef,
-                                              (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
-                                               StaticInt(nvariables(equations))))
+    du_permuted = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
+            StaticInt(nvariables(equations)),
+        )
+    )
 
-    u_prim_permuted = StrideArray{eltype(u_cons)}(undef,
-                                                  (StaticInt(nnodes(dg)),
-                                                   StaticInt(nnodes(dg)),
-                                                   StaticInt(nvariables(equations))))
+    u_prim_permuted = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)),
+            StaticInt(nnodes(dg)),
+            StaticInt(nvariables(equations)),
+        )
+    )
 
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         u_prim_permuted[j, i, v] = u_prim[i, j, v]
     end
     fill!(du_permuted, zero(eltype(du_permuted)))
 
     # We must also permute the contravariant vectors.
-    contravariant_vectors_x = StrideArray{eltype(contravariant_vectors)}(undef,
-                                                                         (StaticInt(nnodes(dg)),
-                                                                          StaticInt(nnodes(dg)),
-                                                                          StaticInt(ndims(mesh))))
+    contravariant_vectors_x = StrideArray{eltype(contravariant_vectors)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)),
+            StaticInt(nnodes(dg)),
+            StaticInt(ndims(mesh)),
+        )
+    )
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
         contravariant_vectors_x[j, i, 1] = contravariant_vectors[1, 1, i, j, element]
@@ -104,10 +129,14 @@
             v2_rr = u_prim_permuted[j, ii, 3]
             p_rr = u_prim_permuted[j, ii, 4]
 
-            normal_direction_1 = 0.5 * (contravariant_vectors_x[j, i, 1] +
-                                  contravariant_vectors_x[j, ii, 1])
-            normal_direction_2 = 0.5 * (contravariant_vectors_x[j, i, 2] +
-                                  contravariant_vectors_x[j, ii, 2])
+            normal_direction_1 = 0.5 * (
+                contravariant_vectors_x[j, i, 1] +
+                    contravariant_vectors_x[j, ii, 1]
+            )
+            normal_direction_2 = 0.5 * (
+                contravariant_vectors_x[j, i, 2] +
+                    contravariant_vectors_x[j, ii, 2]
+            )
 
             v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2
             v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2
@@ -124,9 +153,11 @@
             f1 = rho_avg * v_dot_n_avg
             f2 = f1 * v1_avg + p_avg * normal_direction_1
             f3 = f1 * v2_avg + p_avg * normal_direction_2
-            f4 = (f1 * velocity_square_avg +
-                  p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
-                  + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll))
+            f4 = (
+                f1 * velocity_square_avg +
+                    p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
+                    + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
+            )
 
             # Add scaled fluxes to RHS
             factor_i = alpha * derivative_split[i, ii]
@@ -144,18 +175,22 @@
     end
 
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         du[i, j, v] = du_permuted[j, i, v]
     end
 
     # y direction
     # We must also permute the contravariant vectors.
-    contravariant_vectors_y = StrideArray{eltype(contravariant_vectors)}(undef,
-                                                                         (StaticInt(nnodes(dg)),
-                                                                          StaticInt(nnodes(dg)),
-                                                                          StaticInt(ndims(mesh))))
+    contravariant_vectors_y = StrideArray{eltype(contravariant_vectors)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)),
+            StaticInt(nnodes(dg)),
+            StaticInt(ndims(mesh)),
+        )
+    )
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
         contravariant_vectors_y[i, j, 1] = contravariant_vectors[1, 2, i, j, element]
@@ -175,10 +210,14 @@
             v2_rr = u_prim[i, jj, 3]
             p_rr = u_prim[i, jj, 4]
 
-            normal_direction_1 = 0.5 * (contravariant_vectors_y[i, j, 1] +
-                                  contravariant_vectors_y[i, jj, 1])
-            normal_direction_2 = 0.5 * (contravariant_vectors_y[i, j, 2] +
-                                  contravariant_vectors_y[i, jj, 2])
+            normal_direction_1 = 0.5 * (
+                contravariant_vectors_y[i, j, 1] +
+                    contravariant_vectors_y[i, jj, 1]
+            )
+            normal_direction_2 = 0.5 * (
+                contravariant_vectors_y[i, j, 2] +
+                    contravariant_vectors_y[i, jj, 2]
+            )
 
             v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2
             v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2
@@ -195,9 +234,11 @@
             f1 = rho_avg * v_dot_n_avg
             f2 = f1 * v1_avg + p_avg * normal_direction_1
             f3 = f1 * v2_avg + p_avg * normal_direction_2
-            f4 = (f1 * velocity_square_avg +
-                  p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
-                  + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll))
+            f4 = (
+                f1 * velocity_square_avg +
+                    p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
+                    + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
+            )
 
             # Add scaled fluxes to RHS
             factor_j = alpha * derivative_split[j, jj]
@@ -217,39 +258,53 @@
     # Finally, we add the temporary RHS computed here to the global RHS in the
     # given `element`.
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         _du[v, i, j, element] += du[i, j, v]
     end
 end
 
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element,
-                                           mesh::Union{StructuredMesh{2},
-                                                       UnstructuredMesh2D, P4estMesh{2}},
-                                           nonconservative_terms::False,
-                                           equations::CompressibleEulerEquations2D,
-                                           volume_flux::typeof(flux_ranocha_turbo),
-                                           dg::DGSEM, cache, alpha)
+@inline function flux_differencing_kernel!(
+        _du::PtrArray, u_cons::PtrArray,
+        element,
+        mesh::Union{
+            StructuredMesh{2},
+            UnstructuredMesh2D, P4estMesh{2},
+        },
+        nonconservative_terms::False,
+        equations::CompressibleEulerEquations2D,
+        volume_flux::typeof(flux_ranocha_turbo),
+        dg::DGSEM, cache, alpha
+    )
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
 
     # Create a temporary array that will be used to store the RHS with permuted
     # indices `[i, j, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
-    du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
-                                      StaticInt(nvariables(equations))))
+    du = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+            StaticInt(nvariables(equations)),
+        )
+    )
 
     # Convert conserved to primitive variables on the given `element`. In addition
     # to the usual primitive variables, we also compute logarithms of the density
     # and pressure to increase the performance of the required logarithmic mean
     # values.
-    u_prim = StrideArray{eltype(u_cons)}(undef,
-                                         (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
-                                          StaticInt(nvariables(equations) + 2))) # We also compute "+ 2" logs
+    u_prim = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            ntuple(
+                _ -> StaticInt(nnodes(dg)),
+                ndims(mesh)
+            )...,
+            StaticInt(nvariables(equations) + 2),
+        )
+    ) # We also compute "+ 2" logs
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
         rho = u_cons[1, i, j, element]
@@ -273,28 +328,40 @@ end
     # At first, we create new temporary arrays with permuted memory layout to
     # allow using SIMD instructions along the first dimension (which is contiguous
     # in memory).
-    du_permuted = StrideArray{eltype(u_cons)}(undef,
-                                              (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
-                                               StaticInt(nvariables(equations))))
+    du_permuted = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
+            StaticInt(nvariables(equations)),
+        )
+    )
 
-    u_prim_permuted = StrideArray{eltype(u_cons)}(undef,
-                                                  (StaticInt(nnodes(dg)),
-                                                   StaticInt(nnodes(dg)),
-                                                   StaticInt(nvariables(equations) + 2)))
+    u_prim_permuted = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)),
+            StaticInt(nnodes(dg)),
+            StaticInt(nvariables(equations) + 2),
+        )
+    )
 
     @turbo for v in indices(u_prim, 3), # v in eachvariable(equations) misses +2 logs
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         u_prim_permuted[j, i, v] = u_prim[i, j, v]
     end
     fill!(du_permuted, zero(eltype(du_permuted)))
 
     # We must also permute the contravariant vectors.
-    contravariant_vectors_x = StrideArray{eltype(contravariant_vectors)}(undef,
-                                                                         (StaticInt(nnodes(dg)),
-                                                                          StaticInt(nnodes(dg)),
-                                                                          StaticInt(ndims(mesh))))
+    contravariant_vectors_x = StrideArray{eltype(contravariant_vectors)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)),
+            StaticInt(nnodes(dg)),
+            StaticInt(ndims(mesh)),
+        )
+    )
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
         contravariant_vectors_x[j, i, 1] = contravariant_vectors[1, 1, i, j, element]
@@ -320,10 +387,14 @@ end
             log_rho_rr = u_prim_permuted[j, ii, 5]
             log_p_rr = u_prim_permuted[j, ii, 6]
 
-            normal_direction_1 = 0.5 * (contravariant_vectors_x[j, i, 1] +
-                                  contravariant_vectors_x[j, ii, 1])
-            normal_direction_2 = 0.5 * (contravariant_vectors_x[j, i, 2] +
-                                  contravariant_vectors_x[j, ii, 2])
+            normal_direction_1 = 0.5 * (
+                contravariant_vectors_x[j, i, 1] +
+                    contravariant_vectors_x[j, ii, 1]
+            )
+            normal_direction_2 = 0.5 * (
+                contravariant_vectors_x[j, i, 2] +
+                    contravariant_vectors_x[j, ii, 2]
+            )
 
             v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2
             v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2
@@ -368,10 +439,12 @@ end
             f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
             f2 = f1 * v1_avg + p_avg * normal_direction_1
             f3 = f1 * v2_avg + p_avg * normal_direction_2
-            f4 = (f1 *
-                  (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one)
-                  +
-                  0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll))
+            f4 = (
+                f1 *
+                    (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one)
+                    +
+                    0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
+            )
 
             # Add scaled fluxes to RHS
             factor_i = alpha * derivative_split[i, ii]
@@ -389,18 +462,22 @@ end
     end
 
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         du[i, j, v] = du_permuted[j, i, v]
     end
 
     # y direction
     # We must also permute the contravariant vectors.
-    contravariant_vectors_y = StrideArray{eltype(contravariant_vectors)}(undef,
-                                                                         (StaticInt(nnodes(dg)),
-                                                                          StaticInt(nnodes(dg)),
-                                                                          StaticInt(ndims(mesh))))
+    contravariant_vectors_y = StrideArray{eltype(contravariant_vectors)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)),
+            StaticInt(nnodes(dg)),
+            StaticInt(ndims(mesh)),
+        )
+    )
 
     @turbo for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         contravariant_vectors_y[i, j, 1] = contravariant_vectors[1, 2, i, j, element]
@@ -424,10 +501,14 @@ end
             log_rho_rr = u_prim[i, jj, 5]
             log_p_rr = u_prim[i, jj, 6]
 
-            normal_direction_1 = 0.5 * (contravariant_vectors_y[i, j, 1] +
-                                  contravariant_vectors_y[i, jj, 1])
-            normal_direction_2 = 0.5 * (contravariant_vectors_y[i, j, 2] +
-                                  contravariant_vectors_y[i, jj, 2])
+            normal_direction_1 = 0.5 * (
+                contravariant_vectors_y[i, j, 1] +
+                    contravariant_vectors_y[i, jj, 1]
+            )
+            normal_direction_2 = 0.5 * (
+                contravariant_vectors_y[i, j, 2] +
+                    contravariant_vectors_y[i, jj, 2]
+            )
 
             v_dot_n_ll = v1_ll * normal_direction_1 + v2_ll * normal_direction_2
             v_dot_n_rr = v1_rr * normal_direction_1 + v2_rr * normal_direction_2
@@ -472,10 +553,12 @@ end
             f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
             f2 = f1 * v1_avg + p_avg * normal_direction_1
             f3 = f1 * v2_avg + p_avg * normal_direction_2
-            f4 = (f1 *
-                  (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one)
-                  +
-                  0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll))
+            f4 = (
+                f1 *
+                    (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one)
+                    +
+                    0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll)
+            )
 
             # Add scaled fluxes to RHS
             factor_j = alpha * derivative_split[j, jj]
@@ -495,8 +578,8 @@ end
     # Finally, we add the temporary RHS computed here to the global RHS in the
     # given `element`.
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         _du[v, i, j, element] += du[i, j, v]
     end

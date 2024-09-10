@@ -10,8 +10,10 @@ struct LaplaceDiffusion2D{E, N, T} <: AbstractLaplaceDiffusion{2, N}
 end
 
 function LaplaceDiffusion2D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusion2D{typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
-                       typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+    LaplaceDiffusion2D{
+        typeof(equations_hyperbolic), nvariables(equations_hyperbolic),
+        typeof(diffusivity),
+    }(diffusivity, equations_hyperbolic)
 end
 
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusion2D)
@@ -30,8 +32,10 @@ end
 # TODO: parabolic; should this remain in the equations file, be moved to solvers, or live in the elixir?
 # The penalization depends on the solver, but also depends explicitly on physical parameters,
 # and would probably need to be specialized for every different equation.
-function penalty(u_outer, u_inner, inv_h, equations_parabolic::LaplaceDiffusion2D,
-                 dg::ViscousFormulationLocalDG)
+function penalty(
+        u_outer, u_inner, inv_h, equations_parabolic::LaplaceDiffusion2D,
+        dg::ViscousFormulationLocalDG
+    )
     return dg.penalty_parameter * (u_outer - u_inner) * equations_parabolic.diffusivity
 end
 

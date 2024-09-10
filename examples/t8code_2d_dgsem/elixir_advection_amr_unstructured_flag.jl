@@ -30,15 +30,21 @@ Trixi.validate_faces(faces)
 mapping_flag = Trixi.transfinite_mapping(faces)
 
 # Unstructured mesh with 24 cells of the square domain [-1, 1]^n
-mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
-                           joinpath(@__DIR__, "square_unstructured_2.inp"))
+mesh_file = Trixi.download(
+    "https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
+    joinpath(@__DIR__, "square_unstructured_2.inp")
+)
 
-mesh = T8codeMesh(mesh_file, 2;
-                  mapping = mapping_flag, polydeg = 3,
-                  initial_refinement_level = 1)
+mesh = T8codeMesh(
+    mesh_file, 2;
+    mapping = mapping_flag, polydeg = 3,
+    initial_refinement_level = 1
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -49,33 +55,43 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_integrals = (entropy,))
+analysis_callback = AnalysisCallback(
+    semi, interval = analysis_interval,
+    extra_analysis_integrals = (entropy,)
+)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
-                                      base_level = 1,
-                                      med_level = 2, med_threshold = 0.1,
-                                      max_level = 3, max_threshold = 0.6)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true,
-                           dynamic_load_balancing = true)
+amr_controller = ControllerThreeLevel(
+    semi, IndicatorMax(semi, variable = first),
+    base_level = 1,
+    med_level = 2, med_threshold = 0.1,
+    max_level = 3, max_threshold = 0.6
+)
+amr_callback = AMRCallback(
+    semi, amr_controller,
+    interval = 5,
+    adapt_initial_condition = true,
+    adapt_initial_condition_only_refine = true,
+    dynamic_load_balancing = true
+)
 
 stepsize_callback = StepsizeCallback(cfl = 0.7)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        amr_callback, stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    amr_callback, stepsize_callback
+)
 
 ###############################################################################
 # Run the simulation.
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 summary_callback() # print the timer summary
 
