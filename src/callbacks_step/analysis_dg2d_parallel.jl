@@ -165,7 +165,9 @@ function integrate_via_indices(func::Func, u,
     if local_integral isa Real
         global_integral = MPI.Reduce!(Ref(local_integral), +, mpi_root(), mpi_comm())
     else
-        global_integral = MPI.Reduce!(Base.unsafe_convert(Ptr{Float64}, Ref(local_integral)), +, mpi_root(), mpi_comm())
+        global_integral = MPI.Reduce!(Base.unsafe_convert(Ptr{Float64},
+                                                          Ref(local_integral)), +,
+                                      mpi_root(), mpi_comm())
     end
 
     if mpi_isroot()
@@ -205,10 +207,20 @@ function integrate_via_indices(func::Func, u,
         end
     end
 
-    global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
+    if integral isa Real
+        global_integral = MPI.Reduce!(Ref(integral), +, mpi_root(), mpi_comm())
+    else
+        global_integral = MPI.Reduce!(Base.unsafe_convert(Ptr{Float64}, Ref(integral)),
+                                      +, mpi_root(), mpi_comm())
+    end
     total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
     if mpi_isroot()
-        integral = convert(typeof(integral), global_integral[])
+        if integral isa Real
+            integral = global_integral[]
+        else
+            global_wrapped = unsafe_wrap(Array, global_integral, length(integral))
+            integral = convert(typeof(integral), global_wrapped)
+        end
     else
         integral = convert(typeof(integral), NaN * integral)
         total_volume = volume # non-root processes receive nothing from reduce -> overwrite
