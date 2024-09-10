@@ -59,7 +59,7 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
         # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
         # allow them to differ in the general case. This functionality is used in the
         # (currently alpha-stage) package TrixiAtmo.jl for constructing discretizations
-        # on spherical shell domains for appplications in global atmospheric modelling.
+        # on spherical shell domains for applications in global atmospheric modelling.
         # The ambient dimension NDIMS_AMBIENT is therefore set here in the inner
         # constructor to size(tree_node_coordinates, 1).
         # See https://github.com/trixi-framework/Trixi.jl/pull/2068.
