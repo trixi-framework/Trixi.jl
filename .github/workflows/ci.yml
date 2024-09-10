@@ -113,7 +113,7 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v2
-      - run: julia --project=@. -e 'using Pkg; pkg"add MPI#vc/custom_ops"'
+      - run: julia --project=@. -e 'using Pkg; pkg"add MPI#1dc1740"'
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
