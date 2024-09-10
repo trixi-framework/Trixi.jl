@@ -15,7 +15,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended.jl"), a
 # Note: If you get a restart file from somewhere else, you need to provide
 # appropriate setups in the elixir loading a restart file
 
-restart_filename = joinpath("out", "restart_000040.h5")
+restart_filename = joinpath("out", "restart_000000040.h5")
 mesh = load_mesh(restart_filename)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -34,13 +34,13 @@ amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first)
                                       max_level = 5, max_threshold = 1.2)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
-                           adapt_initial_condition = false,
+                           adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 callbacks_ext = CallbackSet(amr_callback, callbacks.discrete_callbacks...)
 
 integrator = init(ode, alg,
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  callback = callbacks_ext, maxiters = 100_000; ode_default_options()...)
+                  save_everystep = false, callback = callbacks_ext, maxiters = 100_000)
 
 # Load saved context for adaptive time integrator
 if integrator.opts.adaptive

@@ -1,4 +1,4 @@
-using Downloads: download
+
 using OrdinaryDiffEq
 using Trixi
 
@@ -84,7 +84,7 @@ analysis_interval = 2000
 
 l_inf = 1.0 # Length of airfoil
 
-force_boundary_names = [:AirfoilBottom, :AirfoilTop]
+force_boundary_names = (:AirfoilBottom, :AirfoilTop)
 drag_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
                                            DragCoefficientPressure(aoa(), rho_inf(),
                                                                    u_inf(equations), l_inf))
