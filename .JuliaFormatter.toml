@@ -6,3 +6,6 @@ yas_style_nesting = true
 
 # Align struct fields for better readability of large struct definitions
 align_struct_field = true
+
+# Add trailing comma in lists
+trailing_comma = true
