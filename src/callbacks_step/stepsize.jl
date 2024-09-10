@@ -33,13 +33,29 @@ function Base.show(io::IO, ::MIME"text/plain",
         stepsize_callback = cb.affect!
 
         setup = [
-            "CFL number" => stepsize_callback.cfl_number,
+            "CFL number" => stepsize_callback.cfl_number
         ]
         summary_box(io, "StepsizeCallback", setup)
     end
 end
 
 function StepsizeCallback(; cfl::Real = 1.0)
+    stepsize_callback = StepsizeCallback(cfl)
+
+    DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
+                     save_positions = (false, false),
+                     initialize = initialize!)
+end
+
+# For Paired-Explicit Runge-Kutta methods, the CFL number is calculated based on the optimal timestep
+function StepsizeCallback(ode, ode_algorithm::AbstractPairedExplicitRKSingle)
+    # TODO: Loop over all the time step and choose the minimum CFL number? from the loop???
+    t = first(ode.tspan)
+    u_ode = ode.u0
+    semi = ode.p
+    dt_opt = ode_algorithm.dt_opt
+    cfl = calculate_cfl(u_ode, t, dt_opt, semi)
+
     stepsize_callback = StepsizeCallback(cfl)
 
     DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
@@ -64,14 +80,7 @@ end
         t = integrator.t
         u_ode = integrator.u
         semi = integrator.p
-        
-
-        # In the case where max_dt varies, calculate all cfl numbers and pick the largest one?
-        if isa(integrator.alg, AbstractPairedExplicitRKSingle)
-            cfl_number = calculate_cfl(u_ode, t, integrator.alg.dt_opt, semi)
-        else
-            @unpack cfl_number = stepsize_callback
-        end
+        @unpack cfl_number = stepsize_callback
 
         # Dispatch based on semidiscretization
         dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number,
@@ -104,8 +113,8 @@ function calculate_cfl(u_ode, t, dt_opt, semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     cfl_number = dt_opt / max_dt(u, t, mesh,
-                have_constant_speed(equations), equations,
-                solver, cache)
+                        have_constant_speed(equations), equations,
+                        solver, cache)
 
     return cfl_number
 end
