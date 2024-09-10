@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -26,7 +25,7 @@ function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEuler
     r0 = 0.25 # = 4.0 * smallest dx (for domain length=8 and max-ref=7)
     E = 1.0
     p_inner = (equations.gamma - 1) * E / (4 / 3 * pi * r0^3)
-    p_ambient = 1e-5 # = true Sedov setup
+    p_ambient = 1.0e-5 # = true Sedov setup
 
     # Calculate primitive variables
     # use a logistic function to transfer density value smoothly
@@ -34,7 +33,7 @@ function initial_condition_sedov_self_gravity(x, t, equations::CompressibleEuler
     x0 = 1.0    # center point of function
     k = -50.0 # sharpness of transfer
     logistic_function_rho = L / (1.0 + exp(-k * (r - x0)))
-    rho_ambient = 1e-5
+    rho_ambient = 1.0e-5
     rho = max(logistic_function_rho, rho_ambient) # clip background density to not be so tiny
 
     # velocities are zero
@@ -63,16 +62,18 @@ based on
 - https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
 Should be used together with [`initial_condition_sedov_self_gravity`](@ref).
 """
-function boundary_condition_sedov_self_gravity(u_inner, orientation, direction, x, t,
-                                               surface_flux_function,
-                                               equations::CompressibleEulerEquations3D)
+function boundary_condition_sedov_self_gravity(
+        u_inner, orientation, direction, x, t,
+        surface_flux_function,
+        equations::CompressibleEulerEquations3D
+    )
     # velocities are zero, density/pressure are ambient values according to
     # initial_condition_sedov_self_gravity
-    rho = 1e-5
+    rho = 1.0e-5
     v1 = 0.0
     v2 = 0.0
     v3 = 0.0
-    p = 1e-5
+    p = 1.0e-5
 
     u_boundary = prim2cons(SVector(rho, v1, v2, v3, p), equations)
 
@@ -91,25 +92,33 @@ surface_flux = flux_hll
 volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.7,
-                                         alpha_min = 0.001,
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+indicator_sc = IndicatorHennemannGassner(
+    equations, basis,
+    alpha_max = 0.7,
+    alpha_min = 0.001,
+    alpha_smooth = true,
+    variable = density_pressure
+)
+volume_integral = VolumeIntegralShockCapturingHG(
+    indicator_sc;
+    volume_flux_dg = volume_flux,
+    volume_flux_fv = surface_flux
+)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-4.0, -4.0, -4.0)
 coordinates_max = (4.0, 4.0, 4.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 2,
-                n_cells_max = 1_000_000,
-                periodicity = false)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 2,
+    n_cells_max = 1_000_000,
+    periodicity = false
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -124,37 +133,49 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 100,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = cons2prim
+)
 
-amr_indicator = IndicatorHennemannGassner(semi,
-                                          alpha_max = 1.0,
-                                          alpha_min = 0.0,
-                                          alpha_smooth = false,
-                                          variable = density_pressure)
+amr_indicator = IndicatorHennemannGassner(
+    semi,
+    alpha_max = 1.0,
+    alpha_min = 0.0,
+    alpha_smooth = false,
+    variable = density_pressure
+)
 
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 2,
-                                      max_level = 7, max_threshold = 0.0003)
+amr_controller = ControllerThreeLevel(
+    semi, amr_indicator,
+    base_level = 2,
+    max_level = 7, max_threshold = 0.0003
+)
 
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 1,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+amr_callback = AMRCallback(
+    semi, amr_controller,
+    interval = 1,
+    adapt_initial_condition = true,
+    adapt_initial_condition_only_refine = true
+)
 
 stepsize_callback = StepsizeCallback(cfl = 0.35)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_solution,
-                        amr_callback, stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    save_solution,
+    amr_callback, stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

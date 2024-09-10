@@ -15,8 +15,10 @@ A version of the classical Kelvin-Helmholtz instability based on
   solutions for hyperbolic systems of conservation laws
   [arXiv: 1402.0909](https://arxiv.org/abs/1402.0909)
 """
-function initial_condition_kelvin_helmholtz_instability_fjordholm_etal(x, t,
-                                                                       equations::CompressibleEulerEquations2D)
+function initial_condition_kelvin_helmholtz_instability_fjordholm_etal(
+        x, t,
+        equations::CompressibleEulerEquations2D
+    )
     # typical resolution 128^2, 256^2
     # domain size is [0,+1]^2
     # interface is sharp, but randomly perturbed
@@ -34,20 +36,28 @@ function initial_condition_kelvin_helmholtz_instability_fjordholm_etal(x, t,
     # b2 = (rand(rng, m) .- 0.5) .* pi
 
     m = 10
-    a1 = [0.04457096674422902, 0.03891512410182607, 0.0030191053979293433,
+    a1 = [
+        0.04457096674422902, 0.03891512410182607, 0.0030191053979293433,
         0.0993913172320319,
         0.1622302137588842, 0.1831383653456182, 0.11758003014101702, 0.07964318348142958,
-        0.0863245324711805, 0.18518716132585408]
-    a2 = [0.061688440856337096, 0.23000237877135882, 0.04453793881833177,
+        0.0863245324711805, 0.18518716132585408,
+    ]
+    a2 = [
+        0.061688440856337096, 0.23000237877135882, 0.04453793881833177,
         0.19251530387370916,
         0.11107917357941084, 0.05898041974649702, 0.09949312336096268, 0.07022276346006465,
-        0.10670366489014596, 0.02477679264318211]
-    b1 = [0.06582340543754152, 0.9857886297001535, 0.8450452205037154, -1.279648120993805,
+        0.10670366489014596, 0.02477679264318211,
+    ]
+    b1 = [
+        0.06582340543754152, 0.9857886297001535, 0.8450452205037154, -1.279648120993805,
         0.45454198915209526, -0.13359370986823993, 0.07062615913363897, -1.0097986278512623,
-        1.0810669017430343, -0.14207309803877177]
-    b2 = [-1.1376882185131414, -1.4798197129947765, 0.6139290513283818, -0.3319087388365522,
+        1.0810669017430343, -0.14207309803877177,
+    ]
+    b2 = [
+        -1.1376882185131414, -1.4798197129947765, 0.6139290513283818, -0.3319087388365522,
         0.14633328999192285, -0.06373231463100072, -0.6270101051216724, 0.13941252226261905,
-        -1.0337526453303645, 1.0441408867083155]
+        -1.0337526453303645, 1.0441408867083155,
+    ]
     Y1 = 0.0
     Y2 = 0.0
     for n in 1:m
@@ -79,22 +89,28 @@ surface_flux = flux_hllc
 volume_flux = flux_ranocha
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.001,
-                                         alpha_min = 0.0001,
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+indicator_sc = IndicatorHennemannGassner(
+    equations, basis,
+    alpha_max = 0.001,
+    alpha_min = 0.0001,
+    alpha_smooth = true,
+    variable = density_pressure
+)
+volume_integral = VolumeIntegralShockCapturingHG(
+    indicator_sc;
+    volume_flux_dg = volume_flux,
+    volume_flux_fv = surface_flux
+)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 6,
-                n_cells_max = 100_000)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 6,
+    n_cells_max = 100_000
+)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -111,17 +127,23 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 400,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 400,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = cons2prim
+)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_solution)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    save_solution
+)
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43();
-            ode_default_options()..., callback = callbacks);
+sol = solve(
+    ode, SSPRK43();
+    ode_default_options()..., callback = callbacks
+);
 summary_callback() # print the timer summary

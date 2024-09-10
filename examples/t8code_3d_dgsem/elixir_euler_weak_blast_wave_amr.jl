@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -7,8 +6,10 @@ using Trixi
 
 equations = CompressibleEulerEquations3D(1.4)
 
-function initial_condition_weak_blast_wave(x, t,
-                                           equations::CompressibleEulerEquations3D)
+function initial_condition_weak_blast_wave(
+        x, t,
+        equations::CompressibleEulerEquations3D
+    )
     # Set up polar coordinates
     inicenter = SVector(0.0, 0.0, 0.0)
     x_norm = x[1] - inicenter[1]
@@ -37,17 +38,23 @@ surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
 polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 1.0,
-                                         alpha_min = 0.001,
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
+indicator_sc = IndicatorHennemannGassner(
+    equations, basis,
+    alpha_max = 1.0,
+    alpha_min = 0.001,
+    alpha_smooth = true,
+    variable = density_pressure
+)
+volume_integral = VolumeIntegralShockCapturingHG(
+    indicator_sc;
+    volume_flux_dg = volume_flux,
+    volume_flux_fv = surface_flux
+)
 
-solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
-               volume_integral = volume_integral)
+solver = DGSEM(
+    polydeg = polydeg, surface_flux = surface_flux,
+    volume_integral = volume_integral
+)
 
 # Setup a periodic mesh with 4 x 4 x 4 trees and 8 x 8 x 8 elements
 trees_per_dimension = (4, 4, 4)
@@ -62,11 +69,13 @@ function mapping_twist(xi, eta, zeta)
     return SVector(x, y, z)
 end
 
-mesh = T8codeMesh(trees_per_dimension,
-                  polydeg = 2,
-                  mapping = mapping_twist,
-                  initial_refinement_level = 1,
-                  periodicity = true)
+mesh = T8codeMesh(
+    trees_per_dimension,
+    polydeg = 2,
+    mapping = mapping_twist,
+    initial_refinement_level = 1,
+    periodicity = true
+)
 
 # Create the semidiscretization object
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -80,35 +89,45 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_errors = (:conservation_error,))
+analysis_callback = AnalysisCallback(
+    semi, interval = analysis_interval,
+    extra_analysis_errors = (:conservation_error,)
+)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 1,
-                                      med_level = 2, med_threshold = 0.05,
-                                      max_level = 3, max_threshold = 0.15)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 1,
-                           adapt_initial_condition = false,
-                           adapt_initial_condition_only_refine = false)
+amr_controller = ControllerThreeLevel(
+    semi, amr_indicator,
+    base_level = 1,
+    med_level = 2, med_threshold = 0.05,
+    max_level = 3, max_threshold = 0.15
+)
+amr_callback = AMRCallback(
+    semi, amr_controller,
+    interval = 1,
+    adapt_initial_condition = false,
+    adapt_initial_condition_only_refine = false
+)
 
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
-                        amr_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback,
+    amr_callback,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary
 
 # Finalize `T8codeMesh` to make sure MPI related objects in t8code are

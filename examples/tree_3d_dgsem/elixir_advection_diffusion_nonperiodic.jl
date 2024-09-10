@@ -16,10 +16,12 @@ coordinates_min = (-1.0, -0.5, -0.25) # minimum coordinates (min(x), min(y), min
 coordinates_max = (0.0, 0.5, 0.25) # maximum coordinates (max(x), max(y), max(z))
 
 # Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 3,
+    periodicity = false,
+    n_cells_max = 30_000
+) # set maximum capacity of tree data structure
 
 # Example setup taken from
 # - Truman Ellis, Jesse Chan, and Leszek Demkowicz (2016).
@@ -40,21 +42,27 @@ function initial_condition_eriksson_johnson(x, t, equations)
 end
 initial_condition = initial_condition_eriksson_johnson
 
-boundary_conditions = (; x_neg = BoundaryConditionDirichlet(initial_condition),
-                       y_neg = BoundaryConditionDirichlet(initial_condition),
-                       z_neg = boundary_condition_do_nothing,
-                       y_pos = BoundaryConditionDirichlet(initial_condition),
-                       x_pos = boundary_condition_do_nothing,
-                       z_pos = boundary_condition_do_nothing)
+boundary_conditions = (;
+    x_neg = BoundaryConditionDirichlet(initial_condition),
+    y_neg = BoundaryConditionDirichlet(initial_condition),
+    z_neg = boundary_condition_do_nothing,
+    y_pos = BoundaryConditionDirichlet(initial_condition),
+    x_pos = boundary_condition_do_nothing,
+    z_pos = boundary_condition_do_nothing,
+)
 
 boundary_conditions_parabolic = BoundaryConditionDirichlet(initial_condition)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations, equations_parabolic),
-                                             initial_condition, solver;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh,
+    (equations, equations_parabolic),
+    initial_condition, solver;
+    boundary_conditions = (
+        boundary_conditions,
+        boundary_conditions_parabolic,
+    )
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -82,8 +90,10 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-11
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+)
 
 # Print the timer summary
 summary_callback()

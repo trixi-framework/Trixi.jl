@@ -32,8 +32,10 @@ julia> trixi2tec(sol, "mydata_primitive.tec", solution_variables=cons2prim)
     This is an experimental feature and *not* part of the official Trixi.jl API. Specifically,
     this function may change (or even be removed) in future releases without warning.
 """
-function trixi2tec(u, semi, filename; title = basename(filename),
-                   solution_variables = cons2cons)
+function trixi2tec(
+        u, semi, filename; title = basename(filename),
+        solution_variables = cons2cons
+    )
     # Extract fundamental building blocks and auxiliary data
     mesh, equations, solver, cache = Trixi.mesh_equations_solver_cache(semi)
     @unpack node_coordinates = cache.elements
@@ -71,10 +73,16 @@ function trixi2tec(u, semi, filename; title = basename(filename),
         for element in eachelement(solver, cache)
             write(io, zone_info)
             for ci in indices
-                node_coords = Trixi.get_node_coords(node_coordinates, equations, solver, ci,
-                                                    element)
-                node_vars = solution_variables(Trixi.get_node_vars(u, equations, solver, ci,
-                                                                   element), equations)
+                node_coords = Trixi.get_node_coords(
+                    node_coordinates, equations, solver, ci,
+                    element
+                )
+                node_vars = solution_variables(
+                    Trixi.get_node_vars(
+                        u, equations, solver, ci,
+                        element
+                    ), equations
+                )
                 print(io, join(node_coords, " "))
                 write(io, " ")
                 print(io, join(node_vars, " "))

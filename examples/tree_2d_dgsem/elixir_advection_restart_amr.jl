@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -6,8 +5,10 @@ using Trixi
 # Define time integration algorithm
 alg = CarpenterKennedy2N54(williamson_condition = false)
 # Create a restart file
-trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended.jl"), alg = alg,
-              tspan = (0.0, 3.0))
+trixi_include(
+    @__MODULE__, joinpath(@__DIR__, "elixir_advection_extended.jl"), alg = alg,
+    tspan = (0.0, 3.0)
+)
 
 ###############################################################################
 # adapt the parameters that have changed compared to "elixir_advection_extended.jl"
@@ -28,19 +29,25 @@ ode = semidiscretize(semi, tspan, restart_filename);
 save_solution.condition.save_initial_solution = false
 
 # Add AMR callback
-amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
-                                      base_level = 3,
-                                      med_level = 4, med_threshold = 0.8,
-                                      max_level = 5, max_threshold = 1.2)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+amr_controller = ControllerThreeLevel(
+    semi, IndicatorMax(semi, variable = first),
+    base_level = 3,
+    med_level = 4, med_threshold = 0.8,
+    max_level = 5, max_threshold = 1.2
+)
+amr_callback = AMRCallback(
+    semi, amr_controller,
+    interval = 5,
+    adapt_initial_condition = true,
+    adapt_initial_condition_only_refine = true
+)
 callbacks_ext = CallbackSet(amr_callback, callbacks.discrete_callbacks...)
 
-integrator = init(ode, alg,
-                  dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks_ext, maxiters = 100_000)
+integrator = init(
+    ode, alg,
+    dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks_ext, maxiters = 100_000
+)
 
 # Load saved context for adaptive time integrator
 if integrator.opts.adaptive

@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -48,8 +47,10 @@ end
 initial_condition = initial_condition_isentropic_vortex
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-mesh_file = Trixi.download("https://gist.githubusercontent.com/ranocha/f4ea19ba3b62348968c971db43d7798b/raw/a506abb9479c020920cf6068c142670fc1a9aadc/mesh_uniform_cartesian.mesh",
-                           joinpath(@__DIR__, "mesh_uniform_cartesian.mesh"))
+mesh_file = Trixi.download(
+    "https://gist.githubusercontent.com/ranocha/f4ea19ba3b62348968c971db43d7798b/raw/a506abb9479c020920cf6068c142670fc1a9aadc/mesh_uniform_cartesian.mesh",
+    joinpath(@__DIR__, "mesh_uniform_cartesian.mesh")
+)
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
 
@@ -64,12 +65,16 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     save_analysis = true,
-                                     extra_analysis_errors = (:conservation_error,),
-                                     extra_analysis_integrals = (entropy, energy_total,
-                                                                 energy_kinetic,
-                                                                 energy_internal))
+analysis_callback = AnalysisCallback(
+    semi, interval = analysis_interval,
+    save_analysis = true,
+    extra_analysis_errors = (:conservation_error,),
+    extra_analysis_integrals = (
+        entropy, energy_total,
+        energy_kinetic,
+        energy_internal,
+    )
+)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -78,6 +83,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, BS3(),
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, BS3(),
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

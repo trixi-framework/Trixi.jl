@@ -26,12 +26,18 @@ equations = LinearScalarAdvectionEquation2D((-0.2, 0.7))
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 
-coarsening_patches = ((type = "box", coordinates_min = [0.0, -2.0],
-                       coordinates_max = [2.0, 0.0]),)
+coarsening_patches = (
+    (
+        type = "box", coordinates_min = [0.0, -2.0],
+        coordinates_max = [2.0, 0.0],
+    ),
+)
 
-mesh = TreeMesh(coordinates_min, coordinates_max, initial_refinement_level = 2,
-                n_cells_max = 30_000,
-                coarsening_patches = coarsening_patches)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max, initial_refinement_level = 2,
+    n_cells_max = 30_000,
+    coarsening_patches = coarsening_patches
+)
 
 # The created `TreeMesh` looks like the following:
 
@@ -55,8 +61,10 @@ solver = DGSEM(polydeg = 3)
 # throughout the entire simulation process. This is where [`SemidiscretizationHyperbolic`](@ref)
 # comes into play.
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition_convergence_test,
+    solver
+)
 
 # The constructor for the `SemidiscretizationHyperbolic` object calls numerous sub-functions to
 # perform the necessary initialization steps. A brief description of the key sub-functions is
@@ -67,7 +75,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 #   The fundamental elements for approximating the solution are the leaf
 #   cells. The solution is constructed as a polynomial of the degree specified in the `DGSEM`
-#   solver in each spatial direction on each leaf cell. This polynomial approximation is evaluated 
+#   solver in each spatial direction on each leaf cell. This polynomial approximation is evaluated
 #   at the Gauss-Lobatto nodes mentioned earlier. The `init_elements` function extracts
 #   these leaf cells from the `TreeMesh`, assigns them the label "elements", records their
 #   coordinates, and maps the Gauss-Lobatto nodes from the 1D interval ``[-1, 1]`` onto each coordinate axis
@@ -95,7 +103,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   As demonstrated earlier, the elements can have varying sizes. Let us initially consider
 #   neighbors with equal size. For these elements, the `init_interfaces` function generates
 #   interfaces that store information about adjacent elements, their relative positions, and
-#   allocate containers for sharing solution data between neighbors during the solution process. 
+#   allocate containers for sharing solution data between neighbors during the solution process.
 
 #   In our visualization, these interfaces would conceptually resemble tubes connecting the
 #   corresponding elements.
@@ -159,7 +167,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 # The purpose of the [`semidiscretize`](@ref) function is to wrap the semidiscretization as an
 # `ODEProblem` within the specified time interval. During this procedure the approximate solution
-#  is created at the given initial time via the specified `initial_condition` function from the 
+#  is created at the given initial time via the specified `initial_condition` function from the
 #  `SemidiscretizationHyperbolic` object. This `ODEProblem` can be subsequently passed to the
 # `solve` function from the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package
 # or to [`Trixi.solve`](@ref).
@@ -189,7 +197,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 #   This is why the `u_ode` vector is wrapped by the `wrap_array` function using `unsafe_wrap`
 #   to form a multidimensional array `u`. In this array, the first dimension corresponds to
 #   variables, followed by N dimensions corresponding to nodes for each of N space dimensions.
-#   The last dimension corresponds to the elements. 
+#   The last dimension corresponds to the elements.
 #   Consequently, navigation within this multidimensional array becomes noticeably easier.
 
 #   "Wrapping" in this context involves the creation of a reference to the same storage location
@@ -221,8 +229,10 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # the OrdinaryDiffEq.jl package can be utilized to compute an approximated solution using the
 # instructions contained in the `ODEProblem` object.
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01,
-            save_everystep = false);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01,
+    save_everystep = false
+);
 
 # Since the `solve` function and the ODE solver have no knowledge
 # of a particular spatial discretization, it is necessary to define a

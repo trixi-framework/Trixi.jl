@@ -28,15 +28,19 @@ function initial_condition_eriksson_johnson(x, t, equations)
 end
 initial_condition = initial_condition_eriksson_johnson
 
-boundary_conditions = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                           :y_neg => BoundaryConditionDirichlet(initial_condition),
-                           :y_pos => BoundaryConditionDirichlet(initial_condition),
-                           :x_pos => boundary_condition_do_nothing)
+boundary_conditions = Dict(
+    :x_neg => BoundaryConditionDirichlet(initial_condition),
+    :y_neg => BoundaryConditionDirichlet(initial_condition),
+    :y_pos => BoundaryConditionDirichlet(initial_condition),
+    :x_pos => boundary_condition_do_nothing
+)
 
-boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :x_pos => BoundaryConditionDirichlet(initial_condition),
-                                     :y_neg => BoundaryConditionDirichlet(initial_condition),
-                                     :y_pos => BoundaryConditionDirichlet(initial_condition))
+boundary_conditions_parabolic = Dict(
+    :x_neg => BoundaryConditionDirichlet(initial_condition),
+    :x_pos => BoundaryConditionDirichlet(initial_condition),
+    :y_neg => BoundaryConditionDirichlet(initial_condition),
+    :y_pos => BoundaryConditionDirichlet(initial_condition)
+)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
@@ -44,8 +48,8 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-1.0, -0.5)
 coordinates_max = (0.0, 0.5)
 
-# This maps the domain [-1, 1]^2 to [-1, 0] x [-0.5, 0.5] while also 
-# introducing a curved warping to interior nodes. 
+# This maps the domain [-1, 1]^2 to [-1, 0] x [-0.5, 0.5] while also
+# introducing a curved warping to interior nodes.
 function mapping(xi, eta)
     x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
     y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
@@ -53,15 +57,21 @@ function mapping(xi, eta)
 end
 
 trees_per_dimension = (4, 4)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 2,
-                 mapping = mapping, periodicity = (false, false))
+mesh = P4estMesh(
+    trees_per_dimension,
+    polydeg = 3, initial_refinement_level = 2,
+    mapping = mapping, periodicity = (false, false)
+)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh, (equations, equations_parabolic),
+    initial_condition, solver,
+    boundary_conditions = (
+        boundary_conditions,
+        boundary_conditions_parabolic,
+    )
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -89,8 +99,10 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-11
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+)
 
 # Print the timer summary
 summary_callback()

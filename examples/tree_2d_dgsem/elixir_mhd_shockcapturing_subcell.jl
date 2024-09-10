@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -50,20 +49,26 @@ surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell_local_symmetric
 volume_flux = (flux_derigs_etal, flux_nonconservative_powell_local_symmetric)
 basis = LobattoLegendreBasis(3)
 
-limiter_idp = SubcellLimiterIDP(equations, basis;
-                                positivity_variables_cons = ["rho"],
-                                positivity_variables_nonlinear = [pressure],
-                                positivity_correction_factor = 0.1)
-volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
-                                                volume_flux_dg = volume_flux,
-                                                volume_flux_fv = surface_flux)
+limiter_idp = SubcellLimiterIDP(
+    equations, basis;
+    positivity_variables_cons = ["rho"],
+    positivity_variables_nonlinear = [pressure],
+    positivity_correction_factor = 0.1
+)
+volume_integral = VolumeIntegralSubcellLimiting(
+    limiter_idp;
+    volume_flux_dg = volume_flux,
+    volume_flux_fv = surface_flux
+)
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (-0.5, -0.5)
 coordinates_max = (0.5, 0.5)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 10_000)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 4,
+    n_cells_max = 10_000
+)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -80,28 +85,34 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 100,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = cons2prim
+)
 
 cfl = 0.4
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
-                        save_solution,
-                        stepsize_callback,
-                        glm_speed_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback,
+    save_solution,
+    stepsize_callback,
+    glm_speed_callback
+)
 
 ###############################################################################
 # run the simulation
 stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 
-sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks);
+sol = Trixi.solve(
+    ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

@@ -6,9 +6,9 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-#! format: noindent
+    #! format: noindent
 
-# dimension specific curvilinear implementations and data structures
-include("containers_2d.jl")
-include("fdsbp_2d.jl")
+    # dimension specific curvilinear implementations and data structures
+    include("containers_2d.jl")
+    include("fdsbp_2d.jl")
 end # @muladd

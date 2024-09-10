@@ -34,9 +34,11 @@ include("../src/basic_types.jl")
 include("../src/solvers/dgsem/basis_lobatto_legendre.jl")
 include("../src/solvers/dgsem/interpolation.jl")
 
-function trixi2txt(filename::AbstractString...;
-                   variables = [], output_directory = ".", nvisnodes = nothing,
-                   max_supported_level = 11)
+function trixi2txt(
+        filename::AbstractString...;
+        variables = [], output_directory = ".", nvisnodes = nothing,
+        max_supported_level = 11
+    )
     # Convert filenames to a single list of strings
     if isempty(filename)
         error("no input file was provided")
@@ -74,16 +76,20 @@ function trixi2txt(filename::AbstractString...;
 
         # Check if dimensions match
         if length(leaf_cells) != n_elements
-            error("number of elements in '$(filename)' do not match number of leaf cells in " *
-                  "'$(meshfile)' " *
-                  "(did you forget to clean your 'out/' directory between different runs?)")
+            error(
+                "number of elements in '$(filename)' do not match number of leaf cells in " *
+                    "'$(meshfile)' " *
+                    "(did you forget to clean your 'out/' directory between different runs?)"
+            )
         end
 
         # Determine resolution for data interpolation
         max_level = maximum(levels)
         if max_level > max_supported_level
-            error("Maximum refinement level in data file $max_level is higher than " *
-                  "maximum supported level $max_supported_level")
+            error(
+                "Maximum refinement level in data file $max_level is higher than " *
+                    "maximum supported level $max_supported_level"
+            )
         end
         max_available_nodes_per_finest_element = 2^(max_supported_level - max_level)
         if nvisnodes === nothing
@@ -95,19 +101,23 @@ function trixi2txt(filename::AbstractString...;
         end
         nvisnodes_at_max_level = min(max_available_nodes_per_finest_element, max_nvisnodes)
         resolution = nvisnodes_at_max_level * 2^max_level
-        nvisnodes_per_level = [2^(max_level - level) * nvisnodes_at_max_level
-                               for level in 0:max_level]
+        nvisnodes_per_level = [
+            2^(max_level - level) * nvisnodes_at_max_level
+                for level in 0:max_level
+        ]
 
         # Interpolate data
-        structured_data = unstructured2structured(data, levels, resolution,
-                                                  nvisnodes_per_level)
+        structured_data = unstructured2structured(
+            data, levels, resolution,
+            nvisnodes_per_level
+        )
 
         # Interpolate cell-centered values to node-centered values
         node_centered_data = cell2node(structured_data)
 
         # Determine x coordinates
         xs = collect(range(-1, 1, length = resolution + 1)) .* length_level_0 / 2 .+
-             center_level_0[1]
+            center_level_0[1]
 
         # Check that all variables exist in data file
         if isempty(variables)
@@ -277,9 +287,11 @@ function read_datafile(filename::String)
 end
 
 # Interpolate unstructured DG data to structured data (cell-centered)
-function unstructured2structured(unstructured_data::AbstractArray{Float64},
-                                 levels::AbstractArray{Int}, resolution::Int,
-                                 nvisnodes_per_level::AbstractArray{Int})
+function unstructured2structured(
+        unstructured_data::AbstractArray{Float64},
+        levels::AbstractArray{Int}, resolution::Int,
+        nvisnodes_per_level::AbstractArray{Int}
+    )
     # Extract data shape information
     n_nodes_in, n_elements, n_variables = size(unstructured_data)
 
@@ -304,8 +316,10 @@ function unstructured2structured(unstructured_data::AbstractArray{Float64},
         first = 1
 
         # Reshape data array for use in interpolate_nodes function
-        @views reshaped_data = reshape(unstructured_data[:, :, v], 1, n_nodes_in,
-                                       n_elements)
+        @views reshaped_data = reshape(
+            unstructured_data[:, :, v], 1, n_nodes_in,
+            n_elements
+        )
 
         for element_id in 1:n_elements
             # Extract level for convenience
@@ -317,11 +331,19 @@ function unstructured2structured(unstructured_data::AbstractArray{Float64},
 
             # Interpolate data
             vandermonde = vandermonde_per_level[level + 1]
-            @views structured[first:last, v] .= (reshape(multiply_dimensionwise_naive(reshaped_data[:,
-                                                                                                    :,
-                                                                                                    element_id],
-                                                                                      vandermonde),
-                                                         n_nodes_out))
+            @views structured[first:last, v] .= (
+                reshape(
+                    multiply_dimensionwise_naive(
+                        reshaped_data[
+                            :,
+                            :,
+                            element_id,
+                        ],
+                        vandermonde
+                    ),
+                    n_nodes_out
+                )
+            )
 
             # Update first index for next iteration
             first += n_nodes_out

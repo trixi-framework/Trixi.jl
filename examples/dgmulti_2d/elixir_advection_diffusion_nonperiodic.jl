@@ -1,8 +1,10 @@
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
-             volume_integral = VolumeIntegralWeakForm())
+dg = DGMulti(
+    polydeg = 3, element_type = Quad(), approximation_type = Polynomial(),
+    surface_integral = SurfaceIntegralWeakForm(flux_lax_friedrichs),
+    volume_integral = VolumeIntegralWeakForm()
+)
 
 diffusivity() = 5.0e-2
 
@@ -34,31 +36,41 @@ right(x, tol = 50 * eps()) = abs(x[1]) < tol
 bottom(x, tol = 50 * eps()) = abs(x[2] + 0.5) < tol
 top(x, tol = 50 * eps()) = abs(x[2] - 0.5) < tol
 entire_boundary(x, tol = 50 * eps()) = true
-is_on_boundary = Dict(:left => left, :right => right, :top => top, :bottom => bottom,
-                      :entire_boundary => entire_boundary)
+is_on_boundary = Dict(
+    :left => left, :right => right, :top => top, :bottom => bottom,
+    :entire_boundary => entire_boundary
+)
 
 cells_per_dimension = (16, 16)
-mesh = DGMultiMesh(dg, cells_per_dimension;
-                   coordinates_min = (-1.0, -0.5),
-                   coordinates_max = (0.0, 0.5),
-                   is_on_boundary)
+mesh = DGMultiMesh(
+    dg, cells_per_dimension;
+    coordinates_min = (-1.0, -0.5),
+    coordinates_max = (0.0, 0.5),
+    is_on_boundary
+)
 
 # BC types
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 
 # define inviscid boundary conditions, enforce "do nothing" boundary condition at the outflow
-boundary_conditions = (; :left => boundary_condition,
-                       :top => boundary_condition,
-                       :bottom => boundary_condition,
-                       :right => boundary_condition_do_nothing)
+boundary_conditions = (;
+    :left => boundary_condition,
+    :top => boundary_condition,
+    :bottom => boundary_condition,
+    :right => boundary_condition_do_nothing,
+)
 
 # define viscous boundary conditions
 boundary_conditions_parabolic = (; :entire_boundary => boundary_condition)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, dg;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh, (equations, equations_parabolic),
+    initial_condition, dg;
+    boundary_conditions = (
+        boundary_conditions,
+        boundary_conditions_parabolic,
+    )
+)
 
 tspan = (0.0, 1.5)
 ode = semidiscretize(semi, tspan)
@@ -72,7 +84,9 @@ callbacks = CallbackSet(summary_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+time_int_tol = 1.0e-8
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+)
 summary_callback() # print the timer summary

@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -27,10 +26,12 @@ all boundaries or
 This should be used together with `source_terms_rayleigh_taylor_instability`, which is
 defined below.
 """
-@inline function initial_condition_rayleigh_taylor_instability(x, t,
-                                                               equations::CompressibleEulerEquations2D,
-                                                               slope = 1000)
-    tol = 1e2 * eps()
+@inline function initial_condition_rayleigh_taylor_instability(
+        x, t,
+        equations::CompressibleEulerEquations2D,
+        slope = 1000
+    )
+    tol = 1.0e2 * eps()
 
     if x[2] < 0.5
         p = 2 * x[2] + 1
@@ -51,8 +52,10 @@ defined below.
     return prim2cons(SVector(rho, u, v, p), equations)
 end
 
-@inline function source_terms_rayleigh_taylor_instability(u, x, t,
-                                                          equations::CompressibleEulerEquations2D)
+@inline function source_terms_rayleigh_taylor_instability(
+        u, x, t,
+        equations::CompressibleEulerEquations2D
+    )
     g = 1.0
     rho, rho_v1, rho_v2, rho_e = u
 
@@ -61,8 +64,10 @@ end
 
 # numerical parameters
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 3, surface_flux = flux_hll,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 3, surface_flux = flux_hll,
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 # The domain is [0, 0.25] x [0, 1]
 mapping(xi, eta) = SVector(0.25 * 0.5 * (1.0 + xi), 0.5 * (1.0 + eta))
@@ -72,10 +77,12 @@ cells_per_dimension = (num_elements_per_dimension, num_elements_per_dimension * 
 mesh = StructuredMesh(cells_per_dimension, mapping, periodicity = false)
 
 initial_condition = initial_condition_rayleigh_taylor_instability
-boundary_conditions = (x_neg = boundary_condition_slip_wall,
-                       x_pos = boundary_condition_slip_wall,
-                       y_neg = boundary_condition_slip_wall,
-                       y_pos = boundary_condition_slip_wall)
+boundary_conditions = (
+    x_neg = boundary_condition_slip_wall,
+    x_pos = boundary_condition_slip_wall,
+    y_neg = boundary_condition_slip_wall,
+    y_pos = boundary_condition_slip_wall,
+)
 
 # # Alternative setup: left/right periodic BCs and Dirichlet BCs on the top/bottom.
 # boundary_conditions = (
@@ -85,9 +92,11 @@ boundary_conditions = (x_neg = boundary_condition_slip_wall,
 #                        y_pos=BoundaryConditionDirichlet(initial_condition),
 #                       )
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
-                                    source_terms = source_terms_rayleigh_taylor_instability,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver;
+    source_terms = source_terms_rayleigh_taylor_instability,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -102,14 +111,18 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
-            ode_default_options()..., callback = callbacks);
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+    ode_default_options()..., callback = callbacks
+);
 
 summary_callback() # print the timer summary

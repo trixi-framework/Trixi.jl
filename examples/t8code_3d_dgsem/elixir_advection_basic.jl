@@ -18,13 +18,17 @@ coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 
 # Create P4estMesh with 8 x 8 x 8 elements (note `refinement_level=1`)
 trees_per_dimension = (4, 4, 4)
-mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
-                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                  initial_refinement_level = 1)
+mesh = T8codeMesh(
+    trees_per_dimension, polydeg = 3,
+    coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+    initial_refinement_level = 1
+)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
-                                    solver)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition_convergence_test,
+    solver
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -44,16 +48,20 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 stepsize_callback = StepsizeCallback(cfl = 1.2)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback, analysis_callback,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 # Print the timer summary
 summary_callback()

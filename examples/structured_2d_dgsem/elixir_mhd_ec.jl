@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -30,9 +29,11 @@ initial_condition = initial_condition_shifted_weak_blast_wave
 
 # Get the DG approximation space
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-solver = DGSEM(polydeg = 5,
-               surface_flux = (flux_hindenlang_gassner, flux_nonconservative_powell),
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 5,
+    surface_flux = (flux_hindenlang_gassner, flux_nonconservative_powell),
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 # Get the curved quad mesh from a mapping function
 # Mapping as described in https://arxiv.org/abs/2012.12040, but reduced to 2D
@@ -41,11 +42,15 @@ function mapping(xi_, eta_)
     xi = 1.5 * xi_ + 1.5
     eta = 1.5 * eta_ + 1.5
 
-    y = eta + 3 / 8 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
-                       cos(0.5 * pi * (2 * eta - 3) / 3))
+    y = eta + 3 / 8 * (
+        cos(1.5 * pi * (2 * xi - 3) / 3) *
+            cos(0.5 * pi * (2 * eta - 3) / 3)
+    )
 
-    x = xi + 3 / 8 * (cos(0.5 * pi * (2 * xi - 3) / 3) *
-                      cos(2 * pi * (2 * y - 3) / 3))
+    x = xi + 3 / 8 * (
+        cos(0.5 * pi * (2 * xi - 3) / 3) *
+            cos(2 * pi * (2 * y - 3) / 3)
+    )
 
     return SVector(x, y)
 end
@@ -66,36 +71,46 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     save_analysis = false,
-                                     extra_analysis_integrals = (entropy, energy_total,
-                                                                 energy_kinetic,
-                                                                 energy_internal,
-                                                                 energy_magnetic,
-                                                                 cross_helicity))
+analysis_callback = AnalysisCallback(
+    semi, interval = analysis_interval,
+    save_analysis = false,
+    extra_analysis_integrals = (
+        entropy, energy_total,
+        energy_kinetic,
+        energy_internal,
+        energy_magnetic,
+        cross_helicity,
+    )
+)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 100,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = cons2prim
+)
 cfl = 1.0
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
-                        save_solution,
-                        stepsize_callback,
-                        glm_speed_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback,
+    save_solution,
+    stepsize_callback,
+    glm_speed_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

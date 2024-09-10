@@ -13,13 +13,15 @@ function x_trans_periodic(x, domain_length = SVector(2 * pi), center = SVector(0
     x_normalized = x .- center
     x_shifted = x_normalized .% domain_length
     x_offset = ((x_shifted .< -0.5 * domain_length) - (x_shifted .> 0.5 * domain_length)) .*
-               domain_length
+        domain_length
     return center + x_shifted + x_offset
 end
 
 # Define initial condition (copied from "examples/tree_1d_dgsem/elixir_advection_diffusion.jl")
-function initial_condition_diffusive_convergence_test(x, t,
-                                                      equation::LinearScalarAdvectionEquation2D)
+function initial_condition_diffusive_convergence_test(
+        x, t,
+        equation::LinearScalarAdvectionEquation2D
+    )
     # Store translated coordinate for easy use of exact solution
     # Assumes that advection_velocity[2] = 0 (effectively that we are solving a 1D equation)
     x_trans = x_trans_periodic(x[1] - equation.advection_velocity[1] * t)
@@ -36,8 +38,8 @@ initial_condition = initial_condition_diffusive_convergence_test
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-# This maps the domain [-1, 1]^2 to [-pi, pi]^2 while also 
-# introducing a curved warping to interior nodes. 
+# This maps the domain [-1, 1]^2 to [-pi, pi]^2 while also
+# introducing a curved warping to interior nodes.
 function mapping(xi, eta)
     x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
     y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
@@ -45,15 +47,19 @@ function mapping(xi, eta)
 end
 
 trees_per_dimension = (4, 4)
-mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 2,
-                 mapping = mapping,
-                 periodicity = true)
+mesh = P4estMesh(
+    trees_per_dimension,
+    polydeg = 3, initial_refinement_level = 2,
+    mapping = mapping,
+    periodicity = true
+)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations, equations_parabolic),
-                                             initial_condition, solver)
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh,
+    (equations, equations_parabolic),
+    initial_condition, solver
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -81,8 +87,10 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-11
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+)
 
 # Print the timer summary
 summary_callback()

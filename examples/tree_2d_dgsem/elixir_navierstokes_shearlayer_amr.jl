@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -9,8 +8,10 @@ prandtl_number() = 0.72
 mu = 1.0 / 3.0 * 10^(-4) # equivalent to Re = 30,000
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
-                                                          Prandtl = prandtl_number())
+equations_parabolic = CompressibleNavierStokesDiffusion2D(
+    equations, mu = mu,
+    Prandtl = prandtl_number()
+)
 
 """
 A compressible version of the double shear layer initial condition. Adapted from
@@ -38,17 +39,23 @@ end
 initial_condition = initial_condition_shear_layer
 
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 3, surface_flux = flux_hllc,
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 100_000)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 4,
+    n_cells_max = 100_000
+)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver)
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh, (equations, equations_parabolic),
+    initial_condition, solver
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -69,27 +76,35 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
     return rho_v1 / rho
 end
 amr_indicator = IndicatorLöhner(semi, variable = v1)
-amr_controller = ControllerThreeLevel(semi, amr_indicator,
-                                      base_level = 3,
-                                      med_level = 5, med_threshold = 0.2,
-                                      max_level = 7, max_threshold = 0.5)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 50,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+amr_controller = ControllerThreeLevel(
+    semi, amr_indicator,
+    base_level = 3,
+    med_level = 5, med_threshold = 0.2,
+    max_level = 7, max_threshold = 0.5
+)
+amr_callback = AMRCallback(
+    semi, amr_controller,
+    interval = 50,
+    adapt_initial_condition = true,
+    adapt_initial_condition_only_refine = true
+)
 
 stepsize_callback = StepsizeCallback(cfl = 1.3)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
-                        amr_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback,
+    amr_callback,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

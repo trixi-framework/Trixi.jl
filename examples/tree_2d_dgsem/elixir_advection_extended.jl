@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -24,14 +23,18 @@ coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
-                periodicity = true)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 4,
+    n_cells_max = 30_000, # set maximum capacity of tree data structure
+    periodicity = true
+)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -46,40 +49,50 @@ summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_integrals = (entropy, energy_total))
+analysis_callback = AnalysisCallback(
+    semi, interval = analysis_interval,
+    extra_analysis_integrals = (entropy, energy_total)
+)
 
 # The AliveCallback prints short status information in regular intervals
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
-save_restart = SaveRestartCallback(interval = 40,
-                                   save_final_restart = true)
+save_restart = SaveRestartCallback(
+    interval = 40,
+    save_final_restart = true
+)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 100,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = cons2prim
+)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_restart, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    save_restart, save_solution,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 alg = CarpenterKennedy2N54(williamson_condition = false)
-sol = solve(ode, alg,
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            callback = callbacks;
-            ode_default_options()...); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
+sol = solve(
+    ode, alg,
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    callback = callbacks;
+    ode_default_options()...
+); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
 
 # Print the timer summary
 summary_callback()

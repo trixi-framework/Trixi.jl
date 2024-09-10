@@ -114,7 +114,6 @@
 # guarantee decreasing entropy, i.e. entropy stability.
 
 
-
 # ## [Implementation in Trixi.jl](@id fluxDiffExample)
 # Now, we have a look at the implementation of DGSEM with flux differencing with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl).
 using OrdinaryDiffEq, Trixi
@@ -158,21 +157,27 @@ initial_condition = initial_condition_weak_blast_wave
 # We will confirm the entropy conservation property numerically.
 
 volume_flux = flux_ranocha # = f_vol
-solver = DGSEM(polydeg=3, surface_flux=volume_flux,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 3, surface_flux = volume_flux,
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 # Now, we implement Trixi.jl's `mesh`, `semi` and `ode` in a simple framework. For more information please
 # have a look at the documentation, the basic tutorial [introduction to DG methods](@ref scalar_linear_advection_1d)
 # or some basic elixirs.
 coordinates_min = (-2.0, -2.0)
-coordinates_max = ( 2.0,  2.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
-                n_cells_max=10_000,
-                periodicity=true)
+coordinates_max = (2.0, 2.0)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 5,
+    n_cells_max = 10_000,
+    periodicity = true
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions=boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_condition_periodic
+)
 
 ## ODE solvers
 tspan = (0.0, 0.4)
@@ -180,11 +185,13 @@ ode = semidiscretize(semi, tspan);
 
 # To analyse the entropy conservation of the approximation, we will use the analysis calllback
 # implemented in Trixi. It provides some information about the approximation including the entropy change.
-analysis_callback = AnalysisCallback(semi, interval=100);
+analysis_callback = AnalysisCallback(semi, interval = 100);
 
 # We now run the simulation using `flux_ranocha` for both surface and volume flux.
-sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
-            ode_default_options()..., callback=analysis_callback);
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+    ode_default_options()..., callback = analysis_callback
+);
 # A look at the change in entropy $\sum \partial S/\partial U \cdot U_t$ in the analysis callback
 # confirms that the flux is entropy conserving since the change is about machine precision.
 
@@ -202,28 +209,36 @@ equations = CompressibleEulerEquations2D(gamma)
 initial_condition = initial_condition_weak_blast_wave
 
 volume_flux = flux_ranocha # = f_vol
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 3, surface_flux = flux_lax_friedrichs,
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 coordinates_min = (-2.0, -2.0)
-coordinates_max = ( 2.0,  2.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=5,
-                n_cells_max=10_000,
-                periodicity=true)
+coordinates_max = (2.0, 2.0)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 5,
+    n_cells_max = 10_000,
+    periodicity = true
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions=boundary_condition_periodic)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_condition_periodic
+)
 
 ## ODE solvers
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan);
 
-analysis_callback = AnalysisCallback(semi, interval=100);
+analysis_callback = AnalysisCallback(semi, interval = 100);
 
 # We now run the simulation using the volume flux `flux_ranocha` and surface flux `flux_lax_friedrichs`.
-sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6,
-            ode_default_options()..., callback=analysis_callback);
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+    ode_default_options()..., callback = analysis_callback
+);
 # The change in entropy confirms the expected entropy stability.
 
 using Plots
@@ -246,5 +261,7 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode=PKGMODE_MANIFEST)
+Pkg.status(
+    ["Trixi", "OrdinaryDiffEq", "Plots"],
+    mode = PKGMODE_MANIFEST
+)

@@ -11,15 +11,21 @@ initial_condition = initial_condition_convergence_test
 
 surface_flux = (flux_chan_etal, flux_nonconservative_chan_etal)
 volume_flux = surface_flux
-dg = DGMulti(polydeg = 4, element_type = Line(), approximation_type = SBP(),
-             surface_integral = SurfaceIntegralWeakForm(surface_flux),
-             volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+dg = DGMulti(
+    polydeg = 4, element_type = Line(), approximation_type = SBP(),
+    surface_integral = SurfaceIntegralWeakForm(surface_flux),
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 cells_per_dimension = (8,)
-mesh = DGMultiMesh(dg, cells_per_dimension,
-                   coordinates_min = (-1.0,), coordinates_max = (1.0,), periodicity = true)
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg;
-                                    source_terms = source_terms_convergence_test)
+mesh = DGMultiMesh(
+    dg, cells_per_dimension,
+    coordinates_min = (-1.0,), coordinates_max = (1.0,), periodicity = true
+)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, dg;
+    source_terms = source_terms_convergence_test
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -35,15 +41,19 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

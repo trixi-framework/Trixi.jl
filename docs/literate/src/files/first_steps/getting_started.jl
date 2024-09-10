@@ -64,9 +64,9 @@
 
 # Trixi.jl and its related tools are registered Julia packages, thus their installation
 # happens inside Julia.
-# For a smooth workflow experience with Trixi.jl, you need to install 
+# For a smooth workflow experience with Trixi.jl, you need to install
 # [Trixi.jl](https://github.com/trixi-framework/Trixi.jl),
-# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and 
+# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
 # [Plots.jl](https://github.com/JuliaPlots/Plots.jl).
 
 # - Open a terminal and start Julia.
@@ -79,7 +79,7 @@
 #   ```
 # - On Windows, the firewall may request permission to install packages.
 
-# Besides Trixi.jl you have now installed two additional 
+# Besides Trixi.jl you have now installed two additional
 # packages: [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) provides time
 # integration schemes used by Trixi.jl and [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 # can be used to directly visualize Trixi.jl results from the Julia REPL.
@@ -102,11 +102,11 @@
 # For convenience, the [`examples_dir`](@ref) function returns a path to the
 # [`examples`](https://github.com/trixi-framework/Trixi.jl/tree/main/examples)
 # folder, which has been locally downloaded while installing Trixi.jl.
-# `joinpath(...)` can be used to join path components into a full path. 
+# `joinpath(...)` can be used to join path components into a full path.
 
 # Let's execute a short two-dimensional problem setup. It approximates the solution of
 # the compressible Euler equations in 2D for an ideal gas ([`CompressibleEulerEquations2D`](@ref))
-# with a weak blast wave as the initial condition and periodic boundary conditions. 
+# with a weak blast wave as the initial condition and periodic boundary conditions.
 
 # The compressible Euler equations in two spatial dimensions are given by
 # ```math
@@ -138,7 +138,7 @@
 # is the pressure.
 
 # The [`initial_condition_weak_blast_wave`](@ref) is specified in
-# [`compressible_euler_2d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/compressible_euler_2d.jl) 
+# [`compressible_euler_2d.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/compressible_euler_2d.jl)
 
 # Start Julia in a terminal and execute the following code:
 
@@ -147,7 +147,7 @@
 # trixi_include(joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"))
 # ```
 using Trixi, OrdinaryDiffEq #hide #md
-trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
+trixi_include(@__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl")) #hide #md
 
 # The output contains a recap of the setup and various information about the course of the simulation.
 # For instance, the solution was approximated over the [`TreeMesh`](@ref) with 1024 effective cells using
@@ -155,9 +155,9 @@ trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_eule
 # solver. Further details about the ODE solver can be found in the
 # [documentation of OrdinaryDiffEq.jl](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods)
 
-# To analyze the result of the computation, we can use the Plots.jl package and the function 
+# To analyze the result of the computation, we can use the Plots.jl package and the function
 # `plot(...)`, which creates a graphical representation of the solution. `sol` is a variable
-# defined in the executed example and it contains the solution after the simulation 
+# defined in the executed example and it contains the solution after the simulation
 # finishes. `sol.u` holds the vector of values at each saved timestep, while `sol.t` holds the
 # corresponding times for each saved timestep. In this instance, only two timesteps were saved: the
 # initial and final ones. The plot depicts the distribution of the weak blast wave at the final moment
@@ -214,8 +214,8 @@ function initial_condition_density_waves(x, t, equations::CompressibleEulerEquat
     v2 = 0.2 # velocity along y-axis
     rho = 1.0 + 0.98 * sinpi(sum(x) - t * (v1 + v2)) # density wave profile
     p = 20 # pressure
-    rho_e = p / (equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
-    return SVector(rho, rho*v1, rho*v2, rho_e)
+    rho_e = p / (equations.gamma - 1) + 1 / 2 * rho * (v1^2 + v2^2)
+    return SVector(rho, rho * v1, rho * v2, rho_e)
 end
 initial_condition = initial_condition_density_waves
 nothing; #hide #md
@@ -231,13 +231,15 @@ nothing; #hide #md
 # Then you will obtain a new solution from running the simulation with a different initial
 # condition.
 
-trixi_include(@__MODULE__,joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
- initial_condition=initial_condition) #hide #md
+trixi_include(
+    @__MODULE__, joinpath(examples_dir(), "tree_2d_dgsem", "elixir_euler_ec.jl"), #hide #md
+    initial_condition = initial_condition
+) #hide #md
 pd = PlotData2D(sol) #hide #md
 p1 = plot(pd["rho"]) #hide #md
-p2 = plot(pd["v1"], clim=(0.05, 0.15)) #hide #md
-p3 = plot(pd["v2"], clim=(0.15, 0.25)) #hide #md
-p4 = plot(pd["p"], clim=(10, 30)) #hide #md
+p2 = plot(pd["v1"], clim = (0.05, 0.15)) #hide #md
+p3 = plot(pd["v2"], clim = (0.15, 0.25)) #hide #md
+p4 = plot(pd["p"], clim = (10, 30)) #hide #md
 plot(p1, p2, p3, p4) #hide #md
 
 # To get exactly the same picture execute the following.
@@ -256,4 +258,4 @@ plot(p1, p2, p3, p4) #hide #md
 # further details on setting up a new simulation with Trixi.jl, refer to the second part of
 # the introduction titled [Create your first setup](@ref create_first_setup).
 
-Sys.rm("out"; recursive=true, force=true) #hide #md
+Sys.rm("out"; recursive = true, force = true) #hide #md

@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -15,17 +14,23 @@ volume_flux = flux_ranocha
 polydeg = 3
 basis = DGMultiBasis(Quad(), polydeg, approximation_type = GaussSBP())
 
-indicator_sc = IndicatorHennemannGassner(equations, basis,
-                                         alpha_max = 0.5,
-                                         alpha_min = 0.001,
-                                         alpha_smooth = true,
-                                         variable = density_pressure)
-volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = volume_flux,
-                                                 volume_flux_fv = surface_flux)
-dg = DGMulti(basis,
-             surface_integral = SurfaceIntegralWeakForm(surface_flux),
-             volume_integral = volume_integral)
+indicator_sc = IndicatorHennemannGassner(
+    equations, basis,
+    alpha_max = 0.5,
+    alpha_min = 0.001,
+    alpha_smooth = true,
+    variable = density_pressure
+)
+volume_integral = VolumeIntegralShockCapturingHG(
+    indicator_sc;
+    volume_flux_dg = volume_flux,
+    volume_flux_fv = surface_flux
+)
+dg = DGMulti(
+    basis,
+    surface_integral = SurfaceIntegralWeakForm(surface_flux),
+    volume_integral = volume_integral
+)
 
 cells_per_dimension = (8, 8)
 mesh = DGMultiMesh(dg, cells_per_dimension, periodicity = true)
@@ -44,7 +49,9 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
-            ode_default_options()..., callback = callbacks);
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+    ode_default_options()..., callback = callbacks
+);
 
 summary_callback() # print the timer summary

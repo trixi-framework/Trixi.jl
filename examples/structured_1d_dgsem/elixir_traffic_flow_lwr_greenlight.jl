@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -12,8 +11,10 @@ coordinates_min = (-1.0,) # minimum coordinate
 coordinates_max = (1.0,) # maximum coordinate
 cells_per_dimension = (64,)
 
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
-                      periodicity = false)
+mesh = StructuredMesh(
+    cells_per_dimension, coordinates_min, coordinates_max,
+    periodicity = false
+)
 
 # Example inspired from http://www.clawpack.org/riemann_book/html/Traffic_flow.html#Example:-green-light
 # Green light that at x = 0 which switches at t = 0 from red to green.
@@ -27,29 +28,35 @@ end
 ###############################################################################
 # Specify non-periodic boundary conditions
 
-# Assume that there are always cars waiting at the left 
+# Assume that there are always cars waiting at the left
 function inflow(x, t, equations::TrafficFlowLWREquations1D)
     return initial_condition_greenlight(coordinates_min, t, equations)
 end
 boundary_condition_inflow = BoundaryConditionDirichlet(inflow)
 
 # Cars may leave the modeled domain
-function boundary_condition_outflow(u_inner, orientation, normal_direction, x, t,
-                                    surface_flux_function,
-                                    equations::TrafficFlowLWREquations1D)
+function boundary_condition_outflow(
+        u_inner, orientation, normal_direction, x, t,
+        surface_flux_function,
+        equations::TrafficFlowLWREquations1D
+    )
     # Calculate the boundary flux entirely from the internal solution state
     flux = Trixi.flux(u_inner, orientation, equations)
 
     return flux
 end
 
-boundary_conditions = (x_neg = boundary_condition_inflow,
-                       x_pos = boundary_condition_outflow)
+boundary_conditions = (
+    x_neg = boundary_condition_inflow,
+    x_pos = boundary_condition_outflow,
+)
 
 initial_condition = initial_condition_greenlight
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -66,15 +73,19 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 stepsize_callback = StepsizeCallback(cfl = 1.2)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 42, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 42, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 summary_callback() # print the timer summary

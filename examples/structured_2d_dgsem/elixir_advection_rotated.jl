@@ -1,6 +1,6 @@
 # This elixir transforms the setup of elixir_advection_basic to a rotated square.
 # The nodal values of the initial condition and the exact solution are the same as
-# in elixir_advection_basic. 
+# in elixir_advection_basic.
 # However, on this rotated mesh, the metric terms are non-trivial.
 # The same errors as with elixir_advection_basic are expected (except for rounding errors).
 
@@ -12,46 +12,48 @@ using Trixi
 # if multiple test cases using the same module name are run in the same session.
 module TrixiExtensionAdvectionRotated
 
-using Trixi
+    using Trixi
 
-# initial_condition_convergence_test transformed to the rotated rectangle
-struct InitialConditionConvergenceTestRotated
-    sin_alpha::Float64
-    cos_alpha::Float64
-end
+    # initial_condition_convergence_test transformed to the rotated rectangle
+    struct InitialConditionConvergenceTestRotated
+        sin_alpha::Float64
+        cos_alpha::Float64
+    end
 
-function InitialConditionConvergenceTestRotated(alpha)
-    sin_alpha, cos_alpha = sincos(alpha)
+    function InitialConditionConvergenceTestRotated(alpha)
+        sin_alpha, cos_alpha = sincos(alpha)
 
-    InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
-end
+        InitialConditionConvergenceTestRotated(sin_alpha, cos_alpha)
+    end
 
-function (initial_condition::InitialConditionConvergenceTestRotated)(x, t,
-                                                                     equation::LinearScalarAdvectionEquation2D)
-    sin_ = initial_condition.sin_alpha
-    cos_ = initial_condition.cos_alpha
+    function (initial_condition::InitialConditionConvergenceTestRotated)(
+            x, t,
+            equation::LinearScalarAdvectionEquation2D
+        )
+        sin_ = initial_condition.sin_alpha
+        cos_ = initial_condition.cos_alpha
 
-    # Rotate back to unit square
+        # Rotate back to unit square
 
-    # Clockwise rotation by α and translation by 1
-    # Multiply with [  cos(α)  sin(α);
-    #                 -sin(α)  cos(α)]
-    x_rot = SVector(cos_ * x[1] + sin_ * x[2], -sin_ * x[1] + cos_ * x[2])
-    a = equation.advection_velocity
-    a_rot = SVector(cos_ * a[1] + sin_ * a[2], -sin_ * a[1] + cos_ * a[2])
+        # Clockwise rotation by α and translation by 1
+        # Multiply with [  cos(α)  sin(α);
+        #                 -sin(α)  cos(α)]
+        x_rot = SVector(cos_ * x[1] + sin_ * x[2], -sin_ * x[1] + cos_ * x[2])
+        a = equation.advection_velocity
+        a_rot = SVector(cos_ * a[1] + sin_ * a[2], -sin_ * a[1] + cos_ * a[2])
 
-    # Store translated coordinate for easy use of exact solution
-    x_trans = x_rot - a_rot * t
+        # Store translated coordinate for easy use of exact solution
+        x_trans = x_rot - a_rot * t
 
-    c = 1.0
-    A = 0.5
-    L = 2
-    f = 1 / L
-    omega = 2 * pi * f
-    scalar = c + A * sin(omega * sum(x_trans))
+        c = 1.0
+        A = 0.5
+        L = 2
+        f = 1 / L
+        omega = 2 * pi * f
+        scalar = c + A * sin(omega * sum(x_trans))
 
-    return SVector(scalar)
-end
+        return SVector(scalar)
+    end
 
 end # module TrixiExtensionAdvectionRotated
 
@@ -96,23 +98,29 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 100)
 
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
-save_solution = SaveSolutionCallback(interval = 100,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 100,
+    solution_variables = cons2prim
+)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback, analysis_callback, save_solution,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 # Print the timer summary
 summary_callback()

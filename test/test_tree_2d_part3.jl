@@ -10,28 +10,28 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
 @testset "TreeMesh2D Part 3" begin
-#! format: noindent
+    #! format: noindent
 
-# Run basic tests
-@testset "Examples 2D" begin
-    # MHD
-    include("test_tree_2d_mhd.jl")
+    # Run basic tests
+    @testset "Examples 2D" begin
+        # MHD
+        include("test_tree_2d_mhd.jl")
 
-    # MHD Multicomponent
-    include("test_tree_2d_mhdmulti.jl")
+        # MHD Multicomponent
+        include("test_tree_2d_mhdmulti.jl")
 
-    # Lattice-Boltzmann
-    include("test_tree_2d_lbm.jl")
+        # Lattice-Boltzmann
+        include("test_tree_2d_lbm.jl")
 
-    # Shallow water
-    include("test_tree_2d_shallowwater.jl")
+        # Shallow water
+        include("test_tree_2d_shallowwater.jl")
 
-    # FDSBP methods on the TreeMesh
-    include("test_tree_2d_fdsbp.jl")
-end
+        # FDSBP methods on the TreeMesh
+        include("test_tree_2d_fdsbp.jl")
+    end
 
-# Clean up afterwards: delete Trixi.jl output directory
-@test_nowarn rm(outdir, recursive = true)
+    # Clean up afterwards: delete Trixi.jl output directory
+    @test_nowarn rm(outdir, recursive = true)
 end # TreeMesh2D Part 3
 
 end #module

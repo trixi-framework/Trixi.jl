@@ -1,8 +1,10 @@
 using Trixi, OrdinaryDiffEq
 
-dg = DGMulti(polydeg = 4, element_type = Quad(), approximation_type = Polynomial(),
-             surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
-             volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))
+dg = DGMulti(
+    polydeg = 4, element_type = Quad(), approximation_type = Polynomial(),
+    surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
+    volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha)
+)
 
 equations = CompressibleEulerEquations2D(1.4)
 
@@ -29,9 +31,11 @@ end
 initial_condition = initial_condition_BM_vortex
 
 cells_per_dimension = (16, 16)
-mesh = DGMultiMesh(dg, cells_per_dimension,
-                   coordinates_min = (-0.5, -0.5), coordinates_max = (0.5, 0.5),
-                   periodicity = true)
+mesh = DGMultiMesh(
+    dg, cells_per_dimension,
+    coordinates_min = (-0.5, -0.5), coordinates_max = (0.5, 0.5),
+    periodicity = true
+)
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg)
 
 tspan = (0.0, 1.0)
@@ -47,7 +51,9 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 # run the simulation
 
 tol = 1.0e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = tol, reltol = tol,
-            ode_default_options()..., callback = callbacks);
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = tol, reltol = tol,
+    ode_default_options()..., callback = callbacks
+);
 
 summary_callback() # print the timer summary

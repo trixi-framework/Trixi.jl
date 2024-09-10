@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -17,22 +16,26 @@ coordinates_min = -pi # minimum coordinate
 coordinates_max = pi # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 30_000, # set maximum capacity of tree data structure
-                periodicity = true)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 4,
+    n_cells_max = 30_000, # set maximum capacity of tree data structure
+    periodicity = true
+)
 
 function x_trans_periodic(x, domain_length = SVector(2 * pi), center = SVector(0.0))
     x_normalized = x .- center
     x_shifted = x_normalized .% domain_length
     x_offset = ((x_shifted .< -0.5 * domain_length) - (x_shifted .> 0.5 * domain_length)) .*
-               domain_length
+        domain_length
     return center + x_shifted + x_offset
 end
 
 # Define initial condition
-function initial_condition_diffusive_convergence_test(x, t,
-                                                      equation::LinearScalarAdvectionEquation1D)
+function initial_condition_diffusive_convergence_test(
+        x, t,
+        equation::LinearScalarAdvectionEquation1D
+    )
     # Store translated coordinate for easy use of exact solution
     x_trans = x_trans_periodic(x - equation.advection_velocity * t)
 
@@ -52,11 +55,15 @@ boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition,
-                                             solver;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh, (equations, equations_parabolic),
+    initial_condition,
+    solver;
+    boundary_conditions = (
+        boundary_conditions,
+        boundary_conditions_parabolic,
+    )
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -84,8 +91,10 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-10
 time_abs_tol = 1.0e-10
-sol = solve(ode, KenCarp4(autodiff = false), abstol = time_abs_tol, reltol = time_int_tol,
-            save_everystep = false, callback = callbacks)
+sol = solve(
+    ode, KenCarp4(autodiff = false), abstol = time_abs_tol, reltol = time_int_tol,
+    save_everystep = false, callback = callbacks
+)
 
 # Print the timer summary
 summary_callback()

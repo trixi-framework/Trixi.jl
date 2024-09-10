@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -18,17 +17,21 @@ solver = DGSEM(polydeg = 6, surface_flux = FluxRotated(flux_hll))
 
 ###############################################################################
 # Get the curved quad mesh from a file (downloads the file if not available locally)
-mesh_file = Trixi.download("https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
-                           joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh"))
+mesh_file = Trixi.download(
+    "https://gist.githubusercontent.com/andrewwinters5000/12ce661d7c354c3d94c74b964b0f1c96/raw/8275b9a60c6e7ebbdea5fc4b4f091c47af3d5273/mesh_periodic_square_with_twist.mesh",
+    joinpath(@__DIR__, "mesh_periodic_square_with_twist.mesh")
+)
 
 mesh = UnstructuredMesh2D(mesh_file, periodicity = true)
 
 ###############################################################################
 # create the semi discretization object
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    source_terms = source_terms,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

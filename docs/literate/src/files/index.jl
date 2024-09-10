@@ -181,7 +181,6 @@
 # and explains how to extend them for custom tasks.
 
 
-
 # ## Examples in Trixi.jl
 # Trixi.jl already contains several more coding examples, the so-called `elixirs`. You can find them
 # in the folder [`examples/`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/).

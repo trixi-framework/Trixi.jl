@@ -78,8 +78,10 @@ positivity_variables_cons = ["rho"]
 # The quantity names are passed as a vector to allow several quantities.
 # This is used, for instance, if you want to limit the density of two different components using
 # the multicomponent compressible Euler equations.
-equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
-                                                       gas_constants = (0.287, 1.578))
+equations = CompressibleEulerMulticomponentEquations2D(
+    gammas = (1.4, 1.648),
+    gas_constants = (0.287, 1.578)
+)
 
 # Then, we just pass both quantity names.
 positivity_variables_cons = ["rho1", "rho2"]
@@ -139,7 +141,7 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
     rho = r > 0.5 ? 1.0 : 1.1691
     v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
     v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-    p = r > 0.5 ? 1.0E-3 : 1.245
+    p = r > 0.5 ? 1.0e-3 : 1.245
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -159,14 +161,18 @@ volume_flux = flux_ranocha
 # or listed in the docstring) you can specify and enable additional limiting options.
 # Here, the simulation should contain local limiting for the density using lower and upper bounds.
 basis = LobattoLegendreBasis(3)
-limiter_idp = SubcellLimiterIDP(equations, basis;
-                                local_twosided_variables_cons = ["rho"])
+limiter_idp = SubcellLimiterIDP(
+    equations, basis;
+    local_twosided_variables_cons = ["rho"]
+)
 
 # The initialized limiter is passed to `VolumeIntegralSubcellLimiting` in addition to the volume
 # fluxes of the low-order and high-order scheme.
-volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
-                                                volume_flux_dg = volume_flux,
-                                                volume_flux_fv = surface_flux)
+volume_integral = VolumeIntegralSubcellLimiting(
+    limiter_idp;
+    volume_flux_dg = volume_flux,
+    volume_flux_fv = surface_flux
+)
 
 # Then, the volume integral is passed to `solver` as it is done for the standard flux-differencing
 # DG scheme or the element-wise limiting.
@@ -174,9 +180,11 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 #-
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
-                n_cells_max = 10_000)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 5,
+    n_cells_max = 10_000
+)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -190,17 +198,21 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 1000,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 1000,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = cons2prim
+)
 
 stepsize_callback = StepsizeCallback(cfl = 0.3)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback);
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    save_solution,
+    stepsize_callback
+);
 
 # As explained above, the IDP limiter works a-posteriori and requires the additional use of a
 # correction stage implemented with the stage callback [`SubcellLimiterIDPCorrection`](@ref).
@@ -210,9 +222,11 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),)
 # Moreover, as mentioned before as well, simulations with subcell limiting require a Trixi-intern
 # SSPRK time integration methods with passed stage callbacks and a Trixi-intern `Trixi.solve(...)`
 # routine.
-sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  callback = callbacks);
+sol = Trixi.solve(
+    ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    callback = callbacks
+);
 summary_callback() # print the timer summary
 
 

@@ -3,48 +3,54 @@
 # we need to opt-in explicitly.
 # See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
 @muladd begin
-#! format: noindent
+    #! format: noindent
 
-# Calculate the vorticity on a single node using the derivative matrix from the polynomial basis of
-# a DGSEM solver. `u` is the solution on the whole domain.
-# This function is used for calculating acoustic source terms for coupled Euler-acoustics
-# simulations.
-function calc_vorticity_node(u, mesh::TreeMesh{2},
-                             equations::CompressibleEulerEquations2D,
-                             dg::DGSEM, cache, i, j, element)
-    @unpack derivative_matrix = dg.basis
+    # Calculate the vorticity on a single node using the derivative matrix from the polynomial basis of
+    # a DGSEM solver. `u` is the solution on the whole domain.
+    # This function is used for calculating acoustic source terms for coupled Euler-acoustics
+    # simulations.
+    function calc_vorticity_node(
+            u, mesh::TreeMesh{2},
+            equations::CompressibleEulerEquations2D,
+            dg::DGSEM, cache, i, j, element
+        )
+        @unpack derivative_matrix = dg.basis
 
-    v2_x = zero(eltype(u)) # derivative of v2 in x direction
-    for ii in eachnode(dg)
-        rho, _, rho_v2 = get_node_vars(u, equations, dg, ii, j, element)
-        v2 = rho_v2 / rho
-        v2_x = v2_x + derivative_matrix[i, ii] * v2
-    end
-
-    v1_y = zero(eltype(u)) # derivative of v1 in y direction
-    for jj in eachnode(dg)
-        rho, rho_v1 = get_node_vars(u, equations, dg, i, jj, element)
-        v1 = rho_v1 / rho
-        v1_y = v1_y + derivative_matrix[j, jj] * v1
-    end
-
-    return (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
-end
-
-# Convenience function for calculating the vorticity on the whole domain and storing it in a
-# preallocated array
-function calc_vorticity!(vorticity, u, mesh::TreeMesh{2},
-                         equations::CompressibleEulerEquations2D,
-                         dg::DGSEM, cache)
-    @threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            vorticity[i, j, element] = calc_vorticity_node(u, mesh, equations, dg,
-                                                           cache, i, j, element)
+        v2_x = zero(eltype(u)) # derivative of v2 in x direction
+        for ii in eachnode(dg)
+            rho, _, rho_v2 = get_node_vars(u, equations, dg, ii, j, element)
+            v2 = rho_v2 / rho
+            v2_x = v2_x + derivative_matrix[i, ii] * v2
         end
+
+        v1_y = zero(eltype(u)) # derivative of v1 in y direction
+        for jj in eachnode(dg)
+            rho, rho_v1 = get_node_vars(u, equations, dg, i, jj, element)
+            v1 = rho_v1 / rho
+            v1_y = v1_y + derivative_matrix[j, jj] * v1
+        end
+
+        return (v2_x - v1_y) * cache.elements.inverse_jacobian[element]
     end
 
-    return nothing
-end
+    # Convenience function for calculating the vorticity on the whole domain and storing it in a
+    # preallocated array
+    function calc_vorticity!(
+            vorticity, u, mesh::TreeMesh{2},
+            equations::CompressibleEulerEquations2D,
+            dg::DGSEM, cache
+        )
+        @threaded for element in eachelement(dg, cache)
+            for j in eachnode(dg), i in eachnode(dg)
+                vorticity[i, j, element] = calc_vorticity_node(
+                    u, mesh, equations, dg,
+                    cache, i, j, element
+                )
+            end
+        end
+
+        return nothing
+    end
 end # muladd
 
 # From here on, this file contains specializations of DG methods on the
@@ -64,26 +70,38 @@ end # muladd
 # We specialize on `PtrArray` since these will be returned by `Trixi.wrap_array`
 # if LoopVectorization.jl can handle the array types. This ensures that `@turbo`
 # works efficiently here.
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, mesh::TreeMesh{2},
-                                           nonconservative_terms::False,
-                                           equations::CompressibleEulerEquations2D,
-                                           volume_flux::typeof(flux_shima_etal_turbo),
-                                           dg::DGSEM, cache, alpha)
+@inline function flux_differencing_kernel!(
+        _du::PtrArray, u_cons::PtrArray,
+        element, mesh::TreeMesh{2},
+        nonconservative_terms::False,
+        equations::CompressibleEulerEquations2D,
+        volume_flux::typeof(flux_shima_etal_turbo),
+        dg::DGSEM, cache, alpha
+    )
     @unpack derivative_split = dg.basis
 
     # Create a temporary array that will be used to store the RHS with permuted
     # indices `[i, j, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
-    du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
-                                      StaticInt(nvariables(equations))))
+    du = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+            StaticInt(nvariables(equations)),
+        )
+    )
 
     # Convert conserved to primitive variables on the given `element`.
-    u_prim = StrideArray{eltype(u_cons)}(undef,
-                                         (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
-                                          StaticInt(nvariables(equations))))
+    u_prim = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            ntuple(
+                _ -> StaticInt(nnodes(dg)),
+                ndims(mesh)
+            )...,
+            StaticInt(nvariables(equations)),
+        )
+    )
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
         rho = u_cons[1, i, j, element]
@@ -105,18 +123,26 @@ end # muladd
     # At first, we create new temporary arrays with permuted memory layout to
     # allow using SIMD instructions along the first dimension (which is contiguous
     # in memory).
-    du_permuted = StrideArray{eltype(u_cons)}(undef,
-                                              (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
-                                               StaticInt(nvariables(equations))))
+    du_permuted = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
+            StaticInt(nvariables(equations)),
+        )
+    )
 
-    u_prim_permuted = StrideArray{eltype(u_cons)}(undef,
-                                                  (StaticInt(nnodes(dg)),
-                                                   StaticInt(nnodes(dg)),
-                                                   StaticInt(nvariables(equations))))
+    u_prim_permuted = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)),
+            StaticInt(nnodes(dg)),
+            StaticInt(nvariables(equations)),
+        )
+    )
 
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         u_prim_permuted[j, i, v] = u_prim[i, j, v]
     end
@@ -167,8 +193,8 @@ end # muladd
     end
 
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         du[i, j, v] = du_permuted[j, i, v]
     end
@@ -219,36 +245,48 @@ end # muladd
     # Finally, we add the temporary RHS computed here to the global RHS in the
     # given `element`.
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         _du[v, i, j, element] += du[i, j, v]
     end
 end
 
-@inline function flux_differencing_kernel!(_du::PtrArray, u_cons::PtrArray,
-                                           element, mesh::TreeMesh{2},
-                                           nonconservative_terms::False,
-                                           equations::CompressibleEulerEquations2D,
-                                           volume_flux::typeof(flux_ranocha_turbo),
-                                           dg::DGSEM, cache, alpha)
+@inline function flux_differencing_kernel!(
+        _du::PtrArray, u_cons::PtrArray,
+        element, mesh::TreeMesh{2},
+        nonconservative_terms::False,
+        equations::CompressibleEulerEquations2D,
+        volume_flux::typeof(flux_ranocha_turbo),
+        dg::DGSEM, cache, alpha
+    )
     @unpack derivative_split = dg.basis
 
     # Create a temporary array that will be used to store the RHS with permuted
     # indices `[i, j, v]` to allow using SIMD instructions.
     # `StrideArray`s with purely static dimensions do not allocate on the heap.
-    du = StrideArray{eltype(u_cons)}(undef,
-                                     (ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
-                                      StaticInt(nvariables(equations))))
+    du = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            ntuple(_ -> StaticInt(nnodes(dg)), ndims(mesh))...,
+            StaticInt(nvariables(equations)),
+        )
+    )
 
     # Convert conserved to primitive variables on the given `element`. In addition
     # to the usual primitive variables, we also compute logarithms of the density
     # and pressure to increase the performance of the required logarithmic mean
     # values.
-    u_prim = StrideArray{eltype(u_cons)}(undef,
-                                         (ntuple(_ -> StaticInt(nnodes(dg)),
-                                                 ndims(mesh))...,
-                                          StaticInt(nvariables(equations) + 2))) # We also compute "+ 2" logs
+    u_prim = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            ntuple(
+                _ -> StaticInt(nnodes(dg)),
+                ndims(mesh)
+            )...,
+            StaticInt(nvariables(equations) + 2),
+        )
+    ) # We also compute "+ 2" logs
 
     @turbo for j in eachnode(dg), i in eachnode(dg)
         rho = u_cons[1, i, j, element]
@@ -272,18 +310,26 @@ end
     # At first, we create new temporary arrays with permuted memory layout to
     # allow using SIMD instructions along the first dimension (which is contiguous
     # in memory).
-    du_permuted = StrideArray{eltype(u_cons)}(undef,
-                                              (StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
-                                               StaticInt(nvariables(equations))))
+    du_permuted = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)), StaticInt(nnodes(dg)),
+            StaticInt(nvariables(equations)),
+        )
+    )
 
-    u_prim_permuted = StrideArray{eltype(u_cons)}(undef,
-                                                  (StaticInt(nnodes(dg)),
-                                                   StaticInt(nnodes(dg)),
-                                                   StaticInt(nvariables(equations) + 2)))
+    u_prim_permuted = StrideArray{eltype(u_cons)}(
+        undef,
+        (
+            StaticInt(nnodes(dg)),
+            StaticInt(nnodes(dg)),
+            StaticInt(nvariables(equations) + 2),
+        )
+    )
 
     @turbo for v in indices(u_prim, 3), # v in eachvariable(equations) misses +2 logs
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         u_prim_permuted[j, i, v] = u_prim[i, j, v]
     end
@@ -349,8 +395,8 @@ end
             f2 = f1 * v1_avg + p_avg
             f3 = f1 * v2_avg
             f4 = f1 *
-                 (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
-                 0.5 * (p_ll * v1_rr + p_rr * v1_ll)
+                (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
+                0.5 * (p_ll * v1_rr + p_rr * v1_ll)
 
             # Add scaled fluxes to RHS
             factor_i = alpha * derivative_split[i, ii]
@@ -368,8 +414,8 @@ end
     end
 
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         du[i, j, v] = du_permuted[j, i, v]
     end
@@ -433,8 +479,8 @@ end
             f2 = f1 * v1_avg
             f3 = f1 * v2_avg + p_avg
             f4 = f1 *
-                 (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
-                 0.5 * (p_ll * v2_rr + p_rr * v2_ll)
+                (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
+                0.5 * (p_ll * v2_rr + p_rr * v2_ll)
 
             # Add scaled fluxes to RHS
             factor_j = alpha * derivative_split[j, jj]
@@ -454,8 +500,8 @@ end
     # Finally, we add the temporary RHS computed here to the global RHS in the
     # given `element`.
     @turbo for v in eachvariable(equations),
-               j in eachnode(dg),
-               i in eachnode(dg)
+            j in eachnode(dg),
+            i in eachnode(dg)
 
         _du[v, i, j, element] += du[i, j, v]
     end

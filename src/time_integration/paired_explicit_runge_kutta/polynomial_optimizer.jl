@@ -1,7 +1,7 @@
 # Filter out eigenvalues with positive real parts, those with negative imaginary
 # parts due to eigenvalues' symmetry around the real axis, or the eigenvalues
 # that are smaller than a specified threshold.
-function filter_eig_vals(eig_vals, threshold = 1e-12; verbose = false)
+function filter_eig_vals(eig_vals, threshold = 1.0e-12; verbose = false)
     filtered_eig_vals = Complex{Float64}[]
 
     for eig_val in eig_vals
@@ -13,9 +13,11 @@ function filter_eig_vals(eig_vals, threshold = 1e-12; verbose = false)
     filtered_eig_vals_count = length(eig_vals) - length(filtered_eig_vals)
 
     if verbose
-        println("$filtered_eig_vals_count eigenvalue(s) are not passed on because " *
+        println(
+            "$filtered_eig_vals_count eigenvalue(s) are not passed on because " *
                 "they either are in magnitude smaller than $threshold, have positive " *
-                "real parts, or have negative imaginary parts.\n")
+                "real parts, or have negative imaginary parts.\n"
+        )
     end
 
     return length(filtered_eig_vals), filtered_eig_vals

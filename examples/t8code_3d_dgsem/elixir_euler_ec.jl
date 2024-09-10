@@ -13,8 +13,10 @@ boundary_conditions = Dict(:all => boundary_condition_slip_wall)
 # Get the DG approximation space
 
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 5, surface_flux = flux_ranocha,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 5, surface_flux = flux_ranocha,
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 # Get the curved quad mesh from a file
 
@@ -26,34 +28,46 @@ function mapping(xi_, eta_, zeta_)
     zeta = 1.5 * zeta_ + 1.5
 
     y = eta +
-        3 / 8 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
-         cos(0.5 * pi * (2 * eta - 3) / 3) *
-         cos(0.5 * pi * (2 * zeta - 3) / 3))
+        3 / 8 * (
+        cos(1.5 * pi * (2 * xi - 3) / 3) *
+            cos(0.5 * pi * (2 * eta - 3) / 3) *
+            cos(0.5 * pi * (2 * zeta - 3) / 3)
+    )
 
     x = xi +
-        3 / 8 * (cos(0.5 * pi * (2 * xi - 3) / 3) *
-         cos(2 * pi * (2 * y - 3) / 3) *
-         cos(0.5 * pi * (2 * zeta - 3) / 3))
+        3 / 8 * (
+        cos(0.5 * pi * (2 * xi - 3) / 3) *
+            cos(2 * pi * (2 * y - 3) / 3) *
+            cos(0.5 * pi * (2 * zeta - 3) / 3)
+    )
 
     z = zeta +
-        3 / 8 * (cos(0.5 * pi * (2 * x - 3) / 3) *
-         cos(pi * (2 * y - 3) / 3) *
-         cos(0.5 * pi * (2 * zeta - 3) / 3))
+        3 / 8 * (
+        cos(0.5 * pi * (2 * x - 3) / 3) *
+            cos(pi * (2 * y - 3) / 3) *
+            cos(0.5 * pi * (2 * zeta - 3) / 3)
+    )
 
     return SVector(x, y, z)
 end
 
 # Unstructured mesh with 48 cells of the cube domain [-1, 1]^3
-mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/b8df0033798e4926dec515fc045e8c2c/raw/b9254cde1d1fb64b6acc8416bc5ccdd77a240227/cube_unstructured_2.inp",
-                           joinpath(@__DIR__, "cube_unstructured_2.inp"))
+mesh_file = Trixi.download(
+    "https://gist.githubusercontent.com/efaulhaber/b8df0033798e4926dec515fc045e8c2c/raw/b9254cde1d1fb64b6acc8416bc5ccdd77a240227/cube_unstructured_2.inp",
+    joinpath(@__DIR__, "cube_unstructured_2.inp")
+)
 
-mesh = T8codeMesh(mesh_file, 3; polydeg = 5,
-                  mapping = mapping,
-                  initial_refinement_level = 0)
+mesh = T8codeMesh(
+    mesh_file, 3; polydeg = 5,
+    mapping = mapping,
+    initial_refinement_level = 0
+)
 
 # Create the semidiscretization object.
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -70,17 +84,21 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback,
+    stepsize_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary
 
 # Finalize `T8codeMesh` to make sure MPI related objects in t8code are

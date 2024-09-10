@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -24,25 +23,33 @@ end
 initial_condition = initial_condition_wave
 
 volume_flux = flux_winters_etal
-solver = DGSEM(polydeg = 2, surface_flux = flux_hll,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 2, surface_flux = flux_hll,
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 coordinates_min = (-2.0, -1.0)
 coordinates_max = (2.0, 1.0)
 
 cells_per_dimension = (64, 32)
 
-boundary_conditions = (x_neg = boundary_condition_periodic,
-                       x_pos = boundary_condition_periodic,
-                       y_neg = boundary_condition_periodic,
-                       y_pos = boundary_condition_periodic)
+boundary_conditions = (
+    x_neg = boundary_condition_periodic,
+    x_pos = boundary_condition_periodic,
+    y_neg = boundary_condition_periodic,
+    y_pos = boundary_condition_periodic,
+)
 
-mesh = StructuredMesh(cells_per_dimension,
-                      coordinates_min,
-                      coordinates_max)
+mesh = StructuredMesh(
+    cells_per_dimension,
+    coordinates_min,
+    coordinates_max
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -57,27 +64,35 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 50,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(
+    interval = 50,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = cons2prim
+)
 
 stepsize_callback = StepsizeCallback(cfl = 1.7)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    save_solution,
+    stepsize_callback
+)
 
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (1.0e-4, 1.0e-4),
-                                                     variables = (Trixi.density, pressure))
+stage_limiter! = PositivityPreservingLimiterZhangShu(
+    thresholds = (1.0e-4, 1.0e-4),
+    variables = (Trixi.density, pressure)
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 
 # Print the timer summary
 summary_callback()

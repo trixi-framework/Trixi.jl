@@ -13,11 +13,11 @@
 
 # Trixi.jl supports solving hyperbolic-parabolic problems on several mesh types.
 # A somewhat complex example that employs the `P4estMesh` is the near-field simulation of a
-# Mach 2 flow around the NACA6412 airfoil. 
+# Mach 2 flow around the NACA6412 airfoil.
 
 using Trixi
-redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_euler_NACA6412airfoil_mach2.jl"), tspan=(0.0, 0.5))
+redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+    trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem", "elixir_euler_NACA6412airfoil_mach2.jl"), tspan = (0.0, 0.5))
 end #hide #md
 
 # Conveniently, we use the Plots package to have a first look at the results:
@@ -30,7 +30,7 @@ end #hide #md
 
 # ## Creating a mesh using `gmsh`
 
-# The creation of an unstructured quadrilateral mesh using `gmsh` is driven by a **geometry file**. 
+# The creation of an unstructured quadrilateral mesh using `gmsh` is driven by a **geometry file**.
 # There are plenty of possibilities for the user, see the [documentation](https://gmsh.info/doc/texinfo/gmsh.html) and [tutorials](https://gitlab.onelab.info/gmsh/gmsh/tree/master/tutorials).
 
 # To begin, we provide a complete geometry file for the NACA6412 airfoil bounded by a rectangular box. After this we give a breakdown
@@ -40,11 +40,11 @@ end #hide #md
 
 # The associated `NACA6412.geo` file is given below:
 # ```c++
-#  // GMSH geometry script for a NACA 6412 airfoil with 11 degree angle of attack 
+#  // GMSH geometry script for a NACA 6412 airfoil with 11 degree angle of attack
 #  // in a box (near-field mesh).
 #  // see https://github.com/cfsengineering/GMSH-Airfoil-2D
 #  // for software to generate gmsh `.geo` geometry files for NACA airfoils.
-#  
+#
 #  // outer bounding box
 #  Point(1) = {-1.25, -0.5, 0, 1.0};
 #  Point(2) = {1.25, -0.5, 0, 1.0};
@@ -66,7 +66,7 @@ end #hide #md
 #  Mesh.RecombineAll = 1;
 #  // Violet instead of green base color for better visibility
 #  Mesh.ColorCarousel = 0;
-#  
+#
 #  // points of the airfoil contour
 #  // Format: {x, y, z, DesiredCellSize}. See the documentation: https://gmsh.info/doc/texinfo/gmsh.html#Points
 #  // These concrete points are generated using the tool from https://github.com/cfsengineering/GMSH-Airfoil-2D
@@ -268,16 +268,16 @@ end #hide #md
 #  Point(200) = {-0.4869343135575803, 0.09127818988394577, 0, 0.125};
 #  Point(201) = {-0.4884813930704814, 0.09387753278635144, 0, 0.125};
 #  Point(202) = {-0.4895156730580155, 0.09656301401871749, 0, 0.125};
-#  
+#
 #  // splines of the airfoil
 #  Spline(5) = {5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104};
 #  Spline(6) = {104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,5};
-#  
+#
 #  // airfoil
 #  Line Loop(9) = {5, 6};
 #  // complete domain
 #  Plane Surface(1) = {8, 9};
-#  
+#
 #  // labeling of the boundary parts
 #  Physical Line(1) = {4};      // inflow
 #  Physical Line(2) = {2};      // outflow
@@ -316,7 +316,7 @@ end #hide #md
 # This is strictly required to be able to use the mesh later with `p4est`, which supports only straight-sided quads,
 # i.e., `C2D4, CPS4, S4` in 2D and `C3D` in 3D.
 # See for more details the (short) [documentation](https://p4est.github.io/p4est-howto.pdf) on the interaction of `p4est` with `.inp` files.
-# In principle, it should also be possible to use the `recombine` function of `gmsh` to convert the triangles to quads, 
+# In principle, it should also be possible to use the `recombine` function of `gmsh` to convert the triangles to quads,
 # but this is observed to be less robust than enforcing quads from the beginning.
 #
 # Then the airfoil is defined by a set of points:
@@ -353,7 +353,7 @@ end #hide #md
 # which are crucial for the correct assignment of boundary conditions in `Trixi.jl`.
 # In particular, it is the responsibility of a user to keep track on the physical boundary names between the mesh generation and assignment of boundary condition functions in an elixir.
 #
-# After opening this file in `gmsh`, meshing the geometry and exporting to Abaqus `.inp` format, 
+# After opening this file in `gmsh`, meshing the geometry and exporting to Abaqus `.inp` format,
 # we can have a look at the input file:
 # ```
 # *Heading
@@ -372,29 +372,29 @@ end #hide #md
 # 191, 272, 46, 263, 807
 # ...
 # *NSET,NSET=PhysicalLine1
-# 1, 4, 52, 53, 54, 55, 56, 57, 58, 
+# 1, 4, 52, 53, 54, 55, 56, 57, 58,
 # *NSET,NSET=PhysicalLine2
-# 2, 3, 26, 27, 28, 29, 30, 31, 32, 
+# 2, 3, 26, 27, 28, 29, 30, 31, 32,
 # *NSET,NSET=PhysicalLine3
-# 1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 
-# 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 
-# 23, 24, 25, 33, 34, 35, 36, 37, 38, 39, 
-# 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 
-# 50, 51, 
+# 1, 2, 3, 4, 7, 8, 9, 10, 11, 12,
+# 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+# 23, 24, 25, 33, 34, 35, 36, 37, 38, 39,
+# 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+# 50, 51,
 # *NSET,NSET=PhysicalLine4
-# 5, 6, 59, 60, 61, 62, 63, 64, 65, 66, 
-# 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 
-# 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 
-# 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 
-# 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 
-# 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 
-# 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 
-# 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 
-# 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 
-# 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 
-# 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 
-# 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 
-# 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 
+# 5, 6, 59, 60, 61, 62, 63, 64, 65, 66,
+# 67, 68, 69, 70, 71, 72, 73, 74, 75, 76,
+# 77, 78, 79, 80, 81, 82, 83, 84, 85, 86,
+# 87, 88, 89, 90, 91, 92, 93, 94, 95, 96,
+# 97, 98, 99, 100, 101, 102, 103, 104, 105, 106,
+# 107, 108, 109, 110, 111, 112, 113, 114, 115, 116,
+# 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+# 127, 128, 129, 130, 131, 132, 133, 134, 135, 136,
+# 137, 138, 139, 140, 141, 142, 143, 144, 145, 146,
+# 147, 148, 149, 150, 151, 152, 153, 154, 155, 156,
+# 157, 158, 159, 160, 161, 162, 163, 164, 165, 166,
+# 167, 168, 169, 170, 171, 172, 173, 174, 175, 176,
+# 177, 178, 179, 180, 181, 182, 183, 184, 185, 186,
 # 187, 188, 189, 190,
 # ```
 #
@@ -402,7 +402,7 @@ end #hide #md
 # Note that `gmsh` exports also line elements of type `T3D2` which are ignored by `p4est`.
 # The relevant elements in 2D which form the gridcells are of type `CPS4` which are defined by their four corner nodes.
 # This is followed by the nodesets encoded via `*NSET` which are used to assign boundary conditions in Trixi.jl.
-# Trixi.jl parses the `.inp` file and assigns the edges (in 2D, surfaces in 3D) of elements to the corresponding boundary condition based on 
+# Trixi.jl parses the `.inp` file and assigns the edges (in 2D, surfaces in 3D) of elements to the corresponding boundary condition based on
 # the supplied `boundary_symbols` that have to be supplied to the `P4estMesh` constructor:
 # ```julia
 # # boundary symbols
@@ -437,13 +437,13 @@ end #hide #md
 #
 # boundary_conditions = Dict(:PhysicalLine1 => boundary_condition_supersonic_inflow, # Left boundary
 #                            :PhysicalLine2 => boundary_condition_supersonic_outflow, # Right boundary
-#                            :PhysicalLine3 => boundary_condition_supersonic_outflow, # Top and bottom boundary 
+#                            :PhysicalLine3 => boundary_condition_supersonic_outflow, # Top and bottom boundary
 #                            :PhysicalLine4 => boundary_condition_slip_wall) # Airfoil
-# 
+#
 # semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 #                                     boundary_conditions = boundary_conditions)
 # ```
-# Note that you **have to** supply the `boundary_symbols` keyword to the `P4estMesh` constructor 
+# Note that you **have to** supply the `boundary_symbols` keyword to the `P4estMesh` constructor
 # to select the boundaries from the available nodesets in the `.inp` file.
 # If the `boundary_symbols` keyword is not supplied, all boundaries will be assigned to the default set `:all`.
 
@@ -455,5 +455,7 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "Download"],
-           mode=PKGMODE_MANIFEST)
+Pkg.status(
+    ["Trixi", "OrdinaryDiffEq", "Plots", "Download"],
+    mode = PKGMODE_MANIFEST
+)

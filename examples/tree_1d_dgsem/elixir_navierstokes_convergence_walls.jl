@@ -8,22 +8,28 @@ prandtl_number() = 0.72
 mu() = 0.01
 
 equations = CompressibleEulerEquations1D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
-                                                          Prandtl = prandtl_number(),
-                                                          gradient_variables = GradientVariablesPrimitive())
+equations_parabolic = CompressibleNavierStokesDiffusion1D(
+    equations, mu = mu(),
+    Prandtl = prandtl_number(),
+    gradient_variables = GradientVariablesPrimitive()
+)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs,
-               volume_integral = VolumeIntegralWeakForm())
+solver = DGSEM(
+    polydeg = 3, surface_flux = flux_lax_friedrichs,
+    volume_integral = VolumeIntegralWeakForm()
+)
 
 coordinates_min = -1.0
 coordinates_max = 1.0
 
 # Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
-                periodicity = false,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 3,
+    periodicity = false,
+    n_cells_max = 30_000
+) # set maximum capacity of tree data structure
 
 # Note: the initial condition cannot be specialized to `CompressibleNavierStokesDiffusion1D`
 #       since it is called by both the parabolic solver (which passes in `CompressibleNavierStokesDiffusion1D`)
@@ -72,11 +78,17 @@ end
 
     v1 = log(x + 2.0) * (1.0 - exp(-A * (x - 1.0))) * cos(pi_t)
     v1_t = -pi * log(x + 2.0) * (1.0 - exp(-A * (x - 1.0))) * sin(pi_t)
-    v1_x = (A * log(x + 2.0) * exp(-A * (x - 1.0)) +
-            (1.0 - exp(-A * (x - 1.0))) / (x + 2.0)) * cos(pi_t)
-    v1_xx = ((2.0 * A * exp(-A * (x - 1.0)) / (x + 2.0) -
-              A * A * log(x + 2.0) * exp(-A * (x - 1.0)) -
-              (1.0 - exp(-A * (x - 1.0))) / ((x + 2.0) * (x + 2.0))) * cos(pi_t))
+    v1_x = (
+        A * log(x + 2.0) * exp(-A * (x - 1.0)) +
+            (1.0 - exp(-A * (x - 1.0))) / (x + 2.0)
+    ) * cos(pi_t)
+    v1_xx = (
+        (
+            2.0 * A * exp(-A * (x - 1.0)) / (x + 2.0) -
+                A * A * log(x + 2.0) * exp(-A * (x - 1.0)) -
+                (1.0 - exp(-A * (x - 1.0))) / ((x + 2.0) * (x + 2.0))
+        ) * cos(pi_t)
+    )
 
     p = rho * rho
     p_t = 2.0 * rho * rho_t
@@ -97,21 +109,27 @@ end
     du1 = rho_t + rho_x * v1 + rho * v1_x
 
     # y-momentum equation
-    du2 = (rho_t * v1 + rho * v1_t
-           + p_x + rho_x * v1^2 + 2.0 * rho * v1 * v1_x -
-           # stress tensor from y-direction
-           v1_xx * mu_)
+    du2 = (
+        rho_t * v1 + rho * v1_t
+            + p_x + rho_x * v1^2 + 2.0 * rho * v1 * v1_x -
+            # stress tensor from y-direction
+            v1_xx * mu_
+    )
 
     # total energy equation
-    du3 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x) -
-           # stress tensor and temperature gradient terms from x-direction
-           v1_xx * v1 * mu_ -
-           v1_x * v1_x * mu_ -
-           T_const * inv_rho_cubed *
-           (p_xx * rho * rho -
-            2.0 * p_x * rho * rho_x +
-            2.0 * p * rho_x * rho_x -
-            p * rho * rho_xx) * mu_)
+    du3 = (
+        E_t + v1_x * (E + p) + v1 * (E_x + p_x) -
+            # stress tensor and temperature gradient terms from x-direction
+            v1_xx * v1 * mu_ -
+            v1_x * v1_x * mu_ -
+            T_const * inv_rho_cubed *
+            (
+            p_xx * rho * rho -
+                2.0 * p_x * rho * rho_x +
+                2.0 * p * rho_x * rho_x -
+                p * rho * rho_xx
+        ) * mu_
+    )
 
     return SVector(du1, du2, du3)
 end
@@ -119,34 +137,56 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 # BC types
-velocity_bc_left_right = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
-                                                                                                      t,
-                                                                                                      equations)[2])
+velocity_bc_left_right = NoSlip(
+    (x, t, equations) -> initial_condition_navier_stokes_convergence_test(
+        x,
+        t,
+        equations
+    )[2]
+)
 
-heat_bc_left = Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
-                                                                                                                  t,
-                                                                                                                  equations),
-                                                                 equations_parabolic))
+heat_bc_left = Isothermal(
+    (x, t, equations) -> Trixi.temperature(
+        initial_condition_navier_stokes_convergence_test(
+            x,
+            t,
+            equations
+        ),
+        equations_parabolic
+    )
+)
 heat_bc_right = Adiabatic((x, t, equations) -> 0.0)
 
-boundary_condition_left = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
-                                                            heat_bc_left)
-boundary_condition_right = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
-                                                             heat_bc_right)
+boundary_condition_left = BoundaryConditionNavierStokesWall(
+    velocity_bc_left_right,
+    heat_bc_left
+)
+boundary_condition_right = BoundaryConditionNavierStokesWall(
+    velocity_bc_left_right,
+    heat_bc_right
+)
 
 # define inviscid boundary conditions
-boundary_conditions = (; x_neg = boundary_condition_slip_wall,
-                       x_pos = boundary_condition_slip_wall)
+boundary_conditions = (;
+    x_neg = boundary_condition_slip_wall,
+    x_pos = boundary_condition_slip_wall,
+)
 
 # define viscous boundary conditions
-boundary_conditions_parabolic = (; x_neg = boundary_condition_left,
-                                 x_pos = boundary_condition_right)
+boundary_conditions_parabolic = (;
+    x_neg = boundary_condition_left,
+    x_pos = boundary_condition_right,
+)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic),
-                                             source_terms = source_terms_navier_stokes_convergence_test)
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh, (equations, equations_parabolic),
+    initial_condition, solver;
+    boundary_conditions = (
+        boundary_conditions,
+        boundary_conditions_parabolic,
+    ),
+    source_terms = source_terms_navier_stokes_convergence_test
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -164,7 +204,9 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-8
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
-            ode_default_options()..., callback = callbacks)
+time_int_tol = 1.0e-8
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol, dt = 1.0e-5,
+    ode_default_options()..., callback = callbacks
+)
 summary_callback() # print the timer summary

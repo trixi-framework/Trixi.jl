@@ -16,14 +16,18 @@ coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
 # Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                periodicity = true,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 4,
+    periodicity = true,
+    n_cells_max = 30_000
+) # set maximum capacity of tree data structure
 
 # Define initial condition
-function initial_condition_diffusive_convergence_test(x, t,
-                                                      equation::LinearScalarAdvectionEquation2D)
+function initial_condition_diffusive_convergence_test(
+        x, t,
+        equation::LinearScalarAdvectionEquation2D
+    )
     # Store translated coordinate for easy use of exact solution
     x_trans = x - equation.advection_velocity * t
 
@@ -43,11 +47,15 @@ boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolicParabolic(mesh,
-                                             (equations, equations_parabolic),
-                                             initial_condition, solver;
-                                             boundary_conditions = (boundary_conditions,
-                                                                    boundary_conditions_parabolic))
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh,
+    (equations, equations_parabolic),
+    initial_condition, solver;
+    boundary_conditions = (
+        boundary_conditions,
+        boundary_conditions_parabolic,
+    )
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -76,8 +84,10 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 alg = RDPK3SpFSAL49()
 time_int_tol = 1.0e-11
-sol = solve(ode, alg; abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+sol = solve(
+    ode, alg; abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+)
 
 # Print the timer summary
 summary_callback()

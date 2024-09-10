@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -23,7 +22,7 @@ function initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEqu
     for m in 1:100
         lambda_m = m * pi / L
         v1 += 2 * u0 * (-1)^m / (lambda_m * L) * exp(-nu * lambda_m^2 * t) *
-              sin(lambda_m * x2)
+            sin(lambda_m * x2)
     end
 
     rho = 1
@@ -42,17 +41,23 @@ Moving *upper* wall boundary condition for a Couette flow setup. To be used in c
 [`boundary_condition_noslip_wall`](@ref) for the lower wall and
 [`boundary_condition_periodic`](@ref) for the lateral boundaries.
 """
-function boundary_condition_couette(u_inner, orientation, direction, x, t,
-                                    surface_flux_function,
-                                    equations::LatticeBoltzmannEquations2D)
-    return boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
-                                               surface_flux_function, equations)
+function boundary_condition_couette(
+        u_inner, orientation, direction, x, t,
+        surface_flux_function,
+        equations::LatticeBoltzmannEquations2D
+    )
+    return boundary_condition_moving_wall_ypos(
+        u_inner, orientation, direction, x, t,
+        surface_flux_function, equations
+    )
 end
 
-function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x, t,
-                                             surface_flux_function,
-                                             equations::LatticeBoltzmannEquations2D)
-    @assert direction==4 "moving wall assumed in +y direction"
+function boundary_condition_moving_wall_ypos(
+        u_inner, orientation, direction, x, t,
+        surface_flux_function,
+        equations::LatticeBoltzmannEquations2D
+    )
+    @assert direction == 4 "moving wall assumed in +y direction"
 
     @unpack rho0, u0, weights, c_s = equations
     cs_squared = c_s^2
@@ -72,22 +77,28 @@ function boundary_condition_moving_wall_ypos(u_inner, orientation, direction, x,
     # Calculate boundary flux (u_inner is "left" of boundary, u_boundary is "right" of boundary)
     return surface_flux_function(u_inner, u_boundary, orientation, equations)
 end
-boundary_conditions = (x_neg = boundary_condition_periodic,
-                       x_pos = boundary_condition_periodic,
-                       y_neg = boundary_condition_noslip_wall,
-                       y_pos = boundary_condition_couette)
+boundary_conditions = (
+    x_neg = boundary_condition_periodic,
+    x_pos = boundary_condition_periodic,
+    y_neg = boundary_condition_noslip_wall,
+    y_pos = boundary_condition_couette,
+)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_godunov)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
-                periodicity = (true, false),
-                n_cells_max = 10_000)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 3,
+    periodicity = (true, false),
+    n_cells_max = 10_000
+)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = boundary_conditions)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    boundary_conditions = boundary_conditions
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -110,30 +121,38 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
     # Use `typeof(macroscopic)` to avoid having to explicitly add `using StaticArrays`
     convert(typeof(macroscopic), (rho, v1 / equations.u0, v2 / equations.u0, p))
 end
-function Trixi.varnames(::typeof(macroscopic_normalized),
-                        equations::LatticeBoltzmannEquations2D)
+function Trixi.varnames(
+        ::typeof(macroscopic_normalized),
+        equations::LatticeBoltzmannEquations2D
+    )
     ("rho", "v1_normalized", "v2_normalized", "p")
 end
 
-save_solution = SaveSolutionCallback(interval = 1000,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = macroscopic_normalized)
+save_solution = SaveSolutionCallback(
+    interval = 1000,
+    save_initial_solution = true,
+    save_final_solution = true,
+    solution_variables = macroscopic_normalized
+)
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 collision_callback = LBMCollisionCallback()
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_solution,
-                        stepsize_callback,
-                        collision_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback, alive_callback,
+    save_solution,
+    stepsize_callback,
+    collision_callback
+)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+sol = solve(
+    ode, CarpenterKennedy2N54(williamson_condition = false),
+    dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+    save_everystep = false, callback = callbacks
+);
 summary_callback() # print the timer summary

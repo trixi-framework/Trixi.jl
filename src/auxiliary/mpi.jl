@@ -1,4 +1,3 @@
-
 """
     init_mpi()
 
@@ -15,7 +14,7 @@ function init_mpi()
     # threadlevel=MPI.THREAD_FUNNELED: Only main thread makes MPI calls
     # finalize_atexit=true           : MPI.jl will call call MPI.Finalize as `atexit` hook
     provided = MPI.Init(threadlevel = MPI.THREAD_FUNNELED, finalize_atexit = true)
-    @assert provided>=MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
+    @assert provided >= MPI.THREAD_FUNNELED "MPI library with insufficient threading support"
 
     # Initialize global MPI state
     MPI_RANK[] = MPI.Comm_rank(MPI.COMM_WORLD)
@@ -79,8 +78,10 @@ function ode_norm(u::AbstractArray, t)
     local_sumabs2 = recursive_sum_abs2(u) # sum(abs2, u)
     local_length = recursive_length(u)    # length(u)
     if mpi_isparallel()
-        global_sumabs2, global_length = MPI.Allreduce([local_sumabs2, local_length], +,
-                                                      mpi_comm())
+        global_sumabs2, global_length = MPI.Allreduce(
+            [local_sumabs2, local_length], +,
+            mpi_comm()
+        )
         return sqrt(global_sumabs2 / global_length)
     else
         return sqrt(local_sumabs2 / local_length)
@@ -96,9 +97,9 @@ recursive_sum_abs2(u::Number) = abs2(u)
 # Use `mapreduce` instead of `sum` since `sum` from StaticArrays.jl does not
 # support the kwarg `init`
 # We need `init=zero(eltype(eltype(u))` below to deal with arrays of `SVector`s etc.
-# A better solution would be `recursive_unitless_bottom_eltype` from 
+# A better solution would be `recursive_unitless_bottom_eltype` from
 # https://github.com/SciML/RecursiveArrayTools.jl
-# However, what you have is good enough for us for now, so we don't need this 
+# However, what you have is good enough for us for now, so we don't need this
 # additional dependency at the moment.
 function recursive_sum_abs2(u::AbstractArray)
     mapreduce(recursive_sum_abs2, +, u; init = zero(eltype(eltype(u))))
@@ -107,8 +108,14 @@ end
 recursive_length(u::Number) = length(u)
 recursive_length(u::AbstractArray{<:Number}) = length(u)
 recursive_length(u::AbstractArray{<:AbstractArray}) = sum(recursive_length, u)
-function recursive_length(u::AbstractArray{<:StaticArrays.StaticArray{S,
-                                                                      <:Number}}) where {S}
+function recursive_length(
+        u::AbstractArray{
+            <:StaticArrays.StaticArray{
+                S,
+                <:Number,
+            },
+        }
+    ) where {S}
     prod(StaticArrays.Size(eltype(u))) * length(u)
 end
 

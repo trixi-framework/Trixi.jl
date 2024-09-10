@@ -12,9 +12,11 @@ initial_condition = initial_condition_convergence_test # MMS EOC test
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg = 3,
-               surface_flux = (flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 3,
+    surface_flux = (flux_lax_friedrichs, flux_nonconservative_fjordholm_etal),
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 ###############################################################################
 # Get the P4estMesh and setup a periodic mesh
@@ -24,13 +26,17 @@ coordinates_max = (sqrt(2.0), sqrt(2.0))  # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (8, 8)
 
-mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
-                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                  initial_refinement_level = 1)
+mesh = T8codeMesh(
+    trees_per_dimension, polydeg = 3,
+    coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+    initial_refinement_level = 1
+)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(
+    mesh, equations, initial_condition, solver,
+    source_terms = source_terms_convergence_test
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -52,8 +58,10 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 # run the simulation
 
 # use a Runge-Kutta method with automatic (error based) time step size control
-sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-8, reltol = 1.0e-8,
-            ode_default_options()..., callback = callbacks);
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = 1.0e-8, reltol = 1.0e-8,
+    ode_default_options()..., callback = callbacks
+);
 summary_callback() # print the timer summary
 
 # Finalize `T8codeMesh` to make sure MPI related objects in t8code are

@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -9,8 +8,10 @@ prandtl_number() = 0.72
 mu() = 6.25e-4 # equivalent to Re = 1600
 
 equations = CompressibleEulerEquations1D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
-                                                          Prandtl = prandtl_number())
+equations_parabolic = CompressibleNavierStokesDiffusion1D(
+    equations, mu = mu(),
+    Prandtl = prandtl_number()
+)
 
 # This convergence test setup was originally derived by Andrew Winters (@andrewwinters5000)
 # (Simplified version of the 2D)
@@ -76,38 +77,50 @@ initial_condition = initial_condition_navier_stokes_convergence_test
     du1 = rho_t + rho_x * v1 + rho * v1_x
 
     # x-momentum equation
-    du2 = (rho_t * v1 + rho * v1_t
-           + p_x + rho_x * v1^2 + 2.0 * rho * v1 * v1_x -
-           # stress tensor from x-direction
-           v1_xx * mu_)
+    du2 = (
+        rho_t * v1 + rho * v1_t
+            + p_x + rho_x * v1^2 + 2.0 * rho * v1 * v1_x -
+            # stress tensor from x-direction
+            v1_xx * mu_
+    )
 
     # total energy equation
-    du3 = (E_t + v1_x * (E + p) + v1 * (E_x + p_x) -
-           # stress tensor and temperature gradient terms from x-direction
-           v1_xx * v1 * mu_ -
-           v1_x * v1_x * mu_ -
-           T_const * inv_rho_cubed *
-           (p_xx * rho * rho -
-            2.0 * p_x * rho * rho_x +
-            2.0 * p * rho_x * rho_x -
-            p * rho * rho_xx) * mu_)
+    du3 = (
+        E_t + v1_x * (E + p) + v1 * (E_x + p_x) -
+            # stress tensor and temperature gradient terms from x-direction
+            v1_xx * v1 * mu_ -
+            v1_x * v1_x * mu_ -
+            T_const * inv_rho_cubed *
+            (
+            p_xx * rho * rho -
+                2.0 * p_x * rho * rho_x +
+                2.0 * p * rho_x * rho_x -
+                p * rho * rho_xx
+        ) * mu_
+    )
 
     return SVector(du1, du2, du3)
 end
 
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 3, surface_flux = flux_hllc,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(
+    polydeg = 3, surface_flux = flux_hllc,
+    volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+)
 
 coordinates_min = -1.0
 coordinates_max = 1.0
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 100_000)
+mesh = TreeMesh(
+    coordinates_min, coordinates_max,
+    initial_refinement_level = 4,
+    n_cells_max = 100_000
+)
 
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
-                                             source_terms = source_terms_navier_stokes_convergence_test)
+semi = SemidiscretizationHyperbolicParabolic(
+    mesh, (equations, equations_parabolic),
+    initial_condition, solver,
+    source_terms = source_terms_navier_stokes_convergence_test
+)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -122,14 +135,18 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback,
-                        alive_callback)
+callbacks = CallbackSet(
+    summary_callback,
+    analysis_callback,
+    alive_callback
+)
 
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-9
-sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
-            ode_default_options()..., callback = callbacks)
+time_int_tol = 1.0e-9
+sol = solve(
+    ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+    ode_default_options()..., callback = callbacks
+)
 summary_callback() # print the timer summary

@@ -3,22 +3,22 @@ using Test: @testset
 import Pkg
 
 # Create markdown and notebook files for `file`
-function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder="")
+function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder = "")
     notebook_filename = first(splitext(file)) * ".ipynb"
     if !isempty(folder)
         notebook_filename = joinpath(folder, notebook_filename)
     end
 
-    binder_logo   = "https://mybinder.org/badge_logo.svg"
+    binder_logo = "https://mybinder.org/badge_logo.svg"
     nbviewer_logo = "https://img.shields.io/badge/render-nbviewer-f37726"
     raw_notebook_logo = "https://img.shields.io/badge/raw-notebook-4cc61e"
 
     notebook_path = "tutorials/notebooks/$notebook_filename"
-    binder_url   = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=$notebook_path"
+    binder_url = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=$notebook_path"
     nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/$notebook_path"
     raw_notebook_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/$notebook_path"
 
-    binder_badge   = "# [![]($binder_logo)]($binder_url)"
+    binder_badge = "# [![]($binder_logo)]($binder_url)"
     nbviewer_badge = "# [![]($nbviewer_logo)]($nbviewer_url)"
     raw_notebook_badge = "# [![]($raw_notebook_logo)]($raw_notebook_url)"
 
@@ -28,25 +28,25 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder=""
         # available for the latest stable release of Trixi.jl at the time of caching.\n\n"
         return string("# # $title\n\n", warning, content)
     end
-    Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute=false, preprocess=preprocess_notebook, credit=false)
+    Literate.notebook(joinpath(repo_src, folder, file), joinpath(notebooks_dir, folder); execute = false, preprocess = preprocess_notebook, credit = false)
 
     # Generate markdown file
     function preprocess_docs(content)
         return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $raw_notebook_badge\n\n", content)
     end
-    Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder); preprocess=preprocess_docs,)
+    Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder); preprocess = preprocess_docs)
 end
 
 # Create tutorials with Literate.jl
 function create_tutorials(files)
-    repo_src        = joinpath(@__DIR__, "src", "files")
+    repo_src = joinpath(@__DIR__, "src", "files")
 
-    pages_dir       = joinpath(@__DIR__, "..", "src", "tutorials")
-    notebooks_dir   = joinpath(pages_dir, "notebooks")
+    pages_dir = joinpath(@__DIR__, "..", "src", "tutorials")
+    notebooks_dir = joinpath(pages_dir, "notebooks")
 
-    Sys.rm(pages_dir;       recursive=true, force=true)
+    Sys.rm(pages_dir; recursive = true, force = true)
 
-    Sys.rm("out"; recursive=true, force=true)
+    Sys.rm("out"; recursive = true, force = true)
 
     # Run tests on all tutorial files
     @testset "TrixiTutorials" begin
@@ -59,7 +59,7 @@ function create_tutorials(files)
                     mod = gensym(filename[j][2][2])
                     @testset "$(filename[j][2][2])" begin
                         @eval module $mod
-                            include(joinpath($repo_src, $(filename[j][2][1]), $(filename[j][2][2])))
+                        include(joinpath($repo_src, $(filename[j][2][1]), $(filename[j][2][2])))
                         end
                     end
                 end
@@ -67,7 +67,7 @@ function create_tutorials(files)
                 mod = gensym(title)
                 @testset "$title" begin
                     @eval module $mod
-                        include(joinpath($repo_src, $filename))
+                    include(joinpath($repo_src, $filename))
                     end
                 end
             end
@@ -85,9 +85,9 @@ function create_tutorials(files)
         end
         return content
     end
-    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name="introduction", preprocess=preprocess_introduction)
+    Literate.markdown(joinpath(repo_src, "index.jl"), pages_dir; name = "introduction", preprocess = preprocess_introduction)
     # Navigation system for makedocs
-    pages = Any["Introduction" => "tutorials/introduction.md",]
+    pages = Any["Introduction" => "tutorials/introduction.md"]
 
     # Create markdown and notebook files for tutorials
     for (i, (title, filename)) in enumerate(files)
@@ -95,8 +95,10 @@ function create_tutorials(files)
         if filename isa Vector
             vector = []
             for j in eachindex(filename)
-                create_files("$i.$j: $title: $(filename[j][1])", filename[j][2][2], repo_src,
-                             pages_dir, notebooks_dir; folder=filename[j][2][1])
+                create_files(
+                    "$i.$j: $title: $(filename[j][1])", filename[j][2][2], repo_src,
+                    pages_dir, notebooks_dir; folder = filename[j][2][1]
+                )
 
                 path = "$(filename[j][2][1])/$(splitext(filename[j][2][2])[1]).md"
                 push!(vector, "$i.$j $(filename[j][1])" => "tutorials/$path")
