@@ -16,6 +16,10 @@ by the mesh itself, while `NDIMS_AMBIENT` denotes the dimension of the ambient s
 which the mesh is embedded. For example, the type `P4estMesh{3, 3}` corresponds to a
 standard mesh for a three-dimensional volume, whereas `P4estMesh{2, 3}` corresponds to a
 mesh for a two-dimensional surface or shell in three-dimensional space.
+
+!!! warning "Experimental implementation"
+    The use of `NDIMS != NDIMS_AMBIENT` is an experimental feature and may change in future
+    releases.
 """
 mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
                          NDIMSP2, NNODES} <:
@@ -55,7 +59,7 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
         ghost = ghost_new_p4est(p4est)
         ghost_pw = PointerWrapper(ghost)
 
-        # To enable the treatment of a manifold of dimension NDIM embedded within an
+        # To enable the treatment of a manifold of dimension NDIMS embedded within an
         # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
         # allow them to differ in the general case. This functionality is used for
         # constructing discretizations on spherical shell domains for applications in
