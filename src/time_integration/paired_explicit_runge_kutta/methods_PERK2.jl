@@ -60,7 +60,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                           eig_vals; verbose)
     monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
                                           num_stages)
-    
+
     num_monomial_coeffs = length(monomial_coeffs)
     @assert num_monomial_coeffs == coeffs_max
     A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
@@ -151,7 +151,8 @@ mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
 end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
-function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt,
+function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
+                           dt_opt,
                            bS = 1.0, cS = 0.5)
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             base_path_monomial_coeffs,
@@ -176,9 +177,9 @@ function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false,
                            bS = 1.0, cS = 0.5)
     a_matrix, c, dt_opt = compute_PairedExplicitRK2_butcher_tableau(num_stages,
-                                                            eig_vals, tspan,
-                                                            bS, cS;
-                                                            verbose)
+                                                                    eig_vals, tspan,
+                                                                    bS, cS;
+                                                                    verbose)
 
     return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS, dt_opt)
 end
@@ -234,6 +235,26 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
     # PairedExplicitRK2 stages:
     k1::uType
     k_higher::uType
+end
+
+"""
+    calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
+
+This function computes the CFL number once using the initial condition of the problem and the optimal timestep (`dt_opt`) from the ODE algorithm.
+"""
+function calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
+    t0 = first(ode.tspan)
+    u_ode = ode.u0
+    semi = ode.p
+    dt_opt = ode_algorithm.dt_opt
+
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    cfl_number = dt_opt / max_dt(u, t0, mesh,
+                        have_constant_speed(equations), equations,
+                        solver, cache)
+    return cfl_number
 end
 
 """
