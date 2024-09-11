@@ -8,7 +8,7 @@ for human readability.
 
 #### Changed
 
-- We removed the first argument `semi` corresponding to a `Semidiscretizaion` from the 
+- We removed the first argument `semi` corresponding to a `Semidiscretization` from the 
   `AnalysisSurfaceIntegral` constructor, as it is no longer needed (see [#1959]).
   The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`. ([#2069])
 
