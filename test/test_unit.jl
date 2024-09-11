@@ -1471,7 +1471,7 @@ end
             SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
             FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle,
-            flux_hllc, flux_chandrashekar
+            flux_hllc, flux_chandrashekar,
         ]
 
         for f_std in fluxes
