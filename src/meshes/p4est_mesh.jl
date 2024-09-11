@@ -35,10 +35,14 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
     current_filename::String
     unsaved_changes::Bool
     p4est_partition_allow_for_coarsening::Bool
+    coordinates_min::SVector{NDIMS, RealT}
+    coordinates_max::SVector{NDIMS, RealT}
+    trees_per_dimension::SVector{NDIMS, Int}
 
     function P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes, boundary_names,
                               current_filename, unsaved_changes,
-                              p4est_partition_allow_for_coarsening) where {NDIMS}
+                              p4est_partition_allow_for_coarsening,
+                              coordinates_min, coordinates_max, trees_per_dimension) where {NDIMS}
         if NDIMS == 2
             @assert p4est isa Ptr{p4est_t}
         elseif NDIMS == 3
@@ -75,7 +79,10 @@ mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Gho
                                                                                  boundary_names,
                                                                                  current_filename,
                                                                                  unsaved_changes,
-                                                                                 p4est_partition_allow_for_coarsening)
+                                                                                 p4est_partition_allow_for_coarsening,
+                                                                                 coordinates_min,
+                                                                                 coordinates_max,
+                                                                                 trees_per_dimension)
 
         # Destroy `p4est` structs when the mesh is garbage collected
         finalizer(destroy_mesh, mesh)
@@ -237,7 +244,8 @@ function P4estMesh(trees_per_dimension; polydeg,
 
     return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
                             boundary_names, "", unsaved_changes,
-                            p4est_partition_allow_for_coarsening)
+                            p4est_partition_allow_for_coarsening,
+                            coordinates_min, coordinates_max, trees_per_dimension)
 end
 
 # 2D version

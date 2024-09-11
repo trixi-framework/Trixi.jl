@@ -7,8 +7,8 @@
 
 # Save current mesh with some context information as an HDF5 file.
 function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh}, output_directory,
-                        timestep = 0)
-    save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
+                        timestep = 0; system = "")
+    save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh); system = system)
 end
 
 function save_mesh_file(mesh::TreeMesh, output_directory, timestep,
@@ -150,17 +150,27 @@ end
 # Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
 # these attributes for plotting purposes
 function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
-                        mpi_parallel::False)
+                        mpi_parallel::False; system="")
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%09d", timestep)
+        if isempty(system)
+            filename = joinpath(output_directory, @sprintf("mesh_%06d.h5", timestep))
+            p4est_filename = @sprintf("p4est_data_%06d", timestep)
+        else
+            filename = joinpath(output_directory, @sprintf("mesh_%06d_%s.h5", timestep, system))
+            p4est_filename = @sprintf("p4est_data_%06d_%s", timestep, system)
+        end
     else
-        filename = joinpath(output_directory, "mesh.h5")
-        p4est_filename = "p4est_data"
+        if isempty(system)
+            filename = joinpath(output_directory, "mesh.h5")
+            p4est_filename = "p4est_data"
+        else
+            filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system))
+            p4est_filename = @sprintf("p4est_data_%s", system)
+        end
     end
 
     p4est_file = joinpath(output_directory, p4est_filename)
@@ -174,6 +184,9 @@ function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["p4est_file"] = p4est_filename
+        attributes(file)["coordinates_min"] = mesh.coordinates_min
+        attributes(file)["coordinates_max"] = mesh.coordinates_max
+        attributes(file)["trees_per_dimension"] = mesh.trees_per_dimension
 
         file["tree_node_coordinates"] = mesh.tree_node_coordinates
         file["nodes"] = Vector(mesh.nodes) # the mesh uses `SVector`s for the nodes
@@ -248,9 +261,12 @@ function load_mesh(restart_file::AbstractString; n_cells_max = 0, RealT = Float6
 end
 
 function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
-    ndims, mesh_type = h5open(mesh_file, "r") do file
+    ndims, mesh_type, coordinates_min, coordinates_max, trees_per_dimension = h5open(mesh_file, "r") do file
         return read(attributes(file)["ndims"]),
-               read(attributes(file)["mesh_type"])
+               read(attributes(file)["mesh_type"]),
+               read(attributes(file)["coordinates_min"]),
+               read(attributes(file)["coordinates_max"]),
+               read(attributes(file)["trees_per_dimension"])
     end
 
     if mesh_type == "TreeMesh"
@@ -321,7 +337,8 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         p4est = load_p4est(p4est_file, Val(ndims))
 
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                                nodes, boundary_names, mesh_file, false, true)
+                                nodes, boundary_names, mesh_file,, false, true,
+                                coordinates_min, coordinates_max, trees_per_dimension)
     else
         error("Unknown mesh type!")
     end
