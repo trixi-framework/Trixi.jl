@@ -33,7 +33,7 @@ end
 
 function prepare_callback!(limiter::EntropyBoundedLimiter, integrator)
     semi = integrator.p
-    u = u = wrap_array(integrator.u, semi)
+    u = wrap_array(integrator.u, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
     # Compute the minimum entropy exponent for each node
     limiter.min_entropy_exp = zeros(eltype(u), nelements(dg, cache))

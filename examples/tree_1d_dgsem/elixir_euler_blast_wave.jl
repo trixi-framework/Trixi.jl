@@ -52,7 +52,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-2.0,)
 coordinates_max = (2.0,)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 6,
+                initial_refinement_level = 7,
                 n_cells_max = 10_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -80,13 +80,35 @@ stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
+                        #save_solution,
                         stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
+#=
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
+=#
+
+stage_callbacks = (Trixi.EntropyBoundedLimiter(density_threshold = 5.0e-6),)
+
+stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
+                                                     variables = (Trixi.density, pressure))
+
+###############################################################################
+# run the simulation
+
+#=
+sol = solve(ode, SSPRK33(stage_limiter!),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
+=#
+
+
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  callback = callbacks);
+                 
 summary_callback() # print the timer summary
