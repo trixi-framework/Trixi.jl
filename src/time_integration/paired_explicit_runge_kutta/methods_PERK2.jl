@@ -76,9 +76,6 @@ end
 function compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                    base_path_monomial_coeffs::AbstractString,
                                                    bS, cS)
-
-    #TODO: If the user has a specific set of monomial coefficients, they must also have already obtained dt_opt
-    #TODO: where did I get this monomial in unit test....
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
     for k in 2:num_stages
@@ -154,11 +151,12 @@ end # struct PairedExplicitRK2
 function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
                            dt_opt,
                            bS = 1.0, cS = 0.5)
+    # If the user has the monomial coefficients, they also must have the optimal time step
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             base_path_monomial_coeffs,
                                                             bS, cS)
 
-    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS)
+    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS, dt_opt)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a
