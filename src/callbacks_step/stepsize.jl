@@ -33,29 +33,13 @@ function Base.show(io::IO, ::MIME"text/plain",
         stepsize_callback = cb.affect!
 
         setup = [
-            "CFL number" => stepsize_callback.cfl_number,
+            "CFL number" => stepsize_callback.cfl_number
         ]
         summary_box(io, "StepsizeCallback", setup)
     end
 end
 
 function StepsizeCallback(; cfl::Real = 1.0)
-    stepsize_callback = StepsizeCallback(cfl)
-
-    DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
-                     save_positions = (false, false),
-                     initialize = initialize!)
-end
-
-# For Paired-Explicit Runge-Kutta methods, the CFL number is calculated based on the optimal timestep
-function StepsizeCallback(ode, ode_algorithm::AbstractPairedExplicitRKSingle)
-    # TODO: Loop over all the time step and choose the minimum CFL number? from the loop???
-    t = first(ode.tspan)
-    u_ode = ode.u0
-    semi = ode.p
-    dt_opt = ode_algorithm.dt_opt
-    cfl = calculate_cfl(u_ode, t, dt_opt, semi)
-
     stepsize_callback = StepsizeCallback(cfl)
 
     DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
@@ -104,19 +88,6 @@ function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
     dt = cfl_number * max_dt(u, t, mesh,
                 have_constant_speed(equations), equations,
                 solver, cache)
-end
-
-# For Paired Explicit Runge-Kutta methods, use the CFL number calculated from the optimal timestep of the
-# scheme.
-function calculate_cfl(u_ode, t, dt_opt, semi::AbstractSemidiscretization)
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
-
-    cfl_number = dt_opt / max_dt(u, t, mesh,
-                        have_constant_speed(equations), equations,
-                        solver, cache)
-
-    return cfl_number
 end
 
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own
