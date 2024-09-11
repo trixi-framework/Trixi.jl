@@ -194,6 +194,10 @@ function solve!(integrator::SimpleIntegratorSSP)
 
         @. integrator.r0 = integrator.u
         for stage in eachindex(alg.c)
+            for stage_callback in alg.stage_callbacks
+                prepare_callback!(stage_callback, integrator)
+            end
+
             t_stage = integrator.t + integrator.dt * alg.c[stage]
             # compute du
             integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
