@@ -50,9 +50,11 @@ function IdealGlmMhdMulticomponentEquations2D(; gammas, gas_constants)
     __gammas = SVector(map(RealT, _gammas))
     __gas_constants = SVector(map(RealT, _gas_constants))
 
+    c_h = convert(RealT, NaN)
+
     return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
                                                                      __gas_constants,
-                                                                     NaN)
+                                                                     c_h)
 end
 
 # Outer constructor for `@reset` works correctly
