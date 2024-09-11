@@ -20,16 +20,16 @@ function EntropyBoundedLimiter(semi)
 end
 
 function (limiter!::EntropyBoundedLimiter)(u_ode,
-                                          integrator::Trixi.SimpleIntegratorSSP,
-                                          stage)
+                                           integrator::Trixi.SimpleIntegratorSSP,
+                                           stage)
     limiter!(u_ode, integrator.p)
 end
 
 function (limiter!::EntropyBoundedLimiter)(u_ode, semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, semi)
     @trixi_timeit timer() "entropy-bounded limiter" begin
-        limiter_entropy_bounded!(u, limiter!.min_entropy_exp, 
-                           mesh_equations_solver_cache(semi)...)
+        limiter_entropy_bounded!(u, limiter!.min_entropy_exp,
+                                 mesh_equations_solver_cache(semi)...)
     end
 end
 
