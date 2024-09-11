@@ -18,7 +18,7 @@ mutable struct StructuredMesh{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
     mapping::Any # Not relevant for performance
     mapping_as_string::String
     periodicity::NTuple{NDIMS, Bool}
-    current_filename::String
+#     current_filename::String
     unsaved_changes::Bool
 end
 

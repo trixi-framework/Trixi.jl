@@ -88,6 +88,7 @@ end
 
 @inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline Base.size(mesh::P4estMesh) = size(mesh.tree_node_coordinates)[end]
 
 @inline function ntrees(mesh::P4estMesh)
     return mesh.p4est.trees.elem_count[]
@@ -2051,4 +2052,9 @@ function collect_new_cells(mesh::P4estMesh)
 
     return new_cells
 end
+
+Base.size(mesh::P4estMesh) = return (16, 16)
+Base.size(mesh::P4estMesh, i::Int) = return 16
+Base.axes(mesh::P4estMesh) = map(Base.OneTo, size(mesh))
+Base.axes(mesh::P4estMesh, i) = Base.OneTo(size(mesh, i))
 end # @muladd

@@ -176,7 +176,14 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupled, t)
 
     @trixi_timeit timer() "copy to coupled boundaries" begin
         foreach(semi.semis) do semi_
-            copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
+            boundary_conditions = semi_.boundary_conditions
+            # For p4est meshes we define the boundary conditions as dictionaries.
+            # But for the cop routine we need them as NamedTuple.
+            # Hence, the conversion here.
+            if typeof(boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes
+                boundary_conditions = NamedTuple{Tuple(keys(boundary_conditions.boundary_dictionary))}(values(boundary_conditions.boundary_dictionary))
+            end
+            copy_to_coupled_boundary!(boundary_conditions, u_ode, semi, semi_)
         end
     end
 
@@ -456,7 +463,7 @@ mutable struct BoundaryConditionCoupled{NDIMS,
             other_orientation = 1
         elseif indices[2] in (:begin, :end)
             other_orientation = 2
-        else # indices[3] in (:begin, :end)
+       else # indices[3] in (:begin, :end)
             other_orientation = 3
         end
 
@@ -476,8 +483,6 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
                                                         surface_node_indices,
                                                         surface_flux_function,
                                                         equations)
-    # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
-    # but we don't have a solver here
     u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
                                                                    surface_node_indices...,
                                                                    cell_indices...],
@@ -511,13 +516,38 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
     return flux
 end
 
+function (boundary_condition::BoundaryConditionCoupled)(u_inner, normal_direction,
+                                                        x, t, surface_flux_function,
+                                                        equations)
+#     u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, node_index, cell_index],
+#                                 Val(nvariables(equations))))
+    u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v, 2, 4],
+                                Val(nvariables(equations))))
+
+    # Calculate boundary flux
+    if (normal_direction[1] >= 0) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, normal_direction, equations)
+    end
+
+    return flux
+end
+
 function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
     n_boundaries = 2 * ndims(semi)
     mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
+    boundary_dictionary_names = [:x_neg, :x_pos, :y_neg, :y_pos]
 
     for direction in 1:n_boundaries
-        boundary_condition = semi.boundary_conditions[direction]
-
+        boundary_condition = nothing
+        if typeof(semi.boundary_conditions) <: Trixi.UnstructuredSortedBoundaryTypes
+            if boundary_dictionary_names[direction] in keys(semi.boundary_conditions.boundary_dictionary)
+                boundary_condition = semi.boundary_conditions.boundary_dictionary[boundary_dictionary_names[direction]]
+            end
+        else
+            boundary_condition = semi.boundary_conditions[direction]
+        end
         allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
                                             equations,
                                             solver)
