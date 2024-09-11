@@ -6,6 +6,10 @@
 #! format: noindent
 
 function prepare_limiter!(limiter::EntropyBoundedLimiter, mesh::AbstractMesh{1}, equations, dg, cache, u)
+    if length(limiter.min_entropy_exp) != nelements(dg, cache)
+        resize!(limiter.min_entropy_exp, nelements(dg, cache))
+    end
+
     @threaded for element in eachelement(dg, cache)
         s_min = typemax(eltype(u))
         for i in eachnode(dg)
@@ -18,11 +22,8 @@ function prepare_limiter!(limiter::EntropyBoundedLimiter, mesh::AbstractMesh{1},
     return nothing
 end
 
-function limiter_entropy_bounded!(u, density_threshold, min_entropy_exp,
+function limiter_entropy_bounded!(u, min_entropy_exp,
                                   mesh::AbstractMesh{1}, equations, dg::DGSEM, cache)
-
-    # Call Zhang-Shu limiter to enforce positivity of density
-    #limiter_zhang_shu!(u, 5.0e-6, density, mesh, equations, dg, cache)
     @unpack weights = dg.basis
     
     @threaded for element in eachelement(dg, cache)
@@ -52,20 +53,12 @@ function limiter_entropy_bounded!(u, density_threshold, min_entropy_exp,
 
         epsilon = tau_min / (tau_min - entropy_difference_mean)
 
-        #@assert entropy_difference_mean >= 0 "Entropy difference of mean value is negative!"
-        #@assert rho_mean > 0 "Density mean is not positive!"
-        
-        #@assert epsilon >= 0 && epsilon <= 1 "Epsilon is not in [0,1]!"
         # In the derivation of the limiter it is assumed that 
         # entropy_difference_mean >= 0 which would imply epsilon <= 1 (maximum limiting).
-        # This might however not always be the case in a simulation, thus 
-        # we clip epsilon at 1.
+        # However, this might not always be the case in a simulation, 
+        # thus we clip epsilon at 1.
         if epsilon > 1
             epsilon = 1
-        #=
-        elseif epsilon < 0
-            epsilon = 0
-        =#
         end
 
         for i in eachnode(dg)

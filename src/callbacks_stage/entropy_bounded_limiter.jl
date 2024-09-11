@@ -9,12 +9,14 @@
     EntropyBoundedLimiter(; density_threshold)
 """
 mutable struct EntropyBoundedLimiter{RealT <: Real}
-    density_threshold::RealT
+    # `resize!`able storage
     min_entropy_exp::Vector{RealT}
 end
 
-function EntropyBoundedLimiter(; density_threshold)
-    EntropyBoundedLimiter(density_threshold, Vector{eltype(density_threshold)}())
+function EntropyBoundedLimiter(semi)
+    _, _, dg, cache = mesh_equations_solver_cache(semi)
+    RealT = real(dg)
+    EntropyBoundedLimiter{RealT}(zeros(RealT, nelements(dg, cache)))
 end
 
 function (limiter!::EntropyBoundedLimiter)(u_ode,
@@ -26,7 +28,7 @@ end
 function (limiter!::EntropyBoundedLimiter)(u_ode, semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, semi)
     @trixi_timeit timer() "entropy-bounded limiter" begin
-        limiter_entropy_bounded!(u, limiter!.density_threshold, limiter!.min_entropy_exp, 
+        limiter_entropy_bounded!(u, limiter!.min_entropy_exp, 
                            mesh_equations_solver_cache(semi)...)
     end
 end
