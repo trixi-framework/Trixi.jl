@@ -384,6 +384,8 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
         c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
 
         # c_h is proportional to its own time step divided by the complete MHD time step
+        # We use @reset here since the equations are immutable (to work on GPUs etc.).
+        # Thus, we need to modify the equations field of the semidiscretization.
         @reset equations.c_h = glm_scale * c_h_deltat / dt
         semi.equations = equations
     end
