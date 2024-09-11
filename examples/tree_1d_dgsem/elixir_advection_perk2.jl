@@ -39,21 +39,15 @@ summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
+# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
+stepsize_callback = StepsizeCallback(cfl = 2.5)
+
 alive_callback = AliveCallback(alive_interval = analysis_interval)
 
 save_solution = SaveSolutionCallback(dt = 0.1,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
-
-# Construct second order paired explicit Runge-Kutta method with 6 stages for given simulation setup.
-# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
-# in calculating the polynomial coefficients in the ODE algorithm.
-ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
-
-# The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-# For PERK schemes, the CFL number is calculated from the optimal time step of the scheme.
-stepsize_callback = StepsizeCallback(ode, ode_algorithm)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
@@ -64,6 +58,12 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
+
+# Construct second order paired explicit Runge-Kutta method with 6 stages for given simulation setup.
+# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
+# in calculating the polynomial coefficients in the ODE algorithm.
+ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
+
 sol = Trixi.solve(ode, ode_algorithm,
                   dt = 1.0, # Manual time step value, will be overwritten by the stepsize_callback when it is specified.
                   save_everystep = false, callback = callbacks);
