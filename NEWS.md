@@ -4,6 +4,14 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.9 from v0.8.x
+
+#### Changed
+
+- We removed the first argument `semi` corresponding to a `Semidiscretizaion` from the 
+  `AnalysisSurfaceIntegral` constructor, as it is no longer needed (see [#1959]).
+  The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`. ([#2069])
+
 ## Changes in the v0.8 lifecycle
 
 #### Changed
@@ -11,9 +19,6 @@ for human readability.
 - The AMR routines for `P4estMesh` and `T8codeMesh` were changed to work on the product
   of the Jacobian and the conserved variables instead of the conserved variables only
   to make AMR fully conservative ([#2028]). This may change AMR results slightly.
-- We removed the first argument `semi` corresponding to a `Semidiscretizaion` from the 
-  `AnalysisSurfaceIntegral` constructor, as it is no longer needed (see [#1959]).
-  The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`. ([#2069])
 
 ## Changes when updating to v0.8 from v0.7.x
 
