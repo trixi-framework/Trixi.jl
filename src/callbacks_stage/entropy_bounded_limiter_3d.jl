@@ -33,7 +33,7 @@ function limiter_entropy_bounded!(u, exp_entropy_decrease_max, min_entropy_exp,
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
             d_exp_s = exp_entropy_increase(pressure(u_node, equations), s_min_exp,
-                                  density(u_node, equations), equations.gamma)
+                                           density(u_node, equations), equations.gamma)
             d_exp_s_min = min(d_exp_s_min, d_exp_s)
         end
 
@@ -55,8 +55,8 @@ function limiter_entropy_bounded!(u, exp_entropy_decrease_max, min_entropy_exp,
 
         rho_mean = density(u_mean, equations)
         entropy_increase_mean = exp_entropy_increase(pressure(u_mean, equations),
-                                                 s_min_exp, rho_mean,
-                                                 equations.gamma)
+                                                     s_min_exp, rho_mean,
+                                                     equations.gamma)
 
         epsilon = d_exp_s_min / (d_exp_s_min - entropy_increase_mean)
 
