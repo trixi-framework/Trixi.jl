@@ -100,8 +100,9 @@ p_min = 1.0E-3
 rho_max = 1.1691
 exp_s_min = p_min / (rho_max^gamma) # = exp(ln(p_min/(rho_max^gamma)))
 
-# Tolerate entropy decrease per stage of 0.02% of the reference entropy
-stage_callbacks = (Trixi.EntropyBoundedLimiter(exp_entropy_decrease_max = -exp_s_min * 1.8),)
+# Tolerate entropy decrease per stage to 1.8 times the reference entropy.
+# Note: This is a relatively anti-diffusive setup.
+stage_callbacks = (EntropyBoundedLimiter(exp_entropy_decrease_max = -exp_s_min * 1.8),)
 
 ###############################################################################
 # run the simulation
