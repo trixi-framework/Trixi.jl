@@ -29,7 +29,7 @@ jobs:
         # TODO: Change the call below to
         #       format(".")
         run: |
-          julia  -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter", version="1.0.45"))'
+          julia  -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter", version="1.0.60"))'
           julia  -e 'using JuliaFormatter; format(["benchmark", "examples", "ext", "src", "test", "utils"])'
       - name: Format check
         run: |
