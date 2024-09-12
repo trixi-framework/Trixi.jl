@@ -69,7 +69,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (Trixi.EntropyBoundedLimiter(entropy_decrease_max = -1e-13),)
+stage_callbacks = (Trixi.EntropyBoundedLimiter(exp_entropy_decrease_max = -1e-13),)
 
 ###############################################################################
 # run the simulation

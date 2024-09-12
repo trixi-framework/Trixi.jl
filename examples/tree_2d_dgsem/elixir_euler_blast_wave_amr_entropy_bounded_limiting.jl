@@ -97,18 +97,11 @@ callbacks = CallbackSet(summary_callback,
 # Set up entropy-bounded stage callback
 
 p_min = 1.0E-3
-p_max = 1.245
-
-rho_min = 1.0
 rho_max = 1.1691
-
-s_min = log(p_min) - log(rho_max)^gamma
-s_max = log(p_max) - log(rho_min)^gamma
-
-s_ref = max(abs(s_min), abs(s_max))
+exp_s_min = p_min/(rho_max^gamma) # = exp(ln(p_min/(rho_max^gamma)))
 
 # Tolerate entropy decrease per stage of 0.02% of the reference entropy
-stage_callbacks = (Trixi.EntropyBoundedLimiter(entropy_decrease_max = -s_ref * 2e-4),)
+stage_callbacks = (Trixi.EntropyBoundedLimiter(exp_entropy_decrease_max = -exp_s_min * 1.8),)
 
 ###############################################################################
 # run the simulation
