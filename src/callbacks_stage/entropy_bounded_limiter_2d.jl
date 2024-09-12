@@ -19,7 +19,7 @@ function save_min_exp_entropy!(limiter::EntropyBoundedLimiter, mesh::AbstractMes
     return nothing
 end
 
-function limiter_entropy_bounded!(u, min_entropy_exp,
+function limiter_entropy_bounded!(u, entropy_decrease_max, min_entropy_exp,
                                   mesh::AbstractMesh{2}, equations, dg::DGSEM, cache)
     @unpack weights = dg.basis
     @unpack inverse_jacobian = cache.elements
@@ -28,17 +28,17 @@ function limiter_entropy_bounded!(u, min_entropy_exp,
         s_min_exp = min_entropy_exp[element]
 
         # Determine minimum value for entropy difference
-        # Can use zero here since tau is defined as min{0, min_x entropy_difference(x)}
-        tau_min = zero(eltype(u))
+        # Can use zero here since ds is defined as min{0, min_x entropy_increase(x)}
+        ds_min = zero(eltype(u))
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
-            tau = entropy_difference(pressure(u_node, equations), s_min_exp,
-                                     density(u_node, equations), equations.gamma)
-            tau_min = min(tau_min, tau)
+            ds = entropy_increase(pressure(u_node, equations), s_min_exp,
+                                  density(u_node, equations), equations.gamma)
+            ds_min = min(ds_min, ds)
         end
 
         # Detect if limiting is necessary. Avoid divison by ("near") zero
-        tau_min < -1e-13 || continue
+        ds_min < entropy_decrease_max || continue
 
         # Compute mean value
         u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
@@ -54,14 +54,14 @@ function limiter_entropy_bounded!(u, min_entropy_exp,
         u_mean = u_mean / total_volume
 
         rho_mean = density(u_mean, equations)
-        entropy_difference_mean = entropy_difference(pressure(u_mean, equations),
-                                                     s_min_exp, rho_mean,
-                                                     equations.gamma)
+        entropy_increase_mean = entropy_increase(pressure(u_mean, equations),
+                                                 s_min_exp, rho_mean,
+                                                 equations.gamma)
 
-        epsilon = tau_min / (tau_min - entropy_difference_mean)
+        epsilon = ds_min / (ds_min - entropy_increase_mean)
 
         # In the derivation of the limiter it is assumed that 
-        # entropy_difference_mean >= 0 which would imply epsilon <= 1 (maximum limiting).
+        # entropy_increase_mean >= 0 which would imply epsilon <= 1 (maximum limiting).
         # However, this might not always be the case in a simulation, 
         # thus we clip epsilon at 1.
         if epsilon > 1

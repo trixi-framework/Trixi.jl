@@ -60,27 +60,21 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = 100,
-                                     save_initial_solution = true,
-                                     save_final_solution = true,
-                                     solution_variables = cons2prim)
-
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        #save_solution,
                         stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (Trixi.EntropyBoundedLimiter(semi),)
+stage_callbacks = (Trixi.EntropyBoundedLimiter(entropy_decrease_max = -1e-13),)
 
 ###############################################################################
 # run the simulation
 
-sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = (stage_callbacks));
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
 
