@@ -119,8 +119,8 @@ end
 # Testing the second-order paired explicit Runge-Kutta (PERK) method with the optimal CFL number
 @trixi_testset "elixir_advection_perk2_optimal_cfl.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_perk2_optimal_cfl.jl"),
-                        l2=[1.45247275e-02],
-                        linf=[2.05428436e-02]) #TODO: fix these values to match the ones in CI workflow
+                        l2=[0.014524726892608971],
+                        linf=[0.0205428426617561])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
