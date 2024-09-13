@@ -28,11 +28,11 @@ function limiter_entropy_bounded!(u, exp_entropy_decrease_max, min_entropy_exp,
         s_min_exp = min_entropy_exp[element]
 
         # Determine minimum value for entropy difference
-        # Can use zero here since d_exp_s is defined as min{0, min_x exp_entropy_increase(x)}
+        # Can use zero here since d_exp_s is defined as min{0, min_x exp_entropy_change(x)}
         d_exp_s_min = zero(eltype(u))
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
-            d_exp_s = exp_entropy_increase(pressure(u_node, equations), s_min_exp,
+            d_exp_s = exp_entropy_change(pressure(u_node, equations), s_min_exp,
                                            density(u_node, equations), equations.gamma)
             d_exp_s_min = min(d_exp_s_min, d_exp_s)
         end
@@ -54,14 +54,14 @@ function limiter_entropy_bounded!(u, exp_entropy_decrease_max, min_entropy_exp,
         u_mean = u_mean / total_volume
 
         rho_mean = density(u_mean, equations)
-        entropy_increase_mean = exp_entropy_increase(pressure(u_mean, equations),
+        entropy_change_mean = exp_entropy_change(pressure(u_mean, equations),
                                                      s_min_exp, rho_mean,
                                                      equations.gamma)
 
-        epsilon = d_exp_s_min / (d_exp_s_min - entropy_increase_mean)
+        epsilon = d_exp_s_min / (d_exp_s_min - entropy_change_mean)
 
         # In the derivation of the limiter it is assumed that 
-        # entropy_increase_mean >= 0 which would imply epsilon <= 1 (maximum limiting).
+        # entropy_change_mean >= 0 which would imply epsilon <= 1 (maximum limiting).
         # However, this might not always be the case in a simulation, 
         # thus we clip epsilon at 1.
         if epsilon > 1

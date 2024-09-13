@@ -107,9 +107,9 @@ end
 
 finalize_callback(limiter::EntropyBoundedLimiter, semi) = nothing
 
-# Entropy increase for the thermodynamic entropy (see `entropy_thermodynamic`) 
+# Exponentiated entropy change for the thermodynamic entropy (see `entropy_thermodynamic`) 
 # of an ideal gas with constant gamma.
-@inline function exp_entropy_increase(p, entropy_exp, rho, gamma)
+@inline function exp_entropy_change(p, entropy_exp, rho, gamma)
     return p - entropy_exp * rho^gamma
 end
 
