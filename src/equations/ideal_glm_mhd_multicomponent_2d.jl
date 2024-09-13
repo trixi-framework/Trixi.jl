@@ -33,7 +33,6 @@ struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
 
         cv = gas_constants ./ (gammas .- 1)
         cp = gas_constants + gas_constants ./ (gammas .- 1)
-        c_h = convert(eltype(gammas), c_h)
 
         new(gammas, gas_constants, cv, cp, c_h)
     end
