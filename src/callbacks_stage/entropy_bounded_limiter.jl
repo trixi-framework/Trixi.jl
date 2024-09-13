@@ -24,7 +24,7 @@ from one time step (or Runge-Kutta stage) to the next.
 The parameter `exp_entropy_decrease_max` is the maximum allowed exponentiated
 entropy decrease per element at each element's node.
 
-In the original version of the paper, this value should be is to zero to
+In the original version of the paper, this value is set to zero to
 ensure that the entropy does not decrease, i.e., guarantee entropy stability in the sense of 
 - Tadmor (1986)
   A minimum entropy principle in the gas dynamics equations

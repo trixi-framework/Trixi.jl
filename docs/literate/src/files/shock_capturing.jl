@@ -234,7 +234,7 @@ plot(sol)
 # shown for the compressible Euler equations.
 # As this is not necessarily the case for the numerical approximation (especially for the high-order, non-diffusive DG discretizations), 
 # Lv and Ihme devised an a-posteriori limiter in [this paper](https://doi.org/10.1016/j.jcp.2015.04.026) which can be applied after each Runge-Kutta stage.
-# This limiter enforces a non-decrease in the physical, thermodynamic entropy of by bounding the entropy decrease in each grid cell.
+# This limiter enforces a non-decrease in the physical, thermodynamic entropy by bounding the entropy decrease in each grid cell.
 # 
 # Based on the requirement that the entropy of the limited approximation $S\Big(\mathcal{L}\big[\boldsymbol u(\Delta t) \big] \Big)$ should be 
 # greater or equal than the previous iterates' entropy $S\big(\boldsymbol u(0) \big)$, enforced at each quadrature point:
