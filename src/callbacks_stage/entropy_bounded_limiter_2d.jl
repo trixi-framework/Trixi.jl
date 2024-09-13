@@ -37,7 +37,7 @@ function limiter_entropy_bounded!(u, exp_entropy_decrease_max, min_entropy_exp,
             d_exp_s_min = min(d_exp_s_min, d_exp_s)
         end
 
-        # Detect if limiting is necessary. Avoid divison by ("near") zero
+        # Detect if limiting is necessary. Avoid division by ("near") zero
         d_exp_s_min < exp_entropy_decrease_max || continue
 
         # Compute mean value

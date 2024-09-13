@@ -36,7 +36,7 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
 end
 initial_condition = initial_condition_blast_wave
 
-# Note: We do not need to use the shock-capturing methodolgy here,
+# Note: We do not need to use the shock-capturing methodology here,
 # in contrast to the standard `euler_blast_wave.jl` example.
 solver = DGSEM(polydeg = 3, surface_flux = flux_hllc)
 
