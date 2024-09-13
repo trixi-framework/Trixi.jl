@@ -28,7 +28,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger for values for allowed allocations due to usage of custom 
+        # Larger values for allowed allocations due to usage of custom 
         # integrator which are not *recorded* for the methods from 
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
