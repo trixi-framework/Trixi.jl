@@ -225,6 +225,143 @@ sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition=false
 using Plots
 plot(sol)
 
+# # Entropy bounded limiter
+
+# As argued in the description of the positivity preserving limiter above it might sometimes be
+# necessary to apply advanced techniques to ensure a physically meaningful solution.
+# Apart from the positivity of pressure and density, the entropy of the system should increase 
+# over the course of a simulation, see e.g. [this](https://doi.org/10.1016/0168-9274(86)90029-2) paper by Tadmor where this property is 
+# shown for the compressible Euler equations.
+# As this is not necessarily the case for the numerical approximation (especially for the high-order, non-diffusive DG discretizations), 
+# Lv and Ihme devised an a-posteriori limiter in [this paper](https://doi.org/10.1016/j.jcp.2015.04.026) which can be applied after each Runge-Kutta stage.
+# This limiter enforces a non-decrease in the physical, thermodynamic entropy of by bounding the entropy decrease in each grid cell.
+# 
+# Based on the requirement that the entropy of the limited approximation $S\Big(\mathcal{L}\big[\boldsymbol u(\Delta t) \big] \Big)$ should be 
+# greater or equal than the previous iterates' entropy $S\big(\boldsymbol u(0) \big)$, enforced at each quadrature point:
+# ```math
+# S\Big(\mathcal{L}\big[\boldsymbol u(\Delta t, \boldsymbol{x}_i) \big] \Big) \overset{!}{\geq} S\big(\boldsymbol u(0, \boldsymbol{x}_i) \big), \quad i = 1, \dots, (k+1)^d
+# ```
+# where $k$ denotes the polynomial degree of the element-wise solution and $d$ is the spatial dimension.
+# For and ideal gas, the thermodynamic entropy $S(\boldsymbol u) = S(p, \rho)$ is given by
+# ```math
+# S(p, \rho) = \ln \left( \frac{p}{\rho^\gamma} \right)
+# ```
+# Thus, the non-decrease in entropy can be reformulated as
+# ```math
+# p(\boldsymbol{x}_i) - e^{ S\big(\boldsymbol u(0, \boldsymbol{x}_i) \big)} \cdot \rho(\boldsymbol{x}_i)^\gamma \overset{!}{\geq} 0, \quad i = 1, \dots, (k+1)^d \: .
+# ```
+# In a practical simulation, we might tolerate a maximum (exponentiated) entropy decrease per element, i.e., 
+# ```math
+# \Delta e^S \coloneqq \min_{i} \left\{ p(\boldsymbol{x}_i) - e^{ S\big(\boldsymbol u(0, \boldsymbol{x}_i) \big)} \cdot \rho(\boldsymbol{x}_i)^\gamma \right\} < 0
+# ```
+# which is to be specified by the user.
+# The default value for the corresponding parameter `exp_entropy_decrease_max` is set to $-10^{-13}$, i.e., slightly less than zero to 
+# avoid spurious limiter actions for cells in which the entropy remains effectively constant.
+# Other values can be specified by setting the `exp_entropy_decrease_max` keyword in the constructor of the limiter:
+# ```julia
+# stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max=-1e-13)
+# ```
+# Smaller values for `exp_entropy_decrease_max` relax the entropy increase requirement and are thus less diffusive.
+# On the other hand, for larger values of `exp_entropy_decrease_max` the limiter acts more often and the solution becomes more diffusive.
+# In particular, we compute again a limiting parameter $\epsilon \in [0, 1]$ which is then used to blend the 
+# unlimited nodal values $\boldsymbol u$ with the mean value $\boldsymbol u_{\text{mean}}$ of the element:
+# ```math
+# \mathcal{L} [\boldsymbol u](\epsilon) \coloneqq (1 - \epsilon) \boldsymbol u + \epsilon \cdot \boldsymbol u_{\text{mean}}
+# ```
+# For the exact definition of $\epsilon$ the interested user is referred to section 4.4 of the paper by Lv and Ihme.
+
+# As for the positivity preserving limiter, the entropy bounded limiter may be applied after every Runge-Kutta stage.
+# We would like to emphasize, however, that of course every stage limiter can also be used as a *step* limiter/callback.
+# This renders them applicable for a larger class of time integration methods.
+# In particular, we support fixed timestep methods such as [`CarpenterKennedy2N54`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/) or 
+# adaptive timestep methods such as [`SSPRK43`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/)
+# but also the custom SSPRK33 method from Trixi.jl.
+
+# As an example, we consider a variant of the [1D medium blast wave example](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_1d_dgsem/elixir_euler_blast_wave.jl)
+# where the shock capturing method discussed above is employed to handle the shock.
+# Here, we use a standard DG solver with HLLC surface flux:
+using Trixi
+
+solver = DGSEM(polydeg = 3, surface_flux = flux_hllc)
+
+# The remaining setup is the same as in the standard example:
+
+using OrdinaryDiffEq
+
+###############################################################################
+# semidiscretization of the compressible Euler equations
+
+equations = CompressibleEulerEquations1D(1.4)
+
+"""
+    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
+
+A medium blast wave taken from
+- Sebastian Hennemann, Gregor J. Gassner (2020)
+  A provably entropy stable subcell shock capturing approach for high order split form DG
+  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+"""
+function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
+    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    # Set up polar coordinates
+    inicenter = SVector(0.0)
+    x_norm = x[1] - inicenter[1]
+    r = abs(x_norm)
+    # The following code is equivalent to
+    # phi = atan(0.0, x_norm)
+    # cos_phi = cos(phi)
+    # in 1D but faster
+    cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
+
+    # Calculate primitive variables
+    rho = r > 0.5 ? 1.0 : 1.1691
+    v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
+    p = r > 0.5 ? 1.0E-3 : 1.245
+
+    return prim2cons(SVector(rho, v1, p), equations)
+end
+initial_condition = initial_condition_blast_wave
+
+coordinates_min = (-2.0,)
+coordinates_max = (2.0,)
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 6,
+                n_cells_max = 10_000)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+###############################################################################
+# ODE solvers, callbacks etc.
+
+tspan = (0.0, 12.5)
+ode = semidiscretize(semi, tspan)
+
+summary_callback = SummaryCallback()
+
+analysis_interval = 100
+
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
+stepsize_callback = StepsizeCallback(cfl = 0.5)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback,
+                        stepsize_callback)
+
+# We specify the `stage_callbacks` supplied to the Trixi-Custom SSPRK33 limiter
+# with strict entropy increase enforcement
+# (recall that the tolerated exponentiated entropy decrease is set to -1e-13).
+stage_callbacks = (EntropyBoundedLimiter(),)
+
+# We run the simulation with the SSPRK33 method and the entropy bounded limiter:
+sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = (stage_callbacks));
+                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  callback = callbacks);
+
+using Plots
+plot(sol)
 
 # ## Package versions
 

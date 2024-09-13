@@ -85,11 +85,12 @@ function (limiter!::EntropyBoundedLimiter)(u_ode, semi::AbstractSemidiscretizati
 end
 
 # Store previous iterates' minimum exponentiated entropy per element
+# Used in the Trixi-custom SSPRK33 method
 function prepare_callback!(limiter::EntropyBoundedLimiter, integrator)
     semi = integrator.p
     u = wrap_array(integrator.u, semi)
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-    # Compute the minimum exponentiated entropy `exp(s)` for each node
+    # Compute the minimum exponentiated entropy `exp(s)` for each element
     limiter.min_entropy_exp = zeros(eltype(u), nelements(dg, cache))
     save_min_exp_entropy!(limiter, mesh, equations, dg, cache, u)
 end

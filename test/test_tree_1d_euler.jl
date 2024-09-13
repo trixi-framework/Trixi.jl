@@ -409,6 +409,25 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_blast_wave_entropy_bounded.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_entropy_bounded.jl"),
+                        l2=[0.9894407400869, 0.15579209907266742, 1.3885987558618587],
+                        linf=[2.986904501937833, 0.3011858674833708, 2.3931546901967207])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger for values for allowed allocations due to usage of custom 
+        # integrator which are not *recorded* for the methods from 
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
+    end
+end
+
 @trixi_testset "test_quasi_1D_entropy" begin
     a = 0.9
     u_1D = SVector(1.1, 0.2, 2.1)

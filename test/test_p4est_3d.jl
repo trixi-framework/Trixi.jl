@@ -594,6 +594,47 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_amr_entropy_bounded.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_amr_entropy_bounded.jl"),
+                        l2=[
+                            0.007006099385100904,
+                            0.007019662173298103,
+                            0.006993973973346392,
+                            0.0070398707405297705,
+                            0.020328755142539137,
+                            0.006020356435716788,
+                            0.008209447735920234,
+                            0.006018944650235999,
+                            3.809740066100805e-6,
+                        ],
+                        linf=[
+                            0.20624773625061255,
+                            0.21223321492222588,
+                            0.22960478612006716,
+                            0.2060696080599306,
+                            0.6685622006677678,
+                            0.19659758756248324,
+                            0.25038621800664695,
+                            0.1806015961946199,
+                            0.0005662651543996241,
+                        ],
+                        tspan=(0.0, 0.04),
+                        coverage_override=(maxiters = 6, initial_refinement_level = 1,
+                                           base_level = 1, max_level = 2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger for values for allowed allocations due to usage of custom 
+        # integrator which are not *recorded* for the methods from 
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
+    end
+end
+
 @trixi_testset "elixir_linearizedeuler_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearizedeuler_convergence.jl"),
