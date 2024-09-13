@@ -36,6 +36,9 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
 end
 initial_condition = initial_condition_blast_wave
 
+# Note: We do not need to use the shock-capturing methodolgy here,
+# in contrast to the standard `euler_blast_wave.jl` example.
+# TODO: Try out volume fux Diff!
 solver = DGSEM(polydeg = 3, surface_flux = flux_hllc)
 
 coordinates_min = (-2.0,)
@@ -65,9 +68,6 @@ stepsize_callback = StepsizeCallback(cfl = 0.5)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         stepsize_callback)
-
-###############################################################################
-# run the simulation
 
 stage_callbacks = (EntropyBoundedLimiter(),)
 
