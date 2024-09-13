@@ -37,7 +37,10 @@ strict entropy increase requirement by setting `exp_entropy_decrease_max` to a n
 The choice of the tolerated exponentiated entropy decrease is a problem-specific parameter 
 which balances the trade-off between accuracy and stability.
 """
-function EntropyBoundedLimiter(; exp_entropy_decrease_max::RealT=-1e-13) where {RealT <: Real}
+function EntropyBoundedLimiter(;
+                               exp_entropy_decrease_max::RealT = -1e-13) where {
+                                                                                RealT <:
+                                                                                Real}
     @assert exp_entropy_decrease_max<0 "Supplied `exp_entropy_decrease_max` expected to be negative"
     EntropyBoundedLimiter{RealT}(exp_entropy_decrease_max, Vector{RealT}())
 end
@@ -49,6 +52,29 @@ function (limiter!::EntropyBoundedLimiter)(u_ode,
 end
 
 function (limiter!::EntropyBoundedLimiter)(u_ode, semi::AbstractSemidiscretization)
+    u = wrap_array(u_ode, semi)
+    @trixi_timeit timer() "entropy-bounded limiter" begin
+        limiter_entropy_bounded!(u, limiter!.exp_entropy_decrease_max,
+                                 limiter!.min_entropy_exp,
+                                 mesh_equations_solver_cache(semi)...)
+    end
+end
+
+# For methods from OrdinaryDiffEq.jl
+function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
+                                           semi::AbstractSemidiscretization,
+                                           t)
+    semi = integrator.p
+    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
+
+    if nelements(dg, cache) != length(limiter!.min_entropy_exp)
+        resize!(limiter!.min_entropy_exp, nelements(dg, cache))
+    end
+
+    @assert :uprev in fieldnames(typeof(integrator)) "EntropyBoundedLimiter requires `uprev` for computation of previous entropy"
+    save_min_exp_entropy!(limiter!, mesh, equations, dg, cache,
+                          wrap_array(integrator.uprev, semi))
+
     u = wrap_array(u_ode, semi)
     @trixi_timeit timer() "entropy-bounded limiter" begin
         limiter_entropy_bounded!(u, limiter!.exp_entropy_decrease_max,

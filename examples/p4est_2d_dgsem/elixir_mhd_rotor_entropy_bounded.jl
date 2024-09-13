@@ -56,7 +56,7 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
-                                            
+
 solver = DGSEM(basis, surface_flux, volume_integral)
 
 # Affine type mapping to take the [-1,1]^2 domain from the mesh file
