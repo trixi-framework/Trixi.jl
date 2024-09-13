@@ -45,12 +45,6 @@ function EntropyBoundedLimiter(;
     EntropyBoundedLimiter{RealT}(exp_entropy_decrease_max, Vector{RealT}())
 end
 
-function (limiter!::EntropyBoundedLimiter)(u_ode,
-                                           integrator::Trixi.SimpleIntegratorSSP,
-                                           stage)
-    limiter!(u_ode, integrator.p)
-end
-
 # For methods from OrdinaryDiffEq.jl
 function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
                                            semi::AbstractSemidiscretization,
@@ -75,6 +69,12 @@ function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
 end
 
 # For custom (Trixi-specific) SSPRK33 method
+function (limiter!::EntropyBoundedLimiter)(u_ode,
+                                           integrator::Trixi.SimpleIntegratorSSP,
+                                           stage)
+    limiter!(u_ode, integrator.p)
+end
+
 function (limiter!::EntropyBoundedLimiter)(u_ode, semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, semi)
     @trixi_timeit timer() "entropy-bounded limiter" begin
