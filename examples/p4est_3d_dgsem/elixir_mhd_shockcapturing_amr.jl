@@ -49,6 +49,9 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
 
+
+volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = volume_integral)
 
@@ -98,7 +101,7 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval, analysis_errors = Symbol[], analysis_integrals=())
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -112,7 +115,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-cfl = 1.4
+cfl = 3.0
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
 glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
@@ -124,10 +127,13 @@ callbacks = CallbackSet(summary_callback,
                         stepsize_callback,
                         glm_speed_callback)
 
+# Stage limiter required for this high CFL                        
+stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -1e-3)
+
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(stage_limiter!, williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary
