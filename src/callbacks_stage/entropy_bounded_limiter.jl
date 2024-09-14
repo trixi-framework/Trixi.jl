@@ -6,13 +6,13 @@
 #! format: noindent
 
 mutable struct EntropyBoundedLimiter{RealT <: Real}
-    exp_entropy_change_max::RealT # < 0
+    exp_entropy_decrease_max::RealT # < 0
     # `resize!`able storage for the minimum exponentiated entropy per element.
     min_entropy_exp::Vector{RealT}
 end
 
 """
-    EntropyBoundedLimiter{RealT <: Real}(; exp_entropy_change_max = 1f-13)
+    EntropyBoundedLimiter{RealT <: Real}(; exp_entropy_decrease_max = 1f-13)
 
 Entropy-bounded limiter by
 - Lv, Ihme (2015)
@@ -21,7 +21,7 @@ Entropy-bounded limiter by
 
 This is an ideal-gas specific limiter that bounds the entropy decrease per element 
 from one time step (or Runge-Kutta stage) to the next.
-The parameter `exp_entropy_change_max` is the maximum allowed exponentiated
+The parameter `exp_entropy_decrease_max` is the maximum allowed exponentiated
 entropy decrease per element at each element's node.
 
 In the original version of the paper, this value is set to zero to
@@ -33,15 +33,17 @@ ensure that the entropy does not decrease, i.e., guarantee entropy stability in 
 This, however, leads in general to very diffusive solutions for timesteps violating 
 a CFL condition (Lemma 3 in Lv, Ihme (2015)) which is required for entropy stability in the mean values.
 Since most practical simulations will employ a significantly larger timestep, one can relax the 
-strict entropy increase requirement by setting `exp_entropy_change_max` to a negative value.
+strict entropy increase requirement by setting `exp_entropy_decrease_max` to a negative value.
+The limiter becomes than active if the exponentiated entropy decrease on an element is larger than
+`exp_entropy_decrease_max`.
 The choice of the tolerated exponentiated entropy decrease is a problem-specific parameter 
 which balances the trade-off between accuracy and stability.
 """
 function EntropyBoundedLimiter(;
-                               exp_entropy_change_max::RealT = -1e-13) where {RealT <:
+                               exp_entropy_decrease_max::RealT = -1e-13) where {RealT <:
                                                                               Real}
-    @assert exp_entropy_change_max<0 "Supplied `exp_entropy_change_max` expected to be negative"
-    EntropyBoundedLimiter{RealT}(exp_entropy_change_max, Vector{RealT}())
+    @assert exp_entropy_decrease_max<0 "Supplied `exp_entropy_decrease_max` expected to be negative"
+    EntropyBoundedLimiter{RealT}(exp_entropy_decrease_max, Vector{RealT}())
 end
 
 function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
@@ -60,7 +62,7 @@ function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
 
     u = wrap_array(u_ode, semi)
     @trixi_timeit timer() "entropy-bounded limiter" begin
-        limiter_entropy_bounded!(u, limiter!.exp_entropy_change_max,
+        limiter_entropy_bounded!(u, limiter!.exp_entropy_decrease_max,
                                  limiter!.min_entropy_exp,
                                  mesh_equations_solver_cache(semi)...)
     end

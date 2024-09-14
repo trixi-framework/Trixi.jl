@@ -22,7 +22,7 @@ function save_min_exp_entropy!(limiter::EntropyBoundedLimiter, mesh::AbstractMes
     return nothing
 end
 
-function limiter_entropy_bounded!(u, exp_entropy_change_max, min_entropy_exp,
+function limiter_entropy_bounded!(u, exp_entropy_decrease_max, min_entropy_exp,
                                   mesh::AbstractMesh{2}, equations, dg::DGSEM, cache)
     @unpack weights = dg.basis
     @unpack inverse_jacobian = cache.elements
@@ -41,7 +41,7 @@ function limiter_entropy_bounded!(u, exp_entropy_change_max, min_entropy_exp,
         end
 
         # Detect if limiting is necessary. Avoid division by ("near") zero
-        d_exp_s_min < exp_entropy_change_max || continue
+        d_exp_s_min < exp_entropy_decrease_max || continue
 
         # Compute mean value
         u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))

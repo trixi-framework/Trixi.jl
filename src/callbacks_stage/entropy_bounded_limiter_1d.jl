@@ -22,7 +22,7 @@ function save_min_exp_entropy!(limiter::EntropyBoundedLimiter, mesh::AbstractMes
     return nothing
 end
 
-function limiter_entropy_bounded!(u, exp_entropy_change_max, min_entropy_exp,
+function limiter_entropy_bounded!(u, exp_entropy_decrease_max, min_entropy_exp,
                                   mesh::AbstractMesh{1}, equations, dg::DGSEM, cache)
     @unpack weights = dg.basis
 
@@ -41,7 +41,7 @@ function limiter_entropy_bounded!(u, exp_entropy_change_max, min_entropy_exp,
 
         # Detect if limiting is necessary.
         # Limiting only if entropy DECREASE below a user defined threshold is detected.
-        d_exp_s_min < exp_entropy_change_max || continue
+        d_exp_s_min < exp_entropy_decrease_max || continue
 
         # Compute mean value
         u_mean = zero(get_node_vars(u, equations, dg, 1, element))
