@@ -294,14 +294,6 @@ using OrdinaryDiffEq
 
 equations = CompressibleEulerEquations1D(1.4)
 
-"""
-    initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
-
-A medium blast wave taken from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
-  A provably entropy stable subcell shock capturing approach for high order split form DG
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-"""
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
     # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
     # Set up polar coordinates

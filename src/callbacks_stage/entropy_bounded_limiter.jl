@@ -69,13 +69,6 @@ function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
     end
 end
 
-function init_callback(limiter::EntropyBoundedLimiter, semi)
-    _, _, dg, cache = mesh_equations_solver_cache(semi)
-    resize!(limiter.min_entropy_exp, nelements(dg, cache))
-end
-
-finalize_callback(limiter::EntropyBoundedLimiter, semi) = nothing
-
 # Exponentiated entropy change for the thermodynamic entropy (see `entropy_thermodynamic`) 
 # of an ideal gas with constant gamma.
 @inline function exp_entropy_change(p, entropy_exp, rho, gamma)
