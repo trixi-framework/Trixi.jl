@@ -17,8 +17,8 @@ The third-order SSP Runge-Kutta method of Shu and Osher.
 ## References
 
 - Shu, Osher (1988)
-  "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
-  [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
+    "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
+    [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
@@ -194,10 +194,6 @@ function solve!(integrator::SimpleIntegratorSSP)
 
         @. integrator.r0 = integrator.u
         for stage in eachindex(alg.c)
-            for stage_callback in alg.stage_callbacks
-                prepare_callback!(stage_callback, integrator)
-            end
-
             t_stage = integrator.t + integrator.dt * alg.c[stage]
             # compute du
             integrator.f(integrator.du, integrator.u, integrator.p, t_stage)
@@ -302,10 +298,6 @@ function Base.resize!(integrator::SimpleIntegratorSSP, new_size)
     # new_size = n_variables * n_nodes^n_dims * n_elements
     n_elements = nelements(integrator.p.solver, integrator.p.cache)
     resize!(integrator.p, n_elements)
-
-    for stage_callback in integrator.alg.stage_callbacks
-        resize!(stage_callback, n_elements)
-    end
 end
 
 function Base.resize!(semi::AbstractSemidiscretization, new_size)

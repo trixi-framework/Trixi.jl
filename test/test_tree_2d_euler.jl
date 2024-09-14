@@ -711,6 +711,33 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_colliding_flow_amr_entropy_bounded.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_colliding_flow_amr_entropy_bounded.jl"),
+                        l2=[
+                            0.0072371390903850944,
+                            0.04488758277251273,
+                            1.0453570968842401e-6,
+                            0.6627307840879395
+                        ],
+                        linf=[
+                            0.19437260991163582,
+                            0.5554343649876868,
+                            5.94389146373381e-5,
+                            15.188919844992899
+                        ],
+                        tspan=(0.0, 0.1),
+                        coverage_override=(maxiters = 2,))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_astro_jet_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_astro_jet_amr.jl"),
                         l2=[

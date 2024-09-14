@@ -79,7 +79,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 25.0)
+tspan = (0.0, 0.1)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -97,7 +97,7 @@ save_solution = SaveSolutionCallback(interval = 1000,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback)
 
-stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -1e-4)
+stage_limiter! = EntropyBoundedLimiter(exp_entropy_change_max = -1e-4)
 
 ###############################################################################
 # run the simulation

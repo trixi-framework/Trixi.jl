@@ -68,13 +68,13 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         stepsize_callback)
 
-stage_callbacks = (EntropyBoundedLimiter(),)
+stage_limiter! = EntropyBoundedLimiter()
 
 ###############################################################################
 # run the simulation
 
-sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = (stage_callbacks));
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  callback = callbacks);
+sol = solve(ode, SSPRK33(stage_limiter!);
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            callback = callbacks);
 
 summary_callback() # print the timer summary
