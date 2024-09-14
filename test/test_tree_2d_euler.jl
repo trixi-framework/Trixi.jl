@@ -735,18 +735,19 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_colliding_flow_amr_entropy_bounded.jl"),
                         l2=[
-                            0.0072371390903850944,
-                            0.04488758277251273,
-                            1.0453570968842401e-6,
-                            0.6627307840879395
+                            0.0765996271101044,
+                            0.13773283768967845,
+                            0.00011395189760397508,
+                            9.971316657921086
                         ],
                         linf=[
-                            0.19437260991163582,
-                            0.5554343649876868,
-                            5.94389146373381e-5,
-                            15.188919844992899
+                            2.065659050215612,
+                            1.9572441511508194,
+                            0.0059856195103810475,
+                            265.38249214049654
                         ],
-                        tspan=(0.0, 0.1))
+                        tspan=(0.0, 1.0),
+                        coverage_override=(maxiters = 2,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
