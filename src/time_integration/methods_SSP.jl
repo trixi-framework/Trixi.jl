@@ -17,8 +17,8 @@ The third-order SSP Runge-Kutta method of Shu and Osher.
 ## References
 
 - Shu, Osher (1988)
-    "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
-    [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
+  "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
+  [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
