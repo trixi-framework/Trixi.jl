@@ -52,6 +52,7 @@ function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
     semi = integrator.p
     mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
 
+    # Check if grid has changed (AMR)
     if nelements(dg, cache) != length(limiter!.min_entropy_exp)
         resize!(limiter!.min_entropy_exp, nelements(dg, cache))
     end

@@ -255,7 +255,7 @@ plot(sol)
 # ```math
 # \Delta e^S \coloneqq \min_{i} \left\{ p(\boldsymbol{x}_i) - e^{ S\big(\boldsymbol u(0, \boldsymbol{x}_i) \big)} \cdot \rho(\boldsymbol{x}_i)^\gamma \right\} < c
 # ```
-# with hyper-paramter $c$ which is to be specified by the user.
+# with hyper-parameter $c$ which is to be specified by the user.
 # The default value for the corresponding parameter $c=$ `exp_entropy_decrease_max` is set to $-10^{-13}$, i.e., slightly less than zero to 
 # avoid spurious limiter actions for cells in which the entropy remains effectively constant.
 # Other values can be specified by setting the `exp_entropy_decrease_max` keyword in the constructor of the limiter:
