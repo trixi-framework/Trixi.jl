@@ -295,18 +295,18 @@ using OrdinaryDiffEq
 equations = CompressibleEulerEquations1D(1.4)
 
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations1D)
-    # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
-    # Set up polar coordinates
+    ## Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
+    ## Set up polar coordinates
     inicenter = SVector(0.0)
     x_norm = x[1] - inicenter[1]
     r = abs(x_norm)
-    # The following code is equivalent to
-    # phi = atan(0.0, x_norm)
-    # cos_phi = cos(phi)
-    # in 1D but faster
+    ## The following code is equivalent to
+    ## phi = atan(0.0, x_norm)
+    ## cos_phi = cos(phi)
+    ## in 1D but faster
     cos_phi = x_norm > 0 ? one(x_norm) : -one(x_norm)
 
-    # Calculate primitive variables
+    ## Calculate primitive variables
     rho = r > 0.5 ? 1.0 : 1.1691
     v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
     p = r > 0.5 ? 1.0E-3 : 1.245
@@ -350,7 +350,7 @@ stage_callbacks = EntropyBoundedLimiter()
 
 # We run the simulation with the SSPRK33 method and the entropy bounded limiter:
 sol = solve(ode, SSPRK33(stage_limiter!);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            dt = 1.0,
             callback = callbacks);
 
 using Plots
