@@ -7,8 +7,6 @@
 
 mutable struct EntropyBoundedLimiter{RealT <: Real}
     exp_entropy_decrease_max::RealT # < 0
-    # `resize!`able storage for the minimum exponentiated entropy per element.
-    min_entropy_exp::Vector{RealT}
 end
 
 """
@@ -43,36 +41,26 @@ function EntropyBoundedLimiter(;
                                exp_entropy_decrease_max::RealT = -1e-13) where {RealT <:
                                                                                 Real}
     @assert exp_entropy_decrease_max<0 "Supplied `exp_entropy_decrease_max` expected to be negative"
-    EntropyBoundedLimiter{RealT}(exp_entropy_decrease_max, Vector{RealT}())
+    EntropyBoundedLimiter{RealT}(exp_entropy_decrease_max)
 end
 
 function (limiter!::EntropyBoundedLimiter)(u_ode, integrator,
                                            semi::AbstractSemidiscretization,
                                            t)
-    semi = integrator.p
-    mesh, equations, dg, cache = mesh_equations_solver_cache(semi)
-
-    # Check if grid has changed (AMR)
-    if nelements(dg, cache) != length(limiter!.min_entropy_exp)
-        resize!(limiter!.min_entropy_exp, nelements(dg, cache))
-    end
-
-    @assert :uprev in fieldnames(typeof(integrator)) "EntropyBoundedLimiter requires `uprev` for computation of previous entropy"
-    save_min_exp_entropy!(limiter!, mesh, equations, dg, cache,
-                          wrap_array(integrator.uprev, semi))
-
-    u = wrap_array(u_ode, semi)
     @trixi_timeit timer() "entropy-bounded limiter" begin
-        limiter_entropy_bounded!(u, limiter!.exp_entropy_decrease_max,
-                                 limiter!.min_entropy_exp,
+        @assert :uprev in fieldnames(typeof(integrator)) "EntropyBoundedLimiter requires `uprev` for computation of previous entropy"
+
+        u = wrap_array(u_ode, semi)
+        u_prev = wrap_array(integrator.uprev, semi)
+        limiter_entropy_bounded!(u, u_prev, limiter!.exp_entropy_decrease_max,
                                  mesh_equations_solver_cache(semi)...)
     end
 end
 
 # Exponentiated entropy change for the thermodynamic entropy (see `entropy_thermodynamic`) 
 # of an ideal gas with constant gamma.
-@inline function exp_entropy_change(p, entropy_exp, rho, gamma)
-    return p - entropy_exp * rho^gamma
+@inline function exp_entropy_change(p, rho, gamma, exp_entropy_prev)
+    return p - rho^gamma * exp_entropy_prev
 end
 
 include("entropy_bounded_limiter_1d.jl")

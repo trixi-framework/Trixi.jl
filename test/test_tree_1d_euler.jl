@@ -412,12 +412,8 @@ end
 @trixi_testset "elixir_euler_blast_wave_entropy_bounded.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_entropy_bounded.jl"),
-                        l2=[0.9952587972923003, 0.1571355118533732, 1.3904421647233407],
-                        linf=[
-                            3.168103513522385,
-                            0.30274770558089453,
-                            2.3954413850433314
-                        ])
+                        l2=[0.9689207881108007, 0.1617708899929322, 1.3847895715669456],
+                        linf=[2.95591859210077, 0.3135723412205586, 2.3871554358655365])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

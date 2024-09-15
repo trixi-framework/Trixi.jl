@@ -97,7 +97,7 @@ save_solution = SaveSolutionCallback(interval = 1000,
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback)
 
-stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -1e-4)
+stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -1.3e-4)
 
 ###############################################################################
 # run the simulation
