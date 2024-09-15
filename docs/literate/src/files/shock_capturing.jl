@@ -264,6 +264,7 @@ plot(sol)
 # ```
 # Smaller values (larger in absolute value) for `exp_entropy_decrease_max` relax the entropy increase requirement and are thus less diffusive.
 # On the other hand, for larger values (smaller in absolute value) of `exp_entropy_decrease_max` the limiter acts more often and the solution becomes more diffusive.
+#
 # In particular, we compute again a limiting parameter $\vartheta \in [0, 1]$ which is then used to blend the 
 # unlimited nodal values $\boldsymbol u$ with the mean value $\boldsymbol u_{\text{mean}}$ of the element:
 # ```math
