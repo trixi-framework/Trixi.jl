@@ -35,7 +35,7 @@ function limiter_entropy_bounded!(u, u_prev, exp_entropy_decrease_max,
         # Detect if limiting is necessary.
         # Limiting only if entropy DECREASE below a user defined threshold is detected.
         d_exp_s_min < exp_entropy_decrease_max || continue
-
+        println("Limiting")
         # Compute mean value
         u_mean = zero(get_node_vars(u, equations, dg, 1, 1, element))
         total_volume = zero(eltype(u))
