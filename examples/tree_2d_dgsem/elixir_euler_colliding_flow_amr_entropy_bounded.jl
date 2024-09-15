@@ -103,6 +103,7 @@ stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -1e-4)
 # run the simulation
 
 sol = solve(ode, SSPRK43(stage_limiter!);
-            ode_default_options()..., callback = callbacks);
+            dt = 1e-2, save_everystep = false, adaptive = true,
+            callback = callbacks);
 
 summary_callback() # print the timer summary
