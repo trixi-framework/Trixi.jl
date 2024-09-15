@@ -117,7 +117,7 @@ callbacks = CallbackSet(summary_callback,
                         glm_speed_callback)
 
 # Stage limiter required for this high CFL                        
-stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -1e-3)
+stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -5e-3)
 
 ###############################################################################
 # run the simulation
