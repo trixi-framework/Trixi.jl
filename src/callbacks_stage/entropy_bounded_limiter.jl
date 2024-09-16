@@ -38,8 +38,8 @@ The choice of the tolerated exponentiated entropy decrease is a problem-specific
 which balances the trade-off between accuracy and stability.
 """
 function EntropyBoundedLimiter(;
-                               exp_entropy_decrease_max::RealT = -1e-13) where {RealT <:
-                                                                                Real}
+                               exp_entropy_decrease_max::RealT = -1.0f-13) where {RealT <:
+                                                                                  Real}
     @assert exp_entropy_decrease_max<0 "Supplied `exp_entropy_decrease_max` expected to be negative"
     EntropyBoundedLimiter{RealT}(exp_entropy_decrease_max)
 end
