@@ -747,7 +747,8 @@ end
                             47.284459667934684
                         ],
                         tspan=(0.0, 1.0),
-                        dt=2.5e-2, adaptive=false)
+                        dt=2.5e-2, adaptive=false,
+                        coverage_override=(maxiters = 10^3,))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
