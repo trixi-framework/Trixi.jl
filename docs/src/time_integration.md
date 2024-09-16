@@ -1,11 +1,13 @@
 # [Time integration methods](@id time-integration)
 
+## Methods from OrdinaryDiffEq.jl
+
 Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
 In particular, explicit Runge-Kutta methods from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 are tested extensively.
 Interesting classes of time integration schemes are
 - [Explicit low-storage Runge-Kutta methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
-- [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
+- [Strong stability preserving (SSP) methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
 
 Some common options for `solve` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 are the following. Further documentation can be found in the
@@ -43,19 +45,44 @@ are the following. Further documentation can be found in the
     and error-based time step control. In general, you often should not need to worry about this if you
     use Trixi.jl.
 
-## Optimized Schemes
+## Custom Optimized Schemes
 
-Optimized schemes aim to maximize the stability region or to tailor the stability polynomial to specific problems, such as stiff equations. By optimizing the stability polynomial, these schemes can achieve greater accuracy and efficiency. One of the optimized schemes that is implemented in Trixi.jl is the Paired Explicit Runge-Kutta method.
+### Stabilized Explicit Runge-Kutta Methods
 
-### Paired explicit Runge-Kutta schemes Schemes
+Optimized explicit schemes aim to maximize the timestep $\Delta t$ for a particular simulation setup.
+Formally, this boils down to an optimization problem of the form 
+```math
+\underset{P_{p;S} \, \in \, \mathcal{P}_{p;S}}{\max} \Delta t \text{ such that } \big \vert P_{p;S}(\Delta t \lambda_m) \big \vert \leq 1, \quad  m = 1 , \dots , M \tag{1}
+```
+where $p$ denotes the order of consistency of the scheme, $S$ is the number of stage evaluations and $M$ denotes the number of eigenvalues $\lambda_m$ of the Jacobian matrix $J \coloneqq \frac{\partial \boldsymbol F}{\partial \boldsymbol U}$ of the right-hand side of the [semidiscretized PDE](https://trixi-framework.github.io/Trixi.jl/stable/overview/#overview-semidiscretizations):
+```math
+\dot{\boldsymbol U} = \boldsymbol F(\boldsymbol U) \tag{2}
+```
+In particular, for $S > p$ the Runge-Kutta method bears some free coefficients which may be used to adapt the domain of absolute stability to the problem at hand.
+Since Trixi.jl [supports exact computation of the Jacobian $J$ by means of automatic differentiation](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/differentiable_programming/), we have access to the Jacobian of a given simulation setup.
+For small (say, up to $10^4$ DoF) systems, the spectrum $\boldsymbol \sigma = \left \{ \lambda_m \right \}_{m=1, \dots, M}$ can be computed directly using [`LinearAlgebra.eigvals(J)`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.eigvals).
+For larger systems we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://doi.org/10.1016/j.jcp.2024.113223) which computes a reduced set of constraining eigenvalues by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
 
-Paired Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ordinary differential equations (ODEs). They work by pairing stages in the Runge-Kutta process, reducing redundant computations and minimizing storage requirements while maintaining high-order accuracy. The stability polynomial in PERK schemes is optimized to allow for larger time steps, making them particularly effective in handling mildly stiff systems where traditional explicit methods would struggle. This combination of efficiency, reduced computational cost, and enhanced stability makes PERK schemes a powerful tool for solving ODEs in scenarios where both precision and performance are critical. In this type of schemes, additional libraries have to be imported to perform the aforementioned optimization.
+The optimization problem (1) can be solved using the algorithms described in [Ketcheson, Ahmadia (2012)](http://dx.doi.org/10.2140/camcos.2012.7.247) for moderate number of stages $S$ or [Doehring, Gassner, Torrilhon (2024)](https://doi.org/10.1007/s10915-024-02478-5) for large number of stages $S$.
+In Trixi.jl, the former approach is implemented by means of convex optimization using the [Convex.jl](https://github.com/jump-dev/Convex.jl) package.
+
+The resulting stability polynomial $P_{p;S}$ is then used to construct an optimized Runge-Kutta method.
+Trixi.jl implements the [Paired Explicit Runge-Kutta (P-ERK)](https://doi.org/10.1016/j.jcp.2019.05.014) method, a low-storage, multirate-ready method with optimized stability properties.
+
+### Paired-Explicit Runge-Kutta (P-ERK) Schemes
+
+Paired Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ODEs.
+In the [original publication]((https://doi.org/10.1016/j.jcp.2019.05.014)), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470)- and [fourth](https://doi.org/10.48550/arXiv.2408.05470)-order in subsequent work.
+
+By construction, P-ERK schemes are suited for integration of multirate systems, i.e., systems with varying characteristics speeds thoughout the domain.
+Nevertheless, due to their optimized stability properties and low-storage nature, the P-ERK schemes are also highly efficient when applied standalone.
 
 ### Tutorial: Using `PairedExplicitRK2`
 
-In this following tutorial, we will demonstrate how you can use the second order paired explicit Runge-Kutta schemes time integrator.
+In this tutorial, we will demonstrate how you can use the second-order P-ERK time integrator.
 
-1. First, ensure you have the necessary packages installed. For the paired explicit Runge-Kutta scheme of the second order, you need an additional package of `Convex.jl` and `ECOS.jl`. You can install them using Julia's package manager:
+1. First, ensure you have the necessary packages installed. For the optimization of the stability polynomial $P_{2; S}$, you need the `Convex.jl` and `ECOS.jl` packages.
+You can install them using Julia's package manager:
 
 ```julia
 using Pkg
@@ -64,7 +91,7 @@ Pkg.add("Convex")
 Pkg.add("ECOS")
 ```
 
-2. In order to use the time integrator, you also need to import these packages in the script you are running as well:
+2. Now you can load the necessary packages:
 
 ```julia
 using Convex, ECOS
@@ -78,35 +105,43 @@ using Trixi
 cells_per_dimension = 100
 coordinates_min = 0.0
 coordinates_max = 1.0
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+mesh = StructuredMesh(cells_per_dimension, 
+                      coordinates_min, coordinates_max)
 
+# Define the equation and initial condition
+advection_velocity = 1.0
+equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
-# Define the equations and initial condition
-equations = LinearScalarAdvectionEquation()
-initial_condition = (x, t) -> sin(2π * x)
+initial_condition = initial_condition_convergence_test
 
 # Define the solver
-solver = FluxBasedSolver()
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # Define the semidiscretization
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+semi = SemidiscretizationHyperbolic(mesh, 
+                                    equations, initial_condition, 
+                                    solver)
 ```
 
 4. Define the necessary callbacks for the simulation. Callbacks are used to perform actions at specific points during the integration process.
 
 ```julia
-# Define the callbacks
-summary_callback = SummaryCallback()
-alive_callback = AliveCallback()
-save_solution = SaveSolutionCallback(dt = 0.1, save_initial_solution = true, save_final_solution = true)
+# Define some standard callbacks
+summary_callback  = SummaryCallback()
+alive_callback    = AliveCallback()
 analysis_callback = AnalysisCallback(semi, interval = 200)
-stepsize_callback = StepsizeCallback(cfl = 3.7)
+stepsize_callback = StepsizeCallback(cfl = 2.5)
 
 # Create a CallbackSet to collect all callbacks
-callbacks = CallbackSet(summary_callback, alive_callback, save_solution, analysis_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, 
+                        alive_callback, 
+                        analysis_callback, 
+                        stepsize_callback)
 ```
 
-5. Define the ODE problem by specifying the time span over which the ODE will be solved. The `tspan` parameter is a tuple `(t_start, t_end)` that defines the start and end times for the simulation. The `semidiscretize` function is used to create the ODE problem from the semidiscretization setup.
+5. Define the ODE problem by specifying the time span over which the ODE will be solved. 
+The `tspan` parameter is a tuple `(t_start, t_end)` that defines the start and end times for the simulation. 
+The `semidiscretize` function is used to create the ODE problem from the simulation setup.
 
 ```julia
 # Define the time span
@@ -118,14 +153,19 @@ ode = semidiscretize(semi, tspan)
 
 6. In this step we will construct the time integrator. In order to do this, you need the following components:
 
-  - Number of Stages: The number of stages in the Runge-Kutta method. In this example, we use `6` stages.
-  - Time Span (`tspan`): A tuple `(t_start, t_end)` that defines the time span over which the ODE will be solved. This is used to calculate the maximum time step allowed for the bisection algorithm used in calculating the polynomial coefficients in the ODE algorithm. This variable is already defined in step 5.
+  - Number of Stages: The number of stages $S$ in the Runge-Kutta method. 
+  In this example, we use `6` stages.
+  - Time Span (`tspan`): A tuple `(t_start, t_end)` that defines the time span over which the ODE will be solved. 
+  This defines the bounds for the bisection routine for the optimal timestep $\Delta t$ used in calculating the polynomial coefficients at optimization stage. 
+  This variable is already defined in step 5.
   - Semidiscretization (`semi`): The semidiscretization setup that includes the mesh, equations, initial condition, and solver. In this example, this variable is already defined in step 3.
+  In the background, we compute from `semi` the Jacobian $J$ evaulated at the initial condition using [`jacobian_ad_forward`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
+  This is then followed by the computation of the spectrum $\boldsymbol \sigma(J)$ using `LinearAlgebra.eigvals`.
+  Equipped with the spectrum, the optimal stability polynomial is computed and from this the corresponding Runge-Kutta method.
+  Other constructors (if the coefficients $\boldsymbol \alpha$ of the stability polynomial are already available or if a reduced spectrum $\widetilde{\boldsymbol \sigma}$ should be used ) are discussed below.
 
 ```julia
 # Construct second order paired explicit Runge-Kutta method with 6 stages for given simulation setup.
-# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
-# in calculating the polynomial coefficients in the ODE algorithm.
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 ```
 
@@ -134,6 +174,14 @@ ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 ```julia
 # Solve the ODE problem using PERK2
 sol = Trixi.solve(ode, ode_algorithm,
-                  dt = 1.0, # Manual time step value, will be overwritten by the stepsize_callback when it is specified.
+                  dt = 1.0, # overwritten by `stepsize_callback`
                   save_everystep = false, callback = callbacks)
 ```
+
+8. Advanced constructors:
+There are two additional constructors for the `PairedExplicitRK2` method besides the one taking in a semidiscretization `semi`:
+  - `PairedExplicitRK2(num_stages, monomial_coeffs)` constructs a `num_stages`-stage method from the given optimal monomial coefficients $\boldsymbol \alpha$.
+  The use-case for this constructor would be if the optimal coefficients cannot be constructed using the optimization routine by Ketcheoson and Ahmadia.
+  This may be due to a large number of stages $S$.
+  - `PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64})` constructs a `num_stages`-stage using the optimization approach by Ketcheson and Ahmadia for the (reduced) spectrum `eig_vals`.
+  The use-case for this constructor would be a large system, for which the computation of all eigenvalues is infeasible.
