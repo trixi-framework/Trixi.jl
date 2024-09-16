@@ -74,7 +74,7 @@ Trixi.jl implements the [Paired Explicit Runge-Kutta (P-ERK)](https://doi.org/10
 Paired Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ODEs.
 In the [original publication]((https://doi.org/10.1016/j.jcp.2019.05.014)), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470)- and [fourth](https://doi.org/10.48550/arXiv.2408.05470)-order in subsequent work.
 
-By construction, P-ERK schemes are suited for integration of multirate systems, i.e., systems with varying characteristics speeds thoughout the domain.
+By construction, P-ERK schemes are suited for integration of multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
 Nevertheless, due to their optimized stability properties and low-storage nature, the P-ERK schemes are also highly efficient when applied standalone.
 
 ### Tutorial: Using `PairedExplicitRK2`
@@ -159,7 +159,7 @@ ode = semidiscretize(semi, tspan)
   This defines the bounds for the bisection routine for the optimal timestep $\Delta t$ used in calculating the polynomial coefficients at optimization stage. 
   This variable is already defined in step 5.
   - Semidiscretization (`semi`): The semidiscretization setup that includes the mesh, equations, initial condition, and solver. In this example, this variable is already defined in step 3.
-  In the background, we compute from `semi` the Jacobian $J$ evaulated at the initial condition using [`jacobian_ad_forward`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
+  In the background, we compute from `semi` the Jacobian $J$ evaluated at the initial condition using [`jacobian_ad_forward`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
   This is then followed by the computation of the spectrum $\boldsymbol \sigma(J)$ using `LinearAlgebra.eigvals`.
   Equipped with the spectrum, the optimal stability polynomial is computed and from this the corresponding Runge-Kutta method.
   Other constructors (if the coefficients $\boldsymbol \alpha$ of the stability polynomial are already available or if a reduced spectrum $\widetilde{\boldsymbol \sigma}$ should be used ) are discussed below.
