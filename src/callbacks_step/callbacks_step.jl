@@ -57,6 +57,7 @@ include("save_restart.jl")
 include("save_solution.jl")
 include("time_series.jl")
 include("visualization.jl")
+include("paraview_catalyst.jl")
 include("averaging.jl")
 
 include("amr.jl")
