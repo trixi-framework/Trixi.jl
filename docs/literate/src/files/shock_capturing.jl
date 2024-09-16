@@ -275,9 +275,10 @@ plot(sol)
 
 # As for the positivity preserving limiter, the entropy bounded limiter may be applied after every Runge-Kutta stage.
 # We would like to emphasize, however, that of course every stage limiter can also be used as a *step* limiter/callback.
-# This renders them applicable for a larger class of time integration methods.
-# In particular, we support fixed timestep methods such as [`CarpenterKennedy2N54`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/) or 
-# adaptive timestep methods such as [`SSPRK43`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/).
+# This renders them applicable for a larger class of time integration methods
+# which only support `step_callbacks`.
+# Currently, both fixed timestep methods such as [`CarpenterKennedy2N54`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/) and 
+# adaptive timestep methods such as [`SSPRK43`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/) are supported.
 
 # As an example, we consider a variant of the [1D medium blast wave example](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_1d_dgsem/elixir_euler_blast_wave.jl)
 # wherein the shock capturing method discussed above is employed to handle the shock.
