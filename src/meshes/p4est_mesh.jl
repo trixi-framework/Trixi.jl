@@ -6,12 +6,23 @@
 #! format: noindent
 
 """
-    P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
+    P4estMesh{NDIMS, NDIMS_AMBIENT} <: AbstractMesh{NDIMS}
 
 An unstructured curved mesh based on trees that uses the C library `p4est`
 to manage trees and mesh refinement.
+
+The parameter `NDIMS` denotes the dimension of the spatial domain or manifold represented
+by the mesh itself, while `NDIMS_AMBIENT` denotes the dimension of the ambient space in
+which the mesh is embedded. For example, the type `P4estMesh{3, 3}` corresponds to a
+standard mesh for a three-dimensional volume, whereas `P4estMesh{2, 3}` corresponds to a
+mesh for a two-dimensional surface or shell in three-dimensional space.
+
+!!! warning "Experimental implementation"
+    The use of `NDIMS != NDIMS_AMBIENT` is an experimental feature and may change in future
+    releases.
 """
-mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NNODES} <:
+mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
+                         NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
     p4est       :: P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
     is_parallel :: IsParallel
@@ -48,7 +59,14 @@ mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NN
         ghost = ghost_new_p4est(p4est)
         ghost_pw = PointerWrapper(ghost)
 
-        mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel),
+        # To enable the treatment of a manifold of dimension NDIMS embedded within an
+        # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
+        # allow them to differ in the general case. This functionality is used for
+        # constructing discretizations on spherical shell domains for applications in
+        # global atmospheric modelling. The ambient dimension NDIMS_AMBIENT is therefore 
+        # set here in the inner constructor to size(tree_node_coordinates, 1).
+        mesh = new{NDIMS, size(tree_node_coordinates, 1),
+                   eltype(tree_node_coordinates), typeof(is_parallel),
                    typeof(p4est_pw), typeof(ghost_pw), NDIMS + 2, length(nodes)}(p4est_pw,
                                                                                  is_parallel,
                                                                                  ghost_pw,
@@ -66,8 +84,8 @@ mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NN
     end
 end
 
-const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:False}
-const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:True}
+const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:False}
+const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:True}
 
 @inline mpi_parallel(mesh::SerialP4estMesh) = False()
 @inline mpi_parallel(mesh::ParallelP4estMesh) = True()
@@ -87,7 +105,8 @@ function destroy_mesh(mesh::P4estMesh{3})
 end
 
 @inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline Base.real(::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
+@inline ndims_ambient(::P4estMesh{NDIMS, NDIMS_AMBIENT}) where {NDIMS, NDIMS_AMBIENT} = NDIMS_AMBIENT
 @inline Base.size(mesh::P4estMesh) = size(mesh.tree_node_coordinates)[end]
 
 @inline function ntrees(mesh::P4estMesh)
@@ -98,7 +117,8 @@ end
 @inline ncellsglobal(mesh::P4estMesh) = Int(mesh.p4est.global_num_quadrants[])
 
 function Base.show(io::IO, mesh::P4estMesh)
-    print(io, "P4estMesh{", ndims(mesh), ", ", real(mesh), "}")
+    print(io, "P4estMesh{", ndims(mesh), ", ", ndims_ambient(mesh), ", ", real(mesh),
+          "}")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
@@ -108,11 +128,12 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
         setup = [
             "#trees" => ntrees(mesh),
             "current #cells" => ncellsglobal(mesh),
-            "polydeg" => length(mesh.nodes) - 1,
+            "polydeg" => length(mesh.nodes) - 1
         ]
         summary_box(io,
-                    "P4estMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
-                    "}", setup)
+                    "P4estMesh{" * string(ndims(mesh)) * ", " *
+                    string(ndims_ambient(mesh)) *
+                    ", " * string(real(mesh)) * "}", setup)
     end
 end
 
