@@ -305,6 +305,12 @@ function __init__()
         using .Plots: Plots
     end
 
+    # Enable features that depend on the availability of the ParaviewCatalyst package
+    # TODO: extension?
+    @require ParaviewCatalyst="0fa3a46a-29f8-4c04-a671-08df7e71e505" begin
+        using .ParaviewCatalyst: ParaviewCatalyst
+    end
+
     # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
     @static if !isdefined(Base, :get_extension)
         @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
