@@ -52,19 +52,12 @@ function ParaviewCatalystCallback(; interval = 0,
                                )
     mpi_isparallel() && error("this callback does not work in parallel yet")
 
+    ParaviewCatalyst.catalyst_initialize(libpath="/home/bene/catalyst/paraview/build/lib/catalyst")
 
     visualization_callback = ParaviewCatalystCallback(interval)
 
-    # Warn users if they create a visualization callback without having loaded the Plots package
-    #
-    # Note: This warning is added for convenience, as Plots is the only "officially" supported
-    #       visualization package right now. However, in general nothing prevents anyone from using
-    #       other packages such as Makie, Gadfly etc., given that appropriate `plot_creator`s are
-    #       passed. This is also the reason why the visualization callback is not included via
-    #       Requires.jl only when Plots is present.
-    #       In the future, we should update/remove this warning if other plotting packages are
-    #       starting to be used.
-    if !(:ParaviewCatalyst in names(@__MODULE__, all = true))
+    # Warn users if they create a ParaviewCatalystCallback without having loaded the ParaviewCatalyst package
+    if !(:ParaviewCatalyst in nameof.(Base.loaded_modules |> values))
         @warn "Package `ParaviewCatalyst` not loaded but required by `ParaviewCatalystCallback` to visualize results"
     end
 
@@ -98,12 +91,21 @@ end
 # this method is called when the callback is activated
 function (visualization_callback::ParaviewCatalystCallback)(integrator)
     u_ode = integrator.u
-    semi = integrator.p
+    mesh, equations, solver, cache = mesh_equations_solver_cache(integrator.p)
     time = integrator.t
     timestep = integrator.stats.naccept
 
-    println("***Catalyst Callback activated")
-    
+    leaf_cell_ids = leaf_cells(mesh.tree)
+    coordinates = mesh.tree.coordinates[:, leaf_cell_ids]
+
+    println()
+    println("*** Catalyst Callback activated")
+    println("*** Time ", time)
+    println("*** Step ", timestep)
+    println("*** u[1] ", u_ode[1])
+    println("*** coord[1] ", coordinates[1])
+    println()
+
     # avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
     return nothing
