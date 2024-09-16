@@ -276,6 +276,8 @@ plot(sol)
 # As for the positivity preserving limiter, the entropy bounded limiter may be applied after every Runge-Kutta stage.
 # Both fixed timestep methods such as [`CarpenterKennedy2N54`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/) and 
 # adaptive timestep methods such as [`SSPRK43`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/) are supported.
+# We would like to remark that of course every `stage_limiter!` can also be used as a `step_limiter!`, i.e., 
+# acting only after the full time step has been taken.
 
 # As an example, we consider a variant of the [1D medium blast wave example](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_1d_dgsem/elixir_euler_blast_wave.jl)
 # wherein the shock capturing method discussed above is employed to handle the shock.
@@ -345,7 +347,7 @@ callbacks = CallbackSet(summary_callback,
 # We specify the `stage_limiter!` supplied to the classic SSPRK33 integrator
 # with strict entropy increase enforcement
 # (recall that the tolerated exponentiated entropy decrease is set to -1e-13).
-stage_callbacks = EntropyBoundedLimiter()
+stage_limiter! = EntropyBoundedLimiter()
 
 # We run the simulation with the SSPRK33 method and the entropy bounded limiter:
 sol = solve(ode, SSPRK33(stage_limiter!);
