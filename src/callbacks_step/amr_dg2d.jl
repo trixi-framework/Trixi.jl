@@ -171,7 +171,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
        !mpi_isparallel()
-        @assert ninterfaces(cache.interfaces)==2 * nelements(dg, cache) ("For $(2)D and periodic domains and conforming elements, the number of interfaces must be $(2) times the number of elements")
+        @assert ninterfaces(cache.interfaces)==2 * nelements(dg, cache) ("For 2D and periodic domains and conforming elements, the number of interfaces must be 2 times the number of elements")
     end
 
     return nothing
@@ -194,7 +194,7 @@ function refine!(u_ode::AbstractVector, adaptor,
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
        !mpi_isparallel()
         @assert ninterfaces(cache_parabolic.interfaces)==2 *
-                                                         nelements(dg, cache_parabolic) ("For $(2)D and periodic domains and conforming elements, the number of interfaces must be $(2) times the number of elements")
+                                                         nelements(dg, cache_parabolic) ("For 2D and periodic domains and conforming elements, the number of interfaces must be 2 times the number of elements")
     end
 
     return nothing
@@ -372,7 +372,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
        !mpi_isparallel()
-        @assert ninterfaces(cache.interfaces)==2 * nelements(dg, cache) ("For $(2)D and periodic domains and conforming elements, the number of interfaces must be $(2) times the number of elements")
+        @assert ninterfaces(cache.interfaces)==2 * nelements(dg, cache) ("For 2D and periodic domains and conforming elements, the number of interfaces must be 2 times the number of elements")
     end
 
     return nothing
@@ -395,7 +395,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
        !mpi_isparallel()
         @assert ninterfaces(cache_parabolic.interfaces)==2 *
-                                                         nelements(dg, cache_parabolic) ("For $(2)D and periodic domains and conforming elements, the number of interfaces must be $(2) times the number of elements")
+                                                         nelements(dg, cache_parabolic) ("For 2D and periodic domains and conforming elements, the number of interfaces must be 2 times the number of elements")
     end
 
     return nothing

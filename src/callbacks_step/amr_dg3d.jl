@@ -103,7 +103,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
 
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
-        @assert ninterfaces(cache.interfaces)==3 * nelements(dg, cache) ("For $(3)D and periodic domains and conforming elements, the number of interfaces must be $(3) times the number of elements")
+        @assert ninterfaces(cache.interfaces)==3 * nelements(dg, cache) ("For 3D and periodic domains and conforming elements, the number of interfaces must be 3 times the number of elements")
     end
 
     return nothing
@@ -291,7 +291,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
 
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0
-        @assert ninterfaces(cache.interfaces)==3 * nelements(dg, cache) ("For $(3)D and periodic domains and conforming elements, the number of interfaces must be $(3) times the number of elements")
+        @assert ninterfaces(cache.interfaces)==3 * nelements(dg, cache) ("For 3D and periodic domains and conforming elements, the number of interfaces must be 3 times the number of elements")
     end
 
     return nothing
