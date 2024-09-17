@@ -167,6 +167,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
             @test eltype(@inferred entropy2cons(u, equations)) == RealT
             @test typeof(@inferred density(u, equations)) == RealT
+            @test typeof(@inferred velocity(u, equations)) == RealT
             @test typeof(@inferred pressure(u, equations)) == RealT
             @test typeof(@inferred density_pressure(u, equations)) == RealT
             @test typeof(@inferred entropy(cons, equations)) == RealT
@@ -218,6 +219,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                 end
             end
 
+            @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_shima_etal(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
@@ -257,6 +259,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             for orientation in orientations
+                @test eltype(@inferred velocity(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_shima_etal(u_ll, u_rr, orientation, equations)) ==
                       RealT
@@ -300,6 +303,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
+            @test eltype(@inferred velocity(u, equations)) == RealT
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
@@ -367,6 +371,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                 end
             end
 
+            @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_shima_etal(u_ll, u_rr, normal_direction, equations)) ==
                   RealT
@@ -392,6 +397,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                           equations)) == RealT
 
             for orientation in orientations
+                @test eltype(@inferred velocity(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_shima_etal(u_ll, u_rr, orientation, equations)) ==
                       RealT
@@ -421,6 +427,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                               equations)) == RealT
             end
 
+            @test eltype(@inferred velocity(u, equations)) == RealT
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
@@ -456,6 +463,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) ==
                   RealT
 
+            @test eltype(@inferred velocity(u, equations)) == RealT
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
             @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
                                                       equations)) == RealT
@@ -499,11 +507,13 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred source_terms_convergence_test(u, x, t, equations)) ==
                   RealT
 
+            @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_ranocha(u_ll, u_rr, normal_direction,
                                                 equations)) == RealT
 
             for orientation in orientations
+                @test eltype(@inferred velocity(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_chandrashekar(u_ll, u_rr, orientation,
                                                           equations)) == RealT
@@ -515,6 +525,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
             end
 
+            @test eltype(@inferred velocity(u, equations)) == RealT
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
@@ -1094,6 +1105,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
                   RealT
 
+            @test eltype(@inferred velocity(u, equations)) == RealT
             @test eltype(@inferred flux(u, orientation, equations)) == RealT
             @test eltype(@inferred flux_hllc(u_ll, u_rr, orientation, equations)) == RealT
             @test eltype(@inferred flux_derigs_etal(u_ll, u_rr, orientation, equations)) ==
@@ -1165,6 +1177,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
                   RealT
 
+            @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr,
                                                                normal_direction_ll,
@@ -1183,6 +1196,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                           equations)) == RealT
 
             for orientation in orientations
+                @test eltype(@inferred velocity(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr, orientation,
                                                                    equations)) == RealT
@@ -1221,6 +1235,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                               equations)) == RealT
             end
 
+            @test eltype(@inferred velocity(u, equations)) == RealT
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
@@ -1283,6 +1298,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
                   RealT
 
+            @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr,
                                                                normal_direction_ll,
@@ -1301,6 +1317,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                           equations)) == RealT
 
             for orientation in orientations
+                @test eltype(@inferred velocity(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr, orientation,
                                                                    equations)) == RealT
@@ -1319,6 +1336,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                               equations)) == RealT
             end
 
+            @test eltype(@inferred velocity(u, equations)) == RealT
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
@@ -1425,6 +1443,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             for orientation in orientations
+                @test eltype(@inferred velocity(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr, orientation,
                                                                    equations)) ==
@@ -2086,6 +2105,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                 @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
                       RealT
 
+                @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
                 @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
                 @test eltype(@inferred flux_winters_etal(u_ll, u_rr, normal_direction,
                                                          equations)) ==
@@ -2101,6 +2121,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                       RealT
 
                 for orientation in orientations
+                    @test eltype(@inferred velocity(u, orientation, equations)) == RealT
                     @test eltype(@inferred flux(u, orientation, equations)) == RealT
                     @test eltype(@inferred flux_winters_etal(u_ll, u_rr, orientation,
                                                              equations)) ==
@@ -2113,6 +2134,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                           RealT
                 end
 
+                @test eltype(@inferred velocity(u, equations)) == RealT
                 @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
                 @test eltype(@inferred cons2prim(u, equations)) == RealT
                 @test eltype(@inferred prim2cons(u, equations)) == RealT
@@ -2240,6 +2262,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                 surface_flux_function,
                                                                 equations)) == RealT
 
+            @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
                                                                          normal_direction_ll,
@@ -2285,6 +2308,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                           RealT
                 end
 
+                @test eltype(@inferred velocity(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
                                                                              orientation,

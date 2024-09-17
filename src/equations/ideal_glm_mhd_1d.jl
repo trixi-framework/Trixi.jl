@@ -326,7 +326,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
         Sdiff = SsR - SsL
 
         # Compute HLL values for vStar, BStar
-        # These correspond to eq. (28) and (30) from the referenced paper 
+        # These correspond to eq. (28) and (30) from the referenced paper
         # and the classic HLL intermediate state given by (2)
         rho_HLL = (SsR * rho_rr - SsL * rho_ll - (f_rr[1] - f_ll[1])) / Sdiff
 
@@ -394,7 +394,7 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
                          B1_rr * (B1_rr * v1_rr + B2_rr * v2_rr + B3_rr * v3_rr))) /
                        SdiffStar # (23)
 
-            # Classic HLLC update (32)           
+            # Classic HLLC update (32)
             f1 = f_rr[1] + SsR * (densStar - u_rr[1])
             f2 = f_rr[2] + SsR * (mom_1_Star - u_rr[2])
             f3 = f_rr[3] + SsR * (mom_2_Star - u_rr[3])
@@ -553,6 +553,12 @@ end
 @inline function density(u, equations::IdealGlmMhdEquations1D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3 = u
     return rho
+end
+
+@inline function velocity(u, equations::IdealGlmMhdEquations1D)
+    rho = u[1]
+    v1 = u[2] / rho
+    return v1
 end
 
 @inline function pressure(u, equations::IdealGlmMhdEquations1D)
