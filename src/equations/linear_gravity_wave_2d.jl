@@ -66,34 +66,14 @@ function initial_condition_convergence_test(x, t,
     return SVector(0.0, 0.0, 0.0, b)
 end
 
-@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
-                                              x, t,
-                                              surface_flux_function,
-                                              equations::LinearizedGravityWaveEquations2D)
-    # normalize the outward pointing direction
-    normal = normal_direction / norm(normal_direction)
-
-    # compute the normal velocity
-    u_normal = normal[1] * u_inner[1] + normal[2] * u_inner[2]
-
-    # create the "external" boundary solution state
-    u_boundary = SVector(u_inner[1] - 2.0 * u_normal * normal[1],
-                         u_inner[2] - 2.0 * u_normal * normal[2],
-                         u_inner[3],
-                         u_inner[4])
-
-    # calculate the boundary flux
-    flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
-
-    return flux
-end
-
 """
 boundary_condition_slip_wall(u_inner, orientation, direction, x, t,
 surface_flux_function, equations::ShallowWaterEquations2D)
 
 Should be used together with [`TreeMesh`](@ref).
 """
+
+
 @inline function boundary_condition_slip_wall(u_inner, orientation,
                                               direction, x, t,
                                               surface_flux_function,
@@ -107,11 +87,12 @@ Should be used together with [`TreeMesh`](@ref).
 
     # Calculate boundary flux
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        println(surface_flux_function)
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
     end
-
+        
     return flux
 end
 
@@ -206,7 +187,7 @@ The diagonalization of the flux matrix can be found in
   Diagonalization and simultaneous symmetrization of the gas-dynamic matrices
   [DOI: 10.1090/S0025-5718-1975-0388967-5](https://doi.org/10.1090/S0025-5718-1975-0388967-5)
 """
-@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+@inline function flux_lmars2(u_ll, u_rr, orientation::Integer,
                               equations::LinearizedGravityWaveEquations2D)
     @unpack cs = equations
 
@@ -214,21 +195,23 @@ The diagonalization of the flux matrix can be found in
     v1_rr, v2_rr, p_rr, b_rr = u_rr
 
     if orientation == 1
-        f1 = (p_ll + p_rr) * 0.5
+        f1 = (p_ll + p_rr) * 0.5 - 0.5*cs*(v1_rr - v1_ll)
         f2 = 0.0
-        f3 = cs^2 * (v1_ll + v1_rr) * 0.5
+        f3 = cs^2 *( (v1_ll + v1_rr) * 0.5 - 1/(2*cs)*(p_rr - p_ll))
         f4 = 0.0
+        println("a volte qui")
     else # orientation == 2
         f1 = 0.0
-        f2 = (p_ll + p_rr) * 0.5
-        f3 = cs^2 * (v2_ll + v2_rr) * 0.5
+        f2 = (p_ll + p_rr) * 0.5 - 0.5*cs*(v2_rr - v2_ll)
+        f3 = cs^2 *( (v2_ll + v2_rr) * 0.5 - 1/(2*cs)*(p_rr - p_ll))
         f4 = 0.0
+        println("sono anche qui")
     end
-
+    println("sono qui")
     return SVector(f1, f2, f3, f4)
 end
 
-@inline function flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
+@inline function flux_lmars2(u_ll, u_rr, normal_direction::AbstractVector,
                               equations::LinearizedGravityWaveEquations2D)
     @unpack cs = equations
     v1_ll, v2_ll, p_ll, b_ll = u_ll
@@ -240,12 +223,54 @@ end
     v_normal_ll = v1_ll * normal_vector[1] + v2_ll * normal_vector[2]
     v_normal_rr = v1_rr * normal_vector[1] + v2_rr * normal_vector[2]
 
-    f1 = normal_vector[1] * 0.5 * (p_ll + p_rr)
-    f2 = normal_vector[2] * 0.5 * (p_ll + p_rr)
-    f3 = 0.5 * (v_normal_ll + v_normal_rr) * cs^2
+    f1 = normal_vector[1] * (0.5 * (p_ll + p_rr) - 0.5*cs*(v_normal_rr - v_normal_ll))
+    f2 = normal_vector[2] * (0.5 * (p_ll + p_rr) - 0.5*cs*(v_normal_rr - v_normal_ll))
+    f3 = (0.5 * (v_normal_ll + v_normal_rr) - 1/(2*cs)*(p_rr - p_ll) )* cs^2
     f4 = 0.0
 
     return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_godunov(u_ll, u_rr, orientation::Integer,
+    equations::LinearizedGravityWaveEquations2D)
+@unpack cs = equations
+
+v1_ll, v2_ll, p_ll, b_ll = u_ll
+v1_rr, v2_rr, p_rr, b_rr = u_rr
+
+if orientation == 1
+f1 = (p_ll + p_rr) * 0.5
+f2 = 0.0
+f3 = cs^2 * (v1_ll + v1_rr) * 0.5
+f4 = 0.0
+else # orientation == 2
+f1 = 0.0
+f2 = (p_ll + p_rr) * 0.5
+f3 = cs^2 * (v2_ll + v2_rr) * 0.5
+f4 = 0.0
+end
+
+return SVector(f1, f2, f3, f4)
+end
+
+@inline function flux_lmars(u_ll, u_rr, normal_direction::AbstractVector,
+    equations::LinearizedGravityWaveEquations2D)
+@unpack cs = equations
+v1_ll, v2_ll, p_ll, b_ll = u_ll
+v1_rr, v2_rr, p_rr, b_rr = u_rr
+
+norm_ = norm(normal_direction)
+normal_vector = normal_direction / norm_
+
+v_normal_ll = v1_ll * normal_vector[1] + v2_ll * normal_vector[2]
+v_normal_rr = v1_rr * normal_vector[1] + v2_rr * normal_vector[2]
+
+f1 = normal_vector[1] * 0.5 * (p_ll + p_rr)
+f2 = normal_vector[2] * 0.5 * (p_ll + p_rr)
+f3 = 0.5 * (v_normal_ll + v_normal_rr) * cs^2
+f4 = 0.0
+
+return SVector(f1, f2, f3, f4)
 end
 
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
