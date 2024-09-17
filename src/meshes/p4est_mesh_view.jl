@@ -8,7 +8,7 @@
 
 A view on a p4est mesh.
 """
-mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2,
+mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost, NDIMSP2,
                              NNODES} <:
                AbstractMesh{NDIMS}
     # Attributes from the original P4est mesh
@@ -25,13 +25,13 @@ mutable struct P4estMeshView{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2
     p4est_partition_allow_for_coarsening::Bool
 
     # Attributes pertaining the views.
-    parent::P4estMesh{NDIMS, RealT}
+    parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}
     indices_min::NTuple{NDIMS, Int}
     indices_max::NTuple{NDIMS, Int}
 end
 
 # function P4estMeshView(parent::P4estMesh{NDIMS, RealT}, view_cells::Array{Bool}) where {NDIMS, RealT}
-function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
+function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS, RealT};
                        indices_min = ntuple(_ -> 1, Val(NDIMS)),
                        indices_max = size(parent),
                        coordinates_min = nothing, coordinates_max = nothing,
@@ -73,7 +73,7 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
 
     structured_boundary_names!(boundary_names, trees_per_dimension, periodicity)
 
-    return P4estMeshView{NDIMS, eltype(parent.tree_node_coordinates),
+    return P4estMeshView{NDIMS, NDIMS, eltype(parent.tree_node_coordinates),
                          typeof(parent.is_parallel),
                          typeof(p4est_pw), typeof(parent.ghost), NDIMS + 2,
                          length(parent.nodes)}(PointerWrapper(p4est),
@@ -88,7 +88,8 @@ function P4estMeshView(parent::P4estMesh{NDIMS, RealT};
 end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::P4estMeshView{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline Base.real(::P4estMeshView{NDIMS, NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline ndims_ambient(::P4estMesh{NDIMS, NDIMS}) where {NDIMS} = NDIMS
 @inline function ntrees(mesh::P4estMeshView)
     return mesh.p4est.trees.elem_count[]
 end
