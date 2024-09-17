@@ -46,6 +46,16 @@ save_solution = SaveSolutionCallback(dt = 0.1,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
+                                      base_level = 4,
+                                      med_level = 5, med_threshold = 0.1,
+                                      max_level = 6, max_threshold = 0.6)
+
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 5,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true)
+
 # Construct second order paired explicit Runge-Kutta method with 6 stages for given simulation setup.
 # Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
 # in calculating the polynomial coefficients in the ODE algorithm.
@@ -60,7 +70,8 @@ stepsize_callback = StepsizeCallback(cfl = cfl_number)
 callbacks = CallbackSet(summary_callback,
                         alive_callback,
                         save_solution,
-                        analysis_callback,
+                        analysis_callback, 
+                        amr_callback,
                         stepsize_callback)
 
 ###############################################################################
