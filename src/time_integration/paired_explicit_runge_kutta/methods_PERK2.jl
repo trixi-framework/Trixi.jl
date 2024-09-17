@@ -117,7 +117,7 @@ end
     - `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
       monomial coefficients of the stability polynomial of PERK method.
       The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
-    - `dt_opt` (`Float64`): Optimal time step size for the simulation.
+    - `dt_opt` (`Float64`): Optimal time step size for the simulation setup.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
     -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the

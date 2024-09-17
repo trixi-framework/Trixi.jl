@@ -10,8 +10,8 @@
 
 The ideal compressible multicomponent GLM-MHD equations in one space dimension.
 """
-mutable struct IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT <: Real} <:
-               AbstractIdealGlmMhdMulticomponentEquations{1, NVARS, NCOMP}
+struct IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT <: Real} <:
+       AbstractIdealGlmMhdMulticomponentEquations{1, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT}
     gas_constants::SVector{NCOMP, RealT}
     cv::SVector{NCOMP, RealT}
@@ -49,6 +49,11 @@ function IdealGlmMhdMulticomponentEquations1D(; gammas, gas_constants)
 
     return IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT}(__gammas,
                                                                      __gas_constants)
+end
+
+# Outer constructor for `@reset` works correctly
+function IdealGlmMhdMulticomponentEquations1D(gammas, gas_constants, cv, cp, c_h)
+    IdealGlmMhdMulticomponentEquations1D(gammas = gammas, gas_constants = gas_constants)
 end
 
 @inline function Base.real(::IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT}) where {
