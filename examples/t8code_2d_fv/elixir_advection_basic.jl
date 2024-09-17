@@ -9,8 +9,14 @@ initial_condition = initial_condition_convergence_test
 solver = FV(order = 2, extended_reconstruction_stencil = false,
             surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
+# Note:
+# For now, it is completely irrelevant that coordinates_max/min are.
+# The used t8code routine creates the mesh on [0, nx] x [0, ny], where (nx, ny) = trees_per_dimension.
+# Afterwards and only inside Trixi, `tree_node_coordinates` are mapped back to [-1, 1]^2.
+# But, this variable is not used for the FV method.
+# That's why I use the cmesh interface in all other elixirs.
+coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
+coordinates_max = (8.0, 8.0) # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (8, 8)
 

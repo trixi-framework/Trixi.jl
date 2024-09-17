@@ -32,7 +32,8 @@ end
 mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/a075f8ec39a67fa9fad8f6f84342cbca/raw/a7206a02ed3a5d3cadacd8d9694ac154f9151db7/square_unstructured_1.inp",
                            joinpath(@__DIR__, "square_unstructured_1.inp"))
 
-# TODO: Including mapping does not work yet for FV.
+# Note:
+# Including mapping does not work yet for FV.
 mesh = T8codeMesh(mesh_file, 2; polydeg = 0,
                   mapping = mapping,
                   initial_refinement_level = 2)
