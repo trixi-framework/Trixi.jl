@@ -72,7 +72,7 @@ Trixi.jl implements the [Paired Explicit Runge-Kutta (P-ERK)](https://doi.org/10
 ### Paired-Explicit Runge-Kutta (P-ERK) Schemes
 
 Paired Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ODEs.
-In the [original publication]((https://doi.org/10.1016/j.jcp.2019.05.014)), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470)- and [fourth](https://doi.org/10.48550/arXiv.2408.05470)-order in subsequent work.
+In the [original publication](https://doi.org/10.1016/j.jcp.2019.05.014), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470)- and [fourth](https://doi.org/10.48550/arXiv.2408.05470)-order in subsequent work.
 
 By construction, P-ERK schemes are suited for integrating multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
 Nevertheless, due to their optimized stability properties and low-storage nature, the P-ERK schemes are also highly efficient when applied as standalone methods.
