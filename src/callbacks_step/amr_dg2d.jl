@@ -31,7 +31,7 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
         end
 
         resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+                nvariables(equations) * nnodes(dg)^2 * nelements(dg, cache))
         u = wrap_array_native(u_ode, mesh, equations, dg, cache)
 
         # Get new list of leaf cells
@@ -119,7 +119,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
         reinitialize_containers!(mesh, equations, dg, cache)
 
         resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+                nvariables(equations) * nnodes(dg)^2 * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Loop over all elements in old container and either copy them or refine them
@@ -144,7 +144,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
 
                 # Increment `element_id` on the refined mesh with the number
                 # of children, i.e., 4 in 2D
-                element_id += 2^ndims(mesh)
+                element_id += 2^2
             else
                 if mesh isa P4estMesh
                     # Copy old element data to new element container and remove Jacobian scaling
@@ -165,13 +165,13 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
         # the counter `element_id` can have two different values at the end.
         @assert element_id ==
                 nelements(dg, cache) +
-                1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+                1||element_id == nelements(dg, cache) + 2^2 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode old_inverse_jacobian
 
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
        !mpi_isparallel()
-        @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+        @assert ninterfaces(cache.interfaces)==2 * nelements(dg, cache) ("For $(2)D and periodic domains and conforming elements, the number of interfaces must be $(2) times the number of elements")
     end
 
     return nothing
@@ -193,8 +193,8 @@ function refine!(u_ode::AbstractVector, adaptor,
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
        !mpi_isparallel()
-        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
-                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+        @assert ninterfaces(cache_parabolic.interfaces)==2 *
+                                                         nelements(dg, cache_parabolic) ("For $(2)D and periodic domains and conforming elements, the number of interfaces must be $(2) times the number of elements")
     end
 
     return nothing
@@ -313,7 +313,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
         reinitialize_containers!(mesh, equations, dg, cache)
 
         resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+                nvariables(equations) * nnodes(dg)^2 * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Loop over all elements in old container and either copy them or coarsen them
@@ -330,7 +330,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                 # If an element is to be removed, sanity check if the following elements
                 # are also marked - otherwise there would be an error in the way the
                 # cells/elements are sorted
-                @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
+                @assert all(to_be_removed[old_element_id:(old_element_id + 2^2 - 1)]) "bad cell/element order"
 
                 # Coarsen elements and store solution directly in new data structure
                 coarsen_elements!(u, element_id, old_u, old_element_id,
@@ -349,7 +349,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                 # Increment `element_id` on the coarsened mesh by one and `skip` = 3 in 2D
                 # because 4 children elements become 1 parent element
                 element_id += 1
-                skip = 2^ndims(mesh) - 1
+                skip = 2^2 - 1
             else
                 if mesh isa P4estMesh
                     # Copy old element data to new element container and remove Jacobian scaling
@@ -372,7 +372,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
        !mpi_isparallel()
-        @assert ninterfaces(cache.interfaces)==ndims(mesh) * nelements(dg, cache) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+        @assert ninterfaces(cache.interfaces)==2 * nelements(dg, cache) ("For $(2)D and periodic domains and conforming elements, the number of interfaces must be $(2) times the number of elements")
     end
 
     return nothing
@@ -394,8 +394,8 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
        !mpi_isparallel()
-        @assert ninterfaces(cache_parabolic.interfaces)==ndims(mesh) *
-                                                         nelements(dg, cache_parabolic) ("For $(ndims(mesh))D and periodic domains and conforming elements, the number of interfaces must be $(ndims(mesh)) times the number of elements")
+        @assert ninterfaces(cache_parabolic.interfaces)==2 *
+                                                         nelements(dg, cache_parabolic) ("For $(2)D and periodic domains and conforming elements, the number of interfaces must be $(2) times the number of elements")
     end
 
     return nothing

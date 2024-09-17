@@ -33,7 +33,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         @assert nelements(dg, cache) > old_n_elements
 
         resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+                nvariables(equations) * nnodes(dg) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Loop over all elements in old container and either copy them or refine them
@@ -43,7 +43,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                 # Refine element and store solution directly in new data structure
                 refine_element!(u, element_id, old_u, old_element_id,
                                 adaptor, equations, dg)
-                element_id += 2^ndims(mesh)
+                element_id += 2
             else
                 # Copy old element data to new element container
                 @views u[:, .., element_id] .= old_u[:, .., old_element_id]
@@ -55,7 +55,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         # the counter `element_id` can have two different values at the end.
         @assert element_id ==
                 nelements(dg, cache) +
-                1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+                1||element_id == nelements(dg, cache) + 2 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode
 
     # re-initialize interfaces container
@@ -170,7 +170,7 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
         @assert nelements(dg, cache) < old_n_elements
 
         resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+                nvariables(equations) * nnodes(dg) * nelements(dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         # Loop over all elements in old container and either copy them or coarsen them
@@ -187,13 +187,13 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                 # If an element is to be removed, sanity check if the following elements
                 # are also marked - otherwise there would be an error in the way the
                 # cells/elements are sorted
-                @assert all(to_be_removed[old_element_id:(old_element_id + 2^ndims(mesh) - 1)]) "bad cell/element order"
+                @assert all(to_be_removed[old_element_id:(old_element_id + 2 - 1)]) "bad cell/element order"
 
                 # Coarsen elements and store solution directly in new data structure
                 coarsen_elements!(u, element_id, old_u, old_element_id,
                                   adaptor, equations, dg)
                 element_id += 1
-                skip = 2^ndims(mesh) - 1
+                skip = 2 - 1
             else
                 # Copy old element data to new element container
                 @views u[:, .., element_id] .= old_u[:, .., old_element_id]

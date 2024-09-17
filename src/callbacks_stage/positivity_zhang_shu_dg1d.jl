@@ -27,7 +27,7 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
             u_mean += u_node * weights[i]
         end
         # note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
-        u_mean = u_mean / 2^ndims(mesh)
+        u_mean = u_mean / 2
 
         # We compute the value directly with the mean values, as we assume that
         # Jensen's inequality holds (e.g. pressure for compressible Euler equations).
