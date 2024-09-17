@@ -49,7 +49,7 @@ are the following. Further documentation can be found in the
 
 ### Stabilized Explicit Runge-Kutta Methods
 
-Optimized explicit schemes aim to maximize the timestep $\Delta t$ for a particular simulation setup.
+Optimized explicit schemes aim to maximize the timestep $\Delta t$ for a given simulation setup.
 Formally, this boils down to an optimization problem of the form 
 ```math
 \underset{P_{p;S} \, \in \, \mathcal{P}_{p;S}}{\max} \Delta t \text{ such that } \big \vert P_{p;S}(\Delta t \lambda_m) \big \vert \leq 1, \quad  m = 1 , \dots , M \tag{1}
@@ -58,12 +58,12 @@ where $p$ denotes the order of consistency of the scheme, $S$ is the number of s
 ```math
 \dot{\boldsymbol U} = \boldsymbol F(\boldsymbol U) \tag{2}
 ```
-In particular, for $S > p$ the Runge-Kutta method bears some free coefficients which may be used to adapt the domain of absolute stability to the problem at hand.
+In particular, for $S > p$ the Runge-Kutta method includes some free coefficients which may be used to adapt the domain of absolute stability to the problem at hand.
 Since Trixi.jl [supports exact computation of the Jacobian $J$ by means of automatic differentiation](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/differentiable_programming/), we have access to the Jacobian of a given simulation setup.
-For small (say, up to $10^4$ DoF) systems, the spectrum $\boldsymbol \sigma = \left \{ \lambda_m \right \}_{m=1, \dots, M}$ can be computed directly using [`LinearAlgebra.eigvals(J)`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.eigvals).
-For larger systems we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://doi.org/10.1016/j.jcp.2024.113223) which computes a reduced set of constraining eigenvalues by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
+For small (up to approximately $10^4$ DoF) systems, the spectrum $\boldsymbol \sigma = \left \{ \lambda_m \right \}_{m=1, \dots, M}$ can be computed directly using [`LinearAlgebra.eigvals(J)`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.eigvals).
+For larger systems, we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://doi.org/10.1016/j.jcp.2024.113223) which computes a reduced set of constraining eigenvalues by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
 
-The optimization problem (1) can be solved using the algorithms described in [Ketcheson, Ahmadia (2012)](http://dx.doi.org/10.2140/camcos.2012.7.247) for moderate number of stages $S$ or [Doehring, Gassner, Torrilhon (2024)](https://doi.org/10.1007/s10915-024-02478-5) for large number of stages $S$.
+The optimization problem (1) can be solved using the algorithms described in [Ketcheson, Ahmadia (2012)](http://dx.doi.org/10.2140/camcos.2012.7.247) for a moderate number of stages $S$ or [Doehring, Gassner, Torrilhon (2024)](https://doi.org/10.1007/s10915-024-02478-5) for a large number of stages $S$.
 In Trixi.jl, the former approach is implemented by means of convex optimization using the [Convex.jl](https://github.com/jump-dev/Convex.jl) package.
 
 The resulting stability polynomial $P_{p;S}$ is then used to construct an optimized Runge-Kutta method.
@@ -74,8 +74,8 @@ Trixi.jl implements the [Paired Explicit Runge-Kutta (P-ERK)](https://doi.org/10
 Paired Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ODEs.
 In the [original publication]((https://doi.org/10.1016/j.jcp.2019.05.014)), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470)- and [fourth](https://doi.org/10.48550/arXiv.2408.05470)-order in subsequent work.
 
-By construction, P-ERK schemes are suited for integration of multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
-Nevertheless, due to their optimized stability properties and low-storage nature, the P-ERK schemes are also highly efficient when applied standalone.
+By construction, P-ERK schemes are suited for integrating multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
+Nevertheless, due to their optimized stability properties and low-storage nature, the P-ERK schemes are also highly efficient when applied as standalone methods.
 
 ### Tutorial: Using `PairedExplicitRK2`
 
@@ -161,8 +161,7 @@ ode = semidiscretize(semi, tspan)
   - Semidiscretization (`semi`): The semidiscretization setup that includes the mesh, equations, initial condition, and solver. In this example, this variable is already defined in step 3.
   In the background, we compute from `semi` the Jacobian $J$ evaluated at the initial condition using [`jacobian_ad_forward`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
   This is then followed by the computation of the spectrum $\boldsymbol \sigma(J)$ using `LinearAlgebra.eigvals`.
-  Equipped with the spectrum, the optimal stability polynomial is computed and from this the corresponding Runge-Kutta method.
-  Other constructors (if the coefficients $\boldsymbol \alpha$ of the stability polynomial are already available or if a reduced spectrum $\widetilde{\boldsymbol \sigma}$ should be used ) are discussed below.
+  Equipped with the spectrum, the optimal stability polynomial is computed, from which the corresponding Runge-Kutta method is derived. Other constructors (if the coefficients $\boldsymbol{\alpha}$ of the stability polynomial are already available, or if a reduced spectrum $\widetilde{\boldsymbol{\sigma}}$ should be used) are discussed below.
 
 ```julia
 # Construct second order paired explicit Runge-Kutta method with 6 stages for given simulation setup.
@@ -181,7 +180,6 @@ sol = Trixi.solve(ode, ode_algorithm,
 8. Advanced constructors:
 There are two additional constructors for the `PairedExplicitRK2` method besides the one taking in a semidiscretization `semi`:
   - `PairedExplicitRK2(num_stages, monomial_coeffs)` constructs a `num_stages`-stage method from the given optimal monomial coefficients $\boldsymbol \alpha$.
-  The use-case for this constructor would be if the optimal coefficients cannot be constructed using the optimization routine by Ketcheoson and Ahmadia.
-  This may be due to a large number of stages $S$.
+  This constructor is useful when the optimal coefficients cannot be obtained using the optimization routine by Ketcheson and Ahmadia, possibly due to a large number of stages $S$.
   - `PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64})` constructs a `num_stages`-stage using the optimization approach by Ketcheson and Ahmadia for the (reduced) spectrum `eig_vals`.
   The use-case for this constructor would be a large system, for which the computation of all eigenvalues is infeasible.
