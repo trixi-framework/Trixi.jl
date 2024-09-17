@@ -144,7 +144,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
 
                 # Increment `element_id` on the refined mesh with the number
                 # of children, i.e., 4 in 2D
-                element_id += 2^2
+                element_id += 4
             else
                 if mesh isa P4estMesh
                     # Copy old element data to new element container and remove Jacobian scaling
@@ -349,7 +349,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                 # Increment `element_id` on the coarsened mesh by one and `skip` = 3 in 2D
                 # because 4 children elements become 1 parent element
                 element_id += 1
-                skip = 2^2 - 1
+                skip = 3
             else
                 if mesh isa P4estMesh
                     # Copy old element data to new element container and remove Jacobian scaling

@@ -77,7 +77,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
 
                 # Increment `element_id` on the refined mesh with the number
                 # of children, i.e., 8 in 3D
-                element_id += 2^3
+                element_id += 8
             else
                 if mesh isa P4estMesh
                     # Copy old element data to new element container and remove Jacobian scaling
@@ -98,7 +98,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{3}, P4estM
         # the counter `element_id` can have two different values at the end.
         @assert element_id ==
                 nelements(dg, cache) +
-                1||element_id == nelements(dg, cache) + 2^3 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
+                1||element_id == nelements(dg, cache) + 8 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
     end # GC.@preserve old_u_ode old_inverse_jacobian
 
     # Sanity check
@@ -269,7 +269,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                 # Increment `element_id` on the coarsened mesh by one and `skip` = 7 in 3D
                 # because 8 children elements become 1 parent element
                 element_id += 1
-                skip = 2^3 - 1
+                skip = 7
             else
                 if mesh isa P4estMesh
                     # Copy old element data to new element container and remove Jacobian scaling

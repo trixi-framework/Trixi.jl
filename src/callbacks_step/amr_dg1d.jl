@@ -192,8 +192,10 @@ function coarsen!(u_ode::AbstractVector, adaptor, mesh::TreeMesh{1},
                 # Coarsen elements and store solution directly in new data structure
                 coarsen_elements!(u, element_id, old_u, old_element_id,
                                   adaptor, equations, dg)
+                # Increment `element_id` on the coarsened mesh by one and `skip` = 1 in 1D
+                # because 2 children elements become 1 parent element
                 element_id += 1
-                skip = 2 - 1
+                skip = 1
             else
                 # Copy old element data to new element container
                 @views u[:, .., element_id] .= old_u[:, .., old_element_id]
