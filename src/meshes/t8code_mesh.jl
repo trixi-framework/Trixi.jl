@@ -389,7 +389,7 @@ function T8codeMesh(trees_per_dimension, eclass;
         t8_cmesh_init(cmesh_ref)
         cmesh = cmesh_ref[]
 
-        @assert(trees_per_dimension[1] == trees_per_dimension[2],
+        @assert(trees_per_dimension[1]==trees_per_dimension[2],
                 "Different trees per dimensions are not supported for quad mesh. `trees_per_dimension`: $trees_per_dimension")
         num_trees = prod(trees_per_dimension) * 1 # 1 = number of trees for single hypercube with quads
 
@@ -398,7 +398,8 @@ function T8codeMesh(trees_per_dimension, eclass;
         vertices = Vector{Cdouble}(undef, 3 * 4 * num_trees) # 3 (dimensions) * 4 (vertices per tree) * num_trees
 
         for itree_y in 1:trees_per_dimension[2], itree_x in 1:trees_per_dimension[1]
-            index =  trees_per_dimension[1] * 3 * 4 * (itree_y - 1) + 3 * 4 * (itree_x - 1) + 1
+            index = trees_per_dimension[1] * 3 * 4 * (itree_y - 1) +
+                    3 * 4 * (itree_x - 1) + 1
             vertices[index] = coordinates_tree_x[itree_x]
             vertices[index + 1] = coordinates_tree_y[itree_y]
             vertices[index + 2] = 0.0
@@ -429,15 +430,16 @@ function T8codeMesh(trees_per_dimension, eclass;
         load_tree_data = @t8_load_tree_data(t8_geom_load_tree_data_vertices) # type: t8_geom_load_tree_data_fn
         tree_negative_volume = C_NULL # type: t8_geom_tree_negative_volume_fn
 
-        geometry = t8_geometry_analytic_new(NDIMS, name, analytical, jacobian, load_tree_data,
-                                            tree_negative_volume, user_data)
+        geometry = t8_geometry_analytic_new(NDIMS, name, analytical, jacobian,
+                                            load_tree_data, tree_negative_volume, user_data)
 
         t8_cmesh_register_geometry(cmesh, geometry)
 
         for itree in 1:num_trees
             offset_vertices = 3 * 4 * (itree - 1)
             t8_cmesh_set_tree_class(cmesh, itree - 1, eclass)
-            t8_cmesh_set_tree_vertices(cmesh, itree - 1, @views(vertices[(1 + offset_vertices):end]), 4)
+            t8_cmesh_set_tree_vertices(cmesh, itree - 1,
+                                       @views(vertices[(1 + offset_vertices):end]), 4)
         end
 
         # Note and TODO:
@@ -462,7 +464,6 @@ function T8codeMesh(trees_per_dimension, eclass;
         else
             error("Not supported trees_per_dimension")
         end
-
 
         t8_cmesh_commit(cmesh, mpi_comm())
     elseif NDIMS == 3
@@ -1624,7 +1625,7 @@ function cmesh_new_periodic_hybrid(; comm = mpi_comm())::t8_cmesh_t
         1.0, 1.0, 0,
         0, 0, 0,       # tree 5, triangle
         1.0, 1.0, 0,
-        0, 1.0, 0,
+        0, 1.0, 0
     ]
 
     # Generally, one can define other geometries. But besides linear the other
@@ -1685,7 +1686,9 @@ function cmesh_new_periodic_hybrid(; comm = mpi_comm())::t8_cmesh_t
     return cmesh
 end
 
-function cmesh_new_quad(; trees_per_dimension = (1, 1), coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0), periodicity = (true, true))::t8_cmesh_t
+function cmesh_new_quad(; trees_per_dimension = (1, 1),
+                        coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                        periodicity = (true, true))::t8_cmesh_t
     # This is how the cmesh looks like. The numbers are the tree numbers:
     #
     #   +---+
@@ -1698,23 +1701,28 @@ function cmesh_new_quad(; trees_per_dimension = (1, 1), coordinates_min = (-1.0,
     polygons_x, polygons_y = trees_per_dimension
     periodic_x, periodic_y = periodicity
     boundary = [coordinates_min[1], coordinates_min[2], 0.0,
-                coordinates_max[1], coordinates_min[2], 0.0,
-                coordinates_min[1], coordinates_max[2], 0.0,
-                coordinates_max[1], coordinates_max[2], 0.0]
+        coordinates_max[1], coordinates_min[2], 0.0,
+        coordinates_min[1], coordinates_max[2], 0.0,
+        coordinates_max[1], coordinates_max[2], 0.0]
 
     comm = mpi_comm()
     set_partition = 0
     offset = 0.0
     use_axis_aligned = 0
     eclass = T8_ECLASS_QUAD
-    cmesh = t8_cmesh_new_hypercube_pad_ext(eclass, comm, boundary, polygons_x, polygons_y, 0, periodic_x, periodic_y, 0, use_axis_aligned, set_partition, offset)
+    cmesh = t8_cmesh_new_hypercube_pad_ext(eclass, comm, boundary,
+                                           polygons_x, polygons_y, 0,
+                                           periodic_x, periodic_y, 0,
+                                           use_axis_aligned, set_partition, offset)
 
     return cmesh
 end
 
 # TODO: The structure of `cmesh_new_quad` and `cmesh_new_tri` is equal and only differs for `eclass`.
 # Use only one routine!
-function cmesh_new_tri(; trees_per_dimension = (1, 1), coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0), periodicity = (true, true))::t8_cmesh_t
+function cmesh_new_tri(; trees_per_dimension = (1, 1),
+                       coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                       periodicity = (true, true))::t8_cmesh_t
     # This is how the cmesh looks like. The numbers are the tree numbers:
     #
     #   +---+
@@ -1730,16 +1738,19 @@ function cmesh_new_tri(; trees_per_dimension = (1, 1), coordinates_min = (-1.0, 
     polygons_x, polygons_y = trees_per_dimension
     periodic_x, periodic_y = periodicity
     boundary = [coordinates_min[1], coordinates_min[2], 0.0,
-                coordinates_max[1], coordinates_min[2], 0.0,
-                coordinates_min[1], coordinates_max[2], 0.0,
-                coordinates_max[1], coordinates_max[2], 0.0]
+        coordinates_max[1], coordinates_min[2], 0.0,
+        coordinates_min[1], coordinates_max[2], 0.0,
+        coordinates_max[1], coordinates_max[2], 0.0]
 
     comm = mpi_comm()
     set_partition = 0
     offset = 0.0
     use_axis_aligned = 0
     eclass = T8_ECLASS_TRIANGLE
-    cmesh = t8_cmesh_new_hypercube_pad_ext(eclass, comm, boundary, polygons_x, polygons_y, 0, periodic_x, periodic_y, 0, use_axis_aligned, set_partition, offset)
+    cmesh = t8_cmesh_new_hypercube_pad_ext(eclass, comm, boundary,
+                                           polygons_x, polygons_y, 0,
+                                           periodic_x, periodic_y, 0,
+                                           use_axis_aligned, set_partition, offset)
 
     return cmesh
 end
@@ -1816,7 +1827,7 @@ function cmesh_new_periodic_tri2(; comm = mpi_comm())::t8_cmesh_t
         0, 1.0, 0,
         0, 1.0, 0,      # tree 7, triangle
         1.0, 0, 0,
-        1.0, 1.0, 0,
+        1.0, 1.0, 0
     ]
 
     # Generally, one can define other geometries. But besides linear the other
@@ -1903,7 +1914,7 @@ function cmesh_new_periodic_hybrid2(; comm = mpi_comm())::t8_cmesh_t
         0, -2.0, 0,     # tree 4, quad
         2.0, 0, 0,
         -2.0, 0, 0,
-        0, 2.0, 0,
+        0, 2.0, 0
     ]
 
     # This is how the cmesh looks like. The numbers are the tree numbers:

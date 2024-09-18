@@ -46,7 +46,8 @@ end
 function f(cmesh, gtreeid, ref_coords, num_coords, out_coords, tree_data, user_data)
     ltreeid = t8_cmesh_get_local_id(cmesh, gtreeid)
     eclass = t8_cmesh_get_tree_class(cmesh, ltreeid)
-    T8code.t8_geom_compute_linear_geometry(eclass, tree_data, ref_coords, num_coords, out_coords)
+    T8code.t8_geom_compute_linear_geometry(eclass, tree_data,
+                                           ref_coords, num_coords, out_coords)
 
     for i in 1:num_coords
         offset_3d = 3 * (i - 1) + 1

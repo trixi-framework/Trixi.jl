@@ -141,7 +141,7 @@ end
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
                             order=1,
                             initial_refinement_level=1,
-                            cmesh=Trixi.cmesh_new_tri(trees_per_dimension=(2, 2)),
+                            cmesh=Trixi.cmesh_new_tri(trees_per_dimension = (2, 2)),
                             l2=[0.29924666807083133],
                             linf=[0.4581996753014146])
         # Ensure that we do not have excessive memory allocations
@@ -157,7 +157,7 @@ end
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
                             order=1,
                             initial_refinement_level=2,
-                            cmesh = Trixi.cmesh_new_periodic_hybrid2(),
+                            cmesh=Trixi.cmesh_new_periodic_hybrid2(),
                             l2=[0.20740154468889108],
                             linf=[0.4659917007721659])
         # Ensure that we do not have excessive memory allocations
@@ -240,13 +240,13 @@ end
                                 0.059376731961878,
                                 0.019737707470047838,
                                 0.019737707470047747,
-                                0.09982550390697936,
+                                0.09982550390697936
                             ],
                             linf=[
                                 0.08501451493301548,
                                 0.029105783468157398,
                                 0.029105783468157842,
-                                0.1451756151490775,
+                                0.1451756151490775
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -264,13 +264,13 @@ end
                                 0.031971635993647315,
                                 0.016631028330554957,
                                 0.016630833188111448,
-                                0.04813246238398825,
+                                0.04813246238398825
                             ],
                             linf=[
                                 0.055105654108624336,
                                 0.03647317645079773,
                                 0.03647020577993976,
-                                0.08112180586875883,
+                                0.08112180586875883
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -289,13 +289,13 @@ end
                                 0.058781550112786296,
                                 0.02676026477370241,
                                 0.02673090935979779,
-                                0.08033279155463603,
+                                0.08033279155463603
                             ],
                             linf=[
                                 0.09591263836601072,
                                 0.05351985245787505,
                                 0.05264935415308125,
-                                0.14318629241962988,
+                                0.14318629241962988
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -317,13 +317,13 @@ end
                                 0.5733341919395403,
                                 0.11399976571202451,
                                 0.11399976571202453,
-                                1.3548613737038324,
+                                1.3548613737038324
                             ],
                             linf=[
                                 1.732836334678142,
                                 0.27645456051355827,
                                 0.27645456051355827,
-                                2.6624886901791407,
+                                2.6624886901791407
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -341,13 +341,13 @@ end
                                 0.7331398527938754,
                                 0.15194349346989244,
                                 0.1519434934698924,
-                                1.299914264830515,
+                                1.299914264830515
                             ],
                             linf=[
                                 2.2864127304524726,
                                 0.3051023693829176,
                                 0.30510236938291757,
-                                2.6171402581107936,
+                                2.6171402581107936
                             ])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -369,13 +369,13 @@ end
                                 0.25420413805862135,
                                 0.22153054262689362,
                                 0.11870842058617848,
-                                0.03626117501911353,
+                                0.03626117501911353
                             ],
                             linf=[
                                 0.5467894727797227,
                                 0.4156157752497065,
                                 0.26176691230685767,
-                                0.0920609123083227,
+                                0.0920609123083227
                             ],
                             tspan=(0.0, 1.0))
         # Ensure that we do not have excessive memory allocations
@@ -396,13 +396,13 @@ end
                                 0.2307479238046326,
                                 0.19300139957275295,
                                 0.1176326315506721,
-                                0.020439850138732837,
+                                0.020439850138732837
                             ],
                             linf=[
                                 0.5069212604421109,
                                 0.365579474379667,
                                 0.24226411409222004,
-                                0.049201093470609525,
+                                0.049201093470609525
                             ],
                             tspan=(0.0, 1.0))
         # Ensure that we do not have excessive memory allocations
@@ -422,13 +422,13 @@ end
                                 0.16181566308374545,
                                 0.10090964843765918,
                                 0.15229553744179888,
-                                0.0395037796064376,
+                                0.0395037796064376
                             ],
                             linf=[
                                 0.6484515918189779,
                                 0.3067327488921227,
                                 0.34771083375083534,
-                                0.10713502930441887,
+                                0.10713502930441887
                             ],
                             tspan=(0.0, 1.0))
         # Ensure that we do not have excessive memory allocations
