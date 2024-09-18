@@ -18,6 +18,7 @@ module Trixi
 # Include other packages that are used in Trixi.jl
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
+using Accessors: @reset
 using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I,
                      UniformScaling, det
 using Printf: @printf, @sprintf, println

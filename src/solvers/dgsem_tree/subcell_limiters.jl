@@ -193,28 +193,27 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
         else
             setup = ["Limiter" => ""]
             if local_twosided
-                setup = [
-                    setup...,
-                    "" => "Local two-sided limiting for conservative variables $(limiter.local_twosided_variables_cons)",
-                ]
+                push!(setup,
+                      "" => "Local two-sided limiting for conservative variables $(limiter.local_twosided_variables_cons)")
             end
             if positivity
-                string = "Positivity limiting for conservative variables $(limiter.positivity_variables_cons) and $(limiter.positivity_variables_nonlinear)"
-                setup = [setup..., "" => string]
-                setup = [
-                    setup...,
-                    "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)",
-                ]
+                if !isempty(limiter.positivity_variables_cons)
+                    string = "conservative variables $(limiter.positivity_variables_cons)"
+                    push!(setup, "" => "Positivity limiting for " * string)
+                end
+                if !isempty(limiter.positivity_variables_nonlinear)
+                    string = "$(limiter.positivity_variables_nonlinear)"
+                    push!(setup, "" => "Positivity limiting for " * string)
+                end
+                push!(setup,
+                      "" => "- with positivity correction factor = $(limiter.positivity_correction_factor)")
             end
             if local_onesided
                 for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
-                    setup = [setup..., "" => "Local $min_or_max limiting for $variable"]
+                    push!(setup, "" => "Local $min_or_max limiting for $variable")
                 end
             end
-            setup = [
-                setup...,
-                "Local bounds" => "FV solution",
-            ]
+            push!(setup, "Local bounds" => "FV solution")
         end
         summary_box(io, "SubcellLimiterIDP", setup)
     end
