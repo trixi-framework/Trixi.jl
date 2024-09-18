@@ -30,7 +30,7 @@ solver = FV(order = 2, extended_reconstruction_stencil = true,
 
 initial_refinement_level = 4
 # cmesh = Trixi.cmesh_new_periodic_hybrid2()
-cmesh = Trixi.cmesh_quad(periodicity = (true, true))
+cmesh = Trixi.cmesh_new_quad(periodicity = (true, true))
 mesh = T8codeMesh(cmesh, solver, initial_refinement_level = initial_refinement_level)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

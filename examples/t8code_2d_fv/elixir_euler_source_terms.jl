@@ -15,8 +15,8 @@ solver = FV(order = 2, extended_reconstruction_stencil = false,
             surface_flux = flux_lax_friedrichs)
 
 cmesh = Trixi.cmesh_new_periodic_hybrid()
-# cmesh = Trixi.cmesh_quad(periodicity = (true, true))
-# cmesh = Trixi.cmesh_new_periodic_tri()
+# cmesh = Trixi.cmesh_new_quad(periodicity = (true, true))
+# cmesh = Trixi.cmesh_new_tri(periodicity = (true, true))
 mesh = T8codeMesh(cmesh, solver,
                   initial_refinement_level = 3)
 

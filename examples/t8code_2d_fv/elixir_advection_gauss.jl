@@ -12,6 +12,9 @@ solver = FV(order = 2, surface_flux = flux_lax_friedrichs)
 
 initial_refinement_level = 4
 cmesh = Trixi.cmesh_new_periodic_hybrid()
+# Note: A non-periodic run with the tri mesh is unstable. Same as in `elixir_advection_nonperiodic.jl`
+# cmesh = Trixi.cmesh_new_tri(periodicity = (false, false))
+
 mesh = T8codeMesh(cmesh, solver, initial_refinement_level = initial_refinement_level)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)

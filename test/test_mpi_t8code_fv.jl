@@ -30,7 +30,6 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
         end
         @trixi_testset "second-order FV" begin
             @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
-                                order=2,
                                 l2=[0.008142380494734171],
                                 linf=[0.018687916234976898])
             # Ensure that we do not have excessive memory allocations
@@ -42,8 +41,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
                 @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
             end
         end
-        # The extended reconstruction stencil currently is not mpi parallel.
-        # The current version runs through but an error occurs on some rank (somehow not printed to the terminal).
+        # The extended reconstruction stencil is currently not mpi parallel.
+        # The current version runs through but an error occurs on some rank.
         # @trixi_testset "second-order FV, extended reconstruction stencil" begin
         #     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
         #                         order=2,
@@ -91,6 +90,104 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
                 @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
             end
         end
+    end
+
+    @trixi_testset "elixir_advection_basic_hybrid.jl" begin
+        @trixi_testset "first-order FV" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
+                                order=1,
+                                initial_refinement_level=2,
+                                cmesh=Trixi.cmesh_new_periodic_hybrid(),
+                                l2=[0.2253867410593706],
+                                linf=[0.34092690256865166])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        @trixi_testset "first-order FV - triangles" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
+                                order=1,
+                                initial_refinement_level=1,
+                                cmesh=Trixi.cmesh_new_tri(trees_per_dimension=(2, 2)),
+                                l2=[0.29924666807083133],
+                                linf=[0.4581996753014146])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        @trixi_testset "first-order FV - hybrid2" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
+                                order=1,
+                                initial_refinement_level=2,
+                                cmesh = Trixi.cmesh_new_periodic_hybrid2(),
+                                l2=[0.20740154468889108],
+                                linf=[0.4659917007721659])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        @trixi_testset "second-order FV" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_hybrid.jl"),
+                                initial_refinement_level=2,
+                                cmesh=Trixi.cmesh_new_periodic_hybrid(),
+                                l2=[0.1296561675517274],
+                                linf=[0.25952934874433753])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+    end
+
+    @trixi_testset "elixir_advection_nonperiodic.jl" begin
+        @trixi_testset "first-order FV" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic.jl"),
+                                order=1,
+                                l2=[0.07215018673798403],
+                                linf=[0.12087525707243896])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        @trixi_testset "second-order FV" begin
+            @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_nonperiodic.jl"),
+                                l2=[0.017076631443535124],
+                                linf=[0.05613089948002803])
+            # Ensure that we do not have excessive memory allocations
+            # (e.g., from type instabilities)
+            let
+                t = sol.t[end]
+                u_ode = sol.u[end]
+                du_ode = similar(u_ode)
+                @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            end
+        end
+        # TODO: Somehow, this non-periodic run with a triangular mesh is unstable.
+        # When fixed, also add here.
     end
 
     @trixi_testset "elixir_euler_source_terms.jl" begin
@@ -201,7 +298,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
             @test_trixi_include(joinpath(EXAMPLES_DIR,
                                          "elixir_euler_kelvin_helmholtz_instability.jl"),
                                 order=2,
-                                cmesh=Trixi.cmesh_quad(periodicity = (true, true)),
+                                cmesh=Trixi.cmesh_new_quad(periodicity = (true, true)),
                                 l2=[
                                     0.2307479238046326,
                                     0.19300139957275295,

@@ -348,6 +348,157 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                                     mapping = mapping_)
 end
 
+# New interface for FV solver
+# Parameter eclass decides which class of element are used.
+function T8codeMesh(trees_per_dimension, eclass;
+                    mapping = nothing, faces = nothing, coordinates_min = nothing,
+                    coordinates_max = nothing,
+                    RealT = Float64, initial_refinement_level = 0,
+                    periodicity = true)
+    @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
+
+    @assert count(i -> i !== nothing,
+                  (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
+
+    # Extract mapping
+    if faces !== nothing
+        validate_faces(faces)
+        mapping = transfinite_mapping(faces)
+    elseif coordinates_min !== nothing
+        mapping = coordinates2mapping(coordinates_min, coordinates_max)
+    end
+
+    NDIMS = length(trees_per_dimension)
+    @assert (NDIMS == 2||NDIMS == 3) "NDIMS should be 2 or 3."
+
+    # Convert periodicity to a Tuple of a Bool for every dimension
+    if all(periodicity)
+        # Also catches case where periodicity = true
+        periodicity = ntuple(_ -> true, NDIMS)
+    elseif !any(periodicity)
+        # Also catches case where periodicity = false
+        periodicity = ntuple(_ -> false, NDIMS)
+    else
+        # Default case if periodicity is an iterable
+        periodicity = Tuple(periodicity)
+    end
+
+    do_partition = 0
+    if NDIMS == 2
+        cmesh_ref = Ref(t8_cmesh_t())
+        t8_cmesh_init(cmesh_ref)
+        cmesh = cmesh_ref[]
+
+        @assert(trees_per_dimension[1] == trees_per_dimension[2],
+                "Different trees per dimensions are not supported for quad mesh. `trees_per_dimension`: $trees_per_dimension")
+        num_trees = prod(trees_per_dimension) * 1 # 1 = number of trees for single hypercube with quads
+
+        coordinates_tree_x = range(-1.0, 1.0, length = trees_per_dimension[1] + 1)
+        coordinates_tree_y = range(-1.0, 1.0, length = trees_per_dimension[2] + 1)
+        vertices = Vector{Cdouble}(undef, 3 * 4 * num_trees) # 3 (dimensions) * 4 (vertices per tree) * num_trees
+
+        for itree_y in 1:trees_per_dimension[2], itree_x in 1:trees_per_dimension[1]
+            index =  trees_per_dimension[1] * 3 * 4 * (itree_y - 1) + 3 * 4 * (itree_x - 1) + 1
+            vertices[index] = coordinates_tree_x[itree_x]
+            vertices[index + 1] = coordinates_tree_y[itree_y]
+            vertices[index + 2] = 0.0
+
+            index += 3
+            vertices[index] = coordinates_tree_x[itree_x + 1]
+            vertices[index + 1] = coordinates_tree_y[itree_y]
+            vertices[index + 2] = 0.0
+
+            index += 3
+            vertices[index] = coordinates_tree_x[itree_x]
+            vertices[index + 1] = coordinates_tree_y[itree_y + 1]
+            vertices[index + 2] = 0.0
+
+            index += 3
+            vertices[index] = coordinates_tree_x[itree_x + 1]
+            vertices[index + 1] = coordinates_tree_y[itree_y + 1]
+            vertices[index + 2] = 0.0
+        end
+
+        # analytical = trixi_t8_mapping_c(mapping)
+        analytical = mapping
+        name = ""
+        user_data = vertices
+        # user_data = C_NULL
+
+        jacobian = C_NULL # type: t8_geom_analytic_jacobian_fn
+        load_tree_data = @t8_load_tree_data(t8_geom_load_tree_data_vertices) # type: t8_geom_load_tree_data_fn
+        tree_negative_volume = C_NULL # type: t8_geom_tree_negative_volume_fn
+
+        geometry = t8_geometry_analytic_new(NDIMS, name, analytical, jacobian, load_tree_data,
+                                            tree_negative_volume, user_data)
+
+        t8_cmesh_register_geometry(cmesh, geometry)
+
+        for itree in 1:num_trees
+            offset_vertices = 3 * 4 * (itree - 1)
+            t8_cmesh_set_tree_class(cmesh, itree - 1, eclass)
+            t8_cmesh_set_tree_vertices(cmesh, itree - 1, @views(vertices[(1 + offset_vertices):end]), 4)
+        end
+
+        # Note and TODO:
+        # Only hardcoded to `trees_per_dimension = (1, 1) or (2, 2)`
+        if num_trees == 1
+            if periodicity[1]
+                t8_cmesh_set_join(cmesh, 0, 0, 0, 1, 0)
+            end
+            if periodicity[2]
+                t8_cmesh_set_join(cmesh, 0, 0, 2, 3, 0)
+            end
+        elseif num_trees == 4
+            if periodicity[1]
+                t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
+                t8_cmesh_set_join(cmesh, 2, 3, 0, 1, 0)
+            end
+            if periodicity[2]
+                t8_cmesh_set_join(cmesh, 0, 2, 2, 3, 0)
+                t8_cmesh_set_join(cmesh, 1, 3, 2, 3, 0)
+            end
+            t8_cmesh_set_join_by_stash(cmesh, C_NULL, 0)
+        else
+            error("Not supported trees_per_dimension")
+        end
+
+
+        t8_cmesh_commit(cmesh, mpi_comm())
+    elseif NDIMS == 3
+        error("3D not supported")
+    end
+
+    do_face_ghost = mpi_isparallel()
+    scheme = t8_scheme_new_default_cxx()
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
+
+    # Non-periodic boundaries.
+    boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
+
+    for itree in 1:t8_forest_get_num_global_trees(forest)
+        if !periodicity[1]
+            boundary_names[1, itree] = :x_neg
+            boundary_names[2, itree] = :x_pos
+        end
+
+        if !periodicity[2]
+            boundary_names[3, itree] = :y_neg
+            boundary_names[4, itree] = :y_pos
+        end
+
+        if NDIMS > 2
+            if !periodicity[3]
+                boundary_names[5, itree] = :z_neg
+                boundary_names[6, itree] = :z_pos
+            end
+        end
+    end
+
+    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = 1)
+end
+
 """
     T8codeMesh(cmesh::Ptr{t8_cmesh},
                mapping=nothing, polydeg=1, RealT=Float64,
@@ -1534,25 +1685,7 @@ function cmesh_new_periodic_hybrid(; comm = mpi_comm())::t8_cmesh_t
     return cmesh
 end
 
-function cmesh_quad(; comm = mpi_comm(), periodicity = (true, true))::t8_cmesh_t
-    n_dims = 2
-    vertices = [ # Just all vertices of all trees. partly duplicated
-        -1.0, -1.0, 0, # tree 0, quad
-        1.0, -1.0, 0,
-        -1.0, 1.0, 0,
-        1.0, 1.0, 0,
-
-        # rotated:
-        # -1.0, 0.0, 0,  # tree 0, quad
-        # 0.0, -1.0, 0,
-        # 0.0, 1.0, 0,
-        # 1.0, 0.0, 0,
-    ]
-
-    # Generally, one can define other geometries. But besides linear the other
-    # geometries in t8code do not have C interface yet.
-    linear_geom = t8_geometry_linear_new(n_dims)
-
+function cmesh_new_quad(; trees_per_dimension = (1, 1), coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0), periodicity = (true, true))::t8_cmesh_t
     # This is how the cmesh looks like. The numbers are the tree numbers:
     #
     #   +---+
@@ -1562,51 +1695,26 @@ function cmesh_quad(; comm = mpi_comm(), periodicity = (true, true))::t8_cmesh_t
     #   +---+
     #
 
-    cmesh_ref = Ref(t8_cmesh_t())
-    t8_cmesh_init(cmesh_ref)
-    cmesh = cmesh_ref[]
+    polygons_x, polygons_y = trees_per_dimension
+    periodic_x, periodic_y = periodicity
+    boundary = [coordinates_min[1], coordinates_min[2], 0.0,
+                coordinates_max[1], coordinates_min[2], 0.0,
+                coordinates_min[1], coordinates_max[2], 0.0,
+                coordinates_max[1], coordinates_max[2], 0.0]
 
-    # Use linear geometry
-    t8_cmesh_register_geometry(cmesh, linear_geom)
-    t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_QUAD)
-
-    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[(1 + 0):end]), 4)
-
-    if periodicity[1]
-        t8_cmesh_set_join(cmesh, 0, 0, 0, 1, 0)
-    end
-    if periodicity[2]
-        t8_cmesh_set_join(cmesh, 0, 0, 2, 3, 0)
-    end
-
-    t8_cmesh_commit(cmesh, comm)
+    comm = mpi_comm()
+    set_partition = 0
+    offset = 0.0
+    use_axis_aligned = 0
+    eclass = T8_ECLASS_QUAD
+    cmesh = t8_cmesh_new_hypercube_pad_ext(eclass, comm, boundary, polygons_x, polygons_y, 0, periodic_x, periodic_y, 0, use_axis_aligned, set_partition, offset)
 
     return cmesh
 end
 
-function cmesh_new_periodic_tri(; comm = mpi_comm())::t8_cmesh_t
-    n_dims = 2
-    vertices = [ # Just all vertices of all trees. partly duplicated
-        -1.0, -1.0, 0, # tree 0, triangle
-        1.0, -1.0, 0,
-        1.0, 1.0, 0,
-        -1.0, -1.0, 0, # tree 1, triangle
-        1.0, 1.0, 0,
-        -1.0, 1.0, 0,
-
-        # rotated:
-        # -1.0, 0, 0,  # tree 0, triangle
-        # 0, -1.0, 0,
-        # 1.0, 0, 0,
-        # -1.0, 0, 0,  # tree 1, triangle
-        # 1.0, 0, 0,
-        # 0, 1.0, 0,
-    ]
-
-    # Generally, one can define other geometries. But besides linear the other
-    # geometries in t8code do not have C interface yet.
-    linear_geom = t8_geometry_linear_new(n_dims)
-
+# TODO: The structure of `cmesh_new_quad` and `cmesh_new_tri` is equal and only differs for `eclass`.
+# Use only one routine!
+function cmesh_new_tri(; trees_per_dimension = (1, 1), coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0), periodicity = (true, true))::t8_cmesh_t
     # This is how the cmesh looks like. The numbers are the tree numbers:
     #
     #   +---+
@@ -1616,26 +1724,71 @@ function cmesh_new_periodic_tri(; comm = mpi_comm())::t8_cmesh_t
     #   +---+
     #
 
-    cmesh_ref = Ref(t8_cmesh_t())
-    t8_cmesh_init(cmesh_ref)
-    cmesh = cmesh_ref[]
+    # Note:
+    # Number of trees = prod(trees_per_dimension) * 2
+    # since each quad is divided into 2 triangles
+    polygons_x, polygons_y = trees_per_dimension
+    periodic_x, periodic_y = periodicity
+    boundary = [coordinates_min[1], coordinates_min[2], 0.0,
+                coordinates_max[1], coordinates_min[2], 0.0,
+                coordinates_min[1], coordinates_max[2], 0.0,
+                coordinates_max[1], coordinates_max[2], 0.0]
 
-    # Use linear geometry
-    t8_cmesh_register_geometry(cmesh, linear_geom)
-    t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
-    t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
-
-    t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[(1 + 0):end]), 3)
-    t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[(1 + 9):end]), 3)
-
-    t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
-    t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
-    t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 1)
-
-    t8_cmesh_commit(cmesh, comm)
+    comm = mpi_comm()
+    set_partition = 0
+    offset = 0.0
+    use_axis_aligned = 0
+    eclass = T8_ECLASS_TRIANGLE
+    cmesh = t8_cmesh_new_hypercube_pad_ext(eclass, comm, boundary, polygons_x, polygons_y, 0, periodic_x, periodic_y, 0, use_axis_aligned, set_partition, offset)
 
     return cmesh
 end
+
+# # Old version if triangular mesh
+# function cmesh_new_periodic_tri(; comm = mpi_comm())::t8_cmesh_t
+#     n_dims = 2
+#     vertices = [ # Just all vertices of all trees. partly duplicated
+#         -1.0, -1.0, 0, # tree 0, triangle
+#         1.0, -1.0, 0,
+#         1.0, 1.0, 0,
+#         -1.0, -1.0, 0, # tree 1, triangle
+#         1.0, 1.0, 0,
+#         -1.0, 1.0, 0,
+#     ]
+
+#     # Generally, one can define other geometries. But besides linear the other
+#     # geometries in t8code do not have C interface yet.
+#     linear_geom = t8_geometry_linear_new(n_dims)
+
+#     # This is how the cmesh looks like. The numbers are the tree numbers:
+#     #
+#     #   +---+
+#     #   |1 /|
+#     #   | / |
+#     #   |/0 |
+#     #   +---+
+#     #
+
+#     cmesh_ref = Ref(t8_cmesh_t())
+#     t8_cmesh_init(cmesh_ref)
+#     cmesh = cmesh_ref[]
+
+#     # Use linear geometry
+#     t8_cmesh_register_geometry(cmesh, linear_geom)
+#     t8_cmesh_set_tree_class(cmesh, 0, T8_ECLASS_TRIANGLE)
+#     t8_cmesh_set_tree_class(cmesh, 1, T8_ECLASS_TRIANGLE)
+
+#     t8_cmesh_set_tree_vertices(cmesh, 0, @views(vertices[(1 + 0):end]), 3)
+#     t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[(1 + 9):end]), 3)
+
+#     t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
+#     t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
+#     t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 1)
+
+#     t8_cmesh_commit(cmesh, comm)
+
+#     return cmesh
+# end
 
 function cmesh_new_periodic_tri2(; comm = mpi_comm())::t8_cmesh_t
     n_dims = 2
