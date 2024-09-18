@@ -427,7 +427,10 @@ function T8codeMesh(trees_per_dimension, eclass;
         # user_data = C_NULL
 
         jacobian = C_NULL # type: t8_geom_analytic_jacobian_fn
-        load_tree_data = @t8_load_tree_data(t8_geom_load_tree_data_vertices) # type: t8_geom_load_tree_data_fn
+        # TODO: Since @t8_load_tree_data is not yet included into T8code.jl, precompiling Trixi failes because of this line.
+        # load_tree_data = @t8_load_tree_data(t8_geom_load_tree_data_vertices) # type: t8_geom_load_tree_data_fn
+        # For now, I remove it and pass C_NULL. Therefore, `elixir_advection_basic.jl` will fail with a SegFault.
+        load_tree_data = C_NULL
         tree_negative_volume = C_NULL # type: t8_geom_tree_negative_volume_fn
 
         geometry = t8_geometry_analytic_new(NDIMS, name, analytical, jacobian,
