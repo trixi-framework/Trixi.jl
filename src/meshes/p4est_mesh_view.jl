@@ -8,7 +8,8 @@
 
 A view on a p4est mesh.
 """
-mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost, NDIMSP2,
+mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
+                             NDIMSP2,
                              NNODES} <:
                AbstractMesh{NDIMS}
     # Attributes from the original P4est mesh
