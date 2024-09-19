@@ -427,9 +427,9 @@ function T8codeMesh(trees_per_dimension, eclass;
         # user_data = C_NULL
 
         jacobian = C_NULL # type: t8_geom_analytic_jacobian_fn
-        # TODO: Since @t8_load_tree_data is not yet included into T8code.jl, precompiling Trixi failes because of this line.
+        # TODO: Since @t8_load_tree_data is not yet included into T8code.jl, precompiling Trixi fails because of this line.
         # load_tree_data = @t8_load_tree_data(t8_geom_load_tree_data_vertices) # type: t8_geom_load_tree_data_fn
-        # For now, I remove it and pass C_NULL. Therefore, `elixir_advection_basic.jl` will fail with a SegFault.
+        # For now, I remove it and pass C_NULL. Then, `elixir_advection_basic.jl` will fail with a SegFault.
         load_tree_data = C_NULL
         tree_negative_volume = C_NULL # type: t8_geom_tree_negative_volume_fn
 
@@ -1759,7 +1759,7 @@ function cmesh_new_tri(; trees_per_dimension = (1, 1),
 end
 
 # # Old version if triangular mesh
-# function cmesh_new_periodic_tri(; comm = mpi_comm())::t8_cmesh_t
+# function cmesh_new_periodic_tri(; periodicity = (true, true), comm = mpi_comm())::t8_cmesh_t
 #     n_dims = 2
 #     vertices = [ # Just all vertices of all trees. partly duplicated
 #         -1.0, -1.0, 0, # tree 0, triangle
@@ -1796,8 +1796,12 @@ end
 #     t8_cmesh_set_tree_vertices(cmesh, 1, @views(vertices[(1 + 9):end]), 3)
 
 #     t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
-#     t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
-#     t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 1)
+#     if periodicity[1]
+#         t8_cmesh_set_join(cmesh, 0, 1, 0, 1, 0)
+#     end
+#     if periodicity[2]
+#         t8_cmesh_set_join(cmesh, 0, 1, 2, 0, 1)
+#     end
 
 #     t8_cmesh_commit(cmesh, comm)
 

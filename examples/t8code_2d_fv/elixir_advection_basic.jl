@@ -67,7 +67,8 @@ end
 
 trees_per_dimension = (2, 2)
 
-mesh = T8codeMesh(trees_per_dimension, T8_ECLASS_QUAD,
+eclass = T8_ECLASS_QUAD
+mesh = T8codeMesh(trees_per_dimension, eclass,
                   mapping = @t8_analytic_callback(f),
                   # Plan is to use either
                   # coordinates_max = coordinates_max, coordinates_min = coordinates_min,
