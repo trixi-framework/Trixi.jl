@@ -35,7 +35,7 @@ boundary_conditions = (x_neg = BoundaryConditionCharacteristic(initial_condition
                        y_neg = boundary_condition_periodic,
                        y_pos = boundary_condition_periodic)
 
-surface_flux = flux_lax_friedrichs # HLLC needs more shock capturing (alpha_max)
+surface_flux = flux_lax_friedrichs
 volume_flux = flux_chandrashekar # works with Ranocha flux as well
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
