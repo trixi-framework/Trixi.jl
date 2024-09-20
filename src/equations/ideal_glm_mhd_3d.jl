@@ -231,6 +231,9 @@ Non-symmetric two-point flux discretizing the nonconservative (source) term of
 Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations3D`](@ref).
 
+On curvilinear meshes, the implementation differs from the reference since we use the averaged 
+normal direction for the metrics dealiasing.
+
 ## References
 - Marvin Bohm, Andrew R.Winters, Gregor J. Gassner, Dominik Derigs,
   Florian Hindenlang, Joachim Saur
