@@ -51,7 +51,11 @@
 # The Newton-bisection algorithm is an iterative method and requires some parameters.
 # It uses a fixed maximum number of iteration steps (`max_iterations_newton = 10`) and
 # relative/absolute tolerances (`newton_tolerances = (1.0e-12, 1.0e-14)`). The given values are
-# sufficient in most cases and therefore used as default. Additionally, there is the parameter
+# sufficient in most cases and therefore used as default. If the implemented bounds checking
+# functionality indicates problems with the limiting (see [below](@ref subcell_bounds_check))
+# the Newton method with the chosen parameters might not manage to converge. If so, adapting
+# the mentioned parameters helps fix that.
+# Additionally, there is the parameter
 # `gamma_constant_newton`, which can be used to scale the antidiffusive flux for the computation
 # of the blending coefficients of nonlinear variables. The default value is `2 * ndims(equations)`,
 # as it was shown by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) [Section 4.2.2.]
@@ -245,7 +249,7 @@ plot(sol)
 # ![blast_wave_paraview_reinterpolate=false](https://github.com/trixi-framework/Trixi.jl/assets/74359358/39274f18-0064-469c-b4da-bac4b843e116)
 
 
-# ## Bounds checking
+# ## [Bounds checking](@id subcell_bounds_check)
 # Subcell limiting is based on the fulfillment of target bounds - either global or local.
 # Although the implementation works and has been thoroughly tested, there are some cases where
 # these bounds are not met.

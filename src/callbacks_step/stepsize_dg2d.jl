@@ -156,7 +156,8 @@ function max_dt(u, t, mesh::ParallelTreeMesh{2},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
                 u, t, mesh, constant_speed, equations, dg, cache)
-    dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
     return dt
 end
@@ -172,7 +173,8 @@ function max_dt(u, t, mesh::ParallelTreeMesh{2},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
                 u, t, mesh, constant_speed, equations, dg, cache)
-    dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
     return dt
 end
@@ -256,7 +258,8 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
                 u, t, mesh, constant_speed, equations, dg, cache)
-    dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
     return dt
 end
@@ -272,7 +275,8 @@ function max_dt(u, t, mesh::ParallelP4estMesh{2},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
                 u, t, mesh, constant_speed, equations, dg, cache)
-    dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
     return dt
 end
@@ -288,7 +292,8 @@ function max_dt(u, t, mesh::ParallelT8codeMesh{2},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
                 u, t, mesh, constant_speed, equations, dg, cache)
-    dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
     return dt
 end
@@ -304,7 +309,8 @@ function max_dt(u, t, mesh::ParallelT8codeMesh{2},
                       typeof(constant_speed), typeof(equations), typeof(dg),
                       typeof(cache)},
                 u, t, mesh, constant_speed, equations, dg, cache)
-    dt = MPI.Allreduce!(Ref(dt), min, mpi_comm())[]
+    # Base.min instead of min needed, see comment in src/auxiliary/math.jl
+    dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
     return dt
 end

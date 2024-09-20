@@ -414,14 +414,14 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterMCL)
         if limiter.positivity_limiter_pressure
             setup = [
                 setup...,
-                "" => "$(positivity_limiter_pressure_exact ? "(Sharp)" : "(Cautious)") positivity limiter for Pressure à la Kuzmin",
+                "" => "$(positivity_limiter_pressure_exact ? "(Sharp)" : "(Cautious)") positivity limiter for Pressure à la Kuzmin"
             ]
         end
         if positivity_limiter_density
             if limiter.positivity_limiter_correction_factor != 0.0
                 setup = [
                     setup...,
-                    "" => "Positivity Limiter for Density with correction factor $(limiter.positivity_limiter_correction_factor)",
+                    "" => "Positivity Limiter for Density with correction factor $(limiter.positivity_limiter_correction_factor)"
                 ]
             else
                 setup = [setup..., "" => "Positivity Limiter for Density"]
@@ -432,7 +432,7 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterMCL)
         if limiter.smoothness_indicator
             setup = [
                 setup...,
-                "Smoothness indicator" => "$(limiter.IndicatorHG) using threshold $(limiter.threshold_smoothness_indicator)",
+                "Smoothness indicator" => "$(limiter.IndicatorHG) using threshold $(limiter.threshold_smoothness_indicator)"
             ]
         end
         summary_box(io, "SubcellLimiterMCL", setup)

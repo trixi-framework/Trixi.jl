@@ -10,8 +10,8 @@
 
 The ideal compressible multicomponent GLM-MHD equations in two space dimensions.
 """
-mutable struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
-               AbstractIdealGlmMhdMulticomponentEquations{2, NVARS, NCOMP}
+struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real} <:
+       AbstractIdealGlmMhdMulticomponentEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT}
     gas_constants::SVector{NCOMP, RealT}
     cv::SVector{NCOMP, RealT}
@@ -21,18 +21,18 @@ mutable struct IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT <: Real}
     function IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(gammas::SVector{NCOMP,
                                                                                        RealT},
                                                                        gas_constants::SVector{NCOMP,
-                                                                                              RealT}) where {
-                                                                                                             NVARS,
-                                                                                                             NCOMP,
-                                                                                                             RealT <:
-                                                                                                             Real
-                                                                                                             }
+                                                                                              RealT},
+                                                                       c_h::RealT) where {
+                                                                                          NVARS,
+                                                                                          NCOMP,
+                                                                                          RealT <:
+                                                                                          Real
+                                                                                          }
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `gas_constants` have to be filled with at least one value"))
 
         cv = gas_constants ./ (gammas .- 1)
         cp = gas_constants + gas_constants ./ (gammas .- 1)
-        c_h = convert(eltype(gammas), NaN)
 
         new(gammas, gas_constants, cv, cp, c_h)
     end
@@ -49,8 +49,30 @@ function IdealGlmMhdMulticomponentEquations2D(; gammas, gas_constants)
     __gammas = SVector(map(RealT, _gammas))
     __gas_constants = SVector(map(RealT, _gas_constants))
 
+    c_h = convert(RealT, NaN)
+
     return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
-                                                                     __gas_constants)
+                                                                     __gas_constants,
+                                                                     c_h)
+end
+
+# Outer constructor for `@reset` works correctly
+function IdealGlmMhdMulticomponentEquations2D(gammas, gas_constants, cv, cp, c_h)
+    _gammas = promote(gammas...)
+    _gas_constants = promote(gas_constants...)
+    RealT = promote_type(eltype(_gammas), eltype(_gas_constants))
+
+    NVARS = length(_gammas) + 8
+    NCOMP = length(_gammas)
+
+    __gammas = SVector(map(RealT, _gammas))
+    __gas_constants = SVector(map(RealT, _gas_constants))
+
+    c_h = convert(RealT, c_h)
+
+    return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
+                                                                     __gas_constants,
+                                                                     c_h)
 end
 
 @inline function Base.real(::IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}) where {
