@@ -402,7 +402,8 @@ end
     return v
 end
 
-@inline function velocity(u, normal_direction::AbstractVector, equations::PolytropicEulerEquations2D)
+@inline function velocity(u, normal_direction::AbstractVector,
+                          equations::PolytropicEulerEquations2D)
     rho = u[1]
     v1 = u[2] / rho
     v2 = u[3] / rho
