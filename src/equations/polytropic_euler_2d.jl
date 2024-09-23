@@ -396,9 +396,17 @@ end
     return SVector(v1, v2)
 end
 
-@inline function velocity(u, orientation, equations::PolytropicEulerEquations2D)
+@inline function velocity(u, orientation::Int, equations::PolytropicEulerEquations2D)
     rho = u[1]
     v = u[orientation + 1] / rho
+    return v
+end
+
+@inline function velocity(u, normal_direction::AbstractVector, equations::PolytropicEulerEquations2D)
+    rho = u[1]
+    v1 = u[2] / rho
+    v2 = u[3] / rho
+    v = v1 * normal_direction[1] + v2 * normal_direction[2]
     return v
 end
 

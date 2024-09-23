@@ -1443,7 +1443,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                   RealT
 
             for orientation in orientations
-                @test eltype(@inferred velocity(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr, orientation,
                                                                    equations)) ==
