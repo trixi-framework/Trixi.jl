@@ -624,6 +624,4 @@ end
     v1 = u[1] / rho
     return v1
 end
-
-
 end # @muladd
