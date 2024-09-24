@@ -65,11 +65,18 @@ function f(cmesh, gtreeid, ref_coords, num_coords, out_coords, tree_data, user_d
     return nothing
 end
 
+function f_c()
+    @cfunction($f, Cvoid,
+               (t8_cmesh_t, t8_gloidx_t, Ptr{Cdouble}, Csize_t,
+                Ptr{Cdouble}, Ptr{Cvoid}, Ptr{Cvoid}))
+end
+
 trees_per_dimension = (2, 2)
 
 eclass = T8_ECLASS_QUAD
 mesh = T8codeMesh(trees_per_dimension, eclass,
-                  mapping = @t8_analytic_callback(f),
+                #   mapping = Trixi.trixi_t8_mapping_c(mapping),
+                  mapping = f_c(),
                   # Plan is to use either
                   # coordinates_max = coordinates_max, coordinates_min = coordinates_min,
                   # or at least

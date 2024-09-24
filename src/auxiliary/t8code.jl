@@ -192,18 +192,24 @@ function trixi_t8_adapt!(mesh, indicators)
 end
 
 # Note and TODO:
-# This routine seems to work for most of the mappings.
-# Somehow, when using `coordinates_min/max` and then `coordinates2mapping`,
-# I get SegFault errors.
-# This happens when running this in a new julia session or after some runs when I ran simulations
-# with other mappings before.
-# Cannot figure out why. For now, I will leave this auxiliary mapping within the elixir
-# and comment this one out.
+# This routine seems to work with a "standard" mapping, but not with `coordinates2mapping`.
+# Now, even when called directly within the elixir.
+# - Is the function called with the correct parameters? Memory location correct?
+# - Life time issue for the GC tracked Julia object used in C?
 # function trixi_t8_mapping_c(mapping)
 #     function f(cmesh, gtreeid, ref_coords, num_coords, out_coords, tree_data, user_data)
+#         @T8_ASSERT(cmesh isa Ptr{t8_cmesh})
+#         @T8_ASSERT(gtreeid isa t8_gloidx_t)
+#         @T8_ASSERT(ref_coords isa Ptr{Cdouble})
+#         @T8_ASSERT(num_coords isa Csize_t)
+#         @T8_ASSERT(out_coords isa Ptr{Cdouble})
+#         @T8_ASSERT(tree_data isa Ptr{Cvoid})
+#         @T8_ASSERT(user_data isa Ptr{Cvoid})
+
 #         ltreeid = t8_cmesh_get_local_id(cmesh, gtreeid)
 #         eclass = t8_cmesh_get_tree_class(cmesh, ltreeid)
-#         T8code.t8_geom_compute_linear_geometry(eclass, tree_data, ref_coords, num_coords, out_coords)
+#         T8code.t8_geom_compute_linear_geometry(eclass, tree_data,
+#                                                ref_coords, num_coords, out_coords)
 
 #         for i in 1:num_coords
 #             offset_3d = 3 * (i - 1) + 1
@@ -219,5 +225,7 @@ end
 #         return nothing
 #     end
 
-#     return @cfunction($f, Cvoid, (t8_cmesh_t, t8_gloidx_t, Ptr{Cdouble}, Csize_t, Ptr{Cdouble}, Ptr{Cvoid}, Ptr{Cvoid}))
+#     return @cfunction($f, Cvoid,
+#                       (t8_cmesh_t, t8_gloidx_t, Ptr{Cdouble}, Csize_t, Ptr{Cdouble},
+#                        Ptr{Cvoid}, Ptr{Cvoid}))
 # end
