@@ -139,7 +139,6 @@ function remake(semi::SemidiscretizationEulerGravity;
                 semi_euler = semi.semi_euler,
                 semi_gravity = semi.semi_gravity,
                 parameters = semi.parameters)
-    
     semi_euler = remake(semi_euler, uEltype = uEltype)
     semi_gravity = remake(semi_gravity, uEltype = uEltype)
 
