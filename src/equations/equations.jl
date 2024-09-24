@@ -308,6 +308,19 @@ The inverse conversion is performed by [`cons2prim`](@ref).
 function prim2cons end
 
 """
+    velocity(u, equations)
+
+Return the velocity vector corresponding to the equations, e.g., fluid velocity for
+Euler's equations. The velocity in certain orientation or normal direction (scalar) can be computed
+with `velocity(u, orientation, equations)` or `velocity(u, normal_direction, equations)`
+respectively.
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function velocity end
+
+"""
     entropy(u, equations)
 
 Return the chosen entropy of the conserved variables `u` for a given set of
