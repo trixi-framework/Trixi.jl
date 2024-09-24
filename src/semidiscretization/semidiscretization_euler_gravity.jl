@@ -135,7 +135,7 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler,
 end
 
 function remake(semi::SemidiscretizationEulerGravity;
-                uEltype = real(semi.solver),
+                uEltype = real(semi.semi_gravity.solver),
                 semi_euler = semi.semi_euler,
                 semi_gravity = semi.semi_gravity,
                 parameters = semi.parameters)
