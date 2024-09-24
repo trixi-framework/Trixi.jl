@@ -69,8 +69,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
     @trixi_testset "elixir_advection_amr_unstructured_curved.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_curved.jl"),
-                            l2=[2.0556575425846923e-5],
-                            linf=[0.00105682693484822],
+                            l2=[2.0535121347526814e-5],
+                            linf=[0.0010586603797777504],
                             tspan=(0.0, 1.0),
                             coverage_override=(maxiters = 6,
                                                initial_refinement_level = 0,
@@ -96,14 +96,14 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
                                 4.4993257426833716e-5,
                                 5.10588457841744e-5,
                                 5.102840924036687e-5,
-                                0.00019986264001630542,
+                                0.00019986264001630542
                             ],
                             linf=[
                                 0.0016987332417202072,
                                 0.003622956808262634,
                                 0.002029576258317789,
                                 0.0024206977281964193,
-                                0.008526972236273522,
+                                0.008526972236273522
                             ],
                             tspan=(0.0, 0.01))
 
@@ -125,14 +125,14 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
                                 0.0014733349038567685,
                                 0.00147333490385685,
                                 0.001473334903856929,
-                                0.0028149479453087093,
+                                0.0028149479453087093
                             ],
                             linf=[
                                 0.008070806335238156,
                                 0.009007245083113125,
                                 0.009007245083121784,
                                 0.009007245083102688,
-                                0.01562861968368434,
+                                0.01562861968368434
                             ],
                             tspan=(0.0, 1.0))
 
@@ -153,14 +153,14 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
                                 0.006192950051354618,
                                 0.005970674274073704,
                                 0.005965831290564327,
-                                0.02628875593094754,
+                                0.02628875593094754
                             ],
                             linf=[
                                 0.3326911600075694,
                                 0.2824952141320467,
                                 0.41401037398065543,
                                 0.45574161423218573,
-                                0.8099577682187109,
+                                0.8099577682187109
                             ],
                             tspan=(0.0, 0.2),
                             coverage_override=(polydeg = 3,)) # Prevent long compile time in CI

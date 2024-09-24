@@ -201,20 +201,27 @@ end
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterEquations1D`](@ref).
 
-Further details are available in the paper:
+Gives entropy conservation and well-balancedness on both the volume and surface when combined with 
+[`flux_wintermeyer_etal`](@ref).
+
+Further details are available in the papers:
 - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
   An entropy stable nodal discontinuous Galerkin method for the two dimensional
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+- Patrick Ersing, Andrew R. Winters (2023)
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
+  curvilinear meshes
+  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
 """
 @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
                                                        equations::ShallowWaterEquations1D)
     # Pull the necessary left and right state information
     h_ll = waterheight(u_ll, equations)
-    b_rr = u_rr[3]
+    b_jump = u_rr[3] - u_ll[3]
 
     # Bottom gradient nonconservative term: (0, g h b_x, 0)
-    f = SVector(0, equations.gravity * h_ll * b_rr, 0)
+    f = SVector(0, equations.gravity * h_ll * b_jump, 0)
 
     return f
 end
@@ -226,11 +233,8 @@ end
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
 that contains the gradient of the bottom topography [`ShallowWaterEquations1D`](@ref).
 
-This contains additional terms compared to [`flux_nonconservative_wintermeyer_etal`](@ref)
-that account for possible discontinuities in the bottom topography function.
-Thus, this flux should be used in general at interfaces. For flux differencing volume terms,
-[`flux_nonconservative_wintermeyer_etal`](@ref) is analytically equivalent but slightly
-cheaper.
+This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces to ensure entropy
+conservation and well-balancedness.
 
 Further details for the original finite volume formulation are available in
 - Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
@@ -256,7 +260,6 @@ and for curvilinear 2D case in the paper:
     #       cross-averaging across a discontinuous bottom topography
     #  (ii) True surface part that uses `h_average` and `b_jump` to handle discontinuous bathymetry
     f = SVector(0,
-                equations.gravity * h_ll * b_ll +
                 equations.gravity * h_average * b_jump,
                 0)
 
@@ -285,7 +288,7 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
                                                    orientation::Integer,
                                                    equations::ShallowWaterEquations1D)
     # Pull the water height and bottom topography on the left
-    h_ll, _, b_ll = u_ll
+    h_ll, _, _ = u_ll
 
     # Create the hydrostatic reconstruction for the left solution state
     u_ll_star, _ = hydrostatic_reconstruction_audusse_etal(u_ll, u_rr, equations)
@@ -293,50 +296,9 @@ Further details on the hydrostatic reconstruction and its motivation can be foun
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    # Includes two parts:
-    #   (i)  Diagonal (consistent) term from the volume flux that uses `b_ll` to avoid
-    #        cross-averaging across a discontinuous bottom topography
-    #   (ii) True surface part that uses `h_ll` and `h_ll_star` to handle discontinuous bathymetry
     return SVector(0,
-                   equations.gravity * h_ll * b_ll +
                    equations.gravity * (h_ll^2 - h_ll_star^2),
                    0)
-end
-
-"""
-    flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
-                                     equations::ShallowWaterEquations1D)
-
-!!! warning "Experimental code"
-    This numerical flux is experimental and may change in any future release.
-
-Non-symmetric path-conservative two-point volume flux discretizing the nonconservative (source) term
-that contains the gradient of the bottom topography [`ShallowWaterEquations1D`](@ref).
-
-This is a modified version of [`flux_nonconservative_wintermeyer_etal`](@ref) that gives entropy 
-conservation and well-balancedness in both the volume and surface when combined with 
-[`flux_wintermeyer_etal`](@ref).
-
-For further details see:
-- Patrick Ersing, Andrew R. Winters (2023)
-  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
-  curvilinear meshes
-  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
-"""
-@inline function flux_nonconservative_ersing_etal(u_ll, u_rr, orientation::Integer,
-                                                  equations::ShallowWaterEquations1D)
-    # Pull the necessary left and right state information
-    h_ll = waterheight(u_ll, equations)
-    b_rr = u_rr[3]
-    b_ll = u_ll[3]
-
-    # Calculate jump
-    b_jump = b_rr - b_ll
-
-    # Bottom gradient nonconservative term: (0, g h b_x, 0)
-    f = SVector(0, equations.gravity * h_ll * b_jump, 0)
-
-    return f
 end
 
 """
@@ -378,7 +340,8 @@ end
 
 Total energy conservative (mathematical entropy for shallow water equations) split form.
 When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
-The `surface_flux` should still use, e.g., [`flux_fjordholm_etal`](@ref).
+For the `surface_flux` either [`flux_wintermeyer_etal`](@ref) or [`flux_fjordholm_etal`](@ref) can
+be used to ensure well-balancedness and entropy conservation.
 
 Further details are available in Theorem 1 of the paper:
 - Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
@@ -571,7 +534,7 @@ end
 # Note, only the first two are the entropy variables, the third entry still
 # just carries the bottom topography values for convenience
 @inline function cons2entropy(u, equations::ShallowWaterEquations1D)
-    h, h_v, b = u
+    h, _, b = u
 
     v = velocity(u, equations)
 

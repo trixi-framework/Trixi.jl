@@ -86,7 +86,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
         show(io, integral)
     else
         setup = [
-            "volume flux" => integral.volume_flux,
+            "volume flux" => integral.volume_flux
         ]
         summary_box(io, "VolumeIntegralFluxDifferencing", setup)
     end
@@ -178,7 +178,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         show(io, integral)
     else
         setup = [
-            "FV flux" => integral.volume_flux_fv,
+            "FV flux" => integral.volume_flux_fv
         ]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
     end
@@ -334,7 +334,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
         show(io, integral)
     else
         setup = [
-            "flux splitting" => integral.splitting,
+            "flux splitting" => integral.splitting
         ]
         summary_box(io, "VolumeIntegralUpwind", setup)
     end
@@ -374,7 +374,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralWeakForm
         show(io, integral)
     else
         setup = [
-            "surface flux" => integral.surface_flux,
+            "surface flux" => integral.surface_flux
         ]
         summary_box(io, "SurfaceIntegralWeakForm", setup)
     end
@@ -400,7 +400,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
         show(io, integral)
     else
         setup = [
-            "surface flux" => integral.surface_flux,
+            "surface flux" => integral.surface_flux
         ]
         summary_box(io, "SurfaceIntegralStrongForm", setup)
     end
@@ -431,7 +431,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
         show(io, integral)
     else
         setup = [
-            "flux splitting" => integral.splitting,
+            "flux splitting" => integral.splitting
         ]
         summary_box(io, "SurfaceIntegralUpwind", setup)
     end

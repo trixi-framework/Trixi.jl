@@ -11,10 +11,10 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
-struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
-                                    BoundaryConditions,
-                                    SourceTerms, Solver, Cache} <:
-       AbstractSemidiscretization
+mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
+                                            BoundaryConditions,
+                                            SourceTerms, Solver, Cache} <:
+               AbstractSemidiscretization
     mesh::Mesh
     equations::Equations
 
@@ -41,8 +41,6 @@ struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
                                                                       SourceTerms,
                                                                       Solver,
                                                                       Cache}
-        @assert ndims(mesh) == ndims(equations)
-
         performance_counter = PerformanceCounter()
 
         new(mesh, equations, initial_condition, boundary_conditions, source_terms,
@@ -67,6 +65,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT = real(solver), uEltype = RealT,
                                       initial_cache = NamedTuple())
+    @assert ndims(mesh) == ndims(equations)
+
     cache = (; create_cache(mesh, equations, solver, RealT, uEltype)...,
              initial_cache...)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
