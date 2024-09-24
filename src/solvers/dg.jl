@@ -237,7 +237,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "FV flux" => integral.volume_flux_fv,
             "Reconstruction" => integral.reconstruction_mode,
             "Slope limiter" => integral.slope_limiter,
-            "Subcell boundaries" => vcat([-1.0], integral.x_interfaces, [1.0]),
+            "Subcell boundaries" => vcat([-1.0], integral.x_interfaces, [1.0])
         ]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolumeO2", setup)
     end
