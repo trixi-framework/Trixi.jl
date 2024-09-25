@@ -1295,7 +1295,7 @@ end
 
     # Define wrapper function for pressure in order to call default implementation
     function pressure_test(u, equations)
-        return pres(u, equations)
+        return pressure(u, equations)
     end
 
     @test Trixi.gradient_conservative(pressure_test, u, equations) ≈
