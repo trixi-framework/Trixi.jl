@@ -329,9 +329,6 @@ end
             Pm = min(0, val_flux1_local) + min(0, val_flux1_local_ip1) +
                  min(0, val_flux2_local) + min(0, val_flux2_local_jp1)
 
-            Qp = max(0, (var_max[i, j, element] - var) / dt)
-            Qm = min(0, (var_min[i, j, element] - var) / dt)
-
             Pp = inverse_jacobian * Pp
             Pm = inverse_jacobian * Pm
 
