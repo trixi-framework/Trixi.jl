@@ -19,9 +19,6 @@ The third-order SSP Runge-Kutta method of Shu and Osher.
 - Shu, Osher (1988)
   "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
   [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
     numerator_a::SVector{3, Float64}
@@ -133,9 +130,6 @@ end
 
 The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
 of type `SimpleAlgorithmSSP`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
                dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
