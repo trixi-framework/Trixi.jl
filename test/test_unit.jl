@@ -1740,13 +1740,14 @@ end
 
 # Velocity functions are present in many equations and are tested here
 @testset "Velocity functions for different equations" begin
-    gamma = 1.4f0
+    gamma = 1.4
     rho = pi * pi
     pres = sqrt(pi)
-    v1, v2, v3 = pi, exp(1.0f0), exp(pi) # use pi, exp to test with non-trivial numbers
+    v1, v2, v3 = pi, exp(1.0), exp(pi) # use pi, exp to test with non-trivial numbers
     v_vector = SVector(v1, v2, v3)
     normal_direction_2d = SVector(pi^2, pi^3)
     normal_direction_3d = SVector(normal_direction_2d..., pi^4)
+    v_normal_1d = v1 * normal_direction_2d[1]
     v_normal_2d = v1 * normal_direction_2d[1] + v2 * normal_direction_2d[2]
     v_normal_3d = v_normal_2d + v3 * normal_direction_3d[3]
 
@@ -1810,8 +1811,8 @@ end
     equations_ideal_mhd_1d = IdealGlmMhdEquations1D(gamma)
     u = prim2cons(SVector(rho, v1, v2, v3, pres, B1, B2, B3), equations_ideal_mhd_1d)
     @test isapprox(velocity(u, equations_ideal_mhd_1d), SVector(v1, v2, v3))
-    @test isapprox(velocity(u, normal_direction_3d, equations_ideal_mhd_1d),
-                   v_normal_3d)
+    @test isapprox(velocity(u, SVector(normal_direction_2d[1]), equations_ideal_mhd_1d),
+                   v_normal_1d)
     for orientation in 1:3
         @test isapprox(velocity(u, orientation, equations_ideal_mhd_1d),
                        v_vector[orientation])
@@ -1822,8 +1823,8 @@ end
     u = prim2cons(SVector(rho, v1, v2, v3, pres, B1, B2, B3, psi),
                   equations_ideal_mhd_2d)
     @test isapprox(velocity(u, equations_ideal_mhd_2d), SVector(v1, v2, v3))
-    @test isapprox(velocity(u, normal_direction_3d, equations_ideal_mhd_2d),
-                   v_normal_3d)
+    @test isapprox(velocity(u, normal_direction_2d, equations_ideal_mhd_2d),
+                   v_normal_2d)
     for orientation in 1:3
         @test isapprox(velocity(u, orientation, equations_ideal_mhd_2d),
                        v_vector[orientation])

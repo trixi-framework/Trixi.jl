@@ -573,9 +573,7 @@ end
                           equations::IdealGlmMhdEquations1D)
     rho = u[1]
     v1 = u[2] / rho
-    v2 = u[3] / rho
-    v3 = u[4] / rho
-    v = v1 * normal_direction[1] + v2 * normal_direction[2] + v3 * normal_direction[3]
+    v = v1 * normal_direction[1]
     return v
 end
 
