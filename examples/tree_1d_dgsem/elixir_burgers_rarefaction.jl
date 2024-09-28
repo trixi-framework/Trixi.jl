@@ -44,7 +44,7 @@ end
 # Specify non-periodic boundary conditions
 
 function inflow(x, t, equations::InviscidBurgersEquation1D)
-    return initial_condition_rarefaction(coordinate_min, t, equations)
+    return initial_condition_rarefaction(0.0, t, equations)
 end
 boundary_condition_inflow = BoundaryConditionDirichlet(inflow)
 
