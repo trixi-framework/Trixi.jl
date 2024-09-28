@@ -254,6 +254,17 @@ end
                       tspan = (0.0, 0.0), initial_refinement_level = 0)
         @test_nowarn jacobian_ad_forward(semi)
     end
+
+    @timed_testset "EulerGravity" begin
+        trixi_include(@__MODULE__,
+                      joinpath(EXAMPLES_DIR,
+                               "paper_self_gravitating_gas_dynamics",
+                               "elixir_eulergravity_convergence.jl"),
+                      tspan = (0.0, 0.0), initial_refinement_level = 1)
+        J = jacobian_ad_forward(semi)
+        λ = eigvals(J)
+        @test maximum(real, λ) < 1.5
+    end
 end
 
 @timed_testset "Test linear structure (3D)" begin
