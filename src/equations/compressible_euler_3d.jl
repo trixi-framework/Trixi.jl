@@ -1706,16 +1706,6 @@ end
     return v
 end
 
-@inline function velocity(u, normal_direction::AbstractVector,
-                          equations::CompressibleEulerEquations3D)
-    rho = u[1]
-    v1 = u[2] / rho
-    v2 = u[3] / rho
-    v3 = u[4] / rho
-    v = v1 * normal_direction[1] + v2 * normal_direction[2] + v3 * normal_direction[3]
-    return v
-end
-
 @inline function pressure(u, equations::CompressibleEulerEquations3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e = u
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho)

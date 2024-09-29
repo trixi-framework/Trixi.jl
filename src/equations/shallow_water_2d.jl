@@ -846,15 +846,6 @@ end
     return v
 end
 
-@inline function velocity(u, normal_direction::AbstractVector,
-                          equations::ShallowWaterEquations2D)
-    h = u[1]
-    v1 = u[2] / h
-    v2 = u[3] / h
-    v = v1 * normal_direction[1] + v2 * normal_direction[2]
-    return v
-end
-
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::ShallowWaterEquations2D)
     h, _, _, b = u

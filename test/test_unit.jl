@@ -1811,8 +1811,6 @@ end
     equations_ideal_mhd_1d = IdealGlmMhdEquations1D(gamma)
     u = prim2cons(SVector(rho, v1, v2, v3, pres, B1, B2, B3), equations_ideal_mhd_1d)
     @test isapprox(velocity(u, equations_ideal_mhd_1d), SVector(v1, v2, v3))
-    @test isapprox(velocity(u, SVector(normal_direction_2d[1]), equations_ideal_mhd_1d),
-                   v_normal_1d)
     for orientation in 1:3
         @test isapprox(velocity(u, orientation, equations_ideal_mhd_1d),
                        v_vector[orientation])

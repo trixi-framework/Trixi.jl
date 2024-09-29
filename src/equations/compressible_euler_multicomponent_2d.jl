@@ -839,13 +839,4 @@ end
     v = u[orientation] / rho
     return v
 end
-
-@inline function velocity(u, normal_direction::AbstractVector,
-                          equations::CompressibleEulerMulticomponentEquations2D)
-    rho = density(u, equations)
-    v1 = u[1] / rho
-    v2 = u[2] / rho
-    v = v1 * normal_direction[1] + v2 * normal_direction[2]
-    return v
-end
 end # @muladd
