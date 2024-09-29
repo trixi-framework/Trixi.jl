@@ -43,10 +43,7 @@ end
 ###############################################################################
 # Specify non-periodic boundary conditions
 
-function inflow(x, t, equations::InviscidBurgersEquation1D)
-    return initial_condition_rarefaction(0.0, t, equations)
-end
-boundary_condition_inflow = BoundaryConditionDirichlet(inflow)
+boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_rarefaction)
 
 function boundary_condition_outflow(u_inner, orientation, normal_direction, x, t,
                                     surface_flux_function,
