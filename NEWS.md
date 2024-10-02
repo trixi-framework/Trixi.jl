@@ -4,6 +4,21 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.9 from v0.8.x
+
+#### Added
+- Boundary conditions are now supported on nonconservative terms ([#2062]).
+
+#### Changed
+- Nonconservative terms depend only on `normal_direction_average` instead of both 
+  `normal_direction_average` and `normal_direction_ll`, such that the function signature is now 
+  identical with conservative fluxes. This required a change of the `normal_direction` in `flux_nonconservative_powell` ([#2062]).
+
+#### Deprecated
+
+#### Removed
+
+
 ## Changes in the v0.8 lifecycle
 
 #### Changed
