@@ -195,7 +195,7 @@ macro timed_testset(name, expr)
     @assert name isa String
     quote
         local time_start = time_ns()
-        @testset $name $expr
+        @testset $name $(esc(expr))
         local time_stop = time_ns()
         if Trixi.mpi_isroot()
             flush(stdout)
