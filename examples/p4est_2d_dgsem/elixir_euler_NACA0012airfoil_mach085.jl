@@ -85,11 +85,11 @@ analysis_interval = 2000
 l_inf = 1.0 # Length of airfoil
 
 force_boundary_names = (:AirfoilBottom, :AirfoilTop)
-drag_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
+drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            DragCoefficientPressure(aoa(), rho_inf(),
                                                                    u_inf(equations), l_inf))
 
-lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
+lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            LiftCoefficientPressure(aoa(), rho_inf(),
                                                                    u_inf(equations), l_inf))
 
