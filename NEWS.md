@@ -11,6 +11,8 @@ for human readability.
 - We removed the first argument `semi` corresponding to a `Semidiscretization` from the 
   `AnalysisSurfaceIntegral` constructor, as it is no longer needed (see [#1959]).
   The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`. ([#2069])
+- In functions `rhs!`, `rhs_parabolic`  we removed the unused argument `initial_condition`.
+  Users should not be affected by this.
 
 ## Changes in the v0.8 lifecycle
 
