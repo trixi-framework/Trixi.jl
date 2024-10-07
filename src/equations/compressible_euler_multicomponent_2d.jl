@@ -220,16 +220,15 @@ function initial_condition_weak_blast_wave(x, t,
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
-    prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
-                                                                2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                one(RealT) :
-                                                                2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                convert(RealT, 1.1691)
-                                                                for i in eachcomponent(equations))
+    prim_rho = SVector{ncomponents(equations), RealT}(r > 0.5f0 ?
+                                                      2^(i - 1) * (1 - 2) /
+                                                      (1 -
+                                                       2^ncomponents(equations)) :
+                                                      2^(i - 1) * (1 - 2) /
+                                                      (1 -
+                                                       2^ncomponents(equations)) *
+                                                      1.1691
+                                                      for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
     v2 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * sin_phi
