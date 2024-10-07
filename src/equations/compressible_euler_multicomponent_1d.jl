@@ -215,10 +215,10 @@ function initial_condition_weak_blast_wave(x, t,
                                                           for i in eachcomponent(equations))
     elseif RealT == Float64
         prim_rho = SVector{ncomponents(equations), RealT}(r > 0.5 ?
-                                                          2^(i - 1) * (1.0 - 2) /
+                                                          2^(i - 1) * (1 - 2) /
                                                           (1 -
                                                            2^ncomponents(equations)) :
-                                                          2^(i - 1) * (1.0 - 2) /
+                                                          2^(i - 1) * (1 - 2) /
                                                           (1 -
                                                            2^ncomponents(equations)) *
                                                           1.1691
