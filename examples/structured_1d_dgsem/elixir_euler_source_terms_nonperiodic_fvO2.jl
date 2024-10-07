@@ -29,9 +29,8 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surf_flux,
 
 f1() = SVector(0.0)
 f2() = SVector(2.0)
-initial_refinement_level = 3 # required for convergence study
-cells_per_dimension = 2^initial_refinement_level
-mesh = StructuredMesh((cells_per_dimension,), (f1, f2), periodicity = false)
+cells_per_dimension = (8,)
+mesh = StructuredMesh(cells_per_dimension, (f1, f2), periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms,
