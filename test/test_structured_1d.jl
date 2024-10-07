@@ -139,6 +139,29 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_source_terms_nonperiodic_fvO2.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonperiodic_fvO2.jl"),
+                        l2=[
+                            0.0003005552269336209,
+                            0.0004392132979796131,
+                            0.0008693370944987093
+                        ],
+                        linf=[
+                            0.0013999244590574556,
+                            0.001298120994041474,
+                            0.004533951299385386
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_linearizedeuler_characteristic_system.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearizedeuler_characteristic_system.jl"),
