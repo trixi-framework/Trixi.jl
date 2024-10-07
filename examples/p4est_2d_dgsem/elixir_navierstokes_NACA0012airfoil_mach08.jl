@@ -120,23 +120,23 @@ summary_callback = SummaryCallback()
 analysis_interval = 2000
 
 force_boundary_names = (:AirfoilBottom, :AirfoilTop)
-drag_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
+drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            DragCoefficientPressure(aoa(), rho_inf(),
                                                                    u_inf(equations),
                                                                    l_inf()))
 
-lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
+lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            LiftCoefficientPressure(aoa(), rho_inf(),
                                                                    u_inf(equations),
                                                                    l_inf()))
 
-drag_coefficient_shear_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
+drag_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_names,
                                                        DragCoefficientShearStress(aoa(),
                                                                                   rho_inf(),
                                                                                   u_inf(equations),
                                                                                   l_inf()))
 
-lift_coefficient_shear_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
+lift_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_names,
                                                        LiftCoefficientShearStress(aoa(),
                                                                                   rho_inf(),
                                                                                   u_inf(equations),
