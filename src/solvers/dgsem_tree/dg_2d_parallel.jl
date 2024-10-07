@@ -450,7 +450,7 @@ end
 function rhs!(du, u, t,
               mesh::Union{ParallelTreeMesh{2}, ParallelP4estMesh{2},
                           ParallelT8codeMesh{2}}, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
+              boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Start to receive MPI data
     @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)

@@ -582,7 +582,7 @@ end
 
 # Specialize RHS so that we can call `invert_jacobian_and_interpolate!` instead of just `invert_jacobian!`,
 # since `invert_jacobian!` is also used in other places (e.g., parabolic terms).
-function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
+function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP},
               cache) where {Source, BC}
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
