@@ -1742,6 +1742,11 @@ end
     sl = 1.0
     sr = -1.0
 
+    # Test for coverage
+    dummy = 42
+    @test reconstruction_constant(dummy, sl, sr, dummy, dummy, dummy, dummy, dummy) ==
+          (sl, sr)
+
     @test minmod(sl, sr) == 0.0
     @test monotonized_central(sl, sr) == 0.0
     @test superbee(sl, sr) == 0.0
