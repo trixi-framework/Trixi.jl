@@ -461,7 +461,7 @@ end
         # Cell index:
         #      1         2              3       4
 
-        # Obtain unlimited values in primal variables
+        ## Obtain unlimited values in primal variables ##
 
         # Note: If i - 2 = 0 we do not go to neighbor element, as one would do in a finite volume scheme.
         # Here, we keep it purely cell-local, thus overshoots between elements are not ruled out.
@@ -474,12 +474,12 @@ end
         u_pp = cons2prim(get_node_vars(u, equations, dg, min(nnodes(dg), i + 1),
                                        element), equations)
 
-        # Reconstruct values at interfaces with limiting
+        ## Reconstruct values at interfaces with limiting ##
         u_ll, u_rr = reconstruction_mode(u_mm, u_ll, u_rr, u_pp,
                                          x_interfaces,
                                          i, slope_limiter, dg)
 
-        # Convert primal variables back to conservative variables
+        ## Convert primal variables back to conservative variables ##
         flux = volume_flux_fv(prim2cons(u_ll, equations), prim2cons(u_rr, equations),
                               1, equations) # orientation 1: x direction
 

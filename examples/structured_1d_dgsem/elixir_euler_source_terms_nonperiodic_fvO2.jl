@@ -9,23 +9,33 @@ equations = CompressibleEulerEquations1D(1.4)
 
 initial_condition = initial_condition_convergence_test
 
-polydeg = 3 # Governs in this case only the number of subcells
+source_terms = source_terms_convergence_test
+
+# you can either use a single function to impose the BCs weakly in all
+# 1*ndims == 2 directions or you can pass a tuple containing BCs for
+# each direction
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = (x_neg = boundary_condition,
+                       x_pos = boundary_condition)
+
+polydeg = 8 # Governs in this case only the number of subcells
 basis = LobattoLegendreBasis(polydeg)
-surf_flux = flux_hllc
+surf_flux = flux_hll
 solver = DGSEM(polydeg = polydeg, surface_flux = surf_flux,
                volume_integral = VolumeIntegralPureLGLFiniteVolumeO2(basis,
                                                                      volume_flux_fv = surf_flux,
-                                                                     reconstruction_mode = reconstruction_small_stencil_full,
+                                                                     reconstruction_mode = reconstruction_small_stencil_inner,
                                                                      slope_limiter = monotonized_central))
 
-coordinates_min = 0.0
-coordinates_max = 2.0
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 10_000)
+f1() = SVector(0.0)
+f2() = SVector(2.0)
+initial_refinement_level = 3 # required for convergence study
+cells_per_dimension = 2^initial_refinement_level
+mesh = StructuredMesh((cells_per_dimension,), (f1, f2), periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convergence_test)
+                                    source_terms = source_terms,
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -37,13 +47,11 @@ summary_callback = SummaryCallback()
 
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_errors = (:l2_error_primitive,
-                                                              :linf_error_primitive,
-                                                              :conservation_error))
+                                     extra_analysis_errors = (:conservation_error,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.4)
+stepsize_callback = StepsizeCallback(cfl = 0.3)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -52,8 +60,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK22(),
+sol = solve(ode, ORK256(),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
-
 summary_callback() # print the timer summary

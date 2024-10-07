@@ -187,20 +187,36 @@ end
 """
     VolumeIntegralPureLGLFiniteVolumeO2(basis::Basis;
                                         volume_flux_fv = flux_lax_friedrichs,
-                                        reconstruction_mode = reconstruction_small_stencil,
+                                        reconstruction_mode = reconstruction_small_stencil_inner,
                                         slope_limiter = minmod)
 
-This gives a formally O(2)-accurate finite volume scheme on an LGL-type subcell
+This gives an up to  O(2)-accurate finite volume scheme on an LGL-type subcell
 mesh (LGL = Legendre-Gauss-Lobatto).
+Depending on the `reconstruction_mode` and `slope_limiter`, experimental orders of convergence
+between 1 and 2 can be expected in practice.
+Currently, all reconstructions are purely cell-local, i.e., no neighboring elements are 
+queried at reconstruction stage.
+
+The non-boundary subcells are always reconstructed using the standard MUSCL-type reconstruction.
+For the subcells at the boundaries, two options are available:
+
+1) The unlimited slope is used on these cells. This gives full O(2) accuracy, but may lead to overshoots between cells.
+   The `reconstruction_mode` corresponding to this is `reconstruction_small_stencil_full`.
+2) On boundary subcells, the solution is represented using a constant value, thereby falling back to formally only O(1).
+   The `reconstruction_mode` corresponding to this is `reconstruction_small_stencil_inner`.
+   In the reference below, this is the recommended reconstruction mode and is thus used by default.
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in future releases.
 
 ## References
 
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+See especially Sections 3.2 and 4 and Appendix D of the paper
+
+- Rueda-Ramírez, Hennemann, Hindenlang, Winters, & Gassner (2021).
+  "An entropy stable nodal discontinuous Galerkin method for the resistive MHD equations. 
+   Part II: Subcell finite volume shock capturing"
+  [JCP: 2021.110580](https://doi.org/10.1016/j.jcp.2021.110580)
 """
 struct VolumeIntegralPureLGLFiniteVolumeO2{RealT, Basis, VolumeFluxFV, Reconstruction,
                                            Limiter} <: AbstractVolumeIntegral

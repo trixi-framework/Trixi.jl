@@ -242,7 +242,8 @@ export DG,
        SurfaceIntegralUpwind,
        MortarL2
 
-export reconstruction_small_stencil, reconstruction_constant,
+export reconstruction_small_stencil_inner, reconstruction_small_stencil_full, 
+       reconstruction_constant,
        minmod, monotonized_central, superbee, vanLeer_limiter,
        central_slope
 
