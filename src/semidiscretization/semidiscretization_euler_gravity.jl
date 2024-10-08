@@ -232,22 +232,29 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     # compute gravitational potential and forces
     @trixi_timeit timer() "gravity solver" update_gravity!(semi, u_ode)
 
+    n_elements = size(u_euler)[end]
     # add gravitational source source_terms to the Euler part
     if ndims(semi_euler) == 1
-        @views @. du_euler[2, .., :] -= u_euler[1, .., :] * u_gravity[2, .., :]
-        @views @. du_euler[3, .., :] -= u_euler[2, .., :] * u_gravity[2, .., :]
+        @threaded for i in 1:n_elements
+            @views @. du_euler[2, .., i] -= u_euler[1, .., i] * u_gravity[2, .., i]
+            @views @. du_euler[3, .., i] -= u_euler[2, .., i] * u_gravity[2, .., i]
+        end
     elseif ndims(semi_euler) == 2
-        @views @. du_euler[2, .., :] -= u_euler[1, .., :] * u_gravity[2, .., :]
-        @views @. du_euler[3, .., :] -= u_euler[1, .., :] * u_gravity[3, .., :]
-        @views @. du_euler[4, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
-                                         u_euler[3, .., :] * u_gravity[3, .., :])
+        @threaded for i in 1:n_elements
+            @views @. du_euler[2, .., i] -= u_euler[1, .., i] * u_gravity[2, .., i]
+            @views @. du_euler[3, .., i] -= u_euler[1, .., i] * u_gravity[3, .., i]
+            @views @. du_euler[4, .., i] -= (u_euler[2, .., i] * u_gravity[2, .., i] +
+                                             u_euler[3, .., i] * u_gravity[3, .., i])
+        end
     elseif ndims(semi_euler) == 3
-        @views @. du_euler[2, .., :] -= u_euler[1, .., :] * u_gravity[2, .., :]
-        @views @. du_euler[3, .., :] -= u_euler[1, .., :] * u_gravity[3, .., :]
-        @views @. du_euler[4, .., :] -= u_euler[1, .., :] * u_gravity[4, .., :]
-        @views @. du_euler[5, .., :] -= (u_euler[2, .., :] * u_gravity[2, .., :] +
-                                         u_euler[3, .., :] * u_gravity[3, .., :] +
-                                         u_euler[4, .., :] * u_gravity[4, .., :])
+        @threaded for i in 1:n_elements
+            @views @. du_euler[2, .., i] -= u_euler[1, .., i] * u_gravity[2, .., i]
+            @views @. du_euler[3, .., i] -= u_euler[1, .., i] * u_gravity[3, .., i]
+            @views @. du_euler[4, .., i] -= u_euler[1, .., i] * u_gravity[4, .., i]
+            @views @. du_euler[5, .., i] -= (u_euler[2, .., i] * u_gravity[2, .., i] +
+                                             u_euler[3, .., i] * u_gravity[3, .., i] +
+                                             u_euler[4, .., i] * u_gravity[4, .., i])
+        end
     else
         error("Number of dimensions $(ndims(semi_euler)) not supported.")
     end
@@ -335,7 +342,10 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 (spatial mean value)
-        @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+        n_elements = size(u_euler)[end]
+        @threaded for i in 1:n_elements
+            @views @. du_gravity[1, .., i] += grav_scale * (u_euler[1, .., i] - rho0)
+        end
 
         a_stage = a[stage]
         b_stage_dt = b[stage] * dt
@@ -390,7 +400,10 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters,
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
-        @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
+        n_elements = size(u_euler)[end]
+        @threaded for i in 1:n_elements
+            @views @. du_gravity[1, .., i] += grav_scale * (u_euler[1, .., i] - rho0)
+        end
 
         delta_stage = delta[stage]
         gamma1_stage = gamma1[stage]
