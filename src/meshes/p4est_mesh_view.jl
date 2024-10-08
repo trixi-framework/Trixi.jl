@@ -103,7 +103,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMeshView)
         setup = [
             "#trees" => ntrees(mesh),
             "current #cells" => ncellsglobal(mesh),
-            "polydeg" => length(mesh.nodes) - 1,
+            "polydeg" => length(mesh.nodes) - 1
         ]
         summary_box(io,
                     "P4estMeshView{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
