@@ -415,7 +415,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
     return nothing
 end
 
-# First-order 5-stage, 3S*-storage optimized method
+# First-order, 5-stage, 3S*-storage optimized method
 function timestep_gravity_erk51_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
                                         semi_gravity)
     # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
@@ -444,7 +444,7 @@ function timestep_gravity_erk51_3Sstar!(cache, u_euler, tau, dtau, gravity_param
                              gamma1, gamma2, gamma3, beta, delta, c)
 end
 
-# Second-order 5-stage, 3S*-storage optimized method
+# Second-order, 5-stage, 3S*-storage optimized method
 function timestep_gravity_erk52_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
                                         semi_gravity)
     # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
@@ -473,7 +473,7 @@ function timestep_gravity_erk52_3Sstar!(cache, u_euler, tau, dtau, gravity_param
                              gamma1, gamma2, gamma3, beta, delta, c)
 end
 
-# Third-order 5-stage, 3S*-storage optimized method
+# Third-order, 5-stage, 3S*-storage optimized method
 function timestep_gravity_erk53_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
                                         semi_gravity)
     # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
