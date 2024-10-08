@@ -402,7 +402,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
         beta_stage_dt = beta[stage] * dtau
         @trixi_timeit timer() "Runge-Kutta step" begin
             @threaded for idx in eachindex(u_ode)
-                # See Algorithm 1 (3S* method) from Schlottke-Lakemper et al. (2020)
+                # See Algorithm 1 (3S* method) in Schlottke-Lakemper et al. (2020)
                 u_tmp1_ode[idx] += delta_stage * u_ode[idx]
                 u_ode[idx] = (gamma1_stage * u_ode[idx] +
                               gamma2_stage * u_tmp1_ode[idx] +
