@@ -16,6 +16,8 @@ for human readability.
   `AnalysisSurfaceIntegral` constructor, as it is no longer needed (see [#1959]).
   The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`.
   ([#2069])
+- In functions `rhs!`, `rhs_parabolic!`  we removed the unused argument `initial_condition`. ([#2037])
+  Users should not be affected by this.
 - Nonconservative terms depend only on `normal_direction_average` instead of both 
   `normal_direction_average` and `normal_direction_ll`, such that the function signature is now 
   identical with conservative fluxes. This required a change of the `normal_direction` in
