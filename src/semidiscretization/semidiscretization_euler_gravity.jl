@@ -235,25 +235,37 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     n_elements = size(u_euler)[end]
     # add gravitational source source_terms to the Euler part
     if ndims(semi_euler) == 1
-        @threaded for i in 1:n_elements
-            @views @. du_euler[2, .., i] -= u_euler[1, .., i] * u_gravity[2, .., i]
-            @views @. du_euler[3, .., i] -= u_euler[2, .., i] * u_gravity[2, .., i]
+        @threaded for element in 1:n_elements
+            @views @. du_euler[2, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[2, .., element]
+            @views @. du_euler[3, .., element] -= u_euler[2, .., element] *
+                                                  u_gravity[2, .., element]
         end
     elseif ndims(semi_euler) == 2
-        @threaded for i in 1:n_elements
-            @views @. du_euler[2, .., i] -= u_euler[1, .., i] * u_gravity[2, .., i]
-            @views @. du_euler[3, .., i] -= u_euler[1, .., i] * u_gravity[3, .., i]
-            @views @. du_euler[4, .., i] -= (u_euler[2, .., i] * u_gravity[2, .., i] +
-                                             u_euler[3, .., i] * u_gravity[3, .., i])
+        @threaded for element in 1:n_elements
+            @views @. du_euler[2, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[2, .., element]
+            @views @. du_euler[3, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[3, .., element]
+            @views @. du_euler[4, .., element] -= (u_euler[2, .., element] *
+                                                   u_gravity[2, .., element] +
+                                                   u_euler[3, .., element] *
+                                                   u_gravity[3, .., element])
         end
     elseif ndims(semi_euler) == 3
-        @threaded for i in 1:n_elements
-            @views @. du_euler[2, .., i] -= u_euler[1, .., i] * u_gravity[2, .., i]
-            @views @. du_euler[3, .., i] -= u_euler[1, .., i] * u_gravity[3, .., i]
-            @views @. du_euler[4, .., i] -= u_euler[1, .., i] * u_gravity[4, .., i]
-            @views @. du_euler[5, .., i] -= (u_euler[2, .., i] * u_gravity[2, .., i] +
-                                             u_euler[3, .., i] * u_gravity[3, .., i] +
-                                             u_euler[4, .., i] * u_gravity[4, .., i])
+        @threaded for element in 1:n_elements
+            @views @. du_euler[2, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[2, .., element]
+            @views @. du_euler[3, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[3, .., element]
+            @views @. du_euler[4, .., element] -= u_euler[1, .., element] *
+                                                  u_gravity[4, .., element]
+            @views @. du_euler[5, .., element] -= (u_euler[2, .., element] *
+                                                   u_gravity[2, .., element] +
+                                                   u_euler[3, .., element] *
+                                                   u_gravity[3, .., element] +
+                                                   u_euler[4, .., element] *
+                                                   u_gravity[4, .., element])
         end
     else
         error("Number of dimensions $(ndims(semi_euler)) not supported.")
@@ -343,8 +355,9 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 (spatial mean value)
         n_elements = size(u_euler)[end]
-        @threaded for i in 1:n_elements
-            @views @. du_gravity[1, .., i] += grav_scale * (u_euler[1, .., i] - rho0)
+        @threaded for element in 1:n_elements
+            @views @. du_gravity[1, .., element] += grav_scale *
+                                                    (u_euler[1, .., element] - rho0)
         end
 
         a_stage = a[stage]
@@ -401,8 +414,9 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters,
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
         n_elements = size(u_euler)[end]
-        @threaded for i in 1:n_elements
-            @views @. du_gravity[1, .., i] += grav_scale * (u_euler[1, .., i] - rho0)
+        @threaded for element in 1:n_elements
+            @views @. du_gravity[1, .., element] += grav_scale *
+                                                    (u_euler[1, .., element] - rho0)
         end
 
         delta_stage = delta[stage]
