@@ -314,7 +314,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         mpi_println(" #elements:      " *
                     @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
 
-        # Level information (only for AMR or non-uniform `TreeMesh`es)
+        # Level information (only for AMR and/or non-uniform `TreeMesh`es)
         print_level_information(integrator.opts.callback, mesh, solver, cache)
         mpi_println()
 
