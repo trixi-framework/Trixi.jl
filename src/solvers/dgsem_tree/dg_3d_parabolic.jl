@@ -141,7 +141,7 @@ function calc_interface_flux!(surface_flux_values,
 
             # Compute interface flux as mean of left and right viscous fluxes
             # TODO: parabolic; only BR1 at the moment
-            flux = 0.5 * (flux_ll + flux_rr)
+            flux = 0.5f0 * (flux_ll + flux_rr)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)
@@ -488,8 +488,8 @@ end
 
 # `cache` is the hyperbolic cache, i.e., in particular not `cache_parabolic`.
 # This is because mortar handling is done in the (hyperbolic) `cache`.
-# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since 
-#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and 
+# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since
+#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and
 # hyperbolic-parabolic systems.
 function prolong2mortars!(cache,
                           flux_viscous::Vector{Array{uEltype, 5}},
@@ -773,7 +773,7 @@ end
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i, j,
                                            interface)
         # TODO: parabolic; only BR1 at the moment
-        flux = 0.5 * (u_ll + u_rr)
+        flux = 0.5f0 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations_parabolic, dg, i, j)
@@ -854,7 +854,7 @@ function calc_gradient!(gradients, u_transformed, t,
                 u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                    equations_parabolic, dg, i, j,
                                                    interface)
-                flux = 0.5 * (u_ll + u_rr)
+                flux = 0.5f0 * (u_ll + u_rr)
 
                 # Copy flux to left and right element storage
                 for v in eachvariable(equations_parabolic)

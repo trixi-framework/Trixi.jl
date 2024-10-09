@@ -97,8 +97,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
     @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_flag.jl"),
-                            l2=[0.0012766060609964525],
-                            linf=[0.01750280631586159],
+                            l2=[0.0012808538770535593],
+                            linf=[0.01752690016659812],
                             coverage_override=(maxiters = 6,))
 
         # Ensure that we do not have excessive memory allocations
@@ -136,13 +136,13 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
                                 0.0034516244508588046,
                                 0.0023420334036925493,
                                 0.0024261923964557187,
-                                0.004731710454271893,
+                                0.004731710454271893
                             ],
                             linf=[
                                 0.04155789011775046,
                                 0.024772109862748914,
                                 0.03759938693042297,
-                                0.08039824959535657,
+                                0.08039824959535657
                             ])
 
         # Ensure that we do not have excessive memory allocations

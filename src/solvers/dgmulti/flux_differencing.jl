@@ -620,7 +620,7 @@ end
 # an entropy conservative/stable discretization. For modal DG schemes, an extra `entropy_projection!`
 # is required (see https://doi.org/10.1016/j.jcp.2018.02.033, Section 4.3).
 # Also called by DGMultiFluxDiff{<:GaussSBP} solvers.
-function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
+function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff, cache) where {Source, BC}
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
@@ -666,7 +666,7 @@ end
 # for such schemes is very similar to the implementation of `rhs!` for standard DG methods,
 # but specializes `calc_volume_integral`.
 function rhs!(du, u, t, mesh, equations,
-              initial_condition, boundary_conditions::BC, source_terms::Source,
+              boundary_conditions::BC, source_terms::Source,
               dg::DGMultiFluxDiffSBP, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 

@@ -19,9 +19,6 @@ The third-order SSP Runge-Kutta method of Shu and Osher.
 - Shu, Osher (1988)
   "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
   [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
     numerator_a::SVector{3, Float64}
@@ -133,12 +130,9 @@ end
 
 The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
 of type `SimpleAlgorithmSSP`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
-               dt, callback = nothing, kwargs...)
+               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     r0 = similar(u)
@@ -157,13 +151,11 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     # initialize callbacks
     if callback isa CallbackSet
         foreach(callback.continuous_callbacks) do cb
-            error("unsupported")
+            throw(ArgumentError("Continuous callbacks are unsupported with the SSP time integration methods."))
         end
         foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
-    elseif !isnothing(callback)
-        error("unsupported")
     end
 
     for stage_callback in alg.stage_callbacks
