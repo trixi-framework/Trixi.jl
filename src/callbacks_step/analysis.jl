@@ -521,7 +521,7 @@ function print_level_information(callbacks, mesh::TreeMesh, solver, cache)
         print_level_information(mesh, solver, cache, min_level, max_level)
         # Special check for `TreeMesh`es without AMR.
         # These meshes may still be non-uniform due to `refinement_patches`, see 
-        # `refine_box!`, `coarsen_box`, and `refine_sphere!`.
+        # `refine_box!`, `coarsen_box!`, and `refine_sphere!`.
     elseif minimum_level(mesh.tree) != maximum_level(mesh.tree)
         min_level = minimum_level(mesh.tree)
         max_level = maximum_level(mesh.tree)
