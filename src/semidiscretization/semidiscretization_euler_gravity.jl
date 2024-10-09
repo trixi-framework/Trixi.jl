@@ -124,6 +124,7 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler,
           SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
     u_ode = compute_coefficients(zero(real(semi_gravity)), semi_gravity)
     du_ode = similar(u_ode)
+    # Registers for gravity solver, tailored to the 2N and 3S* methods implemented below
     u_tmp1_ode = similar(u_ode)
     u_tmp2_ode = similar(u_ode)
     cache = (; u_ode, du_ode, u_tmp1_ode, u_tmp2_ode)
@@ -324,6 +325,7 @@ function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
     rho0 = gravity_parameters.background_density
     grav_scale = -4.0 * pi * G
 
+    # Note that `u_ode` is `u_gravity` in `rhs!` above
     @unpack u_ode, du_ode, u_tmp1_ode = cache
     u_tmp1_ode .= zero(eltype(u_tmp1_ode))
     du_gravity = wrap_array(du_ode, semi_gravity)
@@ -378,6 +380,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
     rho0 = gravity_parameters.background_density
     grav_scale = -4 * G * pi
 
+    # Note that `u_ode` is `u_gravity` in `rhs!` above
     @unpack u_ode, du_ode, u_tmp1_ode, u_tmp2_ode = cache
     u_tmp1_ode .= zero(eltype(u_tmp1_ode))
     u_tmp2_ode .= u_ode
