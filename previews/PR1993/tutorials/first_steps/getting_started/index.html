@@ -122,11 +122,11 @@ trixi_include(joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_e
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       6.81000000e-07 s
+ #timesteps:                  0                run time:       7.11000000e-07 s
  Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:        985.115 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:       1007.355 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -135,18 +135,18 @@ trixi_include(joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_e
  ∑∂S/∂U ⋅ Uₜ :  -4.28965278e-18
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 1.0797e-02 │ sim. time: 1.0745e-01 (26.862%)  │ run time: 9.8945e-02 s
-#timesteps:     20 │ Δt: 1.1033e-02 │ sim. time: 2.1692e-01 (54.229%)  │ run time: 1.7629e-01 s
-#timesteps:     30 │ Δt: 1.1481e-02 │ sim. time: 3.3075e-01 (82.688%)  │ run time: 2.5543e-01 s
+#timesteps:     10 │ Δt: 1.0797e-02 │ sim. time: 1.0745e-01 (26.862%)  │ run time: 9.9785e-02 s
+#timesteps:     20 │ Δt: 1.1033e-02 │ sim. time: 2.1692e-01 (54.229%)  │ run time: 1.7798e-01 s
+#timesteps:     30 │ Δt: 1.1481e-02 │ sim. time: 3.3075e-01 (82.688%)  │ run time: 2.5772e-01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 37                run time:       3.16270947e-01 s
+ #timesteps:                 37                run time:       3.18468537e-01 s
  Δt:             4.74704430e-04                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  9.01736457e-08 s
-                                               PID:            1.02378377e-07 s
- #DOFs per field:         16384                alloc&#39;d memory:        990.112 MiB
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  9.05711246e-08 s
+                                               PID:            1.03093607e-07 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1012.351 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -159,36 +159,36 @@ trixi_include(joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_e
 Trixi.jl simulation finished.  Final time: 0.4  Time steps: 37 (accepted), 37 (total)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-<span class="sgr1"> ────────────────────────────────────────────────────────────────────────────────</span>
-<span class="sgr1">            Trixi.jl           </span>         Time                    Allocations
-                               ───────────────────────   ────────────────────────
-       Tot / % measured:            323ms /  90.2%           10.8MiB /  83.7%
+<span class="sgr1">────────────────────────────────────────────────────────────────────────────────</span>
+<span class="sgr1">           Trixi.jl           </span>         Time                    Allocations
+                              ───────────────────────   ────────────────────────
+      Tot / % measured:            325ms /  89.8%           10.8MiB /  83.7%
 
- Section               ncalls     time    %tot     avg     alloc    %tot      avg
- ────────────────────────────────────────────────────────────────────────────────
- rhs!                     186    275ms   94.4%  1.48ms   4.78KiB    0.1%    26.3B
-   volume integral        186    199ms   68.3%  1.07ms     0.00B    0.0%    0.00B
-   interface flux         186   46.0ms   15.8%   247μs     0.00B    0.0%    0.00B
-   surface integral       186   13.3ms    4.6%  71.6μs     0.00B    0.0%    0.00B
-   prolong2interfaces     186   12.7ms    4.4%  68.2μs     0.00B    0.0%    0.00B
-   Jacobian               186   1.98ms    0.7%  10.7μs     0.00B    0.0%    0.00B
-   reset ∂u/∂t            186   1.85ms    0.6%  9.93μs     0.00B    0.0%    0.00B
-   ~rhs!~                 186    262μs    0.1%  1.41μs   4.78KiB    0.1%    26.3B
-   prolong2boundaries     186   13.7μs    0.0%  73.8ns     0.00B    0.0%    0.00B
-   mortar flux            186   8.48μs    0.0%  45.6ns     0.00B    0.0%    0.00B
-   prolong2mortars        186   8.24μs    0.0%  44.3ns     0.00B    0.0%    0.00B
-   boundary flux          186   5.57μs    0.0%  30.0ns     0.00B    0.0%    0.00B
-   source terms           186   5.50μs    0.0%  29.6ns     0.00B    0.0%    0.00B
- analyze solution           2   8.82ms    3.0%  4.41ms   5.93MiB   65.7%  2.97MiB
- I/O                        3   3.80ms    1.3%  1.27ms   3.09MiB   34.2%  1.03MiB
-   save solution            2   3.05ms    1.0%  1.52ms   3.01MiB   33.4%  1.51MiB
-   ~I/O~                    3    758μs    0.3%   253μs   78.3KiB    0.8%  26.1KiB
-   get element vari...      2    381ns    0.0%   190ns     0.00B    0.0%    0.00B
-   save mesh                2   91.0ns    0.0%  45.5ns     0.00B    0.0%    0.00B
-   get node variables       2   60.0ns    0.0%  30.0ns     0.00B    0.0%    0.00B
- calculate dt              38   3.64ms    1.2%  95.7μs     0.00B    0.0%    0.00B
-<span class="sgr1"> ────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>The output contains a recap of the setup and various information about the course of the simulation. For instance, the solution was approximated over the <a href="../../../reference-trixi/#Trixi.TreeMesh"><code>TreeMesh</code></a> with 1024 effective cells using the <code>CarpenterKennedy2N54</code> ODE solver. Further details about the ODE solver can be found in the <a href="https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods">documentation of OrdinaryDiffEq.jl</a></p><p>To analyze the result of the computation, we can use the Plots.jl package and the function <code>plot(...)</code>, which creates a graphical representation of the solution. <code>sol</code> is a variable defined in the executed example and it contains the solution after the simulation finishes. <code>sol.u</code> holds the vector of values at each saved timestep, while <code>sol.t</code> holds the corresponding times for each saved timestep. In this instance, only two timesteps were saved: the initial and final ones. The plot depicts the distribution of the weak blast wave at the final moment of time, showing the density, velocities, and pressure of the ideal gas across a 2D domain.</p><pre><code class="language-julia hljs">using Plots
-plot(sol)</code></pre><img src="77395e61.svg" alt="Example block output"/><h3 id="Getting-an-existing-setup-file"><a class="docs-heading-anchor" href="#Getting-an-existing-setup-file">Getting an existing setup file</a><a id="Getting-an-existing-setup-file-1"></a><a class="docs-heading-anchor-permalink" href="#Getting-an-existing-setup-file" title="Permalink"></a></h3><p>To obtain a list of all Trixi.jl elixirs execute <a href="../../../reference-trixi/#Trixi.get_examples-Tuple{}"><code>get_examples</code></a>. It returns the paths to all example setups.</p><pre><code class="language-julia hljs">get_examples()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">399-element Vector{String}:
+Section               ncalls     time    %tot     avg     alloc    %tot      avg
+────────────────────────────────────────────────────────────────────────────────
+rhs!                     186    276ms   94.5%  1.48ms   4.78KiB    0.1%    26.3B
+  volume integral        186    200ms   68.4%  1.07ms     0.00B    0.0%    0.00B
+  interface flux         186   46.2ms   15.8%   248μs     0.00B    0.0%    0.00B
+  surface integral       186   13.3ms    4.6%  71.7μs     0.00B    0.0%    0.00B
+  prolong2interfaces     186   12.6ms    4.3%  67.8μs     0.00B    0.0%    0.00B
+  Jacobian               186   2.00ms    0.7%  10.8μs     0.00B    0.0%    0.00B
+  reset ∂u/∂t            186   1.85ms    0.6%  10.0μs     0.00B    0.0%    0.00B
+  ~rhs!~                 186    289μs    0.1%  1.55μs   4.78KiB    0.1%    26.3B
+  prolong2boundaries     186   13.0μs    0.0%  69.8ns     0.00B    0.0%    0.00B
+  prolong2mortars        186   10.3μs    0.0%  55.5ns     0.00B    0.0%    0.00B
+  mortar flux            186   8.00μs    0.0%  43.0ns     0.00B    0.0%    0.00B
+  source terms           186   5.85μs    0.0%  31.4ns     0.00B    0.0%    0.00B
+  boundary flux          186   5.54μs    0.0%  29.8ns     0.00B    0.0%    0.00B
+analyze solution           2   8.81ms    3.0%  4.41ms   5.93MiB   65.7%  2.97MiB
+calculate dt              38   3.70ms    1.3%  97.3μs     0.00B    0.0%    0.00B
+I/O                        3   3.53ms    1.2%  1.18ms   3.09MiB   34.2%  1.03MiB
+  save solution            2   2.83ms    1.0%  1.41ms   3.01MiB   33.4%  1.51MiB
+  ~I/O~                    3    699μs    0.2%   233μs   78.3KiB    0.8%  26.1KiB
+  get element vari...      2    250ns    0.0%   125ns     0.00B    0.0%    0.00B
+  save mesh                2    121ns    0.0%  60.5ns     0.00B    0.0%    0.00B
+  get node variables       2   61.0ns    0.0%  30.5ns     0.00B    0.0%    0.00B
+<span class="sgr1">────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>The output contains a recap of the setup and various information about the course of the simulation. For instance, the solution was approximated over the <a href="../../../reference-trixi/#Trixi.TreeMesh"><code>TreeMesh</code></a> with 1024 effective cells using the <code>CarpenterKennedy2N54</code> ODE solver. Further details about the ODE solver can be found in the <a href="https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods">documentation of OrdinaryDiffEq.jl</a></p><p>To analyze the result of the computation, we can use the Plots.jl package and the function <code>plot(...)</code>, which creates a graphical representation of the solution. <code>sol</code> is a variable defined in the executed example and it contains the solution after the simulation finishes. <code>sol.u</code> holds the vector of values at each saved timestep, while <code>sol.t</code> holds the corresponding times for each saved timestep. In this instance, only two timesteps were saved: the initial and final ones. The plot depicts the distribution of the weak blast wave at the final moment of time, showing the density, velocities, and pressure of the ideal gas across a 2D domain.</p><pre><code class="language-julia hljs">using Plots
+plot(sol)</code></pre><img src="06f41a95.svg" alt="Example block output"/><h3 id="Getting-an-existing-setup-file"><a class="docs-heading-anchor" href="#Getting-an-existing-setup-file">Getting an existing setup file</a><a id="Getting-an-existing-setup-file-1"></a><a class="docs-heading-anchor-permalink" href="#Getting-an-existing-setup-file" title="Permalink"></a></h3><p>To obtain a list of all Trixi.jl elixirs execute <a href="../../../reference-trixi/#Trixi.get_examples-Tuple{}"><code>get_examples</code></a>. It returns the paths to all example setups.</p><pre><code class="language-julia hljs">get_examples()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">413-element Vector{String}:
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 23 bytes ⋯ </span></span>&quot;d/elixir_advection_gauss_sbp.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 33 bytes ⋯ </span></span>&quot;urgers_gauss_shock_capturing.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 24 bytes ⋯ </span></span>&quot;/elixir_euler_fdsbp_periodic.jl&quot;
@@ -200,13 +200,13 @@ plot(sol)</code></pre><img src="77395e61.svg" alt="Example block output"/><h3 id
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 35 bytes ⋯ </span></span>&quot;ection_diffusion_nonperiodic.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 32 bytes ⋯ </span></span>&quot;advection_diffusion_periodic.jl&quot;
  ⋮
- &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 45 bytes ⋯ </span></span>&quot;allowwater_ec_shockcapturing.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 40 bytes ⋯ </span></span>&quot;ir_shallowwater_source_terms.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 50 bytes ⋯ </span></span>&quot;water_wall_bc_shockcapturing.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 41 bytes ⋯ </span></span>&quot;r_shallowwater_well_balanced.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 30 bytes ⋯ </span></span>&quot;fdsbp/elixir_advection_basic.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 32 bytes ⋯ </span></span>&quot;sbp/elixir_euler_free_stream.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 39 bytes ⋯ </span></span>&quot;xir_euler_free_stream_upwind.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 47 bytes ⋯ </span></span>&quot;r_free_stream_upwind_float32.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 33 bytes ⋯ </span></span>&quot;bp/elixir_euler_source_terms.jl&quot;
  &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 40 bytes ⋯ </span></span>&quot;ir_euler_source_terms_upwind.jl&quot;</code></pre><p>Editing an existing elixir is the best way to start your first own investigation using Trixi.jl.</p><p>To edit an existing elixir, you first have to find a suitable one and then copy it to a local folder. Let&#39;s have a look at how to download the <code>elixir_euler_ec.jl</code> elixir used in the previous section from the <a href="https://github.com/trixi-framework/Trixi.jl">Trixi.jl GitHub repository</a>.</p><ul><li>All examples are located inside the <a href="https://github.com/trixi-framework/Trixi.jl/tree/main/examples"><code>examples</code></a> folder.</li><li>Navigate to the file <a href="https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_ec.jl"><code>elixir_euler_ec.jl</code></a>.</li><li>Right-click the <code>Raw</code> button on the right side of the webpage and choose <code>Save as...</code> (or <code>Save Link As...</code>).</li><li>Choose a folder and save the file.</li></ul><h3 id="Modifying-an-existing-setup"><a class="docs-heading-anchor" href="#Modifying-an-existing-setup">Modifying an existing setup</a><a id="Modifying-an-existing-setup-1"></a><a class="docs-heading-anchor-permalink" href="#Modifying-an-existing-setup" title="Permalink"></a></h3><p>As an example, we will change the initial condition for calculations that occur in <code>elixir_euler_ec.jl</code>. Initial conditions for <a href="../../../reference-trixi/#Trixi.CompressibleEulerEquations2D"><code>CompressibleEulerEquations2D</code></a> consist of initial values for <span>$\rho$</span>, <span>$\rho v_1$</span>, <span>$\rho v_2$</span> and <span>$\rho e$</span>. One of the common initial conditions for the compressible Euler equations is a simple density wave. Let&#39;s implement it.</p><ul><li>Open the downloaded file <code>elixir_euler_ec.jl</code> with a text editor.</li><li>Go to the line with the following code:<pre><code class="language-julia hljs">initial_condition = initial_condition_weak_blast_wave</code></pre>Here, <a href="../../../reference-trixi/#Trixi.initial_condition_weak_blast_wave-Tuple{Any, Any, CompressibleEulerEquations1D}"><code>initial_condition_weak_blast_wave</code></a> is used as the initial condition.</li><li>Comment out the line using the <code>#</code> symbol:<pre><code class="language-julia hljs"># initial_condition = initial_condition_weak_blast_wave</code></pre></li><li>Now you can create your own initial conditions. Add the following code after the commented line:</li></ul><pre><code class="language-julia hljs">function initial_condition_density_waves(x, t, equations::CompressibleEulerEquations2D)
     v1 = 0.1 # velocity along x-axis
@@ -219,9 +219,9 @@ end
 initial_condition = initial_condition_density_waves</code></pre><ul><li>Execute the following code one more time, but instead of <code>path/to/file</code> paste the path to the <code>elixir_euler_ec.jl</code> file that you just edited.<pre><code class="language-julia hljs">using Trixi
 trixi_include(path/to/file)
 using Plots
-plot(sol)</code></pre></li></ul><p>Then you will obtain a new solution from running the simulation with a different initial condition.</p><img src="53769630.svg" alt="Example block output"/><p>To get exactly the same picture execute the following.</p><pre><code class="language-julia hljs">pd = PlotData2D(sol)
+plot(sol)</code></pre></li></ul><p>Then you will obtain a new solution from running the simulation with a different initial condition.</p><img src="2c92c2d3.svg" alt="Example block output"/><p>To get exactly the same picture execute the following.</p><pre><code class="language-julia hljs">pd = PlotData2D(sol)
 p1 = plot(pd[&quot;rho&quot;])
 p2 = plot(pd[&quot;v1&quot;], clim=(0.05, 0.15))
 p3 = plot(pd[&quot;v2&quot;], clim=(0.15, 0.25))
 p4 = plot(pd[&quot;p&quot;], clim=(10, 30))
-plot(p1, p2, p3, p4)</code></pre><p>Feel free to make further changes to the initial condition to observe different solutions.</p><p>Now you are able to download, modify and execute simulation setups for Trixi.jl. To explore further details on setting up a new simulation with Trixi.jl, refer to the second part of the introduction titled <a href="../create_first_setup/#create_first_setup">Create your first setup</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../create_first_setup/">1.2 Create your first setup »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Thursday 27 June 2024 07:33">Thursday 27 June 2024</span>. Using Julia version 1.11.0-rc1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+plot(p1, p2, p3, p4)</code></pre><p>Feel free to make further changes to the initial condition to observe different solutions.</p><p>Now you are able to download, modify and execute simulation setups for Trixi.jl. To explore further details on setting up a new simulation with Trixi.jl, refer to the second part of the introduction titled <a href="../create_first_setup/#create_first_setup">Create your first setup</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../create_first_setup/">1.2 Create your first setup »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Wednesday 9 October 2024 05:07">Wednesday 9 October 2024</span>. Using Julia version 1.11.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
