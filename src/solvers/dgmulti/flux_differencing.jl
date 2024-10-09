@@ -51,7 +51,8 @@ end
 # Version for dense operators and non-symmetric fluxes
 @inline function hadamard_sum!(du, A,
                                flux_is_symmetric::False, volume_flux,
-                               orientation::Integer, u, equations)
+                               orientation::Integer, u, equations;
+                               scaling = true)
     row_ids, col_ids = axes(A)
 
     for i in row_ids
@@ -60,15 +61,17 @@ end
         for j in col_ids
             u_j = u[j]
             f_ij = volume_flux(u_i, u_j, orientation, equations)
-            du_i = du_i + 2 * A[i, j] * f_ij
+            du_i = du_i + scaling * 2 * A[i, j] * f_ij
         end
-        du[i] = du_i
     end
 end
 
+# Version for dense operators and non-symmetric fluxes,
+# but the normal direction is a vector.
 @inline function hadamard_sum!(du, A,
                                flux_is_symmetric::False, volume_flux,
-                               normal_direction::AbstractVector, u, equations)
+                               normal_direction::AbstractVector, u, equations;
+                               scaling = true)
     row_ids, col_ids = axes(A)
 
     for i in row_ids
@@ -80,9 +83,8 @@ end
             # This is because on curved meshes, nonconservative fluxes are
             # evaluated using both the normal and its average at interfaces.
             f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
-            du_i = du_i + 2 * A[i, j] * f_ij
+            du_i = du_i + scaling * 2 * A[i, j] * f_ij
         end
-        du[i] = du_i
     end
 end
 
@@ -120,7 +122,7 @@ end
     end
 end
 
-# Version for sparse operators and symmetric fluxes with curved meshes
+# Version for sparse operators and symmetric fluxes on curved meshes
 @inline function hadamard_sum!(du,
                                A::LinearAlgebra.Adjoint{<:Any,
                                                         <:AbstractSparseMatrixCSC},
@@ -158,13 +160,13 @@ end
     end
 end
 
-# TODO: DGMulti. Fix for curved meshes.
 # Version for sparse operators and non-symmetric fluxes
 @inline function hadamard_sum!(du,
                                A::LinearAlgebra.Adjoint{<:Any,
                                                         <:AbstractSparseMatrixCSC},
                                flux_is_symmetric::False, volume_flux,
-                               normal_direction::AbstractVector, u, equations)
+                               normal_direction::AbstractVector, u, equations;
+                               scaling = true)
     A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
     row_ids = axes(A, 2)
     rows = rowvals(A_base)
@@ -181,9 +183,42 @@ end
             # evaluated using both the normal and its average at interfaces.
             u_j = u[j]
             f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
-            du_i = du_i + 2 * A_ij * f_ij
+            du_i = du_i + scaling * 2 * A_ij * f_ij
         end
         du[i] = du_i
+    end
+end
+
+# Version for sparse operators and non-symmetric fluxes on curved meshes
+@inline function hadamard_sum!(du,
+                               A::LinearAlgebra.Adjoint{<:Any, <:AbstractSparseMatrixCSC
+                                                        },
+                               flux_is_symmetric::False, volume_flux,
+                               normal_directions::AbstractVector{<:AbstractVector},
+                               u, equations; scaling = true)
+    A_base = parent(A) # the adjoint of a SparseMatrixCSC is basically a SparseMatrixCSR
+    row_ids = axes(A, 2)
+    rows = rowvals(A_base)
+    vals = nonzeros(A_base)
+
+    for i in row_ids
+        u_i = u[i]
+        du_i = du[i]
+        for id in nzrange(A_base, i)
+            A_ij = vals[id]
+            j = rows[id]
+
+            # provably entropy stable de-aliasing of geometric terms
+            normal_direction = 0.5 * (getindex.(normal_directions, i) +
+                                getindex.(normal_directions, j))
+
+            # The `normal_direction::AbstractVector` has to be passed in twice.
+            # This is because on curved meshes, nonconservative fluxes are
+            # evaluated using both the normal and its average at interfaces.
+            u_j = u[j]
+            f_ij = volume_flux(u_i, u_j, normal_direction, normal_direction, equations)
+            du_i = du_i + scaling * 2 * A_ij * f_ij
+        end
     end
 end
 
@@ -193,7 +228,7 @@ end
 # combinations of differentiation operators on-the-fly in an allocation-free manner.
 @inline function build_lazy_physical_derivative(element, orientation,
                                                 mesh::DGMultiMesh{1}, dg, cache,
-                                                operator_scaling = 1.0)
+                                                operator_scaling = true)
     @unpack Qrst_skew = cache
     @unpack rxJ = mesh.md
     # ignore orientation
@@ -202,7 +237,7 @@ end
 
 @inline function build_lazy_physical_derivative(element, orientation,
                                                 mesh::DGMultiMesh{2}, dg, cache,
-                                                operator_scaling = 1.0)
+                                                operator_scaling = true)
     @unpack Qrst_skew = cache
     @unpack rxJ, sxJ, ryJ, syJ = mesh.md
     if orientation == 1
@@ -218,7 +253,7 @@ end
 
 @inline function build_lazy_physical_derivative(element, orientation,
                                                 mesh::DGMultiMesh{3}, dg, cache,
-                                                operator_scaling = 1.0)
+                                                operator_scaling = true)
     @unpack Qrst_skew = cache
     @unpack rxJ, sxJ, txJ, ryJ, syJ, tyJ, rzJ, szJ, tzJ = mesh.md
     if orientation == 1
@@ -247,7 +282,8 @@ end
 # appear when using the chain rule to compute physical derivatives as a linear
 # combination of reference derivatives.
 @inline function get_contravariant_vector(element, orientation,
-                                          mesh::DGMultiMesh{NDIMS}, cache) where {NDIMS}
+                                          mesh::DGMultiMesh{NDIMS},
+                                          cache) where {NDIMS}
     # note that rstxyzJ = [rxJ, sxJ, txJ; ryJ syJ tyJ; rzJ szJ tzJ], so that this will return
     # SVector{2}(rxJ[1, element], ryJ[1, element]) in 2D.
 
@@ -484,12 +520,11 @@ end
                       dim, u_local, equations)
 
         # The final argument .5 scales the operator by 1/2 for the nonconservative terms.
-        half_Qi_skew = build_lazy_physical_derivative(element_index, dim, mesh, dg,
-                                                      cache, 0.5)
         # False() indicates the flux is non-symmetric.
-        hadamard_sum!(fluxdiff_local, half_Qi_skew,
+        hadamard_sum!(fluxdiff_local, Qi_skew,
                       False(), flux_nonconservative,
-                      dim, u_local, equations)
+                      dim, u_local, equations;
+                      scaling = 0.5)
     end
 end
 
@@ -541,11 +576,11 @@ end
                       normal_direction, u_local, equations)
 
         # We scale the operator by 1/2 for the nonconservative terms.
-        half_Q_skew = LazyMatrixLinearCombo((Q_skew,), (0.5,))
         # False() indicates the flux is non-symmetric
-        hadamard_sum!(fluxdiff_local, half_Q_skew,
+        hadamard_sum!(fluxdiff_local, Q_skew,
                       False(), flux_nonconservative,
-                      normal_direction, u_local, equations)
+                      normal_direction, u_local, equations;
+                      scaling = 0.5)
     end
 end
 
