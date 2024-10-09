@@ -315,7 +315,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
                     @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
 
         # Level information (only show for AMR)
-        print_amr_information(integrator.opts.callback, mesh, solver, cache)
+        print_level_information(integrator.opts.callback, mesh, solver, cache)
         mpi_println()
 
         # Open file for appending and store time step and time information
@@ -489,21 +489,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     return nothing
 end
 
-# Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh, solver, cache)
-
-    # Return early if there is nothing to print
-    uses_amr(callbacks) || return nothing
-
-    # Get global minimum and maximum level from the AMRController
-    min_level = max_level = 0
-    for cb in callbacks.discrete_callbacks
-        if cb.affect! isa AMRCallback
-            min_level = cb.affect!.controller.base_level
-            max_level = cb.affect!.controller.max_level
-        end
-    end
-
+function print_level_information(mesh, solver, cache, min_level, max_level)
     # Get local element count per level
     elements_per_level = get_elements_per_level(min_level, max_level, mesh, solver,
                                                 cache)
@@ -520,6 +506,45 @@ function print_amr_information(callbacks, mesh, solver, cache)
                 @sprintf("% 14d", elements_per_level[1]))
 
     return nothing
+end
+
+function print_level_information(callbacks, mesh::TreeMesh, solver, cache)
+    if uses_amr(callbacks)
+        # Get global minimum and maximum level from the AMRController
+        min_level = max_level = 0
+        for cb in callbacks.discrete_callbacks
+            if cb.affect! isa AMRCallback
+                min_level = cb.affect!.controller.base_level
+                max_level = cb.affect!.controller.max_level
+            end
+        end
+        print_level_information(mesh, solver, cache, min_level, max_level)
+        # Special check for `TreeMesh`es without AMR.
+        # These meshes may still be non-uniform due to `refinement_patches`, see 
+        # `refine_box!`, `coarsen_box`, and `refine_sphere!`.
+    elseif minimum_level(mesh.tree) != maximum_level(mesh.tree)
+        min_level = minimum_level(mesh.tree)
+        max_level = maximum_level(mesh.tree)
+        print_level_information(mesh, solver, cache, min_level, max_level)
+    else # Uniform mesh
+        return nothing
+    end
+end
+
+function print_level_information(callbacks, mesh, solver, cache)
+    if uses_amr(callbacks)
+        # Get global minimum and maximum level from the AMRController
+        min_level = max_level = 0
+        for cb in callbacks.discrete_callbacks
+            if cb.affect! isa AMRCallback
+                min_level = cb.affect!.controller.base_level
+                max_level = cb.affect!.controller.max_level
+            end
+        end
+        print_level_information(mesh, solver, cache, min_level, max_level)
+    else # Uniform mesh
+        return nothing
+    end
 end
 
 function get_elements_per_level(min_level, max_level, mesh::P4estMesh, solver, cache)
