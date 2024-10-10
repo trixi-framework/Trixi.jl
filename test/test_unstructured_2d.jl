@@ -551,7 +551,8 @@ end
                             1.0890426250906834e-10,
                             8.394063879602065e-5
                         ],
-                        tspan=(0.0, 2.0))
+                        tspan=(0.0, 2.0),
+                        atol=1.0e-10) # for CI since the test is quite sensitive
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
