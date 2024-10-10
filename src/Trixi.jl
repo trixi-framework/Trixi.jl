@@ -235,12 +235,17 @@ export DG,
        FDSBP,
        VolumeIntegralWeakForm, VolumeIntegralStrongForm,
        VolumeIntegralFluxDifferencing,
-       VolumeIntegralPureLGLFiniteVolume,
+       VolumeIntegralPureLGLFiniteVolume, VolumeIntegralPureLGLFiniteVolumeO2,
        VolumeIntegralShockCapturingHG, IndicatorHennemannGassner,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
        MortarL2
+
+export reconstruction_small_stencil_inner, reconstruction_small_stencil_full,
+       reconstruction_constant,
+       minmod, monotonized_central, superbee, vanLeer_limiter,
+       central_slope
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
