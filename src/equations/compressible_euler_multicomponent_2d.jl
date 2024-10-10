@@ -825,4 +825,18 @@ end
     return SVector{ncomponents(equations), real(equations)}(u[i + 3] * v
                                                             for i in eachcomponent(equations))
 end
+
+@inline function velocity(u, equations::CompressibleEulerMulticomponentEquations2D)
+    rho = density(u, equations)
+    v1 = u[1] / rho
+    v2 = u[2] / rho
+    return SVector(v1, v2)
+end
+
+@inline function velocity(u, orientation::Int,
+                          equations::CompressibleEulerMulticomponentEquations2D)
+    rho = density(u, equations)
+    v = u[orientation] / rho
+    return v
+end
 end # @muladd

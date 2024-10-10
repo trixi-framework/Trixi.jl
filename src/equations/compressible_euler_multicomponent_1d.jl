@@ -618,4 +618,10 @@ end
     return SVector{ncomponents(equations), real(equations)}(u[i + 2] * v
                                                             for i in eachcomponent(equations))
 end
+
+@inline function velocity(u, equations::CompressibleEulerMulticomponentEquations1D)
+    rho = density(u, equations)
+    v1 = u[1] / rho
+    return v1
+end
 end # @muladd

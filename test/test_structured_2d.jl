@@ -647,16 +647,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
-                            0.6337774834710513,
-                            0.30377119245852724,
-                            0.3111372568571772,
-                            1.2976221893997268
+                            0.6403528328480915,
+                            0.3068073114438902,
+                            0.3140151910019577,
+                            1.2977732581465693
                         ],
                         linf=[
-                            2.2064877103138207,
-                            1.541067099687334,
-                            1.5487587769900337,
-                            6.271271639873466
+                            2.239791987419344,
+                            1.5580885989144924,
+                            1.5392923786831547,
+                            6.2729281824590855
                         ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
@@ -665,8 +665,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
@@ -681,16 +681,16 @@ end
                         local_twosided_variables_cons=[],
                         local_onesided_variables_nonlinear=[],
                         l2=[
-                            0.7869912572385168,
-                            0.39170886758882073,
-                            0.39613257454431977,
-                            1.2951760266455101
+                            0.7979084213982606,
+                            0.3980284851419719,
+                            0.4021949448633982,
+                            1.2956482394747346
                         ],
                         linf=[
-                            5.156044534854053,
-                            3.6261667239538986,
-                            3.1807681416546085,
-                            6.3028422220287235
+                            5.477809925838038,
+                            3.7793130706228273,
+                            3.2838862964081637,
+                            6.316943647948965
                         ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
@@ -699,8 +699,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
@@ -876,8 +876,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
@@ -911,16 +911,16 @@ end
 
 @trixi_testset "elixir_mhd_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec.jl"),
-                        l2=[0.04937480811868297, 0.06117033019988596,
-                            0.060998028674664716, 0.03155145889799417,
-                            0.2319175391388658, 0.02476283192966346,
-                            0.024483244374818587, 0.035439957899127385,
-                            0.0016022148194667542],
-                        linf=[0.24749024430983746, 0.2990608279625713,
-                            0.3966937932860247, 0.22265033744519683,
-                            0.9757376320946505, 0.12123736788315098,
-                            0.12837436699267113, 0.17793825293524734,
-                            0.03460761690059514],
+                        l2=[0.04937478399958968, 0.0611701500558669,
+                            0.06099805934392425, 0.031551737882277144,
+                            0.23191853685798858, 0.02476297013104899,
+                            0.024482975007695532, 0.035440179203707095,
+                            0.0016002328034991635],
+                        linf=[0.24744671083295033, 0.2990591185187605,
+                            0.3968520446251412, 0.2226544553988576,
+                            0.9752669317263143, 0.12117894533967843,
+                            0.12845218263379432, 0.17795590713819576,
+                            0.0348517136607105],
                         tspan=(0.0, 0.3))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -934,16 +934,16 @@ end
 
 @trixi_testset "elixir_mhd_alfven_wave.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
-                        l2=[0.02890769490562535, 0.0062599448721613205,
-                            0.005650300017676721, 0.007334415940022972,
-                            0.00490446035599909, 0.007202284100220619,
-                            0.007003258686714405, 0.006734267830082687,
-                            0.004253003868791559],
-                        linf=[0.17517380432288565, 0.06197353710696667,
-                            0.038494840938641646, 0.05293345499813148,
-                            0.03817506476831778, 0.042847170999492534,
-                            0.03761563456810613, 0.048184237474911844,
-                            0.04114666955364693],
+                        l2=[0.028905589451357638, 0.006259570019325034,
+                            0.005649791156739933, 0.0073272570974805004,
+                            0.004890348793116962, 0.00720944138561451,
+                            0.0069984328989438115, 0.006729800315219757,
+                            0.004318314151888631],
+                        linf=[0.17528323378978317, 0.06161030852803388,
+                            0.0388335541348234, 0.052906440559080926,
+                            0.0380036034027319, 0.04291841215471082,
+                            0.03702743958268562, 0.04815794489066357,
+                            0.0433064571343779],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -1007,16 +1007,18 @@ end
 
 @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
-                        l2=[0.0364192725149364, 0.0426667193422069, 0.04261673001449095,
-                            0.025884071405646924,
-                            0.16181626564020496, 0.017346518770783536,
-                            0.017291573200291104, 0.026856206495339655,
-                            0.0007443858043598808],
-                        linf=[0.25144373906033013, 0.32881947152723745,
-                            0.3053266801502693, 0.20989755319972866,
-                            0.9927517314507455, 0.1105172121361323, 0.1257708104676617,
-                            0.1628334844841588,
-                            0.02624301627479052])
+                        l2=[0.03641928087745194, 0.04266672246194787,
+                            0.042616743034675685,
+                            0.025884076832341982,
+                            0.16181640309885276, 0.017346521291731105,
+                            0.017291600359415987, 0.026856207871456043,
+                            0.0007448774124272682],
+                        linf=[0.25144155032118376, 0.3288086335996786,
+                            0.30532573631664345, 0.20990150465080706,
+                            0.9929091025128138, 0.11053858971264774,
+                            0.12578085409726314,
+                            0.16283334251103732,
+                            0.026146463886273865])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

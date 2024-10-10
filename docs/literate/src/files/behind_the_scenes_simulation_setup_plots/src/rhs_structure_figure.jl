@@ -35,7 +35,7 @@ plot!(Shape([(-1.7,-11), (1.7,-11), (1.7,-17), (-1.7,-17)]), linecolor=:blue, fi
 annotate!(1.5, -14, ("Trixi.jl", 12, :blue, :center))
 
 plot!(Shape([(-1.4,-14.5), (1.4,-14.5), (1.4,-16.5), (-1.4,-16.5)]), linecolor="black", fillcolor="white", label=false,linewidth=2)
-annotate!(0, -15.5, ("Trixi.rhs!(du, u, t, mesh, equations, initial_condition, \nboundary_conditions, source_terms, dg, cache)", 12, :black, :center))
+annotate!(0, -15.5, ("Trixi.rhs!(du, u, t, mesh, equations, \nboundary_conditions, source_terms, dg, cache)", 12, :black, :center))
 
 
 
