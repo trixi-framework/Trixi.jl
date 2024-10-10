@@ -224,10 +224,10 @@ function initial_condition_weak_blast_wave(x, t,
                                                                 2^(i - 1) * (1 - 2) /
                                                                 (1.0f0 -
                                                                  2^ncomponents(equations)) :
-                                                                2^(i - 1) * (1 - 2) /
-                                                                (1.0f0 -
-                                                                 2^ncomponents(equations)) *
-                                                                RealT(1.1691)
+                                                                2^(i - 1) * (1 - 2) *
+                                                                RealT(1.1691) /
+                                                                (1 -
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
