@@ -442,14 +442,17 @@ end
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = nothing, Re = 1000)
     # Both Mach number and velocity set
-    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000, u0 = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000,
+                                                            u0 = 1.0)
     # Neither Reynolds number nor viscosity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = nothing)
     # Both Reynolds number and viscosity set
-    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000, nu = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000,
+                                                            nu = 1.0)
 
     # No non-dimensional values set
-    @test LatticeBoltzmannEquations2D(Ma = nothing, Re = nothing, u0 = 1, nu = 1) isa
+    @test LatticeBoltzmannEquations2D(Ma = nothing, Re = nothing, u0 = 1.0,
+                                      nu = 1.0) isa
           LatticeBoltzmannEquations2D
 end
 
@@ -457,14 +460,17 @@ end
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = nothing, Re = 1000)
     # Both Mach number and velocity set
-    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000, u0 = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000,
+                                                            u0 = 1.0)
     # Neither Reynolds number nor viscosity set
     @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = nothing)
     # Both Reynolds number and viscosity set
-    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000, nu = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000,
+                                                            nu = 1.0)
 
     # No non-dimensional values set
-    @test LatticeBoltzmannEquations3D(Ma = nothing, Re = nothing, u0 = 1, nu = 1) isa
+    @test LatticeBoltzmannEquations3D(Ma = nothing, Re = nothing, u0 = 1.0,
+                                      nu = 1.0) isa
           LatticeBoltzmannEquations3D
 end
 
@@ -1285,7 +1291,7 @@ end
         0.5011914484393387,
         0.8829127712445113,
         0.43024132987932817,
-        0.7560616633050348,
+        0.7560616633050348
     ]
 
     equations = CompressibleEulerEquations2D(1.4)
@@ -1443,7 +1449,7 @@ end
             SVector(1.5, -0.2, 0.1, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
             FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle,
-            flux_hllc, flux_chandrashekar,
+            flux_hllc, flux_chandrashekar
         ]
 
         for f_std in fluxes
@@ -1468,7 +1474,7 @@ end
             SVector(1.5, -0.2, 0.1, 0.2, 5.0)]
         fluxes = [flux_central, flux_ranocha, flux_shima_etal, flux_kennedy_gruber,
             FluxLMARS(340), flux_hll, FluxHLL(min_max_speed_davis), flux_hlle,
-            flux_hllc, flux_chandrashekar,
+            flux_hllc, flux_chandrashekar
         ]
 
         for f_std in fluxes
@@ -1507,7 +1513,7 @@ end
             flux_central,
             flux_hindenlang_gassner,
             FluxHLL(min_max_speed_davis),
-            flux_hlle,
+            flux_hlle
         ]
 
         for f_std in fluxes
@@ -1534,7 +1540,7 @@ end
             flux_central,
             flux_hindenlang_gassner,
             FluxHLL(min_max_speed_davis),
-            flux_hlle,
+            flux_hlle
         ]
 
         for f_std in fluxes
@@ -1601,6 +1607,25 @@ end
                                     min_max_speed_davis(u_ll, u_rr, normal_z,
                                                         equations)))
     end
+
+    @timed_testset "Maxwell 1D" begin
+        equations = MaxwellEquations1D()
+
+        u_values_left = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+
+        u_values_right = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+        for u_ll in u_values_left, u_rr in u_values_right
+            @test all(isapprox(x, y)
+                      for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 1, equations),
+                                        min_max_speed_davis(u_ll, u_rr, 1, equations)))
+        end
+    end
 end
 
 @testset "SimpleKronecker" begin
@@ -1649,7 +1674,7 @@ end
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
                    joinpath(path_coeff_file, "gamma_6.txt"))
 
-    ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
+    ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file, 42) # dummy optimal time step (dt_opt plays no role in determining `a_matrix`)
 
     @test isapprox(ode_algorithm.a_matrix,
                    [0.12405417889682908 0.07594582110317093
@@ -1665,16 +1690,16 @@ end
     ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
 
     @test isapprox(ode_algorithm.a_matrix,
-                   [0.06453812656705388 0.02637096434203703
-                    0.09470601372266194 0.04165762264097442
-                    0.12332877820057538 0.05848940361760645
-                    0.1498701503275483 0.07740257694517898
-                    0.173421149536068 0.09930612319120471
-                    0.19261978147927503 0.12556203670254315
-                    0.2052334022622969 0.15840296137406676
-                    0.2073489042901963 0.2017420048007128
-                    0.19135142349998963 0.2631940310454649
-                    0.13942836392940833 0.3605716360705917], atol = 1e-13)
+                   [0.06453812656711647 0.02637096434197444
+                    0.09470601372274887 0.041657622640887494
+                    0.12332877820069793 0.058489403617483886
+                    0.14987015032771522 0.07740257694501203
+                    0.1734211495362651 0.0993061231910076
+                    0.19261978147948638 0.1255620367023318
+                    0.20523340226247055 0.1584029613738931
+                    0.20734890429023528 0.20174200480067384
+                    0.1913514234997008 0.26319403104575373
+                    0.13942836392866081 0.3605716360713392], atol = 1e-13)
 end
 
 @testset "Sutherlands Law" begin

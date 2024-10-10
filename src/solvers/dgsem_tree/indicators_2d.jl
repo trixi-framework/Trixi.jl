@@ -111,8 +111,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
         right = cache.interfaces.neighbor_ids[2, interface]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5 * alpha_tmp[right], alpha[left])
-        alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left], alpha[right])
+        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
+        alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
     end
 
     # Loop over L2 mortars
@@ -123,10 +123,10 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
         large = cache.mortars.neighbor_ids[3, mortar]
 
         # Apply smoothing
-        alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
-        alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
+        alpha[lower] = max(alpha_tmp[lower], 0.5f0 * alpha_tmp[large], alpha[lower])
+        alpha[upper] = max(alpha_tmp[upper], 0.5f0 * alpha_tmp[large], alpha[upper])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[lower], alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper], alpha[large])
     end
 
     return alpha
@@ -236,9 +236,9 @@ function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{2},
     return (; alpha, basis.weights)
 end
 
-function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquations{2},
+function create_cache(type::Type{IndicatorClamp}, mesh, equations::AbstractEquations{2},
                       dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
+    cache = create_cache(type, equations, dg.basis)
 end
 
 function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 4},
@@ -255,7 +255,7 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 4},
             mean += indicator_clamp.variable(u_local, equations) * weights[i] *
                     weights[j]
         end
-        mean *= 0.25
+        mean *= 0.25 # Divide by reference element area
 
         if indicator_clamp.min <= mean <= indicator_clamp.max
             alpha[element] = 1.0

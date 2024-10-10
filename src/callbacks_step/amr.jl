@@ -228,7 +228,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
     if mpi_isparallel()
         # Collect lambda for all elements
-        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(mesh, dg, cache))
         # Use parent because n_elements_by_rank is an OffsetArray
         recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
         MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
@@ -243,6 +243,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
+    # Note: This assumes that the entries of `lambda` are sorted with ascending cell ids
     for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
@@ -380,7 +381,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         error("MPI has not been verified yet for parabolic AMR")
 
         # Collect lambda for all elements
-        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(mesh, dg, cache))
         # Use parent because n_elements_by_rank is an OffsetArray
         recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
         MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
@@ -395,6 +396,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
+    # Note: This assumes that the entries of `lambda` are sorted with ascending cell ids
     for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0

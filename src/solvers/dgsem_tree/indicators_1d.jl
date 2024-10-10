@@ -104,8 +104,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{1}, P4estMesh{1}}, alpha, alpha_t
         right = cache.interfaces.neighbor_ids[2, interface]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5 * alpha_tmp[right], alpha[left])
-        alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left], alpha[right])
+        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
+        alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
     end
 end
 
@@ -203,9 +203,9 @@ function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{1},
     return (; alpha, basis.weights)
 end
 
-function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquations{1},
+function create_cache(type::Type{IndicatorClamp}, mesh, equations::AbstractEquations{1},
                       dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
+    cache = create_cache(type, equations, dg.basis)
 end
 
 function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 3},
@@ -221,7 +221,7 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 3},
             u_local = get_node_vars(u, equations, dg, i, element)
             mean += indicator_clamp.variable(u_local, equations) * weights[i]
         end
-        mean *= 0.5
+        mean *= 0.5 # Divide by reference element length
 
         if indicator_clamp.min <= mean <= indicator_clamp.max
             alpha[element] = 1.0

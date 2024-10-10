@@ -136,7 +136,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
                                            "reltol_inacc" => 5e-5,
                                            "nitref" => 9,
                                            "maxit" => 100,
-                                           "verbose" => 3); silent_solver = true)
+                                           "verbose" => 3); silent = true)
 
         abs_p = problem.optval
 
@@ -151,7 +151,14 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         println("Concluded stability polynomial optimization \n")
     end
 
-    return evaluate(gamma), dt
+    gamma_opt = evaluate(gamma)
+
+    # Catch case S = 3 (only one opt. variable)
+    if isa(gamma_opt, Number)
+        gamma_opt = [gamma_opt]
+    end
+
+    return gamma_opt, dt
 end
 end # @muladd
 

@@ -116,8 +116,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
         right = cache.interfaces.neighbor_ids[2, interface]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5 * alpha_tmp[right], alpha[left])
-        alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left], alpha[right])
+        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
+        alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
     end
 
     # Loop over L2 mortars
@@ -130,19 +130,23 @@ function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
         large = cache.mortars.neighbor_ids[5, mortar]
 
         # Apply smoothing
-        alpha[lower_left] = max(alpha_tmp[lower_left], 0.5 * alpha_tmp[large],
+        alpha[lower_left] = max(alpha_tmp[lower_left], 0.5f0 * alpha_tmp[large],
                                 alpha[lower_left])
-        alpha[lower_right] = max(alpha_tmp[lower_right], 0.5 * alpha_tmp[large],
+        alpha[lower_right] = max(alpha_tmp[lower_right], 0.5f0 * alpha_tmp[large],
                                  alpha[lower_right])
-        alpha[upper_left] = max(alpha_tmp[upper_left], 0.5 * alpha_tmp[large],
+        alpha[upper_left] = max(alpha_tmp[upper_left], 0.5f0 * alpha_tmp[large],
                                 alpha[upper_left])
-        alpha[upper_right] = max(alpha_tmp[upper_right], 0.5 * alpha_tmp[large],
+        alpha[upper_right] = max(alpha_tmp[upper_right], 0.5f0 * alpha_tmp[large],
                                  alpha[upper_right])
 
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_left], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower_right], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_left], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper_right], alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[lower_left],
+                           alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[lower_right],
+                           alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper_left],
+                           alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper_right],
+                           alpha[large])
     end
 end
 
@@ -258,9 +262,9 @@ function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{3},
     return (; alpha, basis.weights)
 end
 
-function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquations{3},
+function create_cache(type::Type{IndicatorClamp}, mesh, equations::AbstractEquations{3},
                       dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
+    cache = create_cache(type, equations, dg.basis)
 end
 
 function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 5},
@@ -277,7 +281,7 @@ function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 5},
             mean += indicator_clamp.variable(u_local, equations) * weights[i] *
                     weights[j] * weights[k]
         end
-        mean *= 0.125
+        mean *= 0.125 # Divide by reference element volume
 
         if indicator_clamp.min <= mean <= indicator_clamp.max
             alpha[element] = 1.0

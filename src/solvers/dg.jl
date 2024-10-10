@@ -86,7 +86,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
         show(io, integral)
     else
         setup = [
-            "volume flux" => integral.volume_flux,
+            "volume flux" => integral.volume_flux
         ]
         summary_box(io, "VolumeIntegralFluxDifferencing", setup)
     end
@@ -178,7 +178,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         show(io, integral)
     else
         setup = [
-            "FV flux" => integral.volume_flux_fv,
+            "FV flux" => integral.volume_flux_fv
         ]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
     end
@@ -196,9 +196,6 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     mainly because the implementation assumes that low- and high-order schemes have the same
     surface terms, which is not guaranteed for non-conforming meshes. The low-order scheme
     with a high-order mortar is not invariant domain preserving.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
        AbstractVolumeIntegral
@@ -275,7 +272,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
         show(io, integral)
     else
         setup = [
-            "flux splitting" => integral.splitting,
+            "flux splitting" => integral.splitting
         ]
         summary_box(io, "VolumeIntegralUpwind", setup)
     end
@@ -315,7 +312,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralWeakForm
         show(io, integral)
     else
         setup = [
-            "surface flux" => integral.surface_flux,
+            "surface flux" => integral.surface_flux
         ]
         summary_box(io, "SurfaceIntegralWeakForm", setup)
     end
@@ -341,7 +338,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
         show(io, integral)
     else
         setup = [
-            "surface flux" => integral.surface_flux,
+            "surface flux" => integral.surface_flux
         ]
         summary_box(io, "SurfaceIntegralStrongForm", setup)
     end
@@ -372,7 +369,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
         show(io, integral)
     else
         setup = [
-            "flux splitting" => integral.splitting,
+            "flux splitting" => integral.splitting
         ]
         summary_box(io, "SurfaceIntegralUpwind", setup)
     end
@@ -459,7 +456,7 @@ In particular, not the nodes themselves are returned.
 # `mesh` for some combinations of mesh/solver.
 @inline nelements(mesh, dg::DG, cache) = nelements(dg, cache)
 @inline function ndofsglobal(mesh, dg::DG, cache)
-    nelementsglobal(dg, cache) * nnodes(dg)^ndims(mesh)
+    nelementsglobal(mesh, dg, cache) * nnodes(dg)^ndims(mesh)
 end
 
 """
@@ -517,7 +514,7 @@ In particular, not the mortars themselves are returned.
 @inline eachmpimortar(dg::DG, cache) = Base.OneTo(nmpimortars(dg, cache))
 
 @inline nelements(dg::DG, cache) = nelements(cache.elements)
-@inline function nelementsglobal(dg::DG, cache)
+@inline function nelementsglobal(mesh, dg::DG, cache)
     mpi_isparallel() ? cache.mpi_cache.n_elements_global : nelements(dg, cache)
 end
 @inline ninterfaces(dg::DG, cache) = ninterfaces(cache.interfaces)
@@ -629,7 +626,7 @@ end
     # since LoopVectorization does not support `ForwardDiff.Dual`s. Hence, we use
     # optimized `PtrArray`s whenever possible and fall back to plain `Array`s
     # otherwise.
-    if LoopVectorization.check_args(u_ode)
+    if _PREFERENCE_POLYESTER && LoopVectorization.check_args(u_ode)
         # This version using `PtrArray`s from StrideArrays.jl is very fast and
         # does not result in allocations.
         #
