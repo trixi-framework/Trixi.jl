@@ -305,7 +305,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorClamp)
         setup = [
             "indicator variable" => indicator.variable,
             "min" => indicator.min,
-            "max" => indicator.max,
+            "max" => indicator.max
         ]
         summary_box(io, "IndicatorClamp", setup)
     end
