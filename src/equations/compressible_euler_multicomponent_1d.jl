@@ -204,7 +204,7 @@ function initial_condition_weak_blast_wave(x, t,
 
     prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
                                                                 2^(i - 1) * (1 - 2) /
-                                                                (1.0f0 -
+                                                                (RealT(1) -
                                                                  2^ncomponents(equations)) :
                                                                 2^(i - 1) * (1 - 2) *
                                                                 RealT(1.1691) /
