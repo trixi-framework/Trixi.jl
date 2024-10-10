@@ -144,7 +144,7 @@ end
 
 function rhs!(du, u, t,
               mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
+              boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
@@ -227,8 +227,8 @@ function calc_volume_integral!(du, u,
 end
 
 #=
-`weak_form_kernel!` is only implemented for conserved terms as 
-non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+`weak_form_kernel!` is only implemented for conserved terms as
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
 see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
@@ -374,7 +374,7 @@ end
         end
 
         # The factor 0.5 cancels the factor 2 in the flux differencing form
-        multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations,
+        multiply_add_to_node_vars!(du, alpha * 0.5f0, integral_contribution, equations,
                                    dg, i, j, k, element)
     end
 end
@@ -550,8 +550,8 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        flux_L = flux + 0.5 * nonconservative_flux(u_ll, u_rr, 1, equations)
-        flux_R = flux + 0.5 * nonconservative_flux(u_rr, u_ll, 1, equations)
+        flux_L = flux + 0.5f0 * nonconservative_flux(u_ll, u_rr, 1, equations)
+        flux_R = flux + 0.5f0 * nonconservative_flux(u_rr, u_ll, 1, equations)
 
         set_node_vars!(fstar1_L, flux_L, equations, dg, i, j, k)
         set_node_vars!(fstar1_R, flux_R, equations, dg, i, j, k)
@@ -573,8 +573,8 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        flux_L = flux + 0.5 * nonconservative_flux(u_ll, u_rr, 2, equations)
-        flux_R = flux + 0.5 * nonconservative_flux(u_rr, u_ll, 2, equations)
+        flux_L = flux + 0.5f0 * nonconservative_flux(u_ll, u_rr, 2, equations)
+        flux_R = flux + 0.5f0 * nonconservative_flux(u_rr, u_ll, 2, equations)
 
         set_node_vars!(fstar2_L, flux_L, equations, dg, i, j, k)
         set_node_vars!(fstar2_R, flux_R, equations, dg, i, j, k)
@@ -596,8 +596,8 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        flux_L = flux + 0.5 * nonconservative_flux(u_ll, u_rr, 3, equations)
-        flux_R = flux + 0.5 * nonconservative_flux(u_rr, u_ll, 3, equations)
+        flux_L = flux + 0.5f0 * nonconservative_flux(u_ll, u_rr, 3, equations)
+        flux_R = flux + 0.5f0 * nonconservative_flux(u_rr, u_ll, 3, equations)
 
         set_node_vars!(fstar3_L, flux_L, equations, dg, i, j, k)
         set_node_vars!(fstar3_R, flux_R, equations, dg, i, j, k)
@@ -712,10 +712,10 @@ function calc_interface_flux!(surface_flux_values,
                 # the interpretation of global SBP operators coupled discontinuously via
                 # central fluxes/SATs
                 surface_flux_values[v, i, j, left_direction, left_id] = flux[v] +
-                                                                        0.5 *
+                                                                        0.5f0 *
                                                                         noncons_left[v]
                 surface_flux_values[v, i, j, right_direction, right_id] = flux[v] +
-                                                                          0.5 *
+                                                                          0.5f0 *
                                                                           noncons_right[v]
             end
         end
@@ -1145,13 +1145,15 @@ function calc_mortar_flux!(surface_flux_values,
                                                            u_lower_right_rr,
                                                            orientation, equations)
                 # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_upper_left, 0.5, noncons_upper_left,
+                multiply_add_to_node_vars!(fstar_upper_left, 0.5f0, noncons_upper_left,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_upper_right, 0.5, noncons_upper_right,
+                multiply_add_to_node_vars!(fstar_upper_right, 0.5f0,
+                                           noncons_upper_right,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_lower_left, 0.5, noncons_lower_left,
+                multiply_add_to_node_vars!(fstar_lower_left, 0.5f0, noncons_lower_left,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_lower_right, 0.5, noncons_lower_right,
+                multiply_add_to_node_vars!(fstar_lower_right, 0.5f0,
+                                           noncons_lower_right,
                                            equations, dg, i, j)
             end
         else # large_sides[mortar] == 2 -> small elements on the left
@@ -1185,13 +1187,15 @@ function calc_mortar_flux!(surface_flux_values,
                                                            u_lower_right_ll,
                                                            orientation, equations)
                 # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_upper_left, 0.5, noncons_upper_left,
+                multiply_add_to_node_vars!(fstar_upper_left, 0.5f0, noncons_upper_left,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_upper_right, 0.5, noncons_upper_right,
+                multiply_add_to_node_vars!(fstar_upper_right, 0.5f0,
+                                           noncons_upper_right,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_lower_left, 0.5, noncons_lower_left,
+                multiply_add_to_node_vars!(fstar_lower_left, 0.5f0, noncons_lower_left,
                                            equations, dg, i, j)
-                multiply_add_to_node_vars!(fstar_lower_right, 0.5, noncons_lower_right,
+                multiply_add_to_node_vars!(fstar_lower_right, 0.5f0,
+                                           noncons_lower_right,
                                            equations, dg, i, j)
             end
         end

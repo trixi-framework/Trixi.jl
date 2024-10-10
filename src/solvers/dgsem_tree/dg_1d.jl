@@ -76,7 +76,7 @@ end
 
 function rhs!(du, u, t,
               mesh::TreeMesh{1}, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
+              boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
@@ -145,8 +145,8 @@ function calc_volume_integral!(du, u,
 end
 
 #=
-`weak_form_kernel!` is only implemented for conserved terms as 
-non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+`weak_form_kernel!` is only implemented for conserved terms as
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
 see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
@@ -245,7 +245,7 @@ end
         end
 
         # The factor 0.5 cancels the factor 2 in the flux differencing form
-        multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations,
+        multiply_add_to_node_vars!(du, alpha * 0.5f0, integral_contribution, equations,
                                    dg, i, element)
     end
 end
@@ -377,8 +377,8 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        f1_L = f1 + 0.5 * nonconservative_flux(u_ll, u_rr, 1, equations)
-        f1_R = f1 + 0.5 * nonconservative_flux(u_rr, u_ll, 1, equations)
+        f1_L = f1 + 0.5f0 * nonconservative_flux(u_ll, u_rr, 1, equations)
+        f1_R = f1 + 0.5f0 * nonconservative_flux(u_rr, u_ll, 1, equations)
 
         # Copy to temporary storage
         set_node_vars!(fstar1_L, f1_L, equations, dg, i)
@@ -471,9 +471,9 @@ function calc_interface_flux!(surface_flux_values,
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
             surface_flux_values[v, left_direction, left_id] = flux[v] +
-                                                              0.5 * noncons_left[v]
+                                                              0.5f0 * noncons_left[v]
             surface_flux_values[v, right_direction, right_id] = flux[v] +
-                                                                0.5 * noncons_right[v]
+                                                                0.5f0 * noncons_right[v]
         end
     end
 
@@ -595,7 +595,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
         # Copy flux to left and right element storage
         for v in eachvariable(equations)
             surface_flux_values[v, direction, neighbor] = flux[v] +
-                                                          0.5 * noncons_flux[v]
+                                                          0.5f0 * noncons_flux[v]
         end
     end
 

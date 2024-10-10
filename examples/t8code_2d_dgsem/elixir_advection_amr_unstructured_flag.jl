@@ -78,3 +78,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             save_everystep = false, callback = callbacks);
 
 summary_callback() # print the timer summary
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)

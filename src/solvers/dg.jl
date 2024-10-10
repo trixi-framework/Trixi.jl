@@ -86,7 +86,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralFluxDiffe
         show(io, integral)
     else
         setup = [
-            "volume flux" => integral.volume_flux,
+            "volume flux" => integral.volume_flux
         ]
         summary_box(io, "VolumeIntegralFluxDifferencing", setup)
     end
@@ -178,7 +178,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         show(io, integral)
     else
         setup = [
-            "FV flux" => integral.volume_flux_fv,
+            "FV flux" => integral.volume_flux_fv
         ]
         summary_box(io, "VolumeIntegralPureLGLFiniteVolume", setup)
     end
@@ -196,9 +196,6 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     mainly because the implementation assumes that low- and high-order schemes have the same
     surface terms, which is not guaranteed for non-conforming meshes. The low-order scheme
     with a high-order mortar is not invariant domain preserving.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
        AbstractVolumeIntegral
@@ -275,7 +272,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::VolumeIntegralUpwind)
         show(io, integral)
     else
         setup = [
-            "flux splitting" => integral.splitting,
+            "flux splitting" => integral.splitting
         ]
         summary_box(io, "VolumeIntegralUpwind", setup)
     end
@@ -315,7 +312,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralWeakForm
         show(io, integral)
     else
         setup = [
-            "surface flux" => integral.surface_flux,
+            "surface flux" => integral.surface_flux
         ]
         summary_box(io, "SurfaceIntegralWeakForm", setup)
     end
@@ -341,7 +338,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralStrongFo
         show(io, integral)
     else
         setup = [
-            "surface flux" => integral.surface_flux,
+            "surface flux" => integral.surface_flux
         ]
         summary_box(io, "SurfaceIntegralStrongForm", setup)
     end
@@ -372,7 +369,7 @@ function Base.show(io::IO, ::MIME"text/plain", integral::SurfaceIntegralUpwind)
         show(io, integral)
     else
         setup = [
-            "flux splitting" => integral.splitting,
+            "flux splitting" => integral.splitting
         ]
         summary_box(io, "SurfaceIntegralUpwind", setup)
     end

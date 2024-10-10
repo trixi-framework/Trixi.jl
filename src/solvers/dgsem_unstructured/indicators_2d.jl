@@ -17,8 +17,8 @@ function apply_smoothing!(mesh::UnstructuredMesh2D, alpha, alpha_tmp, dg, cache)
         right = cache.interfaces.element_ids[2, interface]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5 * alpha_tmp[right], alpha[left])
-        alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left], alpha[right])
+        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
+        alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
     end
 end
 end # @muladd

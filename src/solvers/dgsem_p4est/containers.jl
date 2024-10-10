@@ -81,7 +81,8 @@ function Base.resize!(elements::P4estElementContainer, capacity)
 end
 
 # Create element container and initialize element data
-function init_elements(mesh::Union{P4estMesh{NDIMS, RealT}, T8codeMesh{NDIMS, RealT}},
+function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
+                                   T8codeMesh{NDIMS, RealT}},
                        equations,
                        basis,
                        ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}

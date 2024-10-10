@@ -7,7 +7,7 @@
 
 function rhs!(du, u, t,
               mesh::Union{StructuredMesh{2}, StructuredMeshView{2}}, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
+              boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
@@ -50,8 +50,8 @@ function rhs!(du, u, t,
 end
 
 #=
-`weak_form_kernel!` is only implemented for conserved terms as 
-non-conservative terms should always be discretized in conjunction with a flux-splitting scheme, 
+`weak_form_kernel!` is only implemented for conserved terms as
+non-conservative terms should always be discretized in conjunction with a flux-splitting scheme,
 see `flux_differencing_kernel!`.
 This treatment is required to achieve, e.g., entropy-stability or well-balancedness.
 See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-1765644064
@@ -128,7 +128,7 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j,
                                                    element)
-            Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+            Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde1 = volume_flux(u_node, u_node_ii, Ja1_avg, equations)
@@ -144,7 +144,7 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj,
                                                    element)
-            Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+            Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant sharp flux in the direction of the
             # averaged contravariant vector
             fluxtilde2 = volume_flux(u_node, u_node_jj, Ja2_avg, equations)
@@ -193,9 +193,9 @@ end
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j,
                                                    element)
-            Ja1_avg = 0.5 * (Ja1_node + Ja1_node_ii)
+            Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # Compute the contravariant nonconservative flux.
-            fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_node, Ja1_avg,
+            fluxtilde1 = nonconservative_flux(u_node, u_node_ii, Ja1_avg,
                                               equations)
             integral_contribution = integral_contribution +
                                     derivative_split[i, ii] * fluxtilde1
@@ -207,17 +207,17 @@ end
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj,
                                                    element)
-            Ja2_avg = 0.5 * (Ja2_node + Ja2_node_jj)
+            Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
-            fluxtilde2 = nonconservative_flux(u_node, u_node_jj, Ja2_node, Ja2_avg,
+            fluxtilde2 = nonconservative_flux(u_node, u_node_jj, Ja2_avg,
                                               equations)
             integral_contribution = integral_contribution +
                                     derivative_split[j, jj] * fluxtilde2
         end
 
         # The factor 0.5 cancels the factor 2 in the flux differencing form
-        multiply_add_to_node_vars!(du, alpha * 0.5, integral_contribution, equations,
+        multiply_add_to_node_vars!(du, alpha * 0.5f0, integral_contribution, equations,
                                    dg, i, j, element)
     end
 end
@@ -337,11 +337,11 @@ end
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
             ftilde1_L = ftilde1 +
-                        0.5 * nonconservative_flux(u_ll, u_rr, normal_direction,
-                                             normal_direction, equations)
+                        0.5f0 *
+                        nonconservative_flux(u_ll, u_rr, normal_direction, equations)
             ftilde1_R = ftilde1 +
-                        0.5 * nonconservative_flux(u_rr, u_ll, normal_direction,
-                                             normal_direction, equations)
+                        0.5f0 *
+                        nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
             set_node_vars!(fstar1_L, ftilde1_L, equations, dg, i, j)
             set_node_vars!(fstar1_R, ftilde1_R, equations, dg, i, j)
@@ -377,11 +377,11 @@ end
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
             ftilde2_L = ftilde2 +
-                        0.5 * nonconservative_flux(u_ll, u_rr, normal_direction,
-                                             normal_direction, equations)
+                        0.5f0 *
+                        nonconservative_flux(u_ll, u_rr, normal_direction, equations)
             ftilde2_R = ftilde2 +
-                        0.5 * nonconservative_flux(u_rr, u_ll, normal_direction,
-                                             normal_direction, equations)
+                        0.5f0 *
+                        nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
             set_node_vars!(fstar2_L, ftilde2_L, equations, dg, i, j)
             set_node_vars!(fstar2_R, ftilde2_R, equations, dg, i, j)
@@ -527,28 +527,22 @@ end
         flux = sign_jacobian * surface_flux(u_ll, u_rr, normal_direction, equations)
 
         # Compute both nonconservative fluxes
-        # In general, nonconservative fluxes can depend on both the contravariant
-        # vectors (normal direction) at the current node and the averaged ones.
-        # However, both are the same at watertight interfaces, so we pass the
-        # `normal_direction` twice.
         # Scale with sign_jacobian to ensure that the normal_direction matches that
         # from the flux above
         noncons_left = sign_jacobian *
-                       nonconservative_flux(u_ll, u_rr, normal_direction,
-                                            normal_direction, equations)
+                       nonconservative_flux(u_ll, u_rr, normal_direction, equations)
         noncons_right = sign_jacobian *
-                        nonconservative_flux(u_rr, u_ll, normal_direction,
-                                             normal_direction, equations)
+                        nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
         for v in eachvariable(equations)
             # Note the factor 0.5 necessary for the nonconservative fluxes based on
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
             surface_flux_values[v, i, right_direction, left_element] = flux[v] +
-                                                                       0.5 *
+                                                                       0.5f0 *
                                                                        noncons_left[v]
             surface_flux_values[v, i, left_direction, right_element] = flux[v] +
-                                                                       0.5 *
+                                                                       0.5f0 *
                                                                        noncons_right[v]
         end
     end
