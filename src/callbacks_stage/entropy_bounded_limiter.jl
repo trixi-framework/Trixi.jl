@@ -34,6 +34,7 @@ Since most practical simulations will employ a significantly larger timestep, on
 strict entropy increase requirement by setting `exp_entropy_decrease_max` to a negative value.
 The limiter acts if the exponentiated entropy decrease on an element is larger than
 `exp_entropy_decrease_max`.
+This means that if the change in exponentiated entropy lies *below* `exp_entropy_decrease_max` (i.e., larger in absolute value) the limiter takes action.
 The choice of the tolerated exponentiated entropy decrease is a problem-specific parameter 
 which balances the trade-off between accuracy and stability.
 """
