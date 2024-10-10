@@ -262,9 +262,9 @@ function create_cache(::Type{IndicatorClamp}, equations::AbstractEquations{3},
     return (; alpha, basis.weights)
 end
 
-function create_cache(typ::Type{IndicatorClamp}, mesh, equations::AbstractEquations{3},
+function create_cache(type::Type{IndicatorClamp}, mesh, equations::AbstractEquations{3},
                       dg::DGSEM, cache)
-    cache = create_cache(typ, equations, dg.basis)
+    cache = create_cache(type, equations, dg.basis)
 end
 
 function (indicator_clamp::IndicatorClamp)(u::AbstractArray{<:Any, 5},
