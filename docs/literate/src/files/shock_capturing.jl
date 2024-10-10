@@ -229,7 +229,7 @@ plot(sol)
 
 # As argued in the description of the positivity preserving limiter above it might sometimes be
 # necessary to apply advanced techniques to ensure a physically meaningful solution.
-# Apart from the positivity of pressure and density, the entropy of the system should increase 
+# Apart from the positivity of pressure and density, the physical entropy of the system should increase 
 # over the course of a simulation, see e.g. [this](https://doi.org/10.1016/0168-9274(86)90029-2) paper by Tadmor where this property is 
 # shown for the compressible Euler equations.
 # As this is not necessarily the case for the numerical approximation (especially for the high-order, non-diffusive DG discretizations), 
