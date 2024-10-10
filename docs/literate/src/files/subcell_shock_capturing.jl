@@ -51,7 +51,11 @@
 # The Newton-bisection algorithm is an iterative method and requires some parameters.
 # It uses a fixed maximum number of iteration steps (`max_iterations_newton = 10`) and
 # relative/absolute tolerances (`newton_tolerances = (1.0e-12, 1.0e-14)`). The given values are
-# sufficient in most cases and therefore used as default. Additionally, there is the parameter
+# sufficient in most cases and therefore used as default. If the implemented bounds checking
+# functionality indicates problems with the limiting (see [below](@ref subcell_bounds_check))
+# the Newton method with the chosen parameters might not manage to converge. If so, adapting
+# the mentioned parameters helps fix that.
+# Additionally, there is the parameter
 # `gamma_constant_newton`, which can be used to scale the antidiffusive flux for the computation
 # of the blending coefficients of nonlinear variables. The default value is `2 * ndims(equations)`,
 # as it was shown by [Pazner (2020)](https://doi.org/10.1016/j.cma.2021.113876) [Section 4.2.2.]
@@ -96,7 +100,8 @@ positivity_variables_nonlinear = [pressure]
 
 # ### Local bounds
 # Second, Trixi.jl supports the limiting with local bounds for conservative variables using a
-# two-sided Zalesak-type limiter ([Zalesak, 1979](https://doi.org/10.1016/0021-9991(79)90051-2)).
+# two-sided Zalesak-type limiter ([Zalesak, 1979](https://doi.org/10.1016/0021-9991(79)90051-2))
+# and for general non-linear variables using a one-sided Newton-bisection algorithm.
 # They allow to avoid spurious oscillations within the global bounds and to improve the
 # shock-capturing capabilities of the method. The corresponding numerical admissibility conditions
 # are frequently formulated as local maximum or minimum principles. The local bounds are computed
@@ -107,6 +112,11 @@ positivity_variables_nonlinear = [pressure]
 # variables you want to limit. So, to limit the density with lower and upper local bounds pass
 # the following.
 local_twosided_variables_cons = ["rho"]
+
+# To limit non-linear variables locally, pass the variable function combined with the requested
+# bound (`min` or `max`) as a tuple. For instance, to impose a lower local bound on the modified
+# specific entropy [`Trixi.entropy_guermond_etal`](@ref), use
+local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]
 
 # ## Exemplary simulation
 # How to set up a simulation using the IDP limiting becomes clearer when looking at an exemplary
@@ -238,7 +248,7 @@ plot(sol)
 # ![blast_wave_paraview_reinterpolate=false](https://github.com/trixi-framework/Trixi.jl/assets/74359358/39274f18-0064-469c-b4da-bac4b843e116)
 
 
-# ## Bounds checking
+# ## [Bounds checking](@id subcell_bounds_check)
 # Subcell limiting is based on the fulfillment of target bounds - either global or local.
 # Although the implementation works and has been thoroughly tested, there are some cases where
 # these bounds are not met.
@@ -277,11 +287,10 @@ plot(sol)
 # timestep and simulation time.
 # ````
 # iter, simu_time, rho_min, rho_max
-# 1, 0.0, 0.0, 0.0
-# 101, 0.29394033217556337, 0.0, 0.0
-# 201, 0.6012597465597065, 0.0, 0.0
-# 301, 0.9559096690030839, 0.0, 0.0
-# 401, 1.3674274981949077, 0.0, 0.0
-# 501, 1.8395301696603052, 0.0, 0.0
+# 100, 0.29103427131404924, 0.0, 0.0
+# 200, 0.5980281923063808, 0.0, 0.0
+# 300, 0.9520853560765293, 0.0, 0.0
+# 400, 1.3630295622683186, 0.0, 0.0
+# 500, 1.8344999624013498, 0.0, 0.0
 # 532, 1.9974179806990118, 0.0, 0.0
 # ````

@@ -4,19 +4,6 @@
 include("containers.jl")
 include("math.jl")
 
-# Enable debug timings `@trixi_timeit timer() "name" stuff...`.
-# This allows us to disable timings completely by executing
-# `TimerOutputs.disable_debug_timings(Trixi)`
-# and to enable them again by executing
-# `TimerOutputs.enable_debug_timings(Trixi)`
-timeit_debug_enabled() = true
-
-# Store main timer for global timing of functions
-const main_timer = TimerOutput()
-
-# Always call timer() to hide implementation details
-timer() = main_timer
-
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -217,63 +204,31 @@ Some discussion can be found at [https://discourse.julialang.org/t/overhead-of-t
 and [https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435](https://discourse.julialang.org/t/threads-threads-with-one-thread-how-to-remove-the-overhead/58435).
 """
 macro threaded(expr)
-    # Use `esc(quote ... end)` for nested macro calls as suggested in
-    # https://github.com/JuliaLang/julia/issues/23221
-    #
-    # The following code is a simple version using only `Threads.@threads` from the
-    # standard library with an additional check whether only a single thread is used
-    # to reduce some overhead (and allocations) for serial execution.
-    #
-    # return esc(quote
-    #   let
-    #     if Threads.nthreads() == 1
-    #       $(expr)
-    #     else
-    #       Threads.@threads $(expr)
-    #     end
-    #   end
-    # end)
-    #
-    # However, the code below using `@batch` from Polyester.jl is more efficient,
-    # since this packages provides threads with less overhead. Since it is written
-    # by Chris Elrod, the author of LoopVectorization.jl, we expect this package
-    # to provide the most efficient and useful implementation of threads (as we use
-    # them) available in Julia.
     # !!! danger "Heisenbug"
     #     Look at the comments for `wrap_array` when considering to change this macro.
-
-    # By using `Trixi.@batch` we allow users of Trixi.jl to use `@threaded` without having
-    # Polyester.jl in their namespace.
-    return esc(quote
-                   Trixi.@batch $(expr)
-               end)
-end
-
-#     @trixi_timeit timer() "some label" expression
-#
-# Basically the same as a special case of `@timeit_debug` from
-# [TimerOutputs.jl](https://github.com/KristofferC/TimerOutputs.jl),
-# but without `try ... finally ... end` block. Thus, it's not exception-safe,
-# but it also avoids some related performance problems. Since we do not use
-# exception handling in Trixi.jl, that's not really an issue.
-macro trixi_timeit(timer_output, label, expr)
-    timeit_block = quote
-        if timeit_debug_enabled()
-            local to = $(esc(timer_output))
-            local enabled = to.enabled
-            if enabled
-                local accumulated_data = $(TimerOutputs.push!)(to, $(esc(label)))
+    expr = if _PREFERENCE_POLYESTER
+        # Currently using `@batch` from Polyester.jl is more efficient,
+        # bypasses the Julia task scheduler and provides parallelization with less overhead.
+        quote
+            $Trixi.@batch $(expr)
+        end
+    else
+        # The following code is a simple version using only `Threads.@threads` from the
+        # standard library with an additional check whether only a single thread is used
+        # to reduce some overhead (and allocations) for serial execution.
+        quote
+            let
+                if $Threads.nthreads() == 1
+                    $(expr)
+                else
+                    $Threads.@threads :static $(expr)
+                end
             end
-            local b₀ = $(TimerOutputs.gc_bytes)()
-            local t₀ = $(TimerOutputs.time_ns)()
         end
-        local val = $(esc(expr))
-        if timeit_debug_enabled() && enabled
-            $(TimerOutputs.do_accumulate!)(accumulated_data, t₀, b₀)
-            $(TimerOutputs.pop!)(to)
-        end
-        val
     end
+    # Use `esc(quote ... end)` for nested macro calls as suggested in
+    # https://github.com/JuliaLang/julia/issues/23221
+    return esc(expr)
 end
 
 """

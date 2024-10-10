@@ -44,7 +44,11 @@ basis = LobattoLegendreBasis(3)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
-                                                                       min)])
+                                                                       min)],
+                                positivity_variables_nonlinear = [pressure],
+                                # Default parameters are not sufficient to fulfill bounds properly.
+                                max_iterations_newton = 60,
+                                newton_tolerances = (1.0e-13, 1.0e-15))
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -53,7 +57,7 @@ solver = DGSEM(basis, surface_flux, volume_integral)
 coordinates_min = (-2.0, -2.0)
 coordinates_max = (2.0, 2.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 5,
                 n_cells_max = 100_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -76,7 +80,7 @@ save_solution = SaveSolutionCallback(interval = 1000,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.6)
+stepsize_callback = StepsizeCallback(cfl = 0.4)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -85,7 +89,9 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_errors = false))
+stage_callbacks = (SubcellLimiterIDPCorrection(),
+                   BoundsCheckCallback(save_errors = false, interval = 100))
+# `interval` is used when calling this elixir in the tests with `save_errors=true`.
 
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

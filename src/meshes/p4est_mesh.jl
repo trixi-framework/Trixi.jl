@@ -6,12 +6,23 @@
 #! format: noindent
 
 """
-    P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
+    P4estMesh{NDIMS, NDIMS_AMBIENT} <: AbstractMesh{NDIMS}
 
 An unstructured curved mesh based on trees that uses the C library `p4est`
 to manage trees and mesh refinement.
+
+The parameter `NDIMS` denotes the dimension of the spatial domain or manifold represented
+by the mesh itself, while `NDIMS_AMBIENT` denotes the dimension of the ambient space in
+which the mesh is embedded. For example, the type `P4estMesh{3, 3}` corresponds to a
+standard mesh for a three-dimensional volume, whereas `P4estMesh{2, 3}` corresponds to a
+mesh for a two-dimensional surface or shell in three-dimensional space.
+
+!!! warning "Experimental implementation"
+    The use of `NDIMS != NDIMS_AMBIENT` is an experimental feature and may change in future
+    releases.
 """
-mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NNODES} <:
+mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
+                         NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
     p4est       :: P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
     is_parallel :: IsParallel
@@ -48,7 +59,14 @@ mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NN
         ghost = ghost_new_p4est(p4est)
         ghost_pw = PointerWrapper(ghost)
 
-        mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel),
+        # To enable the treatment of a manifold of dimension NDIMS embedded within an
+        # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
+        # allow them to differ in the general case. This functionality is used for
+        # constructing discretizations on spherical shell domains for applications in
+        # global atmospheric modelling. The ambient dimension NDIMS_AMBIENT is therefore 
+        # set here in the inner constructor to size(tree_node_coordinates, 1).
+        mesh = new{NDIMS, size(tree_node_coordinates, 1),
+                   eltype(tree_node_coordinates), typeof(is_parallel),
                    typeof(p4est_pw), typeof(ghost_pw), NDIMS + 2, length(nodes)}(p4est_pw,
                                                                                  is_parallel,
                                                                                  ghost_pw,
@@ -66,8 +84,8 @@ mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NN
     end
 end
 
-const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:False}
-const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:True}
+const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:False}
+const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:True}
 
 @inline mpi_parallel(mesh::SerialP4estMesh) = False()
 @inline mpi_parallel(mesh::ParallelP4estMesh) = True()
@@ -87,16 +105,19 @@ function destroy_mesh(mesh::P4estMesh{3})
 end
 
 @inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline Base.real(::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
+@inline ndims_ambient(::P4estMesh{NDIMS, NDIMS_AMBIENT}) where {NDIMS, NDIMS_AMBIENT} = NDIMS_AMBIENT
 
 @inline function ntrees(mesh::P4estMesh)
     return mesh.p4est.trees.elem_count[]
 end
 # returns Int32 by default which causes a weird method error when creating the cache
 @inline ncells(mesh::P4estMesh) = Int(mesh.p4est.local_num_quadrants[])
+@inline ncellsglobal(mesh::P4estMesh) = Int(mesh.p4est.global_num_quadrants[])
 
 function Base.show(io::IO, mesh::P4estMesh)
-    print(io, "P4estMesh{", ndims(mesh), ", ", real(mesh), "}")
+    print(io, "P4estMesh{", ndims(mesh), ", ", ndims_ambient(mesh), ", ", real(mesh),
+          "}")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
@@ -105,12 +126,13 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
     else
         setup = [
             "#trees" => ntrees(mesh),
-            "current #cells" => ncells(mesh),
-            "polydeg" => length(mesh.nodes) - 1,
+            "current #cells" => ncellsglobal(mesh),
+            "polydeg" => length(mesh.nodes) - 1
         ]
         summary_box(io,
-                    "P4estMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
-                    "}", setup)
+                    "P4estMesh{" * string(ndims(mesh)) * ", " *
+                    string(ndims_ambient(mesh)) *
+                    ", " * string(real(mesh)) * "}", setup)
     end
 end
 
@@ -348,7 +370,7 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
                                                 independent of domain partitioning. Should be `false` for static meshes
                                                 to permit more fine-grained partitioning.
 - `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
-                                      If `nothing` is passed then all boundaries are named `:all`.                                                
+                                      If `nothing` is passed then all boundaries are named `:all`.
 """
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping = nothing, polydeg = 1, RealT = Float64,
@@ -533,7 +555,7 @@ function parse_elements(meshfile, n_trees, n_dims)
     element_types = n_dims == 2 ?
                     ["*ELEMENT, type=CPS4", "*ELEMENT, type=C2D4",
         "*ELEMENT, type=S4"] : ["*ELEMENT, type=C3D8"]
-    # 2D quads: 4 nodes + element index, 3D hexes: 8 nodes + element index                                                               
+    # 2D quads: 4 nodes + element index, 3D hexes: 8 nodes + element index
     expected_content_length = n_dims == 2 ? 5 : 9
 
     element_node_matrix = Matrix{Int64}(undef, n_trees, expected_content_length - 1)
@@ -616,7 +638,7 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             ::Val{2}) # 2D version
     for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
-        # For node labeling, see 
+        # For node labeling, see
         # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
         # and search for "Node ordering and face numbering on elements"
         for boundary in keys(node_set_dict) # Loop over specified boundaries
@@ -657,7 +679,7 @@ function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             ::Val{3}) # 3D version
     for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
-        # For node labeling, see 
+        # For node labeling, see
         # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
         for boundary in keys(node_set_dict) # Loop over specified boundaries
             # Check "front face" (y_min)
@@ -1459,7 +1481,7 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
     r = sqrt(1 + x^2 + y^2)
 
     # Radius of the sphere
-    R = inner_radius + thickness * (0.5 * (zeta + 1))
+    R = inner_radius + thickness * (0.5f0 * (zeta + 1))
 
     # Projection onto the sphere
     return R / r * cube_coordinates[direction]
@@ -1649,7 +1671,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                                        nodes[q])
                     end
                 else # curved_check[face] == 1
-                    # Curved face boundary information is supplied by 
+                    # Curved face boundary information is supplied by
                     # the mesh file. Just read it into a work array
                     for q in 1:nnodes, p in 1:nnodes
                         file_idx += 1
@@ -1722,7 +1744,7 @@ end
 # and return the 3D coordinate point (x, y, z)
 function bilinear_interpolation!(coordinate, face_vertices, u, v)
     for j in 1:3
-        coordinate[j] = 0.25 * (face_vertices[j, 1] * (1 - u) * (1 - v)
+        coordinate[j] = 0.25f0 * (face_vertices[j, 1] * (1 - u) * (1 - v)
                          + face_vertices[j, 2] * (1 + u) * (1 - v)
                          + face_vertices[j, 3] * (1 + u) * (1 + v)
                          + face_vertices[j, 4] * (1 - u) * (1 + v))

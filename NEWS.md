@@ -4,15 +4,65 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.9 from v0.8.x
+
+#### Added
+
+- Boundary conditions are now supported on nonconservative terms ([#2062]).
+
+#### Changed
+
+- We removed the first argument `semi` corresponding to a `Semidiscretization` from the 
+  `AnalysisSurfaceIntegral` constructor, as it is no longer needed (see [#1959]).
+  The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`.
+  ([#2069])
+- In functions `rhs!`, `rhs_parabolic!`  we removed the unused argument `initial_condition`. ([#2037])
+  Users should not be affected by this.
+- Nonconservative terms depend only on `normal_direction_average` instead of both 
+  `normal_direction_average` and `normal_direction_ll`, such that the function signature is now 
+  identical with conservative fluxes. This required a change of the `normal_direction` in
+  `flux_nonconservative_powell` ([#2062]).
+
+#### Deprecated
+
+#### Removed
+
+
+## Changes in the v0.8 lifecycle
+
+#### Changed
+
+- The AMR routines for `P4estMesh` and `T8codeMesh` were changed to work on the product
+  of the Jacobian and the conserved variables instead of the conserved variables only
+  to make AMR fully conservative ([#2028]). This may change AMR results slightly.
+- Subcell (IDP) limiting is now officially supported and not marked as experimental
+  anymore (see `VolumeIntegralSubcellLimiting`).
+
+## Changes when updating to v0.8 from v0.7.x
+
+#### Added
+
+#### Changed
+
+- The specification of boundary names on which `AnalysisSurfaceIntegral`s are computed (such as drag and lift coefficients) has changed from `Symbol` and `Vector{Symbol}` to `NTuple{Symbol}`.
+  Thus, for one boundary the syntax changes from `:boundary` to `(:boundary,)` and for `Vector`s `[:boundary1, :boundary2]` to `(:boundary1, :boundary2)` ([#1959]).
+- The names of output files like the one created from the `SaveSolutionCallback` have changed from `%06d` to `%09d` to allow longer-running simulations ([#1996]).
+
+#### Deprecated
+
+#### Removed
+
 ## Changes in the v0.7 lifecycle
 
 #### Added
-- Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D` and extension
-  to 1D and 3D on `TreeMesh` ([#1855], [#1873]).
+- Implementation of `TimeSeriesCallback` for curvilinear meshes on `UnstructuredMesh2D` and extension to 1D and 3D on `TreeMesh` ([#1855], [#1873]).
 - Implementation of 1D Linearized Euler Equations ([#1867]).
 - New analysis callback for 2D `P4estMesh` to compute integrated quantities along a boundary surface, e.g., pressure lift and drag coefficients ([#1812]).
 - Optional tuple parameter for `GlmSpeedCallback` called `semi_indices` to specify for which semidiscretization of a `SemidiscretizationCoupled` we need to update the GLM speed ([#1835]).
 - Subcell local one-sided limiting support for nonlinear variables in 2D for `TreeMesh` ([#1792]).
+- New time integrator `PairedExplicitRK2`, implementing the second-order paired explicit Runge-Kutta
+  method with [Convex.jl](https://github.com/jump-dev/Convex.jl) and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#1908])
+- Add subcell limiting support for `StructuredMesh` ([#1946]).
 
 ## Changes when updating to v0.7 from v0.6.x
 
