@@ -594,6 +594,43 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_amr_entropy_bounded.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_amr_entropy_bounded.jl"),
+                        l2=[
+                            0.005430176785094096,
+                            0.006185803468926062,
+                            0.012158513265762224,
+                            0.006185144232789619,
+                            0.03509140423905665,
+                            0.004968215426326584,
+                            0.006553519141867704,
+                            0.005008885124643863,
+                            5.165777182726578e-6
+                        ],
+                        linf=[
+                            0.1864317840224794,
+                            0.2041246899193812,
+                            0.36992946717578445,
+                            0.2327158690965257,
+                            1.0368624176126007,
+                            0.1846308291826353,
+                            0.2062255411778191,
+                            0.18955666546331185,
+                            0.0005208969502913304
+                        ],
+                        tspan=(0.0, 0.04),
+                        coverage_override=(maxiters = 6, initial_refinement_level = 1,
+                                           base_level = 1, max_level = 2))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_linearizedeuler_convergence.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearizedeuler_convergence.jl"),
