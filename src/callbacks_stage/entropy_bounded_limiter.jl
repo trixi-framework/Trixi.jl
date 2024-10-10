@@ -17,8 +17,8 @@ Entropy-bounded limiter by
   Entropy-bounded discontinuous Galerkin scheme for Euler equations
   [doi: 10.1016/j.jcp.2015.04.026](https://doi.org/10.1016/j.jcp.2015.04.026)
 
-This is an ideal-gas specific limiter that bounds the (unphysical) entropy decrease per element 
-from one time step (or Runge-Kutta stage) to the next.
+This is an ideal-gas specific limiter that bounds the (unphysical) decrease of the thermodynamic entropy 
+per element from one time step (or Runge-Kutta stage) to the next.
 The parameter `exp_entropy_decrease_max` is the maximum allowed exponentiated
 entropy decrease per element at each element's node.
 
