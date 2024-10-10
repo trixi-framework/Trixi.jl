@@ -112,7 +112,7 @@ end
 
 function rhs!(du, u, t,
               mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
+              boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)

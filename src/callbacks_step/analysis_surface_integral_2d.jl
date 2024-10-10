@@ -20,7 +20,6 @@ For instance, this can be used to compute the lift [`LiftCoefficientPressure`](@
 drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil with the boundary
 name `:Airfoil` in 2D.
 
-- `semi::Semidiscretization`: Passed in to retrieve boundary condition information
 - `boundary_symbols::NTuple{NBoundaries, Symbol}`: Name(s) of the boundary/boundaries
   where the quantity of interest is computed
 - `variable::Variable`: Quantity of interest, like lift or drag
@@ -29,8 +28,7 @@ struct AnalysisSurfaceIntegral{Variable, NBoundaries}
     variable::Variable # Quantity of interest, like lift or drag
     boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
 
-    function AnalysisSurfaceIntegral(semi,
-                                     boundary_symbols::NTuple{NBoundaries, Symbol},
+    function AnalysisSurfaceIntegral(boundary_symbols::NTuple{NBoundaries, Symbol},
                                      variable) where {NBoundaries}
         return new{typeof(variable), NBoundaries}(variable, boundary_symbols)
     end
