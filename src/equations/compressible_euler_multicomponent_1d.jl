@@ -202,28 +202,15 @@ function initial_condition_weak_blast_wave(x, t,
     r = abs(x_norm)
     cos_phi = x_norm > 0 ? 1 : -1
 
-    # Hardcode to `Float32` and `Float64`` for GPU compatibility
-    if RealT == Float32
-        prim_rho = SVector{ncomponents(equations), RealT}(r > 0.5f0 ?
-                                                          2^(i - 1) * (1.0f0 - 2) /
-                                                          (1 -
-                                                           2^ncomponents(equations)) :
-                                                          2^(i - 1) * (1.0f0 - 2) /
-                                                          (1 -
-                                                           2^ncomponents(equations)) *
-                                                          Float32(1.1691)
-                                                          for i in eachcomponent(equations))
-    elseif RealT == Float64
-        prim_rho = SVector{ncomponents(equations), RealT}(r > 0.5 ?
-                                                          2^(i - 1) * (1 - 2) /
-                                                          (1 -
-                                                           2^ncomponents(equations)) :
-                                                          2^(i - 1) * (1 - 2) /
-                                                          (1 -
-                                                           2^ncomponents(equations)) *
-                                                          1.1691
-                                                          for i in eachcomponent(equations))
-    end
+    prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
+                                                                2^(i - 1) * (1 - 2) /
+                                                                (1.0f0 -
+                                                                 2^ncomponents(equations)) :
+                                                                2^(i - 1) * (1 - 2) /
+                                                                (1.0f0 -
+                                                                 2^ncomponents(equations)) *
+                                                                RealT(1.1691)
+                                                                for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
     p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
