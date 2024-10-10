@@ -289,14 +289,8 @@ end
     flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
 
     # Compute both nonconservative fluxes
-    # In general, nonconservative fluxes can depend on both the contravariant
-    # vectors (normal direction) at the current node and the averaged ones.
-    # However, both are the same at watertight interfaces, so we pass the
-    # `normal_direction` twice.
-    noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction,
-                                           normal_direction, equations)
-    noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction,
-                                             normal_direction, equations)
+    noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+    noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
 
     # Store the flux with nonconservative terms on the primary and secondary elements
     for v in eachvariable(equations)
@@ -633,8 +627,7 @@ end
     # Compute nonconservative flux and add it to the flux scaled by a factor of 0.5 based on
     # the interpretation of global SBP operators coupled discontinuously via
     # central fluxes/SATs
-    noncons = nonconservative_flux(u_ll, u_rr, normal_direction, normal_direction,
-                                   equations)
+    noncons = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
     flux_plus_noncons = flux + 0.5f0 * noncons
 
     # Copy to buffer
