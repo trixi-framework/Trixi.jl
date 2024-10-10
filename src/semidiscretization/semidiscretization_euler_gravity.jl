@@ -344,11 +344,11 @@ function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
         @views @. du_gravity[1, .., :] += grav_scale * (u_euler[1, .., :] - rho0)
 
         a_stage = a[stage]
-        b_stage_dt = b[stage] * dtau
+        b_stage_dtau = b[stage] * dtau
         @trixi_timeit timer() "Runge-Kutta step" begin
             @threaded for idx in eachindex(u_ode)
                 u_tmp1_ode[idx] = du_ode[idx] - u_tmp1_ode[idx] * a_stage
-                u_ode[idx] += u_tmp1_ode[idx] * b_stage_dt
+                u_ode[idx] += u_tmp1_ode[idx] * b_stage_dtau
             end
         end
     end
@@ -404,7 +404,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
         gamma1_stage = gamma1[stage]
         gamma2_stage = gamma2[stage]
         gamma3_stage = gamma3[stage]
-        beta_stage_dt = beta[stage] * dtau
+        beta_stage_dtau = beta[stage] * dtau
         @trixi_timeit timer() "Runge-Kutta step" begin
             @threaded for idx in eachindex(u_ode)
                 # See Algorithm 1 (3S* method) in Schlottke-Lakemper et al. (2020)
@@ -412,7 +412,7 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
                 u_ode[idx] = (gamma1_stage * u_ode[idx] +
                               gamma2_stage * u_tmp1_ode[idx] +
                               gamma3_stage * u_tmp2_ode[idx] +
-                              beta_stage_dt * du_ode[idx])
+                              beta_stage_dtau * du_ode[idx])
             end
         end
     end
