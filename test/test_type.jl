@@ -1165,8 +1165,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                              zero(RealT))
             orientations = [1, 2]
             directions = [1, 2, 3, 4]
-            normal_direction = normal_direction_ll = normal_direction_average = SVector(one(RealT),
-                                                                                        zero(RealT))
+            normal_direction = SVector(one(RealT), zero(RealT))
             nonconservative_type_local = Trixi.NonConservativeLocal()
             nonconservative_type_symmetric = Trixi.NonConservativeSymmetric()
             nonconservative_terms = [1, 2]
@@ -1180,8 +1179,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr,
-                                                               normal_direction_ll,
-                                                               normal_direction_average,
+                                                               normal_direction,
                                                                equations)) == RealT
             @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, normal_direction,
                                                            equations)) == RealT
@@ -1288,9 +1286,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                              zero(RealT))
             orientations = [1, 2, 3]
             directions = [1, 2, 3, 4, 5, 6]
-            normal_direction = normal_direction_ll = normal_direction_average = SVector(one(RealT),
-                                                                                        zero(RealT),
-                                                                                        zero(RealT))
+            normal_direction = SVector(one(RealT), zero(RealT), zero(RealT))
 
             @test eltype(@inferred initial_condition_constant(x, t, equations)) == RealT
             @test eltype(@inferred initial_condition_convergence_test(x, t, equations)) ==
@@ -1301,8 +1297,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_nonconservative_powell(u_ll, u_rr,
-                                                               normal_direction_ll,
-                                                               normal_direction_average,
+                                                               normal_direction,
                                                                equations)) == RealT
             @test eltype(@inferred flux_hindenlang_gassner(u_ll, u_rr, normal_direction,
                                                            equations)) == RealT
@@ -2242,8 +2237,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                        one(RealT))
             orientations = [1, 2]
             directions = [1, 2, 3, 4]
-            normal_direction = normal_direction_ll = normal_direction_average = SVector(one(RealT),
-                                                                                        zero(RealT))
+            normal_direction = SVector(one(RealT), zero(RealT))
 
             surface_flux_function = flux_lax_friedrichs
             dissipation = DissipationLocalLaxFriedrichs()
@@ -2264,17 +2258,14 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                                                         normal_direction_ll,
-                                                                         normal_direction_average,
+                                                                         normal_direction,
                                                                          equations)) ==
                   RealT
             @test eltype(@inferred flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                                                       normal_direction_ll,
-                                                                       normal_direction_average,
+                                                                       normal_direction,
                                                                        equations)) == RealT
             @test eltype(@inferred flux_nonconservative_audusse_etal(u_ll, u_rr,
-                                                                     normal_direction_ll,
-                                                                     normal_direction_average,
+                                                                     normal_direction,
                                                                      equations)) == RealT
             @test eltype(@inferred flux_fjordholm_etal(u_ll, u_rr, normal_direction,
                                                        equations)) == RealT

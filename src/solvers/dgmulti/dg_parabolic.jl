@@ -426,7 +426,7 @@ end
 # boundary conditions will be applied to both grad(u) and div(u).
 function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
                         equations_parabolic::AbstractEquationsParabolic,
-                        initial_condition, boundary_conditions, source_terms,
+                        boundary_conditions, source_terms,
                         dg::DGMulti, parabolic_scheme, cache, cache_parabolic)
     reset_du!(du, dg)
 
