@@ -37,7 +37,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, a_unknown,
     # Equality constraint array that ensures that the stability polynomial computed from 
     # the to-be-constructed Butcher-Tableau matches the monomial coefficients of the 
     # optimized stability polynomial.
-    # For details, see Chapter4.3, Proposition 3.2, Equation (3.3) from 
+    # For details, see Chapter 4.3, Proposition 3.2, Equation (3.3) from 
     # Hairer, Wanner: Solving Ordinary Differential Equations 2
 
     # Lower-order terms: Two summands present
@@ -109,6 +109,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
 
         # Check if the values a[i, i-1] >= 0.0 (which stem from the nonlinear solver) 
         # and also c[i] - a[i, i-1] >= 0.0 since all coefficients should be non-negative
+        # to avoid downwinding of numerical fluxes.
         is_sol_valid = all(x -> !isnan(x) && x >= 0, a_unknown) &&
                        all(!isnan(c[i] - a_unknown[i - 2]) &&
                            c[i] - a_unknown[i - 2] >= 0 for i in eachindex(c) if i > 2)
