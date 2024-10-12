@@ -46,7 +46,14 @@ save_solution = SaveSolutionCallback(dt = 0.1,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 3.7)
+# Construct second order paired explicit Runge-Kutta method with 8 stages for given simulation setup.
+# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
+# in calculating the polynomial coefficients in the ODE algorithm.                                     
+ode_algorithm = Trixi.PairedExplicitRK3(8, tspan, semi)
+
+cfl_number = Trixi.calculate_cfl(ode_algorithm, ode)
+# For non-linear problems, the CFL number should be reduced by a safety factor
+stepsize_callback = StepsizeCallback(cfl = 0.85 * cfl_number)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback, save_solution,
@@ -54,10 +61,6 @@ callbacks = CallbackSet(summary_callback,
 
 ###############################################################################
 # run the simulation
-
-# Optimize 8-stage, third order P-ERK scheme for this semidiscretization
-ode_algorithm = Trixi.PairedExplicitRK3(8, tspan, semi)
-
 sol = Trixi.solve(ode, ode_algorithm,
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep = false, callback = callbacks);
