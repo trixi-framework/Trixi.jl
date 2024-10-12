@@ -58,24 +58,9 @@ end
     end
 end
 
+# Testing the third-order paired explicit Runge-Kutta (PERK) method with its optimal CFL number
 @trixi_testset "elixir_burgers_perk3.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
-                        l2=[4.12066275835687e-6],
-                        linf=[2.538190787615413e-5],
-                        atol=1.0e-6)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
-    end
-end
-
-# Testing the third-order paired explicit Runge-Kutta (PERK) method with its optimal CFL number
-@trixi_testset "elixir_burgers_perk3_optimal_cfl.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3_optimal_cfl.jl"),
                         l2=[3.8156922097242205e-6],
                         linf=[2.1962957979626552e-5],
                         atol=1.0e-6)
