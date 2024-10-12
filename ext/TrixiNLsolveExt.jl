@@ -39,6 +39,7 @@ function PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, a_unknown,
     # optimized stability polynomial.
     # For details, see Chapter 4.3, Proposition 3.2, Equation (3.3) from 
     # Hairer, Wanner: Solving Ordinary Differential Equations 2
+    # DOI: 10.1007/978-3-662-09947-6
 
     # Lower-order terms: Two summands present
     for i in 1:(num_stage_evals - 4)
