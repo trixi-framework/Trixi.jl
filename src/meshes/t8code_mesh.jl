@@ -80,7 +80,7 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
         setup = [
             "#trees" => ntrees(mesh),
             "current #cells" => ncellsglobal(mesh),
-            "polydeg" => length(mesh.nodes) - 1,
+            "polydeg" => length(mesh.nodes) - 1
         ]
         summary_box(io,
                     "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}",
@@ -263,7 +263,7 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
                                   mapping = nothing) where {NDIMS, RealT}
     # In t8code reference space is [0,1].
     basis = LobattoLegendreBasis(RealT, polydeg)
-    nodes = 0.5 .* (basis.nodes .+ 1.0)
+    nodes = 0.5f0 .* (basis.nodes .+ 1)
 
     cmesh = t8_forest_get_cmesh(forest)
     number_of_trees = t8_forest_get_num_global_trees(forest)
@@ -714,7 +714,7 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `RealT::Type`: The type that should be used for coordinates.
 - `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
 - `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
-                                      If `nothing` is passed then all boundaries are named `:all`.                                                
+                                      If `nothing` is passed then all boundaries are named `:all`.
 """
 function T8codeMesh(meshfile::AbaqusFile{NDIMS};
                     mapping = nothing, polydeg = 1, RealT = Float64,
@@ -875,9 +875,14 @@ function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance
             t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES)
         end
 
+        # Julias's GC leads to random segfaults here. Temporarily switch it off.
+        GC.enable(false)
+
         # The old forest is destroyed here.
         # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
         t8_forest_commit(new_forest)
+
+        GC.enable(true)
     end
 
     return new_forest
@@ -1132,7 +1137,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
         [1, 2, 0, 0, 3, 4, 0, 0], # 2
         [0, 0, 1, 2, 0, 0, 3, 4], # 3
         [1, 2, 3, 4, 0, 0, 0, 0], # 4
-        [0, 0, 0, 0, 1, 2, 3, 4], # 5
+        [0, 0, 0, 0, 1, 2, 3, 4] # 5
     ]
 
     # Helper variables to compute unique global MPI interface/mortar ids.
@@ -1388,10 +1393,10 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                 global_mortar_id_to_local[global_mortar_id] = local_mpi_mortar_id
 
                                 mpi_mesh_info.mpi_mortars.local_neighbor_ids[local_mpi_mortar_id] = [
-                                    current_index + 1,
+                                    current_index + 1
                                 ]
                                 mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id] = [
-                                    map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1],
+                                    map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1]
                                 ]
                                 init_mortar_node_indices!(mpi_mesh_info.mpi_mortars,
                                                           (iface, dual_faces[1]),
@@ -1399,7 +1404,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                                 neighbor_ranks = [
                                     remotes[findlast(ghost_remote_first_elem .<=
-                                                     neighbor_ielements[1])],
+                                                     neighbor_ielements[1])]
                                 ]
                                 mpi_mesh_info.neighbor_ranks_mortar[local_mpi_mortar_id] = neighbor_ranks
 

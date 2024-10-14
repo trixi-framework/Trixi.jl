@@ -4,6 +4,40 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.9 from v0.8.x
+
+#### Added
+
+- Boundary conditions are now supported on nonconservative terms ([#2062]).
+
+#### Changed
+
+- We removed the first argument `semi` corresponding to a `Semidiscretization` from the 
+  `AnalysisSurfaceIntegral` constructor, as it is no longer needed (see [#1959]).
+  The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`.
+  ([#2069])
+- In functions `rhs!`, `rhs_parabolic!`  we removed the unused argument `initial_condition`. ([#2037])
+  Users should not be affected by this.
+- Nonconservative terms depend only on `normal_direction_average` instead of both 
+  `normal_direction_average` and `normal_direction_ll`, such that the function signature is now 
+  identical with conservative fluxes. This required a change of the `normal_direction` in
+  `flux_nonconservative_powell` ([#2062]).
+
+#### Deprecated
+
+#### Removed
+
+
+## Changes in the v0.8 lifecycle
+
+#### Changed
+
+- The AMR routines for `P4estMesh` and `T8codeMesh` were changed to work on the product
+  of the Jacobian and the conserved variables instead of the conserved variables only
+  to make AMR fully conservative ([#2028]). This may change AMR results slightly.
+- Subcell (IDP) limiting is now officially supported and not marked as experimental
+  anymore (see `VolumeIntegralSubcellLimiting`).
+
 ## Changes when updating to v0.8 from v0.7.x
 
 #### Added
