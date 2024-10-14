@@ -222,13 +222,12 @@ function initial_condition_weak_blast_wave(x, t,
 
     prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
                                                                 2^(i - 1) * (1 - 2) /
+                                                                (RealT(1) -
+                                                                 2^ncomponents(equations)) :
+                                                                2^(i - 1) * (1 - 2) *
+                                                                RealT(1.1691) /
                                                                 (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                one(RealT) :
-                                                                2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                convert(RealT, 1.1691)
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
@@ -824,5 +823,19 @@ end
 @inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations2D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 3] * v
                                                             for i in eachcomponent(equations))
+end
+
+@inline function velocity(u, equations::CompressibleEulerMulticomponentEquations2D)
+    rho = density(u, equations)
+    v1 = u[1] / rho
+    v2 = u[2] / rho
+    return SVector(v1, v2)
+end
+
+@inline function velocity(u, orientation::Int,
+                          equations::CompressibleEulerMulticomponentEquations2D)
+    rho = density(u, equations)
+    v = u[orientation] / rho
+    return v
 end
 end # @muladd

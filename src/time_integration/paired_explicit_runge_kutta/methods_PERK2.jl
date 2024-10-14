@@ -68,7 +68,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     a_matrix[:, 1] -= A
     a_matrix[:, 2] = A
 
-    return a_matrix, c
+    return a_matrix, c, dt_opt
 end
 
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 2
@@ -76,7 +76,6 @@ end
 function compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                    base_path_monomial_coeffs::AbstractString,
                                                    bS, cS)
-
     # c Vector form Butcher Tableau (defines timestep per stage)
     c = zeros(num_stages)
     for k in 2:num_stages
@@ -107,7 +106,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
 end
 
 @doc raw"""
-    PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
+    PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt,
                       bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, bS = 1.0, cS = 0.5)
@@ -118,6 +117,7 @@ end
     - `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
       monomial coefficients of the stability polynomial of PERK method.
       The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
+    - `dt_opt` (`Float64`): Optimal time step size for the simulation setup.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
     -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
@@ -144,16 +144,19 @@ mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     b1::Float64
     bS::Float64
     cS::Float64
+    dt_opt::Float64
 end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
 function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
+                           dt_opt,
                            bS = 1.0, cS = 0.5)
+    # If the user has the monomial coefficients, they also must have the optimal time step
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             base_path_monomial_coeffs,
                                                             bS, cS)
 
-    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS)
+    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS, dt_opt)
 end
 
 # Constructor that calculates the coefficients with polynomial optimizer from a
@@ -171,12 +174,12 @@ end
 function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false,
                            bS = 1.0, cS = 0.5)
-    a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
-                                                            eig_vals, tspan,
-                                                            bS, cS;
-                                                            verbose)
+    a_matrix, c, dt_opt = compute_PairedExplicitRK2_butcher_tableau(num_stages,
+                                                                    eig_vals, tspan,
+                                                                    bS, cS;
+                                                                    verbose)
 
-    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS)
+    return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS, dt_opt)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
@@ -233,6 +236,26 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
 end
 
 """
+    calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
+
+This function computes the CFL number once using the initial condition of the problem and the optimal timestep (`dt_opt`) from the ODE algorithm.
+"""
+function calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
+    t0 = first(ode.tspan)
+    u_ode = ode.u0
+    semi = ode.p
+    dt_opt = ode_algorithm.dt_opt
+
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    cfl_number = dt_opt / max_dt(u, t0, mesh,
+                        have_constant_speed(equations), equations,
+                        solver, cache)
+    return cfl_number
+end
+
+"""
     add_tstop!(integrator::PairedExplicitRK2Integrator, t)
 Add a time stop during the time integration process.
 This function is called after the periodic SaveSolutionCallback to specify the next stop to save the solution.
@@ -261,7 +284,7 @@ function Base.getproperty(integrator::PairedExplicitRK, field::Symbol)
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK2;
-              dt, callback = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u0 = copy(ode.u0)
     du = zero(u0)
     u_tmp = zero(u0)
@@ -286,13 +309,11 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
     # initialize callbacks
     if callback isa CallbackSet
         for cb in callback.continuous_callbacks
-            error("unsupported")
+            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-Kutta methods."))
         end
         for cb in callback.discrete_callbacks
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
-    elseif !isnothing(callback)
-        error("unsupported")
     end
 
     return integrator

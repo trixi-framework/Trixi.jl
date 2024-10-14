@@ -118,10 +118,10 @@ function init_mpi_neighbor_connectivity(mpi_mesh_info, mesh::ParallelT8codeMesh)
     # For each neighbor rank, init connectivity data structures
     mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
     mpi_neighbor_mortars = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
-    for (index, d) in enumerate(mpi_neighbor_ranks)
-        mpi_neighbor_interfaces[index] = interface_ids[findall(==(d),
+    for (index, rank) in enumerate(mpi_neighbor_ranks)
+        mpi_neighbor_interfaces[index] = interface_ids[findall(==(rank),
                                                                neighbor_ranks_interface)]
-        mpi_neighbor_mortars[index] = mortar_ids[findall(x -> (d in x),
+        mpi_neighbor_mortars[index] = mortar_ids[findall(x -> (rank in x),
                                                          neighbor_ranks_mortar)]
     end
 
