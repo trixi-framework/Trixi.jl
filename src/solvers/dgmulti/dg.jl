@@ -408,11 +408,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
             # Two notes on the use of `flux_nonconservative`:
             # 1. In contrast to other mesh types, only one nonconservative part needs to be
             #    computed since we loop over the elements, not the unique interfaces.
-            # 2. In general, nonconservative fluxes can depend on both the contravariant
-            #    vectors (normal direction) at the current node and the averaged ones. However,
-            #    both are the same at watertight interfaces, so we pass `normal` twice.
-            nonconservative_part = flux_nonconservative(uM, uP, normal, normal,
-                                                        equations)
+            nonconservative_part = flux_nonconservative(uM, uP, normal, equations)
             # The factor 0.5 is necessary for the nonconservative fluxes based on the
             # interpretation of global SBP operators.
             flux_face_values[idM] = (conservative_part + 0.5 * nonconservative_part) *
@@ -557,14 +553,12 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
                                                         surface_flux, equations)
 
             # Compute pointwise nonconservative numerical flux at the boundary.
-            # In general, nonconservative fluxes can depend on both the contravariant
-            # vectors (normal direction) at the current node and the averaged ones.
-            # However, there is only one `face_normal` at boundaries, which we pass in twice.
-            # Note: This does not set any type of boundary condition for the nonconservative term
-            noncons_flux_at_face_node = nonconservative_flux(u_face_values[i, f],
-                                                             u_face_values[i, f],
-                                                             face_normal, face_normal,
-                                                             equations)
+            noncons_flux_at_face_node = boundary_condition(u_face_values[i, f],
+                                                           face_normal,
+                                                           face_coordinates,
+                                                           t,
+                                                           nonconservative_flux,
+                                                           equations)
 
             flux_face_values[i, f] = (cons_flux_at_face_node +
                                       0.5 * noncons_flux_at_face_node) * Jf[i, f]
@@ -643,7 +637,7 @@ function calc_sources!(du, u, t, source_terms,
 end
 
 function rhs!(du, u, t, mesh, equations,
-              initial_condition, boundary_conditions::BC, source_terms::Source,
+              boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 

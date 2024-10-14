@@ -91,8 +91,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
             t = sol.t[end]
             u_ode = sol.u[end]
             du_ode = similar(u_ode)
-            # Larger values for allowed allocations due to usage of custom 
-            # integrator which are not *recorded* for the methods from 
+            # Larger values for allowed allocations due to usage of custom
+            # integrator which are not *recorded* for the methods from
             # OrdinaryDiffEq.jl
             # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
@@ -103,18 +103,18 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_eulermulti_shock_bubble_shockcapturing_subcell_minmax.jl"),
                             l2=[
-                                73.10860950390489,
-                                1.4599090197303102,
-                                57176.23978426408,
-                                0.17812910616624406,
-                                0.010123079422717837
+                                73.41054363926742,
+                                1.5072038797716156,
+                                57405.58964098063,
+                                0.17877099207437225,
+                                0.010085388785440972
                             ],
                             linf=[
-                                214.50568817511956,
-                                25.40392579616452,
-                                152862.41011222568,
-                                0.564195553101797,
-                                0.0956331651771212
+                                213.59140793740318,
+                                24.57625853486584,
+                                152498.21319871658,
+                                0.5911106543157919,
+                                0.09936092838440383
                             ],
                             initial_refinement_level=3,
                             tspan=(0.0, 0.001))
@@ -124,8 +124,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
             t = sol.t[end]
             u_ode = sol.u[end]
             du_ode = similar(u_ode)
-            # Larger values for allowed allocations due to usage of custom 
-            # integrator which are not *recorded* for the methods from 
+            # Larger values for allowed allocations due to usage of custom
+            # integrator which are not *recorded* for the methods from
             # OrdinaryDiffEq.jl
             # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
