@@ -82,7 +82,7 @@ end
 
 # Create element container and initialize element data
 function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
-				   P4estMeshView{NDIMS,RealT},
+				   P4estMeshView{NDIMS, NDIMS, RealT},
                                    T8codeMesh{NDIMS, RealT}},
                        equations,
                        basis,
