@@ -25,11 +25,19 @@ coordinates_max = (8.0, 8.0) # maximum coordinates (max(x), max(y))
 mapping_coordinates = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
 
 # Option 2: faces
-f1(s) = SVector(-1.0, s - 1.0)
-f2(s) = SVector(1.0, s + 1.0)
-f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
-f4(s) = SVector(s, 1.0 + sin(0.5 * pi * s))
+# waving flag
+# f1(s) = SVector(-1.0, s - 1.0)
+# f2(s) = SVector(1.0, s + 1.0)
+# f3(s) = SVector(s, -1.0 + sin(0.5 * pi * s))
+# f4(s) = SVector(s, 1.0 + sin(0.5 * pi * s))
+
+# [0,8]^2
+f1(s) = SVector(0.0, 4*(s+1))
+f2(s) = SVector(8.0, 4*(s+1))
+f3(s) = SVector(4*(s+1), 0.0)
+f4(s) = SVector(4*(s+1), 8.0)
 faces = (f1, f2, f3, f4)
+Trixi.validate_faces(faces)
 mapping_faces = Trixi.transfinite_mapping(faces)
 
 # Option 3: classic mapping
@@ -41,9 +49,13 @@ function mapping(xi, eta)
 end
 
 # Note and TODO:
-# Normally, this should be put somewhere else. For now, that doesn't properly.
-# See note in `src/auxiliary/t8code.jl`
-function f(cmesh, gtreeid, ref_coords, num_coords, out_coords, tree_data, user_data)
+# Normally, this should be put somewhere else. For now, that doesn't work properly.
+# For instance, in `src/auxiliary/t8code.jl`
+# Problem: Even when define this routine somewhere else (then by using a closure) and called
+# directly within this elixir (e.g. mapping = trixi_t8_mapping_c(mapping)), we get the SegFault error.
+# - Is the function called with the correct parameters? Memory location correct? It seems so, yes.
+# - Life time issue for the GC tracked Julia object used in C? **Yes, see gc deactivation in elixir.**
+function trixi_t8_mapping(cmesh, gtreeid, ref_coords, num_coords, out_coords, tree_data, user_data)
     ltreeid = t8_cmesh_get_local_id(cmesh, gtreeid)
     eclass = t8_cmesh_get_tree_class(cmesh, ltreeid)
     T8code.t8_geom_compute_linear_geometry(eclass, tree_data,
@@ -65,18 +77,20 @@ function f(cmesh, gtreeid, ref_coords, num_coords, out_coords, tree_data, user_d
     return nothing
 end
 
-function f_c()
-    @cfunction($f, Cvoid,
+function trixi_t8_mapping_c()
+    @cfunction($trixi_t8_mapping, Cvoid,
                (t8_cmesh_t, t8_gloidx_t, Ptr{Cdouble}, Csize_t,
                 Ptr{Cdouble}, Ptr{Cvoid}, Ptr{Cvoid}))
 end
 
 trees_per_dimension = (2, 2)
 
+# Disabling the gc for almost the entire elixir seems to work in order to fix the SegFault errors with trixi_t8_mapping_c and mapping_coordinates
+# GC.enable(false)
+
 eclass = T8_ECLASS_QUAD
 mesh = T8codeMesh(trees_per_dimension, eclass,
-                #   mapping = Trixi.trixi_t8_mapping_c(mapping),
-                  mapping = f_c(),
+                  mapping = trixi_t8_mapping_c(),
                   # Plan is to use either
                   # coordinates_max = coordinates_max, coordinates_min = coordinates_min,
                   # or at least
@@ -110,3 +124,5 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback()
+
+# GC.enable(true)
