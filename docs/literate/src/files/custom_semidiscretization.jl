@@ -12,7 +12,6 @@
 # In this tutorial, we will describe how these semidiscretizations work and how
 # they can be used to create custom semidiscretizations involving also other tasks.
 
-
 # ## Overview of the right-hand side evaluation
 
 # The semidiscretizations provided by Trixi.jl are set up to create `ODEProblem`s from the
@@ -27,7 +26,6 @@
 # For a [`SemidiscretizationHyperbolicParabolic`](@ref),  Trixi.jl
 # uses a `SplitODEProblem` combining `Trixi.rhs_parabolic!` for the
 # (potentially) stiff part and `Trixi.rhs!` for the other part.
-
 
 # ## Standard Trixi.jl setup
 
@@ -108,9 +106,9 @@ plot(sol; label = "numerical sol.", legend = :topright)
 # (and only) component to get the scalar value for manual plotting.
 
 let
-   x = range(-1.0, 1.0; length = 200)
-   plot!(x, first.(initial_condition.(x, sol.t[end], equations)),
-         label = "analytical sol.", linestyle = :dash, legend = :topright)
+    x = range(-1.0, 1.0; length = 200)
+    plot!(x, first.(initial_condition.(x, sol.t[end], equations)),
+          label = "analytical sol.", linestyle = :dash, legend = :topright)
 end
 
 # We can also add the initial condition to the plot.
@@ -132,7 +130,6 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, RDPK3SpFSAL49();
             ode_default_options()..., callback = callbacks)
 summary_callback()
-
 
 # ## Using a custom ODE right-hand side function
 
@@ -161,7 +158,7 @@ end
 ode_source_custom = ODEProblem(rhs_source_custom!,
                                ode.u0,
                                ode.tspan,
-                               ode.p #= semi =#)
+                               ode.p) #= semi =#
 sol_source_custom = solve(ode_source_custom, RDPK3SpFSAL49();
                           ode_default_options()...)
 
@@ -186,7 +183,6 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode_source_custom, RDPK3SpFSAL49();
             ode_default_options()..., callback = callbacks)
 summary_callback()
-
 
 # ## Setting up a custom semidiscretization
 
@@ -311,7 +307,6 @@ summary_callback()
 # - [`SemidiscretizationEulerAcoustics`](@ref)
 # - [`SemidiscretizationCoupled`](@ref)
 
-
 # ## Package versions
 
 # These results were obtained using the following versions.
@@ -321,4 +316,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode=PKGMODE_MANIFEST)
+           mode = PKGMODE_MANIFEST)
