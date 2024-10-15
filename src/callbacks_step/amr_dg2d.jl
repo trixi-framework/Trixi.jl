@@ -579,9 +579,4 @@ function create_cache(::Type{ControllerThreeLevel},
     return (; controller_value)
 end
 
-function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{2},
-                      equations, dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
-end
 end # @muladd
