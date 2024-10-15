@@ -32,10 +32,10 @@ mapping_coordinates = Trixi.coordinates2mapping(coordinates_min, coordinates_max
 # f4(s) = SVector(s, 1.0 + sin(0.5 * pi * s))
 
 # [0,8]^2
-f1(s) = SVector(0.0, 4*(s+1))
-f2(s) = SVector(8.0, 4*(s+1))
-f3(s) = SVector(4*(s+1), 0.0)
-f4(s) = SVector(4*(s+1), 8.0)
+f1(s) = SVector(0.0, 4 * (s + 1))
+f2(s) = SVector(8.0, 4 * (s + 1))
+f3(s) = SVector(4 * (s + 1), 0.0)
+f4(s) = SVector(4 * (s + 1), 8.0)
 faces = (f1, f2, f3, f4)
 Trixi.validate_faces(faces)
 mapping_faces = Trixi.transfinite_mapping(faces)
@@ -55,7 +55,8 @@ end
 # directly within this elixir (e.g. mapping = trixi_t8_mapping_c(mapping)), we get the SegFault error.
 # - Is the function called with the correct parameters? Memory location correct? It seems so, yes.
 # - Life time issue for the GC tracked Julia object used in C? **Yes, see gc deactivation in elixir.**
-function trixi_t8_mapping(cmesh, gtreeid, ref_coords, num_coords, out_coords, tree_data, user_data)
+function trixi_t8_mapping(cmesh, gtreeid, ref_coords, num_coords, out_coords,
+                          tree_data, user_data)
     ltreeid = t8_cmesh_get_local_id(cmesh, gtreeid)
     eclass = t8_cmesh_get_tree_class(cmesh, ltreeid)
     T8code.t8_geom_compute_linear_geometry(eclass, tree_data,
