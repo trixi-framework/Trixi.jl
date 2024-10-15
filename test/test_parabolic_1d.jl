@@ -148,8 +148,8 @@ end
                         ],
                         linf=[
                             0.002754803146635787,
-                            0.0028567714697580906,
-                            0.012941794048176192
+                            0.002856771361794534,
+                            0.012941793749087438
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

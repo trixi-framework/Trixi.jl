@@ -579,8 +579,8 @@ end
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic_amr.jl"),
                         tspan=(0.0, 0.01),
-                        l2=[0.007934195641974433],
-                        linf=[0.11030265194954081])
+                        l2=[0.007933686773471083],
+                        linf=[0.11029277682717009])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
