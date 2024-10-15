@@ -160,7 +160,7 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
 end
 
 function rhs!(du, u, t, mesh::T8codeMesh, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
+              boundary_conditions, source_terms::Source,
               solver::FV, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" du.=zero(eltype(du))
