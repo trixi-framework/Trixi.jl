@@ -16,6 +16,8 @@ solver = FV(order = 2, extended_reconstruction_stencil = false,
 # Afterwards and only inside Trixi, `tree_node_coordinates` are mapped back to [-1, 1]^2.
 # But, this variable is not used for the FV method.
 # That's why I use the cmesh interface in all other elixirs.
+
+# Option 1: coordinates
 coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (8.0, 8.0) # maximum coordinates (max(x), max(y))
 # Note and TODO: The plan is to move the auxiliary routine f and the macro to a different place.
