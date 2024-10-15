@@ -106,7 +106,7 @@ function calc_node_coordinates!(node_coordinates,
     tmp1 = StrideArray(undef, real(mesh),
                        StaticInt(NDIMS_AMBIENT), static_length(nodes),
                        static_length(mesh.parent.nodes))
-    matrix1 = StrideArray(undef, real(mesh),
+    matrix1 = StrideArray(undef, real(mesh.parent),
                           static_length(nodes), static_length(mesh.parent.nodes))
     matrix2 = similar(matrix1)
     baryweights_in = barycentric_weights(mesh.parent.nodes)
@@ -116,7 +116,7 @@ function calc_node_coordinates!(node_coordinates,
     p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
     # SC: It seems that here we need to make some serious changes so it works
-    #     with P4estMeshView without toching the p4est struct.
+    #     with P4estMeshView without touching the p4est struct.
     trees = unsafe_wrap_sc(p4est_tree_t, mesh.parent.p4est.trees)[mesh.cell_ids]
 
     for tree in eachindex(trees)
