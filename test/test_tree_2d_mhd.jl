@@ -355,8 +355,8 @@ end
                             6.1013422157115546e-03
                         ],
                         tspan=(0.0, 0.003))
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
