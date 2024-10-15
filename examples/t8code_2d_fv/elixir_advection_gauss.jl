@@ -13,7 +13,7 @@ solver = FV(order = 2, surface_flux = flux_lax_friedrichs)
 initial_refinement_level = 4
 # Note: The initial_condition is set up for a domain [-5,5]^2.
 # This becomes important when using a non-periodic mesh.
-cmesh = Trixi.cmesh_new_periodic_hybrid()
+cmesh = Trixi.cmesh_new_hybrid()
 
 mesh = T8codeMesh(cmesh, solver, initial_refinement_level = initial_refinement_level)
 

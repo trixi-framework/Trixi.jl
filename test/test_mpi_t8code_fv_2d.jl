@@ -83,7 +83,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
                                          "elixir_advection_basic_hybrid.jl"),
                                 order=1,
                                 initial_refinement_level=2,
-                                cmesh=Trixi.cmesh_new_periodic_hybrid(),
+                                cmesh=Trixi.cmesh_new_hybrid(),
                                 l2=[0.2253867410593706],
                                 linf=[0.34092690256865166])
             # Ensure that we do not have excessive memory allocations
@@ -133,7 +133,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_fv")
             @test_trixi_include(joinpath(EXAMPLES_DIR,
                                          "elixir_advection_basic_hybrid.jl"),
                                 initial_refinement_level=2,
-                                cmesh=Trixi.cmesh_new_periodic_hybrid(),
+                                cmesh=Trixi.cmesh_new_hybrid(),
                                 l2=[0.1296561675517274],
                                 linf=[0.25952934874433753])
             # Ensure that we do not have excessive memory allocations

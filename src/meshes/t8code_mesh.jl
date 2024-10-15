@@ -1695,30 +1695,36 @@ end
 # Simple meshes
 # Temporary routines to create simple `cmesh`s by hand
 
-# Directly ported from: `src/t8_cmesh/t8_cmesh_examples.c: t8_cmesh_new_periodic_hybrid`.
-function cmesh_new_periodic_hybrid(; comm = mpi_comm())::t8_cmesh_t
+# Ported and adapted from: `src/t8_cmesh/t8_cmesh_examples.c: t8_cmesh_new_periodic_hybrid`.
+function cmesh_new_hybrid(; coordinates_min = (-1.0, -1.0), coordinates_max = (1.0, 1.0),
+                          periodicity = (true, true))::t8_cmesh_t
     n_dims = 2
+
+    x_min, y_min = coordinates_min
+    x_max, y_max = coordinates_max
+    x_half = 0.5 * (x_min + x_max)
+    y_half = 0.5 * (y_min + y_max)
     vertices = [ # Just all vertices of all trees. partly duplicated
-        -1.0, -1.0, 0, # tree 0, triangle
-        0, -1.0, 0,
-        0, 0, 0,
-        -1.0, -1.0, 0, # tree 1, triangle
-        0, 0, 0,
-        -1.0, 0, 0,
-        0, -1.0, 0,    # tree 2, quad
-        1.0, -1.0, 0,
-        0, 0, 0,
-        1.0, 0, 0,
-        -1.0, 0, 0,    # tree 3, quad
-        0, 0, 0,
-        -1.0, 1.0, 0,
-        0, 1.0, 0,
-        0, 0, 0,       # tree 4, triangle
-        1.0, 0, 0,
-        1.0, 1.0, 0,
-        0, 0, 0,       # tree 5, triangle
-        1.0, 1.0, 0,
-        0, 1.0, 0
+        x_min, y_min, 0, # tree 0, triangle
+        x_half, y_min, 0,
+        x_half, y_half, 0,
+        x_min, y_min, 0, # tree 1, triangle
+        x_half, y_half, 0,
+        x_min, y_half, 0,
+        x_half, y_min, 0,    # tree 2, quad
+        x_max, y_min, 0,
+        x_half, y_half, 0,
+        x_max, y_half, 0,
+        x_min, y_half, 0,    # tree 3, quad
+        x_half, y_half, 0,
+        x_min, y_max, 0,
+        x_half, y_max, 0,
+        x_half, y_half, 0,       # tree 4, triangle
+        x_max, y_half, 0,
+        x_max, y_max, 0,
+        x_half, y_half, 0,       # tree 5, triangle
+        x_max, y_max, 0,
+        x_half, y_max, 0
     ]
 
     # Generally, one can define other geometries. But besides linear the other
@@ -1761,19 +1767,21 @@ function cmesh_new_periodic_hybrid(; comm = mpi_comm())::t8_cmesh_t
 
     t8_cmesh_set_join(cmesh, 0, 1, 1, 2, 0)
     t8_cmesh_set_join(cmesh, 0, 2, 0, 0, 0)
-    t8_cmesh_set_join(cmesh, 0, 3, 2, 3, 0)
-
     t8_cmesh_set_join(cmesh, 1, 3, 0, 2, 1)
-    t8_cmesh_set_join(cmesh, 1, 2, 1, 1, 0)
-
     t8_cmesh_set_join(cmesh, 2, 4, 3, 2, 0)
-    t8_cmesh_set_join(cmesh, 2, 5, 2, 0, 1)
-
     t8_cmesh_set_join(cmesh, 3, 5, 1, 1, 0)
-    t8_cmesh_set_join(cmesh, 3, 4, 0, 0, 0)
-
     t8_cmesh_set_join(cmesh, 4, 5, 1, 2, 0)
 
+    if periodicity[1]
+        t8_cmesh_set_join(cmesh, 1, 2, 1, 1, 0)
+        t8_cmesh_set_join(cmesh, 3, 4, 0, 0, 0)
+    end
+    if periodicity[2]
+        t8_cmesh_set_join(cmesh, 0, 3, 2, 3, 0)
+        t8_cmesh_set_join(cmesh, 2, 5, 2, 0, 1)
+    end
+
+    comm = mpi_comm()
     t8_cmesh_commit(cmesh, comm)
 
     return cmesh
