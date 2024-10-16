@@ -288,12 +288,6 @@ function compute_flux_differencing_SBP_matrices(dg::DGMultiFluxDiffSBP,
     return Qrst_skew
 end
 
-# For flux differencing SBP-type approximations, store solutions in Matrix{SVector{nvars}}.
-# This results in a slight speedup for `calc_volume_integral!`.
-function allocate_nested_array(uEltype, nvars, array_dimensions, dg::DGMultiFluxDiffSBP)
-    return zeros(SVector{nvars, uEltype}, array_dimensions...)
-end
-
 function create_cache(mesh::DGMultiMesh, equations, dg::DGMultiFluxDiffSBP, RealT,
                       uEltype)
     rd = dg.basis
