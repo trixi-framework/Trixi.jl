@@ -64,14 +64,24 @@ function initial_condition_convergence_test(x, t,
     return SVector(scalar)
 end
 
+# Calculates translated coordinates `x` for a periodic domain
+function x_trans_periodic_3d(x, domain_length = SVector(10, 10, 10),
+                             center = SVector(0, 0, 0))
+    x_normalized = x .- center
+    x_shifted = x_normalized .% domain_length
+    x_offset = ((x_shifted .< -0.5f0 * domain_length) -
+                (x_shifted .> 0.5f0 * domain_length)) .* domain_length
+    return center + x_shifted + x_offset
+end
+
 """
-    initial_condition_gauss(x, t, equations::LinearScalarAdvectionEquation1D)
+    initial_condition_gauss(x, t, equations::LinearScalarAdvectionEquation3D)
 
 A Gaussian pulse.
 """
 function initial_condition_gauss(x, t, equation::LinearScalarAdvectionEquation3D)
     # Store translated coordinate for easy use of exact solution
-    x_trans = x - equation.advection_velocity * t
+    x_trans = x_trans_periodic_3d(x - equation.advection_velocity * t)
 
     scalar = exp(-(x_trans[1]^2 + x_trans[2]^2 + x_trans[3]^2))
     return SVector(scalar)
