@@ -20,7 +20,7 @@ struct ParametersEulerGravity{RealT <: Real, TimestepGravity}
     gravitational_constant :: RealT # aka G
     cfl                    :: RealT
     resid_tol              :: RealT # Hyp.-Diff. Eq. steady state tolerance
-    n_iterations_max       :: Int   # Max. number of its of the pseudo-time gravity solver
+    n_iterations_max       :: Int   # Max. number of iterations of the pseudo-time gravity solver
     timestep_gravity       :: TimestepGravity
 end
 
@@ -219,7 +219,8 @@ end
 end
 
 # Coupled Euler and gravity solver at each Runge-Kutta stage, 
-# corresponding to Algorithm 2 in Schlottke-Lakemper et al. (2020).
+# corresponding to Algorithm 2 in Schlottke-Lakemper et al. (2020),
+# https://dx.doi.org/10.1016/j.jcp.2021.110467
 function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     @unpack semi_euler, semi_gravity, cache = semi
 
