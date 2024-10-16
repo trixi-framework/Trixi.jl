@@ -409,6 +409,21 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_blast_wave_entropy_bounded.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_blast_wave_entropy_bounded.jl"),
+                        l2=[0.9689207881108007, 0.1617708899929322, 1.3847895715669456],
+                        linf=[2.95591859210077, 0.3135723412205586, 2.3871554358655365])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "test_quasi_1D_entropy" begin
     a = 0.9
     u_1D = SVector(1.1, 0.2, 2.1)
