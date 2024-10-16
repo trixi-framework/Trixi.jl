@@ -189,7 +189,8 @@ end
                                   volume_flux_dg, volume_flux_fv)
 
 A subcell limiting volume integral type for DG methods based on subcell blending approaches
-with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
+with a low-order FV method. Used with the limiters [`SubcellLimiterIDP`](@ref) and
+[`SubcellLimiterMCL`](@ref).
 
 !!! note
     Subcell limiting methods are not fully functional on non-conforming meshes. This is
@@ -224,6 +225,17 @@ function Base.show(io::IO, mime::MIME"text/plain",
         summary_line(io, "limiter", integral.limiter |> typeof |> nameof)
         show(increment_indent(io), mime, integral.limiter)
         summary_footer(io)
+    end
+end
+
+function get_element_variables!(element_variables, u, mesh, equations,
+                                volume_integral::VolumeIntegralSubcellLimiting, dg,
+                                cache)
+    if volume_integral.limiter.smoothness_indicator
+        # call the element-wise limiter to get up-to-date values for IO
+        volume_integral.limiter.IndicatorHG(u, mesh, equations, dg, cache)
+        get_element_variables!(element_variables, volume_integral.limiter,
+                               volume_integral)
     end
 end
 
