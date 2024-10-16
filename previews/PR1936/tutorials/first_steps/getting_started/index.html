@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>1.1 Getting started · Trixi.jl</title><meta name="title" content="1.1 Getting started · Trixi.jl"/><meta property="og:title" content="1.1 Getting started · Trixi.jl"/><meta property="twitter:title" content="1.1 Getting started · Trixi.jl"/><meta name="description" content="Documentation for Trixi.jl."/><meta property="og:description" content="Documentation for Trixi.jl."/><meta property="twitter:description" content="Documentation for Trixi.jl."/><meta property="og:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/first_steps/getting_started/"/><meta property="twitter:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/first_steps/getting_started/"/><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/first_steps/getting_started/"/><script data-outdated-warner src="../../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../../assets/documenter.js"></script><script src="../../../search_index.js"></script><script src="../../../siteinfo.js"></script><script src="../../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../../assets/themeswap.js"></script><link href="../../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../../">Trixi.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../../overview/">Overview</a></li><li><a class="tocitem" href="../../../visualization/">Visualization</a></li><li><a class="tocitem" href="../../../restart/">Restart simulation</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../introduction/">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox" checked/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">1 First steps in Trixi.jl</span><i class="docs-chevron"></i></label><ul class="collapsed"><li class="is-active"><a class="tocitem" href>1.1 Getting started</a><ul class="internal"><li><a class="tocitem" href="#Julia-installation"><span>Julia installation</span></a></li><li><a class="tocitem" href="#Trixi.jl-installation"><span>Trixi.jl installation</span></a></li><li><a class="tocitem" href="#Usage"><span>Usage</span></a></li></ul></li><li><a class="tocitem" href="../create_first_setup/">1.2 Create your first setup</a></li><li><a class="tocitem" href="../changing_trixi/">1.3 Changing Trixi.jl itself</a></li></ul></li><li><a class="tocitem" href="../../behind_the_scenes_simulation_setup/">2 Behind the scenes of a simulation setup</a></li><li><a class="tocitem" href="../../scalar_linear_advection_1d/">3 Introduction to DG methods</a></li><li><a class="tocitem" href="../../DGSEM_FluxDiff/">4 DGSEM with flux differencing</a></li><li><a class="tocitem" href="../../shock_capturing/">5 Shock capturing with flux differencing and stage limiter</a></li><li><a class="tocitem" href="../../subcell_shock_capturing/">6 Subcell limiting with the IDP Limiter</a></li><li><a class="tocitem" href="../../non_periodic_boundaries/">7 Non-periodic boundaries</a></li><li><a class="tocitem" href="../../DGMulti_1/">8 DG schemes via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../../upwind_fdsbp/">10 Upwind FD SBP schemes</a></li><li><a class="tocitem" href="../../adding_new_scalar_equations/">11 Adding a new scalar conservation law</a></li><li><a class="tocitem" href="../../adding_nonconservative_equation/">12 Adding a non-conservative equation</a></li><li><a class="tocitem" href="../../parabolic_terms/">13 Parabolic terms</a></li><li><a class="tocitem" href="../../adding_new_parabolic_terms/">14 Adding new parabolic terms</a></li><li><a class="tocitem" href="../../adaptive_mesh_refinement/">15 Adaptive mesh refinement</a></li><li><a class="tocitem" href="../../structured_mesh_mapping/">16 Structured mesh with curvilinear mapping</a></li><li><a class="tocitem" href="../../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl</a></li><li><a class="tocitem" href="../../p4est_from_gmsh/">18 P4est mesh from gmsh</a></li><li><a class="tocitem" href="../../time_stepping/">19 Explicit time stepping</a></li><li><a class="tocitem" href="../../differentiable_programming/">20 Differentiable programming</a></li><li><a class="tocitem" href="../../custom_semidiscretization/">21 Custom semidiscretizations</a></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox"/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../../../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../../../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li><li><a class="tocitem" href="../../../meshes/p4est_mesh/">P4est-based mesh</a></li><li><a class="tocitem" href="../../../meshes/dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../../../multi-physics_coupling/">Coupling</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../../development/">Development</a></li><li><a class="tocitem" href="../../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../../testing/">Testing</a></li><li><a class="tocitem" href="../../../performance/">Performance</a></li><li><a class="tocitem" href="../../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../../reference-trixibase/">TrixiBase.jl</a></li><li><a class="tocitem" href="../../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../../changelog/">Changelog</a></li><li><a class="tocitem" href="../../../authors/">Authors</a></li><li><a class="tocitem" href="../../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../../code_of_conduct/">Code of Conduct</a></li><li><a class="tocitem" href="../../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">1 First steps in Trixi.jl</a></li><li class="is-active"><a href>1.1 Getting started</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>1.1 Getting started</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl/blob/main/docs/literate/src/files/first_steps/getting_started.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="getting_started"><a class="docs-heading-anchor" href="#getting_started">1.1: First steps in Trixi.jl: Getting started</a><a id="getting_started-1"></a><a class="docs-heading-anchor-permalink" href="#getting_started" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=tutorials/notebooks/first_steps/getting_started.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/tutorials/notebooks/first_steps/getting_started.ipynb"><img src="https://img.shields.io/badge/render-nbviewer-f37726" alt/></a> <a href="https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/tutorials/notebooks/first_steps/getting_started.ipynb"><img src="https://img.shields.io/badge/raw-notebook-4cc61e" alt/></a></p><p>Trixi.jl is a numerical simulation framework for conservation laws and is written in the <a href="https://julialang.org/">Julia programming language</a>. This tutorial is intended for beginners in Julia and Trixi.jl. After reading it, you will know how to install Julia and Trixi.jl on your computer, and you will be able to download setup files from our GitHub repository, modify them, and run simulations.</p><p>The contents of this tutorial:</p><ul><li><a href="#Julia-installation">Julia installation</a></li><li><a href="#Trixi.jl-installation">Trixi.jl installation</a></li><li><a href="#Running-a-simulation">Running a simulation</a></li><li><a href="#Getting-an-existing-setup-file">Getting an existing setup file</a></li><li><a href="#Modifying-an-existing-setup">Modifying an existing setup</a></li></ul><h2 id="Julia-installation"><a class="docs-heading-anchor" href="#Julia-installation">Julia installation</a><a id="Julia-installation-1"></a><a class="docs-heading-anchor-permalink" href="#Julia-installation" title="Permalink"></a></h2><p>Trixi.jl is compatible with the latest stable release of Julia. Additional details regarding Julia support can be found in the <a href="https://github.com/trixi-framework/Trixi.jl#installation"><code>README.md</code></a> file. After installation, the current default Julia version can be managed through the command line tool <code>juliaup</code>. You may follow our concise installation guidelines for Windows, Linux, and MacOS provided below. In the event of any issues during the installation process, please consult the official <a href="https://julialang.org/downloads/">Julia installation instruction</a>.</p><h3 id="Windows"><a class="docs-heading-anchor" href="#Windows">Windows</a><a id="Windows-1"></a><a class="docs-heading-anchor-permalink" href="#Windows" title="Permalink"></a></h3><ul><li>Open a terminal by pressing <code>Win+r</code> and entering <code>cmd</code> in the opened window.</li><li>To install Julia, execute the following command in the terminal:<pre><code class="language-shell hljs">winget install julia -s msstore</code></pre>Note: For this installation an MS Store account is necessary to proceed.</li><li>Verify the successful installation of Julia by executing the following command in the terminal:<pre><code class="language-shell hljs">julia</code></pre>To exit Julia, execute <code>exit()</code> or press <code>Ctrl+d</code>.</li></ul><h3 id="Linux-and-MacOS"><a class="docs-heading-anchor" href="#Linux-and-MacOS">Linux and MacOS</a><a id="Linux-and-MacOS-1"></a><a class="docs-heading-anchor-permalink" href="#Linux-and-MacOS" title="Permalink"></a></h3><ul><li>To install Julia, run the following command in a terminal:<pre><code class="language-shell hljs">curl -fsSL https://install.julialang.org | sh</code></pre>Follow the instructions displayed in the terminal during the installation process.</li><li>If an error occurs during the execution of the previous command, you may need to install <code>curl</code>. On Ubuntu-type systems, you can use the following command:<pre><code class="language-shell hljs">sudo apt install curl</code></pre>After installing <code>curl</code>, repeat the first step once more to proceed with Julia installation.</li><li>Verify the successful installation of Julia by executing the following command in the terminal:<pre><code class="language-shell hljs">julia</code></pre>To exit Julia, execute <code>exit()</code> or press <code>Ctrl+d</code>.</li></ul><h2 id="Trixi.jl-installation"><a class="docs-heading-anchor" href="#Trixi.jl-installation">Trixi.jl installation</a><a id="Trixi.jl-installation-1"></a><a class="docs-heading-anchor-permalink" href="#Trixi.jl-installation" title="Permalink"></a></h2><p>Trixi.jl and its related tools are registered Julia packages, thus their installation happens inside Julia. For a smooth workflow experience with Trixi.jl, you need to install <a href="https://github.com/trixi-framework/Trixi.jl">Trixi.jl</a>, <a href="https://github.com/SciML/OrdinaryDiffEq.jl">OrdinaryDiffEq.jl</a>, and <a href="https://github.com/JuliaPlots/Plots.jl">Plots.jl</a>.</p><ul><li>Open a terminal and start Julia.</li><li>Execute the following commands to install all mentioned packages. Please note that the installation process involves downloading and precompiling the source code, which may take some time depending on your machine.<pre><code class="language-julia hljs">import Pkg
+Pkg.add([&quot;OrdinaryDiffEq&quot;, &quot;Plots&quot;, &quot;Trixi&quot;])</code></pre></li><li>On Windows, the firewall may request permission to install packages.</li></ul><p>Besides Trixi.jl you have now installed two additional packages: <a href="https://github.com/SciML/OrdinaryDiffEq.jl">OrdinaryDiffEq.jl</a> provides time integration schemes used by Trixi.jl and <a href="https://github.com/JuliaPlots/Plots.jl">Plots.jl</a> can be used to directly visualize Trixi.jl results from the Julia REPL.</p><h2 id="Usage"><a class="docs-heading-anchor" href="#Usage">Usage</a><a id="Usage-1"></a><a class="docs-heading-anchor-permalink" href="#Usage" title="Permalink"></a></h2><h3 id="Running-a-simulation"><a class="docs-heading-anchor" href="#Running-a-simulation">Running a simulation</a><a id="Running-a-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Running-a-simulation" title="Permalink"></a></h3><p>To get you started, Trixi.jl has a large set of <a href="https://github.com/trixi-framework/Trixi.jl/tree/main/examples">example setups</a>, that can be taken as a basis for your future investigations. In Trixi.jl, we call these setup files &quot;elixirs&quot;, since they contain Julia code that takes parts of Trixi.jl and combines them into something new.</p><p>Any of the examples can be executed using the <a href="../../../reference-trixibase/#TrixiBase.trixi_include-Tuple{Module, AbstractString}"><code>trixi_include</code></a> function. <code>trixi_include(...)</code> expects a single string argument with a path to a file containing Julia code. For convenience, the <a href="../../../reference-trixi/#Trixi.examples_dir-Tuple{}"><code>examples_dir</code></a> function returns a path to the <a href="https://github.com/trixi-framework/Trixi.jl/tree/main/examples"><code>examples</code></a> folder, which has been locally downloaded while installing Trixi.jl. <code>joinpath(...)</code> can be used to join path components into a full path.</p><p>Let&#39;s execute a short two-dimensional problem setup. It approximates the solution of the compressible Euler equations in 2D for an ideal gas (<a href="../../../reference-trixi/#Trixi.CompressibleEulerEquations2D"><code>CompressibleEulerEquations2D</code></a>) with a weak blast wave as the initial condition and periodic boundary conditions.</p><p>The compressible Euler equations in two spatial dimensions are given by</p><p class="math-container">\[\frac{\partial}{\partial t}
+\begin{pmatrix}
+\rho \\ \rho v_1 \\ \rho v_2 \\ \rho e
+\end{pmatrix}
++
+\frac{\partial}{\partial x}
+\begin{pmatrix}
+\rho v_1 \\ \rho v_1^2 + p \\ \rho v_1 v_2 \\ (\rho e + p) v_1
+\end{pmatrix}
++
+\frac{\partial}{\partial y}
+\begin{pmatrix}
+\rho v_2 \\ \rho v_1 v_2 \\ \rho v_2^2 + p \\ (\rho e + p) v_2
+\end{pmatrix}
+=
+\begin{pmatrix}
+0 \\ 0 \\ 0 \\ 0
+\end{pmatrix},\]</p><p>for an ideal gas with the specific heat ratio <span>$\gamma$</span>. Here, <span>$\rho$</span> is the density, <span>$v_1$</span> and <span>$v_2$</span> are the velocities, <span>$e$</span> is the specific total energy, and</p><p class="math-container">\[p = (\gamma - 1) \left( \rho e - \frac{1}{2} \rho (v_1^2 + v_2^2) \right)\]</p><p>is the pressure.</p><p>The <a href="../../../reference-trixi/#Trixi.initial_condition_weak_blast_wave-Tuple{Any, Any, CompressibleEulerEquations1D}"><code>initial_condition_weak_blast_wave</code></a> is specified in <a href="https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/compressible_euler_2d.jl"><code>compressible_euler_2d.jl</code></a></p><p>Start Julia in a terminal and execute the following code:</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq
+trixi_include(joinpath(examples_dir(), &quot;tree_2d_dgsem&quot;, &quot;elixir_euler_ec.jl&quot;))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr36"><span class="sgr1">[ Info: </span></span>You just called `trixi_include`. Julia may now compile the code, please be patient.
+
+████████╗██████╗ ██╗██╗  ██╗██╗
+╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
+   ██║   ██████╔╝██║ ╚███╔╝ ██║
+   ██║   ██╔══██╗██║ ██╔██╗ ██║
+   ██║   ██║  ██║██║██╔╝ ██╗██║
+   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SemidiscretizationHyperbolic                                                                     │
+│ ════════════════════════════                                                                     │
+│ #spatial dimensions: ………………………… 2                                                                │
+│ mesh: ………………………………………………………………… TreeMesh{2, Trixi.SerialTree{2}} with length 1365                │
+│ equations: …………………………………………………… CompressibleEulerEquations2D                                     │
+│ initial condition: ……………………………… initial_condition_weak_blast_wave                                │
+│ boundary conditions: ………………………… Trixi.BoundaryConditionPeriodic                                  │
+│ source terms: …………………………………………… nothing                                                          │
+│ solver: …………………………………………………………… DG                                                               │
+│ total #DOFs per field: …………………… 16384                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ TreeMesh{2, Trixi.SerialTree{2}}                                                                 │
+│ ════════════════════════════════                                                                 │
+│ center: …………………………………………………………… [0.0, 0.0]                                                       │
+│ length: …………………………………………………………… 4.0                                                              │
+│ periodicity: ……………………………………………… (true, true)                                                     │
+│ current #cells: ……………………………………… 1365                                                             │
+│ #leaf-cells: ……………………………………………… 1024                                                             │
+│ maximum #cells: ……………………………………… 10000                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CompressibleEulerEquations2D                                                                     │
+│ ════════════════════════════                                                                     │
+│ #variables: ………………………………………………… 4                                                                │
+│ │ variable 1: …………………………………………… rho                                                              │
+│ │ variable 2: …………………………………………… rho_v1                                                           │
+│ │ variable 3: …………………………………………… rho_v2                                                           │
+│ │ variable 4: …………………………………………… rho_e                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DG{Float64}                                                                                      │
+│ ═══════════                                                                                      │
+│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
+│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
+│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
+│ │ surface flux: ……………………………………… flux_ranocha                                                     │
+│ volume integral: …………………………………… VolumeIntegralFluxDifferencing                                   │
+│ │ volume flux: ………………………………………… flux_ranocha                                                     │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ AnalysisCallback                                                                                 │
+│ ════════════════                                                                                 │
+│ interval: ……………………………………………………… 100                                                              │
+│ analyzer: ……………………………………………………… LobattoLegendreAnalyzer{Float64}(polydeg=6)                      │
+│ │ error 1: …………………………………………………… l2_error                                                         │
+│ │ error 2: …………………………………………………… linf_error                                                       │
+│ │ integral 1: …………………………………………… entropy_timederivative                                           │
+│ save analysis to file: …………………… no                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ AliveCallback                                                                                    │
+│ ═════════════                                                                                    │
+│ interval: ……………………………………………………… 10                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SaveSolutionCallback                                                                             │
+│ ════════════════════                                                                             │
+│ interval: ……………………………………………………… 100                                                              │
+│ solution variables: …………………………… cons2prim                                                        │
+│ save initial solution: …………………… yes                                                              │
+│ save final solution: ………………………… yes                                                              │
+│ output directory: ………………………………… /home/runner/work/Trixi.jl/Trixi…build/tutorials/first_steps/out │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ StepsizeCallback                                                                                 │
+│ ════════════════                                                                                 │
+│ CFL number: ………………………………………………… 1.0                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Time integration                                                                                 │
+│ ════════════════                                                                                 │
+│ Start time: ………………………………………………… 0.0                                                              │
+│ Final time: ………………………………………………… 0.4                                                              │
+│ time integrator: …………………………………… CarpenterKennedy2N54                                             │
+│ adaptive: ……………………………………………………… false                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Environment information                                                                          │
+│ ═══════════════════════                                                                          │
+│ #threads: ……………………………………………………… 1                                                                │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                  0                run time:       9.72000000e-07 s
+ Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
+                                               PID:                   Inf s
+ #DOFs per field:         16384                alloc&#39;d memory:       1834.303 MiB
+ #elements:                1024
+
+ Variable:       rho              rho_v1           rho_v2           rho_e
+ L2 error:       6.25621384e-03   5.88786362e-03   5.81457821e-03   2.34267393e-02
+ Linf error:     1.06470791e-01   2.46283676e-01   1.37585923e-01   3.98685775e-01
+ ∑∂S/∂U ⋅ Uₜ :  -6.42679631e-18
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+#timesteps:     10 │ Δt: 1.0797e-02 │ sim. time: 1.0745e-01 (26.862%)  │ run time: 9.2036e-02 s
+#timesteps:     20 │ Δt: 1.1033e-02 │ sim. time: 2.1692e-01 (54.229%)  │ run time: 1.6711e-01 s
+#timesteps:     30 │ Δt: 1.1481e-02 │ sim. time: 3.3075e-01 (82.688%)  │ run time: 2.4371e-01 s
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                 37                run time:       3.02810798e-01 s
+ Δt:             4.74704430e-04                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  8.69137586e-08 s
+                                               PID:            9.79257435e-08 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1841.178 MiB
+ #elements:                1024
+
+ Variable:       rho              rho_v1           rho_v2           rho_e
+ L2 error:       6.17517156e-02   5.01822362e-02   5.01898945e-02   2.25871560e-01
+ Linf error:     2.93475829e-01   3.10812492e-01   3.10738039e-01   1.05403580e+00
+ ∑∂S/∂U ⋅ Uₜ :   1.39986675e-18
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Trixi.jl simulation finished.  Final time: 0.4  Time steps: 37 (accepted), 37 (total)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+<span class="sgr1"> ────────────────────────────────────────────────────────────────────────────────</span>
+<span class="sgr1">            Trixi.jl           </span>         Time                    Allocations
+                               ───────────────────────   ────────────────────────
+       Tot / % measured:            310ms /  91.0%           14.8MiB /  83.5%
+
+ Section               ncalls     time    %tot     avg     alloc    %tot      avg
+ ────────────────────────────────────────────────────────────────────────────────
+ rhs!                     186    265ms   93.9%  1.42ms   9.33KiB    0.1%    51.4B
+   volume integral        186    196ms   69.5%  1.05ms     0.00B    0.0%    0.00B
+   interface flux         186   38.7ms   13.7%   208μs     0.00B    0.0%    0.00B
+   prolong2interfaces     186   14.0ms    5.0%  75.2μs     0.00B    0.0%    0.00B
+   surface integral       186   11.7ms    4.1%  62.7μs     0.00B    0.0%    0.00B
+   reset ∂u/∂t            186   2.12ms    0.8%  11.4μs     0.00B    0.0%    0.00B
+   Jacobian               186   2.01ms    0.7%  10.8μs     0.00B    0.0%    0.00B
+   ~rhs!~                 186    332μs    0.1%  1.78μs   9.33KiB    0.1%    51.4B
+   prolong2boundaries     186   14.8μs    0.0%  79.4ns     0.00B    0.0%    0.00B
+   prolong2mortars        186   11.5μs    0.0%  61.8ns     0.00B    0.0%    0.00B
+   mortar flux            186   8.57μs    0.0%  46.1ns     0.00B    0.0%    0.00B
+   boundary flux          186   6.00μs    0.0%  32.3ns     0.00B    0.0%    0.00B
+   source terms           186   5.74μs    0.0%  30.9ns     0.00B    0.0%    0.00B
+ analyze solution           2   9.05ms    3.2%  4.52ms   9.24MiB   74.8%  4.62MiB
+ I/O                        3   4.54ms    1.6%  1.51ms   3.10MiB   25.1%  1.03MiB
+   save solution            2   3.28ms    1.2%  1.64ms   3.02MiB   24.5%  1.51MiB
+   ~I/O~                    3   1.26ms    0.4%   421μs   84.9KiB    0.7%  28.3KiB
+   get element vari...      2    691ns    0.0%   346ns     0.00B    0.0%    0.00B
+   save mesh                2    321ns    0.0%   160ns     0.00B    0.0%    0.00B
+   get node variables       2    151ns    0.0%  75.5ns     0.00B    0.0%    0.00B
+ calculate dt              38   3.62ms    1.3%  95.3μs     0.00B    0.0%    0.00B
+<span class="sgr1"> ────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>The output contains a recap of the setup and various information about the course of the simulation. For instance, the solution was approximated over the <a href="../../../reference-trixi/#Trixi.TreeMesh"><code>TreeMesh</code></a> with 1024 effective cells using the <code>CarpenterKennedy2N54</code> ODE solver. Further details about the ODE solver can be found in the <a href="https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods">documentation of OrdinaryDiffEq.jl</a></p><p>To analyze the result of the computation, we can use the Plots.jl package and the function <code>plot(...)</code>, which creates a graphical representation of the solution. <code>sol</code> is a variable defined in the executed example and it contains the solution after the simulation finishes. <code>sol.u</code> holds the vector of values at each saved timestep, while <code>sol.t</code> holds the corresponding times for each saved timestep. In this instance, only two timesteps were saved: the initial and final ones. The plot depicts the distribution of the weak blast wave at the final moment of time, showing the density, velocities, and pressure of the ideal gas across a 2D domain.</p><pre><code class="language-julia hljs">using Plots
+plot(sol)</code></pre><img src="a2891690.svg" alt="Example block output"/><h3 id="Getting-an-existing-setup-file"><a class="docs-heading-anchor" href="#Getting-an-existing-setup-file">Getting an existing setup file</a><a id="Getting-an-existing-setup-file-1"></a><a class="docs-heading-anchor-permalink" href="#Getting-an-existing-setup-file" title="Permalink"></a></h3><p>To obtain a list of all Trixi.jl elixirs execute <a href="../../../reference-trixi/#Trixi.get_examples-Tuple{}"><code>get_examples</code></a>. It returns the paths to all example setups.</p><pre><code class="language-julia hljs">get_examples()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">394-element Vector{String}:
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 23 bytes ⋯ </span></span>&quot;d/elixir_advection_gauss_sbp.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 33 bytes ⋯ </span></span>&quot;urgers_gauss_shock_capturing.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 24 bytes ⋯ </span></span>&quot;/elixir_euler_fdsbp_periodic.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 19 bytes ⋯ </span></span>&quot;ti_1d/elixir_euler_flux_diff.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 18 bytes ⋯ </span></span>&quot;lti_1d/elixir_euler_quasi_1d.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 26 bytes ⋯ </span></span>&quot;lixir_shallow_water_quasi_1d.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 23 bytes ⋯ </span></span>&quot;d/elixir_advection_diffusion.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 35 bytes ⋯ </span></span>&quot;ection_diffusion_nonperiodic.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 32 bytes ⋯ </span></span>&quot;advection_diffusion_periodic.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 18 bytes ⋯ </span></span>&quot;lti_2d/elixir_euler_bilinear.jl&quot;
+ ⋮
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 45 bytes ⋯ </span></span>&quot;allowwater_ec_shockcapturing.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 40 bytes ⋯ </span></span>&quot;ir_shallowwater_source_terms.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 50 bytes ⋯ </span></span>&quot;water_wall_bc_shockcapturing.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 41 bytes ⋯ </span></span>&quot;r_shallowwater_well_balanced.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 30 bytes ⋯ </span></span>&quot;fdsbp/elixir_advection_basic.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 32 bytes ⋯ </span></span>&quot;sbp/elixir_euler_free_stream.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 39 bytes ⋯ </span></span>&quot;xir_euler_free_stream_upwind.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 33 bytes ⋯ </span></span>&quot;bp/elixir_euler_source_terms.jl&quot;
+ &quot;/home/runner/work/Trixi.jl/Trix&quot;<span class="sgr93"><span class="sgr1"> ⋯ 40 bytes ⋯ </span></span>&quot;ir_euler_source_terms_upwind.jl&quot;</code></pre><p>Editing an existing elixir is the best way to start your first own investigation using Trixi.jl.</p><p>To edit an existing elixir, you first have to find a suitable one and then copy it to a local folder. Let&#39;s have a look at how to download the <code>elixir_euler_ec.jl</code> elixir used in the previous section from the <a href="https://github.com/trixi-framework/Trixi.jl">Trixi.jl GitHub repository</a>.</p><ul><li>All examples are located inside the <a href="https://github.com/trixi-framework/Trixi.jl/tree/main/examples"><code>examples</code></a> folder.</li><li>Navigate to the file <a href="https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_ec.jl"><code>elixir_euler_ec.jl</code></a>.</li><li>Right-click the <code>Raw</code> button on the right side of the webpage and choose <code>Save as...</code> (or <code>Save Link As...</code>).</li><li>Choose a folder and save the file.</li></ul><h3 id="Modifying-an-existing-setup"><a class="docs-heading-anchor" href="#Modifying-an-existing-setup">Modifying an existing setup</a><a id="Modifying-an-existing-setup-1"></a><a class="docs-heading-anchor-permalink" href="#Modifying-an-existing-setup" title="Permalink"></a></h3><p>As an example, we will change the initial condition for calculations that occur in <code>elixir_euler_ec.jl</code>. Initial conditions for <a href="../../../reference-trixi/#Trixi.CompressibleEulerEquations2D"><code>CompressibleEulerEquations2D</code></a> consist of initial values for <span>$\rho$</span>, <span>$\rho v_1$</span>, <span>$\rho v_2$</span> and <span>$\rho e$</span>. One of the common initial conditions for the compressible Euler equations is a simple density wave. Let&#39;s implement it.</p><ul><li>Open the downloaded file <code>elixir_euler_ec.jl</code> with a text editor.</li><li>Go to the line with the following code:<pre><code class="language-julia hljs">initial_condition = initial_condition_weak_blast_wave</code></pre>Here, <a href="../../../reference-trixi/#Trixi.initial_condition_weak_blast_wave-Tuple{Any, Any, CompressibleEulerEquations1D}"><code>initial_condition_weak_blast_wave</code></a> is used as the initial condition.</li><li>Comment out the line using the <code>#</code> symbol:<pre><code class="language-julia hljs"># initial_condition = initial_condition_weak_blast_wave</code></pre></li><li>Now you can create your own initial conditions. Add the following code after the commented line:</li></ul><pre><code class="language-julia hljs">function initial_condition_density_waves(x, t, equations::CompressibleEulerEquations2D)
+    v1 = 0.1 # velocity along x-axis
+    v2 = 0.2 # velocity along y-axis
+    rho = 1.0 + 0.98 * sinpi(sum(x) - t * (v1 + v2)) # density wave profile
+    p = 20 # pressure
+    rho_e = p / (equations.gamma - 1) + 1/2 * rho * (v1^2 + v2^2)
+    return SVector(rho, rho*v1, rho*v2, rho_e)
+end
+initial_condition = initial_condition_density_waves</code></pre><ul><li>Execute the following code one more time, but instead of <code>path/to/file</code> paste the path to the <code>elixir_euler_ec.jl</code> file that you just edited.<pre><code class="language-julia hljs">using Trixi
+trixi_include(path/to/file)
+using Plots
+plot(sol)</code></pre></li></ul><p>Then you will obtain a new solution from running the simulation with a different initial condition.</p><img src="65ac9768.svg" alt="Example block output"/><p>To get exactly the same picture execute the following.</p><pre><code class="language-julia hljs">pd = PlotData2D(sol)
+p1 = plot(pd[&quot;rho&quot;])
+p2 = plot(pd[&quot;v1&quot;], clim=(0.05, 0.15))
+p3 = plot(pd[&quot;v2&quot;], clim=(0.15, 0.25))
+p4 = plot(pd[&quot;p&quot;], clim=(10, 30))
+plot(p1, p2, p3, p4)</code></pre><p>Feel free to make further changes to the initial condition to observe different solutions.</p><p>Now you are able to download, modify and execute simulation setups for Trixi.jl. To explore further details on setting up a new simulation with Trixi.jl, refer to the second part of the introduction titled <a href="../create_first_setup/#create_first_setup">Create your first setup</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../introduction/">« Introduction</a><a class="docs-footer-nextpage" href="../create_first_setup/">1.2 Create your first setup »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Monday 13 May 2024 13:59">Monday 13 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

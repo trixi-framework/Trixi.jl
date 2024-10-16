@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>12 Adding a non-conservative equation · Trixi.jl</title><meta name="title" content="12 Adding a non-conservative equation · Trixi.jl"/><meta property="og:title" content="12 Adding a non-conservative equation · Trixi.jl"/><meta property="twitter:title" content="12 Adding a non-conservative equation · Trixi.jl"/><meta name="description" content="Documentation for Trixi.jl."/><meta property="og:description" content="Documentation for Trixi.jl."/><meta property="twitter:description" content="Documentation for Trixi.jl."/><meta property="og:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_nonconservative_equation/"/><meta property="twitter:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_nonconservative_equation/"/><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/adding_nonconservative_equation/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Trixi.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../overview/">Overview</a></li><li><a class="tocitem" href="../../visualization/">Visualization</a></li><li><a class="tocitem" href="../../restart/">Restart simulation</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../introduction/">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox"/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">1 First steps in Trixi.jl</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../first_steps/getting_started/">1.1 Getting started</a></li><li><a class="tocitem" href="../first_steps/create_first_setup/">1.2 Create your first setup</a></li><li><a class="tocitem" href="../first_steps/changing_trixi/">1.3 Changing Trixi.jl itself</a></li></ul></li><li><a class="tocitem" href="../behind_the_scenes_simulation_setup/">2 Behind the scenes of a simulation setup</a></li><li><a class="tocitem" href="../scalar_linear_advection_1d/">3 Introduction to DG methods</a></li><li><a class="tocitem" href="../DGSEM_FluxDiff/">4 DGSEM with flux differencing</a></li><li><a class="tocitem" href="../shock_capturing/">5 Shock capturing with flux differencing and stage limiter</a></li><li><a class="tocitem" href="../subcell_shock_capturing/">6 Subcell limiting with the IDP Limiter</a></li><li><a class="tocitem" href="../non_periodic_boundaries/">7 Non-periodic boundaries</a></li><li><a class="tocitem" href="../DGMulti_1/">8 DG schemes via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../upwind_fdsbp/">10 Upwind FD SBP schemes</a></li><li><a class="tocitem" href="../adding_new_scalar_equations/">11 Adding a new scalar conservation law</a></li><li class="is-active"><a class="tocitem" href>12 Adding a non-conservative equation</a><ul class="internal"><li><a class="tocitem" href="#Basic-setup"><span>Basic setup</span></a></li><li><a class="tocitem" href="#Summary-of-the-code"><span>Summary of the code</span></a></li><li><a class="tocitem" href="#Package-versions"><span>Package versions</span></a></li></ul></li><li><a class="tocitem" href="../parabolic_terms/">13 Parabolic terms</a></li><li><a class="tocitem" href="../adding_new_parabolic_terms/">14 Adding new parabolic terms</a></li><li><a class="tocitem" href="../adaptive_mesh_refinement/">15 Adaptive mesh refinement</a></li><li><a class="tocitem" href="../structured_mesh_mapping/">16 Structured mesh with curvilinear mapping</a></li><li><a class="tocitem" href="../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl</a></li><li><a class="tocitem" href="../p4est_from_gmsh/">18 P4est mesh from gmsh</a></li><li><a class="tocitem" href="../time_stepping/">19 Explicit time stepping</a></li><li><a class="tocitem" href="../differentiable_programming/">20 Differentiable programming</a></li><li><a class="tocitem" href="../custom_semidiscretization/">21 Custom semidiscretizations</a></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox"/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li><li><a class="tocitem" href="../../meshes/p4est_mesh/">P4est-based mesh</a></li><li><a class="tocitem" href="../../meshes/dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../../multi-physics_coupling/">Coupling</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../development/">Development</a></li><li><a class="tocitem" href="../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../testing/">Testing</a></li><li><a class="tocitem" href="../../performance/">Performance</a></li><li><a class="tocitem" href="../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../reference-trixibase/">TrixiBase.jl</a></li><li><a class="tocitem" href="../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../changelog/">Changelog</a></li><li><a class="tocitem" href="../../authors/">Authors</a></li><li><a class="tocitem" href="../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../code_of_conduct/">Code of Conduct</a></li><li><a class="tocitem" href="../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>12 Adding a non-conservative equation</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>12 Adding a non-conservative equation</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl/blob/main/docs/literate/src/files/adding_nonconservative_equation.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="adding_nonconservative_equation"><a class="docs-heading-anchor" href="#adding_nonconservative_equation">12: Adding a non-conservative equation</a><a id="adding_nonconservative_equation-1"></a><a class="docs-heading-anchor-permalink" href="#adding_nonconservative_equation" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=tutorials/notebooks/adding_nonconservative_equation.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/tutorials/notebooks/adding_nonconservative_equation.ipynb"><img src="https://img.shields.io/badge/render-nbviewer-f37726" alt/></a> <a href="https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/tutorials/notebooks/adding_nonconservative_equation.ipynb"><img src="https://img.shields.io/badge/raw-notebook-4cc61e" alt/></a></p><p>If you want to use Trixi.jl for your own research, you might be interested in a new physics model that is not present in Trixi.jl. In this tutorial, we will implement the nonconservative linear advection equation in a periodic domain</p><p class="math-container">\[\left\{
+\begin{aligned}&amp;\partial_t u(t,x) + a(x) \partial_x u(t,x) = 0 \\
+&amp;u(0,x)=\sin(x) \\
+&amp;u(t,-\pi)=u(t,\pi)
+\end{aligned}
+\right.\]</p><p>where <span>$a(x) = 2 + \cos(x)$</span>. The analytic solution is</p><p class="math-container">\[u(t,x)=-\sin \left(2 \tan ^{-1}\left(\sqrt{3} \tan \left(\frac{\sqrt{3} t}{2}-\tan ^{-1}\left(\frac{1}{\sqrt{3}}\tan \left(\frac{x}{2}\right)\right)\right)\right)\right)\]</p><p>In Trixi.jl, such a mathematical model is encoded as a subtype of <a href="../../reference-trixi/#Trixi.AbstractEquations"><code>Trixi.AbstractEquations</code></a>.</p><h2 id="Basic-setup"><a class="docs-heading-anchor" href="#Basic-setup">Basic setup</a><a id="Basic-setup-1"></a><a class="docs-heading-anchor-permalink" href="#Basic-setup" title="Permalink"></a></h2><p>Since there is no native support for variable coefficients, we need to transform the PDE to the following system:</p><p class="math-container">\[\left\{
+\begin{aligned}&amp;\partial_t \begin{pmatrix}u(t,x)\\a(t,x) \end{pmatrix} +\begin{pmatrix} a(t,x) \partial_x u(t,x) \\ 0 \end{pmatrix} = 0 \\
+&amp;u(0,x)=\sin(x) \\
+&amp;a(0,x)=2+\cos(x) \\
+&amp;u(t,-\pi)=u(t,\pi)
+\end{aligned}
+\right.\]</p><pre><code class="language-julia hljs"># Define new physics
+using Trixi
+using Trixi: AbstractEquations, get_node_vars
+import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
+              have_nonconservative_terms
+
+# Since there is no native support for variable coefficients, we use two
+# variables: one for the basic unknown `u` and another one for the coefficient `a`
+struct NonconservativeLinearAdvectionEquation &lt;: AbstractEquations{1 #= spatial dimension =#,
+                                                                   2 #= two variables (u,a) =#}
+end
+
+varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = (&quot;scalar&quot;, &quot;advection_velocity&quot;)
+
+default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
+
+
+# The conservative part of the flux is zero
+flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
+    _, advection_velocity_ll = u_ll
+    _, advection_velocity_rr = u_rr
+
+    return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
+end
+
+
+# We use nonconservative terms
+have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
+
+# This &quot;nonconservative numerical flux&quot; implements the nonconservative terms.
+# In general, nonconservative terms can be written in the form
+#   g(u) ∂ₓ h(u)
+# Thus, a discrete difference approximation of this nonconservative term needs
+# - `u mine`:  the value of `u` at the current position (for g(u))
+# - `u_other`: the values of `u` in a neighborhood of the current position (for ∂ₓ h(u))
+function flux_nonconservative(u_mine, u_other, orientation,
+                              equations::NonconservativeLinearAdvectionEquation)
+    _, advection_velocity = u_mine
+    scalar, _             = u_other
+
+    return SVector(advection_velocity * scalar, zero(scalar))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">flux_nonconservative (generic function with 1 method)</code></pre><p>The implementation of nonconservative terms uses a single &quot;nonconservative flux&quot; function <code>flux_nonconservative</code>. It will basically be applied in a loop of the form</p><pre><code class="language-julia hljs">du_m(D, u) = sum(D[m, l] * flux_nonconservative(u[m], u[l], 1, equations)) # orientation 1: x</code></pre><p>where <code>D</code> is the derivative matrix and <code>u</code> contains the nodal solution values.</p><p>Now, we can run a simple simulation using a DGSEM discretization.</p><pre><code class="language-julia hljs"># Create a simulation setup
+using Trixi
+using OrdinaryDiffEq
+
+equation = NonconservativeLinearAdvectionEquation()
+
+# You can derive the exact solution for this setup using the method of
+# characteristics
+function initial_condition_sine(x, t, equation::NonconservativeLinearAdvectionEquation)
+    x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
+    scalar = sin(x0)
+    advection_velocity = 2 + cos(x[1])
+    SVector(scalar, advection_velocity)
+end
+
+# Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
+mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
+                initial_refinement_level=4, n_cells_max=10^4)
+
+# Create a DGSEM solver with polynomials of degree `polydeg`
+# Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
+# as `surface_flux` and `volume_flux` when working with nonconservative terms
+volume_flux  = (flux_central, flux_nonconservative)
+surface_flux = (flux_lax_friedrichs, flux_nonconservative)
+solver = DGSEM(polydeg=3, surface_flux=surface_flux,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+
+# Setup the spatial semidiscretization containing all ingredients
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+
+# Create an ODE problem with given time span
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan)
+
+# Set up some standard callbacks summarizing the simulation setup and computing
+# errors of the numerical solution
+summary_callback = SummaryCallback()
+analysis_callback = AnalysisCallback(semi, interval=50)
+callbacks = CallbackSet(summary_callback, analysis_callback)
+
+# OrdinaryDiffEq&#39;s `solve` method evolves the solution in time and executes
+# the passed callbacks
+sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
+            save_everystep=false, callback=callbacks)
+
+# Print the timer summary
+summary_callback()
+
+# Plot the numerical solution at the final time
+using Plots: plot
+plot(sol)</code></pre><img src="126dbba8.svg" alt="Example block output"/><p>You see a plot of the final solution.</p><p>We can check whether everything fits together by refining the grid and comparing the numerical errors. First, we look at the error using the grid resolution above.</p><pre><code class="language-julia hljs">error_1 = analysis_callback(sol).l2 |&gt; first</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.00029609575838976756</code></pre><p>Next, we increase the grid resolution by one refinement level and run the simulation again.</p><pre><code class="language-julia hljs">mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
+                initial_refinement_level=5, n_cells_max=10^4)
+
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan);
+
+summary_callback = SummaryCallback()
+analysis_callback = AnalysisCallback(semi, interval=50)
+callbacks = CallbackSet(summary_callback, analysis_callback);
+
+sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
+            save_everystep=false, callback=callbacks);
+summary_callback()
+
+error_2 = analysis_callback(sol).l2 |&gt; first</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.8602128505947232e-5</code></pre><pre><code class="language-julia hljs">error_1 / error_2</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">15.917305285527064</code></pre><p>As expected, the new error is roughly reduced by a factor of 16, corresponding to an experimental order of convergence of 4 (for polynomials of degree 3).</p><h2 id="Summary-of-the-code"><a class="docs-heading-anchor" href="#Summary-of-the-code">Summary of the code</a><a id="Summary-of-the-code-1"></a><a class="docs-heading-anchor-permalink" href="#Summary-of-the-code" title="Permalink"></a></h2><p>Here is the complete code that we used (without the callbacks since these create a lot of unnecessary output in the doctests of this tutorial). In addition, we create the <code>struct</code> inside the new module <code>NonconservativeLinearAdvection</code>. That ensures that we can re-create <code>struct</code>s defined therein without having to restart Julia.</p><p>Define new physics</p><pre><code class="language-julia hljs">module NonconservativeLinearAdvection
+
+using Trixi
+using Trixi: AbstractEquations, get_node_vars
+import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
+              have_nonconservative_terms
+
+# Since there is not yet native support for variable coefficients, we use two
+# variables: one for the basic unknown `u` and another one for the coefficient `a`
+struct NonconservativeLinearAdvectionEquation &lt;: AbstractEquations{1 #= spatial dimension =#,
+                                                                   2 #= two variables (u,a) =#}
+end
+
+varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = (&quot;scalar&quot;, &quot;advection_velocity&quot;)
+
+default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
+
+
+# The conservative part of the flux is zero
+flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
+
+# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
+function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
+    _, advection_velocity_ll = u_ll
+    _, advection_velocity_rr = u_rr
+
+    return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
+end
+
+
+# We use nonconservative terms
+have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
+
+# This &quot;nonconservative numerical flux&quot; implements the nonconservative terms.
+# In general, nonconservative terms can be written in the form
+#   g(u) ∂ₓ h(u)
+# Thus, a discrete difference approximation of this nonconservative term needs
+# - `u mine`:  the value of `u` at the current position (for g(u))
+# - `u_other`: the values of `u` in a neighborhood of the current position (for ∂ₓ h(u))
+function flux_nonconservative(u_mine, u_other, orientation,
+                              equations::NonconservativeLinearAdvectionEquation)
+    _, advection_velocity = u_mine
+    scalar, _            = u_other
+
+    return SVector(advection_velocity * scalar, zero(scalar))
+end
+
+end # module
+
+
+
+# Create a simulation setup
+import .NonconservativeLinearAdvection
+using Trixi
+using OrdinaryDiffEq
+
+equation = NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation()
+
+# You can derive the exact solution for this setup using the method of
+# characteristics
+function initial_condition_sine(x, t, equation::NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation)
+    x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
+    scalar = sin(x0)
+    advection_velocity = 2 + cos(x[1])
+    SVector(scalar, advection_velocity)
+end
+
+# Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
+mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
+                initial_refinement_level=4, n_cells_max=10^4)
+
+# Create a DGSEM solver with polynomials of degree `polydeg`
+# Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
+# as `surface_flux` and `volume_flux` when working with nonconservative terms
+volume_flux  = (flux_central, NonconservativeLinearAdvection.flux_nonconservative)
+surface_flux = (flux_lax_friedrichs, NonconservativeLinearAdvection.flux_nonconservative)
+solver = DGSEM(polydeg=3, surface_flux=surface_flux,
+               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+
+# Setup the spatial semidiscretization containing all ingredients
+semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
+
+# Create an ODE problem with given time span
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan);
+
+# Set up some standard callbacks summarizing the simulation setup and computing
+# errors of the numerical solution
+summary_callback = SummaryCallback()
+analysis_callback = AnalysisCallback(semi, interval=50)
+callbacks = CallbackSet(summary_callback, analysis_callback);
+
+# OrdinaryDiffEq&#39;s `solve` method evolves the solution in time and executes
+# the passed callbacks
+sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
+            save_everystep=false);
+
+# Plot the numerical solution at the final time
+using Plots: plot
+plot(sol);</code></pre><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEq&quot;, &quot;Plots&quot;],
+           mode=PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.4
+Commit 48d4fd48430 (2024-06-04 10:41 UTC)
+Build Info:
+  Official https://julialang.org/ release
+Platform Info:
+  OS: Linux (x86_64-linux-gnu)
+  CPU: 4 × AMD EPYC 7763 64-Core Processor
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-15.0.7 (ORCJIT, znver3)
+Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)
+Environment:
+  JULIA_PKG_SERVER_REGISTRY_PREFERENCE = eager
+<span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
+<span class="sgr32">⌃</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
+  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.5
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.8.5 `~/work/Trixi.jl/Trixi.jl`
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adding_new_scalar_equations/">« 11 Adding a new scalar conservation law</a><a class="docs-footer-nextpage" href="../parabolic_terms/">13 Parabolic terms »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.5.0 on <span class="colophon-date" title="Wednesday 7 August 2024 14:11">Wednesday 7 August 2024</span>. Using Julia version 1.10.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
