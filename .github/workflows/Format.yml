@@ -1,0 +1,13 @@
+name: Format suggestions
+on:
+  pull_request:
+    # this argument is not required if you don't use the `suggestion-label` input
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+jobs:
+  code-style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: julia-actions/julia-format@v3
+        with:
+          version: "1" # Set `version` to '1.0.54' if you need to use JuliaFormatter.jl v1.0.54 (default: '1')
+          suggestion-label: "format-suggest" # leave this unset or empty to show suggestions for all PRs

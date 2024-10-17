@@ -28,8 +28,9 @@ plot!([-2.22, -2.22], [-4, -22], arrow = false, color = :black, linewidth = 2, l
 
 plot!(Shape([(-0.05, -2), (2.6, -2), (2.6, -4), (-0.05, -4)]), linecolor = "black",
       fillcolor = "white", label = false, linewidth = 2)
-annotate!(1.27, -3, ("digest_boundary_conditions(boundary_conditions,
-                                             mesh, solver, cache)", 10, :black, :center))
+annotate!(1.27, -3,
+          ("digest_boundary_conditions(boundary_conditions,
+                                   mesh, solver, cache)", 10, :black, :center))
 annotate!(2.6, -5, ("if necessary, converts passed boundary_conditions
  into a suitable form for processing by Trixi.jl", 9, :black, :right))
 
