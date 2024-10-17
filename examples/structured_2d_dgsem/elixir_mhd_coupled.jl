@@ -31,14 +31,6 @@ equations = IdealGlmMhdEquations2D(gamma)
 
 cells_per_dimension = (32, 64)
 
-# Extend the definition of the non-conservative Powell flux functions.
-import Trixi.flux_nonconservative_powell
-function flux_nonconservative_powell(u_ll, u_rr,
-                                     normal_direction_ll::AbstractVector,
-                                     equations::IdealGlmMhdEquations2D)
-    flux_nonconservative_powell(u_ll, u_rr, normal_direction_ll, normal_direction_ll,
-                                equations)
-end
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
 solver = DGSEM(polydeg = 3,
                surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),

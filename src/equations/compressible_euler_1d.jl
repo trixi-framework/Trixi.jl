@@ -412,10 +412,10 @@ See also
     return SVector(f1, f2, f3)
 end
 
-# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
-# the normal component is incorporated into the numerical flux. 
-# 
-# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a 
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that
+# the normal component is incorporated into the numerical flux.
+#
+# See `flux(u, normal_direction::AbstractVector, equations::AbstractEquations{1})` for a
 # similar implementation.
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
                               equations::CompressibleEulerEquations1D)
@@ -941,6 +941,12 @@ end
 @inline function density(u, equations::CompressibleEulerEquations1D)
     rho = u[1]
     return rho
+end
+
+@inline function velocity(u, equations::CompressibleEulerEquations1D)
+    rho = u[1]
+    v1 = u[2] / rho
+    return v1
 end
 
 @inline function pressure(u, equations::CompressibleEulerEquations1D)

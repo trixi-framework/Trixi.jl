@@ -196,18 +196,15 @@ end
     flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
                                 equations::IdealGlmMhdEquations2D)
     flux_nonconservative_powell(u_ll, u_rr,
-                                normal_direction_ll     ::AbstractVector,
-                                normal_direction_average::AbstractVector,
+                                normal_direction::AbstractVector,
                                 equations::IdealGlmMhdEquations2D)
 
 Non-symmetric two-point flux discretizing the nonconservative (source) term of
 Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations2D`](@ref).
 
-On curvilinear meshes, this nonconservative flux depends on both the
-contravariant vector (normal direction) at the current node and the averaged
-one. This is different from numerical fluxes used to discretize conservative
-terms.
+On curvilinear meshes, the implementation differs from the reference since we use the averaged 
+normal direction for the metrics dealiasing.
 
 ## References
 - Marvin Bohm, Andrew R.Winters, Gregor J. Gassner, Dominik Derigs,
@@ -254,8 +251,7 @@ terms.
 end
 
 @inline function flux_nonconservative_powell(u_ll, u_rr,
-                                             normal_direction_ll::AbstractVector,
-                                             normal_direction_average::AbstractVector,
+                                             normal_direction::AbstractVector,
                                              equations::IdealGlmMhdEquations2D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
@@ -265,14 +261,9 @@ end
     v3_ll = rho_v3_ll / rho_ll
     v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
 
-    # Note that `v_dot_n_ll` uses the `normal_direction_ll` (contravariant vector
-    # at the same node location) while `B_dot_n_rr` uses the averaged normal
-    # direction. The reason for this is that `v_dot_n_ll` depends only on the left
-    # state and multiplies some gradient while `B_dot_n_rr` is used to compute
-    # the divergence of B.
-    v_dot_n_ll = v1_ll * normal_direction_ll[1] + v2_ll * normal_direction_ll[2]
-    B_dot_n_rr = B1_rr * normal_direction_average[1] +
-                 B2_rr * normal_direction_average[2]
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    B_dot_n_rr = B1_rr * normal_direction[1] +
+                 B2_rr * normal_direction[2]
 
     # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
     # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
@@ -300,8 +291,9 @@ of the [`IdealGlmMhdEquations2D`](@ref).
 
 This implementation uses a non-conservative term that can be written as the product
 of local and symmetric parts. It is equivalent to the non-conservative flux of Bohm
-et al. (`flux_nonconservative_powell`) for conforming meshes but it yields different
-results on non-conforming meshes(!).
+et al. [`flux_nonconservative_powell`](@ref) for conforming meshes but it yields different
+results on non-conforming meshes(!). On curvilinear meshes this formulation applies the
+local normal direction compared to the averaged one used in [`flux_nonconservative_powell`](@ref).
 
 The two other flux functions with the same name return either the local
 or symmetric portion of the non-conservative flux based on the type of the
@@ -1117,6 +1109,20 @@ end
 @inline function density(u, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
     return rho
+end
+
+@inline function velocity(u, equations::IdealGlmMhdEquations2D)
+    rho = u[1]
+    v1 = u[2] / rho
+    v2 = u[3] / rho
+    v3 = u[4] / rho
+    return SVector(v1, v2, v3)
+end
+
+@inline function velocity(u, orientation::Int, equations::IdealGlmMhdEquations2D)
+    rho = u[1]
+    v = u[orientation + 1] / rho
+    return v
 end
 
 @inline function pressure(u, equations::IdealGlmMhdEquations2D)
