@@ -8,8 +8,8 @@
 # to the `DGMulti` constructor. For example, the classical second-order FD SBP operator
 # can be created as
 using Trixi.SummationByPartsOperators # or add SummationByPartsOperators to your project and use it directly
-D = derivative_operator(MattssonNordström2004(), derivative_order=1, accuracy_order=2,
-                        xmin=0.0, xmax=1.0, N=11)
+D = derivative_operator(MattssonNordström2004(), derivative_order = 1, accuracy_order = 2,
+                        xmin = 0.0, xmax = 1.0, N = 11)
 # Here, the arguments `xmin` and `xmax` do not matter beyond setting the real type
 # used for the operator - they just set a reference element and are rescaled on the
 # physical elements. The parameter `N` determines the number of finite difference nodes.
@@ -20,8 +20,8 @@ D = derivative_operator(MattssonNordström2004(), derivative_order=1, accuracy_o
 #
 # You can also use fully periodic single-block FD methods by creating a periodic SBP
 # operator. For example, a fully periodic FD operator can be constructed as
-D = periodic_derivative_operator(derivative_order=1, accuracy_order=2,
-                                 xmin=0.0, xmax=1.0, N=11)
+D = periodic_derivative_operator(derivative_order = 1, accuracy_order = 2,
+                                 xmin = 0.0, xmax = 1.0, N = 11)
 # An example using such an FD method is implemented in
 # [`elixir_euler_fdsbp_periodic.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_fdsbp_periodic.jl).
 # For all parameters and other calling options, please have a look in the
@@ -31,14 +31,13 @@ D = periodic_derivative_operator(derivative_order=1, accuracy_order=2,
 # method with polynomial degree of `3` (`N=4` Legendre Lobatto nodes on `[0, 1]`) coupled continuously
 # on a uniform mesh with `Nx=10` elements by setting `approximation_type` to
 using Trixi.SummationByPartsOperators # or add SummationByPartsOperators to your project and use it directly
-D = couple_continuously(legendre_derivative_operator(xmin=0.0, xmax=1.0, N=4),
-                        UniformPeriodicMesh1D(xmin=-1.0, xmax=1.0, Nx=10))
+D = couple_continuously(legendre_derivative_operator(xmin = 0.0, xmax = 1.0, N = 4),
+                        UniformPeriodicMesh1D(xmin = -1.0, xmax = 1.0, Nx = 10))
 
 # To choose a discontinuous coupling (DGSEM), use `couple_discontinuously()` instead of `couple_continuously()`.
 
 # For more information and other SBP operators, see the documentations of [StartUpDG.jl](https://jlchan.github.io/StartUpDG.jl/dev/)
 # and [SummationByPartsOperators.jl](https://ranocha.de/SummationByPartsOperators.jl/stable/).
-
 
 # ## Package versions
 
@@ -49,4 +48,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "StartUpDG", "SummationByPartsOperators"],
-           mode=PKGMODE_MANIFEST)
+           mode = PKGMODE_MANIFEST)

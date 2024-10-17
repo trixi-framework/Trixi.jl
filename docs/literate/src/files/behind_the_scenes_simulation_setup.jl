@@ -62,7 +62,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # perform the necessary initialization steps. A brief description of the key sub-functions is
 # provided below.
 
-
 # - `init_elements(leaf_cell_ids, mesh, equations, dg.basis, RealT, uEltype)`
 
 #   The fundamental elements for approximating the solution are the leaf
@@ -73,13 +72,11 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   coordinates, and maps the Gauss-Lobatto nodes from the 1D interval ``[-1, 1]`` onto each coordinate axis
 #   of every element.
 
-
 #   ![elements_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/9f486670-b579-4e42-8697-439540c8bbb4)
 
 #   The visualization of elements with nodes shown here includes spaces between elements, which do
 #   not exist in reality. This spacing is included only for illustrative purposes to underscore the
 #   separation of elements and the independent projection of nodes onto each element.
-
 
 # - `init_interfaces(leaf_cell_ids, mesh, elements)`
 
@@ -102,7 +99,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 #   ![interfaces_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/bc3b6b02-afbc-4371-aaf7-c7bdc5a6c540)
 
-
 # - `init_mortars(leaf_cell_ids, mesh, elements, dg.mortar)`
 
 #   Returning to the consideration of different sizes among adjacent elements, within the
@@ -122,7 +118,6 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 #   In our visualization, mortars are represented as branched tubes.
 
 #   ![mortars_example](https://github.com/trixi-framework/Trixi.jl/assets/119304909/43a95a60-3a31-4b1f-8724-14049e7a0481)
-
 
 # - `init_boundaries(leaf_cell_ids, mesh, elements)`
 
@@ -169,7 +164,6 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # The `semidiscretize` function involves a deep tree of subsequent calls, with the primary ones
 # explained below.
 
-
 # - `allocate_coefficients(mesh, equations, solver, cache)`
 
 #   To apply initial conditions, a data structure ("container") needs to be generated to store the
@@ -197,7 +191,6 @@ ode = semidiscretize(semi, (0.0, 1.0));
 #   instances `u` and `u_ode` as needed, so that changes are simultaneously reflected in both.
 #   This is possible because, from a storage perspective, they share the same stored data, while
 #   access to this data is provided in different ways.
-
 
 # - `compute_coefficients!(u, initial_conditions, t, mesh::DG, equations, solver, cache)`
 
