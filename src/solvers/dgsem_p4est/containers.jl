@@ -82,8 +82,8 @@ end
 
 # Create element container and initialize element data
 function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
-				   P4estMeshView{NDIMS, NDIMS, RealT},
-                                   T8codeMesh{NDIMS, RealT}},
+				       P4estMeshView{NDIMS, NDIMS, RealT},
+                                     T8codeMesh{NDIMS, RealT}},
                        equations,
                        basis,
                        ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}
@@ -333,13 +333,7 @@ function init_boundaries(mesh::P4estMeshView, equations, basis, elements)
     return boundaries
 end
 
-function init_boundaries!(boundaries, mesh::P4estMesh)
-    init_surfaces!(nothing, nothing, boundaries, mesh)
-
-    return boundaries
-end
-
-function init_boundaries!(boundaries, mesh::P4estMeshView)
+function init_boundaries!(boundaries, mesh::Union{P4estMesh, P4estMeshView})
     init_surfaces!(nothing, nothing, boundaries, mesh)
 
     return boundaries
