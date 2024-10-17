@@ -158,7 +158,7 @@ end
 ode_source_custom = ODEProblem(rhs_source_custom!,
                                ode.u0,
                                ode.tspan,
-                               ode.p) #= semi =#
+                               ode.p) # semi
 sol_source_custom = solve(ode_source_custom, RDPK3SpFSAL49();
                           ode_default_options()...)
 

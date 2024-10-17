@@ -40,8 +40,8 @@ import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
 
 ## Since there is no native support for variable coefficients, we use two
 ## variables: one for the basic unknown `u` and another one for the coefficient `a`
-struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, #= spatial dimension =#
-                                                                   2} #= two variables (u,a) =#
+struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, # spatial dimension
+                                                                   2} # two variables (u,a)
 end
 
 function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)
@@ -195,8 +195,8 @@ import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
 
 ## Since there is not yet native support for variable coefficients, we use two
 ## variables: one for the basic unknown `u` and another one for the coefficient `a`
-struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, #= spatial dimension =#
-                                                                   2} #= two variables (u,a) =#
+struct NonconservativeLinearAdvectionEquation <: AbstractEquations{1, # spatial dimension
+                                                                   2} # two variables (u,a)
 end
 
 function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)

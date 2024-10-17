@@ -12,8 +12,8 @@
 # ## Basic setup
 using Trixi
 
-struct CubicEquation <: Trixi.AbstractEquations{1, #= number of spatial dimensions =#
-                                                1} #= number of primary variables, i.e. scalar =#
+struct CubicEquation <: Trixi.AbstractEquations{1, # number of spatial dimensions
+                                                1} # number of primary variables, i.e. scalar
 end
 
 # We create `CubicEquation` as an empty `struct` since we do not use any parameters
@@ -44,7 +44,7 @@ mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
                 initial_refinement_level = 4,
                 n_cells_max = 10^4)
 
-solver = DGSEM(3, flux_central) #= polynomial degree =#
+solver = DGSEM(3, flux_central) # set polynomial degree to 3
 
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
 
@@ -104,7 +104,7 @@ plot!(sol)
 ## A larger final time: Nonclassical shocks develop (you can even increase the refinement to 12)
 semi = remake(semi,
               mesh = TreeMesh(-1.0, 1.0, initial_refinement_level = 8, n_cells_max = 10^5))
-ode = semidiscretize(semi, (0.0, 0.5)) #= tspan =#
+ode = semidiscretize(semi, (0.0, 0.5)) # set tspan to (0.0, 0.5)
 sol = solve(ode, SSPRK43(); ode_default_options()...)
 plot(sol)
 
@@ -153,8 +153,8 @@ module CubicConservationLaw
 
 using Trixi
 
-struct CubicEquation <: Trixi.AbstractEquations{1, #= number of spatial dimensions =#
-                                                1} #= number of primary variables, i.e. scalar =#
+struct CubicEquation <: Trixi.AbstractEquations{1, # number of spatial dimensions
+                                                1} # number of primary variables, i.e. scalar
 end
 
 @inline Trixi.flux(u, orientation, equation::CubicEquation) = u .^ 3
@@ -186,7 +186,7 @@ mesh = TreeMesh(-1.0, 1.0, # min/max coordinates
                 initial_refinement_level = 4,
                 n_cells_max = 10^4)
 
-solver = DGSEM(3, flux_central) #= polynomial degree =#
+solver = DGSEM(3, flux_central) # set polynomial degree to 3
 
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
 
