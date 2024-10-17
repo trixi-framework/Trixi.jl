@@ -11,6 +11,7 @@ A view on a p4est mesh.
 mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <: AbstractMesh{NDIMS}
     parent::Parent
     cell_ids::Vector{Int}
+#     unsaved_changes::Bool
 end
 
 function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT}
@@ -21,7 +22,7 @@ function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}) where {ND
         cell_ids[i] = i
     end
 
-    return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids)
+    return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids)#, parent.unsaved_changes)
 end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
