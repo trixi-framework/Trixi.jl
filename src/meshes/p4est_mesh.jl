@@ -107,6 +107,7 @@ end
 @inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
 @inline ndims_ambient(::P4estMesh{NDIMS, NDIMS_AMBIENT}) where {NDIMS, NDIMS_AMBIENT} = NDIMS_AMBIENT
+@inline Base.size(mesh::P4estMesh) = size(mesh.tree_node_coordinates)[end]
 
 @inline function ntrees(mesh::P4estMesh)
     return mesh.p4est.trees.elem_count[]
