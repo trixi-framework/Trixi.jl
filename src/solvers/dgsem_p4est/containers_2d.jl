@@ -26,7 +26,7 @@ end
 
 # Interpolate tree_node_coordinates to each quadrant at the nodes of the specified basis
 function calc_node_coordinates!(node_coordinates,
-                                mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                                 basis::LobattoLegendreBasis)
     # Hanging nodes will cause holes in the mesh if its polydeg is higher
     # than the polydeg of the solver.
