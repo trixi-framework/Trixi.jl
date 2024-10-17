@@ -93,6 +93,11 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+save_solution = SaveSolutionCallback(interval = 100,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+
 amr_indicator = IndicatorLöhner(semi,
                                 variable = density_pressure)
 
@@ -103,7 +108,14 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           dynamic_load_balancing = false)
+# We disable `dynamic_load_balancing` for now, since t8code does not support
+# partitioning for coarsening yet. That is, a complete family of elements always
+# stays on rank and is not split up due to partitioning. Without this feature
+# dynamic AMR simulations are not pefectly deterministic regarding to
+# convergent tests. Once this feature is available in t8code load balancing is
+# enabled again.
 
 cfl = 0.5
 stepsize_callback = StepsizeCallback(cfl = cfl)
@@ -113,6 +125,7 @@ glm_speed_callback = GlmSpeedCallback(glm_scale = 0.5, cfl = cfl)
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
+                        save_solution,
                         amr_callback,
                         stepsize_callback,
                         glm_speed_callback)

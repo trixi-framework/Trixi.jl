@@ -25,8 +25,8 @@ function create_cache(mesh::ParallelT8codeMesh, equations::AbstractEquations, dg
 
     mpi_mesh_info = (mpi_mortars = mpi_mortars,
                      mpi_interfaces = mpi_interfaces,
-                     global_mortar_ids = fill(UInt64(0), nmpimortars(mpi_mortars)),
-                     global_interface_ids = fill(UInt64(0),
+                     global_mortar_ids = fill(UInt128(0), nmpimortars(mpi_mortars)),
+                     global_interface_ids = fill(UInt128(0),
                                                  nmpiinterfaces(mpi_interfaces)),
                      neighbor_ranks_mortar = Vector{Vector{Int}}(undef,
                                                                  nmpimortars(mpi_mortars)),
@@ -75,7 +75,6 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelT8codeMesh,
                                                                                                         nvars,
                                                                                                         nnodes,
                                                                                                         uEltype)
-
     n_elements_global = Int(t8_forest_get_global_num_elements(mesh.forest))
     n_elements_local = Int(t8_forest_get_local_num_elements(mesh.forest))
 
