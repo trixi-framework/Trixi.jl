@@ -96,11 +96,9 @@ volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (0.0, 0.0)
-coordinates_max = (20_000.0, 10_000.0)
+coordinates_min = (0.0, -5000.0)
+coordinates_max = (20_000.0, 15_000.0)
 
-# Same coordinates as in examples/structured_2d_dgsem/elixir_euler_warm_bubble.jl
-# However TreeMesh will generate a 20_000 x 20_000 square domain instead
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 6,
                 n_cells_max = 10_000,
