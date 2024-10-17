@@ -33,6 +33,11 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
     StructArrays.foreachfield(f, args...)
 end
 
+# Matrix{<:SVector} fallback
+@inline function apply_to_each_field(f::F, args::Vararg{Any, N}) where {F, N}
+    f(args...)
+end
+
 # specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}
 # solution storage formats.
 @inline apply_to_each_field(f::MulByUniformScaling, out, x, args...) = copy!(out, x)
@@ -138,10 +143,8 @@ end
 
 # Allocate nested array type for DGMulti solution storage.
 function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
-    # store components as separate arrays, combine via StructArrays
-    return StructArray{SVector{nvars, uEltype}}(ntuple(_ -> zeros(uEltype,
-                                                                  array_dimensions...),
-                                                       nvars))
+    # store components as separate arrays, combine them into Matrix{SVector}
+    return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
 function reset_du!(du, dg::DGMulti, other_args...)
