@@ -1,4 +1,4 @@
-name: format-check
+name: Format check and suggestions
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
       - 'main'
     tags: '*'
   pull_request:
+    # this argument is not required if you don't use the `suggestion-label` input
+    types: [opened, reopened, synchronize, labeled, unlabeled]
 
 jobs:
   check-format:
@@ -26,11 +28,9 @@ jobs:
         #
         # julia  -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter", version = "0.13.0"))'
         #
-        # TODO: Change the call below to
-        #       format(".")
         run: |
           julia  -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter", version="1.0.60"))'
-          julia  -e 'using JuliaFormatter; format(["benchmark", "examples", "ext", "src", "test", "utils"])'
+          julia  -e 'using JuliaFormatter; format(".")'
       - name: Format check
         run: |
           julia -e '
@@ -42,3 +42,12 @@ jobs:
               write(stdout, out)
               exit(1)
           end'
+
+  format-suggestions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/julia-format@v3
+        with:
+          version: "1" # Set this to '1.0.54' if needed
+          suggestion-label: "format-suggest" # Leave empty to show suggestions for all PRs
