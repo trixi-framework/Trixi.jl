@@ -48,4 +48,3 @@ jobs:
       - uses: julia-actions/julia-format@v3
         with:
           version: "1" # Set this to '1.0.54' if needed
-          suggestion-label: "format-suggest" # Leave empty to show suggestions for all PRs
