@@ -4,26 +4,32 @@ using Trixi</code></pre><h2 id="Splitting-a-system-into-hyperbolic-and-parabolic
 equations_hyperbolic = LinearScalarAdvectionEquation2D(advection_velocity);</code></pre><p>Next, we define the parabolic diffusion term. The constructor requires knowledge of <code>equations_hyperbolic</code> to be passed in because the <a href="../../reference-trixi/#Trixi.LaplaceDiffusion2D"><code>LaplaceDiffusion2D</code></a> applies diffusion to every variable of the hyperbolic system.</p><pre><code class="language-julia hljs">diffusivity = 5.0e-2
 equations_parabolic = LaplaceDiffusion2D(diffusivity, equations_hyperbolic);</code></pre><h2 id="Boundary-conditions"><a class="docs-heading-anchor" href="#Boundary-conditions">Boundary conditions</a><a id="Boundary-conditions-1"></a><a class="docs-heading-anchor-permalink" href="#Boundary-conditions" title="Permalink"></a></h2><p>As with the equations, we define boundary conditions separately for the hyperbolic and parabolic part of the system. For this example, we impose inflow BCs for the hyperbolic system (no condition is imposed on the outflow), and we impose Dirichlet boundary conditions for the parabolic equations. Both <code>BoundaryConditionDirichlet</code> and <code>BoundaryConditionNeumann</code> are defined for <code>LaplaceDiffusion2D</code>.</p><p>The hyperbolic and parabolic boundary conditions are assumed to be consistent with each other.</p><pre><code class="language-julia hljs">boundary_condition_zero_dirichlet = BoundaryConditionDirichlet((x, t, equations) -&gt; SVector(0.0))
 
-boundary_conditions_hyperbolic = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -&gt; SVector(1 + 0.5 * x[2])),
-                                    y_neg = boundary_condition_zero_dirichlet,
-                                    y_pos = boundary_condition_do_nothing,
-                                    x_pos = boundary_condition_do_nothing)
+boundary_conditions_hyperbolic = (;
+                                  x_neg = BoundaryConditionDirichlet((x, t, equations) -&gt; SVector(1 +
+                                                                                                  0.5 *
+                                                                                                  x[2])),
+                                  y_neg = boundary_condition_zero_dirichlet,
+                                  y_pos = boundary_condition_do_nothing,
+                                  x_pos = boundary_condition_do_nothing)
 
-boundary_conditions_parabolic = (; x_neg = BoundaryConditionDirichlet((x, t, equations) -&gt; SVector(1 + 0.5 * x[2])),
-                                   y_neg = boundary_condition_zero_dirichlet,
-                                   y_pos = boundary_condition_zero_dirichlet,
-                                   x_pos = boundary_condition_zero_dirichlet);</code></pre><h2 id="Defining-the-solver-and-mesh"><a class="docs-heading-anchor" href="#Defining-the-solver-and-mesh">Defining the solver and mesh</a><a id="Defining-the-solver-and-mesh-1"></a><a class="docs-heading-anchor-permalink" href="#Defining-the-solver-and-mesh" title="Permalink"></a></h2><p>The process of creating the DG solver and mesh is the same as for a purely hyperbolic system of equations.</p><pre><code class="language-julia hljs">solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+boundary_conditions_parabolic = (;
+                                 x_neg = BoundaryConditionDirichlet((x, t, equations) -&gt; SVector(1 +
+                                                                                                 0.5 *
+                                                                                                 x[2])),
+                                 y_neg = boundary_condition_zero_dirichlet,
+                                 y_pos = boundary_condition_zero_dirichlet,
+                                 x_pos = boundary_condition_zero_dirichlet);</code></pre><h2 id="Defining-the-solver-and-mesh"><a class="docs-heading-anchor" href="#Defining-the-solver-and-mesh">Defining the solver and mesh</a><a id="Defining-the-solver-and-mesh-1"></a><a class="docs-heading-anchor-permalink" href="#Defining-the-solver-and-mesh" title="Permalink"></a></h2><p>The process of creating the DG solver and mesh is the same as for a purely hyperbolic system of equations.</p><pre><code class="language-julia hljs">solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
-coordinates_max = ( 1.0,  1.0) # maximum coordinates (max(x), max(y))
+coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
-                periodicity=false, n_cells_max=30_000) # set maximum capacity of tree data structure
+                initial_refinement_level = 4,
+                periodicity = false, n_cells_max = 30_000) # set maximum capacity of tree data structure
 
 initial_condition = (x, t, equations) -&gt; SVector(0.0);</code></pre><h2 id="Semidiscretizing-and-solving"><a class="docs-heading-anchor" href="#Semidiscretizing-and-solving">Semidiscretizing and solving</a><a id="Semidiscretizing-and-solving-1"></a><a class="docs-heading-anchor-permalink" href="#Semidiscretizing-and-solving" title="Permalink"></a></h2><p>To semidiscretize a hyperbolic-parabolic system, we create a <a href="../../reference-trixi/#Trixi.SemidiscretizationHyperbolicParabolic"><code>SemidiscretizationHyperbolicParabolic</code></a>. This differs from a <a href="../../reference-trixi/#Trixi.SemidiscretizationHyperbolic"><code>SemidiscretizationHyperbolic</code></a> in that we pass in a <code>Tuple</code> containing both the hyperbolic and parabolic equation, as well as a <code>Tuple</code> containing the hyperbolic and parabolic boundary conditions.</p><pre><code class="language-julia hljs">semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations_hyperbolic, equations_parabolic),
                                              initial_condition, solver;
-                                             boundary_conditions=(boundary_conditions_hyperbolic,
-                                                                  boundary_conditions_parabolic))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+                                             boundary_conditions = (boundary_conditions_hyperbolic,
+                                                                    boundary_conditions_parabolic))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ SemidiscretizationHyperbolicParabolic                                                            │
 │ ═════════════════════════════════════                                                            │
 │ #spatial dimensions: ………………………… 2                                                                │
@@ -39,8 +45,8 @@ initial_condition = (x, t, equations) -&gt; SVector(0.0);</code></pre><h2 id="Se
 ode = semidiscretize(semi, tspan)
 callbacks = CallbackSet(SummaryCallback())
 time_int_tol = 1.0e-6
-sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
-            ode_default_options()..., callback=callbacks);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
+            ode_default_options()..., callback = callbacks);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
 ████████╗██████╗ ██╗██╗  ██╗██╗
 ╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
    ██║   ██████╔╝██║ ╚███╔╝ ██║
@@ -106,12 +112,12 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol=time_int_tol, reltol=time_int_tol,
 │ ═══════════════════════                                                                          │
 │ #threads: ……………………………………………………… 1                                                                │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>We can now visualize the solution, which develops a boundary layer at the outflow boundaries.</p><pre><code class="language-julia hljs">using Plots
-plot(sol)</code></pre><img src="adb5551e.svg" alt="Example block output"/><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+plot(sol)</code></pre><img src="3fe0406a.svg" alt="Example block output"/><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
 versioninfo()
 
 using Pkg
 Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEq&quot;, &quot;Plots&quot;],
-           mode=PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.5
+           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.5
 Commit 6f3fdf7b362 (2024-08-27 14:19 UTC)
 Build Info:
   Official https://julialang.org/ release
@@ -128,4 +134,4 @@ Environment:
 <span class="sgr32">⌃</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
   <span class="sgr90">[91a5bcdd] </span>Plots v1.40.8
   <span class="sgr90">[a7f1ee26] </span>Trixi v0.9.2-DEV `~/work/Trixi.jl/Trixi.jl`
-<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adding_nonconservative_equation/">« 12 Adding a non-conservative equation</a><a class="docs-footer-nextpage" href="../adding_new_parabolic_terms/">14 Adding new parabolic terms »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Wednesday 16 October 2024 14:27">Wednesday 16 October 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adding_nonconservative_equation/">« 12 Adding a non-conservative equation</a><a class="docs-footer-nextpage" href="../adding_new_parabolic_terms/">14 Adding new parabolic terms »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Friday 18 October 2024 03:56">Friday 18 October 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
