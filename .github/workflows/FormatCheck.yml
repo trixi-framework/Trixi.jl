@@ -47,4 +47,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: julia-actions/julia-format@v3
         with:
-          version: "1" # Set this to '1.0.54' if needed
+          version: "1.0.60"
