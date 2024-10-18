@@ -18,26 +18,27 @@ import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
 
 # Since there is no native support for variable coefficients, we use two
 # variables: one for the basic unknown `u` and another one for the coefficient `a`
-struct NonconservativeLinearAdvectionEquation &lt;: AbstractEquations{1 #= spatial dimension =#,
-                                                                   2 #= two variables (u,a) =#}
+struct NonconservativeLinearAdvectionEquation &lt;: AbstractEquations{1, # spatial dimension
+                                                                   2} # two variables (u,a)
 end
 
-varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = (&quot;scalar&quot;, &quot;advection_velocity&quot;)
+function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)
+    (&quot;scalar&quot;, &quot;advection_velocity&quot;)
+end
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
-
 
 # The conservative part of the flux is zero
 flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
+function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                             ::NonconservativeLinearAdvectionEquation)
     _, advection_velocity_ll = u_ll
     _, advection_velocity_rr = u_rr
 
     return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
 end
-
 
 # We use nonconservative terms
 have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
@@ -51,7 +52,7 @@ have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.Tru
 function flux_nonconservative(u_mine, u_other, orientation,
                               equations::NonconservativeLinearAdvectionEquation)
     _, advection_velocity = u_mine
-    scalar, _             = u_other
+    scalar, _ = u_other
 
     return SVector(advection_velocity * scalar, zero(scalar))
 end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">flux_nonconservative (generic function with 1 method)</code></pre><p>The implementation of nonconservative terms uses a single &quot;nonconservative flux&quot; function <code>flux_nonconservative</code>. It will basically be applied in a loop of the form</p><pre><code class="language-julia hljs">du_m(D, u) = sum(D[m, l] * flux_nonconservative(u[m], u[l], 1, equations)) # orientation 1: x</code></pre><p>where <code>D</code> is the derivative matrix and <code>u</code> contains the nodal solution values.</p><p>Now, we can run a simple simulation using a DGSEM discretization.</p><pre><code class="language-julia hljs"># Create a simulation setup
@@ -71,15 +72,15 @@ end
 
 # Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level=4, n_cells_max=10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4)
 
 # Create a DGSEM solver with polynomials of degree `polydeg`
 # Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
 # as `surface_flux` and `volume_flux` when working with nonconservative terms
-volume_flux  = (flux_central, flux_nonconservative)
+volume_flux = (flux_central, flux_nonconservative)
 surface_flux = (flux_lax_friedrichs, flux_nonconservative)
-solver = DGSEM(polydeg=3, surface_flux=surface_flux,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # Setup the spatial semidiscretization containing all ingredients
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
@@ -91,21 +92,21 @@ ode = semidiscretize(semi, tspan)
 # Set up some standard callbacks summarizing the simulation setup and computing
 # errors of the numerical solution
 summary_callback = SummaryCallback()
-analysis_callback = AnalysisCallback(semi, interval=50)
+analysis_callback = AnalysisCallback(semi, interval = 50)
 callbacks = CallbackSet(summary_callback, analysis_callback)
 
 # OrdinaryDiffEq&#39;s `solve` method evolves the solution in time and executes
 # the passed callbacks
-sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false, callback=callbacks)
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
+            save_everystep = false, callback = callbacks)
 
 # Print the timer summary
 summary_callback()
 
 # Plot the numerical solution at the final time
 using Plots: plot
-plot(sol)</code></pre><img src="41f6e25e.svg" alt="Example block output"/><p>You see a plot of the final solution.</p><p>We can check whether everything fits together by refining the grid and comparing the numerical errors. First, we look at the error using the grid resolution above.</p><pre><code class="language-julia hljs">error_1 = analysis_callback(sol).l2 |&gt; first</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.00029609575838976756</code></pre><p>Next, we increase the grid resolution by one refinement level and run the simulation again.</p><pre><code class="language-julia hljs">mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level=5, n_cells_max=10^4)
+plot(sol)</code></pre><img src="88f0e9a8.svg" alt="Example block output"/><p>You see a plot of the final solution.</p><p>We can check whether everything fits together by refining the grid and comparing the numerical errors. First, we look at the error using the grid resolution above.</p><pre><code class="language-julia hljs">error_1 = analysis_callback(sol).l2 |&gt; first</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.00029609575838976756</code></pre><p>Next, we increase the grid resolution by one refinement level and run the simulation again.</p><pre><code class="language-julia hljs">mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
+                initial_refinement_level = 5, n_cells_max = 10^4)
 
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
 
@@ -113,11 +114,11 @@ tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
-analysis_callback = AnalysisCallback(semi, interval=50)
+analysis_callback = AnalysisCallback(semi, interval = 50)
 callbacks = CallbackSet(summary_callback, analysis_callback);
 
-sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false, callback=callbacks);
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
+            save_everystep = false, callback = callbacks);
 summary_callback()
 
 error_2 = analysis_callback(sol).l2 |&gt; first</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.8602128505947232e-5</code></pre><pre><code class="language-julia hljs">error_1 / error_2</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">15.917305285527064</code></pre><p>As expected, the new error is roughly reduced by a factor of 16, corresponding to an experimental order of convergence of 4 (for polynomials of degree 3).</p><h2 id="Summary-of-the-code"><a class="docs-heading-anchor" href="#Summary-of-the-code">Summary of the code</a><a id="Summary-of-the-code-1"></a><a class="docs-heading-anchor-permalink" href="#Summary-of-the-code" title="Permalink"></a></h2><p>Here is the complete code that we used (without the callbacks since these create a lot of unnecessary output in the doctests of this tutorial). In addition, we create the <code>struct</code> inside the new module <code>NonconservativeLinearAdvection</code>. That ensures that we can re-create <code>struct</code>s defined therein without having to restart Julia.</p><p>Define new physics</p><pre><code class="language-julia hljs">module NonconservativeLinearAdvection
@@ -129,26 +130,27 @@ import Trixi: varnames, default_analysis_integrals, flux, max_abs_speed_naive,
 
 # Since there is not yet native support for variable coefficients, we use two
 # variables: one for the basic unknown `u` and another one for the coefficient `a`
-struct NonconservativeLinearAdvectionEquation &lt;: AbstractEquations{1 #= spatial dimension =#,
-                                                                   2 #= two variables (u,a) =#}
+struct NonconservativeLinearAdvectionEquation &lt;: AbstractEquations{1, # spatial dimension
+                                                                   2} # two variables (u,a)
 end
 
-varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation) = (&quot;scalar&quot;, &quot;advection_velocity&quot;)
+function varnames(::typeof(cons2cons), ::NonconservativeLinearAdvectionEquation)
+    (&quot;scalar&quot;, &quot;advection_velocity&quot;)
+end
 
 default_analysis_integrals(::NonconservativeLinearAdvectionEquation) = ()
-
 
 # The conservative part of the flux is zero
 flux(u, orientation, equation::NonconservativeLinearAdvectionEquation) = zero(u)
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, ::NonconservativeLinearAdvectionEquation)
+function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
+                             ::NonconservativeLinearAdvectionEquation)
     _, advection_velocity_ll = u_ll
     _, advection_velocity_rr = u_rr
 
     return max(abs(advection_velocity_ll), abs(advection_velocity_rr))
 end
-
 
 # We use nonconservative terms
 have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.True()
@@ -162,14 +164,12 @@ have_nonconservative_terms(::NonconservativeLinearAdvectionEquation) = Trixi.Tru
 function flux_nonconservative(u_mine, u_other, orientation,
                               equations::NonconservativeLinearAdvectionEquation)
     _, advection_velocity = u_mine
-    scalar, _            = u_other
+    scalar, _ = u_other
 
     return SVector(advection_velocity * scalar, zero(scalar))
 end
 
 end # module
-
-
 
 # Create a simulation setup
 import .NonconservativeLinearAdvection
@@ -180,7 +180,8 @@ equation = NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation
 
 # You can derive the exact solution for this setup using the method of
 # characteristics
-function initial_condition_sine(x, t, equation::NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation)
+function initial_condition_sine(x, t,
+                                equation::NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation)
     x0 = -2 * atan(sqrt(3) * tan(sqrt(3) / 2 * t - atan(tan(x[1] / 2) / sqrt(3))))
     scalar = sin(x0)
     advection_velocity = 2 + cos(x[1])
@@ -189,15 +190,15 @@ end
 
 # Create a uniform mesh in 1D in the interval [-π, π] with periodic boundaries
 mesh = TreeMesh(-Float64(π), Float64(π), # min/max coordinates
-                initial_refinement_level=4, n_cells_max=10^4)
+                initial_refinement_level = 4, n_cells_max = 10^4)
 
 # Create a DGSEM solver with polynomials of degree `polydeg`
 # Remember to pass a tuple of the form `(conservative_flux, nonconservative_flux)`
 # as `surface_flux` and `volume_flux` when working with nonconservative terms
-volume_flux  = (flux_central, NonconservativeLinearAdvection.flux_nonconservative)
+volume_flux = (flux_central, NonconservativeLinearAdvection.flux_nonconservative)
 surface_flux = (flux_lax_friedrichs, NonconservativeLinearAdvection.flux_nonconservative)
-solver = DGSEM(polydeg=3, surface_flux=surface_flux,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 # Setup the spatial semidiscretization containing all ingredients
 semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solver)
@@ -209,13 +210,13 @@ ode = semidiscretize(semi, tspan);
 # Set up some standard callbacks summarizing the simulation setup and computing
 # errors of the numerical solution
 summary_callback = SummaryCallback()
-analysis_callback = AnalysisCallback(semi, interval=50)
+analysis_callback = AnalysisCallback(semi, interval = 50)
 callbacks = CallbackSet(summary_callback, analysis_callback);
 
 # OrdinaryDiffEq&#39;s `solve` method evolves the solution in time and executes
 # the passed callbacks
-sol = solve(ode, Tsit5(), abstol=1.0e-6, reltol=1.0e-6,
-            save_everystep=false);
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
+            save_everystep = false);
 
 # Plot the numerical solution at the final time
 using Plots: plot
@@ -224,7 +225,7 @@ versioninfo()
 
 using Pkg
 Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEq&quot;, &quot;Plots&quot;],
-           mode=PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.5
+           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.5
 Commit 6f3fdf7b362 (2024-08-27 14:19 UTC)
 Build Info:
   Official https://julialang.org/ release
@@ -241,4 +242,4 @@ Environment:
 <span class="sgr32">⌃</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
   <span class="sgr90">[91a5bcdd] </span>Plots v1.40.8
   <span class="sgr90">[a7f1ee26] </span>Trixi v0.9.2-DEV `~/work/Trixi.jl/Trixi.jl`
-<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adding_new_scalar_equations/">« 11 Adding a new scalar conservation law</a><a class="docs-footer-nextpage" href="../parabolic_terms/">13 Parabolic terms »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Thursday 17 October 2024 13:26">Thursday 17 October 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adding_new_scalar_equations/">« 11 Adding a new scalar conservation law</a><a class="docs-footer-nextpage" href="../parabolic_terms/">13 Parabolic terms »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Friday 18 October 2024 17:13">Friday 18 October 2024</span>. Using Julia version 1.10.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
