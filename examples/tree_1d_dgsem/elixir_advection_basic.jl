@@ -2,6 +2,9 @@
 using OrdinaryDiffEq
 using Trixi
 
+
+
+
 ###############################################################################
 # semidiscretization of the linear advection equation
 
@@ -44,8 +47,7 @@ save_solution = SaveSolutionCallback(interval = 100,
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, stepsize_callback)
 
 ###############################################################################
 # run the simulation
