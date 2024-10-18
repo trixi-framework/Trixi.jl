@@ -256,11 +256,11 @@ function calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
 end
 
 """
-    add_tstop!(integrator::PairedExplicitRK2Integrator, t)
+    add_tstop!(integrator::AbstractPairedExplicitRKSingleIntegrator, t)
 Add a time stop during the time integration process.
 This function is called after the periodic SaveSolutionCallback to specify the next stop to save the solution.
 """
-function add_tstop!(integrator::PairedExplicitRK2Integrator, t)
+function add_tstop!(integrator::AbstractPairedExplicitRKSingleIntegrator, t)
     integrator.tdir * (t - integrator.t) < zero(integrator.t) &&
         error("Tried to add a tstop that is behind the current time. This is strictly forbidden")
     # We need to remove the first entry of tstops when a new entry is added.
@@ -271,8 +271,8 @@ function add_tstop!(integrator::PairedExplicitRK2Integrator, t)
     push!(integrator.opts.tstops, integrator.tdir * t)
 end
 
-has_tstop(integrator::PairedExplicitRK2Integrator) = !isempty(integrator.opts.tstops)
-first_tstop(integrator::PairedExplicitRK2Integrator) = first(integrator.opts.tstops)
+has_tstop(integrator::AbstractPairedExplicitRKSingleIntegrator) = !isempty(integrator.opts.tstops)
+first_tstop(integrator::AbstractPairedExplicitRKSingleIntegrator) = first(integrator.opts.tstops)
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::PairedExplicitRK, field::Symbol)
