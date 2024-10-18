@@ -69,6 +69,16 @@ end
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
         @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
+
+        # Invalid domain length check (TreeMesh expects a hypercube)
+        # 2D
+        @test_throws ArgumentError TreeMesh((-0.5, 0.0), (1.0, 2.0),
+                                            initial_refinement_level = 2,
+                                            n_cells_max = 10_000)
+        # 3D
+        @test_throws ArgumentError TreeMesh((-0.5, 0.0, -0.2), (1.0, 2.0, 1.5),
+                                            initial_refinement_level = 2,
+                                            n_cells_max = 10_000)
     end
 end
 
