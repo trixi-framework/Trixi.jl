@@ -11,6 +11,8 @@ A view on a p4est mesh.
 mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <: AbstractMesh{NDIMS}
     parent::Parent
     cell_ids::Vector{Int}
+    # SC: After some thought, we might need to create a p4est pointer to p4est data
+    #     conatining the data from the view.
 #     unsaved_changes::Bool
 end
 
@@ -22,6 +24,8 @@ function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}) where {ND
         cell_ids[i] = i
     end
 
+    # SC: Since we need a p4est pointer no the modified (view) p4est data, we might need a function
+    #     like connectivity_structured that computes the connectivity.
     return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids)#, parent.unsaved_changes)
 end
 

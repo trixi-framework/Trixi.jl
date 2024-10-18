@@ -115,8 +115,6 @@ function calc_node_coordinates!(node_coordinates,
     p4est_root_len = 1 << P4EST_MAXLEVEL
     p4est_quadrant_len(l) = 1 << (P4EST_MAXLEVEL - l)
 
-    # SC: It seems that here we need to make some serious changes so it works
-    #     with P4estMeshView without touching the p4est struct.
     trees = unsafe_wrap_sc(p4est_tree_t, mesh.parent.p4est.trees)[mesh.cell_ids]
 
     for tree in eachindex(trees)
