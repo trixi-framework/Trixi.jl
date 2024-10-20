@@ -2,7 +2,7 @@
 # monomial coefficients in the stability polynomial of P-ERK time integrators.
 using Convex, ECOS
 
-# NLsolve is imported to solve the system of nonlinear equations to find a coefficients
+# NLsolve is imported to solve the system of nonlinear equations to find the coefficients
 # in the Butcher tableau in the third order P-ERK time integrator.
 using NLsolve
 
