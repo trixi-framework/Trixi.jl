@@ -112,7 +112,8 @@ end
     - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
       the Butcher tableau of the Runge Kutta method.
       The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
-    - `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used .
+    - `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+       In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
     -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
