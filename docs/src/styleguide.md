@@ -55,7 +55,7 @@ julia -e 'using Pkg; Pkg.add(PackageSpec(name = "JuliaFormatter", version="1.0.6
 ```
 You can then recursively format the core Julia files in the Trixi.jl repo by executing
 ```shell
-julia -e 'using JuliaFormatter; format(["benchmark", "examples", "ext", "src", "test", "utils"])'
+julia -e 'using JuliaFormatter; format(".")'
 ```
 from inside the Trixi.jl repository. For convenience, there is also a script you can
 directly run from your terminal shell, which will automatically install JuliaFormatter in a
