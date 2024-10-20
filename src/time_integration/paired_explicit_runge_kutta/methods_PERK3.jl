@@ -100,7 +100,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
 end
 
 @doc raw"""
-    PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString, dt_opt;
+    PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString, dt_opt = nothing;
                       cS2 = 1.0f0)
     PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, cS2 = 1.0f0)
@@ -140,11 +140,12 @@ mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
 
     a_matrix::Matrix{Float64}
     c::Vector{Float64}
-    dt_opt::Float64
+    dt_opt::Union{Float64, Nothing}
 end # struct PairedExplicitRK3
 
 # Constructor for previously computed A Coeffs
-function PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString, dt_opt;
+function PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
+                           dt_opt = nothing;
                            cS2 = 1.0f0)
     a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                             base_path_a_coeffs;
