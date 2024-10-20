@@ -135,6 +135,8 @@ optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solve
 - Brian Vermeire (2019).
   Paired explicit Runge-Kutta schemes for stiff systems of equations
   [DOI: 10.1016/j.jcp.2019.05.014](https://doi.org/10.1016/j.jcp.2019.05.014)
+
+Note: To use this integrator, the user must import the `Convex` and `ECOS` packages.
 """
 mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     const num_stages::Int
@@ -149,7 +151,7 @@ end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
 function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
-                           dt_opt,
+                           dt_opt = nothing,
                            bS = 1.0, cS = 0.5)
     # If the user has the monomial coefficients, they also must have the optimal time step
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
@@ -245,6 +247,10 @@ function calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
     u_ode = ode.u0
     semi = ode.p
     dt_opt = ode_algorithm.dt_opt
+
+    if isnothing(dt_opt)
+        error("The optimal time step `dt_opt` must be provided.")
+    end
 
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
