@@ -106,7 +106,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
 end
 
 @doc raw"""
-    function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt = nothing,
+    PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt = nothing,
                            bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, bS = 1.0, cS = 0.5)
