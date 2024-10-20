@@ -93,7 +93,6 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
     # a seeded random initial guess.
     rng = StableRNG(555)
 
-
     for _ in 1:max_iter
         # Due to the nature of the nonlinear solver, different initial guesses can lead to 
         # small numerical differences in the solution.
