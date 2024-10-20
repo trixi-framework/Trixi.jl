@@ -106,8 +106,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
 end
 
 @doc raw"""
-    PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt,
-                      bS = 1.0, cS = 0.5)
+    function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt = nothing,
+                           bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
@@ -146,7 +146,7 @@ mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     b1::Float64
     bS::Float64
     cS::Float64
-    dt_opt::Float64
+    dt_opt::Union{Float64, Nothing}
 end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
