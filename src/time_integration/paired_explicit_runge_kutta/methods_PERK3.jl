@@ -132,6 +132,8 @@ While the changes to SSPRK33 base-scheme are described in
 - Doehring, Schlottke-Lakemper, Gassner, Torrilhon (2024)
 Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
 [DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)
+
+Note: To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages.
 """
 mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
     const num_stages::Int # S
