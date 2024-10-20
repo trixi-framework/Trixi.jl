@@ -46,7 +46,7 @@ save_solution = SaveSolutionCallback(dt = 0.1,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-# Construct second order paired explicit Runge-Kutta method with 8 stages for given simulation setup.
+# Construct third order paired explicit Runge-Kutta method with 8 stages for given simulation setup.
 # Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
 # in calculating the polynomial coefficients in the ODE algorithm.                                     
 ode_algorithm = Trixi.PairedExplicitRK3(8, tspan, semi)
