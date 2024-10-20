@@ -79,7 +79,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
                         dt=2.0e-3,
                         tspan=(0.0, 2.0),
-                        save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8),
+                        save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8), # Adding a small epsilon to avoid floating-point precision issues
                         callbacks=CallbackSet(summary_callback, save_solution,
                                               analysis_callback, alive_callback),
                         l2=[5.726144786001842e-7],
