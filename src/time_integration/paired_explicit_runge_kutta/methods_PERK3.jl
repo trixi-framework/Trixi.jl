@@ -200,7 +200,7 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK3;
-              dt, callback = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u0 = copy(ode.u0)
     du = zero(u0)
     u_tmp = zero(u0)
@@ -225,13 +225,12 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
     # initialize callbacks
     if callback isa CallbackSet
         for cb in callback.continuous_callbacks
-            error("Continuous callbacks are unsupported with paired explicit Runge-Kutta methods.")
+            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-
+            Kutta methods."))
         end
         for cb in callback.discrete_callbacks
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
-    elseif !isnothing(callback)
-        error("unsupported")
     end
 
     return integrator
