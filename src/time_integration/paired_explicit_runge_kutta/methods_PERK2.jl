@@ -107,7 +107,7 @@ end
 
 @doc raw"""
     PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt = nothing,
-                           bS = 1.0, cS = 0.5)
+                      bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
