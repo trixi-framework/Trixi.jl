@@ -41,7 +41,7 @@ function varnames(::typeof(cons2prim), ::IdealGlmMhdEquations3D)
     ("rho", "v1", "v2", "v3", "p", "B1", "B2", "B3", "psi")
 end
 function default_analysis_integrals(::IdealGlmMhdEquations3D)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+    (entropy_timederivative,)#Val(:l2_divb), Val(:linf_divb)) # Temporarily deactivated because parallel analysis is not working
 end
 
 # Set initial conditions at physical location `x` for time `t`
