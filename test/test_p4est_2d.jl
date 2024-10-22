@@ -335,6 +335,7 @@ end
 end
 
 @trixi_testset "elixir_euler_sedov_blast_wave_sc_subcell.jl" begin
+    rm(joinpath("out", "alphas.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_sedov_blast_wave_sc_subcell.jl"),
                         l2=[
@@ -350,6 +351,22 @@ end
                             6.268843623142863
                         ],
                         tspan=(0.0, 0.3))
+    # Test alphas.txt
+    lines = readlines(joinpath("out", "alphas.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, alpha_max, alpha_avg"
+    cmd = string(Base.julia_cmd())
+    coverage = occursin("--code-coverage", cmd) &&
+               !occursin("--code-coverage=none", cmd)
+    if coverage
+        # Run with coverage takes 1 time step.
+        @test occursin(r"1, 0.00404[0-9]*, 1.0, 0.96795", lines[end])
+    else
+        # Run without coverage takes 85 time steps.
+        @test startswith(lines[end], "85, 0.3, 1.0, 0.57771")
+    end
+    @test count(",", lines[end]) == 3
+    @test !any(occursin.(r"NaN", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

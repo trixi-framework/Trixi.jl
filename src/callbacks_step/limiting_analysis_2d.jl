@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-function analyze_coefficient_IDP(mesh::TreeMesh2D, equations, dg, cache, limiter)
+function analyze_coefficient(mesh::TreeMesh2D, equations, dg, cache,
+                             limiter::SubcellLimiterIDP)
     @unpack weights = dg.basis
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
 
@@ -22,7 +23,9 @@ function analyze_coefficient_IDP(mesh::TreeMesh2D, equations, dg, cache, limiter
     return alpha_avg / total_volume
 end
 
-function analyze_coefficient_IDP(mesh::StructuredMesh{2}, equations, dg, cache, limiter)
+function analyze_coefficient(mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                             equations, dg, cache,
+                             limiter::SubcellLimiterIDP)
     @unpack weights = dg.basis
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
 
@@ -39,7 +42,8 @@ function analyze_coefficient_IDP(mesh::StructuredMesh{2}, equations, dg, cache, 
     return alpha_avg / total_volume
 end
 
-function analyze_coefficient_MCL(mesh::TreeMesh2D, equations, dg, cache, limiter)
+function analyze_coefficient(mesh::TreeMesh2D, equations, dg, cache,
+                             limiter::SubcellLimiterMCL)
     @unpack weights = dg.basis
     @unpack alpha, alpha_mean, alpha_pressure,
     alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
@@ -83,8 +87,9 @@ function analyze_coefficient_MCL(mesh::TreeMesh2D, equations, dg, cache, limiter
     return alpha_avg ./ total_volume, alpha_mean_avg ./ total_volume
 end
 
-function analyze_coefficient_MCL(mesh::StructuredMesh{2}, equations, dg, cache,
-                                 limiter)
+function analyze_coefficient(mesh::Union{StructuredMesh{2}, P4estMesh{2}},
+                             equations, dg, cache,
+                             limiter::SubcellLimiterMCL)
     @unpack weights = dg.basis
     @unpack alpha, alpha_mean, alpha_pressure,
     alpha_mean_pressure, alpha_entropy, alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients

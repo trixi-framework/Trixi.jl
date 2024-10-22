@@ -48,7 +48,7 @@ limiter_mcl = SubcellLimiterMCL(equations, basis;
                                 positivity_limiter_pressure_exact = false,
                                 entropy_limiter_semidiscrete = true,
                                 smoothness_indicator = true,
-                                Plotting = false)
+                                Plotting = true)
 volume_integral = VolumeIntegralSubcellLimiting(limiter_mcl;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
@@ -82,9 +82,13 @@ save_solution = SaveSolutionCallback(interval = 500,
 
 stepsize_callback = StepsizeCallback(cfl = 0.9)
 
+limiting_analysis_callback = LimitingAnalysisCallback(output_directory = "out",
+                                                      interval = 1)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
+                        limiting_analysis_callback,
                         stepsize_callback)
 
 ###############################################################################

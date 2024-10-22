@@ -153,9 +153,13 @@ save_solution = SaveSolutionCallback(interval = 1000,
 
 stepsize_callback = StepsizeCallback(cfl = 0.9)
 
+limiting_analysis_callback = LimitingAnalysisCallback(output_directory = "out",
+                                                      interval = 1)
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         stepsize_callback,
+                        limiting_analysis_callback,
                         save_solution)
 
 ###############################################################################

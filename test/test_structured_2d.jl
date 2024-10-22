@@ -719,6 +719,7 @@ end
 end
 
 @trixi_testset "elixir_euler_double_mach.jl" begin
+    rm(joinpath("out", "alphas.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach.jl"),
                         l2=[
                             0.87417841433288,
@@ -734,6 +735,22 @@ end
                         ],
                         initial_refinement_level=2,
                         tspan=(0.0, 0.05))
+    # Test alphas.txt
+    lines = readlines(joinpath("out", "alphas.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, alpha_max, alpha_avg"
+    cmd = string(Base.julia_cmd())
+    coverage = occursin("--code-coverage", cmd) &&
+               !occursin("--code-coverage=none", cmd)
+    if coverage
+        # Run with coverage takes 1 time steps.
+        @test occursin(r"1, 0.0002[0-9]*, 1.0, 0.9809", lines[end])
+    else
+        # Run without coverage takes 193 time steps.
+        @test startswith(lines[end], "193, 0.05, 1.0, 0.3160")
+    end
+    @test count(",", lines[end]) == 3
+    @test !any(occursin.(r"NaN", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -749,6 +766,8 @@ end
 end
 
 @trixi_testset "elixir_euler_double_mach_MCL.jl" begin
+    rm(joinpath("out", "alphas_mean.txt"), force = true)
+    rm(joinpath("out", "alphas_min.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_double_mach_MCL.jl"),
                         l2=[
                             0.8887316108902574,
@@ -764,6 +783,36 @@ end
                         ],
                         initial_refinement_level=2,
                         tspan=(0.0, 0.05))
+    # Test alphas_mean.txt
+    lines = readlines(joinpath("out", "alphas_mean.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e"
+    cmd = string(Base.julia_cmd())
+    coverage = occursin("--code-coverage", cmd) &&
+               !occursin("--code-coverage=none", cmd)
+    if coverage
+        # Run with coverage takes 1 time steps.
+        @test startswith(lines[end], "1, 0.0002")
+    else
+        # Run without coverage takes 191 time steps.
+        @test startswith(lines[end], "191, 0.05, 3.70")
+    end
+    @test count(",", lines[end]) == 9
+    @test !any(occursin.(r"NaN", lines))
+
+    # Test alphas_min.txt
+    lines = readlines(joinpath("out", "alphas_min.txt"))
+    @test lines[1] ==
+          "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e"
+    if coverage
+        # Run with coverage takes 1 time steps.
+        @test startswith(lines[end], "1, 0.0002") # TODO
+    else
+        # Run without coverage takes 191 time steps.
+        @test startswith(lines[end], "191, 0.05, -0.0, 0.7216")
+    end
+    @test count(",", lines[end]) == 9
+    @test !any(occursin.(r"NaN", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -145,7 +145,7 @@ end
     @unpack output_directory = limiting_analysis_callback
     @unpack alpha = limiter.cache.subcell_limiter_coefficients
 
-    alpha_avg = analyze_coefficient_IDP(mesh, equations, dg, cache, limiter)
+    alpha_avg = analyze_coefficient(mesh, equations, dg, cache, limiter)
 
     open("$output_directory/alphas.txt", "a") do f
         println(f, iter, ", ", time, ", ", maximum(alpha), ", ", alpha_avg)
@@ -156,6 +156,8 @@ end
                                                                         dg, cache,
                                                                         limiter::SubcellLimiterMCL,
                                                                         time, iter)
+    @assert limiter.Plotting "Parameter `Plotting` needs to be activated for analysis of limiting factor with `LimitingAnalysisCallback`"
+
     @unpack output_directory = limiting_analysis_callback
     @unpack weights = dg.basis
     @unpack alpha, alpha_pressure, alpha_entropy,
@@ -163,8 +165,8 @@ end
 
     n_vars = nvariables(equations)
 
-    alpha_min_avg, alpha_mean_avg = analyze_coefficient_MCL(mesh, equations, dg, cache,
-                                                            limiter)
+    alpha_min_avg, alpha_mean_avg = analyze_coefficient(mesh, equations, dg, cache,
+                                                        limiter)
 
     open("$output_directory/alphas_min.txt", "a") do f
         print(f, iter, ", ", time)
