@@ -288,17 +288,15 @@ end
     # Compute flux and non-conservative term for this side of the interface
     if local_side == 1
         flux_ = surface_flux(u_ll, u_rr, normal_direction, equations)
-        noncons_flux_ = 0.5 *
-                        nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+        noncons_flux_ = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
     else # local_side == 2
         flux_ = -surface_flux(u_ll, u_rr, -normal_direction, equations)
-        noncons_flux_ = -0.5 *
-                        nonconservative_flux(u_rr, u_ll, -normal_direction, equations)
+        noncons_flux_ = -nonconservative_flux(u_rr, u_ll, -normal_direction, equations)
     end
 
     for v in eachvariable(equations)
         surface_flux_values[v, surface_i_node_index, surface_j_node_index,
-        local_direction_index, local_element_index] = flux_[v] + noncons_flux_[v]
+        local_direction_index, local_element_index] = flux_[v] + 0.5 * noncons_flux_[v]
     end
 end
 
@@ -493,6 +491,29 @@ end
     # Copy flux to buffer
     set_node_vars!(fstar, flux, equations, dg, i_node_index, j_node_index,
                    position_index)
+end
+
+# Inlined version of the mortar flux computation on small elements for non-conservative equations
+@inline function calc_mpi_mortar_flux!(fstar,
+                                       mesh::Union{ParallelP4estMesh{3},
+                                                   ParallelT8codeMesh{3}},
+                                       nonconservative_terms::True, equations,
+                                       surface_integral, dg::DG, cache,
+                                       mortar_index, position_index, normal_direction,
+                                       i_node_index, j_node_index)
+    @unpack u = cache.mpi_mortars
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
+                                       j_node_index, mortar_index)
+
+    flux = surface_flux(u_ll, u_rr, normal_direction, equations)
+    noncons_flux = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+
+    for v in eachvariable(equations)
+        fstar[v, i_node_index, j_node_index, position_index] = flux[v] +
+                                                               0.5 * noncons_flux[v]
+    end
 end
 
 @inline function mpi_mortar_fluxes_to_elements!(surface_flux_values,
