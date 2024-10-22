@@ -20,7 +20,7 @@ coordinates_max = 1.0 # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 5,
                 n_cells_max = 300_000) # set maximum capacity of tree data structure
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -31,14 +31,15 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 0.1));
+ode = semidiscretize(semi, (0.0, 1e-2));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 1000)
+analysis_callback = AnalysisCallback(semi, interval = 1000,
+                                     extra_analysis_errors = (:conservation_error,))
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 0.8)
