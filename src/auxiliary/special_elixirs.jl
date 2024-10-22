@@ -20,7 +20,8 @@ This function assumes that the spatial resolution is set via the keywords
 `initial_refinement_level` (an integer) or `cells_per_dimension` (a tuple of
 integers, one per spatial dimension).
 """
-function convergence_test(mod::Module, elixir::AbstractString, iterations, RealT; kwargs...)
+function convergence_test(mod::Module, elixir::AbstractString, iterations, RealT;
+                          kwargs...)
     @assert(iterations>1,
             "Number of iterations must be bigger than 1 for a convergence analysis")
 
@@ -121,7 +122,8 @@ function analyze_convergence(errors, iterations,
     return eoc_mean_values
 end
 
-function convergence_test(elixir::AbstractString, iterations, RealT=Float64; kwargs...)
+function convergence_test(elixir::AbstractString, iterations, RealT = Float64;
+                          kwargs...)
     convergence_test(Main, elixir::AbstractString, iterations, RealT; kwargs...)
 end
 

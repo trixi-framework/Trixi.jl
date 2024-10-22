@@ -632,7 +632,8 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
 end
 
 # Default version for `Float64` for mortars etc.
-gauss_lobatto_nodes_weights(n_nodes::Integer) = gauss_lobatto_nodes_weights(Float64, n_nodes)
+gauss_lobatto_nodes_weights(n_nodes::Integer) = gauss_lobatto_nodes_weights(Float64,
+                                                                            n_nodes)
 
 # From FLUXO (but really from blue book by Kopriva, algorithm 24)
 #function calc_q_and_l(N::Integer, x::Float64)
@@ -788,7 +789,8 @@ function vandermonde_legendre(RealT, nodes, N)
     inverse_vandermonde = inv(vandermonde)
     return vandermonde, inverse_vandermonde
 end
-vandermonde_legendre(RealT, nodes) = vandermonde_legendre(RealT, nodes, length(nodes) - 1)
+vandermonde_legendre(RealT, nodes) = vandermonde_legendre(RealT, nodes,
+                                                          length(nodes) - 1)
 # Default version for `Float64` for precompilation
 vandermonde_legendre(nodes) = vandermonde_legendre(Float64, nodes)
 end # @muladd
