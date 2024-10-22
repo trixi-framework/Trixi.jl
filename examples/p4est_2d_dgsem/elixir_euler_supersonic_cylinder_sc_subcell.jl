@@ -50,11 +50,10 @@ end
 # For subcell limiting, the calculation of local bounds for non-periodic domains requires the
 # boundary outer state. Those functions return the boundary value for a specific boundary condition
 # at time `t`, for the node with spatial indices `indices` and the given `normal_direction`.
-# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_supersonic_inflow),
                                                 normal_direction::AbstractVector,
-                                                equations, dg, cache,
+                                                mesh::P4estMesh{2}, equations, dg, cache,
                                                 indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
 
@@ -72,29 +71,36 @@ end
     return flux
 end
 
-# only for P4estMesh{2}
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_outflow),
                                                 normal_direction::AbstractVector,
-                                                equations, dg, cache,
+                                                mesh::P4estMesh{2}, equations, dg, cache,
                                                 indices...)
     return u_inner
 end
 
-# only for P4estMesh{2}
-@inline function Trixi.get_boundary_outer_state(u_inner, t,
-                                                boundary_condition::typeof(boundary_condition_slip_wall),
-                                                normal_direction::AbstractVector,
-                                                equations::CompressibleEulerEquations2D,
-                                                dg, cache, indices...)
-    factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
-    u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
+# In `compressible_euler_2d.jl`
+# @inline function Trixi.get_boundary_outer_state(u_inner, t,
+#                                                 boundary_condition::typeof(boundary_condition_slip_wall),
+#                                                 normal_direction::AbstractVector,
+#                                                 mesh::P4estMesh{2}, equations::CompressibleEulerEquations2D,
+#                                                 dg, cache, indices...)
+#     factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
+#     u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction
 
-    return SVector(u_inner[1],
-                   u_inner[2] - 2 * u_normal[1],
-                   u_inner[3] - 2 * u_normal[2],
-                   u_inner[4])
-end
+#     return SVector(u_inner[1],
+#                    u_inner[2] - 2 * u_normal[1],
+#                    u_inner[3] - 2 * u_normal[2],
+#                    u_inner[4])
+# end
+
+# boundary_condition_inflow_outflow = BoundaryConditionCharacteristic(initial_condition)
+
+# boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
+#                            :Circle => boundary_condition_slip_wall,
+#                            :Top => boundary_condition_slip_wall,
+#                            :Right => boundary_condition_inflow_outflow,
+#                            :Left => boundary_condition_inflow_outflow)
 
 boundary_conditions = Dict(:Bottom => boundary_condition_slip_wall,
                            :Circle => boundary_condition_slip_wall,
@@ -111,7 +117,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_nonlinear = [pressure],
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
                                                                        min)],
-                                max_iterations_newton = 50) # Default value of 10 iterations is too low to fulfill bounds.
+                                max_iterations_newton = 50, # Default value of 10 iterations is too low to fulfill bounds.
+                                bar_states = false)
 
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
