@@ -74,9 +74,6 @@ indicator values <= `threshold_smoothness_indicator`.
 - Pazner (2020)
   Sparse invariant domain preserving discontinuous Galerkin methods with subcell convex limiting
   [DOI: 10.1016/j.cma.2021.113876](https://doi.org/10.1016/j.cma.2021.113876)
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct SubcellLimiterIDP{RealT <: Real, LimitingVariablesNonlinear,
                          LimitingOnesidedVariablesNonlinear, Cache,

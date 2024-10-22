@@ -2153,6 +2153,19 @@ end
     return rho
 end
 
+@inline function velocity(u, equations::CompressibleEulerEquations2D)
+    rho = u[1]
+    v1 = u[2] / rho
+    v2 = u[3] / rho
+    return SVector(v1, v2)
+end
+
+@inline function velocity(u, orientation::Int, equations::CompressibleEulerEquations2D)
+    rho = u[1]
+    v = u[orientation + 1] / rho
+    return v
+end
+
 @inline function pressure(u, equations::CompressibleEulerEquations2D)
     rho, rho_v1, rho_v2, rho_e = u
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
