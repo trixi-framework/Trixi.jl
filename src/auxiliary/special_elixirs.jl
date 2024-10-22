@@ -5,10 +5,8 @@
 @muladd begin
 #! format: noindent
 
-using Quadmath
-
 """
-    convergence_test([mod::Module=Main,] elixir::AbstractString, iterations; kwargs...)
+    convergence_test([mod::Module=Main,] elixir::AbstractString, iterations, RealT; kwargs...)
 
 Run `iterations` Trixi.jl simulations using the setup given in `elixir` and compute
 the experimental order of convergence (EOC) in the ``L^2`` and ``L^\\infty`` norm.
