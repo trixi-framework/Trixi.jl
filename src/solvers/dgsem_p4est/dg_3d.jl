@@ -10,8 +10,8 @@
 function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal compare performance of different types
-    fstar_threaded = [Array{uEltype, 4}(undef, nvariables(equations), nnodes(mortar_l2),
-                                        nnodes(mortar_l2), 4)
+    fstar_threaded = [Array{uEltype, 5}(undef, nvariables(equations), nnodes(mortar_l2),
+                                        nnodes(mortar_l2), 2, 4)
                       for _ in 1:Threads.nthreads()]
 
     fstar_tmp_threaded = [Array{uEltype, 3}(undef, nvariables(equations),
@@ -604,7 +604,9 @@ end
 
     # Copy flux to buffer
     set_node_vars!(fstar, flux, equations, dg, i_node_index, j_node_index,
-                   position_index)
+                   1, position_index)
+    set_node_vars!(fstar, flux, equations, dg, i_node_index, j_node_index,
+                   2, position_index)
 end
 
 # Inlined version of the mortar flux computation on small elements for conservation fluxes
@@ -627,12 +629,18 @@ end
     # Compute nonconservative flux and add it to the flux scaled by a factor of 0.5 based on
     # the interpretation of global SBP operators coupled discontinuously via
     # central fluxes/SATs
-    noncons = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
-    flux_plus_noncons = flux + 0.5f0 * noncons
+    noncons_ll = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+    noncons_rr = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+    flux_plus_noncons_ll = flux + 0.5f0 * noncons_ll
+    flux_plus_noncons_rr = flux + 0.5f0 * noncons_rr
 
     # Copy to buffer
-    set_node_vars!(fstar, flux_plus_noncons, equations, dg, i_node_index, j_node_index,
-                   position_index)
+    set_node_vars!(fstar, flux_plus_noncons_ll, equations, dg, i_node_index,
+                   j_node_index,
+                   1, position_index)
+    set_node_vars!(fstar, flux_plus_noncons_rr, equations, dg, i_node_index,
+                   j_node_index,
+                   2, position_index)
 end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
@@ -653,6 +661,7 @@ end
         for j in eachnode(dg), i in eachnode(dg)
             for v in eachvariable(equations)
                 surface_flux_values[v, i, j, small_direction, element] = fstar[v, i, j,
+                                                                               1,
                                                                                position]
             end
         end
@@ -661,19 +670,19 @@ end
     # Project small fluxes to large element.
     multiply_dimensionwise!(u_buffer,
                             mortar_l2.reverse_lower, mortar_l2.reverse_lower,
-                            view(fstar, .., 1),
+                            view(fstar, .., 2, 1),
                             fstar_tmp)
     add_multiply_dimensionwise!(u_buffer,
                                 mortar_l2.reverse_upper, mortar_l2.reverse_lower,
-                                view(fstar, .., 2),
+                                view(fstar, .., 2, 2),
                                 fstar_tmp)
     add_multiply_dimensionwise!(u_buffer,
                                 mortar_l2.reverse_lower, mortar_l2.reverse_upper,
-                                view(fstar, .., 3),
+                                view(fstar, .., 2, 3),
                                 fstar_tmp)
     add_multiply_dimensionwise!(u_buffer,
                                 mortar_l2.reverse_upper, mortar_l2.reverse_upper,
-                                view(fstar, .., 4),
+                                view(fstar, .., 2, 4),
                                 fstar_tmp)
 
     # The flux is calculated in the outward direction of the small elements,
