@@ -1,7 +1,7 @@
 
 using OrdinaryDiffEq
 using Trixi
-using DoubleFloats
+using Quadmath
 
 ###############################################################################
 # semidiscretization of the linear advection equation
@@ -10,7 +10,10 @@ advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
-solver = DGSEM(RealT = Double64, polydeg = 3, surface_flux = flux_lax_friedrichs)
+RealT = Float64
+RealT = Float128
+
+solver = DGSEM(RealT = RealT, polydeg = 7, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0 # maximum coordinate
@@ -28,17 +31,17 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 0.0));
+ode = semidiscretize(semi, (0.0, 0.1));
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
 summary_callback = SummaryCallback()
 
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100)
+analysis_callback = AnalysisCallback(semi, interval = 1000)
 
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl = 1.6)
+stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback,
