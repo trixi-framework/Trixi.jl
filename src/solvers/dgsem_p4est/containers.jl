@@ -82,6 +82,7 @@ end
 
 # Create element container and initialize element data
 function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
+                                   P4estMeshView{NDIMS, NDIMS, RealT},
                                    T8codeMesh{NDIMS, RealT}},
                        equations,
                        basis,
@@ -167,7 +168,8 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
 end
 
 # Create interface container and initialize interface data.
-function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
+function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
+                         basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -197,7 +199,7 @@ function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
     return interfaces
 end
 
-function init_interfaces!(interfaces, mesh::P4estMesh)
+function init_interfaces!(interfaces, mesh::Union{P4estMesh, P4estMeshView})
     init_surfaces!(interfaces, nothing, nothing, mesh)
 
     return interfaces
@@ -242,7 +244,8 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
 end
 
 # Create interface container and initialize interface data in `elements`.
-function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
+function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
+                         basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -271,7 +274,7 @@ function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
     return boundaries
 end
 
-function init_boundaries!(boundaries, mesh::P4estMesh)
+function init_boundaries!(boundaries, mesh::Union{P4estMesh, P4estMeshView})
     init_surfaces!(nothing, nothing, boundaries, mesh)
 
     return boundaries
@@ -373,7 +376,8 @@ function Base.resize!(mortars::P4estMortarContainer, capacity)
 end
 
 # Create mortar container and initialize mortar data.
-function init_mortars(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elements)
+function init_mortars(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
+                      basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -514,7 +518,8 @@ function init_surfaces_iter_face_inner(info, user_data)
     return nothing
 end
 
-function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMesh)
+function init_surfaces!(interfaces, mortars, boundaries,
+                        mesh::Union{P4estMesh, P4estMeshView})
     # Let `p4est` iterate over all interfaces and call init_surfaces_iter_face
     iter_face_c = cfunction(init_surfaces_iter_face, Val(ndims(mesh)))
     user_data = InitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mesh)
@@ -689,7 +694,7 @@ function cfunction(::typeof(count_surfaces_iter_face), ::Val{3})
                (Ptr{p8est_iter_face_info_t}, Ptr{Cvoid}))
 end
 
-function count_required_surfaces(mesh::P4estMesh)
+function count_required_surfaces(mesh::Union{P4estMesh, P4estMeshView})
     # Let `p4est` iterate over all interfaces and call count_surfaces_iter_face
     iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh)))
 
