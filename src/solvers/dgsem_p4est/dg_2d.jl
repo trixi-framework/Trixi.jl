@@ -64,6 +64,7 @@ function prolong2interfaces!(cache, u,
     index_range = eachnode(dg)
 
     @threaded for interface in eachinterface(dg, cache)
+        @autoinfiltrate
         # Copy solution data from the primary element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.
         # Note that in the current implementation, the interface will be

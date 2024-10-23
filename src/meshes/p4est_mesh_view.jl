@@ -16,13 +16,13 @@ mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <: Abs
 #     unsaved_changes::Bool
 end
 
-function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT}
-    # SC: number of cells should be corrected.
-    cell_ids = Vector{Int}(undef, ncells(parent))
-    # SC: do not populate this array. It needs to be given by the user.
-    for i in 1:ncells(parent)
-        cell_ids[i] = i
-    end
+function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}, cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}
+#     # SC: number of cells should be corrected.
+#     cell_ids = Vector{Int}(undef, ncells(parent))
+#     # SC: do not populate this array. It needs to be given by the user.
+#     for i in 1:ncells(parent)
+#         cell_ids[i] = i
+#     end
 
     # SC: Since we need a p4est pointer no the modified (view) p4est data, we might need a function
     #     like connectivity_structured that computes the connectivity.
