@@ -21,7 +21,6 @@ coordinates_min = (-RealT(1.0),) # minimum coordinate
 coordinates_max = (RealT(1.0),) # maximum coordinate
 cells_per_dimension = (256,)
 
-# NOTE: StructuredMesh supports higher precision coordinates
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
