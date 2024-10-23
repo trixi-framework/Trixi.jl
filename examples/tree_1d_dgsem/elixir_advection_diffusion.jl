@@ -13,8 +13,8 @@ equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = -pi # minimum coordinate
-coordinates_max = pi # maximum coordinate
+coordinates_min = convert(-pi, Float64) # minimum coordinate
+coordinates_max = convert(pi, Float64) # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
