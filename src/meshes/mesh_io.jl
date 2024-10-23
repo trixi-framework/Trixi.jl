@@ -381,7 +381,8 @@ function load_mesh_parallel(mesh_file::AbstractString; n_cells_max, RealT)
             capacity = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
         end
 
-        mesh = TreeMesh(ParallelTree{ndims_}, max(n_cells, n_cells_max, capacity))
+        mesh = TreeMesh(ParallelTree{ndims_, RealT}, RealT,
+                        max(n_cells, n_cells_max, capacity))
         load_mesh!(mesh, mesh_file)
     elseif mesh_type == "P4estMesh"
         if mpi_isroot()
