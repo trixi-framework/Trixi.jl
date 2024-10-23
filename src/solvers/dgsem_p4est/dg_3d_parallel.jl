@@ -417,12 +417,12 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                                surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
     @unpack contravariant_vectors = cache.elements
-    @unpack fstar_threaded, fstar_tmp_threaded = cache
+    @unpack fstar_primary_threaded, fstar_tmp_threaded = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmpimortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar = fstar_threaded[Threads.threadid()]
+        fstar = fstar_primary_threaded[Threads.threadid()]
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
         # Get index information on the small elements
