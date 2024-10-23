@@ -5,8 +5,6 @@
 @muladd begin
 #! format: noindent
 
-using Quadmath, DoubleFloats
-
 """
     LobattoLegendreBasis([RealT=Float64,] polydeg::Integer)
 
@@ -572,8 +570,6 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     tolerance = 10 * eps(RealT)
     if RealT == Float64
         tolerance = 1e-15
-    elseif RealT == Float128 || RealT == Double64
-        tolerance = RealT(10)^(-31)
     end
 
     # Initialize output
@@ -690,8 +686,6 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
     tolerance = 10 * eps(RealT)
     if RealT == Float64
         tolerance = 1e-15
-    elseif RealT == Float128 || RealT == Double64
-        tolerance = tolerance = RealT(10)^(-31)
     end
 
     # Initialize output
