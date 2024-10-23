@@ -165,10 +165,10 @@ function MortarL2(basis::LobattoLegendreBasis)
     nnodes_ = nnodes(basis)
 
     # compute everything using `Float64` by default
-    forward_upper_ = calc_forward_upper(nnodes_)
-    forward_lower_ = calc_forward_lower(nnodes_)
-    reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss))
-    reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss))
+    forward_upper_ = calc_forward_upper(RealT, nnodes_)
+    forward_lower_ = calc_forward_lower(RealT, nnodes_)
+    reverse_upper_ = calc_reverse_upper(RealT, nnodes_, Val(:gauss))
+    reverse_lower_ = calc_reverse_lower(RealT, nnodes_, Val(:gauss))
 
     # type conversions to get the requested real type and enable possible
     # optimizations of runtime performance and latency
@@ -227,10 +227,10 @@ end
 # end
 
 # function MortarEC(basis::LobattoLegendreBasis{RealT}, surface_flux)
-#   forward_upper   = calc_forward_upper(n_nodes)
-#   forward_lower   = calc_forward_lower(n_nodes)
-#   l2reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
-#   l2reverse_lower = calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
+#   forward_upper   = calc_forward_upper(RealT, n_nodes)
+#   forward_lower   = calc_forward_lower(RealT, n_nodes)
+#   l2reverse_upper = calc_reverse_upper(RealT, n_nodes, Val(:gauss_lobatto))
+#   l2reverse_lower = calc_reverse_lower(RealT, n_nodes, Val(:gauss_lobatto))
 
 #   # type conversions to make use of StaticArrays etc.
 #   nnodes_ = nnodes(basis)
@@ -322,10 +322,10 @@ function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
     nnodes_ = nnodes(basis)
 
     # compute everything using `Float64` by default
-    forward_upper_ = calc_forward_upper(nnodes_)
-    forward_lower_ = calc_forward_lower(nnodes_)
-    reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss))
-    reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss))
+    forward_upper_ = calc_forward_upper(RealT, nnodes_)
+    forward_lower_ = calc_forward_lower(RealT, nnodes_)
+    reverse_upper_ = calc_reverse_upper(RealT, nnodes_, Val(:gauss))
+    reverse_lower_ = calc_reverse_lower(RealT, nnodes_, Val(:gauss))
 
     # type conversions to get the requested real type and enable possible
     # optimizations of runtime performance and latency
