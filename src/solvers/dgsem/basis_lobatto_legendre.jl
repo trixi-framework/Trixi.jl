@@ -646,10 +646,10 @@ gauss_lobatto_nodes_weights(n_nodes::Integer) = gauss_lobatto_nodes_weights(Floa
 function calc_q_and_l(N::Integer, x)
     RealT = typeof(x)
 
-    L_Nm2 = 1
+    L_Nm2 = one(RealT)
     L_Nm1 = x
-    Lder_Nm2 = 0
-    Lder_Nm1 = 1
+    Lder_Nm2 = zero(RealT)
+    Lder_Nm1 = one(RealT)
 
     local L
     for i in 2:N
