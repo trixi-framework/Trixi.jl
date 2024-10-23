@@ -666,7 +666,6 @@ function calc_q_and_l(N::Integer, x)
 
     return q, qder, L
 end
-#calc_q_and_l(N::Integer, x::Real) = calc_q_and_l(N, convert(Float64, x))
 
 """
     gauss_nodes_weights(RealT, n_nodes::Integer)
