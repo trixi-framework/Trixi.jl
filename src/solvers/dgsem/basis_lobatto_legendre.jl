@@ -759,19 +759,19 @@ This implements algorithm 22 "LegendrePolynomialAndDerivative" from the book
 function legendre_polynomial_and_derivative(N::Int, x::Real)
     RealT = typeof(x)
     if N == 0
-        poly = 1
-        deriv = 0
+        poly = one(RealT)
+        deriv = zero(RealT)
     elseif N == 1
         poly = x
-        deriv = 1
+        deriv = one(RealT)
     else
-        poly_Nm2 = 1
+        poly_Nm2 = one(RealT)
         poly_Nm1 = copy(x)
-        deriv_Nm2 = 0
-        deriv_Nm1 = 1
+        deriv_Nm2 = zero(RealT)
+        deriv_Nm1 = one(RealT)
 
-        poly = 0
-        deriv = 0
+        poly = zero(RealT)
+        deriv = zero(RealT)
         for i in 2:N
             poly = ((2 * i - 1) * x * poly_Nm1 - (i - 1) * poly_Nm2) / i
             deriv = deriv_Nm2 + (2 * i - 1) * poly_Nm1
