@@ -271,7 +271,8 @@ end
                                             mesh::P4estMesh{3},
                                             equations::AbstractEquationsParabolic,
                                             mortar_l2::LobattoLegendreMortarL2,
-                                            dg::DGSEM, cache, mortar, fstar, u_buffer,
+                                            dg::DGSEM, cache, mortar, fstar_primary,
+                                            fstar_secondary, u_buffer,
                                             fstar_tmp)
     @unpack neighbor_ids, node_indices = cache.mortars
     index_range = eachnode(dg)
@@ -283,8 +284,10 @@ end
         element = neighbor_ids[position, mortar]
         for j in eachnode(dg), i in eachnode(dg)
             for v in eachvariable(equations)
-                surface_flux_values[v, i, j, small_direction, element] = fstar[v, i, j,
-                                                                               position]
+                surface_flux_values[v, i, j, small_direction, element] = fstar_primary[v,
+                                                                                       i,
+                                                                                       j,
+                                                                                       position]
             end
         end
     end
@@ -292,19 +295,19 @@ end
     # Project small fluxes to large element.
     multiply_dimensionwise!(u_buffer,
                             mortar_l2.reverse_lower, mortar_l2.reverse_lower,
-                            view(fstar, .., 1),
+                            view(fstar_secondary, .., 1),
                             fstar_tmp)
     add_multiply_dimensionwise!(u_buffer,
                                 mortar_l2.reverse_upper, mortar_l2.reverse_lower,
-                                view(fstar, .., 2),
+                                view(fstar_secondary, .., 2),
                                 fstar_tmp)
     add_multiply_dimensionwise!(u_buffer,
                                 mortar_l2.reverse_lower, mortar_l2.reverse_upper,
-                                view(fstar, .., 3),
+                                view(fstar_secondary, .., 3),
                                 fstar_tmp)
     add_multiply_dimensionwise!(u_buffer,
                                 mortar_l2.reverse_upper, mortar_l2.reverse_upper,
-                                view(fstar, .., 4),
+                                view(fstar_secondary, .., 4),
                                 fstar_tmp)
 
     # The flux is calculated in the outward direction of the small elements,
@@ -842,7 +845,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
         # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache,
-                                   mortar, fstar, u_buffer, fstar_tmp)
+                                   mortar, fstar, fstar, u_buffer, fstar_tmp)
     end
 
     return nothing
@@ -851,7 +854,7 @@ end
 # NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
 # Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
-@inline function calc_mortar_flux!(fstar,
+@inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::P4estMesh{3},
                                    nonconservative_terms::False,
                                    equations::AbstractEquationsParabolic,
@@ -867,7 +870,9 @@ end
     # TODO: parabolic; only BR1 at the moment
     flux_ = 0.5f0 * (u_ll + u_rr)
     # Copy flux to buffer
-    set_node_vars!(fstar, flux_, equations, dg, i_node_index, j_node_index,
+    set_node_vars!(fstar_primary, flux_, equations, dg, i_node_index, j_node_index,
+                   position_index)
+    set_node_vars!(fstar_secondary, flux_, equations, dg, i_node_index, j_node_index,
                    position_index)
 end
 
