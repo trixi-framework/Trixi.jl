@@ -579,7 +579,7 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     # Special case for polynomial degree zero (first order finite volume)
     if n_nodes == 1
         nodes[1] = 0
-        weights[1] = RealT(2)
+        weights[1] = 2
         return nodes, weights
     end
 
@@ -589,7 +589,7 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     # Calculate values at boundary
     nodes[1] = -1
     nodes[end] = 1
-    weights[1] = RealT(2) / (N * (N + 1))
+    weights[1] = 2 / (N * (N + 1))
     weights[end] = weights[1]
 
     # Calculate interior values
@@ -695,7 +695,7 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
     N = n_nodes - 1
     if N == 0
         nodes .= 0
-        weights .= RealT(2)
+        weights .= 2
         return nodes, weights
     elseif N == 1
         nodes[1] = -sqrt(1 / 3)
