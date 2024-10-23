@@ -83,9 +83,9 @@ const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
 partition!(mesh::SerialTreeMesh) = nothing
 
 # Constructor for passing the dimension and mesh type as an argument
-function TreeMesh(::Type{TreeType},
+function TreeMesh(::Type{TreeType}, RealT,
                   args...) where {NDIMS, TreeType <: AbstractTree{NDIMS}}
-    TreeMesh{NDIMS, TreeType}(args...)
+    TreeMesh{NDIMS, TreeType, RealT}(args...)
 end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
