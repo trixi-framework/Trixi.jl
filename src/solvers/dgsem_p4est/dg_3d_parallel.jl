@@ -417,12 +417,13 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                                surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
     @unpack contravariant_vectors = cache.elements
-    @unpack fstar_primary_threaded, fstar_tmp_threaded = cache
+    @unpack fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmpimortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar = fstar_primary_threaded[Threads.threadid()]
+        fstar_primary = fstar_primary_threaded[Threads.threadid()]
+        fstar_secondary = fstar_secondary_threaded[Threads.threadid()]
         fstar_tmp = fstar_tmp_threaded[Threads.threadid()]
 
         # Get index information on the small elements
@@ -445,7 +446,8 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                     normal_direction = get_normal_direction(cache.mpi_mortars, i, j,
                                                             position, mortar)
 
-                    calc_mpi_mortar_flux!(fstar, mesh, nonconservative_terms, equations,
+                    calc_mpi_mortar_flux!(fstar_primary, fstar_secondary, mesh,
+                                          nonconservative_terms, equations,
                                           surface_integral, dg, cache,
                                           mortar, position, normal_direction,
                                           i, j)
@@ -466,14 +468,15 @@ function calc_mpi_mortar_flux!(surface_flux_values,
 
         mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations, mortar_l2, dg, cache,
-                                       mortar, fstar, u_buffer, fstar_tmp)
+                                       mortar, fstar_primary, fstar_secondary, u_buffer,
+                                       fstar_tmp)
     end
 
     return nothing
 end
 
 # Inlined version of the mortar flux computation on small elements for conservation laws
-@inline function calc_mpi_mortar_flux!(fstar,
+@inline function calc_mpi_mortar_flux!(fstar_primary, fstar_secondary,
                                        mesh::Union{ParallelP4estMesh{3},
                                                    ParallelT8codeMesh{3}},
                                        nonconservative_terms::False, equations,
@@ -489,12 +492,14 @@ end
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
     # Copy flux to buffer
-    set_node_vars!(fstar, flux, equations, dg, i_node_index, j_node_index,
+    set_node_vars!(fstar_primary, flux, equations, dg, i_node_index, j_node_index,
+                   position_index)
+    set_node_vars!(fstar_secondary, flux, equations, dg, i_node_index, j_node_index,
                    position_index)
 end
 
 # Inlined version of the mortar flux computation on small elements for non-conservative equations
-@inline function calc_mpi_mortar_flux!(fstar,
+@inline function calc_mpi_mortar_flux!(fstar_primary, fstar_secondary,
                                        mesh::Union{ParallelP4estMesh{3},
                                                    ParallelT8codeMesh{3}},
                                        nonconservative_terms::True, equations,
@@ -508,11 +513,17 @@ end
                                        j_node_index, mortar_index)
 
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
-    noncons_flux = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+    noncons_flux_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
+    noncons_flux_secondary = nonconservative_flux(u_rr, u_ll, normal_direction,
+                                                  equations)
 
     for v in eachvariable(equations)
-        fstar[v, i_node_index, j_node_index, position_index] = flux[v] +
-                                                               0.5 * noncons_flux[v]
+        fstar_primary[v, i_node_index, j_node_index, position_index] = flux[v] +
+                                                                       0.5 *
+                                                                       noncons_flux_primary[v]
+        fstar_secondary[v, i_node_index, j_node_index, position_index] = flux[v] +
+                                                                         0.5 *
+                                                                         noncons_flux_secondary[v]
     end
 end
 
@@ -521,7 +532,8 @@ end
                                                             ParallelT8codeMesh{3}},
                                                 equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
-                                                dg::DGSEM, cache, mortar, fstar,
+                                                dg::DGSEM, cache, mortar, fstar_primary,
+                                                fstar_secondary,
                                                 u_buffer, fstar_tmp)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
     index_range = eachnode(dg)
@@ -543,22 +555,22 @@ end
             # Project small fluxes to large element.
             multiply_dimensionwise!(u_buffer,
                                     mortar_l2.reverse_lower, mortar_l2.reverse_lower,
-                                    view(fstar, .., 1),
+                                    view(fstar_secondary, .., 1),
                                     fstar_tmp)
             add_multiply_dimensionwise!(u_buffer,
                                         mortar_l2.reverse_upper,
                                         mortar_l2.reverse_lower,
-                                        view(fstar, .., 2),
+                                        view(fstar_secondary, .., 2),
                                         fstar_tmp)
             add_multiply_dimensionwise!(u_buffer,
                                         mortar_l2.reverse_lower,
                                         mortar_l2.reverse_upper,
-                                        view(fstar, .., 3),
+                                        view(fstar_secondary, .., 3),
                                         fstar_tmp)
             add_multiply_dimensionwise!(u_buffer,
                                         mortar_l2.reverse_upper,
                                         mortar_l2.reverse_upper,
-                                        view(fstar, .., 4),
+                                        view(fstar_secondary, .., 4),
                                         fstar_tmp)
             # The flux is calculated in the outward direction of the small elements,
             # so the sign must be switched to get the flux in outward direction
@@ -592,10 +604,10 @@ end
             for j in eachnode(dg)
                 for i in eachnode(dg)
                     for v in eachvariable(equations)
-                        surface_flux_values[v, i, j, small_direction, element] = fstar[v,
-                                                                                       i,
-                                                                                       j,
-                                                                                       position]
+                        surface_flux_values[v, i, j, small_direction, element] = fstar_primary[v,
+                                                                                               i,
+                                                                                               j,
+                                                                                               position]
                     end
                 end
             end
