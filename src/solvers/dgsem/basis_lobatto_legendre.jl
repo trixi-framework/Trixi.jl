@@ -567,9 +567,9 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     # From Kopriva's book
     n_iterations = 10
 
-    tolerance = 10 * eps(RealT)
-    if RealT == Float64
-        tolerance = 1e-15
+    tolerance = 1e-15
+    if RealT != Float32 && RealT != Float64
+        tolerance = 10 * eps(RealT)
     end
 
     # Initialize output
@@ -682,9 +682,9 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
     # From Kopriva's book
     n_iterations = 10
 
-    tolerance = 10 * eps(RealT)
-    if RealT == Float64
-        tolerance = 1e-15
+    tolerance = 1e-15
+    if RealT != Float32 && RealT != Float64
+        tolerance = 10 * eps(RealT)
     end
 
     # Initialize output
