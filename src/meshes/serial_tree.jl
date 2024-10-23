@@ -69,12 +69,15 @@ mutable struct SerialTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
 end
 
 # Constructor for passing the dimension and datatype as an argument
-SerialTree(::Val{NDIMS}, RealT::Real, args...) where {NDIMS} = SerialTree{NDIMS, RealT}(args...)
+SerialTree(::Val{NDIMS}, RealT::DataType, args...) where {NDIMS} = SerialTree{NDIMS,
+                                                                              RealT}(args...)
+# Default datatype: Float64
+SerialTree(::Val{NDIMS}, args...) where {NDIMS} = SerialTree{NDIMS, Float64}(args...)
 
 # Create and initialize tree
-function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{RealT},
-                           length::RealT,
-                           periodicity = true) where {NDIMS, RealT <: Real}
+function SerialTree{NDIMS, RealT}(capacity::Int, center::AbstractArray{RealT},
+                                  length::RealT,
+                                  periodicity = true) where {NDIMS, RealT <: Real}
     # Create instance
     t = SerialTree{NDIMS, RealT}(capacity)
 
@@ -85,8 +88,8 @@ function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{RealT},
 end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-function SerialTree{1}(cap::Int, center::RealT, len::RealT,
-                       periodicity = true) where {RealT <: Real}
+function SerialTree{1, RealT}(cap::Int, center::RealT, len::RealT,
+                              periodicity = true) where {RealT <: Real}
     SerialTree{1, RealT}(cap, [center], len, periodicity)
 end
 
