@@ -578,7 +578,7 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
 
     # Special case for polynomial degree zero (first order finite volume)
     if n_nodes == 1
-        nodes[1] = zero(RealT)
+        nodes[1] = 0
         weights[1] = RealT(2)
         return nodes, weights
     end
@@ -587,8 +587,8 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     N = n_nodes - 1
 
     # Calculate values at boundary
-    nodes[1] = -one(RealT)
-    nodes[end] = one(RealT)
+    nodes[1] = -1
+    nodes[end] = 1
     weights[1] = RealT(2) / (N * (N + 1))
     weights[end] = weights[1]
 
@@ -631,7 +631,7 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
     if n_nodes % 2 == 1
         _, _, L = calc_q_and_l(N, zero(RealT))
-        nodes[div(N, 2) + 1] = zero(RealT)
+        nodes[div(N, 2) + 1] = 0
         weights[div(N, 2) + 1] = weights[1] / L^2
     end
 
@@ -646,10 +646,10 @@ gauss_lobatto_nodes_weights(n_nodes::Integer) = gauss_lobatto_nodes_weights(Floa
 function calc_q_and_l(N::Integer, x)
     RealT = typeof(x)
 
-    L_Nm2 = one(RealT)
+    L_Nm2 = 1
     L_Nm1 = x
-    Lder_Nm2 = zero(RealT)
-    Lder_Nm1 = one(RealT)
+    Lder_Nm2 = 0
+    Lder_Nm1 = 1
 
     local L
     for i in 2:N
@@ -694,13 +694,13 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
     # Get polynomial degree for convenience
     N = n_nodes - 1
     if N == 0
-        nodes .= zero(RealT)
+        nodes .= 0
         weights .= RealT(2)
         return nodes, weights
     elseif N == 1
-        nodes[1] = -sqrt(one(RealT) / 3)
+        nodes[1] = -sqrt(1 / 3)
         nodes[end] = -nodes[1]
-        weights .= one(RealT)
+        weights .= 1
         return nodes, weights
     else # N > 1
         # Use symmetry property of the roots of the Legendre polynomials
@@ -733,8 +733,8 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
 
         # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
         if n_nodes % 2 == 1
-            poly, deriv = legendre_polynomial_and_derivative(N + 1, zero(RealT))
-            nodes[div(N, 2) + 1] = zero(RealT)
+            poly, deriv = legendre_polynomial_and_derivative(N + 1, 0)
+            nodes[div(N, 2) + 1] = 0
             weights[div(N, 2) + 1] = (2 * N + 3) / deriv^2
         end
 
@@ -759,19 +759,19 @@ This implements algorithm 22 "LegendrePolynomialAndDerivative" from the book
 function legendre_polynomial_and_derivative(N::Int, x::Real)
     RealT = typeof(x)
     if N == 0
-        poly = one(RealT)
-        deriv = zero(RealT)
+        poly = 1
+        deriv = 0
     elseif N == 1
         poly = x
-        deriv = one(RealT)
+        deriv = 1
     else
-        poly_Nm2 = one(RealT)
+        poly_Nm2 = 1
         poly_Nm1 = copy(x)
-        deriv_Nm2 = zero(RealT)
-        deriv_Nm1 = one(RealT)
+        deriv_Nm2 = 0
+        deriv_Nm1 = 1
 
-        poly = zero(RealT)
-        deriv = zero(RealT)
+        poly = 0
+        deriv = 0
         for i in 2:N
             poly = ((2 * i - 1) * x * poly_Nm1 - (i - 1) * poly_Nm2) / i
             deriv = deriv_Nm2 + (2 * i - 1) * poly_Nm1
