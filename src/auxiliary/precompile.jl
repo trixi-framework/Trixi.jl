@@ -226,8 +226,8 @@ function _precompile_manual_()
     for RealT in (Int, Float64)
         @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
                                       NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh}, RealT,
-                                      RealT})
+                                                 Tuple{Int, Int}}, Type{TreeMesh},
+                                      RealT, RealT})
         @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
                                       NamedTuple{(:initial_refinement_level, :n_cells_max),
                                                  Tuple{Int, Int}}, Type{TreeMesh},
