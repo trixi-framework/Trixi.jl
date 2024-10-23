@@ -23,7 +23,7 @@
 # Calculate forward projection matrix for discrete L2 projection from large to upper
 #
 # Note: This is actually an interpolation.
-function calc_forward_upper(RealT::Real, n_nodes)
+function calc_forward_upper(RealT, n_nodes)
     # Calculate nodes, weights, and barycentric weights
     nodes, _ = gauss_lobatto_nodes_weights(RealT, n_nodes)
     wbary = barycentric_weights(nodes)
@@ -45,7 +45,7 @@ calc_forward_upper(n_nodes) = calc_forward_upper(Float64, n_nodes)
 # Calculate forward projection matrix for discrete L2 projection from large to lower
 #
 # Note: This is actually an interpolation.
-function calc_forward_lower(RealT::Real, n_nodes)
+function calc_forward_lower(RealT, n_nodes)
     # Calculate nodes, weights, and barycentric weights
     nodes, = gauss_lobatto_nodes_weights(RealT, n_nodes)
     wbary = barycentric_weights(nodes)
@@ -68,7 +68,7 @@ calc_forward_lower(n_nodes) = calc_forward_lower(Float64, n_nodes)
 #
 # Note: To not make the L2 projection exact, first convert to Gauss nodes,
 # perform projection, and convert back to Gauss-Lobatto.
-function calc_reverse_upper(RealT::Real, n_nodes, ::Val{:gauss})
+function calc_reverse_upper(RealT, n_nodes, ::Val{:gauss})
     # Calculate nodes, weights, and barycentric weights for Legendre-Gauss
     gauss_nodes, gauss_weights = gauss_nodes_weights(RealT, n_nodes)
     gauss_wbary = barycentric_weights(gauss_nodes)
@@ -92,13 +92,13 @@ function calc_reverse_upper(RealT::Real, n_nodes, ::Val{:gauss})
 end
 # Default version for `Float64` for precompilation
 calc_reverse_upper(n_nodes, ::Val{:gauss}) = calc_reverse_upper(Float64, n_nodes,
-                                                                ::Val{:gauss})
+                                                                Val{:gauss}())
 
 # Calculate reverse projection matrix for discrete L2 projection from lower to large (Gauss version)
 #
 # Note: To not make the L2 projection exact, first convert to Gauss nodes,
 # perform projection, and convert back to Gauss-Lobatto.
-function calc_reverse_lower(RealT::Real, n_nodes, ::Val{:gauss})
+function calc_reverse_lower(RealT, n_nodes, ::Val{:gauss})
     # Calculate nodes, weights, and barycentric weights for Legendre-Gauss
     gauss_nodes, gauss_weights = gauss_nodes_weights(RealT, n_nodes)
     gauss_wbary = barycentric_weights(gauss_nodes)
@@ -122,11 +122,11 @@ function calc_reverse_lower(RealT::Real, n_nodes, ::Val{:gauss})
 end
 # Default version for `Float64` for precompilation
 calc_reverse_lower(n_nodes, ::Val{:gauss}) = calc_reverse_lower(Float64, n_nodes,
-                                                                ::Val{:gauss})
+                                                                Val{:gauss}())
 
 # Calculate reverse projection matrix for discrete L2 projection from upper to large (Gauss-Lobatto
 # version)
-function calc_reverse_upper(RealT::Real, n_nodes, ::Val{:gauss_lobatto})
+function calc_reverse_upper(RealT, n_nodes, ::Val{:gauss_lobatto})
     # Calculate nodes, weights, and barycentric weights
     nodes, weights = gauss_lobatto_nodes_weights(RealT, n_nodes)
     wbary = barycentric_weights(nodes)
@@ -145,11 +145,11 @@ end
 # Default version for `Float64` for precompilation
 calc_reverse_upper(n_nodes, ::Val{:gauss_lobatto}) = calc_reverse_upper(Float64,
                                                                         n_nodes,
-                                                                        ::Val{:gauss_lobatto})
+                                                                        Val{:gauss_lobatto}())
 
 # Calculate reverse projection matrix for discrete L2 projection from lower to large (Gauss-Lobatto
 # version)
-function calc_reverse_lower(RealT::Real, n_nodes, ::Val{:gauss_lobatto})
+function calc_reverse_lower(RealT, n_nodes, ::Val{:gauss_lobatto})
     # Calculate nodes, weights, and barycentric weights
     nodes, weights = gauss_lobatto_nodes_weights(RealT, n_nodes)
     wbary = barycentric_weights(nodes)
@@ -168,5 +168,5 @@ end
 # Default version for `Float64` for precompilation
 calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto}) = calc_reverse_lower(Float64,
                                                                         n_nodes,
-                                                                        ::Val{:gauss_lobatto})
+                                                                        Val{:gauss_lobatto}())
 end # @muladd
