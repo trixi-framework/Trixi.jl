@@ -733,7 +733,7 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
 
         # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
         if n_nodes % 2 == 1
-            poly, deriv = legendre_polynomial_and_derivative(N + 1, 0)
+            poly, deriv = legendre_polynomial_and_derivative(N + 1, zero(RealT))
             nodes[div(N, 2) + 1] = 0
             weights[div(N, 2) + 1] = (2 * N + 3) / deriv^2
         end
