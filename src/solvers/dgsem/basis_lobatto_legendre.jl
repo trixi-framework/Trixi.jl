@@ -5,6 +5,8 @@
 @muladd begin
 #! format: noindent
 
+using Quadmath, DoubleFloats
+
 """
     LobattoLegendreBasis([RealT=Float64,] polydeg::Integer)
 
@@ -37,15 +39,14 @@ end
 function LobattoLegendreBasis(RealT, polydeg::Integer)
     nnodes_ = polydeg + 1
 
-    # compute everything using `Float64` by default
     nodes_, weights_ = gauss_lobatto_nodes_weights(RealT, nnodes_)
     inverse_weights_ = inv.(weights_)
 
     _, inverse_vandermonde_legendre_ = vandermonde_legendre(RealT, nodes_)
 
     boundary_interpolation_ = zeros(RealT, nnodes_, 2)
-    boundary_interpolation_[:, 1] = calc_lhat(-1.0, nodes_, weights_)
-    boundary_interpolation_[:, 2] = calc_lhat(1.0, nodes_, weights_)
+    boundary_interpolation_[:, 1] = calc_lhat(-one(RealT), nodes_, weights_)
+    boundary_interpolation_[:, 2] = calc_lhat(one(RealT), nodes_, weights_)
 
     derivative_matrix_ = polynomial_derivative_matrix(nodes_)
     derivative_split_ = calc_dsplit(nodes_, weights_)
@@ -567,8 +568,13 @@ This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
 function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     # From Kopriva's book
     n_iterations = 10
-    #tolerance = 1e-15
-    tolerance = 1e-30
+
+    tolerance = 10 * eps(RealT)
+    if RealT == Float64
+        tolerance = 1e-15
+    elseif RealT == Float128 || RealT == Double64
+        tolerance = RealT(10)^(-31)
+    end
 
     # Initialize output
     nodes = zeros(RealT, n_nodes)
@@ -576,8 +582,8 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
 
     # Special case for polynomial degree zero (first order finite volume)
     if n_nodes == 1
-        nodes[1] = 0
-        weights[1] = 2
+        nodes[1] = zero(RealT)
+        weights[1] = RealT(2)
         return nodes, weights
     end
 
@@ -585,15 +591,15 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     N = n_nodes - 1
 
     # Calculate values at boundary
-    nodes[1] = -1.0
-    nodes[end] = 1.0
-    weights[1] = 2 / (N * (N + 1))
+    nodes[1] = -one(RealT)
+    nodes[end] = one(RealT)
+    weights[1] = RealT(2) / (N * (N + 1))
     weights[end] = weights[1]
 
     # Calculate interior values
     if N > 1
-        cont1 = pi / N
-        cont2 = 3 / (8 * N * pi)
+        cont1 = RealT(pi) / N
+        cont2 = 3 / (8 * N * RealT(pi))
 
         # Use symmetry -> only left side is computed
         for i in 1:(div(N + 1, 2) - 1)
@@ -606,8 +612,13 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
                 q, qder, _ = calc_q_and_l(N, nodes[i + 1])
                 dx = -q / qder
                 nodes[i + 1] += dx
+
                 if abs(dx) < tolerance * abs(nodes[i + 1])
                     break
+                end
+
+                if k == n_iterations
+                    error("`gauss_lobatto_nodes_weights` Newton iteration did not converge")
                 end
             end
 
@@ -623,8 +634,8 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
 
     # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
     if n_nodes % 2 == 1
-        _, _, L = calc_q_and_l(N, 0)
-        nodes[div(N, 2) + 1] = 0.0
+        _, _, L = calc_q_and_l(N, zero(RealT))
+        nodes[div(N, 2) + 1] = zero(RealT)
         weights[div(N, 2) + 1] = weights[1] / L^2
     end
 
@@ -636,12 +647,13 @@ gauss_lobatto_nodes_weights(n_nodes::Integer) = gauss_lobatto_nodes_weights(Floa
                                                                             n_nodes)
 
 # From FLUXO (but really from blue book by Kopriva, algorithm 24)
-#function calc_q_and_l(N::Integer, x::Float64)
 function calc_q_and_l(N::Integer, x)
-    L_Nm2 = 1.0
+    RealT = typeof(x)
+
+    L_Nm2 = one(RealT)
     L_Nm1 = x
-    Lder_Nm2 = 0.0
-    Lder_Nm1 = 1.0
+    Lder_Nm2 = zero(RealT)
+    Lder_Nm1 = one(RealT)
 
     local L
     for i in 2:N
@@ -674,8 +686,13 @@ This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
 function gauss_nodes_weights(RealT, n_nodes::Integer)
     # From Kopriva's book
     n_iterations = 10
-    #tolerance = 1e-15
-    tolerance = 1e-30
+
+    tolerance = 10 * eps(RealT)
+    if RealT == Float64
+        tolerance = 1e-15
+    elseif RealT == Float128 || RealT == Double64
+        tolerance = tolerance = RealT(10)^(-31)
+    end
 
     # Initialize output
     nodes = ones(RealT, n_nodes) * 1000
@@ -684,19 +701,19 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
     # Get polynomial degree for convenience
     N = n_nodes - 1
     if N == 0
-        nodes .= 0.0
-        weights .= 2.0
+        nodes .= zero(RealT)
+        weights .= RealT(2)
         return nodes, weights
     elseif N == 1
-        nodes[1] = -sqrt(1 / 3)
+        nodes[1] = -sqrt(one(RealT) / 3)
         nodes[end] = -nodes[1]
-        weights .= 1.0
+        weights .= one(RealT)
         return nodes, weights
     else # N > 1
         # Use symmetry property of the roots of the Legendre polynomials
         for i in 0:(div(N + 1, 2) - 1)
             # Starting guess for Newton method
-            nodes[i + 1] = -cos(pi / (2 * N + 2) * (2 * i + 1))
+            nodes[i + 1] = -cos(RealT(pi) / (2 * N + 2) * (2 * i + 1))
 
             # Newton iteration to find root of Legendre polynomial (= integration node)
             for k in 0:n_iterations
@@ -705,6 +722,10 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
                 nodes[i + 1] += dx
                 if abs(dx) < tolerance * abs(nodes[i + 1])
                     break
+                end
+
+                if k == n_iterations
+                    error("`gauss_nodes_weights` Newton iteration did not converge")
                 end
             end
 
@@ -719,8 +740,8 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
 
         # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
         if n_nodes % 2 == 1
-            poly, deriv = legendre_polynomial_and_derivative(N + 1, 0.0)
-            nodes[div(N, 2) + 1] = 0.0
+            poly, deriv = legendre_polynomial_and_derivative(N + 1, zero(RealT))
+            nodes[div(N, 2) + 1] = zero(RealT)
             weights[div(N, 2) + 1] = (2 * N + 3) / deriv^2
         end
 
@@ -743,20 +764,21 @@ This implements algorithm 22 "LegendrePolynomialAndDerivative" from the book
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function legendre_polynomial_and_derivative(N::Int, x::Real)
+    RealT = typeof(x)
     if N == 0
-        poly = 1.0
-        deriv = 0.0
+        poly = one(RealT)
+        deriv = zero(RealT)
     elseif N == 1
         poly = x
-        deriv = 1.0
+        deriv = one(RealT)
     else
-        poly_Nm2 = 1.0
+        poly_Nm2 = one(RealT)
         poly_Nm1 = copy(x)
-        deriv_Nm2 = 0.0
-        deriv_Nm1 = 1.0
+        deriv_Nm2 = zero(RealT)
+        deriv_Nm1 = one(RealT)
 
-        poly = 0.0
-        deriv = 0.0
+        poly = zero(RealT)
+        deriv = zero(RealT)
         for i in 2:N
             poly = ((2 * i - 1) * x * poly_Nm1 - (i - 1) * poly_Nm2) / i
             deriv = deriv_Nm2 + (2 * i - 1) * poly_Nm1
