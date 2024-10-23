@@ -552,7 +552,7 @@ function lagrange_interpolating_polynomials(x, nodes, wbary)
 end
 
 """
-    gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
+    gauss_lobatto_nodes_weights([RealT=Float64,] n_nodes::Integer)
 
 Computes nodes ``x_j`` and weights ``w_j`` for the (Legendre-)Gauss-Lobatto quadrature.
 This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
