@@ -70,12 +70,13 @@ mutable struct ParallelTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
     end
 end
 
-# Constructor for passing the dimension as an argument
-ParallelTree(::Val{NDIMS}, args...) where {NDIMS, RealT <: Real} = ParallelTree{NDIMS}(args...)
+# Constructor for passing the dimension and datatype as an argument
+ParallelTree(::Val{NDIMS}, RealT::Real, args...) where {NDIMS} = ParallelTree{NDIMS,
+                                                                              RealT}(args...)
 
 # Create and initialize tree
 function ParallelTree{NDIMS}(capacity::Int, center::AbstractArray{RealT},
-                             length::Real,
+                             length::RealT,
                              periodicity = true) where {NDIMS, RealT <: Real}
     # Create instance
     t = ParallelTree{NDIMS, RealT}(capacity)

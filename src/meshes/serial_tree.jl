@@ -68,9 +68,8 @@ mutable struct SerialTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
     end
 end
 
-# Constructor for passing the dimension as an argument
-SerialTree(::Val{NDIMS}, args...) where {NDIMS, RealT <: Real} = SerialTree{NDIMS,
-                                                                            RealT}(args...)
+# Constructor for passing the dimension and datatype as an argument
+SerialTree(::Val{NDIMS}, RealT::Real, args...) where {NDIMS} = SerialTree{NDIMS, RealT}(args...)
 
 # Create and initialize tree
 function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{RealT},
