@@ -17,13 +17,12 @@ solver = DGSEM(RealT = RealT, polydeg = 7, surface_flux = flux_lax_friedrichs)
 
 # CARE: Important to use higher precision datatype for coordinates
 # as these are used for type promotion of the mesh (points etc.)
-coordinates_min = -RealT(1) # minimum coordinate
-coordinates_max = RealT(1) # maximum coordinate
+coordinates_min = (-RealT(1.0),) # minimum coordinate
+coordinates_max = (RealT(1.0),) # maximum coordinate
+cells_per_dimension = (256,)
 
-# Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 7,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+# NOTE: StructuredMesh supports higher precision coordinates
+mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
                                     solver)

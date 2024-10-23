@@ -25,23 +25,23 @@
 # function, which is required for implementing level-wise refinement in a sane
 # way. Also, depth-first ordering *might* not by guaranteed during
 # refinement/coarsening operations.
-mutable struct SerialTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
+mutable struct SerialTree{NDIMS} <: AbstractTree{NDIMS}
     parent_ids::Vector{Int}
     child_ids::Matrix{Int}
     neighbor_ids::Matrix{Int}
     levels::Vector{Int}
-    coordinates::Matrix{RealT}
+    coordinates::Matrix{Float64}
     original_cell_ids::Vector{Int}
 
     capacity::Int
     length::Int
     dummy::Int
 
-    center_level_0::SVector{NDIMS, RealT}
-    length_level_0::RealT
+    center_level_0::SVector{NDIMS, Float64}
+    length_level_0::Float64
     periodicity::NTuple{NDIMS, Bool}
 
-    function SerialTree{NDIMS, RealT}(capacity::Integer) where {NDIMS, RealT <: Real}
+    function SerialTree{NDIMS}(capacity::Integer) where {NDIMS}
         # Verify that NDIMS is an integer
         @assert NDIMS isa Integer
 
@@ -69,15 +69,13 @@ mutable struct SerialTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
 end
 
 # Constructor for passing the dimension as an argument
-SerialTree(::Val{NDIMS}, args...) where {NDIMS, RealT <: Real} = SerialTree{NDIMS,
-                                                                            RealT}(args...)
+SerialTree(::Val{NDIMS}, args...) where {NDIMS} = SerialTree{NDIMS}(args...)
 
 # Create and initialize tree
-function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{RealT},
-                           length::RealT,
-                           periodicity = true) where {NDIMS, RealT <: Real}
+function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{Float64},
+                           length::Real, periodicity = true) where {NDIMS}
     # Create instance
-    t = SerialTree{NDIMS, RealT}(capacity)
+    t = SerialTree{NDIMS}(capacity)
 
     # Initialize root cell
     init!(t, center, length, periodicity)
@@ -86,14 +84,13 @@ function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{RealT},
 end
 
 # Constructor accepting a single number as center (as opposed to an array) for 1D
-function SerialTree{1}(cap::Int, center::RealT, len::RealT,
-                       periodicity = true) where {RealT <: Real}
-    SerialTree{1, RealT}(cap, [center], len, periodicity)
+function SerialTree{1}(cap::Int, center::Real, len::Real, periodicity = true)
+    SerialTree{1}(cap, [convert(Float64, center)], len, periodicity)
 end
 
 # Clear tree with deleting data structures, store center and length, and create root cell
-function init!(t::SerialTree, center::AbstractArray{RealT}, length::RealT,
-               periodicity = true) where {RealT}
+function init!(t::SerialTree, center::AbstractArray{Float64}, length::Real,
+               periodicity = true)
     clear!(t)
 
     # Set domain information
@@ -206,13 +203,12 @@ function raw_copy!(target::SerialTree, source::SerialTree, first::Int, last::Int
 end
 
 # Reset data structures by recreating all internal storage containers and invalidating all elements
-function reset_data_structures!(t::SerialTree{NDIMS, RealT}) where {NDIMS, RealT <:
-                                                                           Real}
+function reset_data_structures!(t::SerialTree{NDIMS}) where {NDIMS}
     t.parent_ids = Vector{Int}(undef, t.capacity + 1)
     t.child_ids = Matrix{Int}(undef, 2^NDIMS, t.capacity + 1)
     t.neighbor_ids = Matrix{Int}(undef, 2 * NDIMS, t.capacity + 1)
     t.levels = Vector{Int}(undef, t.capacity + 1)
-    t.coordinates = Matrix{RealT}(undef, NDIMS, t.capacity + 1)
+    t.coordinates = Matrix{Float64}(undef, NDIMS, t.capacity + 1)
     t.original_cell_ids = Vector{Int}(undef, t.capacity + 1)
 
     invalidate!(t, 1, capacity(t) + 1)
