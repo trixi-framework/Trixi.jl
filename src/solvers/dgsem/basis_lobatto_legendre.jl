@@ -637,7 +637,7 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
 
     return nodes, weights
 end
-# Default version for `Float64` for mortars etc.
+# Default version for `Float64` for precompilation
 gauss_lobatto_nodes_weights(n_nodes::Integer) = gauss_lobatto_nodes_weights(Float64,
                                                                             n_nodes)
 
@@ -740,7 +740,7 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
         return nodes, weights
     end
 end
-# Default version for `Float64` for mortars etc.
+# Default version for `Float64` for precompilation
 gauss_nodes_weights(n_nodes::Integer) = gauss_nodes_weights(Float64, n_nodes)
 
 """
