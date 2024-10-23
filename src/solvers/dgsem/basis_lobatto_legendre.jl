@@ -589,7 +589,7 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     # Calculate values at boundary
     nodes[1] = -1
     nodes[end] = 1
-    weights[1] = 2 / (N * (N + 1))
+    weights[1] = RealT(2) / (N * (N + 1))
     weights[end] = weights[1]
 
     # Calculate interior values
@@ -697,7 +697,7 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
         weights .= 2
         return nodes, weights
     elseif N == 1
-        nodes[1] = -sqrt(1 / 3)
+        nodes[1] = -sqrt(one(RealT) / 3)
         nodes[end] = -nodes[1]
         weights .= 1
         return nodes, weights

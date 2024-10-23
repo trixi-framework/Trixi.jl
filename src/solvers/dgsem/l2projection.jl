@@ -47,7 +47,7 @@ calc_forward_upper(n_nodes) = calc_forward_upper(Float64, n_nodes)
 # Note: This is actually an interpolation.
 function calc_forward_lower(RealT, n_nodes)
     # Calculate nodes, weights, and barycentric weights
-    nodes, = gauss_lobatto_nodes_weights(RealT, n_nodes)
+    nodes, _ = gauss_lobatto_nodes_weights(RealT, n_nodes)
     wbary = barycentric_weights(nodes)
 
     # Calculate projection matrix (actually: interpolation)
