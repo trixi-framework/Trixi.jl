@@ -61,9 +61,9 @@ function calc_error_norms(func, u, t, analyzer,
                                        inv.(view(inverse_jacobian, :, element)))
 
         # Calculate errors at each analysis node
-        #@. jacobian_local = abs(jacobian_local)
-        for j in jacobian_local
-            j = abs(j)
+        #@. jacobian_local = abs(jacobian_local) # Does not work with LoopVectorization an higher precision datatypes
+        for (index, value) in enumerate(jacobian_local)
+            jacobian_local[index] = abs(value)
         end
 
         for i in eachnode(analyzer)
