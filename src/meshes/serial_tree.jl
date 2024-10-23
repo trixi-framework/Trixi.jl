@@ -87,6 +87,12 @@ function SerialTree{NDIMS, RealT}(capacity::Int, center::AbstractArray{RealT},
     return t
 end
 
+function SerialTree{NDIMS}(capacity::Int, center::AbstractArray{RealT},
+                           length::RealT,
+                           periodicity = true) where {NDIMS, RealT <: Real}
+    t = SerialTree{NDIMS, RealT}(capacity, center, length, periodicity)
+end
+
 # Constructor accepting a single number as center (as opposed to an array) for 1D
 function SerialTree{1, RealT}(cap::Int, center::RealT, len::RealT,
                               periodicity = true) where {RealT <: Real}

@@ -89,6 +89,12 @@ function ParallelTree{NDIMS, RealT}(capacity::Int, center::AbstractArray{RealT},
     return t
 end
 
+function ParallelTree{NDIMS}(capacity::Int, center::AbstractArray{RealT},
+                             length::RealT,
+                             periodicity = true) where {NDIMS, RealT <: Real}
+    ParallelTree{NDIMS, RealT}(capacity, center, length, periodicity)
+end
+
 # Constructor accepting a single number as center (as opposed to an array) for 1D
 function ParallelTree{1, RealT}(cap::Int, center::RealT, len::RealT,
                                 periodicity = true) where {RealT <: Real}
