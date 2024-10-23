@@ -637,7 +637,6 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
 
     return nodes, weights
 end
-
 # Default version for `Float64` for mortars etc.
 gauss_lobatto_nodes_weights(n_nodes::Integer) = gauss_lobatto_nodes_weights(Float64,
                                                                             n_nodes)
@@ -668,7 +667,7 @@ function calc_q_and_l(N::Integer, x)
 end
 
 """
-    gauss_nodes_weights(RealT, n_nodes::Integer)
+    gauss_nodes_weights([RealT=Float64,] n_nodes::Integer)
 
 Computes nodes ``x_j`` and weights ``w_j`` for the Gauss-Legendre quadrature.
 This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
@@ -741,7 +740,6 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
         return nodes, weights
     end
 end
-
 # Default version for `Float64` for mortars etc.
 gauss_nodes_weights(n_nodes::Integer) = gauss_nodes_weights(Float64, n_nodes)
 
