@@ -39,8 +39,6 @@ function calc_forward_upper(RealT, n_nodes)
 
     return operator
 end
-# Default version for `Float64` for precompilation
-calc_forward_upper(n_nodes) = calc_forward_upper(Float64, n_nodes)
 
 # Calculate forward projection matrix for discrete L2 projection from large to lower
 #
@@ -61,8 +59,6 @@ function calc_forward_lower(RealT, n_nodes)
 
     return operator
 end
-# Default version for `Float64` for precompilation
-calc_forward_lower(n_nodes) = calc_forward_lower(Float64, n_nodes)
 
 # Calculate reverse projection matrix for discrete L2 projection from upper to large (Gauss version)
 #
@@ -90,9 +86,6 @@ function calc_reverse_upper(RealT, n_nodes, ::Val{:gauss})
 
     return gauss2lobatto * operator * lobatto2gauss
 end
-# Default version for `Float64` for precompilation
-calc_reverse_upper(n_nodes, ::Val{:gauss}) = calc_reverse_upper(Float64, n_nodes,
-                                                                Val{:gauss}())
 
 # Calculate reverse projection matrix for discrete L2 projection from lower to large (Gauss version)
 #
@@ -120,9 +113,6 @@ function calc_reverse_lower(RealT, n_nodes, ::Val{:gauss})
 
     return gauss2lobatto * operator * lobatto2gauss
 end
-# Default version for `Float64` for precompilation
-calc_reverse_lower(n_nodes, ::Val{:gauss}) = calc_reverse_lower(Float64, n_nodes,
-                                                                Val{:gauss}())
 
 # Calculate reverse projection matrix for discrete L2 projection from upper to large (Gauss-Lobatto
 # version)
@@ -142,10 +132,6 @@ function calc_reverse_upper(RealT, n_nodes, ::Val{:gauss_lobatto})
 
     return operator
 end
-# Default version for `Float64` for precompilation
-calc_reverse_upper(n_nodes, ::Val{:gauss_lobatto}) = calc_reverse_upper(Float64,
-                                                                        n_nodes,
-                                                                        Val{:gauss_lobatto}())
 
 # Calculate reverse projection matrix for discrete L2 projection from lower to large (Gauss-Lobatto
 # version)
@@ -165,8 +151,4 @@ function calc_reverse_lower(RealT, n_nodes, ::Val{:gauss_lobatto})
 
     return operator
 end
-# Default version for `Float64` for precompilation
-calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto}) = calc_reverse_lower(Float64,
-                                                                        n_nodes,
-                                                                        Val{:gauss_lobatto}())
 end # @muladd
