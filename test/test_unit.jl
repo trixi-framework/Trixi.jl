@@ -64,7 +64,8 @@ end
 
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
-        @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
+        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0) isa
+              TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
         # 2D
@@ -85,7 +86,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 2
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(30, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(30,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -113,7 +116,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 3
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -141,7 +146,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 9
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(1000, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(1000,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -164,7 +171,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 3
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
                 # Refine whole tree
                 Trixi.refine!(mesh.tree)
                 # Refine left leaf
@@ -191,7 +200,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 3
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
 
                 # Only one leaf
                 @test_throws AssertionError("Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
