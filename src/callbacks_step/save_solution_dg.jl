@@ -15,7 +15,7 @@ function save_solution_file(u, time, dt, timestep,
                             element_variables = Dict{Symbol, Any}(),
                             node_variables = Dict{Symbol, Any}();
                             system = "")
-    @unpack output_directory, solution_variables = solution_callback
+    @unpack output_directory, solution_variables, reference_solution = solution_callback
 
     # Filename based on current time step
     if isempty(system)
@@ -26,20 +26,13 @@ function save_solution_file(u, time, dt, timestep,
     end
 
     # Convert to different set of variables if requested
-    if solution_variables === cons2cons
-        data = u
-        n_vars = nvariables(equations)
-    else
-        # Reinterpret the solution array as an array of conservative variables,
-        # compute the solution variables via broadcasting, and reinterpret the
-        # result as a plain array of floating point numbers
-        data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
-                                                                         eltype(u)}, u),
-                                                     Ref(equations))))
+    converted_variables, n_vars = convert_variables(u, equations, solution_variables)
 
-        # Find out variable count by looking at output from `solution_variables` function
-        n_vars = size(data, 1)
+    # Subtract reference solution
+    if !isnothing(reference_solution)
+        data = converted_variables - reference_solution
+    else
+        data = converted_variables
     end
 
     # Open file (clobber existing content)
@@ -108,21 +101,7 @@ function save_solution_file(u, time, dt, timestep,
     end
 
     # Convert to different set of variables if requested
-    if solution_variables === cons2cons
-        data = u
-        n_vars = nvariables(equations)
-    else
-        # Reinterpret the solution array as an array of conservative variables,
-        # compute the solution variables via broadcasting, and reinterpret the
-        # result as a plain array of floating point numbers
-        data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
-                                                                         eltype(u)}, u),
-                                                     Ref(equations))))
-
-        # Find out variable count by looking at output from `solution_variables` function
-        n_vars = size(data, 1)
-    end
+    data, n_vars = convert_variables(u, equations, solution_variables)
 
     if HDF5.has_parallel()
         save_solution_file_parallel(data, time, dt, timestep, n_vars, mesh, equations,
