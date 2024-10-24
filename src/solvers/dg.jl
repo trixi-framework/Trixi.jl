@@ -12,6 +12,10 @@ function get_element_variables!(element_variables, u, mesh, equations,
     nothing
 end
 
+function get_element_variables!(element_variables, mesh)
+    nothing
+end
+
 function get_node_variables!(node_variables, mesh, equations,
                              volume_integral::AbstractVolumeIntegral, dg, cache)
     nothing
@@ -427,6 +431,7 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
     get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral,
                            dg, cache)
+    get_element_variables!(element_variables, mesh)
 end
 
 function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
