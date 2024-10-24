@@ -564,7 +564,8 @@ This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
 """
 # From FLUXO (but really from blue book by Kopriva)
 function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
-    n_iterations = 10
+    n_iterations = 20
+    # Relative tolerance for Newton iteration
     tolerance = 2 * eps(RealT)
 
     # Initialize output
@@ -603,13 +604,12 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
                 q, qder, _ = calc_q_and_l(N, nodes[i + 1])
                 dx = -q / qder
                 nodes[i + 1] += dx
-
                 if abs(dx) < tolerance * abs(nodes[i + 1])
                     break
                 end
 
                 if k == n_iterations
-                    error("`gauss_lobatto_nodes_weights` Newton iteration did not converge")
+                    @warn "`gauss_lobatto_nodes_weights` Newton iteration did not converge"
                 end
             end
 
@@ -673,8 +673,8 @@ This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function gauss_nodes_weights(RealT, n_nodes::Integer)
-    n_iterations = 10
-    tolerance = 2 * eps(RealT)
+    n_iterations = 20
+    tolerance = 2 * eps(RealT) # Relative tolerance for Newton iteration
 
     # Initialize output
     nodes = ones(RealT, n_nodes) * 1000
@@ -707,7 +707,7 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
                 end
 
                 if k == n_iterations
-                    error("`gauss_nodes_weights` Newton iteration did not converge")
+                    @warn "`gauss_nodes_weights` Newton iteration did not converge"
                 end
             end
 
