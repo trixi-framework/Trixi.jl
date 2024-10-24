@@ -589,8 +589,8 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
 
     # Calculate interior values
     if N > 1
-        cont1 = RealT(pi) / N
-        cont2 = 3 / (8 * N * RealT(pi))
+        cont1 = convert(RealT, pi) / N
+        cont2 = 3 / (8 * N * convert(RealT, pi))
 
         # Use symmetry -> only left side is computed
         for i in 1:(div(N + 1, 2) - 1)
@@ -695,7 +695,7 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
         # Use symmetry property of the roots of the Legendre polynomials
         for i in 0:(div(N + 1, 2) - 1)
             # Starting guess for Newton method
-            nodes[i + 1] = -cos(RealT(pi) / (2 * N + 2) * (2 * i + 1))
+            nodes[i + 1] = -cos(convert(RealT, pi) / (2 * N + 2) * (2 * i + 1))
 
             # Newton iteration to find root of Legendre polynomial (= integration node)
             for k in 0:n_iterations
