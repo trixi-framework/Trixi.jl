@@ -325,13 +325,15 @@ function _precompile_manual_()
     end
     @assert Base.precompile(Tuple{typeof(Trixi.gauss_lobatto_nodes_weights), Int})
     @assert Base.precompile(Tuple{typeof(Trixi.gauss_nodes_weights), Int})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_upper), Int})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_lower), Int})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int, Val{:gauss}})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int, Val{:gauss}})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int,
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_upper), Float64, Int})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_lower), Float64, Int})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Float64, Int, 
+                                  Val{:gauss}})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Float64, Int, 
+                                  Val{:gauss}})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Float64, Int,
                                   Val{:gauss_lobatto}})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int,
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Float64, Int,
                                   Val{:gauss_lobatto}})
 
     # Constructors: mortars, analyzers, adaptors
