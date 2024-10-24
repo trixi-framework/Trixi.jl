@@ -114,7 +114,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, RealT},
                   periodicity = true,
                   initial_refinement_level,
                   refinement_patches = (),
-                  coarsening_patches = ()) where {NDIMS, RealT}
+                  coarsening_patches = ()) where {NDIMS, RealT <: Real}
     # check arguments
     if !(n_cells_max isa Integer && n_cells_max > 0)
         throw(ArgumentError("`n_cells_max` must be a positive integer (provided `n_cells_max = $n_cells_max`)"))
