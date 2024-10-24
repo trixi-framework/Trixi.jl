@@ -74,8 +74,8 @@ function integrate_via_indices(func::Func, u,
     # Initialize integral with zeros of the right shape
     # Pass `zero(SVector{nvariables(equations), eltype(u))}` to `func` since `u` might be empty, if the
     # current rank has no elements, see also https://github.com/trixi-framework/Trixi.jl/issues/1096.
-    integral = zero(func(zero(SVector{nvariables(equations), eltype(u)}), 1, 1, 1, 1,
-                         equations, dg, args...))
+    integral = zero(func(zeros(nvariables(equations), nnodes(dg), nnodes(dg),
+                               nnodes(dg), 1), 1, 1, 1, 1, equations, dg, args...))
     volume = zero(real(mesh))
 
     # Use quadrature to numerically integrate over entire domain
