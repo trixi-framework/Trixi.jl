@@ -5,6 +5,14 @@
 @muladd begin
 #! format: noindent
 
+# Function to output the mpi rank for visualization
+function get_element_variables!(element_variables,
+                                mesh::Union{ParallelP4estMesh{3},
+                                            ParallelT8codeMesh{3}})
+    element_variables[:mpi_rank] = mpi_rank()
+    return nothing
+end
+
 function rhs!(du, u, t,
               mesh::Union{ParallelP4estMesh{3}, ParallelT8codeMesh{3}}, equations,
               boundary_conditions, source_terms::Source,
