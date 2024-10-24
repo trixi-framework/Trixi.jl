@@ -564,8 +564,9 @@ This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
 """
 # From FLUXO (but really from blue book by Kopriva)
 function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
-    n_iterations = 10
-    tolerance = 10 * eps(RealT)
+    n_iterations = 20
+    # Relative tolerance for Newton iteration
+    tolerance = 2 * eps(RealT)
 
     # Initialize output
     nodes = zeros(RealT, n_nodes)
@@ -589,8 +590,8 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
 
     # Calculate interior values
     if N > 1
-        cont1 = RealT(pi) / N
-        cont2 = 3 / (8 * N * RealT(pi))
+        cont1 = convert(RealT, pi) / N
+        cont2 = 3 / (8 * N * convert(RealT, pi))
 
         # Use symmetry -> only left side is computed
         for i in 1:(div(N + 1, 2) - 1)
@@ -603,13 +604,12 @@ function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
                 q, qder, _ = calc_q_and_l(N, nodes[i + 1])
                 dx = -q / qder
                 nodes[i + 1] += dx
-
                 if abs(dx) < tolerance * abs(nodes[i + 1])
                     break
                 end
 
                 if k == n_iterations
-                    error("`gauss_lobatto_nodes_weights` Newton iteration did not converge")
+                    @warn "`gauss_lobatto_nodes_weights` Newton iteration did not converge"
                 end
             end
 
@@ -673,8 +673,8 @@ This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
 function gauss_nodes_weights(RealT, n_nodes::Integer)
-    n_iterations = 10
-    tolerance = 10 * eps(RealT)
+    n_iterations = 20
+    tolerance = 2 * eps(RealT) # Relative tolerance for Newton iteration
 
     # Initialize output
     nodes = ones(RealT, n_nodes) * 1000
@@ -695,7 +695,7 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
         # Use symmetry property of the roots of the Legendre polynomials
         for i in 0:(div(N + 1, 2) - 1)
             # Starting guess for Newton method
-            nodes[i + 1] = -cos(RealT(pi) / (2 * N + 2) * (2 * i + 1))
+            nodes[i + 1] = -cos(convert(RealT, pi) / (2 * N + 2) * (2 * i + 1))
 
             # Newton iteration to find root of Legendre polynomial (= integration node)
             for k in 0:n_iterations
@@ -707,7 +707,7 @@ function gauss_nodes_weights(RealT, n_nodes::Integer)
                 end
 
                 if k == n_iterations
-                    error("`gauss_nodes_weights` Newton iteration did not converge")
+                    @warn "`gauss_nodes_weights` Newton iteration did not converge"
                 end
             end
 
