@@ -172,7 +172,7 @@ background_state = compute_reference_state(hydrostatic_background, semi, cons2pr
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     output_directory = "out_bubble",
+                                     output_directory = "out",
                                      solution_variables = cons2prim,
                                      reference_solution = background_state)
 
