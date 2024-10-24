@@ -565,7 +565,7 @@ This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
 # From FLUXO (but really from blue book by Kopriva)
 function gauss_lobatto_nodes_weights(RealT, n_nodes::Integer)
     n_iterations = 10
-    tolerance = 10 * eps(RealT)
+    tolerance = 2 * eps(RealT)
 
     # Initialize output
     nodes = zeros(RealT, n_nodes)
@@ -674,7 +674,7 @@ This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
 """
 function gauss_nodes_weights(RealT, n_nodes::Integer)
     n_iterations = 10
-    tolerance = 10 * eps(RealT)
+    tolerance = 2 * eps(RealT)
 
     # Initialize output
     nodes = ones(RealT, n_nodes) * 1000
