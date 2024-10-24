@@ -68,9 +68,6 @@ mutable struct SerialTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
     end
 end
 
-# Constructor for passing the dimension and datatype as an argument
-SerialTree(::Val{NDIMS}, RealT::DataType, args...) where {NDIMS} = SerialTree{NDIMS,
-                                                                              RealT}(args...)
 # Default datatype: Float64
 SerialTree(::Val{NDIMS}, args...) where {NDIMS} = SerialTree{NDIMS, Float64}(args...)
 

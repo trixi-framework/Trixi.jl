@@ -70,9 +70,6 @@ mutable struct ParallelTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
     end
 end
 
-# Constructor for passing the dimension and datatype as an argument
-ParallelTree(::Val{NDIMS}, RealT::DataType, args...) where {NDIMS} = ParallelTree{NDIMS,
-                                                                                  RealT}(args...)
 # Default datatype: Float64
 ParallelTree(::Val{NDIMS}, args...) where {NDIMS} = ParallelTree{NDIMS, Float64}(args...)
 
