@@ -108,13 +108,13 @@ function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
                                      domain_length, periodicity)
 end
 
-function TreeMesh(coordinates_min::NTuple{NDIMS, RealT},
-                  coordinates_max::NTuple{NDIMS, RealT};
+function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
+                  coordinates_max::NTuple{NDIMS, Real};
                   n_cells_max,
                   periodicity = true,
                   initial_refinement_level,
                   refinement_patches = (),
-                  coarsening_patches = ()) where {NDIMS, RealT <: Real}
+                  coarsening_patches = ()) where {NDIMS}
     # check arguments
     if !(n_cells_max isa Integer && n_cells_max > 0)
         throw(ArgumentError("`n_cells_max` must be a positive integer (provided `n_cells_max = $n_cells_max`)"))
@@ -143,6 +143,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, RealT},
     end
 
     # Create mesh
+    RealT = eltype(domain_center)
     mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType, RealT}(n_cells_max,
                                                                              domain_center,
                                                                              domain_length,
@@ -188,7 +189,8 @@ function initialize!(mesh::TreeMesh, initial_refinement_level,
     return nothing
 end
 
-function TreeMesh(coordinates_min::Real, coordinates_max::Real; kwargs...)
+function TreeMesh(coordinates_min::RealT, coordinates_max::RealT;
+                  kwargs...) where {RealT <: Real}
     TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
 end
 
