@@ -771,7 +771,7 @@ function legendre_polynomial_and_derivative(N::Int, x::Real)
 end
 
 # Calculate Legendre vandermonde matrix and its inverse
-function vandermonde_legendre(nodes, N, RealT = Float64)
+function vandermonde_legendre(nodes, N::Integer, RealT = Float64)
     n_nodes = length(nodes)
     n_modes = N + 1
     vandermonde = zeros(RealT, n_nodes, n_modes)
