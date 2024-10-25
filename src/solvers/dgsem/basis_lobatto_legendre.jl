@@ -6,7 +6,7 @@
 #! format: noindent
 
 """
-    LobattoLegendreBasis(polydeg::Integer, RealT=Float64)
+    LobattoLegendreBasis(polydeg::Integer, RealT = Float64)
 
 Create a nodal Lobatto-Legendre basis for polynomials of degree `polydeg`.
 
@@ -550,7 +550,7 @@ function lagrange_interpolating_polynomials(x, nodes, wbary)
 end
 
 """
-    gauss_lobatto_nodes_weights(n_nodes::Integer, RealT=Float64)
+    gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
 
 Computes nodes ``x_j`` and weights ``w_j`` for the (Legendre-)Gauss-Lobatto quadrature.
 This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
@@ -657,7 +657,7 @@ function calc_q_and_l(N::Integer, x)
 end
 
 """
-    gauss_nodes_weights(n_nodes::Integer, RealT=Float64)
+    gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
 
 Computes nodes ``x_j`` and weights ``w_j`` for the Gauss-Legendre quadrature.
 This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
