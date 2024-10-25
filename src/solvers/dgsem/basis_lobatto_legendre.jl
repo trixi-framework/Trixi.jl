@@ -672,7 +672,7 @@ function gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
     tolerance = 2 * eps(RealT) # Relative tolerance for Newton iteration
 
     # Initialize output
-    nodes = ones(RealT, n_nodes) * 1000
+    nodes = ones(RealT, n_nodes)
     weights = zeros(RealT, n_nodes)
 
     # Get polynomial degree for convenience
