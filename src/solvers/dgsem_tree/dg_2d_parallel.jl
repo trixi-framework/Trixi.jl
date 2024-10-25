@@ -693,12 +693,12 @@ function prolong2mpimortars!(cache, u,
                         # L2 mortars in x-direction
                         u_large = view(u, :, nnodes(dg), :, element)
                         element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright,
-                                                      mortar, u_large)
+                                                      mortar, u_large, dg, equations)
                     else
                         # L2 mortars in y-direction
                         u_large = view(u, :, :, nnodes(dg), element)
                         element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright,
-                                                      mortar, u_large)
+                                                      mortar, u_large, dg, equations)
                     end
                 else # large_sides[mortar] == 2 -> large element on right side
                     leftright = 2
@@ -706,12 +706,12 @@ function prolong2mpimortars!(cache, u,
                         # L2 mortars in x-direction
                         u_large = view(u, :, 1, :, element)
                         element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright,
-                                                      mortar, u_large)
+                                                      mortar, u_large, dg, equations)
                     else
                         # L2 mortars in y-direction
                         u_large = view(u, :, :, 1, element)
                         element_solutions_to_mortars!(mpi_mortars, mortar_l2, leftright,
-                                                      mortar, u_large)
+                                                      mortar, u_large, dg, equations)
                     end
                 end
             end

@@ -861,12 +861,12 @@ function prolong2mortars!(cache, u,
                 # L2 mortars in x-direction
                 u_large = view(u, :, nnodes(dg), :, large_element)
                 element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
+                                              mortar, u_large, dg, equations)
             else
                 # L2 mortars in y-direction
                 u_large = view(u, :, :, nnodes(dg), large_element)
                 element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
+                                              mortar, u_large, dg, equations)
             end
         else # large_sides[mortar] == 2 -> large element on right side
             leftright = 2
@@ -874,12 +874,101 @@ function prolong2mortars!(cache, u,
                 # L2 mortars in x-direction
                 u_large = view(u, :, 1, :, large_element)
                 element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
+                                              mortar, u_large, dg, equations)
             else
                 # L2 mortars in y-direction
                 u_large = view(u, :, :, 1, large_element)
                 element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
+                                              mortar, u_large, dg, equations)
+            end
+        end
+    end
+
+    return nothing
+end
+
+function prolong2mortars!(cache, u,
+                          mesh::TreeMesh{2}, equations,
+                          mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                          dg::DGSEM)
+    @threaded for mortar in eachmortar(dg, cache)
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        # Copy solution small to small
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if cache.mortars.orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_upper[2, v, l, mortar] = u[v, 1, l,
+                                                                   upper_element]
+                        cache.mortars.u_lower[2, v, l, mortar] = u[v, 1, l,
+                                                                   lower_element]
+                    end
+                end
+            else
+                # L2 mortars in y-direction
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_upper[2, v, l, mortar] = u[v, l, 1,
+                                                                   upper_element]
+                        cache.mortars.u_lower[2, v, l, mortar] = u[v, l, 1,
+                                                                   lower_element]
+                    end
+                end
+            end
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if cache.mortars.orientations[mortar] == 1
+                # L2 mortars in x-direction
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_upper[1, v, l, mortar] = u[v, nnodes(dg), l,
+                                                                   upper_element]
+                        cache.mortars.u_lower[1, v, l, mortar] = u[v, nnodes(dg), l,
+                                                                   lower_element]
+                    end
+                end
+            else
+                # L2 mortars in y-direction
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_upper[1, v, l, mortar] = u[v, l, nnodes(dg),
+                                                                   upper_element]
+                        cache.mortars.u_lower[1, v, l, mortar] = u[v, l, nnodes(dg),
+                                                                   lower_element]
+                    end
+                end
+            end
+        end
+
+        # Interpolate large element face data to small interface locations
+        if cache.mortars.large_sides[mortar] == 1 # -> large element on left side
+            leftright = 1
+            if cache.mortars.orientations[mortar] == 1
+                # EC mortars in x-direction
+                u_large = view(u, :, nnodes(dg), :, large_element)
+                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                                              mortar, u_large, dg, equations)
+            else
+                # EC mortars in y-direction
+                u_large = view(u, :, :, nnodes(dg), large_element)
+                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                                              mortar, u_large, dg, equations)
+            end
+        else # large_sides[mortar] == 2 -> large element on right side
+            leftright = 2
+            if cache.mortars.orientations[mortar] == 1
+                # EC mortars in x-direction
+                u_large = view(u, :, 1, :, large_element)
+                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                                              mortar, u_large, dg, equations)
+            else
+                # EC mortars in y-direction
+                u_large = view(u, :, :, 1, large_element)
+                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                                              mortar, u_large, dg, equations)
             end
         end
     end
@@ -890,11 +979,47 @@ end
 @inline function element_solutions_to_mortars!(mortars,
                                                mortar_l2::LobattoLegendreMortarL2,
                                                leftright, mortar,
-                                               u_large::AbstractArray{<:Any, 2})
+                                               u_large::AbstractArray{<:Any, 2},
+                                               dg, equations)
     multiply_dimensionwise!(view(mortars.u_upper, leftright, :, :, mortar),
                             mortar_l2.forward_upper, u_large)
     multiply_dimensionwise!(view(mortars.u_lower, leftright, :, :, mortar),
                             mortar_l2.forward_lower, u_large)
+    return nothing
+end
+
+@inline function element_solutions_to_mortars!(mortars,
+                                               mortar_ec::LobattoLegendreMortarEC,
+                                               leftright, mortar,
+                                               u_large::AbstractArray{<:Any, 2},
+                                               dg, equations)
+    # Convert conservative to entropy variables
+    u_large_entropy = similar(u_large)
+    for i in 1:nnodes(dg) # 2D face is 1D line
+        u_node_cons = get_node_vars(u_large, dg, i)
+        u_node_entropy = cons2entropy(u_node_cons, equations(dg))
+        set_node_vars!(u_large_entropy, u_node_entropy, dg, i)
+    end
+
+    # Interpolate big face values to mortars
+    multiply_dimensionwise!(view(mortars.u_upper, leftright, :, :, mortar),
+                            mortar_ec.mortar_forward_upper, u_large_entropy)
+    multiply_dimensionwise!(view(mortars.u_lower, leftright, :, :, mortar),
+                            mortar_ec.mortar_forward_lower, u_large_entropy)
+
+    # Convert entropy variables back to conservative
+    for i in 1:nnodes(dg)
+        # Upper mortar
+        u_node_entropy = get_node_vars(u_upper, dg, i)
+        u_node_cons = entropy2cons(u_node_entropy, equations(dg))
+        set_node_vars!(u_upper, u_node_cons, dg, i)
+
+        # Lower mortar
+        u_node_entropy = get_node_vars(u_lower, dg, i)
+        u_node_cons = entropy2cons(u_node_entropy, equations(dg))
+        set_node_vars!(u_lower, u_node_cons, dg, i)
+    end
+
     return nothing
 end
 
@@ -1001,6 +1126,156 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
+function calc_flux_correction!(surface_flux_values,
+                               mortar_ec::LobattoLegendreMortarEC, dg::DG, cache,
+                               u_large, u_large_upper, u_large_lower,
+                               direction, large_element_id,
+                               fstar_upper_correction, fstar_lower_correction)
+    # Call pointwise two-point numerical flux function
+    # Note: Due to symmetric fluxes, "left" and "right" is meaningless here
+    @timeit timer() "fstar" for j in 1:nnodes(dg), i in 1:nnodes(dg)
+        # Extract state
+        u_ll_large = get_node_vars(u_large, dg, i)
+        u_rr_upper = get_node_vars(u_large_upper, dg, j)
+        u_rr_lower = get_node_vars(u_large_lower, dg, j)
+
+        # Calculate flux
+        flux_upper = dg.surface_flux_function(u_ll_large, u_rr_upper,
+                                              cache.mortars.orientations[m],
+                                              equations(dg))
+        flux_lower = dg.surface_flux_function(u_ll_large, u_rr_lower,
+                                              cache.mortars.orientations[m],
+                                              equations(dg))
+
+        # Copy flux back to actual flux array
+        set_node_vars!(fstar_upper_correction, flux_upper, dg, i, j)
+        set_node_vars!(fstar_lower_correction, flux_lower, dg, i, j)
+    end
+
+    # Loop over all variables
+    @timeit timer() "correction" for v in 1:eachvariable(equations)
+        # Loop over all nodes on large face
+        for j in 1:nnodes(dg)
+            # Calculate flux corrections for fⱼ
+            flux_correction = 0.0
+
+            # Inner loop over nodes
+            for p in 1:nnodes(dg)
+                # p-local flux
+                f_p_upper = 0.0
+                f_p_lower = 0.0
+
+                # Extract Eⱼₚ for convenience
+                E_jp_upper = mortar_ec.reverse_upper[j, p]
+                E_jp_lower = mortar_ec.reverse_lower[j, p]
+
+                # Add "forward" flux
+                f_p_upper += fstar_upper_correction[v, j, p]
+                f_p_lower += fstar_lower_correction[v, j, p]
+
+                # Substract "reverse" flux
+                for r in 1:nnodes(dg)
+                    # Extract lᵣ(ηₚ) for convenience
+                    lr_etap_upper = mortar_ec.forward_upper[p, r]
+                    lr_etap_lower = mortar_ec.forward_lower[p, r]
+
+                    f_p_upper -= lr_etap_upper * fstar_upper_correction[v, r, p]
+                    f_p_lower -= lr_etap_lower * fstar_lower_correction[v, r, p]
+                end
+
+                # Add to flux correction
+                flux_correction += E_jp_upper * f_p_upper
+                flux_correction += E_jp_lower * f_p_lower
+            end
+
+            # Finally, add to surface flux values
+            surface_flux_values[v, j, direction, large_element_id] += flux_correction
+        end
+    end
+end
+
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::TreeMesh{2},
+                           nonconservative_terms::False, equations,
+                           mortar_ec::LobattoLegendreMortarEC,
+                           surface_integral, dg::DG, cache)
+    @unpack surface_flux = surface_integral
+    @unpack u_lower, u_upper, orientations = cache.mortars
+    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+
+    # NOTE: Probably stored in mortar_ec and not cache (?)
+    @unpack fstar_upper_correction_threaded, fstar_lower_correction_threaded = cache
+
+    @threaded for mortar in eachmortar(dg, cache)
+        # Choose thread-specific pre-allocated container
+        fstar_upper = fstar_upper_threaded[Threads.threadid()]
+        fstar_lower = fstar_lower_threaded[Threads.threadid()]
+
+        # Calculate fluxes
+        orientation = orientations[mortar]
+        calc_fstar!(fstar_upper, equations, surface_flux, dg, u_upper, mortar,
+                    orientation)
+        calc_fstar!(fstar_lower, equations, surface_flux, dg, u_lower, mortar,
+                    orientation)
+
+        mortar_fluxes_to_elements!(surface_flux_values,
+                                   mesh, equations, mortar_l2, dg, cache,
+                                   mortar, fstar_upper, fstar_lower)
+
+        # Entropy correction procedure
+
+        # Choose thread-specific pre-allocated container
+        fstar_upper_correction = fstar_upper_correction_threaded[Threads.threadid()]
+        fstar_lower_correction = fstar_lower_correction_threaded[Threads.threadid()]
+
+        large_element_id = dg.l2mortars.neighbor_ids[3, m]
+
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            u_large_upper = view(u_upper, 1, :, :, mortar)
+            u_large_lower = view(u_lower, 1, :, :, mortar)
+            if cache.mortars.orientations[mortar] == 1
+                # EC mortars in x-direction
+                direction = 2
+                u_large = view(dg.elements.u, :, nnodes(dg), :, large_element_id)
+                calc_flux_correction!(surface_flux_values, mortar_ec, dg, cache,
+                                      u_large, u_large_upper, u_large_lower,
+                                      direction, large_element_id,
+                                      fstar_upper_correction, fstar_lower_correction)
+            else
+                # EC mortars in y-direction
+                direction = 4
+                u_large = view(dg.elements.u, :, :, nnodes(dg), large_element_id)
+                calc_flux_correction!(surface_flux_values, mortar_ec, dg, cache,
+                                      u_large, u_large_upper, u_large_lower,
+                                      direction, large_element_id,
+                                      fstar_upper_correction, fstar_lower_correction)
+            end
+        else # large_sides[mortar] == 2 -> large element on right side
+            u_large_upper = view(u_upper, 2, :, :, m)
+            u_large_lower = view(u_lower, 2, :, :, m)
+            if dg.l2mortars.orientations[m] == 1
+                # L2 mortars in x-direction
+                direction = 1
+                u_large = view(dg.elements.u, :, 1, :, large_element_id)
+                calc_flux_correction!(surface_flux_values, mortar_ec, dg, cache,
+                                      u_large, u_large_upper, u_large_lower,
+                                      direction, large_element_id,
+                                      fstar_upper_correction, fstar_lower_correction)
+            else
+                # L2 mortars in y-direction
+                direction = 3
+                u_large = view(dg.elements.u, :, :, 1, large_element_id)
+                calc_flux_correction!(surface_flux_values, mortar_ec, dg, cache,
+                                      u_large, u_large_upper, u_large_lower,
+                                      direction, large_element_id,
+                                      fstar_upper_correction, fstar_lower_correction)
+            end
+        end
+    end
+
+    return nothing
+end
+
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2}, equations,
                              surface_flux, dg::DGSEM,
                              u_interfaces, interface, orientation)
@@ -1016,9 +1291,11 @@ end
     return nothing
 end
 
+# NOTE: Not sure if we need specialized function!
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::TreeMesh{2}, equations,
-                                            mortar_l2::LobattoLegendreMortarL2,
+                                            mortar_l2_ec::Union{LobattoLegendreMortarL2,
+                                                                LobattoLegendreMortarEC},
                                             dg::DGSEM, cache,
                                             mortar, fstar_upper, fstar_lower)
     large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -1083,8 +1360,8 @@ end
     # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
     # Using StaticArrays for both makes the code above faster for common test cases.
     multiply_dimensionwise!(view(surface_flux_values, :, :, direction, large_element),
-                            mortar_l2.reverse_upper, fstar_upper,
-                            mortar_l2.reverse_lower, fstar_lower)
+                            mortar_l2_ec.reverse_upper, fstar_upper,
+                            mortar_l2_ec.reverse_lower, fstar_lower)
 
     return nothing
 end
