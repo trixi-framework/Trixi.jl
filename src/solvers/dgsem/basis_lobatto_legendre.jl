@@ -6,7 +6,7 @@
 #! format: noindent
 
 """
-    LobattoLegendreBasis(polydeg::Integer, RealT = Float64)
+    LobattoLegendreBasis([RealT = Float64,] polydeg::Integer)
 
 Create a nodal Lobatto-Legendre basis for polynomials of degree `polydeg`.
 
@@ -34,7 +34,7 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     # negative adjoint wrt the SBP dot product
 end
 
-function LobattoLegendreBasis(polydeg::Integer, RealT = Float64)
+function LobattoLegendreBasis(RealT, polydeg::Integer)
     nnodes_ = polydeg + 1
 
     nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
@@ -78,8 +78,7 @@ function LobattoLegendreBasis(polydeg::Integer, RealT = Float64)
                                                            derivative_split_transpose,
                                                            derivative_dhat)
 end
-# For backwards compatibility
-LobattoLegendreBasis(RealT, polydeg::Integer) = LobattoLegendreBasis(polydeg, RealT)
+LobattoLegendreBasis(polydeg::Integer) = LobattoLegendreBasis(Float64, polydeg)
 
 function Base.show(io::IO, basis::LobattoLegendreBasis)
     @nospecialize basis # reduce precompilation time

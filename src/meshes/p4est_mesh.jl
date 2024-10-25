@@ -216,7 +216,7 @@ function P4estMesh(trees_per_dimension; polydeg,
         periodicity = Tuple(periodicity)
     end
 
-    basis = LobattoLegendreBasis(polydeg, RealT)
+    basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = basis.nodes
     tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
                                                     ntuple(_ -> length(nodes),
@@ -517,7 +517,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     tree_to_vertex = unsafe_wrap(Array, connectivity_pw.tree_to_vertex,
                                  (2^n_dimensions, n_trees))
 
-    basis = LobattoLegendreBasis(polydeg, RealT)
+    basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = basis.nodes
 
     tree_node_coordinates = Array{RealT, n_dimensions + 2}(undef, n_dimensions,
@@ -772,7 +772,7 @@ function P4estMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, th
 
     n_trees = 6 * trees_per_face_dimension^2 * layers
 
-    basis = LobattoLegendreBasis(polydeg, RealT)
+    basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = basis.nodes
 
     tree_node_coordinates = Array{RealT, 5}(undef, 3,
