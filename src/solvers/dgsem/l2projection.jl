@@ -23,9 +23,9 @@
 # Calculate forward projection matrix for discrete L2 projection from large to upper
 #
 # Note: This is actually an interpolation.
-function calc_forward_upper(RealT, n_nodes)
+function calc_forward_upper(n_nodes, RealT = Float64)
     # Calculate nodes, weights, and barycentric weights
-    nodes, _ = gauss_lobatto_nodes_weights(RealT, n_nodes)
+    nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
     wbary = barycentric_weights(nodes)
 
     # Calculate projection matrix (actually: interpolation)
@@ -43,9 +43,9 @@ end
 # Calculate forward projection matrix for discrete L2 projection from large to lower
 #
 # Note: This is actually an interpolation.
-function calc_forward_lower(RealT, n_nodes)
+function calc_forward_lower(n_nodes, RealT = Float64)
     # Calculate nodes, weights, and barycentric weights
-    nodes, _ = gauss_lobatto_nodes_weights(RealT, n_nodes)
+    nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
     wbary = barycentric_weights(nodes)
 
     # Calculate projection matrix (actually: interpolation)
@@ -64,9 +64,9 @@ end
 #
 # Note: To not make the L2 projection exact, first convert to Gauss nodes,
 # perform projection, and convert back to Gauss-Lobatto.
-function calc_reverse_upper(RealT, n_nodes, ::Val{:gauss})
+function calc_reverse_upper(n_nodes, ::Val{:gauss}, RealT = Float64)
     # Calculate nodes, weights, and barycentric weights for Legendre-Gauss
-    gauss_nodes, gauss_weights = gauss_nodes_weights(RealT, n_nodes)
+    gauss_nodes, gauss_weights = gauss_nodes_weights(n_nodes, RealT)
     gauss_wbary = barycentric_weights(gauss_nodes)
 
     # Calculate projection matrix (actually: discrete L2 projection with errors)
@@ -91,9 +91,9 @@ end
 #
 # Note: To not make the L2 projection exact, first convert to Gauss nodes,
 # perform projection, and convert back to Gauss-Lobatto.
-function calc_reverse_lower(RealT, n_nodes, ::Val{:gauss})
+function calc_reverse_lower(n_nodes, ::Val{:gauss}, RealT = Float64)
     # Calculate nodes, weights, and barycentric weights for Legendre-Gauss
-    gauss_nodes, gauss_weights = gauss_nodes_weights(RealT, n_nodes)
+    gauss_nodes, gauss_weights = gauss_nodes_weights(n_nodes, RealT)
     gauss_wbary = barycentric_weights(gauss_nodes)
 
     # Calculate projection matrix (actually: discrete L2 projection with errors)
@@ -116,9 +116,9 @@ end
 
 # Calculate reverse projection matrix for discrete L2 projection from upper to large (Gauss-Lobatto
 # version)
-function calc_reverse_upper(RealT, n_nodes, ::Val{:gauss_lobatto})
+function calc_reverse_upper(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
     # Calculate nodes, weights, and barycentric weights
-    nodes, weights = gauss_lobatto_nodes_weights(RealT, n_nodes)
+    nodes, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
     wbary = barycentric_weights(nodes)
 
     # Calculate projection matrix (actually: discrete L2 projection with errors)
@@ -135,9 +135,9 @@ end
 
 # Calculate reverse projection matrix for discrete L2 projection from lower to large (Gauss-Lobatto
 # version)
-function calc_reverse_lower(RealT, n_nodes, ::Val{:gauss_lobatto})
+function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
     # Calculate nodes, weights, and barycentric weights
-    nodes, weights = gauss_lobatto_nodes_weights(RealT, n_nodes)
+    nodes, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
     wbary = barycentric_weights(nodes)
 
     # Calculate projection matrix (actually: discrete L2 projection with errors)

@@ -120,7 +120,7 @@ constructors.
 function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polydeg = 1,
                                   mapping = nothing) where {NDIMS, RealT}
     # In t8code reference space is [0,1].
-    basis = LobattoLegendreBasis(RealT, polydeg)
+    basis = LobattoLegendreBasis(polydeg, RealT)
     nodes = 0.5f0 .* (basis.nodes .+ 1)
 
     cmesh = t8_forest_get_cmesh(forest)
