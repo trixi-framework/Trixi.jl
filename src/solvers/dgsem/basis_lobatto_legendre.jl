@@ -563,8 +563,7 @@ This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
 # From FLUXO (but really from blue book by Kopriva)
 function gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
     n_iterations = 20
-    # Relative tolerance for Newton iteration
-    tolerance = 2 * eps(RealT)
+    tolerance = 2 * eps(RealT) # Relative tolerance for Newton iteration
 
     # Initialize output
     nodes = zeros(RealT, n_nodes)
@@ -632,7 +631,7 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
 end
 
 # From FLUXO (but really from blue book by Kopriva, algorithm 24)
-function calc_q_and_l(N::Integer, x)
+function calc_q_and_l(N::Integer, x::Real)
     RealT = typeof(x)
 
     L_Nm2 = one(RealT)
