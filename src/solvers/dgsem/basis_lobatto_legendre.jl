@@ -78,6 +78,8 @@ function LobattoLegendreBasis(polydeg::Integer, RealT = Float64)
                                                            derivative_split_transpose,
                                                            derivative_dhat)
 end
+# For backwards compatibility
+LobattoLegendreBasis(RealT, polydeg::Integer) = LobattoLegendreBasis(polydeg, RealT)
 
 function Base.show(io::IO, basis::LobattoLegendreBasis)
     @nospecialize basis # reduce precompilation time
