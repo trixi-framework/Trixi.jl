@@ -5,6 +5,14 @@
 @muladd begin
 #! format: noindent
 
+# Function to output the mpi rank for visualization
+function get_element_variables!(element_variables,
+                                mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                            ParallelT8codeMesh})
+    element_variables[:mpi_rank] = mpi_rank()
+    return nothing
+end
+
 # Initialize MPI data structures. This works for both the
 # `TreeMesh` and the `P4estMesh` and is dimension-agnostic.
 function init_mpi_data_structures(mpi_neighbor_interfaces, mpi_neighbor_mortars, n_dims,
