@@ -21,8 +21,8 @@ end
 
 # Function to define "element variables" for the SaveSolutionCallback. It does
 # nothing by default, but can be specialized for certain volume integral types. 
-# For instance, shock capturing volume integrals  output the blending factor
-#  as an "element variable".
+# For instance, shock capturing volume integrals output the blending factor
+# as an "element variable".
 function get_node_variables!(node_variables, mesh, equations,
                              volume_integral::AbstractVolumeIntegral, dg, cache)
     nothing
