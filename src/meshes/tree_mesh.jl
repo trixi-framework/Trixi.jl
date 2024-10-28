@@ -51,7 +51,7 @@ mutable struct TreeMesh{NDIMS, TreeType <: AbstractTree{NDIMS}, RealT <: Real} <
     # TODO: Taal refactor, order of important arguments, use of n_cells_max?
     function TreeMesh{NDIMS, TreeType, RealT}(n_cells_max::Integer,
                                               domain_center::AbstractArray{RealT},
-                                              domain_length,
+                                              domain_length::RealT,
                                               periodicity = true) where {NDIMS,
                                                                          TreeType <:
                                                                          AbstractTree{NDIMS},
@@ -83,8 +83,8 @@ const ParallelTreeMesh{NDIMS} = TreeMesh{NDIMS, <:ParallelTree{NDIMS}}
 partition!(mesh::SerialTreeMesh) = nothing
 
 # Constructor for passing the dimension and mesh type as an argument
-function TreeMesh(::Type{TreeType}, RealT,
-                  args...) where {NDIMS, TreeType <: AbstractTree{NDIMS}}
+function TreeMesh(::Type{TreeType}, args...;
+                  RealT = Float64) where {NDIMS, TreeType <: AbstractTree{NDIMS}}
     TreeMesh{NDIMS, TreeType, RealT}(args...)
 end
 
@@ -114,7 +114,8 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
                   periodicity = true,
                   initial_refinement_level,
                   refinement_patches = (),
-                  coarsening_patches = ()) where {NDIMS}
+                  coarsening_patches = (),
+                  RealT = Float64) where {NDIMS}
     # check arguments
     if !(n_cells_max isa Integer && n_cells_max > 0)
         throw(ArgumentError("`n_cells_max` must be a positive integer (provided `n_cells_max = $n_cells_max`)"))
@@ -124,8 +125,8 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
     end
 
     # TreeMesh requires equal domain lengths in all dimensions
-    domain_center = @. (coordinates_min + coordinates_max) / 2
-    domain_length = coordinates_max[1] - coordinates_min[1]
+    domain_center = @. convert(RealT, (coordinates_min + coordinates_max) / 2)
+    domain_length = convert(RealT, coordinates_max[1] - coordinates_min[1])
     if !all(coordinates_max[i] - coordinates_min[i] ≈ domain_length for i in 2:NDIMS)
         throw(ArgumentError("The TreeMesh domain must be a hypercube (provided `coordinates_max` .- `coordinates_min` = $(coordinates_max .- coordinates_min))"))
     end
@@ -143,7 +144,6 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
     end
 
     # Create mesh
-    RealT = eltype(domain_center)
     mesh = @trixi_timeit timer() "creation" TreeMesh{NDIMS, TreeType, RealT}(n_cells_max,
                                                                              domain_center,
                                                                              domain_length,
@@ -189,8 +189,8 @@ function initialize!(mesh::TreeMesh, initial_refinement_level,
     return nothing
 end
 
-function TreeMesh(coordinates_min::RealT, coordinates_max::RealT;
-                  kwargs...) where {RealT <: Real}
+function TreeMesh(coordinates_min::Real, coordinates_max::Real;
+                  kwargs...)
     TreeMesh((coordinates_min,), (coordinates_max,); kwargs...)
 end
 
