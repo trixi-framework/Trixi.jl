@@ -8,8 +8,10 @@
 # Function to output the mpi rank for visualization
 function get_element_variables!(element_variables,
                                 mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                            ParallelT8codeMesh})
-    element_variables[:mpi_rank] = mpi_rank()
+                                            ParallelT8codeMesh},
+                                dg, cache)
+    element_variables[:mpi_rank] = fill(mpi_rank(),
+                                        SVector{nelements(mesh, dg, cache), real(dg)})
     return nothing
 end
 
