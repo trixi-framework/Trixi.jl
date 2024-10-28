@@ -889,7 +889,7 @@ end
 
 function prolong2mortars!(cache, u,
                           mesh::TreeMesh{2}, equations,
-                          mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                          mortar_ec::LobattoLegendreMortarEC, surface_integral,
                           dg::DGSEM)
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -949,12 +949,12 @@ function prolong2mortars!(cache, u,
             if cache.mortars.orientations[mortar] == 1
                 # EC mortars in x-direction
                 u_large = view(u, :, nnodes(dg), :, large_element)
-                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                element_solutions_to_mortars!(cache.mortars, mortar_ec, leftright,
                                               mortar, u_large, dg, equations)
             else
                 # EC mortars in y-direction
                 u_large = view(u, :, :, nnodes(dg), large_element)
-                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                element_solutions_to_mortars!(cache.mortars, mortar_ec, leftright,
                                               mortar, u_large, dg, equations)
             end
         else # large_sides[mortar] == 2 -> large element on right side
@@ -962,12 +962,12 @@ function prolong2mortars!(cache, u,
             if cache.mortars.orientations[mortar] == 1
                 # EC mortars in x-direction
                 u_large = view(u, :, 1, :, large_element)
-                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                element_solutions_to_mortars!(cache.mortars, mortar_ec, leftright,
                                               mortar, u_large, dg, equations)
             else
                 # EC mortars in y-direction
                 u_large = view(u, :, :, 1, large_element)
-                element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
+                element_solutions_to_mortars!(cache.mortars, mortar_ec, leftright,
                                               mortar, u_large, dg, equations)
             end
         end
@@ -1133,7 +1133,7 @@ function calc_flux_correction!(surface_flux_values,
                                fstar_upper_correction, fstar_lower_correction)
     # Call pointwise two-point numerical flux function
     # Note: Due to symmetric fluxes, "left" and "right" is meaningless here
-    @timeit timer() "fstar" for j in 1:nnodes(dg), i in 1:nnodes(dg)
+    @trixi_timeit timer() "fstar" for j in 1:nnodes(dg), i in 1:nnodes(dg)
         # Extract state
         u_ll_large = get_node_vars(u_large, dg, i)
         u_rr_upper = get_node_vars(u_large_upper, dg, j)
@@ -1153,7 +1153,7 @@ function calc_flux_correction!(surface_flux_values,
     end
 
     # Loop over all variables
-    @timeit timer() "correction" for v in 1:eachvariable(equations)
+    @trixi_timeit timer() "correction" for v in 1:eachvariable(equations)
         # Loop over all nodes on large face
         for j in 1:nnodes(dg)
             # Calculate flux corrections for fⱼ

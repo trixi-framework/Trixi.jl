@@ -230,7 +230,7 @@ struct LobattoLegendreMortarEC{RealT <: Real, NNODES,
     surface_flux::SurfaceFlux
 end
 
-function MortarEC(basis::LobattoLegendreBasis{RealT}, surface_flux)
+function MortarEC(basis::LobattoLegendreBasis{RealT}, surface_flux) where {RealT <: Real}
     forward_upper = calc_forward_upper(n_nodes)
     forward_lower = calc_forward_lower(n_nodes)
     l2reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
@@ -249,7 +249,7 @@ function MortarEC(basis::LobattoLegendreBasis{RealT}, surface_flux)
                                                   surface_flux)
 end
 
-@inline nnodes(mortar::LobattoLegendreMortarEC{RealT, NNODES}) = NNODES
+@inline nnodes(mortar::LobattoLegendreMortarEC{RealT, NNODES}) where {RealT, NNODES} = NNODES 
 
 struct LobattoLegendreAnalyzer{RealT <: Real, NNODES,
                                VectorT <: AbstractVector{RealT},
