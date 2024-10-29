@@ -163,7 +163,6 @@ function MortarL2(basis::LobattoLegendreBasis)
     RealT = real(basis)
     nnodes_ = nnodes(basis)
 
-    # compute everything using `Float64` by default
     forward_upper_ = calc_forward_upper(nnodes_, RealT)
     forward_lower_ = calc_forward_lower(nnodes_, RealT)
     reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
@@ -261,7 +260,6 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis;
     RealT = real(basis)
     nnodes_ = analysis_polydeg + 1
 
-    # compute everything using `Float64` by default
     nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
     vandermonde_ = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
 
@@ -320,7 +318,6 @@ end
 function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
     nnodes_ = nnodes(basis)
 
-    # compute everything using `Float64` by default
     forward_upper_ = calc_forward_upper(nnodes_, RealT)
     forward_lower_ = calc_forward_lower(nnodes_, RealT)
     reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
