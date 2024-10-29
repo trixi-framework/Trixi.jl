@@ -335,14 +335,4 @@ function step!(integrator::PairedExplicitRK3Integrator)
         terminate!(integrator)
     end
 end
-
-# used for AMR (Adaptive Mesh Refinement)
-function Base.resize!(integrator::PairedExplicitRK3Integrator, new_size)
-    resize!(integrator.u, new_size)
-    resize!(integrator.du, new_size)
-    resize!(integrator.u_tmp, new_size)
-
-    resize!(integrator.k1, new_size)
-    resize!(integrator.k_higher, new_size)
-end
 end # @muladd
