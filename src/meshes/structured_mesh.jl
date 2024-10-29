@@ -23,8 +23,10 @@ mutable struct StructuredMesh{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
 end
 
 """
-    StructuredMesh(cells_per_dimension, mapping; RealT=Float64, unsaved_changes=true, 
-                   mapping_as_string=mapping2string(mapping, length(cells_per_dimension), RealT=Float64))
+    StructuredMesh(cells_per_dimension, mapping;
+                   RealT=Float64,
+                   unsaved_changes=true, 
+                   mapping_as_string=mapping2string(mapping, length(cells_per_dimension), RealT=RealT))
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
