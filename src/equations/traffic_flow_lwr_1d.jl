@@ -17,7 +17,7 @@ the maximum possible speed (e.g. due to speed limits) is $v_{\text{max}}$.
 For more details see e.g. Section 11.1 of 
 - Randall LeVeque (2002)
 Finite Volume Methods for Hyperbolic Problems
-[DOI: 10.1017/CBO9780511791253]https://doi.org/10.1017/CBO9780511791253
+[DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 struct TrafficFlowLWREquations1D{RealT <: Real} <: AbstractTrafficFlowLWREquations{1, 1}
     v_max::RealT

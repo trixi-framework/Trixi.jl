@@ -65,6 +65,16 @@ end
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
         @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
+
+        # Invalid domain length check (TreeMesh expects a hypercube)
+        # 2D
+        @test_throws ArgumentError TreeMesh((-0.5, 0.0), (1.0, 2.0),
+                                            initial_refinement_level = 2,
+                                            n_cells_max = 10_000)
+        # 3D
+        @test_throws ArgumentError TreeMesh((-0.5, 0.0, -0.2), (1.0, 2.0, 1.5),
+                                            initial_refinement_level = 2,
+                                            n_cells_max = 10_000)
     end
 end
 
@@ -1671,7 +1681,7 @@ end
     Trixi.download("https://gist.githubusercontent.com/DanielDoehring/8db0808b6f80e59420c8632c0d8e2901/raw/39aacf3c737cd642636dd78592dbdfe4cb9499af/MonCoeffsS6p2.txt",
                    joinpath(path_coeff_file, "gamma_6.txt"))
 
-    ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file, 42) # dummy optimal time step (dt_opt plays no role in determining `a_matrix`)
+    ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
 
     @test isapprox(ode_algorithm.a_matrix,
                    [0.12405417889682908 0.07594582110317093
