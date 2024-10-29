@@ -20,8 +20,8 @@ function create_cache(mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
     u_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
     (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
-    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded,
-    u_threaded)
+     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded,
+     u_threaded)
 end
 
 #     index_to_start_step_2d(index::Symbol, index_range)
@@ -564,8 +564,10 @@ end
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
 
     # Copy to buffer
-    set_node_vars!(fstar_primary[position_index], flux_plus_noncons_primary, equations, dg, node_index)
-    set_node_vars!(fstar_secondary[position_index], flux_plus_noncons_secondary, equations, dg, node_index)
+    set_node_vars!(fstar_primary[position_index], flux_plus_noncons_primary, equations,
+                   dg, node_index)
+    set_node_vars!(fstar_secondary[position_index], flux_plus_noncons_secondary,
+                   equations, dg, node_index)
 end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
@@ -584,7 +586,8 @@ end
         element = neighbor_ids[position, mortar]
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                surface_flux_values[v, i, small_direction, element] = fstar_primary[position][v, i]
+                surface_flux_values[v, i, small_direction, element] = fstar_primary[position][v,
+                                                                                              i]
             end
         end
     end
