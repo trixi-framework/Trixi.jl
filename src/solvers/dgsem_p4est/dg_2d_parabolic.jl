@@ -398,7 +398,8 @@ end
                                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                             equations::AbstractEquationsParabolic,
                                             mortar_l2::LobattoLegendreMortarL2,
-                                            dg::DGSEM, cache, mortar, fstar, u_buffer)
+                                            dg::DGSEM, cache, mortar, fstar_primary,
+                                            fstar_secondary, u_buffer)
     @unpack neighbor_ids, node_indices = cache.mortars
     # Copy solution small to small
     small_indices = node_indices[1, mortar]
@@ -408,16 +409,15 @@ end
         element = neighbor_ids[position, mortar]
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                surface_flux_values[v, i, small_direction, element] = fstar[position][v,
-                                                                                      i]
+                surface_flux_values[v, i, small_direction, element] = fstar_primary[position][v, i]
             end
         end
     end
 
     # Project small fluxes to large element.
     multiply_dimensionwise!(u_buffer,
-                            mortar_l2.reverse_upper, fstar[2],
-                            mortar_l2.reverse_lower, fstar[1])
+                            mortar_l2.reverse_upper, fstar_secondary[2],
+                            mortar_l2.reverse_lower, fstar_secondary[1])
 
     # Copy interpolated flux values from buffer to large element face in the
     # correct orientation.
@@ -772,13 +772,13 @@ function calc_mortar_flux_divergence!(surface_flux_values,
                                       surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
     @unpack contravariant_vectors = cache.elements
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar = (fstar_lower_threaded[Threads.threadid()],
-                 fstar_upper_threaded[Threads.threadid()])
+        fstar = (fstar_primary_lower_threaded[Threads.threadid()],
+                 fstar_primary_upper_threaded[Threads.threadid()])
 
         for position in 1:2
             for node in eachnode(dg)
@@ -802,7 +802,7 @@ function calc_mortar_flux_divergence!(surface_flux_values,
         # this reuses the hyperbolic version of `mortar_fluxes_to_elements!`
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache,
-                                   mortar, fstar, u_buffer)
+                                   mortar, fstar, fstar, u_buffer)
     end
 
     return nothing
@@ -813,7 +813,7 @@ end
 # The reasoning is that parabolic fluxes are treated like conservative
 # terms (e.g., we compute a viscous conservative "flux") and thus no
 # non-conservative terms are present.
-@inline function calc_mortar_flux!(fstar,
+@inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                    nonconservative_terms::False,
                                    equations::AbstractEquationsParabolic,
@@ -830,7 +830,8 @@ end
     flux_ = 0.5f0 * (u_ll + u_rr)
 
     # Copy flux to buffer
-    set_node_vars!(fstar[position_index], flux_, equations, dg, node_index)
+    set_node_vars!(fstar_primary[position_index], flux_, equations, dg, node_index)
+    set_node_vars!(fstar_secondary[position_index], flux_, equations, dg, node_index)
 end
 
 # TODO: parabolic, finish implementing `calc_boundary_flux_gradients!` and `calc_boundary_flux_divergence!`
