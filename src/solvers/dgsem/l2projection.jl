@@ -80,7 +80,7 @@ function calc_reverse_upper(n_nodes, ::Val{:gauss}, RealT = Float64)
     end
 
     # Calculate Vandermondes
-    lobatto_nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
+    lobatto_nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
     gauss2lobatto = polynomial_interpolation_matrix(gauss_nodes, lobatto_nodes)
     lobatto2gauss = polynomial_interpolation_matrix(lobatto_nodes, gauss_nodes)
 
@@ -107,7 +107,7 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss}, RealT = Float64)
     end
 
     # Calculate Vandermondes
-    lobatto_nodes, _ = gauss_lobatto_nodes_weights(n_nodes)
+    lobatto_nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
     gauss2lobatto = polynomial_interpolation_matrix(gauss_nodes, lobatto_nodes)
     lobatto2gauss = polynomial_interpolation_matrix(lobatto_nodes, gauss_nodes)
 
