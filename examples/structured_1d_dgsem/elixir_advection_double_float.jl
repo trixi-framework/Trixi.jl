@@ -17,8 +17,8 @@ solver = DGSEM(RealT = RealT, polydeg = 7, surface_flux = flux_lax_friedrichs)
 
 # CARE: Important to use higher precision datatype for coordinates
 # as these are used for type promotion of the mesh (points etc.)
-coordinates_min = (-RealT(1.0),) # minimum coordinate
-coordinates_max = (RealT(1.0),) # maximum coordinate
+coordinates_min = (-RealT(1),) # minimum coordinate
+coordinates_max = (RealT(1),) # maximum coordinate
 cells_per_dimension = (256,)
 
 # NOTE: StructuredMesh supports higher precision coordinates
