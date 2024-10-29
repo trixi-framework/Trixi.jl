@@ -238,29 +238,6 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
     return integrator
 end
 
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::PairedExplicitRK3;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
-end
-
-function solve!(integrator::PairedExplicitRK3Integrator)
-    @unpack prob = integrator.sol
-
-    integrator.finalstep = false
-
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        step!(integrator)
-    end # "main loop" timer
-
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
-end
-
 function step!(integrator::PairedExplicitRK3Integrator)
     @unpack prob = integrator.sol
     @unpack alg = integrator

@@ -262,25 +262,6 @@ function calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
     return cfl_number
 end
 
-"""
-    add_tstop!(integrator::AbstractPairedExplicitRKSingleIntegrator, t)
-Add a time stop during the time integration process.
-This function is called after the periodic SaveSolutionCallback to specify the next stop to save the solution.
-"""
-function add_tstop!(integrator::AbstractPairedExplicitRKSingleIntegrator, t)
-    integrator.tdir * (t - integrator.t) < zero(integrator.t) &&
-        error("Tried to add a tstop that is behind the current time. This is strictly forbidden")
-    # We need to remove the first entry of tstops when a new entry is added.
-    # Otherwise, the simulation gets stuck at the previous tstop and dt is adjusted to zero.
-    if length(integrator.opts.tstops) > 1
-        pop!(integrator.opts.tstops)
-    end
-    push!(integrator.opts.tstops, integrator.tdir * t)
-end
-
-has_tstop(integrator::AbstractPairedExplicitRKSingleIntegrator) = !isempty(integrator.opts.tstops)
-first_tstop(integrator::AbstractPairedExplicitRKSingleIntegrator) = first(integrator.opts.tstops)
-
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
 function Base.getproperty(integrator::PairedExplicitRK, field::Symbol)
     if field === :stats
@@ -324,29 +305,6 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
     end
 
     return integrator
-end
-
-# Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::PairedExplicitRK2;
-               dt, callback = nothing, kwargs...)
-    integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
-
-    # Start actual solve
-    solve!(integrator)
-end
-
-function solve!(integrator::PairedExplicitRK2Integrator)
-    @unpack prob = integrator.sol
-
-    integrator.finalstep = false
-
-    @trixi_timeit timer() "main loop" while !integrator.finalstep
-        step!(integrator)
-    end # "main loop" timer
-
-    return TimeIntegratorSolution((first(prob.tspan), integrator.t),
-                                  (prob.u0, integrator.u),
-                                  integrator.sol.prob)
 end
 
 function step!(integrator::PairedExplicitRK2Integrator)
@@ -478,15 +436,5 @@ function modify_dt_for_tstops!(integrator::PairedExplicitRK)
                             min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
         end
     end
-end
-
-# used for AMR (Adaptive Mesh Refinement)
-function Base.resize!(integrator::PairedExplicitRK2Integrator, new_size)
-    resize!(integrator.u, new_size)
-    resize!(integrator.du, new_size)
-    resize!(integrator.u_tmp, new_size)
-
-    resize!(integrator.k1, new_size)
-    resize!(integrator.k_higher, new_size)
 end
 end # @muladd
