@@ -95,7 +95,7 @@ function StructuredMesh(cells_per_dimension, faces::Tuple; RealT = Float64,
     mapping = transfinite_mapping(faces)
 
     # Collect definitions of face functions in one string (separated by semicolons)
-    face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS - 1))
+    face2substring(face) = code_string(face, ntuple(_ -> RealT, NDIMS - 1))
     join_newline(strings) = join(strings, "\n")
 
     faces_definition = faces .|> face2substring .|> string |> join_newline
