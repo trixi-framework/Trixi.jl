@@ -991,13 +991,17 @@ function calc_mortar_flux!(surface_flux_values,
                 noncons_secondary_lower = nonconservative_flux(u_lower_rr, u_lower_ll,
                                                                orientation, equations)
                 # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_primary_upper, 0.5f0, noncons_primary_upper, equations,
+                multiply_add_to_node_vars!(fstar_primary_upper, 0.5f0,
+                                           noncons_primary_upper, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_primary_lower, 0.5f0, noncons_primary_lower, equations,
+                multiply_add_to_node_vars!(fstar_primary_lower, 0.5f0,
+                                           noncons_primary_lower, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_secondary_upper, 0.5f0, noncons_secondary_upper, equations,
+                multiply_add_to_node_vars!(fstar_secondary_upper, 0.5f0,
+                                           noncons_secondary_upper, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_secondary_lower, 0.5f0, noncons_secondary_lower, equations,
+                multiply_add_to_node_vars!(fstar_secondary_lower, 0.5f0,
+                                           noncons_secondary_lower, equations,
                                            dg, i)
             end
         else # large_sides[mortar] == 2 -> small elements on the left
@@ -1017,13 +1021,17 @@ function calc_mortar_flux!(surface_flux_values,
                 noncons_secondary_lower = nonconservative_flux(u_lower_ll, u_lower_rr,
                                                                orientation, equations)
                 # Add to primary and secondary temporary storage
-                multiply_add_to_node_vars!(fstar_primary_upper, 0.5f0, noncons_primary_upper, equations,
+                multiply_add_to_node_vars!(fstar_primary_upper, 0.5f0,
+                                           noncons_primary_upper, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_primary_lower, 0.5f0, noncons_primary_lower, equations,
+                multiply_add_to_node_vars!(fstar_primary_lower, 0.5f0,
+                                           noncons_primary_lower, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_secondary_upper, 0.5f0, noncons_secondary_upper, equations,
+                multiply_add_to_node_vars!(fstar_secondary_upper, 0.5f0,
+                                           noncons_secondary_upper, equations,
                                            dg, i)
-                multiply_add_to_node_vars!(fstar_secondary_lower, 0.5f0, noncons_secondary_lower, equations,
+                multiply_add_to_node_vars!(fstar_secondary_lower, 0.5f0,
+                                           noncons_secondary_lower, equations,
                                            dg, i)
             end
         end
@@ -1056,8 +1064,10 @@ end
                                             mesh::TreeMesh{2}, equations,
                                             mortar_l2::LobattoLegendreMortarL2,
                                             dg::DGSEM, cache,
-                                            mortar, fstar_primary_upper, fstar_primary_lower,
-                                            fstar_secondary_upper, fstar_secondary_lower)
+                                            mortar, fstar_primary_upper,
+                                            fstar_primary_lower,
+                                            fstar_secondary_upper,
+                                            fstar_secondary_lower)
     large_element = cache.mortars.neighbor_ids[3, mortar]
     upper_element = cache.mortars.neighbor_ids[2, mortar]
     lower_element = cache.mortars.neighbor_ids[1, mortar]

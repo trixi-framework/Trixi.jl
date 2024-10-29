@@ -803,9 +803,11 @@ end
                                                 mesh::ParallelTreeMesh{2}, equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
                                                 dg::DGSEM, cache,
-                                                mortar, fstar_primary_upper, fstar_primary_lower,
-                                                fstar_secondary_upper, fstar_secondary_lower)
-        local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
+                                                mortar, fstar_primary_upper,
+                                                fstar_primary_lower,
+                                                fstar_secondary_upper,
+                                                fstar_secondary_lower)
+    local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
     local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
 
     for (element, position) in zip(local_neighbor_ids, local_neighbor_positions)
