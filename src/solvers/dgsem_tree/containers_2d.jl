@@ -611,6 +611,20 @@ function init_mortars(cell_ids, mesh::TreeMesh2D,
     return mortars
 end
 
+function init_mortars(cell_ids, mesh::TreeMesh2D,
+                      elements::ElementContainer2D,
+                      ::LobattoLegendreMortarEC)
+    # Initialize containers
+    n_mortars = count_required_mortars(mesh, cell_ids)
+    # TODO: Do we need EC Mortar container?
+    mortars = L2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
+                                                    nnodes(elements))
+
+    # Connect elements with mortars
+    init_mortars!(mortars, elements, mesh)
+    return mortars
+end
+
 # Count the number of mortars that need to be created
 function count_required_mortars(mesh::TreeMesh2D, cell_ids)
     count = 0

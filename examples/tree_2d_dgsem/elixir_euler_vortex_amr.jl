@@ -114,7 +114,17 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     return prim2cons(prim, equations)
 end
 initial_condition = initial_condition_isentropic_vortex
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+polydeg = 2
+RealT = Float64
+surf_flux = flux_lax_friedrichs
+# Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
+solver = DGSEM(polydeg = polydeg, surface_flux = surf_flux)
+
+
+basis = LobattoLegendreBasis(RealT, polydeg)
+solver = DGSEM(basis, surf_flux,
+               VolumeIntegralWeakForm(),
+               MortarEC(basis))
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
@@ -161,7 +171,7 @@ stepsize_callback = StepsizeCallback(cfl = 1.1)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
+                        #save_solution,
                         amr_callback, stepsize_callback)
 
 ###############################################################################

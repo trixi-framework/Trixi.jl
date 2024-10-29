@@ -218,38 +218,57 @@ end
 
 abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
 
-# TODO: Documentation, constructors, ...
 struct LobattoLegendreMortarEC{RealT <: Real, NNODES,
-                               MortarMatrix <: AbstractMatrix{RealT}, SurfaceFlux} <:
+                               ForwardMatrix <: AbstractMatrix{RealT},
+                               ReverseMatrix <: AbstractMatrix{RealT}} <:
        AbstractMortarEC{RealT}
-    # TODO: Need forward and reverse matrices as for L2 mortar?
-    forward_upper::MortarMatrix
-    forward_lower::MortarMatrix
-    reverse_upper::MortarMatrix
-    reverse_lower::MortarMatrix
-    surface_flux::SurfaceFlux
+    forward_upper::ForwardMatrix
+    forward_lower::ForwardMatrix
+    reverse_upper::ReverseMatrix
+    reverse_lower::ReverseMatrix
 end
 
-function MortarEC(basis::LobattoLegendreBasis{RealT}, surface_flux) where {RealT <: Real}
-    forward_upper = calc_forward_upper(n_nodes)
-    forward_lower = calc_forward_lower(n_nodes)
-    l2reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
-    l2reverse_lower = calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
+function MortarEC(basis::LobattoLegendreBasis)
+    RealT = real(basis)
+    nnodes_ = nnodes(basis)
+
+    forward_upper_ = calc_forward_upper(nnodes_)
+    forward_lower_ = calc_forward_lower(nnodes_)
+    reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss_lobatto))
+    reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss_lobatto))
 
     # type conversions to make use of StaticArrays etc.
-    nnodes_ = nnodes(basis)
-    forward_upper = SMatrix{nnodes_, nnodes_}(forward_upper)
-    forward_lower = SMatrix{nnodes_, nnodes_}(forward_lower)
-    l2reverse_upper = SMatrix{nnodes_, nnodes_}(l2reverse_upper)
-    l2reverse_lower = SMatrix{nnodes_, nnodes_}(l2reverse_lower)
+    forward_upper = Matrix{RealT}(forward_upper_)
+    forward_lower = Matrix{RealT}(forward_lower_)
+    reverse_upper = Matrix{RealT}(reverse_upper_)
+    reverse_lower = Matrix{RealT}(reverse_lower_)
 
     LobattoLegendreMortarEC{RealT, nnodes_, typeof(forward_upper),
-                            typeof(surface_flux)}(forward_upper, forward_lower,
-                                                  l2reverse_upper, l2reverse_lower,
-                                                  surface_flux)
+                            typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                   reverse_upper, reverse_lower)
 end
 
-@inline nnodes(mortar::LobattoLegendreMortarEC{RealT, NNODES}) where {RealT, NNODES} = NNODES 
+function Base.show(io::IO, mortar::LobattoLegendreMortarEC)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarEC{", real(mortar), "}(polydeg=", polydeg(mortar),
+          ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarEC)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarEC{", real(mortar), "} with polynomials of degree ",
+          polydeg(mortar))
+end
+
+@inline Base.real(mortar::LobattoLegendreMortarEC{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortarEC{RealT, NNODES}) where {RealT,
+                                                                               NNODES}
+    NNODES
+end
+
+@inline polydeg(mortar::LobattoLegendreMortarEC) = nnodes(mortar) - 1
 
 struct LobattoLegendreAnalyzer{RealT <: Real, NNODES,
                                VectorT <: AbstractVector{RealT},

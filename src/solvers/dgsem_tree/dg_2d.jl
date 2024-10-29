@@ -108,6 +108,27 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
     (; fstar_upper_threaded, fstar_lower_threaded)
 end
 
+function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
+                                  P4estMesh{2}, T8codeMesh{2}},
+                      equations, mortar_l2::LobattoLegendreMortarEC, uEltype)
+    # TODO: Taal performance using different types
+    MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
+                  nvariables(equations) * nnodes(mortar_l2)}
+    fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+
+    # TODO: Need Ma3d ?
+    fstar_upper_correction_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_lower_correction_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+
+    # A2d = Array{uEltype, 2}
+    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
+    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
+
+    (; fstar_upper_threaded, fstar_lower_threaded,
+     fstar_upper_correction_threaded, fstar_lower_correction_threaded)
+end
+
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
@@ -996,8 +1017,8 @@ end
     # Convert conservative to entropy variables
     u_large_entropy = similar(u_large)
     for i in 1:nnodes(dg) # 2D face is 1D line
-        u_node_cons = get_node_vars(u_large, dg, i)
-        u_node_entropy = cons2entropy(u_node_cons, equations(dg))
+        # `u:_large` is of dimensions (nvars, nnodes)
+        @views u_node_entropy = cons2entropy(u_large[:, i], equations(dg))
         set_node_vars!(u_large_entropy, u_node_entropy, dg, i)
     end
 
@@ -1010,13 +1031,13 @@ end
     # Convert entropy variables back to conservative
     for i in 1:nnodes(dg)
         # Upper mortar
-        u_node_entropy = get_node_vars(u_upper, dg, i)
-        u_node_cons = entropy2cons(u_node_entropy, equations(dg))
+        # `u:_upper` is of dimensions (nvars, nnodes)
+        u_node_cons = entropy2cons(u_upper[:, i], equations(dg))
         set_node_vars!(u_upper, u_node_cons, dg, i)
 
         # Lower mortar
-        u_node_entropy = get_node_vars(u_lower, dg, i)
-        u_node_cons = entropy2cons(u_node_entropy, equations(dg))
+        # `u:_lower` is of dimensions (nvars, nnodes)
+        u_node_cons = entropy2cons(u_lower[:, i], equations(dg))
         set_node_vars!(u_lower, u_node_cons, dg, i)
     end
 
