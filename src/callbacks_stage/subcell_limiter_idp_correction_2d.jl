@@ -13,7 +13,13 @@ function perform_idp_correction!(u, dt,
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
     @unpack alpha1, alpha2 = dg.volume_integral.limiter.cache.subcell_limiter_coefficients
 
-    @threaded for element in eachelement(dg, cache)
+    if dg.volume_integral.limiter.smoothness_indicator
+        elements = cache.element_ids_dgfv
+    else
+        elements = eachelement(dg, cache)
+    end
+
+    @threaded for element in elements
         for j in eachnode(dg), i in eachnode(dg)
             # Sign switch as in apply_jacobian!
             inverse_jacobian = -get_inverse_jacobian(cache.elements.inverse_jacobian,
