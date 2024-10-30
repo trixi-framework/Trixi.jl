@@ -44,7 +44,7 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralStrongForm,
-                               dg::FDSBP, cache, element_range = eachelement(dg, cache))
+                               dg::FDSBP, cache, element_indices = eachelement(dg, cache))
     D = dg.basis # SBP derivative operator
     @unpack f_threaded = cache
 
@@ -67,7 +67,7 @@ function calc_volume_integral!(du, u,
 
     # Use the tensor product structure to compute the discrete derivatives of
     # the fluxes line-by-line and add them to `du` for each element.
-    @threaded for element in element_range
+    @threaded for element in element_indices
         f_element = f_threaded[Threads.threadid()]
         u_element = view(u_vectors, :, element)
 
@@ -91,7 +91,7 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralUpwind,
-                               dg::FDSBP, cache, element_range = eachelement(dg, cache))
+                               dg::FDSBP, cache, element_indices = eachelement(dg, cache))
     # Assume that
     # dg.basis isa SummationByPartsOperators.UpwindOperators
     D_minus = dg.basis.minus # Upwind SBP D^- derivative operator
@@ -118,7 +118,7 @@ function calc_volume_integral!(du, u,
 
     # Use the tensor product structure to compute the discrete derivatives of
     # the fluxes line-by-line and add them to `du` for each element.
-    @threaded for element in element_range
+    @threaded for element in element_indices
         # f_minus_plus_element wraps the storage provided by f_minus_element and
         # f_plus_element such that we can use a single plain broadcasting below.
         # f_minus_element and f_plus_element are updated in broadcasting calls
@@ -141,12 +141,12 @@ end
 
 function calc_surface_integral!(du, u, mesh::TreeMesh{1},
                                 equations, surface_integral::SurfaceIntegralStrongForm,
-                                dg::DG, cache, element_range = eachelement(dg, cache))
+                                dg::DG, cache, element_indices = eachelement(dg, cache))
     inv_weight_left = inv(left_boundary_weight(dg.basis))
     inv_weight_right = inv(right_boundary_weight(dg.basis))
     @unpack surface_flux_values = cache.elements
 
-    @threaded for element in element_range
+    @threaded for element in element_indices
         # surface at -x
         u_node = get_node_vars(u, equations, dg, 1, element)
         f_node = flux(u_node, 1, equations)
@@ -183,11 +183,11 @@ function calc_interface_flux!(surface_flux_values,
                               nonconservative_terms::False, equations,
                               surface_integral::SurfaceIntegralUpwind,
                               dg::FDSBP, cache,
-                              interface_range = eachinterface(dg, cache))
+                              interface_indices = eachinterface(dg, cache))
     @unpack splitting = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
 
-    @threaded for interface in interface_range
+    @threaded for interface in interface_indices
         # Get neighboring elements
         left_id = neighbor_ids[1, interface]
         right_id = neighbor_ids[2, interface]
@@ -224,13 +224,13 @@ end
 function calc_surface_integral!(du, u, mesh::TreeMesh{1},
                                 equations, surface_integral::SurfaceIntegralUpwind,
                                 dg::FDSBP, cache,
-                                element_range = eachelement(dg, cache))
+                                element_indices = eachelement(dg, cache))
     inv_weight_left = inv(left_boundary_weight(dg.basis))
     inv_weight_right = inv(right_boundary_weight(dg.basis))
     @unpack surface_flux_values = cache.elements
     @unpack splitting = surface_integral
 
-    @threaded for element in element_range
+    @threaded for element in element_indices
         # surface at -x
         u_node = get_node_vars(u, equations, dg, 1, element)
         f_node = splitting(u_node, Val{:plus}(), 1, equations)
@@ -253,7 +253,7 @@ end
 function calc_surface_integral!(du, u, mesh::TreeMesh1D,
                                 equations, surface_integral::SurfaceIntegralUpwind,
                                 dg::PeriodicFDSBP, cache,
-                                element_range = eachelement(dg, cache))
+                                element_indices = eachelement(dg, cache))
     @assert nelements(dg, cache) == 1
     return nothing
 end

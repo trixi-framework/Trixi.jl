@@ -49,10 +49,10 @@ end
 
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
                               equations, surface_integral, dg::DG,
-                              element_range = eachelement(dg, cache))
+                              element_indices = eachelement(dg, cache))
     @unpack surface_flux = surface_integral
 
-    @threaded for element in element_range
+    @threaded for element in element_indices
         left_element = cache.elements.left_neighbors[1, element]
 
         if left_element > 0 # left_element = 0 at boundaries

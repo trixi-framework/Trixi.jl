@@ -107,10 +107,10 @@ end
 function transform_variables!(u_transformed, u, mesh::TreeMesh{1},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, parabolic_scheme, cache, cache_parabolic,
-                              element_range = eachelement(dg, cache))
+                              element_indices = eachelement(dg, cache))
     transformation = gradient_variable_transformation(equations_parabolic)
 
-    @threaded for element in element_range
+    @threaded for element in element_indices
         # Calculate volume terms in one element
         for i in eachnode(dg)
             u_node = get_node_vars(u, equations_parabolic, dg, i, element)
@@ -125,10 +125,10 @@ end
 function calc_volume_integral!(du, flux_viscous,
                                mesh::TreeMesh{1},
                                equations_parabolic::AbstractEquationsParabolic,
-                               dg::DGSEM, cache, element_range = eachelement(dg, cache))
+                               dg::DGSEM, cache, element_indices = eachelement(dg, cache))
     @unpack derivative_dhat = dg.basis
 
-    @threaded for element in element_range
+    @threaded for element in element_indices
         # Calculate volume terms in one element
         for i in eachnode(dg)
             flux_1_node = get_node_vars(flux_viscous, equations_parabolic, dg, i,
@@ -150,12 +150,12 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache,
-                             interface_range = eachinterface(dg, cache))
+                             interface_indices = eachinterface(dg, cache))
     @unpack interfaces = cache_parabolic
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
 
-    @threaded for interface in interface_range
+    @threaded for interface in interface_indices
         left_element = neighbor_ids[1, interface]
         right_element = neighbor_ids[2, interface]
 
@@ -174,10 +174,10 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1}, equations_parabolic,
                               dg::DG, cache_parabolic,
-                              interface_range)
+                              interface_indices)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
-    @threaded for interface in interface_range
+    @threaded for interface in interface_indices
         # Get neighboring elements
         left_id = neighbor_ids[1, interface]
         right_id = neighbor_ids[2, interface]
@@ -211,12 +211,12 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_integral, dg::DG, cache,
-                             boundary_range = eachboundary(dg, cache))
+                             boundary_indices = eachboundary(dg, cache))
     @unpack boundaries = cache_parabolic
     @unpack neighbor_sides, neighbor_ids = boundaries
     boundaries_u = boundaries.u
 
-    @threaded for boundary in boundary_range
+    @threaded for boundary in boundary_indices
         element = neighbor_ids[boundary]
 
         if neighbor_sides[boundary] == 1
@@ -239,8 +239,8 @@ end
 function calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh::TreeMesh{1},
                               equations_parabolic::AbstractEquationsParabolic,
                               dg::DG, cache, cache_parabolic,
-                              element_range = eachelement(dg, cache))
-    @threaded for element in element_range
+                              element_indices = eachelement(dg, cache))
+    @threaded for element in element_indices
         for i in eachnode(dg)
             # Get solution and gradients
             u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, element)
@@ -412,19 +412,19 @@ end
 function calc_gradient!(gradients, u_transformed, t,
                         mesh::TreeMesh{1}, equations_parabolic,
                         boundary_conditions_parabolic, dg::DG, cache, cache_parabolic,
-                        element_range = eachelement(dg, cache),
-                        interface_range = eachinterface(dg, cache),
-                        boundary_range = eachboundary(dg, cache))
+                        element_indices = eachelement(dg, cache),
+                        interface_indices = eachinterface(dg, cache),
+                        boundary_indices = eachboundary(dg, cache))
 
     # Reset du
     @trixi_timeit timer() "reset gradients" begin
-        reset_du!(gradients, dg, cache, element_range)
+        reset_du!(gradients, dg, cache, element_indices)
     end
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
         @unpack derivative_dhat = dg.basis
-        @threaded for element in element_range
+        @threaded for element in element_indices
 
             # Calculate volume terms in one element
             for i in eachnode(dg)
@@ -446,14 +446,14 @@ function calc_gradient!(gradients, u_transformed, t,
                                                                    equations_parabolic,
                                                                    dg.surface_integral,
                                                                    dg, cache,
-                                                                   interface_range)
+                                                                   interface_indices)
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         @unpack surface_flux_values = cache_parabolic.elements
         @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
-        @threaded for interface in interface_range
+        @threaded for interface in interface_indices
             # Get neighboring elements
             left_id = neighbor_ids[1, interface]
             right_id = neighbor_ids[2, interface]
@@ -482,7 +482,7 @@ function calc_gradient!(gradients, u_transformed, t,
                                                                    equations_parabolic,
                                                                    dg.surface_integral,
                                                                    dg, cache,
-                                                                   boundary_range)
+                                                                   boundary_indices)
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" calc_boundary_flux_gradients!(cache_parabolic,
@@ -504,7 +504,7 @@ function calc_gradient!(gradients, u_transformed, t,
         # into FMAs (see comment at the top of the file).
         factor_1 = boundary_interpolation[1, 1]
         factor_2 = boundary_interpolation[nnodes(dg), 2]
-        @threaded for element in element_range
+        @threaded for element in element_indices
             for v in eachvariable(equations_parabolic)
                 # surface at -x
                 gradients[v, 1, element] = (gradients[v, 1, element] -
@@ -523,7 +523,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Apply Jacobian from mapping to reference element
     @trixi_timeit timer() "Jacobian" begin
         apply_jacobian_parabolic!(gradients, mesh, equations_parabolic, dg,
-                                  cache_parabolic, element_range)
+                                  cache_parabolic, element_indices)
     end
 
     return nothing
@@ -561,10 +561,10 @@ end
 # where f(u) is the inviscid flux and g(u) is the viscous flux.
 function apply_jacobian_parabolic!(du, mesh::TreeMesh{1},
                                    equations::AbstractEquationsParabolic, dg::DG, cache,
-                                   element_range = eachelement(dg, cache))
+                                   element_indices = eachelement(dg, cache))
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in element_range
+    @threaded for element in element_indices
         factor = inverse_jacobian[element]
 
         for i in eachnode(dg)

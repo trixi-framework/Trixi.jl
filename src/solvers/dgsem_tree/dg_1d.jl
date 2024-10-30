@@ -134,8 +134,8 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache, element_range = eachelement(dg, cache))
-    @threaded for element in element_range
+                               dg::DGSEM, cache, element_indices = eachelement(dg, cache))
+    @threaded for element in element_indices
         weak_form_kernel!(du, u, element, mesh,
                           nonconservative_terms, equations,
                           dg, cache)
@@ -176,8 +176,8 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache, element_range = eachelement(dg, cache))
-    @threaded for element in element_range
+                               dg::DGSEM, cache, element_indices = eachelement(dg, cache))
+    @threaded for element in element_indices
         flux_differencing_kernel!(du, u, element, mesh, nonconservative_terms,
                                   equations,
                                   volume_integral.volume_flux, dg, cache)
@@ -255,7 +255,7 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
-                               dg::DGSEM, cache, element_range = eachelement(dg, cache))
+                               dg::DGSEM, cache, element_indices = eachelement(dg, cache))
     @unpack element_ids_dg, element_ids_dgfv = cache
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
@@ -265,7 +265,7 @@ function calc_volume_integral!(du, u,
 
     # Determine element ids for DG-only and blended DG-FV volume integral
     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache,
-                                  element_range)
+                                  element_indices)
 
     # Loop over pure DG elements
     @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
@@ -298,11 +298,11 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
-                               dg::DGSEM, cache, element_range = eachelement(dg, cache))
+                               dg::DGSEM, cache, element_indices = eachelement(dg, cache))
     @unpack volume_flux_fv = volume_integral
 
     # Calculate LGL FV volume integral
-    @threaded for element in element_range
+    @threaded for element in element_indices
         fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
                    dg, cache, element, true)
     end
@@ -392,12 +392,12 @@ end
 # We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG,
-                             interface_range = eachinterface(dg, cache))
+                             interface_indices = eachinterface(dg, cache))
     @unpack interfaces = cache
     @unpack neighbor_ids = interfaces
     interfaces_u = interfaces.u
 
-    @threaded for interface in interface_range
+    @threaded for interface in interface_indices
         left_element = neighbor_ids[1, interface]
         right_element = neighbor_ids[2, interface]
 
@@ -415,11 +415,11 @@ function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
                               nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache,
-                              interface_range = eachinterface(dg, cache))
+                              interface_indices = eachinterface(dg, cache))
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
 
-    @threaded for interface in interface_range
+    @threaded for interface in interface_indices
         # Get neighboring elements
         left_id = neighbor_ids[1, interface]
         right_id = neighbor_ids[2, interface]
@@ -445,11 +445,11 @@ function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
                               nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache,
-                              interface_range = eachinterface(dg, cache))
+                              interface_indices = eachinterface(dg, cache))
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, orientations = cache.interfaces
 
-    @threaded for interface in interface_range
+    @threaded for interface in interface_indices
         # Get neighboring elements
         left_id = neighbor_ids[1, interface]
         right_id = neighbor_ids[2, interface]
@@ -486,11 +486,11 @@ end
 
 function prolong2boundaries!(cache, u,
                              mesh::TreeMesh{1}, equations, surface_integral, dg::DG,
-                             boundary_range = eachboundary(dg, cache))
+                             boundary_indices = eachboundary(dg, cache))
     @unpack boundaries = cache
     @unpack neighbor_sides = boundaries
 
-    @threaded for boundary in boundary_range
+    @threaded for boundary in boundary_indices
         element = boundaries.neighbor_ids[boundary]
 
         # boundary in x-direction
@@ -609,7 +609,7 @@ end
 
 function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                 equations, surface_integral, dg::DGSEM, cache,
-                                element_range = eachelement(dg, cache))
+                                element_indices = eachelement(dg, cache))
     @unpack boundary_interpolation = dg.basis
     @unpack surface_flux_values = cache.elements
 
@@ -619,7 +619,7 @@ function calc_surface_integral!(du, u, mesh::Union{TreeMesh{1}, StructuredMesh{1
     # into FMAs (see comment at the top of the file).
     factor_1 = boundary_interpolation[1, 1]
     factor_2 = boundary_interpolation[nnodes(dg), 2]
-    @threaded for element in element_range
+    @threaded for element in element_indices
         for v in eachvariable(equations)
             # surface at -x
             du[v, 1, element] = (du[v, 1, element] -
@@ -636,10 +636,10 @@ end
 
 function apply_jacobian!(du, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                          equations, dg::DG, cache,
-                         element_range = eachelement(dg, cache))
+                         element_indices = eachelement(dg, cache))
     @unpack inverse_jacobian = cache.elements
 
-    @threaded for element in element_range
+    @threaded for element in element_indices
         factor = -inverse_jacobian[element]
 
         for i in eachnode(dg)
@@ -655,16 +655,16 @@ end
 # TODO: Taal dimension agnostic
 function calc_sources!(du, u, t, source_terms::Nothing,
                        equations::AbstractEquations{1}, dg::DG, cache,
-                       element_range = eachelement(dg, cache))
+                       element_indices = eachelement(dg, cache))
     return nothing
 end
 
 function calc_sources!(du, u, t, source_terms,
                        equations::AbstractEquations{1}, dg::DG, cache,
-                       element_range = eachelement(dg, cache))
+                       element_indices = eachelement(dg, cache))
     @unpack node_coordinates = cache.elements
 
-    @threaded for element in element_range
+    @threaded for element in element_indices
         for i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, element)
             x_local = get_node_coords(node_coordinates, equations, dg,
