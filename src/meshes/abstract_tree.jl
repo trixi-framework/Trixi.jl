@@ -405,10 +405,10 @@ function refine_box!(t::AbstractTree{NDIMS},
     refine!(t, cells)
 end
 
-# Convenience method for 1D
+# Convenience method for 1D (arguments are no arrays)
 function refine_box!(t::AbstractTree{1},
-                     coordinates_min::RealT,
-                     coordinates_max::RealT) where {RealT <: Real}
+                     coordinates_min::Real,
+                     coordinates_max::Real)
     return refine_box!(t, [coordinates_min], [coordinates_max])
 end
 
@@ -620,9 +620,8 @@ coarsen!(t::AbstractTree, cell_id::Int) = coarsen!(t::AbstractTree, [cell_id])
 
 # Coarsen all viable parent cells with coordinates in a given rectangular box
 function coarsen_box!(t::AbstractTree{NDIMS},
-                      coordinates_min::AbstractArray{RealT},
-                      coordinates_max::AbstractArray{RealT}) where {NDIMS, RealT <:
-                                                                           Real}
+                      coordinates_min,
+                      coordinates_max) where {NDIMS}
     for dim in 1:NDIMS
         @assert coordinates_min[dim]<coordinates_max[dim] "Minimum coordinates are not minimum."
     end
@@ -646,10 +645,10 @@ function coarsen_box!(t::AbstractTree{NDIMS},
     coarsen!(t, parents)
 end
 
-# Convenience method for 1D
+# Convenience method for 1D (arguments are no arrays)
 function coarsen_box!(t::AbstractTree{1},
-                      coordinates_min::RealT,
-                      coordinates_max::RealT) where {RealT <: Real}
+                      coordinates_min::Real,
+                      coordinates_max::Real)
     return coarsen_box!(t, [coordinates_min], [coordinates_max])
 end
 
