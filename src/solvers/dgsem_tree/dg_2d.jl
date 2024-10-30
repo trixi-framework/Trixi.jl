@@ -344,16 +344,15 @@ function calc_volume_integral!(du, u,
     RealT = eltype(alpha)
     atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
     @threaded for element in eachelement(dg, cache)
+        alpha_element = alpha[element]
         # Clip blending factor for values close to zero (-> pure DG)
-        dg_only = isapprox(alpha[element], 0, atol = atol)
+        dg_only = isapprox(alpha_element, 0, atol = atol)
 
         if dg_only
             flux_differencing_kernel!(du, u, element, mesh,
                                       nonconservative_terms, equations,
                                       volume_flux_dg, dg, cache)
         else
-            alpha_element = alpha[element]
-
             # Calculate DG volume integral contribution
             flux_differencing_kernel!(du, u, element, mesh,
                                       nonconservative_terms, equations,
