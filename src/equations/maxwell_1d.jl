@@ -58,7 +58,7 @@ function initial_condition_convergence_test(x, t, equations::MaxwellEquations1D)
     c = equations.speed_of_light
     char_pos = c * t + x[1]
 
-    sin_char_pos = sin(2 * pi * char_pos)
+    sin_char_pos = sinpi(2 * char_pos)
 
     E = -c * sin_char_pos
     B = sin_char_pos
