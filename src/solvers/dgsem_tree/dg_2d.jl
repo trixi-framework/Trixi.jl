@@ -344,7 +344,7 @@ function calc_volume_integral!(du, u,
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
                                                                cache)
-
+    #=                                                       
     # Determine element ids for DG-only and blended DG-FV volume integral
     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
 
@@ -369,6 +369,31 @@ function calc_volume_integral!(du, u,
         # Calculate FV volume integral contribution
         fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
                    dg, cache, element, alpha_element)
+    end
+    =#
+
+    RealT = eltype(alpha)
+    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
+    @threaded for element in eachelement(dg, cache)
+        # Clip blending factor for values close to zero (-> pure DG)
+        dg_only = isapprox(alpha[element], 0, atol = atol)
+
+        if dg_only
+            flux_differencing_kernel!(du, u, element, mesh,
+                                      nonconservative_terms, equations,
+                                      volume_flux_dg, dg, cache)
+        else
+            alpha_element = alpha[element]
+
+            # Calculate DG volume integral contribution
+            flux_differencing_kernel!(du, u, element, mesh,
+                                      nonconservative_terms, equations,
+                                      volume_flux_dg, dg, cache, 1 - alpha_element)
+
+            # Calculate FV volume integral contribution
+            fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
+                       dg, cache, element, alpha_element)
+        end
     end
 
     return nothing
