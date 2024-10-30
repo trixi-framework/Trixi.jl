@@ -8,12 +8,6 @@ using LinearAlgebra: eigvals
 @muladd begin
 #! format: noindent
 
-# Abstract base type for both single/standalone and multi-level 
-# PERK (Paired-Explicit Runge-Kutta) time integration schemes
-abstract type AbstractPairedExplicitRK end
-# Abstract base type for single/standalone PERK time integration schemes
-abstract type AbstractPairedExplicitRKSingle <: AbstractPairedExplicitRK end
-
 # Compute the coefficients of the A matrix in the Butcher tableau using
 # stage scaling factors and monomial coefficients
 function compute_a_coeffs(num_stage_evals, stage_scaling_factors, monomial_coeffs)
@@ -185,31 +179,6 @@ function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
     return PairedExplicitRK2(num_stages, a_matrix, c, 1 - bS, bS, cS, dt_opt)
 end
 
-# This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1
-mutable struct PairedExplicitRKOptions{Callback, TStops}
-    callback::Callback # callbacks; used in Trixi
-    adaptive::Bool # whether the algorithm is adaptive
-    dtmax::Float64 # ignored
-    maxiters::Int # maximal number of time steps
-    tstops::TStops # tstops from https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/#Output-Control-1; ignored
-end
-
-function PairedExplicitRKOptions(callback, tspan; maxiters = typemax(Int), kwargs...)
-    tstops_internal = BinaryHeap{eltype(tspan)}(FasterForward())
-    # We add last(tspan) to make sure that the time integration stops at the end time
-    push!(tstops_internal, last(tspan))
-    # We add 2 * last(tspan) because add_tstop!(integrator, t) is only called by DiffEqCallbacks.jl if tstops contains a time that is larger than t
-    # (https://github.com/SciML/DiffEqCallbacks.jl/blob/025dfe99029bd0f30a2e027582744528eb92cd24/src/iterative_and_periodic.jl#L92)
-    push!(tstops_internal, 2 * last(tspan))
-    PairedExplicitRKOptions{typeof(callback), typeof(tstops_internal)}(callback,
-                                                                       false, Inf,
-                                                                       maxiters,
-                                                                       tstops_internal)
-end
-
-abstract type PairedExplicitRK end
-abstract type AbstractPairedExplicitRKSingleIntegrator <: PairedExplicitRK end
-
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L77
 # This implements the interface components described at
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
@@ -236,39 +205,6 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
     # PairedExplicitRK2 stages:
     k1::uType
     k_higher::uType
-end
-
-"""
-    calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
-
-This function computes the CFL number once using the initial condition of the problem and the optimal timestep (`dt_opt`) from the ODE algorithm.
-"""
-function calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
-    t0 = first(ode.tspan)
-    u_ode = ode.u0
-    semi = ode.p
-    dt_opt = ode_algorithm.dt_opt
-
-    if isnothing(dt_opt)
-        error("The optimal time step `dt_opt` must be provided.")
-    end
-
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
-
-    cfl_number = dt_opt / max_dt(u, t0, mesh,
-                        have_constant_speed(equations), equations,
-                        solver, cache)
-    return cfl_number
-end
-
-# Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::PairedExplicitRK, field::Symbol)
-    if field === :stats
-        return (naccept = getfield(integrator, :iter),)
-    end
-    # general fallback
-    return getfield(integrator, field)
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK2;
@@ -390,51 +326,6 @@ function step!(integrator::PairedExplicitRK2Integrator)
     if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
         @warn "Interrupted. Larger maxiters is needed."
         terminate!(integrator)
-    end
-end
-
-# get a cache where the RHS can be stored
-get_du(integrator::PairedExplicitRK) = integrator.du
-get_tmp_cache(integrator::PairedExplicitRK) = (integrator.u_tmp,)
-
-# some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::PairedExplicitRK, ::Bool) = false
-
-# used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::PairedExplicitRK, dt)
-    (integrator.dt = dt; integrator.dtcache = dt)
-end
-
-function get_proposed_dt(integrator::PairedExplicitRK)
-    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
-end
-
-# stop the time integration
-function terminate!(integrator::PairedExplicitRK)
-    integrator.finalstep = true
-end
-
-"""
-    modify_dt_for_tstops!(integrator::PairedExplicitRK)
-Modify the time-step size to match the time stops specified in integrator.opts.tstops.
-To avoid adding OrdinaryDiffEq to Trixi's dependencies, this routine is a copy of
-https://github.com/SciML/OrdinaryDiffEq.jl/blob/d76335281c540ee5a6d1bd8bb634713e004f62ee/src/integrators/integrator_utils.jl#L38-L54
-"""
-function modify_dt_for_tstops!(integrator::PairedExplicitRK)
-    if has_tstop(integrator)
-        tdir_t = integrator.tdir * integrator.t
-        tdir_tstop = first_tstop(integrator)
-        if integrator.opts.adaptive
-            integrator.dt = integrator.tdir *
-                            min(abs(integrator.dt), abs(tdir_tstop - tdir_t)) # step! to the end
-        elseif iszero(integrator.dtcache) && integrator.dtchangeable
-            integrator.dt = integrator.tdir * abs(tdir_tstop - tdir_t)
-        elseif integrator.dtchangeable && !integrator.force_stepfail
-            # always try to step! with dtcache, but lower if a tstop
-            # however, if force_stepfail then don't set to dtcache, and no tstop worry
-            integrator.dt = integrator.tdir *
-                            min(abs(integrator.dtcache), abs(tdir_tstop - tdir_t)) # step! to the end
-        end
     end
 end
 end # @muladd
