@@ -228,7 +228,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
 
     if mpi_isparallel()
         # Collect lambda for all elements
-        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(mesh, dg, cache))
         # Use parent because n_elements_by_rank is an OffsetArray
         recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
         MPI.Allgatherv!(lambda, recvbuf, mpi_comm())
@@ -380,7 +380,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
         error("MPI has not been verified yet for parabolic AMR")
 
         # Collect lambda for all elements
-        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(dg, cache))
+        lambda_global = Vector{eltype(lambda)}(undef, nelementsglobal(mesh, dg, cache))
         # Use parent because n_elements_by_rank is an OffsetArray
         recvbuf = MPI.VBuffer(lambda_global, parent(cache.mpi_cache.n_elements_by_rank))
         MPI.Allgatherv!(lambda, recvbuf, mpi_comm())

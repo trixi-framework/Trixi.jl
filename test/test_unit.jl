@@ -439,14 +439,17 @@ end
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = nothing, Re = 1000)
     # Both Mach number and velocity set
-    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000, u0 = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000,
+                                                            u0 = 1.0)
     # Neither Reynolds number nor viscosity set
     @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = nothing)
     # Both Reynolds number and viscosity set
-    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000, nu = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations2D(Ma = 0.1, Re = 1000,
+                                                            nu = 1.0)
 
     # No non-dimensional values set
-    @test LatticeBoltzmannEquations2D(Ma = nothing, Re = nothing, u0 = 1, nu = 1) isa
+    @test LatticeBoltzmannEquations2D(Ma = nothing, Re = nothing, u0 = 1.0,
+                                      nu = 1.0) isa
           LatticeBoltzmannEquations2D
 end
 
@@ -454,14 +457,17 @@ end
     # Neither Mach number nor velocity set
     @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = nothing, Re = 1000)
     # Both Mach number and velocity set
-    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000, u0 = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000,
+                                                            u0 = 1.0)
     # Neither Reynolds number nor viscosity set
     @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = nothing)
     # Both Reynolds number and viscosity set
-    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000, nu = 1)
+    @test_throws ErrorException LatticeBoltzmannEquations3D(Ma = 0.1, Re = 1000,
+                                                            nu = 1.0)
 
     # No non-dimensional values set
-    @test LatticeBoltzmannEquations3D(Ma = nothing, Re = nothing, u0 = 1, nu = 1) isa
+    @test LatticeBoltzmannEquations3D(Ma = nothing, Re = nothing, u0 = 1.0,
+                                      nu = 1.0) isa
           LatticeBoltzmannEquations3D
 end
 
@@ -1597,6 +1603,25 @@ end
                   for (x, y) in zip(min_max_speed_davis(u_ll, u_rr, 3, equations),
                                     min_max_speed_davis(u_ll, u_rr, normal_z,
                                                         equations)))
+    end
+
+    @timed_testset "Maxwell 1D" begin
+        equations = MaxwellEquations1D()
+
+        u_values_left = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+
+        u_values_right = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+        for u_ll in u_values_left, u_rr in u_values_right
+            @test all(isapprox(x, y)
+                      for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 1, equations),
+                                        min_max_speed_davis(u_ll, u_rr, 1, equations)))
+        end
     end
 end
 
