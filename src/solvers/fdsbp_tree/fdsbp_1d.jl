@@ -44,7 +44,8 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralStrongForm,
-                               dg::FDSBP, cache, element_indices = eachelement(dg, cache))
+                               dg::FDSBP, cache,
+                               element_indices = eachelement(dg, cache))
     D = dg.basis # SBP derivative operator
     @unpack f_threaded = cache
 
@@ -91,7 +92,8 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms::False, equations,
                                volume_integral::VolumeIntegralUpwind,
-                               dg::FDSBP, cache, element_indices = eachelement(dg, cache))
+                               dg::FDSBP, cache,
+                               element_indices = eachelement(dg, cache))
     # Assume that
     # dg.basis isa SummationByPartsOperators.UpwindOperators
     D_minus = dg.basis.minus # Upwind SBP D^- derivative operator

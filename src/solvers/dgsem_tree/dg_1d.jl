@@ -134,7 +134,8 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
-                               dg::DGSEM, cache, element_indices = eachelement(dg, cache))
+                               dg::DGSEM, cache,
+                               element_indices = eachelement(dg, cache))
     @threaded for element in element_indices
         weak_form_kernel!(du, u, element, mesh,
                           nonconservative_terms, equations,
@@ -176,7 +177,8 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
-                               dg::DGSEM, cache, element_indices = eachelement(dg, cache))
+                               dg::DGSEM, cache,
+                               element_indices = eachelement(dg, cache))
     @threaded for element in element_indices
         flux_differencing_kernel!(du, u, element, mesh, nonconservative_terms,
                                   equations,
@@ -255,7 +257,8 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
-                               dg::DGSEM, cache, element_indices = eachelement(dg, cache))
+                               dg::DGSEM, cache,
+                               element_indices = eachelement(dg, cache))
     @unpack element_ids_dg, element_ids_dgfv = cache
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
@@ -298,7 +301,8 @@ function calc_volume_integral!(du, u,
                                mesh::TreeMesh{1},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
-                               dg::DGSEM, cache, element_indices = eachelement(dg, cache))
+                               dg::DGSEM, cache,
+                               element_indices = eachelement(dg, cache))
     @unpack volume_flux_fv = volume_integral
 
     # Calculate LGL FV volume integral
