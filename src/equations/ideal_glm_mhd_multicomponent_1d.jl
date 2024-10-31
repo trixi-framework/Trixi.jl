@@ -10,8 +10,8 @@
 
 The ideal compressible multicomponent GLM-MHD equations in one space dimension.
 """
-mutable struct IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT <: Real} <:
-               AbstractIdealGlmMhdMulticomponentEquations{1, NVARS, NCOMP}
+struct IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT <: Real} <:
+       AbstractIdealGlmMhdMulticomponentEquations{1, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT}
     gas_constants::SVector{NCOMP, RealT}
     cv::SVector{NCOMP, RealT}
@@ -51,6 +51,11 @@ function IdealGlmMhdMulticomponentEquations1D(; gammas, gas_constants)
                                                                      __gas_constants)
 end
 
+# Outer constructor for `@reset` works correctly
+function IdealGlmMhdMulticomponentEquations1D(gammas, gas_constants, cv, cp, c_h)
+    IdealGlmMhdMulticomponentEquations1D(gammas = gammas, gas_constants = gas_constants)
+end
+
 @inline function Base.real(::IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT}) where {
                                                                                                NVARS,
                                                                                                NCOMP,
@@ -84,11 +89,10 @@ function initial_condition_convergence_test(x, t,
     # domain must be set to [0, 1], γ = 5/3
 
     RealT = eltype(x)
-    rho = 1
-    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                rho
+    rho = one(RealT)
+    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
+                                                                rho / (1 -
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
     v1 = 0
     # TODO: sincospi
@@ -127,16 +131,16 @@ function initial_condition_weak_blast_wave(x, t,
     if r > 0.5f0
         rho = one(RealT)
         prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) *
-                                                                    (1 - 2) / (1 -
-                                                                     2^ncomponents(equations)) *
-                                                                    rho
+                                                                    (1 - 2) * rho /
+                                                                    (1 -
+                                                                     2^ncomponents(equations))
                                                                     for i in eachcomponent(equations))
     else
         rho = convert(RealT, 1.1691)
         prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) *
-                                                                    (1 - 2) / (1 -
-                                                                     2^ncomponents(equations)) *
-                                                                    rho
+                                                                    (1 - 2) * rho /
+                                                                    (1 -
+                                                                     2^ncomponents(equations))
                                                                     for i in eachcomponent(equations))
     end
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(phi)

@@ -96,7 +96,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
         "indicator variable" => indicator.variable,
         "max. α" => indicator.alpha_max,
         "min. α" => indicator.alpha_min,
-        "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+        "smooth α" => (indicator.alpha_smooth ? "yes" : "no")
     ]
     summary_box(io, "IndicatorHennemannGassner", setup)
 end
@@ -114,8 +114,11 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     end
 
     # magic parameters
-    threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-    parameter_s = log((1 - 0.0001) / 0.0001)
+    # TODO: Are there better values for Float32?
+    RealT = real(dg)
+    threshold = 0.5f0 * 10^(convert(RealT, -1.8) * nnodes(dg)^convert(RealT, 0.25))
+    o_0001 = convert(RealT, 0.0001)
+    parameter_s = log((1 - o_0001) / o_0001)
 
     @threaded for element in eachelement(dg, cache)
         # This is dispatched by mesh dimension.
@@ -193,7 +196,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
     else
         setup = [
             "indicator variable" => indicator.variable,
-            "f_wave" => indicator.f_wave,
+            "f_wave" => indicator.f_wave
         ]
         summary_box(io, "IndicatorLöhner", setup)
     end
@@ -251,7 +254,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
         show(io, indicator)
     else
         setup = [
-            "indicator variable" => indicator.variable,
+            "indicator variable" => indicator.variable
         ]
         summary_box(io, "IndicatorMax", setup)
     end
