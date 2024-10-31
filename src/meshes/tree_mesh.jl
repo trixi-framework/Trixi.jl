@@ -124,6 +124,16 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         throw(ArgumentError("`initial_refinement_level` must be a non-negative integer (provided `initial_refinement_level = $initial_refinement_level`)"))
     end
 
+    # Check if elements in coordinates_min and coordinates_max are all of type RealT
+    for i in 1:NDIMS
+        if !(coordinates_min[i] isa RealT)
+            @warn "Element $i in `coordinates_min` is not of type $RealT (provided `coordinates_min[$i] = $(coordinates_min[i])`)"
+        end
+        if !(coordinates_max[i] isa RealT)
+            @warn "Element $i in `coordinates_max` is not of type $RealT (provided `coordinates_max[$i] = $(coordinates_max[i])`)"
+        end
+    end
+
     # TreeMesh requires equal domain lengths in all dimensions
     domain_center = @. convert(RealT, (coordinates_min + coordinates_max) / 2)
     domain_length = convert(RealT, coordinates_max[1] - coordinates_min[1])
