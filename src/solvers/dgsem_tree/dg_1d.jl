@@ -258,6 +258,8 @@ function calc_volume_integral!(du, u,
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
                                                                cache)
 
+    # For `Float64`, this gives 1.8189894035458565e-12
+    # For `Float32`, this gives 1.1920929f-5
     RealT = eltype(alpha)
     atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
     @threaded for element in eachelement(dg, cache)
