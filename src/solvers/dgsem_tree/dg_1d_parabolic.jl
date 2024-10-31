@@ -150,7 +150,7 @@ end
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache,
+                             surface_integral, dg::DG, cache::NamedTuple,
                              interface_indices = eachinterface(dg, cache))
     @unpack interfaces = cache_parabolic
     @unpack neighbor_ids = interfaces
@@ -211,7 +211,7 @@ end
 function prolong2boundaries!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{1},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache,
+                             surface_integral, dg::DG, cache::NamedTuple,
                              boundary_indices = eachboundary(dg, cache))
     @unpack boundaries = cache_parabolic
     @unpack neighbor_sides, neighbor_ids = boundaries
