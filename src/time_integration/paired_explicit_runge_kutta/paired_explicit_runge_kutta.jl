@@ -36,15 +36,15 @@ function PairedExplicitRKOptions(callback, tspan; maxiters = typemax(Int), kwarg
                                                                        tstops_internal)
 end
 
-abstract type PairedExplicitRK end
-abstract type AbstractPairedExplicitRKSingleIntegrator <: PairedExplicitRK end
+abstract type AbstractPairedExplicitRKIntegrator end
+abstract type AbstractPairedExplicitRKSingleIntegrator <: AbstractPairedExplicitRKIntegrator end
 
 """
-    calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
+    calculate_cfl(ode_algorithm::AbstractPairedExplicitRK, ode)
 
 This function computes the CFL number once using the initial condition of the problem and the optimal timestep (`dt_opt`) from the ODE algorithm.
 """
-function calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
+function calculate_cfl(ode_algorithm::AbstractPairedExplicitRK, ode)
     t0 = first(ode.tspan)
     u_ode = ode.u0
     semi = ode.p
@@ -64,7 +64,7 @@ function calculate_cfl(ode_algorithm::AbstractPairedExplicitRKSingle, ode)
 end
 
 # Forward integrator.stats.naccept to integrator.iter (see GitHub PR#771)
-function Base.getproperty(integrator::PairedExplicitRK, field::Symbol)
+function Base.getproperty(integrator::AbstractPairedExplicitRKIntegrator, field::Symbol)
     if field === :stats
         return (naccept = getfield(integrator, :iter),)
     end
@@ -73,11 +73,11 @@ function Base.getproperty(integrator::PairedExplicitRK, field::Symbol)
 end
 
 """
-    add_tstop!(integrator::AbstractPairedExplicitRKSingleIntegrator, t)
+    add_tstop!(integrator::AbstractPairedExplicitRKIntegrator, t)
 Add a time stop during the time integration process.
 This function is called after the periodic SaveSolutionCallback to specify the next stop to save the solution.
 """
-function add_tstop!(integrator::AbstractPairedExplicitRKSingleIntegrator, t)
+function add_tstop!(integrator::AbstractPairedExplicitRKIntegrator, t)
     integrator.tdir * (t - integrator.t) < zero(integrator.t) &&
         error("Tried to add a tstop that is behind the current time. This is strictly forbidden")
     # We need to remove the first entry of tstops when a new entry is added.
@@ -88,11 +88,11 @@ function add_tstop!(integrator::AbstractPairedExplicitRKSingleIntegrator, t)
     push!(integrator.opts.tstops, integrator.tdir * t)
 end
 
-has_tstop(integrator::AbstractPairedExplicitRKSingleIntegrator) = !isempty(integrator.opts.tstops)
-first_tstop(integrator::AbstractPairedExplicitRKSingleIntegrator) = first(integrator.opts.tstops)
+has_tstop(integrator::AbstractPairedExplicitRKIntegrator) = !isempty(integrator.opts.tstops)
+first_tstop(integrator::AbstractPairedExplicitRKIntegrator) = first(integrator.opts.tstops)
 
 # Fakes `solve`: https://diffeq.sciml.ai/v6.8/basics/overview/#Solving-the-Problems-1
-function solve(ode::ODEProblem, alg::AbstractPairedExplicitRKSingle;
+function solve(ode::ODEProblem, alg::AbstractPairedExplicitRK;
                dt, callback = nothing, kwargs...)
     integrator = init(ode, alg, dt = dt, callback = callback; kwargs...)
 
@@ -100,7 +100,7 @@ function solve(ode::ODEProblem, alg::AbstractPairedExplicitRKSingle;
     solve!(integrator)
 end
 
-function solve!(integrator::PairedExplicitRK)
+function solve!(integrator::AbstractPairedExplicitRKIntegrator)
     @unpack prob = integrator.sol
 
     integrator.finalstep = false
@@ -115,7 +115,7 @@ function solve!(integrator::PairedExplicitRK)
 end
 
 # used for AMR (Adaptive Mesh Refinement)
-function Base.resize!(integrator::PairedExplicitRK, new_size)
+function Base.resize!(integrator::AbstractPairedExplicitRKIntegrator, new_size)
     resize!(integrator.u, new_size)
     resize!(integrator.du, new_size)
     resize!(integrator.u_tmp, new_size)
@@ -125,33 +125,33 @@ function Base.resize!(integrator::PairedExplicitRK, new_size)
 end
 
 # get a cache where the RHS can be stored
-get_du(integrator::PairedExplicitRK) = integrator.du
-get_tmp_cache(integrator::PairedExplicitRK) = (integrator.u_tmp,)
+get_du(integrator::AbstractPairedExplicitRKIntegrator) = integrator.du
+get_tmp_cache(integrator::AbstractPairedExplicitRKIntegrator) = (integrator.u_tmp,)
 
 # some algorithms from DiffEq like FSAL-ones need to be informed when a callback has modified u
-u_modified!(integrator::PairedExplicitRK, ::Bool) = false
+u_modified!(integrator::AbstractPairedExplicitRKIntegrator, ::Bool) = false
 
 # used by adaptive timestepping algorithms in DiffEq
-function set_proposed_dt!(integrator::PairedExplicitRK, dt)
+function set_proposed_dt!(integrator::AbstractPairedExplicitRKIntegrator, dt)
     (integrator.dt = dt; integrator.dtcache = dt)
 end
 
-function get_proposed_dt(integrator::PairedExplicitRK)
+function get_proposed_dt(integrator::AbstractPairedExplicitRKIntegrator)
     return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
 end
 
 # stop the time integration
-function terminate!(integrator::PairedExplicitRK)
+function terminate!(integrator::AbstractPairedExplicitRKIntegrator)
     integrator.finalstep = true
 end
 
 """
-    modify_dt_for_tstops!(integrator::PairedExplicitRK)
+    modify_dt_for_tstops!(integrator::AbstractPairedExplicitRKIntegrator)
 Modify the time-step size to match the time stops specified in integrator.opts.tstops.
 To avoid adding OrdinaryDiffEq to Trixi's dependencies, this routine is a copy of
 https://github.com/SciML/OrdinaryDiffEq.jl/blob/d76335281c540ee5a6d1bd8bb634713e004f62ee/src/integrators/integrator_utils.jl#L38-L54
 """
-function modify_dt_for_tstops!(integrator::PairedExplicitRK)
+function modify_dt_for_tstops!(integrator::AbstractPairedExplicitRKIntegrator)
     if has_tstop(integrator)
         tdir_t = integrator.tdir * integrator.t
         tdir_tstop = first_tstop(integrator)
