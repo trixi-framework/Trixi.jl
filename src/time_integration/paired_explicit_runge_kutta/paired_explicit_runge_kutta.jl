@@ -146,7 +146,8 @@ function terminate!(integrator::AbstractPairedExplicitRKIntegrator)
 end
 
 """
-    modify_dt_for_tstops!(integrator::AbstractPairedExplicitRKIntegrator)
+    modify_dt_for_tstops!(integrator::PairedExplicitRK)
+ 
 Modify the time-step size to match the time stops specified in integrator.opts.tstops.
 To avoid adding OrdinaryDiffEq to Trixi's dependencies, this routine is a copy of
 https://github.com/SciML/OrdinaryDiffEq.jl/blob/d76335281c540ee5a6d1bd8bb634713e004f62ee/src/integrators/integrator_utils.jl#L38-L54
