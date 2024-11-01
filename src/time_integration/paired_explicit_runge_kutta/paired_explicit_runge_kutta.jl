@@ -37,7 +37,8 @@ function PairedExplicitRKOptions(callback, tspan; maxiters = typemax(Int), kwarg
 end
 
 abstract type AbstractPairedExplicitRKIntegrator end
-abstract type AbstractPairedExplicitRKSingleIntegrator <: AbstractPairedExplicitRKIntegrator end
+abstract type AbstractPairedExplicitRKSingleIntegrator <:
+              AbstractPairedExplicitRKIntegrator end
 
 """
     calculate_cfl(ode_algorithm::AbstractPairedExplicitRK, ode)
