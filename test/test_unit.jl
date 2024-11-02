@@ -1720,6 +1720,8 @@ end
 
     ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
 
+    println("a_matrix = ", ode_algorithm.a_matrix)
+
     @test isapprox(ode_algorithm.a_matrix,
                    [0.33551678438002486 0.06448322158043965
                     0.49653494442225443 0.10346507941960345
