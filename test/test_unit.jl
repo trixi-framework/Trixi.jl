@@ -1733,8 +1733,6 @@ end
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
 
-    ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
-
     println("a_matrix = ", ode_algorithm.a_matrix)
 
     @test isapprox(ode_algorithm.a_matrix,
