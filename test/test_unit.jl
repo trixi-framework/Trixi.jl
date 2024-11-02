@@ -1718,10 +1718,6 @@ end
     Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/32889062fd5dcf7f450748f4f5f0797c8155a18d/a_8_8.txt",
                    joinpath(path_coeff_file, "a_8.txt"))
 
-    ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
-
-    println("a_matrix = ", ode_algorithm.a_matrix)
-
     @test isapprox(ode_algorithm.a_matrix,
                    [0.33551678438002486 0.06448322158043965
                     0.49653494442225443 0.10346507941960345
@@ -1736,6 +1732,10 @@ end
     eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
+
+    ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
+
+    println("a_matrix = ", ode_algorithm.a_matrix)
 
     @test isapprox(ode_algorithm.a_matrix,
                    [0.19258815508348048 0.007411847896751755
