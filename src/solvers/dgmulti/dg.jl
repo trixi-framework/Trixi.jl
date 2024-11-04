@@ -6,7 +6,7 @@
 #! format: noindent
 
 # out <- A*x
-mul_by!(A) = @inline (out, x) -> matmul!(out, A, x)
+mul_by!(A) = @inline (out, x) -> mul!(out, A, x)
 mul_by!(A::T) where {T <: SimpleKronecker} = @inline (out, x) -> mul!(out, A, x)
 mul_by!(A::AbstractSparseMatrix) = @inline (out, x) -> mul!(out, A, x)
 function mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S <: AbstractSparseMatrix}
@@ -14,7 +14,7 @@ function mul_by!(A::LinearAlgebra.AdjOrTrans{T, S}) where {T, S <: AbstractSpars
 end
 
 #  out <- out + α * A * x
-mul_by_accum!(A, α) = @inline (out, x) -> matmul!(out, A, x, α, One())
+mul_by_accum!(A, α) = @inline (out, x) -> mul!(out, A, x, α, One())
 function mul_by_accum!(A::AbstractSparseMatrix, α)
     @inline (out, x) -> mul!(out, A, x, α, One())
 end
@@ -31,6 +31,11 @@ mul_by_accum!(A::UniformScaling) = MulByAccumUniformScaling()
 # StructArray fallback
 @inline function apply_to_each_field(f::F, args::Vararg{Any, N}) where {F, N}
     StructArrays.foreachfield(f, args...)
+end
+
+# Matrix{<:SVector} fallback
+@inline function apply_to_each_field(f::F, args::Vararg{Any, N}) where {F, N}
+    f(args...)
 end
 
 # specialize for UniformScaling types: works for either StructArray{SVector} or Matrix{SVector}
@@ -136,12 +141,8 @@ function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueT
     return boundary_conditions
 end
 
-# Allocate nested array type for DGMulti solution storage.
 function allocate_nested_array(uEltype, nvars, array_dimensions, dg)
-    # store components as separate arrays, combine via StructArrays
-    return StructArray{SVector{nvars, uEltype}}(ntuple(_ -> zeros(uEltype,
-                                                                  array_dimensions...),
-                                                       nvars))
+    return zeros(SVector{nvars, uEltype}, array_dimensions...)
 end
 
 function reset_du!(du, dg::DGMulti, other_args...)
