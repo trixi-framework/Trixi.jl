@@ -170,7 +170,7 @@ end
 # Periodic FDSBP operators need to use a single element without boundaries
 function calc_surface_integral!(du, u, mesh::TreeMesh1D,
                                 equations, surface_integral::SurfaceIntegralStrongForm,
-                                dg::PeriodicFDSBP, cache)
+                                dg::PeriodicFDSBP, cache, element_indices = nothing)
     @assert nelements(dg, cache) == 1
     return nothing
 end
