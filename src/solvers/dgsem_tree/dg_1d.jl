@@ -258,6 +258,8 @@ function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
                                nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
+                               dg::DGSEM, cache,
+                               element_indices = eachelement(dg, cache))
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
@@ -267,7 +269,7 @@ function calc_volume_integral!(du, u,
     # For `Float32`, this gives 1.1920929f-5
     RealT = eltype(alpha)
     atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in element_indices
         alpha_element = alpha[element]
         # Clip blending factor for values close to zero (-> pure DG)
         dg_only = isapprox(alpha_element, 0, atol = atol)
