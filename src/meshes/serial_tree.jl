@@ -54,7 +54,7 @@ mutable struct SerialTree{NDIMS, RealT <: Real} <: AbstractTree{NDIMS}
         t.child_ids = fill(typemin(Int), 2^NDIMS, capacity + 1)
         t.neighbor_ids = fill(typemin(Int), 2 * NDIMS, capacity + 1)
         t.levels = fill(typemin(Int), capacity + 1)
-        t.coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1) # `NaN` is of type Flaot64
+        t.coordinates = fill(convert(RealT, NaN), NDIMS, capacity + 1) # `NaN` is of type Float64
         t.original_cell_ids = fill(typemin(Int), capacity + 1)
 
         t.capacity = capacity
@@ -188,7 +188,7 @@ function invalidate!(t::SerialTree{NDIMS, RealT},
     t.child_ids[:, first:last] .= typemin(Int)
     t.neighbor_ids[:, first:last] .= typemin(Int)
     t.levels[first:last] .= typemin(Int)
-    t.coordinates[:, first:last] .= convert(RealT, NaN) # `NaN` is of type Flaot64
+    t.coordinates[:, first:last] .= convert(RealT, NaN) # `NaN` is of type Float64
     t.original_cell_ids[first:last] .= typemin(Int)
 
     return nothing
