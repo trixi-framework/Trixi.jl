@@ -9,7 +9,10 @@ function rhs!(du, u, t,
               mesh::StructuredMesh{1}, equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache,
-              element_indices = eachelement(dg, cache)) where {Source}
+              element_indices = eachelement(dg, cache),
+              interface_indices = nothing,
+              boundary_indices = nothing,
+              mortar_indices = nothing) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache, element_indices)
 
