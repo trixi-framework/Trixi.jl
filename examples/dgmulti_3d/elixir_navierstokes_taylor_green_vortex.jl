@@ -64,7 +64,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype
                                      extra_analysis_integrals = (energy_kinetic,
                                                                  energy_internal,
                                                                  enstrophy))
-callbacks = CallbackSet(summary_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
