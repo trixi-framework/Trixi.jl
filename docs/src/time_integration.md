@@ -165,7 +165,7 @@ ode = semidiscretize(semi, tspan)
   Equipped with the spectrum, the optimal stability polynomial is computed, from which the corresponding Runge-Kutta method is derived. Other constructors (if the coefficients $\boldsymbol{\alpha}$ of the stability polynomial are already available, or if a reduced spectrum $\widetilde{\boldsymbol{\sigma}}$ should be used) are discussed below.
 
 ```julia
-# Construct second order -explicit Runge-Kutta method with 6 stages for given simulation setup.
+# Construct second order-explicit Runge-Kutta method with 6 stages for given simulation setup (`semi`)
 # `tspan` provides the bounds for the bisection routine that is used to calculate the maximum timestep.
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 ```
