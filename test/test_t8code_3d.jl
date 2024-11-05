@@ -20,6 +20,7 @@ mkdir(outdir)
             # actually is `Ptr{P4est.LibP4est.p8est_connectivity}`.
             conn = Trixi.P4est.LibP4est.p8est_connectivity_new_brick(2, 3, 4, 1, 1, 1)
             mesh = T8codeMesh(conn)
+            Trixi.p8est_connectivity_destroy(conn)
             all(size(mesh.tree_node_coordinates) .== (3, 2, 2, 2, 24))
         end
     end
@@ -116,6 +117,24 @@ mkdir(outdir)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cubed_sphere.jl"),
                             l2=[0.002006918015656413],
                             linf=[0.027655117058380085])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+
+    # This test is identical to the one in `test_p4est_3d.jl`.
+    @trixi_testset "elixir_advection_restart.jl" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+                            l2=[0.002590388934758452],
+                            linf=[0.01840757696885409],
+                            # With the default `maxiters = 1` in coverage tests,
+                            # there would be no time steps after the restart.
+                            coverage_override=(maxiters = 100_000,))
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let

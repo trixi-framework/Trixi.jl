@@ -134,7 +134,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 # We disable `dynamic_load_balancing` for now, since t8code does not support
 # partitioning for coarsening yet. That is, a complete family of elements always
 # stays on rank and is not split up due to partitioning. Without this feature
-# dynamic AMR simulations are not pefectly deterministic regarding to
+# dynamic AMR simulations are not perfectly deterministic regarding to
 # convergent tests. Once this feature is available in t8code load balancing is
 # enabled again.
 
