@@ -120,7 +120,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
 
     # Use linear geometry for now. There is no real Lagrange geometry
     # implementation (volume nodes) yet in t8code.
-    linear_geom = t8_geometry_linear_new(ndims)
+    linear_geom = t8_geometry_linear_new()
     t8_cmesh_register_geometry(cmesh, linear_geom)
 
     # Determine element class.
