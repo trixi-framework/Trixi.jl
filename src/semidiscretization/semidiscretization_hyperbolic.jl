@@ -222,7 +222,8 @@ end
 
 # No actions needed for periodic boundary conditions
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
-                                                                StructuredMesh},
+                                                                StructuredMesh,
+                                                                StructuredMeshView},
                                                     boundary_conditions::BoundaryConditionPeriodic)
 end
 
