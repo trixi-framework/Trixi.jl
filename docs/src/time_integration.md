@@ -61,7 +61,7 @@ where $p$ denotes the order of consistency of the scheme, $S$ is the number of s
 In particular, for $S > p$ the Runge-Kutta method includes some free coefficients which may be used to adapt the domain of absolute stability to the problem at hand.
 Since Trixi.jl [supports exact computation of the Jacobian $J$ by means of automatic differentiation](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/differentiable_programming/), we have access to the Jacobian of a given simulation setup.
 For small (up to approximately $10^4$ DoF) systems, the spectrum $\boldsymbol \sigma = \left \{ \lambda_m \right \}_{m=1, \dots, M}$ can be computed directly using [`LinearAlgebra.eigvals(J)`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.eigvals).
-For larger systems, we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://doi.org/10.1016/j.jcp.2024.113223). This approach computes a reduced set of (estimated) eigenvalues around the convex hull of the spectrum by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
+For larger systems, we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://doi.org/10.1016/j.jcp.2024.113223). This approach computes a reduced set of (estimated) eigenvalues $\widetilde{\boldsymbol \sigma}$ around the convex hull of the spectrum by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
 
 The optimization problem (1) can be solved using the algorithms described in [Ketcheson, Ahmadia (2012)](http://dx.doi.org/10.2140/camcos.2012.7.247) for a moderate number of stages $S$ or [Doehring, Gassner, Torrilhon (2024)](https://doi.org/10.1007/s10915-024-02478-5) for a large number of stages $S$.
 In Trixi.jl, the former approach is implemented by means of convex optimization using the [Convex.jl](https://github.com/jump-dev/Convex.jl) package.
@@ -181,12 +181,13 @@ sol = Trixi.solve(ode, ode_algorithm,
 
 8. Advanced constructors:
 There are two additional constructors for the `PairedExplicitRK2` method besides the one taking in a semidiscretization `semi`:
-  - `PairedExplicitRK2(num_stages, monomial_coeffs)` constructs a `num_stages`-stage method from the given optimal monomial coefficients $\boldsymbol \alpha$.
+  - `PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString)` constructs a `num_stages`-stage method from the given optimal monomial_coeffs $\boldsymbol \alpha$.
+  These are expected to be present in the provided directory in the form of a `gamma_<S>.txt` file, where `<S>` is the number of stages `num_stages`.
   This constructor is useful when the optimal coefficients cannot be obtained using the optimization routine by Ketcheson and Ahmadia, possibly due to a large number of stages $S$.
   - `PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64})` constructs a `num_stages`-stage using the optimization approach by Ketcheson and Ahmadia for the (reduced) spectrum `eig_vals`.
   The use-case for this constructor would be a large system, for which the computation of all eigenvalues is infeasible.
 
-#### Automatic Computation of stable CFL Number
+#### Automatic computation of stable CFL Number
 
 In the previous tutorial the CFL number was set manually to $2.5$.
 To avoid this trial-and error process, instantiations of `AbstractPairedExplicitRK` methods can automatically compute the stable CFL number for a given simulation setup using the [`calculate_cfl`](@ref) function.
@@ -207,6 +208,11 @@ Thus, it is often necessary to reduce the optimal `cfl_number` by a safety facto
 # as the spectrum changes (in general) over the course of a simulation
 stepsize_callback = StepsizeCallback(cfl = 0.85 * cfl_number)
 ```
+If the optimal monomial coefficients are precomputed, the user needs to set the obtained maximum timestep from the optimization manually via
+```julia
+ode_algorithm.dt_opt = 42.0 # The timestep obtained from the optimization
+```
+Then, the stable CFL number can be computed as described above.
 
 #### Currently implemented P-ERK methods
 
