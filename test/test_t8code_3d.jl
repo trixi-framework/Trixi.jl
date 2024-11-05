@@ -353,7 +353,7 @@ mkdir(outdir)
                                 0.02980358831035801,
                                 0.048476331898047564,
                                 0.02200137344113612,
-                                4.848310144356219,
+                                4.848310144356219
                             ],
                             tspan=(0.0, 1e2),
                             # Decrease tolerance of adaptive time stepping to get similar results across different systems
