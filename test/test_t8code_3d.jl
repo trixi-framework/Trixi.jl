@@ -20,6 +20,7 @@ mkdir(outdir)
             # actually is `Ptr{P4est.LibP4est.p8est_connectivity}`.
             conn = Trixi.P4est.LibP4est.p8est_connectivity_new_brick(2, 3, 4, 1, 1, 1)
             mesh = T8codeMesh(conn)
+            Trixi.p8est_connectivity_destroy(conn)
             all(size(mesh.tree_node_coordinates) .== (3, 2, 2, 2, 24))
         end
     end
