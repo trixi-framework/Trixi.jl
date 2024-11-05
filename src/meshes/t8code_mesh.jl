@@ -364,7 +364,7 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     @assert (t8_cmesh_get_num_trees(cmesh)>0) "Given `cmesh` does not contain any trees."
 
     # Infer NDIMS from the geometry of the first tree.
-    NDIMS = Int(t8_geom_get_dimension(t8_cmesh_get_tree_geometry(cmesh, 0)))
+    NDIMS = Int(t8_cmesh_get_dimension(cmesh))
 
     @assert (NDIMS == 2||NDIMS == 3) "NDIMS should be 2 or 3."
 
