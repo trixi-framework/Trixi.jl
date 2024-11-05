@@ -24,7 +24,13 @@ mkdir(outdir)
 end
 
 @trixi_testset "test check_for_negative_volumes" begin
-    # test is currently broken as t8code applies a correction on the fly
+    # This test actually checks if a "negative volume" error is thrown.
+    # Since t8code currently applies a correction on-the-fly this test
+    # is kinda broken. The correction feature in t8code, however, is planned
+    # to be removed in near to midterm future. Thus, this test is kept. It will
+    # fail once the internal correction is removed and can then be restored
+    # to its original form.
+
     # @test_throws "Discovered negative volumes" begin
     @test begin
         # Unstructured mesh with six cells which have left-handed node ordering.
