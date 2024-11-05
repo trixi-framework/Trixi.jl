@@ -49,6 +49,7 @@ end
 
         # This call should throw a warning about negative volumes detected.
         mesh = T8codeMesh(mesh_file, 2)
+        true
     end
 end
 
