@@ -1,4 +1,4 @@
-using Downloads: download
+
 using OrdinaryDiffEq
 using Trixi
 
@@ -15,7 +15,7 @@ using Trixi
 #   Structured and Unstructured Grid Methods (2016)
 #   [https://ntrs.nasa.gov/citations/20160003623] (https://ntrs.nasa.gov/citations/20160003623)
 # - Deep Ray, Praveen Chandrashekar (2017)
-#   An entropy stable finite volume scheme for the 
+#   An entropy stable finite volume scheme for the
 #   two dimensional Navier–Stokes equations on triangular grids
 #   [DOI:10.1016/j.amc.2017.07.020](https://doi.org/10.1016/j.amc.2017.07.020)
 
@@ -120,23 +120,23 @@ summary_callback = SummaryCallback()
 analysis_interval = 2000
 
 force_boundary_names = (:AirfoilBottom, :AirfoilTop)
-drag_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
+drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            DragCoefficientPressure(aoa(), rho_inf(),
                                                                    u_inf(equations),
                                                                    l_inf()))
 
-lift_coefficient = AnalysisSurfaceIntegral(semi, force_boundary_names,
+lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            LiftCoefficientPressure(aoa(), rho_inf(),
                                                                    u_inf(equations),
                                                                    l_inf()))
 
-drag_coefficient_shear_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
+drag_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_names,
                                                        DragCoefficientShearStress(aoa(),
                                                                                   rho_inf(),
                                                                                   u_inf(equations),
                                                                                   l_inf()))
 
-lift_coefficient_shear_force = AnalysisSurfaceIntegral(semi, force_boundary_names,
+lift_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_names,
                                                        LiftCoefficientShearStress(aoa(),
                                                                                   rho_inf(),
                                                                                   u_inf(equations),

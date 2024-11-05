@@ -243,6 +243,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
+    # Note: This assumes that the entries of `lambda` are sorted with ascending cell ids
     for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0
@@ -395,6 +396,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::TreeMesh,
     @unpack to_refine, to_coarsen = amr_callback.amr_cache
     empty!(to_refine)
     empty!(to_coarsen)
+    # Note: This assumes that the entries of `lambda` are sorted with ascending cell ids
     for element in eachindex(lambda)
         controller_value = lambda[element]
         if controller_value > 0

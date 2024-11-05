@@ -119,9 +119,12 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         throw(ArgumentError("`initial_refinement_level` must be a non-negative integer (provided `initial_refinement_level = $initial_refinement_level`)"))
     end
 
-    # Domain length is calculated as the maximum length in any axis direction
+    # TreeMesh requires equal domain lengths in all dimensions
     domain_center = @. (coordinates_min + coordinates_max) / 2
-    domain_length = maximum(coordinates_max .- coordinates_min)
+    domain_length = coordinates_max[1] - coordinates_min[1]
+    if !all(coordinates_max[i] - coordinates_min[i] ≈ domain_length for i in 2:NDIMS)
+        throw(ArgumentError("The TreeMesh domain must be a hypercube (provided `coordinates_max` .- `coordinates_min` = $(coordinates_max .- coordinates_min))"))
+    end
 
     # TODO: MPI, create nice interface for a parallel tree/mesh
     if mpi_isparallel()
@@ -200,7 +203,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "periodicity" => mesh.tree.periodicity,
             "current #cells" => mesh.tree.length,
             "#leaf-cells" => count_leaf_cells(mesh.tree),
-            "maximum #cells" => mesh.tree.capacity,
+            "maximum #cells" => mesh.tree.capacity
         ]
         summary_box(io, "TreeMesh{" * string(NDIMS) * ", " * string(TreeType) * "}",
                     setup)
