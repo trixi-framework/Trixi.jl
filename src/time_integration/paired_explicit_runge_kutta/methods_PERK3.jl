@@ -132,7 +132,8 @@ While the changes to SSPRK33 base-scheme are described in
 Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
 [DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)
 
-Note: To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages.
+Note: To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages
+unless the A-matrix coefficients are provided in a "a_<num_stages>.txt" file.
 """
 mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
     const num_stages::Int # S
@@ -225,8 +226,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
     # initialize callbacks
     if callback isa CallbackSet
         for cb in callback.continuous_callbacks
-            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-
-            Kutta methods."))
+            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-Kutta methods."))
         end
         for cb in callback.discrete_callbacks
             cb.initialize(cb, integrator.u, integrator.t, integrator)
@@ -257,16 +257,8 @@ function step!(integrator::PairedExplicitRK3Integrator)
     end
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
-        # k1
-        integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
-        @threaded for i in eachindex(integrator.du)
-            integrator.k1[i] = integrator.du[i] * integrator.dt
-        end
+        k1!(integrator, prob.p, alg.c)
 
-        # Construct current state
-        @threaded for i in eachindex(integrator.du)
-            integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
-        end
         # k2
         integrator.f(integrator.du, integrator.u_tmp, prob.p,
                      integrator.t + alg.c[2] * integrator.dt)

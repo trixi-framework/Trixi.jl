@@ -128,7 +128,8 @@ optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solve
   Paired explicit Runge-Kutta schemes for stiff systems of equations
   [DOI: 10.1016/j.jcp.2019.05.014](https://doi.org/10.1016/j.jcp.2019.05.014)
 
-Note: To use this integrator, the user must import the `Convex` and `ECOS` packages.
+Note: To use this integrator, the user must import the `Convex` and `ECOS` packages
+unless the coefficients are provided in a "gamma_<num_stages>.txt" file.
 """
 mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     const num_stages::Int
@@ -240,6 +241,20 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
     return integrator
 end
 
+# Function that computes the first stage of a general P-ERK method
+# (in fact every explicit Runge-Kutta method)
+@inline function k1!(integrator::AbstractPairedExplicitRKIntegrator, p, c)
+    integrator.f(integrator.du, integrator.u, p, integrator.t)
+
+    @threaded for i in eachindex(integrator.du)
+        integrator.k1[i] = integrator.du[i] * integrator.dt
+    end
+
+    @threaded for i in eachindex(integrator.u)
+        integrator.u_tmp[i] = integrator.u[i] + c[2] * integrator.k1[i]
+    end
+end
+
 function step!(integrator::PairedExplicitRK2Integrator)
     @unpack prob = integrator.sol
     @unpack alg = integrator
@@ -261,16 +276,8 @@ function step!(integrator::PairedExplicitRK2Integrator)
     end
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
-        # k1
-        integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
-        @threaded for i in eachindex(integrator.du)
-            integrator.k1[i] = integrator.du[i] * integrator.dt
-        end
+        k1!(integrator, prob.p, alg.c)
 
-        # Construct current state
-        @threaded for i in eachindex(integrator.u)
-            integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
-        end
         # k2
         integrator.f(integrator.du, integrator.u_tmp, prob.p,
                      integrator.t + alg.c[2] * integrator.dt)
