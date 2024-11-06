@@ -530,7 +530,6 @@ function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMeshView)
     iter_face_c = cfunction(init_surfaces_iter_face, Val(ndims(mesh)))
     user_data = InitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mesh.parent)
 
-    # SC: After adding p4est pointer to the view we should change this.
     iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
 
     return interfaces
@@ -723,9 +722,9 @@ function count_required_surfaces(mesh::P4estMeshView)
     # interfaces, mortars, boundaries
     user_data = [0, 0, 0]
 
-    # SC: After adding p4est pointer to the view we should change this.
     iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
 
+    @autoinfiltrate
     # Return counters
     return (interfaces = user_data[1],
             mortars = user_data[2],

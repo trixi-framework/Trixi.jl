@@ -143,7 +143,6 @@ function calc_node_coordinates!(node_coordinates,
         end
     end
 
-    @autoinfiltrate
     return node_coordinates
 end
 
