@@ -44,7 +44,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# Construct third order paired explicit Runge-Kutta method with 8 stages for given simulation setup.
+# Construct fourth order paired explicit Runge-Kutta method with 11 stages for given simulation setup.
 # Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
 # in calculating the polynomial coefficients in the ODE algorithm.                                     
 ode_algorithm = Trixi.PairedExplicitRK4(11, tspan, semi)

@@ -105,6 +105,8 @@ end
                       cS3 = 1.0f0)
     PairedExplicitRK4(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, cS3 = 1.0f0)
+    PairedExplicitRK4(num_stages, tspan, eig_vals::Vector{ComplexF64};
+                      verbose = false, cS3 = 1.0f0)
 
     Parameters:
     - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.
