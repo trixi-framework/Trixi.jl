@@ -227,11 +227,9 @@ volume_flux = flux_kennedy_gruber
 solver = DGSEM(polydeg = 5, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-# For optimal results, use 4 lat lon levels and 8 layers here
-# Note that the first argument refers to the level of refinement, unlike in for p4est
-lat_lon_levels = 3
-layers = 4
-mesh = Trixi.T8codeMeshCubedSphere(lat_lon_levels, layers, 6.371229e6, 30000.0,
+# For optimal results, use (16, 8) here
+trees_per_cube_face = (8, 4)
+mesh = Trixi.T8codeMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
                                    polydeg = 5, initial_refinement_level = 0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -279,15 +277,15 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-#save_solution = SaveSolutionCallback(interval = 5000,
-#                                     save_initial_solution = true,
-#                                     save_final_solution = true,
-#                                     solution_variables = cons2prim)
+save_solution = SaveSolutionCallback(interval = 5000,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        alive_callback)
-#                        , save_solution)
+                        alive_callback,
+                        save_solution)
 
 ###############################################################################
 # run the simulation
