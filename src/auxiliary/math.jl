@@ -124,7 +124,7 @@ end
 end
 
 """
-    ln_mean(x, y)
+    Trixi.ln_mean(x::Real, y::Real)
 
 Compute the logarithmic mean
 
@@ -171,18 +171,24 @@ Given ε = 1.0e-4, we use the following algorithm.
   for Intel, AMD, and VIA CPUs.
   [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
-@inline function ln_mean(x, y)
-    epsilon_f2 = 1.0e-4
+@inline ln_mean(x::Real, y::Real) = ln_mean(promote(x, y)...)
+
+@inline function ln_mean(x::RealT, y::RealT) where {RealT <: Real}
+    epsilon_f2 = convert(RealT, 1.0e-4)
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
-        return (x + y) / @evalpoly(f2, 2, 2/3, 2/5, 2/7)
+        return (x + y) / @evalpoly(f2,
+                         2,
+                         convert(RealT, 2 / 3),
+                         convert(RealT, 2 / 5),
+                         convert(RealT, 2 / 7))
     else
         return (y - x) / log(y / x)
     end
 end
 
 """
-    inv_ln_mean(x, y)
+    Trixi.inv_ln_mean(x::Real, y::Real)
 
 Compute the inverse `1 / ln_mean(x, y)` of the logarithmic mean
 [`ln_mean`](@ref).
@@ -191,11 +197,17 @@ This function may be used to increase performance where the inverse of the
 logarithmic mean is needed, by replacing a (slow) division by a (fast)
 multiplication.
 """
-@inline function inv_ln_mean(x, y)
-    epsilon_f2 = 1.0e-4
+@inline inv_ln_mean(x::Real, y::Real) = inv_ln_mean(promote(x, y)...)
+
+@inline function inv_ln_mean(x::RealT, y::RealT) where {RealT <: Real}
+    epsilon_f2 = convert(RealT, 1.0e-4)
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
-        return @evalpoly(f2, 2, 2/3, 2/5, 2/7) / (x + y)
+        return @evalpoly(f2,
+                         2,
+                         convert(RealT, 2 / 3),
+                         convert(RealT, 2 / 5),
+                         convert(RealT, 2 / 7)) / (x + y)
     else
         return log(y / x) / (y - x)
     end
@@ -272,8 +284,13 @@ end
 # when using `@fastmath`, which we also get from
 # [Fortran](https://godbolt.org/z/Yrsa1js7P)
 # or [C++](https://godbolt.org/z/674G7Pccv).
+#
+# Note however that such a custom reimplementation can cause incompatibilities with other
+# packages. Currently we are affected by an issue with MPI.jl on ARM, see
+# https://github.com/trixi-framework/Trixi.jl/issues/1922
+# The workaround is to resort to Base.min / Base.max when using MPI reductions.
 """
-    max(x, y, ...)
+    Trixi.max(x, y, ...)
 
 Return the maximum of the arguments. See also the `maximum` function to take
 the maximum element from a collection.
@@ -292,7 +309,7 @@ julia> max(2, 5, 1)
 @inline max(args...) = @fastmath max(args...)
 
 """
-    min(x, y, ...)
+    Trixi.min(x, y, ...)
 
 Return the minimum of the arguments. See also the `minimum` function to take
 the minimum element from a collection.
@@ -311,7 +328,7 @@ julia> min(2, 5, 1)
 @inline min(args...) = @fastmath min(args...)
 
 """
-    positive_part(x)
+    Trixi.positive_part(x)
 
 Return `x` if `x` is positive, else zero. In other words, return
 `(x + abs(x)) / 2` for real numbers `x`.
@@ -321,7 +338,7 @@ Return `x` if `x` is positive, else zero. In other words, return
 end
 
 """
-    negative_part(x)
+    Trixi.negative_part(x)
 
 Return `x` if `x` is negative, else zero. In other words, return
 `(x - abs(x)) / 2` for real numbers `x`.
@@ -331,7 +348,7 @@ Return `x` if `x` is negative, else zero. In other words, return
 end
 
 """
-    stolarsky_mean(x, y, gamma)
+    Trixi.stolarsky_mean(x::Real, y:Real, gamma::Real)
 
 Compute an instance of a weighted Stolarsky mean of the form
 
@@ -382,15 +399,18 @@ Given ε = 1.0e-4, we use the following algorithm.
   for Intel, AMD, and VIA CPUs.
   [https://www.agner.org/optimize/instruction_tables.pdf](https://www.agner.org/optimize/instruction_tables.pdf)
 """
-@inline function stolarsky_mean(x, y, gamma)
-    epsilon_f2 = 1.0e-4
+@inline stolarsky_mean(x::Real, y::Real, gamma::Real) = stolarsky_mean(promote(x, y,
+                                                                               gamma)...)
+
+@inline function stolarsky_mean(x::RealT, y::RealT, gamma::RealT) where {RealT <: Real}
+    epsilon_f2 = convert(RealT, 1.0e-4)
     f2 = (x * (x - 2 * y) + y * y) / (x * (x + 2 * y) + y * y) # f2 = f^2
     if f2 < epsilon_f2
         # convenience coefficients
-        c1 = (1 / 3) * (gamma - 2)
-        c2 = -(1 / 15) * (gamma + 1) * (gamma - 3) * c1
-        c3 = -(1 / 21) * (2 * gamma * (gamma - 2) - 9) * c2
-        return 0.5 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
+        c1 = convert(RealT, 1 / 3) * (gamma - 2)
+        c2 = convert(RealT, -1 / 15) * (gamma + 1) * (gamma - 3) * c1
+        c3 = convert(RealT, -1 / 21) * (2 * gamma * (gamma - 2) - 9) * c2
+        return 0.5f0 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
     else
         return (gamma - 1) / gamma * (y^gamma - x^gamma) /
                (y^(gamma - 1) - x^(gamma - 1))
