@@ -22,8 +22,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
-function x_trans_periodic(x, domain_length = SVector(oftype(x, 2 * pi)),
-                          center = SVector(oftype(x, 0)))
+function x_trans_periodic(x, domain_length = SVector(oftype(x[1], 2 * pi)),
+                          center = SVector(oftype(x[1], 0)))
     x_normalized = x .- center
     x_shifted = x_normalized .% domain_length
     x_offset = ((x_shifted .< -0.5f0 * domain_length) -
