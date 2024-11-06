@@ -190,7 +190,7 @@ There are two additional constructors for the `PairedExplicitRK2` method besides
 #### Automatic computation of stable CFL Number
 
 In the previous tutorial the CFL number was set manually to $2.5$.
-To avoid this trial-and error process, instantiations of `AbstractPairedExplicitRK` methods can automatically compute the stable CFL number for a given simulation setup using the [`calculate_cfl`](@ref) function.
+To avoid this trial-and error process, instantiations of `AbstractPairedExplicitRK` methods can automatically compute the stable CFL number for a given simulation setup using the [`Trixi.calculate_cfl`](@ref) function.
 When constructing the time integrator from a semidiscretization `semi`, 
 ```julia
 # Construct third-order paired-explicit Runge-Kutta method with 8 stages for given simulation setup.                               
@@ -218,5 +218,5 @@ Then, the stable CFL number can be computed as described above.
 
 ##### Single/Standalone methods
 
-- [`PairedExplicitRK2`](@ref): Second-order P-ERK method with at least two stages.
-- [`PairedExplicitRK3`](@ref): Third-order P-ERK method with at least three stages.
+- [`Trixi.PairedExplicitRK2`](@ref): Second-order P-ERK method with at least two stages.
+- [`Trixi.PairedExplicitRK3`](@ref): Third-order P-ERK method with at least three stages.
