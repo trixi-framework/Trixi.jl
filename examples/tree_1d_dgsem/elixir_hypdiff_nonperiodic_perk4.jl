@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq
+using OrdinaryDiffEq # Required for `CallbackSet`
 using Trixi
 
 # Convex and ECOS are imported because they are used for finding the optimal time step and optimal 

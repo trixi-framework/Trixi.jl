@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq # Requiref for `CallbackSet`
+using OrdinaryDiffEq # Required for `CallbackSet`
 using Trixi
 
 # Ratio of specific heats
