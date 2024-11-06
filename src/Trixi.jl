@@ -19,7 +19,8 @@ module Trixi
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
 using Accessors: @reset
-using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, mul!, norm, cross, normalize, I,
+using LinearAlgebra: LinearAlgebra, Diagonal, diag, dot, eigvals, mul!, norm, cross,
+                     normalize, I,
                      UniformScaling, det
 using Printf: @printf, @sprintf, println
 using SparseArrays: AbstractSparseMatrix, AbstractSparseMatrixCSC, sparse, droptol!,
@@ -40,6 +41,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   get_proposed_dt, set_proposed_dt!,
                   terminate!, remake, add_tstop!, has_tstop, first_tstop
 
+using DelimitedFiles: readdlm
 using Downloads: Downloads
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
@@ -317,6 +319,12 @@ function __init__()
             @require ECOS="e2685f51-7e38-5353-a97d-a921fd2c8199" begin
                 include("../ext/TrixiConvexECOSExt.jl")
             end
+        end
+    end
+
+    @static if !isdefined(Base, :get_extension)
+        @require NLsolve="2774e3e8-f4cf-5e23-947b-6d7e65073b56" begin
+            include("../ext/TrixiNLsolveExt.jl")
         end
     end
 
