@@ -27,6 +27,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 @timed_testset "SerialTree" begin
     @testset "constructors" begin
         @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
+        @test_nowarn Trixi.SerialTree{1}(10, 0.0, 1.0)
     end
 
     @testset "helper functions" begin
@@ -57,6 +58,7 @@ end
 @timed_testset "ParallelTree" begin
     @testset "constructors" begin
         @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
+        @test_nowarn Trixi.ParallelTree{1}(10, 0.0, 1.0)
     end
 
     @testset "helper functions" begin
