@@ -35,7 +35,7 @@ mesh = TreeMesh(coordinate_min, coordinate_max,
 
 # Discontinuous initial condition (Riemann Problem) leading to a shock to test e.g. correct shock speed.
 function initial_condition_shock(x, t, equation::InviscidBurgersEquation1D)
-    scalar = x[1] < 0.5 ? 1.5 : 0.5
+    scalar = x[1] < 0.5f0 ? 1.5f0 : 0.5f0
 
     return SVector(scalar)
 end

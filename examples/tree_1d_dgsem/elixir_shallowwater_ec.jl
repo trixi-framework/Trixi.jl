@@ -17,19 +17,20 @@ equations = ShallowWaterEquations1D(gravity_constant = 9.81)
 # ensure that the discontinuities lie on an element interface.
 function initial_condition_ec_discontinuous_bottom(x, t, equations::ShallowWaterEquations1D)
     # Set the background values
-    H = 4.25
-    v = 0.0
+    RealT = eltype(x)
+    H = 4.25f0
+    v = 0
     b = sin(x[1]) # arbitrary continuous function
 
     # Setup the discontinuous water height and velocity
-    if x[1] >= 0.125 && x[1] <= 0.25
-        H = 5.0
-        v = 0.1882
+    if x[1] >= 0.125f0 && x[1] <= 0.25f0
+        H = 5
+        v = convert(RealT, 0.1882)
     end
 
     # Setup a discontinuous bottom topography
-    if x[1] >= -0.25 && x[1] <= -0.125
-        b = 2.0 + 0.5 * sin(2.0 * pi * x[1])
+    if x[1] >= -0.25f0 && x[1] <= -0.125f0
+        b = 2 + 0.5f0 * sinpi(2 * x[1])
     end
 
     return prim2cons(SVector(H, v, b), equations)

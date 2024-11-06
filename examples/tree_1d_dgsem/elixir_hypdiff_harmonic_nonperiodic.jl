@@ -19,12 +19,13 @@ A non-priodic harmonic function used in combination with
 function initial_condition_harmonic_nonperiodic(x, t,
                                                 equations::HyperbolicDiffusionEquations1D)
     # elliptic equation: -νΔϕ = f
-    if t == 0.0
-        phi = 5.0
-        q1 = 0.0
+    RealT = eltype(x)
+    if t == 0
+        phi = 5
+        q1 = 0
     else
         A = 3
-        B = exp(1)
+        B = exp(one(RealT))
         phi = A + B * x[1]
         q1 = B
     end
