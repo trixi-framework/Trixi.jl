@@ -7,12 +7,10 @@ using Trixi
 
 equations = IdealGlmMhdEquations2D(1.4f0)
 
-RealT = Float32
-
 initial_condition = initial_condition_weak_blast_wave
 
 volume_flux = (flux_hindenlang_gassner, flux_nonconservative_powell)
-solver = DGSEM(polydeg = 3, RealT = RealT,
+solver = DGSEM(polydeg = 3, RealT = Float32,
                surface_flux = (flux_hindenlang_gassner, flux_nonconservative_powell),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
@@ -21,7 +19,7 @@ coordinates_max = (2.0f0, 2.0f0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 10_000,
-                RealT = RealT)
+                RealT = Float32)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
