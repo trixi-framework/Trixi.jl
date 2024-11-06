@@ -593,6 +593,34 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_vortex_perk4.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_perk4.jl"),
+                        l2=[
+                            0.0001846244731283424,
+                            0.00042537910268029285,
+                            0.0003724909264689687,
+                            0.0026689613797051493
+                        ],
+                        linf=[
+                            0.0025031072787504716,
+                            0.009266316022570331,
+                            0.009876399281272374,
+                            0.0306915591360557
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom 
+        # integrator which are not *recorded* for the methods from 
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
+    end
+end
+
 @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[

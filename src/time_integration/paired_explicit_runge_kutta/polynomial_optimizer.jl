@@ -25,4 +25,6 @@ end
 # such that hey can be exported from Trixi.jl and extended in the TrixiConvexECOSExt package
 # extension or by the Convex and ECOS-specific code loaded by Requires.jl
 function undo_normalization! end
+function undo_normalization_PERK4! end
 function bisect_stability_polynomial end
+function bisect_stability_polynomial_PERK4 end

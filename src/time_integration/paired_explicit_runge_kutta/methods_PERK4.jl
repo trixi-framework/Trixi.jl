@@ -5,13 +5,70 @@
 @muladd begin
 #! format: noindent
 
-function compute_PairedExplicitRK4_butcher_tableau(num_stages,
-                                                   base_path_a_coeffs::AbstractString;
-                                                   c_const = 1.0) # Default value for best internal stability
-    c = c_const * ones(num_stages) # Use same abscissae for free coefficients
+# Compute the Butcher tableau for a paired explicit Runge-Kutta method order 4
+# using a list of eigenvalues
+function compute_PairedExplicitRK4_butcher_tableau(num_stages, tspan,
+                                                   eig_vals::Vector{ComplexF64};
+                                                   verbose = false, cS3)
+    c = ones(num_stages) # Best internal stability properties
     c[1] = 0.0
 
-    cS3 = c_const
+    c[num_stages - 3] = cS3
+    c[num_stages - 2] = 0.479274057836310
+    c[num_stages - 1] = sqrt(3) / 6 + 0.5
+    c[num_stages] = -sqrt(3) / 6 + 0.5
+
+    num_coeffs_max = num_stages - 5
+
+    a_matrix = nothing
+    dt_opt = nothing
+    if num_stages > 5
+        # Calculate coefficients of the stability polynomial in monomial form
+        dtmax = tspan[2] - tspan[1]
+        dteps = 1.0f-9
+
+        num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
+
+        monomial_coeffs, dt_opt = bisect_stability_polynomial_PERK4(num_eig_vals,
+                                                                    num_stages,
+                                                                    dtmax, dteps,
+                                                                    eig_vals, cS3;
+                                                                    verbose)
+
+        a_unknown = zeros(num_coeffs_max)
+        a_unknown[1] = monomial_coeffs[1]
+        l = 2
+        for _ in 5:(num_stages - 2)
+            a_unknown[l] = monomial_coeffs[l] / monomial_coeffs[l - 1]
+            l += 1
+        end
+        reverse!(a_unknown)
+
+        num_coeffs_max = num_stages - 5
+
+        a_matrix = zeros(num_coeffs_max, 2)
+        a_matrix[:, 1] = c[3:(num_stages - 3)]
+
+        a_matrix[:, 1] -= a_unknown
+        a_matrix[:, 2] = a_unknown
+    end
+
+    # Constant/non-optimized part of the Butcher matrix
+    a_matrix_constant = [0.479274057836310-0.114851811257441 / cS3 0.114851811257441/cS3
+                         0.1397682537005989 0.648906880894214
+                         0.1830127018922191 0.028312163512968]
+
+    return a_matrix, a_matrix_constant, c, dt_opt
+end
+
+# Compute the Butcher tableau for a paired explicit Runge-Kutta method order 4
+# using provided values of coefficients a in A-matrix of Butcher tableau
+function compute_PairedExplicitRK4_butcher_tableau(num_stages,
+                                                   base_path_a_coeffs::AbstractString,
+                                                   cS3)
+    c = ones(num_stages) # Best internal stability properties
+    c[1] = 0.0
+
     c[num_stages - 3] = cS3
     c[num_stages - 2] = 0.479274057836310
     c[num_stages - 1] = sqrt(3) / 6 + 0.5
@@ -45,7 +102,9 @@ end
 
 @doc raw"""
     PairedExplicitRK4(num_stages, base_path_a_coeffs::AbstractString, dt_opt = nothing;
-                      c_const = 1.0f0)
+                      cS3 = 1.0f0)
+    PairedExplicitRK4(num_stages, tspan, semi::AbstractSemidiscretization;
+                      verbose = false, cS3 = 1.0f0)
 
     Parameters:
     - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.
@@ -54,8 +113,12 @@ end
       The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
     - `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
        In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
-    - `c_const` (`Float64`, optional): Value of abscissae $c$ in the Butcher tableau for the optimized coefficients. 
-       Default is 1.0.
+    - `tspan`: Time span of the simulation.
+    - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
+    - `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
+      equation has been semidiscretized.
+    - `cS3` (`Float64`, optional): Value of $c_{S-3}$ in the Butcher tableau, where
+      $S$ is the number of stages. Default is 1.0f0.
 
 The following structures and methods provide an implementation of
 the fourth-order paired explicit Runge-Kutta (P-ERK) method
@@ -68,7 +131,7 @@ The method has been proposed in
 mutable struct PairedExplicitRK4 <: AbstractPairedExplicitRKSingle
     const num_stages::Int # S
 
-    a_matrix::Matrix{Float64}
+    a_matrix::Union{Matrix{Float64}, Nothing} # Nothing for S = 5
     # This part of the Butcher array matrix A is constant for all PERK methods, i.e., 
     # regardless of the optimized coefficients.
     a_matrix_constant::Matrix{Float64}
@@ -79,11 +142,33 @@ end # struct PairedExplicitRK4
 # Constructor for previously computed A Coeffs
 function PairedExplicitRK4(num_stages, base_path_a_coeffs::AbstractString,
                            dt_opt = nothing;
-                           c_const = 1.0f0)
+                           cS3 = 1.0f0)  # Default value for best internal stability
+    @assert num_stages>=5 "PERK4 requires at least five stages"
     a_matrix, a_matrix_constant, c = compute_PairedExplicitRK4_butcher_tableau(num_stages,
-                                                                               base_path_a_coeffs;
-                                                                               c_const)
+                                                                               base_path_a_coeffs,
+                                                                               cS3)
 
+    return PairedExplicitRK4(num_stages, a_matrix, a_matrix_constant, c, dt_opt)
+end
+
+# Constructor that computes Butcher matrix A coefficients from a semidiscretization
+function PairedExplicitRK4(num_stages, tspan, semi::AbstractSemidiscretization;
+                           verbose = false, cS3 = 1.0f0)
+    @assert num_stages>=5 "PERK4 requires at least five stages"
+    eig_vals = eigvals(jacobian_ad_forward(semi))
+
+    return PairedExplicitRK4(num_stages, tspan, eig_vals; verbose, cS3)
+end
+
+# Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
+function PairedExplicitRK4(num_stages, tspan, eig_vals::Vector{ComplexF64};
+                           verbose = false, cS3 = 1.0f0)
+    @assert num_stages>=5 "PERK4 requires at least five stages"
+    a_matrix, a_matrix_constant, c, dt_opt = compute_PairedExplicitRK4_butcher_tableau(num_stages,
+                                                                                       tspan,
+                                                                                       eig_vals;
+                                                                                       verbose,
+                                                                                       cS3)
     return PairedExplicitRK4(num_stages, a_matrix, a_matrix_constant, c, dt_opt)
 end
 

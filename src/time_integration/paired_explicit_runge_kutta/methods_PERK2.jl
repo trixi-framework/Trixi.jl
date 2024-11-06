@@ -49,8 +49,6 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                           dtmax,
                                                           dteps,
                                                           eig_vals; verbose)
-    monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
-                                          num_stages)
 
     num_monomial_coeffs = length(monomial_coeffs)
     @assert num_monomial_coeffs == coeffs_max
@@ -112,13 +110,13 @@ end
        In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
-    -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
+    - `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
       equation has been semidiscretized.
     - `verbose` (`Bool`, optional): Verbosity flag, default is false.
-    - `bS` (`Float64`, optional): Value of b in the Butcher tableau at b_s, when 
-      s is the number of stages, default is 1.0.
-    - `cS` (`Float64`, optional): Value of c in the Butcher tableau at c_s, when
-      s is the number of stages, default is 0.5.
+    - `bS` (`Float64`, optional): Value of $b_S$ in the Butcher tableau, where
+      $S$ is the number of stages. Default is 1.0.
+    - `cS` (`Float64`, optional): Value of $c_S$ in the Butcher tableau, where
+      $S$ is the number of stages. Default is 0.5.
 
 The following structures and methods provide a minimal implementation of
 the second-order paired explicit Runge-Kutta (PERK) method
@@ -146,6 +144,7 @@ end # struct PairedExplicitRK2
 function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
                            dt_opt = nothing,
                            bS = 1.0, cS = 0.5)
+    @assert num_stages>=2 "PERK2 requires at least two stages"
     # If the user has the monomial coefficients, they also must have the optimal time step
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             base_path_monomial_coeffs,
@@ -159,6 +158,7 @@ end
 function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                            verbose = false,
                            bS = 1.0, cS = 0.5)
+    @assert num_stages>=2 "PERK2 requires at least two stages"
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     return PairedExplicitRK2(num_stages, tspan, eig_vals; verbose, bS, cS)
@@ -169,6 +169,7 @@ end
 function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false,
                            bS = 1.0, cS = 0.5)
+    @assert num_stages>=2 "PERK2 requires at least two stages"
     a_matrix, c, dt_opt = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                                     eig_vals, tspan,
                                                                     bS, cS;
