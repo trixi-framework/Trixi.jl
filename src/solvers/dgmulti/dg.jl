@@ -128,6 +128,14 @@ end
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
 wrap_array_native(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
+
+# used to initialize `u_ode` in `semidiscretize`
+function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
+    return VectorOfArray(allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x), dg))
+end
+wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
+
+
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
                                     mesh::DGMultiMesh,
                                     dg::DGMulti,
@@ -197,10 +205,6 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
             u_values, u_face_values, flux_face_values,
             local_values_threaded, flux_threaded, rotated_flux_threaded)
-end
-
-function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
-    return allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x), dg)
 end
 
 function compute_coefficients!(u, initial_condition, t,
