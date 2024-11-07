@@ -36,4 +36,22 @@ end
 @inline balance!(::P4estMeshView) = nothing
 @inline ncells(mesh::P4estMeshView) = length(mesh.cell_ids)
 
+function extract_interfaces!(mesh::P4estMeshView, interfaces)
+    u_new = Array{eltype(interfaces.u)}(undef, (size(interfaces.u)[1:3]..., size(mesh.cell_ids)[1]*2))
+    u_new[:, :, :, 1:2:end] .= interfaces.u[:, :, :, (mesh.cell_ids.*2 .-1)]
+    u_new[:, :, :, 2:2:end] .= interfaces.u[:, :, :, mesh.cell_ids.*2]
+    node_indices_new = Array{eltype(interfaces.node_indices)}(undef, (2, size(mesh.cell_ids)[1]*2))
+    node_indices_new[:, 1:2:end] .= interfaces.node_indices[:, (mesh.cell_ids.*2 .-1)]
+    node_indices_new[:, 2:2:end] .= interfaces.node_indices[:, (mesh.cell_ids.*2)]
+    neighbor_ids_new = Array{eltype(interfaces.neighbor_ids)}(undef, (2, size(mesh.cell_ids)[1]*2))
+    neighbor_ids_new[:, 1:2:end] .= interfaces.neighbor_ids[:, (mesh.cell_ids.*2 .-1)]
+    neighbor_ids_new[:, 2:2:end] .= interfaces.neighbor_ids[:, (mesh.cell_ids.*2)]
+    interfaces.u = u_new
+    interfaces.node_indices = node_indices_new
+    interfaces.neighbor_ids = neighbor_ids_new
+    interfaces._u = vec(u_new)
+    interfaces._node_indices = vec(node_indices_new)
+    interfaces._neighbor_ids = vec(neighbor_ids_new)
+end
+
 end # @muladd
