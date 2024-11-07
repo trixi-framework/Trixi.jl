@@ -131,10 +131,10 @@ wrap_array_native(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_o
 
 # used to initialize `u_ode` in `semidiscretize`
 function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
-    return VectorOfArray(allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x), dg))
+    return VectorOfArray(allocate_nested_array(real(dg), nvariables(equations),
+                                               size(mesh.md.x), dg))
 end
 wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
-
 
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
                                     mesh::DGMultiMesh,
