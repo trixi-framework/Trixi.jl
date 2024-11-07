@@ -20,7 +20,7 @@ function initial_condition_discontinuous_well_balancedness(x, t,
     # Set the background values
     H = equations.H0
     v = 0
-    b = 0
+    b = zero(eltype(x))
 
     # Setup a discontinuous bottom topography
     if x[1] >= 0.5f0 && x[1] <= 0.75f0
