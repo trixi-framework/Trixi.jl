@@ -21,7 +21,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # Discontinuous initial condition (Riemann Problem) leading to a shock that moves to the left.
 # The shock corresponds to the traffic congestion.
 function initial_condition_traffic_jam(x, t, equation::TrafficFlowLWREquations1D)
-    scalar = x[1] < 0 ? 0.5f0 : 1.0f0
+    RealT = eltype(x)
+    scalar = x[1] < 0 ? RealT(0.5f0) : one(RealT)
 
     return SVector(scalar)
 end

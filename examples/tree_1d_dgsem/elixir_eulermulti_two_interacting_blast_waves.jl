@@ -28,11 +28,11 @@ function initial_condition_two_interacting_blast_waves(x, t,
     v1 = 0
 
     if x[1] <= RealT(0.1)
-        p = 1000
+        p = convert(RealT, 1000)
     elseif x[1] < RealT(0.9)
         p = convert(RealT, 0.01)
     else
-        p = 100
+        p = convert(RealT, 100)
     end
 
     prim_other = SVector{2, real(equations)}(v1, p)

@@ -21,8 +21,8 @@ function initial_condition_harmonic_nonperiodic(x, t,
     # elliptic equation: -νΔϕ = f
     RealT = eltype(x)
     if t == 0
-        phi = 5
-        q1 = 0
+        phi = convert(RealT, 5)
+        q1 = zero(RealT)
     else
         A = 3
         B = exp(one(RealT))

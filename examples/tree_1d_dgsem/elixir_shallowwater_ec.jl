@@ -19,12 +19,12 @@ function initial_condition_ec_discontinuous_bottom(x, t, equations::ShallowWater
     # Set the background values
     RealT = eltype(x)
     H = 4.25f0
-    v = 0
+    v = zero(RealT)
     b = sin(x[1]) # arbitrary continuous function
 
     # Setup the discontinuous water height and velocity
     if x[1] >= 0.125f0 && x[1] <= 0.25f0
-        H = 5
+        H = 5.0f0
         v = convert(RealT, 0.1882)
     end
 

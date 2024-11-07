@@ -41,8 +41,6 @@ function initial_condition_diffusive_convergence_test(x, t,
     nu = diffusivity()
     c = 0
     A = 1
-    L = 2
-    f = 1.0f0 / L
     omega = 1
     scalar = c + A * sin(omega * sum(x_trans)) * exp(-nu * omega^2 * t)
     return SVector(scalar)

@@ -14,9 +14,9 @@ function initial_condition_discontinuity(x, t, equations::ShallowWaterEquationsQ
 
     if x[1] > 0
         b = convert(RealT, 0.1)
-        a = 1
+        a = one(RealT)
     else
-        b = 0
+        b = zero(RealT)
         a = convert(RealT, 1.1)
     end
 
