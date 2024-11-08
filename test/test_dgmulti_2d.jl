@@ -192,8 +192,18 @@ end
 
 @trixi_testset "elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_bilinear.jl"),
-                        l2 = [1.0267413589968656e-5, 9.03069720963081e-6, 9.030697209721065e-6, 2.7436672091049314e-5], 
-                        linf = [7.36251369879426e-5, 6.874041557969335e-5, 6.874041552329402e-5, 0.00019123932693609902])
+                        l2=[
+                            1.0267413589968656e-5,
+                            9.03069720963081e-6,
+                            9.030697209721065e-6,
+                            2.7436672091049314e-5
+                        ],
+                        linf=[
+                            7.36251369879426e-5,
+                            6.874041557969335e-5,
+                            6.874041552329402e-5,
+                            0.00019123932693609902
+                        ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
