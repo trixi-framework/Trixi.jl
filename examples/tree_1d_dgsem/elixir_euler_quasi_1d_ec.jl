@@ -15,10 +15,11 @@ equations = CompressibleEulerEquationsQuasi1D(1.4)
 # refinement level is changed the initial condition below may need changed as well to
 # ensure that the discontinuities lie on an element interface.
 function initial_condition_ec(x, t, equations::CompressibleEulerEquationsQuasi1D)
-    v1 = 0.1
-    rho = 2.0 + 0.1 * x[1]
-    p = 3.0
-    a = 2.0 + x[1]
+    RealT = eltype(x)
+    v1 = convert(RealT, 0.1)
+    rho = 2 + convert(RealT, 0.1) * x[1]
+    p = 3
+    a = 2 + x[1]
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
