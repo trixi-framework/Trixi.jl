@@ -217,8 +217,18 @@ end
 
 @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
-                        l2 = [1.7209164346836478e-5, 1.5928649356474767e-5, 1.5928649356802847e-5, 4.8963394546089164e-5], 
-                        linf = [0.00010525404319428056, 0.00010003768703326088, 0.00010003768694910598, 0.0003642622844113319])
+                        l2=[
+                            1.7209164346836478e-5,
+                            1.5928649356474767e-5,
+                            1.5928649356802847e-5,
+                            4.8963394546089164e-5
+                        ],
+                        linf=[
+                            0.00010525404319428056,
+                            0.00010003768703326088,
+                            0.00010003768694910598,
+                            0.0003642622844113319
+                        ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
@@ -234,8 +244,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         approximation_type=GaussSBP(),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
-                        l2 = [3.4664508443541302e-6, 3.4389354928807557e-6, 3.438935492692069e-6, 1.0965259031107001e-5], 
-                        linf = [1.1326776948594741e-5, 1.1343379410666543e-5, 1.1343379308081936e-5, 3.679395547040443e-5],
+                        l2=[
+                            3.4664508443541302e-6,
+                            3.4389354928807557e-6,
+                            3.438935492692069e-6,
+                            1.0965259031107001e-5
+                        ],
+                        linf=[
+                            1.1326776948594741e-5,
+                            1.1343379410666543e-5,
+                            1.1343379308081936e-5,
+                            3.679395547040443e-5
+                        ],
                         rtol=2 * sqrt(eps()))
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -253,8 +273,18 @@ end
                         element_type=Tri(), approximation_type=Polynomial(),
                         volume_integral=VolumeIntegralWeakForm(),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
-                        l2 = [7.906577233455084e-6, 8.733496764560955e-6, 8.733496764569368e-6, 2.9118523221923932e-5], 
-                        linf = [3.29875525286738e-5, 4.032296588629691e-5, 4.032296651601541e-5, 0.00012013778890995752])
+                        l2=[
+                            7.906577233455084e-6,
+                            8.733496764560955e-6,
+                            8.733496764569368e-6,
+                            2.9118523221923932e-5
+                        ],
+                        linf=[
+                            3.29875525286738e-5,
+                            4.032296588629691e-5,
+                            4.032296651601541e-5,
+                            0.00012013778890995752
+                        ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
@@ -268,8 +298,18 @@ end
 
 @trixi_testset "elixir_euler_hohqmesh.jl (Quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_hohqmesh.jl"),
-                        l2 = [0.0008153911341539523, 0.0007768159702011952, 0.0004790260681142826, 0.0015551846076274918], 
-                        linf = [0.002930113136531798, 0.003442705146861069, 0.002872156984277563, 0.011125365075300486])
+                        l2=[
+                            0.0008153911341539523,
+                            0.0007768159702011952,
+                            0.0004790260681142826,
+                            0.0015551846076274918
+                        ],
+                        linf=[
+                            0.002930113136531798,
+                            0.003442705146861069,
+                            0.002872156984277563,
+                            0.011125365075300486
+                        ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
@@ -407,8 +447,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
                         cells_per_dimension=(8, 8), tspan=(0.0, 0.2),
-                        l2 = [0.07097806924106471, 0.005168545523460976, 0.013820905434253445, 0.03243358478653133], 
-                        linf = [0.4783395366569936, 0.022446258588973853, 0.04023354591166624, 0.08515791118082117])
+                        l2=[
+                            0.07097806924106471,
+                            0.005168545523460976,
+                            0.013820905434253445,
+                            0.03243358478653133
+                        ],
+                        linf=[
+                            0.4783395366569936,
+                            0.022446258588973853,
+                            0.04023354591166624,
+                            0.08515791118082117
+                        ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
@@ -814,8 +864,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         cells_per_dimension=8, element_type=Quad(),
                         approximation_type=SBP(),
-                        l2 = [0.0020316463892983217, 0.02366902012965938, 0.03446194535725363, 1.921676942941478e-15], 
-                        linf = [0.010384996665098178, 0.08750632767286826, 0.12088391569555768, 9.325873406851315e-15])
+                        l2=[
+                            0.0020316463892983217,
+                            0.02366902012965938,
+                            0.03446194535725363,
+                            1.921676942941478e-15
+                        ],
+                        linf=[
+                            0.010384996665098178,
+                            0.08750632767286826,
+                            0.12088391569555768,
+                            9.325873406851315e-15
+                        ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
@@ -831,8 +891,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
                         cells_per_dimension=8, element_type=Tri(),
                         approximation_type=SBP(),
-                        l2 = [0.004180679992535108, 0.07026193567927695, 0.11815151184746633, 2.3786840926019625e-15], 
-                        linf = [0.020760033097378283, 0.29169608872805686, 0.567418412384793, 1.1102230246251565e-14])
+                        l2=[
+                            0.004180679992535108,
+                            0.07026193567927695,
+                            0.11815151184746633,
+                            2.3786840926019625e-15
+                        ],
+                        linf=[
+                            0.020760033097378283,
+                            0.29169608872805686,
+                            0.567418412384793,
+                            1.1102230246251565e-14
+                        ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
@@ -850,8 +920,18 @@ end
                         approximation_type=Polynomial(),
                         # The last l2, linf error are the L2 projection error in approximating `b`, so they are not
                         # zero for general non-collocated quadrature rules (e.g., for `element_type=Tri()`, `polydeg > 2`).
-                        l2 = [0.0008309358577296097, 0.015224511207450263, 0.016033971785878454, 1.282024730815488e-5], 
-                        linf = [0.0018880416154898327, 0.05466845626696504, 0.06345896594568323, 3.398993309877696e-5])
+                        l2=[
+                            0.0008309358577296097,
+                            0.015224511207450263,
+                            0.016033971785878454,
+                            1.282024730815488e-5
+                        ],
+                        linf=[
+                            0.0018880416154898327,
+                            0.05466845626696504,
+                            0.06345896594568323,
+                            3.398993309877696e-5
+                        ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
@@ -871,8 +951,18 @@ end
                         # for `Quad()` elements with `Polynomial()` approximations because the quadrature rule defaults to
                         # a `(polydeg + 1)`-point Gauss quadrature rule in each coordinate (in general, StartUpDG.jl defaults
                         # to the quadrature rule with the fewest number of points which exactly integrates the mass matrix).
-                        l2 = [7.460473151203597e-5, 0.0036855901000765463, 0.003910160802530521, 6.743418333559633e-15], 
-                        linf = [0.0002599957400737374, 0.007223608258381642, 0.010364657535841815, 2.042810365310288e-14])
+                        l2=[
+                            7.460473151203597e-5,
+                            0.0036855901000765463,
+                            0.003910160802530521,
+                            6.743418333559633e-15
+                        ],
+                        linf=[
+                            0.0002599957400737374,
+                            0.007223608258381642,
+                            0.010364657535841815,
+                            2.042810365310288e-14
+                        ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
     let
