@@ -15,14 +15,18 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 solver = DGSEM(RealT = RealT, polydeg = 7, surface_flux = flux_lax_friedrichs)
 
-# CARE: Important to use higher precision datatype for coordinates
-# as these are used for type promotion of the mesh (points etc.)
-coordinates_min = (-RealT(1),) # minimum coordinate
-coordinates_max = (RealT(1),) # maximum coordinate
 cells_per_dimension = (256,)
 
-# NOTE: StructuredMesh supports higher precision coordinates
-mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
+# CARE: Important to use higher precision datatype for coordinates
+# as these are used for type promotion of the mesh (points etc.)
+coordinates_min = -RealT(1) # minimum coordinate
+coordinates_max = RealT(1) # maximum coordinate
+
+# For `TreeMesh` the datatype has to be specified explicitly
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 7,
+                n_cells_max = 30_000,
+                RealT = RealT)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
                                     solver)
@@ -50,7 +54,8 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(),
+sol = solve(ode, #CarpenterKennedy2N54(),
+            TanYam7(),
             dt = 42.0, # `dt` does not need to be in higher precision
             save_everystep = false, callback = callbacks);
 
