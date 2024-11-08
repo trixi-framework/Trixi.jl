@@ -15,16 +15,14 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 solver = DGSEM(RealT = RealT, polydeg = 7, surface_flux = flux_lax_friedrichs)
 
-cells_per_dimension = (256,)
-
 # CARE: Important to use higher precision datatype for coordinates
 # as these are used for type promotion of the mesh (points etc.)
-coordinates_min = -RealT(1) # minimum coordinate
-coordinates_max = RealT(1) # maximum coordinate
+coordinates_min = -convert(RealT, 1) # minimum coordinate
+coordinates_max = convert(RealT, 1) # maximum coordinate
 
 # For `TreeMesh` the datatype has to be specified explicitly
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 7,
+                initial_refinement_level = 3,
                 n_cells_max = 30_000,
                 RealT = RealT)
 
@@ -35,17 +33,17 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # CARE: Important to use higher precision datatype in specification of final time
-tspan = (zero(RealT), RealT(1) / 1000)
+tspan = (zero(RealT), convert(RealT, 1))
 
 ode = semidiscretize(semi, tspan);
 
 summary_callback = SummaryCallback()
 
-analysis_callback = AnalysisCallback(semi, interval = 1000,
+analysis_callback = AnalysisCallback(semi, interval = 100,
                                      extra_analysis_errors = (:conservation_error,))
 
 # cfl does not need to be in higher precision
-stepsize_callback = StepsizeCallback(cfl = 0.8)
+stepsize_callback = StepsizeCallback(cfl = 1.4)
 
 callbacks = CallbackSet(summary_callback,
                         stepsize_callback,
@@ -54,9 +52,10 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, #CarpenterKennedy2N54(),
-            TanYam7(),
-            dt = 42.0, # `dt` does not need to be in higher precision
+sol = solve(ode, DP8(), 
+            # Turn off adaptivity to avoid setting very small tolerances
+            adaptive = false,
+            dt = 42, # `dt` does not need to be in higher precision
             save_everystep = false, callback = callbacks);
 
 # Print the timer summary
