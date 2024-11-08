@@ -156,7 +156,6 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
-
 end
 
 end # module
