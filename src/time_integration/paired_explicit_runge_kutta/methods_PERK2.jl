@@ -249,9 +249,6 @@ end
 
     @threaded for i in eachindex(integrator.du)
         integrator.k1[i] = integrator.du[i] * integrator.dt
-    end
-
-    @threaded for i in eachindex(integrator.u)
         integrator.u_tmp[i] = integrator.u[i] + c[2] * integrator.k1[i]
     end
 end
