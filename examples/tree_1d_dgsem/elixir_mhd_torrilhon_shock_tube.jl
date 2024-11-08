@@ -24,7 +24,7 @@ function initial_condition_torrilhon_shock_tube(x, t, equations::IdealGlmMhdEqua
     v3 = 0
     p = x[1] <= 0 ? 3 : 1
     B1 = 1.5f0
-    B2 = x[1] <= 0 ? zero(RealT) : cos(RealT(1.5f0))
+    B2 = x[1] <= 0 ? one(RealT) : cos(RealT(1.5f0))
     B3 = x[1] <= 0 ? zero(RealT) : sin(RealT(1.5f0))
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
