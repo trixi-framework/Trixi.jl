@@ -10,6 +10,10 @@ using DelimitedFiles: readdlm
 using Convex: Convex
 using ECOS: Optimizer
 
+# Use NLsolve to load the extension that extends functions for testing
+# PERK Single p3 Constructors
+using NLsolve: nlsolve
+
 include("test_trixi.jl")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
@@ -23,6 +27,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 @timed_testset "SerialTree" begin
     @testset "constructors" begin
         @test_nowarn Trixi.SerialTree(Val(1), 10, 0.0, 1.0)
+        @test_nowarn Trixi.SerialTree{1}(10, 0.0, 1.0)
     end
 
     @testset "helper functions" begin
@@ -53,6 +58,7 @@ end
 @timed_testset "ParallelTree" begin
     @testset "constructors" begin
         @test_nowarn Trixi.ParallelTree(Val(1), 10, 0.0, 1.0)
+        @test_nowarn Trixi.ParallelTree{1}(10, 0.0, 1.0)
     end
 
     @testset "helper functions" begin
@@ -64,7 +70,8 @@ end
 
 @timed_testset "TreeMesh" begin
     @testset "constructors" begin
-        @test TreeMesh{1, Trixi.SerialTree{1}}(1, 5.0, 2.0) isa TreeMesh
+        @test TreeMesh{1, Trixi.SerialTree{1, Float64}, Float64}(1, 5.0, 2.0) isa
+              TreeMesh
 
         # Invalid domain length check (TreeMesh expects a hypercube)
         # 2D
@@ -85,7 +92,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 2
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(30, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(30,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -113,7 +122,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 3
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -141,7 +152,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 9
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(1000, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(1000,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
                 # Refine twice
                 Trixi.refine!(mesh.tree)
                 Trixi.refine!(mesh.tree)
@@ -164,7 +177,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 3
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
                 # Refine whole tree
                 Trixi.refine!(mesh.tree)
                 # Refine left leaf
@@ -191,7 +206,9 @@ end
             let
                 @test Trixi.mpi_nranks() == 3
 
-                mesh = TreeMesh{2, Trixi.ParallelTree{2}}(100, (0.0, 0.0), 1)
+                mesh = TreeMesh{2, Trixi.ParallelTree{2, Float64}, Float64}(100,
+                                                                            (0.0, 0.0),
+                                                                            1.0)
 
                 # Only one leaf
                 @test_throws AssertionError("Too many ranks to properly partition the mesh!") Trixi.partition!(mesh)
@@ -1713,6 +1730,42 @@ end
                     0.20734890429023528 0.20174200480067384
                     0.1913514234997008 0.26319403104575373
                     0.13942836392866081 0.3605716360713392], atol = 1e-13)
+end
+
+@testset "PERK Single p3 Constructors" begin
+    path_coeff_file = mktempdir()
+    Trixi.download("https://gist.githubusercontent.com/warisa-r/0796db36abcd5abe735ac7eebf41b973/raw/32889062fd5dcf7f450748f4f5f0797c8155a18d/a_8_8.txt",
+                   joinpath(path_coeff_file, "a_8.txt"))
+
+    ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
+
+    @test isapprox(ode_algorithm.a_matrix,
+                   [0.33551678438002486 0.06448322158043965
+                    0.49653494442225443 0.10346507941960345
+                    0.6496890912144586 0.15031092070647037
+                    0.789172498521197 0.21082750147880308
+                    0.7522972036571336 0.2477027963428664
+                    0.31192569908571666 0.18807430091428337], atol = 1e-13)
+
+    Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
+                   joinpath(path_coeff_file, "spectrum.txt"))
+
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    tspan = (0.0, 1.0)
+    ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
+
+    @test isapprox(ode_algorithm.a_matrix,
+                   [0.19121164778938382 0.008788355190848427
+                    0.28723462747227385 0.012765384448655121
+                    0.38017717196008227 0.019822834000382223
+                    0.4706748928843403 0.029325107115659724
+                    0.557574833668358 0.04242519017349991
+                    0.6390917512034328 0.06090823687563831
+                    0.7124876770174374 0.08751233490349149
+                    0.7736369992226316 0.12636297693551043
+                    0.8161315324169078 0.1838684675830921
+                    0.7532704453316061 0.2467295546683939
+                    0.31168238866709846 0.18831761133290154], atol = 1e-13)
 end
 
 @testset "Sutherlands Law" begin

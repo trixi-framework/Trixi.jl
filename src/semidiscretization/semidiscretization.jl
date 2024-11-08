@@ -61,8 +61,8 @@ function integrate(func::Func, u_ode, semi::AbstractSemidiscretization;
     integrate(func, u, mesh, equations, solver, cache, normalize = normalize)
 end
 
-function integrate(u, semi::AbstractSemidiscretization; normalize = true)
-    integrate(cons2cons, u, semi; normalize = normalize)
+function integrate(u_ode, semi::AbstractSemidiscretization; normalize = true)
+    integrate(cons2cons, u_ode, semi; normalize = normalize)
 end
 
 """
