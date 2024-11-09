@@ -15,7 +15,7 @@ end
 using StableRNGs: StableRNG, rand
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, compute_c_coeffs, @muladd
+using Trixi: Trixi, @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -29,9 +29,8 @@ using Trixi: Trixi, compute_c_coeffs, @muladd
 function PairedExplicitRK3_butcher_tableau_objective_function!(c_eq, a_unknown,
                                                                num_stages,
                                                                num_stage_evals,
-                                                               monomial_coeffs,
-                                                               cS2)
-    c_ts = compute_c_coeffs(num_stages, cS2) # ts = timestep
+                                                               monomial_coeffs, c)
+    c_ts = c # ts = timestep
     # For explicit methods, a_{1,1} = 0 and a_{2,1} = c_2 (Butcher's condition)
     a_coeff = [0, c_ts[2], a_unknown...]
     # Equality constraint array that ensures that the stability polynomial computed from 
@@ -74,8 +73,7 @@ end
 # For details, see Proposition 3.2, Equation (3.3) from 
 # Hairer, Wanner: Solving Ordinary Differential Equations 2
 function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_coeffs,
-                                               c_s2, c;
-                                               verbose, max_iter = 100000)
+                                               c; verbose, max_iter = 100000)
 
     # Define the objective_function
     function objective_function!(c_eq, x)
@@ -83,7 +81,7 @@ function Trixi.solve_a_butcher_coeffs_unknown!(a_unknown, num_stages, monomial_c
                                                                      num_stages,
                                                                      num_stages,
                                                                      monomial_coeffs,
-                                                                     c_s2)
+                                                                     c)
     end
 
     # RealT is determined as the type of the first element in monomial_coeffs to ensure type consistency
