@@ -35,7 +35,8 @@ mesh = TreeMesh(coordinate_min, coordinate_max,
 
 # Discontinuous initial condition (Riemann Problem) leading to a rarefaction fan.
 function initial_condition_rarefaction(x, t, equation::InviscidBurgersEquation1D)
-    scalar = x[1] < 0.5 ? 0.5 : 1.5
+    RealT = eltype(x)
+    scalar = x[1] < 0.5f0 ? convert(RealT, 0.5f0) : convert(RealT, 1.5f0)
 
     return SVector(scalar)
 end
