@@ -299,7 +299,8 @@ end
 
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
-                   restart_file::AbstractString; reset_threads=true)
+                   restart_file::AbstractString; 
+                   reset_threads=true)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).

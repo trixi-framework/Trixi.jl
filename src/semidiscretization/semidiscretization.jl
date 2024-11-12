@@ -104,7 +104,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan, restart_file::AbstractString;
+    semidiscretize(semi::AbstractSemidiscretization, tspan, 
+                   restart_file::AbstractString;
                    reset_threads=true)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
