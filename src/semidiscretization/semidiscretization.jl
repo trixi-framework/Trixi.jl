@@ -78,7 +78,8 @@ function calc_error_norms(u_ode, t, analyzer, semi::AbstractSemidiscretization,
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan; reset_threads=true)
+    semidiscretize(semi::AbstractSemidiscretization, tspan; 
+                   reset_threads=true)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
