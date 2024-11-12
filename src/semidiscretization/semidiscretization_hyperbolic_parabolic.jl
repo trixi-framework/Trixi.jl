@@ -267,24 +267,60 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolicParab
 end
 
 """
-    semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
+    semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
+                   reset_threads=true)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 The parabolic right-hand side is the first function of the split ODE problem and
 will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
+
+Optionally reset Polyester.jl threads. See
+https://github.com/trixi-framework/Trixi.jl/issues/1583
+https://github.com/JuliaSIMD/Polyester.jl/issues/30
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
                         reset_threads = true)
-    # Optionally reset Polyester.jl threads. See
-    # https://github.com/trixi-framework/Trixi.jl/issues/1583
-    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
     if reset_threads
         Polyester.reset_threads!()
     end
 
     u0_ode = compute_coefficients(first(tspan), semi)
+    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
+    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
+    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
+    # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
+    # first function implicitly and the second one explicitly. Thus, we pass the
+    # stiffer parabolic function first.
+    return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+end
+
+"""
+    semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
+                   restart_file::AbstractString; reset_threads=true)
+
+Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
+that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+The parabolic right-hand side is the first function of the split ODE problem and
+will be used by default by the implicit part of IMEX methods from the
+SciML ecosystem.
+
+The initial condition etc. is taken from the `restart_file`.
+
+Optionally reset Polyester.jl threads. See
+https://github.com/trixi-framework/Trixi.jl/issues/1583
+https://github.com/JuliaSIMD/Polyester.jl/issues/30
+"""
+function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
+                        restart_file::AbstractString;
+                        reset_threads = true, split_form = true)
+    if reset_threads
+        Polyester.reset_threads!()
+    end
+
+    u0_ode = load_restart_file(semi, restart_file)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
