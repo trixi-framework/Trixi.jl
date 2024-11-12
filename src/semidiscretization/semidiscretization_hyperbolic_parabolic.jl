@@ -315,7 +315,7 @@ https://github.com/JuliaSIMD/Polyester.jl/issues/30
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
                         restart_file::AbstractString;
-                        reset_threads = true, split_form = true)
+                        reset_threads = true)
     if reset_threads
         Polyester.reset_threads!()
     end
