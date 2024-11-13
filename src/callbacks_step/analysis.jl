@@ -377,7 +377,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
        mpi_isroot()
         print(" Variable:    ")
         for v in eachvariable(equations)
-            @printf("   %-21s", varnames(cons2cons, equations)[v])
+            @printf("   %-14s", varnames(cons2cons, equations)[v])
         end
         println()
     end
@@ -457,7 +457,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
         if mpi_isroot()
             print(" Variable:    ")
             for v in eachvariable(equations)
-                @printf("   %-21s", varnames(cons2prim, equations)[v])
+                @printf("   %-14s", varnames(cons2prim, equations)[v])
             end
             println()
 
