@@ -322,9 +322,9 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         if mpi_isroot() && analysis_callback.save_analysis
             io = open(joinpath(analysis_callback.output_directory,
                                analysis_callback.analysis_filename), "a")
-            @printf(io, "% 9d", iter)
-            @printf(io, "  %10.15e", t)
-            @printf(io, "  %10.15e", dt)
+            print(io, "  ", iter)
+            print(io, "  ", t)
+            print(io, "  ", dt)
         else
             io = devnull
         end
@@ -393,7 +393,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" L2 error:    ")
                 for v in eachvariable(equations)
                     @printf("  % 10.8e", l2_error[v])
-                    @printf(io, "  % 10.15e", l2_error[v])
+                    print(io, "  ", l2_error[v])
                 end
                 println()
             end
@@ -403,7 +403,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" Linf error:  ")
                 for v in eachvariable(equations)
                     @printf("  % 10.8e", linf_error[v])
-                    @printf(io, "  % 10.15e", linf_error[v])
+                    print(io, "  ", linf_error[v])
                 end
                 println()
             end
@@ -420,7 +420,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
             for v in eachvariable(equations)
                 err = abs(state_integrals[v] - initial_state_integrals[v])
                 @printf("  % 10.8e", err)
-                @printf(io, "  % 10.15e", err)
+                print(io, "  ", err)
             end
             println()
         end
@@ -442,7 +442,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
             end
             if mpi_isroot()
                 @printf("  % 10.8e", res)
-                @printf(io, "  % 10.15e", res)
+                print(io, "  ", res)
             end
         end
         mpi_println()
@@ -466,7 +466,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" L2 error prim.: ")
                 for v in eachvariable(equations)
                     @printf("%10.8e   ", l2_error_prim[v])
-                    @printf(io, "  % 10.15e", l2_error_prim[v])
+                    print(io, "  ", l2_error_prim[v])
                 end
                 println()
             end
@@ -476,7 +476,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
                 print(" Linf error pri.:")
                 for v in eachvariable(equations)
                     @printf("%10.8e   ", linf_error_prim[v])
-                    @printf(io, "  % 10.15e", linf_error_prim[v])
+                    print(io, "  ", linf_error_prim[v])
                 end
                 println()
             end
@@ -581,7 +581,7 @@ function analyze_integrals(analysis_integrals::NTuple{N, Any}, io, du, u, t,
     if mpi_isroot()
         @printf(" %-12s:", pretty_form_utf(quantity))
         @printf("  % 10.8e", res)
-        @printf(io, "  % 10.15e", res)
+        print(io, "  ", res)
     end
     mpi_println()
 
