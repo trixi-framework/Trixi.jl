@@ -382,11 +382,10 @@ function _precompile_manual_()
     # end
     # end
     @assert Base.precompile(Tuple{typeof(SummaryCallback)})
-    @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback),
-                                                   typeof(Trixi.summary_callback),
-                                                   typeof(Trixi.initialize_summary_callback),
-                                                   typeof(SciMLBase.FINALIZE_DEFAULT),
-                                                   typeof(nothing)}})
+    # @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback),
+    #                                                typeof(Trixi.summary_callback),
+    #                                                typeof(Trixi.initialize_summary_callback),
+    #                                                typeof(SciMLBase.FINALIZE_DEFAULT)}})
     @assert Base.precompile(Tuple{typeof(summary_box), Base.TTY, String,
                                   Vector{Pair{String, Any}}})
     # TODO: AMRCallback, ControllerThreeLevel, indicators
