@@ -7,8 +7,8 @@
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes.
 function calc_node_coordinates!(node_coordinates,
-                                mesh::T8codeMesh{2},
-                                nodes::AbstractVector)
+                                mesh::T8codeMesh{2, RealT},
+                                nodes::AbstractVector) where {RealT <: Real}
     # We use `StrideArray`s here since these buffers are used in performance-critical
     # places and the additional information passed to the compiler makes them faster
     # than native `Array`s.
@@ -37,7 +37,7 @@ function calc_node_coordinates!(node_coordinates,
             # "integer" length to a float in relation to the unit interval [0,1].
             element_length = t8_quad_len(element_level) / t8_quad_root_len
 
-            element_coords = Array{Float64}(undef, 3)
+            element_coords = Array{RealT}(undef, 3)
             t8_element_vertex_reference_coords(eclass_scheme, element, 0,
                                                pointer(element_coords))
 

@@ -171,6 +171,11 @@ end
 function coordinates2mapping(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
     mapping(xi) = linear_interpolate(xi, coordinates_min[1], coordinates_max[1])
 end
+# Convenience function for 1D: Do not insist on tuples
+function coordinates2mapping(coordinates_min::RealT,
+                             coordinates_max::RealT) where {RealT <: Real}
+    mapping(xi) = linear_interpolate(xi, coordinates_min, coordinates_max)
+end
 
 function coordinates2mapping(coordinates_min::NTuple{2}, coordinates_max::NTuple{2})
     function mapping(xi, eta)

@@ -8,8 +8,8 @@ equations = TrafficFlowLWREquations1D()
 
 solver = DGSEM(polydeg = 3, surface_flux = FluxHLL(min_max_speed_davis))
 
-coordinates_min = (-1.0,) # minimum coordinate
-coordinates_max = (1.0,) # maximum coordinate
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max = 1.0 # maximum coordinate
 cells_per_dimension = (64,)
 
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
