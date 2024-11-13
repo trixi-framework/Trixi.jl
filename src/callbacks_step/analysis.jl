@@ -322,7 +322,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         if mpi_isroot() && analysis_callback.save_analysis
             io = open(joinpath(analysis_callback.output_directory,
                                analysis_callback.analysis_filename), "a")
-            print(io, "  ", iter)
+            print(io, iter)
             print(io, "  ", t)
             print(io, "  ", dt)
         else
