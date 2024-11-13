@@ -790,10 +790,10 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
                     orientation)
 
-        mortar_fluxes_to_elements!(surface_flux_values,
-                                   mesh, equations, mortar_l2, dg, cache,
-                                   mortar, fstar_primary_upper, fstar_primary_lower,
-                                   fstar_secondary_upper, fstar_secondary_lower)
+        mpi_mortar_fluxes_to_elements!(surface_flux_values,
+                                       mesh, equations, mortar_l2, dg, cache,
+                                       mortar, fstar_primary_upper, fstar_primary_lower,
+                                       fstar_secondary_upper, fstar_secondary_lower)
     end
 
     return nothing
