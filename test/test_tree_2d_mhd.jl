@@ -148,6 +148,36 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_ec_float32.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_float32.jl"),
+                        l2=Float32[0.036355644,
+                                   0.042947736,
+                                   0.04294775,
+                                   0.025748005,
+                                   0.16211236,
+                                   0.017452478,
+                                   0.017452475,
+                                   0.026877576,
+                                   2.0951437f-7],
+                        linf=Float32[0.22100884,
+                                     0.28798944,
+                                     0.2879896,
+                                     0.20858234,
+                                     0.8812654,
+                                     0.09208202,
+                                     0.09208143,
+                                     0.14795381,
+                                     2.0912607f-6])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_orszag_tang.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang.jl"),
                         l2=[
