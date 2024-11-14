@@ -15,7 +15,7 @@ restart_file = "restart_000000018.h5"
 restart_filename = joinpath("out", restart_file)
 tspan = (load_time(restart_filename), 2.0)
 
-ode = semidiscretize(semi, tspan, restart_filename);
+ode = semidiscretize(semi, tspan, restart_filename)
 
 # Do not save restart files here
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
