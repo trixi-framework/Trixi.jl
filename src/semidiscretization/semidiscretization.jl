@@ -277,6 +277,10 @@ function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     return J
 end
 
+# unpack u if it is wrapped in VectorOfArray (mainly for DGMulti solvers)
+jacobian_ad_forward(semi::AbstractSemidiscretization, t0, u0_ode::VectorOfArray) = 
+    jacobian_ad_forward(semi, t0, parent(u0_ode))
+
 # This version is specialized to `StructArray`s used by some `DGMulti` solvers.
 # We need to convert the numerical solution vectors since ForwardDiff cannot
 # handle arrays of `SVector`s.
