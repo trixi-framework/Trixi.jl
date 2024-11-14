@@ -98,7 +98,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
 
         semi = sol.prob.p
         if mesh == "DGMulti"
-            if sol.u[end] isa VectorOfArray
+            if sol.u[end] isa Trixi.VectorOfArray
                 u = parent(sol.u[end])
             else
                 u = sol.u[end]
