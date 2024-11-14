@@ -614,6 +614,12 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
                       orientation_x)
 end
 
+# unwrap u if it is VectorOfArray 
+PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = 
+    PlotData1D(parent(u), mesh, equations, dg, cache; kwargs...)
+PlotData2D(u::VectorOfArray, mesh, equations, dg::DGMulti{2}, cache; kwargs...) = 
+    PlotData2D(parent(u), mesh, equations, dg, cache; kwargs...)    
+
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,
                     slice = :x, point = (0.0, 0.0, 0.0), curve = nothing)
