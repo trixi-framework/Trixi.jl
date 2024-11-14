@@ -532,16 +532,14 @@ function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMeshView{2})
 
     iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
 
-    # Extract the entry we need for this view.
-    extract_interfaces!(mesh, interfaces)
-    @autoinfiltrate
-
     return interfaces
 end
 
 # Initialization of interfaces after the function barrier
 function init_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
     @unpack interfaces, interface_id, mesh = user_data
+    @autoinfiltrate
+    println("sides: ", sides_pw[1].treeid[], " ", sides_pw[2].treeid[])
     user_data.interface_id += 1
 
     # Get Tuple of local trees, one-based indexing
@@ -713,9 +711,6 @@ function count_required_surfaces(mesh::P4estMesh)
 
     iterate_p4est(mesh.p4est, user_data; iter_face_c = iter_face_c)
 
-    # Extract the entry we need for this view.
-    extract_interfaces!(mesh, interfaces)
-
     # Return counters
     return (interfaces = user_data[1],
             mortars = user_data[2],
@@ -724,7 +719,7 @@ end
 
 function count_required_surfaces(mesh::P4estMeshView)
     # Let `p4est` iterate over all interfaces and call count_surfaces_iter_face
-    iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh)))
+    iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh.parent)))
 
     # interfaces, mortars, boundaries
     user_data = [0, 0, 0]

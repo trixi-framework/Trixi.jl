@@ -8,7 +8,7 @@
 # This method is called when a SemidiscretizationHyperbolic is constructed.
 # It constructs the basic `cache` used throughout the simulation to compute
 # the RHS etc.
-function create_cache(mesh::Union{P4estMesh, P4estMeshView}, equations::AbstractEquations, dg::DG, ::Any,
+function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::Any,
                       ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance the `p4est` before creating any containers
     # in case someone has tampered with the `p4est` after creating the mesh
@@ -18,6 +18,30 @@ function create_cache(mesh::Union{P4estMesh, P4estMeshView}, equations::Abstract
     interfaces = init_interfaces(mesh, equations, dg.basis, elements)
     boundaries = init_boundaries(mesh, equations, dg.basis, elements)
     mortars = init_mortars(mesh, equations, dg.basis, elements)
+
+    cache = (; elements, interfaces, boundaries, mortars)
+
+    # Add specialized parts of the cache required to compute the volume integral etc.
+    cache = (; cache...,
+             create_cache(mesh, equations, dg.volume_integral, dg, uEltype)...)
+    cache = (; cache..., create_cache(mesh, equations, dg.mortar, uEltype)...)
+
+    return cache
+end
+
+function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG, ::Any,
+                      ::Type{uEltype}) where {uEltype <: Real}
+    # Make sure to balance the `p4est` before creating any containers
+    # in case someone has tampered with the `p4est` after creating the mesh
+    balance!(mesh)
+
+    elements_parent = init_elements(mesh.parent, equations, dg.basis, uEltype)
+    interfaces_parent = init_interfaces(mesh.parent, equations, dg.basis, elements)
+    boundaries_parent = init_boundaries(mesh.parent, equations, dg.basis, elements)
+    mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements)
+
+    # Extract data for views.
+    elemnts, interfaces, boundaries, mortars = extract...(elements_parent, ..., mesh)
 
     cache = (; elements, interfaces, boundaries, mortars)
 
