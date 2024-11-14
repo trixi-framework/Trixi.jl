@@ -123,8 +123,18 @@ end
     @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                  "elixir_navierstokes_convergence.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
-                        l2 = [0.0015355076237431118, 0.003384316785885901, 0.0036531858026850757, 0.009948436101649498], 
-                        linf = [0.005522560543588462, 0.013425258431728926, 0.013962115936715924, 0.027483099961148838])
+                        l2=[
+                            0.0015355076237431118,
+                            0.003384316785885901,
+                            0.0036531858026850757,
+                            0.009948436101649498
+                        ],
+                        linf=[
+                            0.005522560543588462,
+                            0.013425258431728926,
+                            0.013962115936715924,
+                            0.027483099961148838
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -139,8 +149,18 @@ end
     @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                  "elixir_navierstokes_convergence_curved.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
-                        l2 = [0.0042551020940351444, 0.011118489080358264, 0.011281831362358863, 0.035736565778376306], 
-                        linf = [0.015071709836357083, 0.04103131887989486, 0.03990424032494211, 0.13094018584692968],)
+                        l2=[
+                            0.0042551020940351444,
+                            0.011118489080358264,
+                            0.011281831362358863,
+                            0.035736565778376306
+                        ],
+                        linf=[
+                            0.015071709836357083,
+                            0.04103131887989486,
+                            0.03990424032494211,
+                            0.13094018584692968
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -155,8 +175,18 @@ end
     @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.5),
-                        l2 = [0.0002215612357465129, 0.028318325887331217, 0.009509168805093485, 0.028267893004691534], 
-                        linf = [0.0015622793960574644, 0.1488665309341318, 0.07163235778907852, 0.19472797949052278])
+                        l2=[
+                            0.0002215612357465129,
+                            0.028318325887331217,
+                            0.009509168805093485,
+                            0.028267893004691534
+                        ],
+                        linf=[
+                            0.0015622793960574644,
+                            0.1488665309341318,
+                            0.07163235778907852,
+                            0.19472797949052278
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
