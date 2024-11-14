@@ -1,5 +1,8 @@
 
+# Convex and ECOS are imported because they are used for finding the optimal time step and optimal 
+# monomial coefficients in the stability polynomial of P-ERK time integrators.
 using Convex, ECOS
+
 using OrdinaryDiffEq
 using Trixi
 
@@ -29,7 +32,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 # Create ODE problem with time span from 0.0 to 20.0
 tspan = (0.0, 20.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

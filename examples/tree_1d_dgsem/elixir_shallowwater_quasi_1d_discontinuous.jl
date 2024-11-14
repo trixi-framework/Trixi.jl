@@ -8,15 +8,16 @@ using Trixi
 equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81)
 
 function initial_condition_discontinuity(x, t, equations::ShallowWaterEquationsQuasi1D)
-    H = 2 + 0.1 * exp(-25 * x[1]^2)
-    v = 0.0
+    RealT = eltype(x)
+    H = 2 + convert(RealT, 0.1) * exp(-25 * x[1]^2)
+    v = 0
 
     if x[1] > 0
-        b = 0.1
-        a = 1.0
+        b = convert(RealT, 0.1)
+        a = one(RealT)
     else
-        b = 0.0
-        a = 1.1
+        b = zero(RealT)
+        a = convert(RealT, 1.1)
     end
 
     return prim2cons(SVector(H, v, b, a), equations)

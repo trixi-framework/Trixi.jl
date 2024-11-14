@@ -58,6 +58,42 @@ end
     end
 end
 
+# Testing the third-order paired explicit Runge-Kutta (PERK) method with its optimal CFL number
+@trixi_testset "elixir_burgers_perk3.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
+                        l2=[3.8156922097242205e-6],
+                        linf=[2.1962957979626552e-5],
+                        atol=1.0e-6)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
+    end
+end
+
+# Testing the third-order paired explicit Runge-Kutta (PERK) method without stepsize callback
+@trixi_testset "elixir_burgers_perk3.jl(fixed time step)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_burgers_perk3.jl"),
+                        dt=2.0e-3,
+                        tspan=(0.0, 2.0),
+                        save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8), # Adding a small epsilon to avoid floating-point precision issues
+                        callbacks=CallbackSet(summary_callback, save_solution,
+                                              analysis_callback, alive_callback),
+                        l2=[5.726144786001842e-7],
+                        linf=[3.430730019182704e-6])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
+    end
+end
+
 @trixi_testset "elixir_euler_sedov.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov.jl"),
                         l2=[3.67478226e-01, 3.49491179e-01, 8.08910759e-01],
