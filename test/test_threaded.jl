@@ -406,9 +406,18 @@ end
         @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                      "elixir_euler_curved.jl"),
                             alg=RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
-                            l2 = [1.720916434676505e-5, 1.5928649356300228e-5, 1.5928649356913923e-5, 4.896339454587786e-5], 
-                            linf = [0.00010525404319960963, 0.00010003768703459315, 0.00010003768696797977, 0.0003642622844073351]
-                            )
+                            l2=[
+                                1.720916434676505e-5,
+                                1.5928649356300228e-5,
+                                1.5928649356913923e-5,
+                                4.896339454587786e-5
+                            ],
+                            linf=[
+                                0.00010525404319960963,
+                                0.00010003768703459315,
+                                0.00010003768696797977,
+                                0.0003642622844073351
+                            ])
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
