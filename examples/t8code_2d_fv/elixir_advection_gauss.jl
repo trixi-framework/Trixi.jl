@@ -43,3 +43,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),#Euler(),
             dt = 5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback()
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)

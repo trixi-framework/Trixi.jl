@@ -10,17 +10,11 @@ initial_condition = initial_condition_convergence_test
 solver = FV(order = 2, extended_reconstruction_stencil = false,
             surface_flux = flux_lax_friedrichs)
 
-# Note:
-# For now, it is completely irrelevant that coordinates_max/min are.
-# The used t8code routine creates the mesh on [0, nx] x [0, ny], where (nx, ny) = trees_per_dimension.
-# Afterwards and only inside Trixi, `tree_node_coordinates` are mapped back to [-1, 1]^2.
-# But, this variable is not used for the FV method.
-# That's why I use the cmesh interface in all other elixirs.
-
 # Option 1: coordinates
 coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (8.0, 8.0) # maximum coordinates (max(x), max(y))
-# Note and TODO: The plan is to move the auxiliary routine f and the macro to a different place.
+# Note and TODO: The plan is to move the auxiliary routine trixi_t8_mapping and the macro to a
+# different place.
 # Then, somehow, I get SegFaults when using this `mapping_coordinates` or (equally) when
 # using `coordinates_min/max` and then use the `coordinates2mapping` within the constructor.
 # With both other mappings I don't get that.
@@ -129,3 +123,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
 summary_callback()
 
 # GC.enable(true)
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)
