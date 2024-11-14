@@ -31,13 +31,14 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
 
     function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
                                boundary_names,
-                               current_filename) where {NDIMS}
+                               current_filename,
+                               RealT = Float64) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
 
         @assert t8_forest_get_local_num_elements(forest)>0 "Too many ranks to properly partition the mesh!"
 
-        mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
-                                                                                  is_parallel)
+        mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
+                                                                                is_parallel)
 
         mesh.nodes = nodes
         mesh.boundary_names = boundary_names
@@ -277,7 +278,7 @@ function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polyde
                                                     ntuple(_ -> length(nodes), NDIMS)...,
                                                     number_of_trees)
 
-    reference_coordinates = Vector{Float64}(undef, 3)
+    reference_coordinates = Vector{RealT}(undef, 3)
 
     # Calculate node coordinates of reference mesh.
     if NDIMS == 2
