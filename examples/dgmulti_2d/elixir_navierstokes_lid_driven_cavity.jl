@@ -5,10 +5,10 @@ using Trixi
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 prandtl_number() = 0.72
-mu = 0.001
+mu() = 0.001
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
