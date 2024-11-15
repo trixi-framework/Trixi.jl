@@ -469,7 +469,8 @@ end
     end
 
     @trixi_testset "elixir_euler_fdsbp_periodic.jl (3D)" begin
-        @test_trixi_include(joinpath(examples_dir(), "dgmulti_3d/elixir_euler_fdsbp_periodic.jl"),
+        @test_trixi_include(joinpath(examples_dir(),
+                                     "dgmulti_3d/elixir_euler_fdsbp_periodic.jl"),
                             l2=[
                                 7.561896970325353e-5,
                                 6.884047859361093e-5,
