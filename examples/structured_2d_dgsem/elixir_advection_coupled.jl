@@ -181,7 +181,7 @@ semi = SemidiscretizationCoupled(semi1, semi2, semi3, semi4)
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 2.0
-ode = semidiscretize(semi, (0.0, 2.0));
+ode = semidiscretize(semi, (0.0, 2.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
