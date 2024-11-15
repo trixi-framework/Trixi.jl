@@ -102,6 +102,7 @@ function prolong2interfaces!(cache, u,
         j_secondary = j_secondary_start
         for i in eachnode(dg)
             for v in eachvariable(equations)
+                @autoinfiltrate
                 interfaces.u[2, v, i, interface] = u[v, i_secondary, j_secondary,
                                                      secondary_element]
             end
