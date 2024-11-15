@@ -272,6 +272,43 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
+
+    # Same test as above but with only one tree in the mesh
+    # We use it to test meshes with elements of different size in each partition
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
+                        l2=[
+                            0.0019054118500017054,
+                            0.006957977226608083,
+                            0.003429930594167365,
+                            0.009051598556176287,
+                            0.0077261662742688425,
+                            0.008210851821439208,
+                            0.003763030674412298,
+                            0.009175470744760567,
+                            2.881690753923244e-5
+                        ],
+                        linf=[
+                            0.010983704624623503,
+                            0.04584128974425262,
+                            0.02022630484954286,
+                            0.04851342295826149,
+                            0.040710154751363525,
+                            0.044722299260292586,
+                            0.036591209423654236,
+                            0.05701669133068068,
+                            0.00024182906501186622
+                        ],
+                        tspan=(0.0, 0.25), trees_per_dimension=(1, 1, 1),
+                        coverage_override=(trees_per_dimension = (1, 1, 1),))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 end # P4estMesh MPI
 
