@@ -527,7 +527,7 @@ end
 
 function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMeshView{2})
     # Let `p4est` iterate over all interfaces and call init_surfaces_iter_face
-    iter_face_c = cfunction(init_surfaces_iter_face, Val(ndims(mesh)))
+    iter_face_c = cfunction(init_surfaces_iter_face, Val(ndims(mesh.mesh)))
     user_data = InitSurfacesIterFaceUserData(interfaces, mortars, boundaries, mesh.parent)
 
     iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
@@ -538,8 +538,6 @@ end
 # Initialization of interfaces after the function barrier
 function init_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
     @unpack interfaces, interface_id, mesh = user_data
-    @autoinfiltrate
-    println("sides: ", sides_pw[1].treeid[], " ", sides_pw[2].treeid[])
     user_data.interface_id += 1
 
     # Get Tuple of local trees, one-based indexing

@@ -36,7 +36,26 @@ end
 @inline balance!(::P4estMeshView) = nothing
 @inline ncells(mesh::P4estMeshView) = length(mesh.cell_ids)
 
-function extract_interfaces!(mesh::P4estMeshView, interfaces)
+#
+function extract_p4est_mesh_view(elements_parent,
+                                 interfaces_parent,
+                                 boundaries_parent,
+                                 mortars_parent,
+                                 mesh)
+    @autoinfiltrate
+    elements = elements_parent
+    elements.inverse_jacobian = elements_parent.inverse_jacobian[.., mesh.cell_ids]
+    elements.jacobian_matrix = elements_parent.jacobian_matrix[.., mesh.cell_ids]
+    elements.node_coordinates = elements_parent.node_coordinates[.., mesh.cell_ids]
+    elements.contravariant_vectors = elements_parent.contravariant_vectors[.., mesh.cell_ids]
+    elements.surface_flux_values = elements_parent.surface_flux_values[.., mesh.cell_ids]
+    interfaces = extract_interfaces(mesh, interfaces_parent)
+
+    return elements, interfaces, boundaries_parent, mortars_parent
+end
+
+function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
+    interfaces = interfaces_parent
     u_new = Array{eltype(interfaces.u)}(undef, (size(interfaces.u)[1:3]..., size(mesh.cell_ids)[1]*2))
     u_new[:, :, :, 1:2:end] .= interfaces.u[:, :, :, (mesh.cell_ids.*2 .-1)]
     u_new[:, :, :, 2:2:end] .= interfaces.u[:, :, :, mesh.cell_ids.*2]
@@ -52,6 +71,8 @@ function extract_interfaces!(mesh::P4estMeshView, interfaces)
     interfaces._u = vec(u_new)
     interfaces._node_indices = vec(node_indices_new)
     interfaces._neighbor_ids = vec(neighbor_ids_new)
+
+    return interfaces
 end
 
 end # @muladd

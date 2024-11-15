@@ -29,19 +29,26 @@ function create_cache(mesh::P4estMesh, equations::AbstractEquations, dg::DG, ::A
     return cache
 end
 
+# This method is called when a SemidiscretizationHyperbolic is constructed.
+# It constructs the basic `cache` used throughout the simulation to compute
+# the RHS etc.
 function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG, ::Any,
                       ::Type{uEltype}) where {uEltype <: Real}
     # Make sure to balance the `p4est` before creating any containers
     # in case someone has tampered with the `p4est` after creating the mesh
-    balance!(mesh)
+    balance!(mesh.parent)
 
     elements_parent = init_elements(mesh.parent, equations, dg.basis, uEltype)
-    interfaces_parent = init_interfaces(mesh.parent, equations, dg.basis, elements)
-    boundaries_parent = init_boundaries(mesh.parent, equations, dg.basis, elements)
-    mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements)
+    interfaces_parent = init_interfaces(mesh.parent, equations, dg.basis, elements_parent)
+    boundaries_parent = init_boundaries(mesh.parent, equations, dg.basis, elements_parent)
+    mortars_parent = init_mortars(mesh.parent, equations, dg.basis, elements_parent)
 
     # Extract data for views.
-    elemnts, interfaces, boundaries, mortars = extract...(elements_parent, ..., mesh)
+    elements, interfaces, boundaries, mortars = extract_p4est_mesh_view(elements_parent,
+                                                                       interfaces_parent,
+                                                                       boundaries_parent,
+                                                                       mortars_parent,
+                                                                       mesh)
 
     cache = (; elements, interfaces, boundaries, mortars)
 
