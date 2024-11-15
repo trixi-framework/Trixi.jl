@@ -376,6 +376,10 @@ function analyze(::Val{:linf_divb}, du, u, t,
         end
     end
 
+    if mpi_isparallel()
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
+    end
+
     return linf_divb
 end
 
@@ -410,6 +414,10 @@ function analyze(::Val{:linf_divb}, du, u, t,
             divb *= cache.elements.inverse_jacobian[i, j, k, element]
             linf_divb = max(linf_divb, abs(divb))
         end
+    end
+
+    if mpi_isparallel()
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
     end
 
     return linf_divb
