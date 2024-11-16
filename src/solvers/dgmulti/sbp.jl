@@ -222,7 +222,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                     j = rows[id]
                     u_j = u[j]
 
-                    # we use the negative of A_ij since A is skew symemtric, 
+                    # we use the negative of A_ij since A is skew-symmetric, 
                     # and we are accessing the transpose of A. 
                     A_ij = -vals[id]
                     AF_ij = 2 * A_ij *
