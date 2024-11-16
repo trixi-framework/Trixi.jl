@@ -457,7 +457,7 @@ end
         end
     end
 
-    @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
+    @trixi_testset "elixir_euler_fdsbp_periodic.jl (2D)" begin
         @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                      "elixir_euler_fdsbp_periodic.jl"),
                             l2=[
@@ -481,6 +481,33 @@ end
             du_ode = similar(u_ode)
             Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        end
+    end
+
+    @trixi_testset "elixir_euler_fdsbp_periodic.jl (3D)" begin
+        @test_trixi_include(joinpath(examples_dir(),
+                                     "dgmulti_3d/elixir_euler_fdsbp_periodic.jl"),
+                            l2=[
+                                7.561896970325353e-5,
+                                6.884047859361093e-5,
+                                6.884047859363204e-5,
+                                6.884047859361148e-5,
+                                0.000201107274617457
+                            ],
+                            linf=[
+                                0.0001337520020225913,
+                                0.00011571467799287305,
+                                0.0001157146779990903,
+                                0.00011571467799376123,
+                                0.0003446082308800058
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
 end
