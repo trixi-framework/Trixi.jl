@@ -296,7 +296,8 @@ end
 
     for v in eachvariable(equations)
         surface_flux_values[v, surface_i_node_index, surface_j_node_index,
-        local_direction_index, local_element_index] = flux_[v] + 0.5f0 * noncons_flux_[v]
+        local_direction_index, local_element_index] = flux_[v] +
+                                                      0.5f0 * noncons_flux_[v]
     end
 end
 
