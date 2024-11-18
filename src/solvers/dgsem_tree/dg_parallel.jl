@@ -10,8 +10,7 @@ function get_element_variables!(element_variables,
                                 mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                             ParallelT8codeMesh},
                                 dg, cache)
-    element_variables[:mpi_rank] = fill(mpi_rank(),
-                                        SVector{nelements(mesh, dg, cache), real(dg)})
+    element_variables[:mpi_rank] = ones(real(dg), nelements(mesh, dg, cache)) * mpi_rank()
     return nothing
 end
 
