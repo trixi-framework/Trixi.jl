@@ -296,7 +296,7 @@ end
 
     for v in eachvariable(equations)
         surface_flux_values[v, surface_i_node_index, surface_j_node_index,
-        local_direction_index, local_element_index] = flux_[v] + 0.5 * noncons_flux_[v]
+        local_direction_index, local_element_index] = flux_[v] + 0.5f0 * noncons_flux_[v]
     end
 end
 
@@ -519,10 +519,10 @@ end
 
     for v in eachvariable(equations)
         fstar_primary[v, i_node_index, j_node_index, position_index] = flux[v] +
-                                                                       0.5 *
+                                                                       0.5f0 *
                                                                        noncons_flux_primary[v]
         fstar_secondary[v, i_node_index, j_node_index, position_index] = flux[v] +
-                                                                         0.5 *
+                                                                         0.5f0 *
                                                                          noncons_flux_secondary[v]
     end
 end
