@@ -1,0 +1,63 @@
+name: GPU Compatibility
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CITATION.bib'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'NEWS.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
+      - 'docs/**'
+      - 'utils/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    name: Test GPU Compatibility - ${{ matrix.os }} - ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.10'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+
+      - name: Display version info
+        run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
+
+      - name: Cache Julia packages
+        uses: julia-actions/cache@v2
+
+      - name: Build project
+        uses: julia-actions/julia-buildpkg@v1
+
+      - name: Add CUDA.jl to environment # only CUDA.jl is needed for GPU compatibility test now
+        run: |
+          julia --project=. -e '
+          using Pkg;
+          Pkg.add("CUDA");
+          Pkg.update()'
