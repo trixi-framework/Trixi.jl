@@ -223,9 +223,10 @@ initial_condition = initial_condition_navier_stokes_convergence_test
 
 # BC types
 velocity_bc_top_bottom = NoSlip() do x, t, equations
-    u = initial_condition_navier_stokes_convergence_test(x, t, equations)
-    return SVector(u[2], u[3], u[4])
+    u_cons = initial_condition_navier_stokes_convergence_test(x, t, equations)
+    return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1], u_cons[4] / u_cons[1])
 end
+
 heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom,
                                                                   heat_bc_top_bottom)
@@ -264,3 +265,5 @@ time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
             ode_default_options()..., callback = callbacks)
 summary_callback() # print the timer summary
+
+display(analysis_callback(sol))

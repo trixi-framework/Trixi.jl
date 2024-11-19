@@ -178,9 +178,11 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 # BC types
-velocity_bc_top_bottom = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
-                                                                                                      t,
-                                                                                                      equations)[2:3])
+velocity_bc_top_bottom = NoSlip() do x, t, equations
+    u_cons = initial_condition_navier_stokes_convergence_test(x, t, equations)
+    return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
+end
+
 heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom,
                                                                   heat_bc_top_bottom)

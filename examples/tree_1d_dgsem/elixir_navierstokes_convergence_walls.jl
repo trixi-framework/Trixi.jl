@@ -121,9 +121,10 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 # BC types
-velocity_bc_left_right = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
-                                                                                                      t,
-                                                                                                      equations)[2])
+velocity_bc_left_right = NoSlip() do x, t, equations
+    u_cons = initial_condition_navier_stokes_convergence_test(x, t, equations)
+    return u_cons[2] / u_cons[1]
+end
 
 heat_bc_left = Isothermal((x, t, equations) -> Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
                                                                                                                   t,

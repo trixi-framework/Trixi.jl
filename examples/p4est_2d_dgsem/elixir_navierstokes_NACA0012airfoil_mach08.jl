@@ -83,12 +83,14 @@ heat_airfoil = Adiabatic((x, t, equations) -> 0.0)
 boundary_conditions_airfoil = BoundaryConditionNavierStokesWall(velocity_airfoil,
                                                                 heat_airfoil)
 
-function momenta_initial_condition_mach08_flow(x, t, equations)
-    u = initial_condition_mach08_flow(x, t, equations)
-    momenta = SVector(u[2], u[3])
+function velocities_initial_condition_mach08_flow(x, t, equations)
+    u_cons = initial_condition_mach08_flow(x, t, equations)
+    return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
 end
-velocity_bc_square = NoSlip((x, t, equations) -> momenta_initial_condition_mach08_flow(x, t,
-                                                                                       equations))
+
+velocity_bc_square = NoSlip((x, t, equations) -> velocities_initial_condition_mach08_flow(x,
+                                                                                          t,
+                                                                                          equations))
 
 heat_bc_square = Adiabatic((x, t, equations) -> 0.0)
 boundary_condition_square = BoundaryConditionNavierStokesWall(velocity_bc_square,
