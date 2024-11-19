@@ -52,7 +52,15 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
             # necessary in order to avoid MPI-related error output when closing
             # the Julia program/session.
             t8_forest_unref(Ref(mesh.forest))
+
+            # Remove this mesh object from the object tracker.
+            delete!(__T8CODE_OBJECT_TRACKER, pointer_from_objref(mesh))
         end
+
+        # Get the memory address of the mesh object as a `Ptr`.
+        # The existence of the resulting `Ptr` will not protect
+        # the object from garbage collection, which is intentional.
+        push!(__T8CODE_OBJECT_TRACKER, pointer_from_objref(mesh))
 
         return mesh
     end
