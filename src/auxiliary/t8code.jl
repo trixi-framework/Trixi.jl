@@ -2,7 +2,7 @@
 # created throughout the life time of a Julia session. t8code objects
 # should remove themselves from the tracker when they get finalized.
 if !@isdefined(__T8CODE_OBJECT_TRACKER)
-  __T8CODE_OBJECT_TRACKER = Set()
+    __T8CODE_OBJECT_TRACKER = Set()
 end
 
 """
