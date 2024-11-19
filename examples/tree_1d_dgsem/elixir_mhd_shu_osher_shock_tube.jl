@@ -19,15 +19,16 @@ Taken from Section 4.1 of
 function initial_condition_shu_osher_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
     # domain must be set to [-5, 5], γ = 5/3, final time = 0.7
     # initial shock location is taken to be at x = -4
-    x_0 = -4.0
-    rho = x[1] <= x_0 ? 3.5 : 1.0 + 0.2 * sin(5.0 * x[1])
-    v1 = x[1] <= x_0 ? 5.8846 : 0.0
-    v2 = x[1] <= x_0 ? 1.1198 : 0.0
-    v3 = 0.0
-    p = x[1] <= x_0 ? 42.0267 : 1.0
-    B1 = 1.0
-    B2 = x[1] <= x_0 ? 3.6359 : 1.0
-    B3 = 0.0
+    RealT = eltype(x)
+    x_0 = -4
+    rho = x[1] <= x_0 ? RealT(3.5) : 1 + RealT(0.2) * sin(5 * x[1])
+    v1 = x[1] <= x_0 ? RealT(5.8846) : zero(RealT)
+    v2 = x[1] <= x_0 ? RealT(1.1198) : zero(RealT)
+    v3 = 0
+    p = x[1] <= x_0 ? RealT(42.0267) : one(RealT)
+    B1 = 1
+    B2 = x[1] <= x_0 ? RealT(3.6359) : one(RealT)
+    B3 = 0
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
@@ -45,15 +46,16 @@ function initial_condition_shu_osher_shock_tube_flipped(x, t,
                                                         equations::IdealGlmMhdEquations1D)
     # domain must be set to [-5, 5], γ = 5/3, final time = 0.7
     # initial shock location is taken to be at x = 4
-    x_0 = 4.0
-    rho = x[1] <= x_0 ? 1.0 + 0.2 * sin(5.0 * x[1]) : 3.5
-    v1 = x[1] <= x_0 ? 0.0 : -5.8846
-    v2 = x[1] <= x_0 ? 0.0 : -1.1198
-    v3 = 0.0
-    p = x[1] <= x_0 ? 1.0 : 42.0267
-    B1 = 1.0
-    B2 = x[1] <= x_0 ? 1.0 : 3.6359
-    B3 = 0.0
+    RealT = eltype(x)
+    x_0 = 4
+    rho = x[1] <= x_0 ? 1 + RealT(0.2) * sin(5 * x[1]) : RealT(3.5)
+    v1 = x[1] <= x_0 ? zero(RealT) : RealT(-5.8846)
+    v2 = x[1] <= x_0 ? zero(RealT) : RealT(-1.1198)
+    v3 = 0
+    p = x[1] <= x_0 ? one(RealT) : RealT(42.0267)
+    B1 = 1
+    B2 = x[1] <= x_0 ? one(RealT) : RealT(3.6359)
+    B3 = 0
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
