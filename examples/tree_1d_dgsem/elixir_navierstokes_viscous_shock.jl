@@ -1,9 +1,6 @@
 using OrdinaryDiffEq
 using Trixi
 
-###############################################################################
-# semidiscretization of the ideal compressible Navier-Stokes equations
-
 # This is the classic 1D viscous shock wave problem with analytical solution 
 # for a special value of the Prandtl number.
 # The original references are:
@@ -24,12 +21,14 @@ using Trixi
 #   of a Viscous, Head-Conducting, Compressible Gas
 #   [DOI: 10.2514/8.11882](https://doi.org/10.2514/8.11882)
 #
+#
 # The particular problem considered here is described in
 # - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017) 
 #   Entropy in self-similar shock profiles
 #   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 
 ### Fixed parameters ###
+
 # Special value for which nonlinear solver can be omitted
 # Corresponds essentially to fixing the Mach number
 alpha = 0.5
@@ -45,6 +44,7 @@ v = 1 # Shock speed
 domain_length = 5.0
 
 ### Derived quantities ###
+
 Ma = 2 / sqrt(3 - gamma) # Mach number for alpha = 0.5
 c_0 = v / Ma # Speed of sound ahead of the shock
 
@@ -67,7 +67,7 @@ The version implemented here is described in
   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 """
 function initial_condition_viscous_shock(x, t, equations)
-    y = x[1] - v * t
+    y = x[1] - v * t # Translated coordinate
 
     chi = chi_of_y(y)
     w = 1 + 1 / (2 * chi^2) * (1 - sqrt(1 + 2 * chi^2))
@@ -78,6 +78,9 @@ function initial_condition_viscous_shock(x, t, equations)
 
     return prim2cons(SVector(rho, u, p), equations)
 end
+
+###############################################################################
+# semidiscretization of the ideal compressible Navier-Stokes equations
 
 equations = CompressibleEulerEquations1D(gamma)
 equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
