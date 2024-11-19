@@ -42,7 +42,7 @@ function init_t8code()
         MPI.add_finalize_hook!() do
             # Finalize all registered t8code objects before MPI shuts down.
             for obj in __T8CODE_OBJECT_TRACKER
-              finalize(unsafe_pointer_to_objref(obj))
+                finalize(unsafe_pointer_to_objref(obj))
             end
 
             status = T8code.Libt8.sc_finalize_noabort()
