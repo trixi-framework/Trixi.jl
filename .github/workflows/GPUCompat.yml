@@ -70,8 +70,10 @@ jobs:
       - name: Add CUDA.jl to environment
         run: |
           julia --project=. -e '
-          using Pkg;
-          Pkg.activate(temp=true);  
+          using Pkg; 
+          Pkg.activate(temp=true);
+          println("Current working directory: ", pwd());
+          Pkg.develop(PackageSpec(path=pwd())); 
           Pkg.add("CUDA");
           Pkg.update()'
 
@@ -80,6 +82,7 @@ jobs:
     #       julia --project=. -e '
     #       using Pkg;
     #       Pkg.activate(temp=true);
+    #       Pkg.develop(PackageSpec(path=pwd()));
     #       Pkg.add("Metal");
     #       Pkg.update()'
 
