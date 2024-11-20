@@ -98,7 +98,12 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
 
         semi = sol.prob.p
         if mesh == "DGMulti"
-            scalar_data = StructArrays.component(sol.u[end], 1)
+            if sol.u[end] isa Trixi.VectorOfArray
+                u = parent(sol.u[end])
+            else
+                u = sol.u[end]
+            end
+            scalar_data = StructArrays.component(u, 1)
             @test_nowarn_mod Plots.plot(ScalarPlotData2D(scalar_data, semi))
         else
             cache = semi.cache

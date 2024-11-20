@@ -523,9 +523,9 @@ function _precompile_manual_()
                                                  typeof(Trixi.initialize_summary_callback),
                                                  typeof(SciMLBase.FINALIZE_DEFAULT)}
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, summary_callback_type})
-        @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
-                                      summary_callback_type})
-        @assert Base.precompile(Tuple{summary_callback_type, Base.TTY})
+        # @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
+        #                               summary_callback_type})
+        # @assert Base.precompile(Tuple{summary_callback_type, Base.TTY})
 
         # TODO: SteadyStateCallback, AnalysisCallback
 

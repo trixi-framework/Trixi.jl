@@ -61,6 +61,7 @@ using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using T8code
 using RecipesBase: RecipesBase
+using RecursiveArrayTools: VectorOfArray
 using Requires: @require
 using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
