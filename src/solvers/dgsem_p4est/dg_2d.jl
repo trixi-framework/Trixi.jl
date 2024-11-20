@@ -58,7 +58,7 @@ end
 
 # We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u,
-                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG)
     @unpack interfaces = cache
     index_range = eachnode(dg)
@@ -102,7 +102,6 @@ function prolong2interfaces!(cache, u,
         j_secondary = j_secondary_start
         for i in eachnode(dg)
             for v in eachvariable(equations)
-                @autoinfiltrate
                 interfaces.u[2, v, i, interface] = u[v, i_secondary, j_secondary,
                                                      secondary_element]
             end

@@ -42,7 +42,6 @@ function extract_p4est_mesh_view(elements_parent,
                                  boundaries_parent,
                                  mortars_parent,
                                  mesh)
-    @autoinfiltrate
     elements = elements_parent
     elements.inverse_jacobian = elements_parent.inverse_jacobian[.., mesh.cell_ids]
     elements.jacobian_matrix = elements_parent.jacobian_matrix[.., mesh.cell_ids]
@@ -78,6 +77,64 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     interfaces._neighbor_ids = vec(neighbor_ids_new)
 
     return interfaces
+end
+
+# We pass the `surface_integral` argument solely for dispatch
+function prolong2interfaces!(cache, u,
+                             mesh::P4estMeshView{2},
+                             equations, surface_integral, dg)
+    @unpack interfaces = cache
+    index_range = eachnode(dg)
+
+    @threaded for interface in eachinterface(dg, cache)
+        # Copy solution data from the primary element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the index of the primary side
+        # will always run forwards.
+        @autoinfiltrate
+        primary_element = interfaces.neighbor_ids[1, interface]
+        primary_indices = interfaces.node_indices[1, interface]
+
+        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                                 index_range)
+        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                                 index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                interfaces.u[1, v, i, interface] = u[v, i_primary, j_primary,
+                                                     primary_element]
+            end
+            i_primary += i_primary_step
+            j_primary += j_primary_step
+        end
+
+        # Copy solution data from the secondary element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        secondary_element = interfaces.neighbor_ids[2, interface]
+        secondary_indices = interfaces.node_indices[2, interface]
+
+        i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                                     index_range)
+        j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                                     index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                interfaces.u[2, v, i, interface] = u[v, i_secondary, j_secondary,
+                                                     secondary_element]
+            end
+            i_secondary += i_secondary_step
+            j_secondary += j_secondary_step
+        end
+    end
+
+    return nothing
 end
 
 end # @muladd
