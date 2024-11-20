@@ -3,19 +3,19 @@ name: GPU Compatibility
 on:
   pull_request:
     paths-ignore:
-      - "AUTHORS.md"
-      - "CITATION.bib"
-      - "CONTRIBUTING.md"
-      - "LICENSE.md"
-      - "NEWS.md"
-      - "README.md"
-      - ".zenodo.json"
-      - ".github/workflows/benchmark.yml"
-      - ".github/workflows/CompatHelper.yml"
-      - ".github/workflows/TagBot.yml"
-      - "benchmark/**"
-      - "docs/**"
-      - "utils/**"
+      - 'AUTHORS.md'
+      - 'CITATION.bib'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'NEWS.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
+      - 'docs/**'
+      - 'utils/**'
   workflow_dispatch:
 
 concurrency:
@@ -31,19 +31,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - version: "1.10"
+          - version: '1.10'
             os: ubuntu-latest
             arch: x64
-          - version: "1.10"
+          - version: '1.10'
             os: windows-latest
             arch: x64
-          - version: "1.10"
+          - version: '1.10'
             os: macOS-latest
             arch: x64
-          - version: "1.10"
+          - version: '1.10'
             os: ubuntu-latest
             arch: x86
-          - version: "1.10"
+          - version: '1.10'
             os: windows-latest
             arch: x86
           # Skip macOS x86 for now as Julia 1.10 binary support for macOS on x86 is unavailable
