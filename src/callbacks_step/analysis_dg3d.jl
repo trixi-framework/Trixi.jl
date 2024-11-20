@@ -377,6 +377,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
     end
 
     if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
         linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
     end
 
@@ -417,6 +418,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
     end
 
     if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
         linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
     end
 

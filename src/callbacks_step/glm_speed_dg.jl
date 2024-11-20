@@ -15,6 +15,7 @@ function calc_dt_for_cleaning_speed(cfl::Real, mesh,
                                ndims(equations)
 
     if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
         max_scaled_speed_for_c_h = MPI.Allreduce!(Ref(max_scaled_speed_for_c_h),
                                                   Base.max,
                                                   mpi_comm())[]
@@ -37,6 +38,7 @@ function calc_dt_for_cleaning_speed(cfl::Real, mesh,
     max_scaled_speed_for_c_h = inv(minimum(md.J)) * ndims(equations)
 
     if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
         max_scaled_speed_for_c_h = MPI.Allreduce!(Ref(max_scaled_speed_for_c_h),
                                                   Base.max,
                                                   mpi_comm())[]
