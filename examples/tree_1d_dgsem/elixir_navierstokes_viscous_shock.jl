@@ -67,6 +67,7 @@ The version implemented here is described in
   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 """
 function initial_condition_viscous_shock(x, t, equations)
+    #=
     y = x[1] - v * t # Translated coordinate
 
     chi = chi_of_y(y)
@@ -75,6 +76,11 @@ function initial_condition_viscous_shock(x, t, equations)
     rho = rho_0 / w
     u = v * (1 - w)
     p = p_0 * 1 / w * (1 + (gamma - 1) / 2 * Ma^2 * (1 - w^2))
+    =#
+
+    rho = 1.0
+    u = 1.0
+    p = 1.0
 
     return prim2cons(SVector(rho, u, p), equations)
 end
@@ -101,17 +107,17 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 ### Inviscid boundary conditions ###
 
 # Prescribe pure influx based on initial conditions
-function boundary_condition_inflow(u_inner, orientation, normal_direction, x, t,
-                                   surface_flux_function, equations)
-    u_cons = initial_condition(x, t, equations)
+function boundary_condition_inflow(u_inner, orientation::Integer, normal_direction, x, t,
+                                   surface_flux_function, equations::CompressibleEulerEquations1D)
+    u_cons = initial_condition_viscous_shock(x, t, equations)
     flux = Trixi.flux(u_cons, orientation, equations)
 
     return flux
 end
 
 # Completely free outflow
-function boundary_condition_outflow(u_inner, orientation, normal_direction, x, t,
-                                    surface_flux_function, equations)
+function boundary_condition_outflow(u_inner, orientation::Integer, normal_direction, x, t,
+                                    surface_flux_function, equations::CompressibleEulerEquations1D)
     # Calculate the boundary flux entirely from the internal solution state
     flux = Trixi.flux(u_inner, orientation, equations)
 

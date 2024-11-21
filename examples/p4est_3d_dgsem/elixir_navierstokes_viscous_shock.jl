@@ -108,17 +108,17 @@ mesh = P4estMesh(trees_per_dimension,
 ### Inviscid boundary conditions ###
 
 # Prescribe pure influx based on initial conditions
-function boundary_condition_inflow(u_inner, normal_direction, x, t,
-                                   surface_flux_function, equations)
-    u_cons = initial_condition(x, t, equations)
+function boundary_condition_inflow(u_inner, normal_direction::AbstractVector, x, t,
+                                   surface_flux_function, equations::CompressibleEulerEquations3D)
+    u_cons = initial_condition_viscous_shock(x, t, equations)
     flux = Trixi.flux(u_cons, normal_direction, equations)
 
     return flux
 end
 
 # Completely free outflow
-function boundary_condition_outflow(u_inner, normal_direction, x, t,
-                                    surface_flux_function, equations)
+function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
+                                    surface_flux_function, equations::CompressibleEulerEquations3D)
     # Calculate the boundary flux entirely from the internal solution state
     flux = Trixi.flux(u_inner, normal_direction, equations)
 
