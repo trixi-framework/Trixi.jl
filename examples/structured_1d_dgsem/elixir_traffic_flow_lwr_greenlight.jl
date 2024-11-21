@@ -19,7 +19,8 @@ mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
 # Green light that at x = 0 which switches at t = 0 from red to green.
 # To the left there are cars bumper to bumper, to the right there are no cars.
 function initial_condition_greenlight(x, t, equation::TrafficFlowLWREquations1D)
-    scalar = x[1] < 0 ? 1 : 0
+    RealT = eltype(x)
+    scalar = x[1] < 0 ? one(RealT) : zero(RealT)
 
     return SVector(scalar)
 end
