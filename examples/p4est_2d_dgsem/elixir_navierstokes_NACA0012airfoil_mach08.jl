@@ -76,9 +76,9 @@ boundary_conditions = Dict(:Left => boundary_condition_subsonic_constant,
                            :AirfoilBottom => boundary_condition_slip_wall,
                            :AirfoilTop => boundary_condition_slip_wall)
 
-velocity_airfoil = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
+velocity_airfoil = NoSlip((x, t, equations_parabolic) -> SVector(0.0, 0.0))
 
-heat_airfoil = Adiabatic((x, t, equations) -> 0.0)
+heat_airfoil = Adiabatic((x, t, equations_parabolic) -> 0.0)
 
 boundary_conditions_airfoil = BoundaryConditionNavierStokesWall(velocity_airfoil,
                                                                 heat_airfoil)
@@ -88,11 +88,11 @@ function velocities_initial_condition_mach08_flow(x, t, equations)
     return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
 end
 
-velocity_bc_square = NoSlip((x, t, equations) -> velocities_initial_condition_mach08_flow(x,
-                                                                                          t,
-                                                                                          equations))
+velocity_bc_square = NoSlip((x, t, equations_parabolic) -> velocities_initial_condition_mach08_flow(x,
+                                                                                                    t,
+                                                                                                    equations))
 
-heat_bc_square = Adiabatic((x, t, equations) -> 0.0)
+heat_bc_square = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_square = BoundaryConditionNavierStokesWall(velocity_bc_square,
                                                               heat_bc_square)
 

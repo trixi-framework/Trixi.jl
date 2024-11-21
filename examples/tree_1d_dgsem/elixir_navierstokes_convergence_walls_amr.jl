@@ -126,14 +126,14 @@ velocity_bc_left_right = NoSlip() do x, t, equations_parabolic
     return u_cons[2] / u_cons[1]
 end
 
-heat_bc_left = Isothermal() do x, t, equations
+heat_bc_left = Isothermal() do x, t, equations_parabolic
     Trixi.temperature(initial_condition_navier_stokes_convergence_test(x,
                                                                        t,
-                                                                       equations),
+                                                                       equations_parabolic),
                       equations_parabolic)
 end
 
-heat_bc_right = Adiabatic((x, t, equations) -> 0.0)
+heat_bc_right = Adiabatic((x, t, equations_parabolic) -> 0.0)
 
 boundary_condition_left = BoundaryConditionNavierStokesWall(velocity_bc_left_right,
                                                             heat_bc_left)
