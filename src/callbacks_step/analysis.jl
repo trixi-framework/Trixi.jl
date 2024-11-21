@@ -163,42 +163,42 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
 
         # write header of output file
         open(joinpath(output_directory, analysis_filename), "w") do io
-            @printf(io, "#timestep ")
-            @printf(io, "time ")
-            @printf(io, "dt ")
+            print(io, "#timestep ")
+            print(io, "time ")
+            print(io, "dt ")
             if :l2_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, " l2_"*v)
+                    print(io, "l2_" * v * " ")
                 end
             end
             if :linf_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, " linf_"*v)
+                    print(io, "linf_" * v * " ")
                 end
             end
             if :conservation_error in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, " cons_"*v)
+                    print(io, "cons_" * v * " ")
                 end
             end
             if :residual in analysis_errors
                 for v in varnames(cons2cons, equations)
-                    @printf(io, " res_"*v)
+                    print(io, "res_" * v * " ")
                 end
             end
             if :l2_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    @printf(io, " l2_"*v)
+                    print(io, "l2_" * v * " ")
                 end
             end
             if :linf_error_primitive in analysis_errors
                 for v in varnames(cons2prim, equations)
-                    @printf(io, " linf_"*v)
+                    print(io, "linf_" * v * " ")
                 end
             end
 
             for quantity in analysis_integrals
-                @printf(io, " ", pretty_form_ascii(quantity))
+                print(io, pretty_form_ascii(quantity), " ")
             end
 
             println(io)
