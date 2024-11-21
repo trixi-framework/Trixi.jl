@@ -92,7 +92,6 @@ function prolong2interfaces!(cache, u,
         # Note that in the current implementation, the interface will be
         # "aligned at the primary element", i.e., the index of the primary side
         # will always run forwards.
-        @autoinfiltrate
         primary_element = interfaces.neighbor_ids[1, interface]
         primary_indices = interfaces.node_indices[1, interface]
 
@@ -100,6 +99,7 @@ function prolong2interfaces!(cache, u,
                                                                  index_range)
         j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
                                                                  index_range)
+        @autoinfiltrate
 
         i_primary = i_primary_start
         j_primary = j_primary_start

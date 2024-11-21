@@ -114,7 +114,7 @@ function prolong2interfaces!(cache, u,
 end
 
 function calc_interface_flux!(surface_flux_values,
-                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                              mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                               nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
