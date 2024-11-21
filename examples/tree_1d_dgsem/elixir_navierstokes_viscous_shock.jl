@@ -12,7 +12,6 @@ using Trixi
 #   English translations:
 #   Impact waves and detonation. Part I.
 #   https://ntrs.nasa.gov/api/citations/19930090862/downloads/19930090862.pdf
-#
 #   Impact waves and detonation. Part II.
 #   https://ntrs.nasa.gov/api/citations/19930090863/downloads/19930090863.pdf
 #
