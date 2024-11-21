@@ -37,16 +37,7 @@ jobs:
           - version: '1.10'
             os: windows-latest
             arch: x64
-          - version: '1.10'
-            os: macOS-latest
-            arch: x64
-          - version: '1.10'
-            os: ubuntu-latest
-            arch: x86
-          - version: '1.10'
-            os: windows-latest
-            arch: x86
-          # Skip macOS x86 for now as Julia 1.10 binary support for macOS on x86 is unavailable
+          # CUDA.jl only supports 64-bit Linux and Windows, see https://github.com/JuliaGPU/CUDA.jl?tab=readme-ov-file#requirements
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
