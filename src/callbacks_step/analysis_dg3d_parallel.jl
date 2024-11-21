@@ -75,10 +75,12 @@ function integrate_via_indices(func::Func, u,
     @unpack weights = dg.basis
 
     # Initialize integral with zeros of the right shape
-    # Pass `zero(SVector{nvariables(equations), eltype(u))}` to `func` since `u` might be empty, if the
-    # current rank has no elements, see also https://github.com/trixi-framework/Trixi.jl/issues/1096.
-    integral = zero(func(zero(SVector{nvariables(equations), eltype(u)}), 1, 1, 1, 1,
-                         equations, dg, args...))
+    # Pass `zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg), nnodes(dg), 1)` 
+    # to `func` since `u` might be empty, if the current rank has no elements. 
+    # See also https://github.com/trixi-framework/Trixi.jl/issues/1096, and
+    # https://github.com/trixi-framework/Trixi.jl/pull/2126/files/7cbc57cfcba93e67353566e10fce1f3edac27330#r1814483243.
+    integral = zero(func(zeros(eltype(u), nvariables(equations), nnodes(dg), nnodes(dg),
+                               nnodes(dg), 1), 1, 1, 1, 1, equations, dg, args...))
     volume = zero(real(mesh))
 
     # Use quadrature to numerically integrate over entire domain
