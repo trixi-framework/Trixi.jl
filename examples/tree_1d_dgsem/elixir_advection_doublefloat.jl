@@ -20,7 +20,8 @@ solver = DGSEM(RealT = RealT, polydeg = 7, surface_flux = flux_lax_friedrichs)
 coordinates_min = -convert(RealT, 1) # minimum coordinate
 coordinates_max = convert(RealT, 1) # maximum coordinate
 
-# For `TreeMesh` the datatype has to be specified explicitly
+# For `TreeMesh` the datatype has to be specified explicitly,
+# i.e., is not inferred from the coordinates.
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
                 n_cells_max = 30_000,
