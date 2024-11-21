@@ -1,57 +1,4 @@
 """
-    T8codeForestWrapper
-
-Lightweight `t8_forest_t` pointer wrapper which helps to free
-resources allocated by t8code in an orderly fashion.
-
-When initialized with a t8code forest pointer the wrapper
-registers itself with a t8code object tracker called `__T8CODE_OBJECT_TRACKER`.
-
-In serial mode the wrapper and in consequence the t8code forest
-can be finalized immediately whenever Julia's garbage collector sees fit.
-
-In (MPI) parallel mode the wrapper (and the t8code forest) is kept till the end
-of the session or when finalized explicitly. At the end of the session (resp.
-when the program shuts down) the object tracker finalizes all registered t8code
-objects in sync with all MPI ranks. This is necessary since t8code internally
-allocates MPI shared arrays. See `src/auxiliary/t8code.jl` for the finalization
-code when Trixi is shutting down.
-"""
-mutable struct T8codeForestWrapper
-    pointer::Ptr{t8_forest} # cpointer to t8code forest
-    unique_id::UInt
-
-    function T8codeForestWrapper(pointer::Ptr{t8_forest})
-        wrapper = new(pointer)
-
-        # Compute the unique id from the T8codeForestWrapper object.
-        wrapper.unique_id = pointer_from_objref(wrapper)
-
-        if mpi_isparallel()
-            # Make sure the unique id is identical for each MPI rank.
-            wrapper.unique_id = MPI.bcast(wrapper.unique_id, mpi_comm(), root = mpi_root())
-        end
-
-        finalizer(wrapper) do wrapper
-            # When finalizing, `forest`, `scheme`, `cmesh`, and `geometry` are
-            # also cleaned up from within `t8code`. The cleanup code for
-            # `cmesh` does some MPI calls for deallocating shared memory
-            # arrays. Due to garbage collection in Julia the order of shutdown
-            # is not deterministic. Hence, deterministic finalization is necessary in
-            # order to avoid MPI-related error output when closing the Julia
-            # program/session.
-            t8_forest_unref(Ref(wrapper.pointer))
-
-            # Deregister from the object tracker.
-            delete!(__T8CODE_OBJECT_TRACKER, wrapper.unique_id)
-        end
-
-        # Register the T8codeForestWrapper with the object tracker.
-        __T8CODE_OBJECT_TRACKER[wrapper.unique_id] = wrapper
-    end
-end
-
-"""
     T8codeMesh{NDIMS} <: AbstractMesh{NDIMS}
 
 An unstructured curved mesh based on trees that uses the C library
@@ -60,7 +7,7 @@ to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    forest      :: T8codeForestWrapper
+    forest      :: T8code.ForestWrapper
     is_parallel :: IsParallel
 
     # This specifies the geometry interpolation for each tree.
@@ -87,7 +34,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                RealT = Float64) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
 
-        mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8codeForestWrapper(forest),
+        mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
                                                                                 is_parallel)
 
         mesh.nodes = nodes

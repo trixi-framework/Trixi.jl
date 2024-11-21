@@ -1,10 +1,3 @@
-# Minimal reference tracker holding active t8code related objects
-# created throughout the life time of a Julia session. t8code objects
-# should remove themselves from the tracker when they get finalized.
-if !@isdefined(__T8CODE_OBJECT_TRACKER)
-    __T8CODE_OBJECT_TRACKER = Dict()
-end
-
 """
     init_t8code()
 
@@ -39,21 +32,9 @@ function init_t8code()
             T8code.Libt8.p4est_init(C_NULL, LOG_LEVEL)
         end
 
+        # Clean up t8code before MPI shuts down.
         MPI.add_finalize_hook!() do
-            # Finalize all registered t8code objects before MPI shuts down.
-            while length(__T8CODE_OBJECT_TRACKER) > 0
-                unique_id = first(__T8CODE_OBJECT_TRACKER).first
-
-                # Make sure all MPI ranks finalize the same object.
-                if mpi_isparallel()
-                    unique_id = MPI.bcast(unique_id, mpi_comm(), root = mpi_root())
-                end
-
-                # Finalize the object. The object deregisters itself from the
-                # object tracker automatically.
-                finalize(__T8CODE_OBJECT_TRACKER[unique_id])
-            end
-
+            T8code.clean_up()
             status = T8code.Libt8.sc_finalize_noabort()
             if status != 0
                 @warn("Inconsistent state detected after finalizing t8code.")
