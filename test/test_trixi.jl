@@ -15,6 +15,7 @@ are compared approximately against these reference values, using `atol, rtol`
 as absolute/relative tolerance.
 """
 macro test_trixi_include(elixir, args...)
+    # Note: The variables below are just Symbols, not actual errors/types
     local l2 = get_kwarg(args, :l2, nothing)
     local linf = get_kwarg(args, :linf, nothing)
     local RealT = get_kwarg(args, :RealT, :Float64)
@@ -24,6 +25,12 @@ macro test_trixi_include(elixir, args...)
     elseif RealT === :Float32
         atol_default = 500 * eps(Float32)
         rtol_default = sqrt(eps(Float32))
+    elseif RealT === :Float128
+        atol_default = 500 * eps(Float128)
+        rtol_default = sqrt(eps(Float128))
+    elseif RealT === :Double64
+        atol_default = 500 * eps(Double64)
+        rtol_default = sqrt(eps(Double64))
     end
     local atol = get_kwarg(args, :atol, atol_default)
     local rtol = get_kwarg(args, :rtol, rtol_default)
