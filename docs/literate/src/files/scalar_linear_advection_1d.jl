@@ -50,7 +50,6 @@ dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 # ```
 # Here, $u_t^{Q_l}$ and $u_\xi^{Q_l}$ denote the time and spatial derivatives of the solution on the element $Q_l$.
 
-
 # ### ii. Polynomial approach
 # Now, we want to approximate the solution in each element $Q_l$ by a polynomial of degree $N$. Since we transformed
 # the equation, we can use the same polynomial approach for the reference coordinate $\xi\in[-1, 1]$ in every
@@ -104,8 +103,7 @@ weights = basis.weights
 # \end{align*}
 # ```
 # Let's use our nodes and weights for $N=3$ and plug in
-integral = sum(nodes.^3 .* weights)
-
+integral = sum(nodes .^ 3 .* weights)
 
 # Using this polynomial approach leads to the equation
 # ```math
@@ -115,14 +113,14 @@ integral = sum(nodes.^3 .* weights)
 # To approximate the solution, we need to get the polynomial coefficients $\{u_j^{Q_l}\}_{j=0}^N$
 # for every element $Q_l$.
 
-# After defining all nodes, we can implement the spatial coordinate $x$ and its initial value $u0$
+# After defining all nodes, we can implement the spatial coordinate $x$ and its initial value $u0 = u(t_0)$
 # for every node.
 x = Matrix{Float64}(undef, length(nodes), n_elements)
 for element in 1:n_elements
-    x_l = coordinates_min + (element - 1) * dx + dx/2
-    for i in 1:length(nodes)
+    x_l = coordinates_min + (element - 1) * dx + dx / 2
+    for i in eachindex(nodes)
         ξ = nodes[i] # nodes in [-1, 1]
-        x[i, element] = x_l + dx/2 * ξ
+        x[i, element] = x_l + dx / 2 * ξ
     end
 end
 
@@ -130,7 +128,7 @@ u0 = initial_condition_sine_wave.(x)
 
 # To have a look at the initial sinus curve, we plot it.
 using Plots
-plot(vec(x), vec(u0), label="initial condition", legend=:topleft)
+plot(vec(x), vec(u0), label = "initial condition", legend = :topleft)
 
 # ### iii. Variational formulation
 # After defining the equation and initial condition, we want to implement an algorithm to
@@ -184,7 +182,7 @@ M = diagm(weights)
 # ```
 # With an exact integration the mass matrix would be dense. Choosing numerical integrating and quadrature
 # with the exact same nodes (collocation) leads to the sparse and diagonal mass matrix $M$. This
-# is called mass lumping and has the big advantage of an easy invertation of the matrix.
+# is called mass lumping and has the big advantage of an easy inversion of the matrix.
 
 # #### Term II:
 # We use spatial partial integration for the second term:
@@ -243,8 +241,9 @@ D = basis.derivative_matrix
 # ```
 # for $k=0,...,N$ and therefore, $\underline{f}' = D \underline{f}$.
 basis_N8 = LobattoLegendreBasis(8)
-plot(vec(x), x -> 3 * x^2, label="f'", lw=2)
-scatter!(basis_N8.nodes, basis_N8.derivative_matrix * basis_N8.nodes.^3, label="Df", lw=3)
+plot(vec(x), x -> 3 * x^2, label = "f'", lw = 2)
+scatter!(basis_N8.nodes, basis_N8.derivative_matrix * basis_N8.nodes .^ 3, label = "Df",
+         lw = 3)
 
 # Combining the volume term for every $i=0,...,N$ results in
 # ```math
@@ -302,13 +301,15 @@ function rhs!(du, u, x, t)
     ## Trixi.jl needs the equation we are dealing with and an additional `1`, that indicates the
     ## first coordinate direction.
     equations = LinearScalarAdvectionEquation1D(1.0)
-    for element in 2:n_elements-1
+    for element in 2:(n_elements - 1)
         ## left interface
-        flux_numerical[1, element] = surface_flux(u[end, element-1], u[1, element], 1, equations)
-        flux_numerical[end, element-1] = flux_numerical[1, element]
+        flux_numerical[1, element] = surface_flux(u[end, element - 1], u[1, element], 1,
+                                                  equations)
+        flux_numerical[end, element - 1] = flux_numerical[1, element]
         ## right interface
-        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element+1], 1, equations)
-        flux_numerical[1, element+1] = flux_numerical[end, element]
+        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element + 1], 1,
+                                                    equations)
+        flux_numerical[1, element + 1] = flux_numerical[end, element]
     end
     ## boundary flux
     flux_numerical[1, 1] = surface_flux(u[end, end], u[1, 1], 1, equations)
@@ -342,13 +343,12 @@ using OrdinaryDiffEq
 tspan = (0.0, 2.0)
 ode = ODEProblem(rhs!, u0, tspan, x)
 
-sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...)
+sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+            ode_default_options()...)
 @test maximum(abs.(u0 - sol.u[end])) < 5e-5 #src
 
-plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3)
-
-
-
+plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :topleft,
+     lw = 3)
 
 # ## Alternative Implementation based on Trixi.jl
 # Now, we implement the same example. But this time, we directly use the functionality that Trixi.jl
@@ -362,7 +362,7 @@ equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 # Then, create a DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux.
 # The implementation of the basis and the numerical flux is now already done.
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # We will now create a mesh with 16 elements for the physical domain `[-1, 1]` with periodic boundaries.
 # We use Trixi.jl's standard mesh [`TreeMesh`](@ref). Since it's limited to hypercube domains, we
@@ -371,28 +371,29 @@ solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
 coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0  # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4, # number of elements = 2^4
-                n_cells_max=30_000) # set maximum capacity of tree data structure (only needed for AMR)
+                initial_refinement_level = 4, # number of elements = 2^4
+                n_cells_max = 30_000) # set maximum capacity of tree data structure (only needed for AMR)
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
 # In Trixi.jl, an initial condition has the following parameter structure and is of the type `SVector`.
-initial_condition_sine_wave(x, t, equations) = SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+function initial_condition_sine_wave(x, t, equations)
+    SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
 
 # Again, combining all definitions and the function that calculates the right-hand side, we define the ODE and
 # solve it until `t=2` with OrdinaryDiffEq's `solve` function and the Runge-Kutta method `RDPK3SpFSAL49()`.
 tspan = (0.0, 2.0)
-ode_trixi  = semidiscretize(semi, tspan)
+ode_trixi = semidiscretize(semi, tspan)
 
-sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...);
+sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+                  ode_default_options()...);
 
 # We add a plot of the new approximated solution to the one calculated before.
-plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
+plot!(sol_trixi, label = "solution at t=$(tspan[2]) with Trixi.jl", legend = :topleft,
+      linestyle = :dash, lw = 2)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
-
-
-
 
 # ## Summary of the code
 # To sum up, here is the complete code that we used.
@@ -410,16 +411,16 @@ B = diagm([-1; zeros(polydeg - 1); 1])
 ## mesh
 coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0  # maximum coordinate
-n_elements      = 16   # number of elements
+n_elements = 16   # number of elements
 
 dx = (coordinates_max - coordinates_min) / n_elements # length of one element
 
 x = Matrix{Float64}(undef, length(nodes), n_elements)
 for element in 1:n_elements
-    x_l = -1 + (element - 1) * dx + dx/2
-    for i in 1:length(nodes) # basis points in [-1, 1]
+    x_l = -1 + (element - 1) * dx + dx / 2
+    for i in eachindex(nodes) # basis points in [-1, 1]
         ξ = nodes[i]
-        x[i, element] = x_l + dx/2 * ξ
+        x[i, element] = x_l + dx / 2 * ξ
     end
 end
 
@@ -427,7 +428,7 @@ end
 initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)
 u0 = initial_condition_sine_wave.(x)
 
-plot(vec(x), vec(u0), label="initial condition", legend=:topleft)
+plot(vec(x), vec(u0), label = "initial condition", legend = :topleft)
 
 ## flux Lax-Friedrichs
 surface_flux = flux_lax_friedrichs
@@ -440,13 +441,15 @@ function rhs!(du, u, x, t)
 
     ## calculate interface and boundary fluxes
     equations = LinearScalarAdvectionEquation1D(1.0)
-    for element in 2:n_elements-1
+    for element in 2:(n_elements - 1)
         ## left interface
-        flux_numerical[1, element] = surface_flux(u[end, element-1], u[1, element], 1, equations)
-        flux_numerical[end, element-1] = flux_numerical[1, element]
+        flux_numerical[1, element] = surface_flux(u[end, element - 1], u[1, element], 1,
+                                                  equations)
+        flux_numerical[end, element - 1] = flux_numerical[1, element]
         ## right interface
-        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element+1], 1, equations)
-        flux_numerical[1, element+1] = flux_numerical[end, element]
+        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element + 1], 1,
+                                                    equations)
+        flux_numerical[1, element + 1] = flux_numerical[end, element]
     end
     ## boundary flux
     flux_numerical[1, 1] = surface_flux(u[end, end], u[1, 1], 1, equations)
@@ -476,11 +479,12 @@ tspan = (0.0, 2.0)
 ode = ODEProblem(rhs!, u0, tspan, x)
 
 ## solve
-sol = solve(ode, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...)
+sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+            ode_default_options()...)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
 
-plot(vec(x), vec(sol.u[end]), label="solution at t=$(tspan[2])", legend=:topleft, lw=3)
-
+plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :topleft,
+     lw = 3)
 
 # ### Alternative Implementation based on Trixi.jl
 using Trixi, OrdinaryDiffEq, Plots
@@ -490,28 +494,31 @@ advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
 ## create DG solver with flux lax friedrichs and LGL basis
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 ## distretize domain with `TreeMesh`
 coordinates_min = -1.0 # minimum coordinate
 coordinates_max = 1.0 # maximum coordinate
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4, # number of elements = 2^4
-                n_cells_max=30_000)
+                initial_refinement_level = 4, # number of elements = 2^4
+                n_cells_max = 30_000)
 
 ## create initial condition and semidiscretization
-initial_condition_sine_wave(x, t, equations) = SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+function initial_condition_sine_wave(x, t, equations)
+    SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+end
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
 
 ## solve
 tspan = (0.0, 2.0)
-ode_trixi  = semidiscretize(semi, tspan)
-sol_trixi  = solve(ode_trixi, RDPK3SpFSAL49(); abstol=1.0e-6, reltol=1.0e-6, ode_default_options()...);
+ode_trixi = semidiscretize(semi, tspan)
+sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+                  ode_default_options()...);
 
-plot!(sol_trixi, label="solution at t=$(tspan[2]) with Trixi.jl", legend=:topleft, linestyle=:dash, lw=2)
+plot!(sol_trixi, label = "solution at t=$(tspan[2]) with Trixi.jl", legend = :topleft,
+      linestyle = :dash, lw = 2)
 @test maximum(abs.(vec(u0) - sol_trixi.u[end])) ≈ maximum(abs.(u0 - sol.u[end])) #src
-
 
 # ## Package versions
 
@@ -522,4 +529,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode=PKGMODE_MANIFEST)
+           mode = PKGMODE_MANIFEST)

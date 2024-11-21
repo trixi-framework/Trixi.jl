@@ -16,6 +16,8 @@
 # state as arguments, and solves an approximate Riemann problem to introduce dissipation (and
 # hence stabilization) at the boundary. Hence, the performance of the Dirichlet BC depends on the
 # fidelity of the numerical surface flux.
+# An easy-to read introductory reference on this topic is the paper by 
+# [Mengaldo et al.](https://doi.org/10.2514/6.2014-2923).
 
 # The passed boundary value function is called with the same arguments as an initial condition
 # function, i.e.
@@ -24,7 +26,6 @@
 # ```
 # where `x` specifies the spatial coordinates, `t` is the current time, and `equations` is the
 # corresponding system of equations.
-
 
 # We want to give a short example for a simulation with such a Dirichlet BC.
 
@@ -39,7 +40,8 @@ initial_condition_zero(x, t, equation::LinearScalarAdvectionEquation1D) = SVecto
 initial_condition = initial_condition_zero
 
 using Plots
-plot(x -> sum(initial_condition(x, 0.0, equations)), label="initial condition", ylim=(-1.5, 1.5))
+plot(x -> sum(initial_condition(x, 0.0, equations)), label = "initial condition",
+     ylim = (-1.5, 1.5))
 
 # Using an advection velocity of `1.0` and the (local) Lax-Friedrichs/Rusanov flux
 # [`FluxLaxFriedrichs`](@ref) as a numerical surface flux, we are able to create an inflow boundary
@@ -57,10 +59,10 @@ end
 boundary_condition = boundary_condition_sine_sector
 
 # We set the BC in negative and positive x-direction.
-boundary_conditions = (x_neg=BoundaryConditionDirichlet(boundary_condition),
-                       x_pos=BoundaryConditionDirichlet(boundary_condition))
+boundary_conditions = (x_neg = BoundaryConditionDirichlet(boundary_condition),
+                       x_pos = BoundaryConditionDirichlet(boundary_condition))
 #-
-solver = DGSEM(polydeg=3, surface_flux=flux_lax_friedrichs)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 coordinates_min = (0.0,)
 coordinates_max = (2.0,)
@@ -68,40 +70,40 @@ coordinates_max = (2.0,)
 # For the mesh type `TreeMesh` the parameter `periodicity` must be set to `false` in the
 # corresponding direction.
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level=4,
-                n_cells_max=10_000,
-                periodicity=false)
-
+                initial_refinement_level = 4,
+                n_cells_max = 10_000,
+                periodicity = false)
 
 semi = SemidiscretizationHyperbolic(mesh, equations,
                                     initial_condition,
                                     solver,
-                                    boundary_conditions=boundary_conditions)
+                                    boundary_conditions = boundary_conditions)
 
 tspan = (0.0, 6.0)
 ode = semidiscretize(semi, tspan)
 
-analysis_callback = AnalysisCallback(semi, interval=100,)
+analysis_callback = AnalysisCallback(semi, interval = 100)
 
-stepsize_callback = StepsizeCallback(cfl=0.9)
+stepsize_callback = StepsizeCallback(cfl = 0.9)
 
 callbacks = CallbackSet(analysis_callback,
                         stepsize_callback);
 
 # We define some equidistant nodes for the visualization
-visnodes = range(tspan[1], tspan[2], length=300)
+visnodes = range(tspan[1], tspan[2], length = 300)
 
 # and run the simulation.
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, saveat=visnodes, callback=callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, saveat = visnodes, callback = callbacks);
 
 using Plots
-@gif for step in 1:length(sol.u)
-    plot(sol.u[step], semi, ylim=(-1.5, 1.5), legend=true, label="approximation", title="time t=$(round(sol.t[step], digits=5))")
-    scatter!([0.0], [sum(boundary_condition(SVector(0.0), sol.t[step], equations))], label="boundary condition")
+@gif for step in eachindex(sol.u)
+    plot(sol.u[step], semi, ylim = (-1.5, 1.5), legend = true, label = "approximation",
+         title = "time t=$(round(sol.t[step], digits=5))")
+    scatter!([0.0], [sum(boundary_condition(SVector(0.0), sol.t[step], equations))],
+             label = "boundary condition")
 end
-
 
 # # Other available example elixirs with non-trivial BC
 # Moreover, there are other boundary conditions in Trixi.jl. For instance, you can use the slip wall
@@ -156,7 +158,6 @@ end
 # ```
 # Source: [`Video`](https://www.youtube.com/watch?v=w0A9X38cSe4) on Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
 
-
 # ## Package versions
 
 # These results were obtained using the following versions.
@@ -166,4 +167,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
-           mode=PKGMODE_MANIFEST)
+           mode = PKGMODE_MANIFEST)

@@ -1,4 +1,3 @@
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -28,19 +27,12 @@ Trixi.validate_faces(faces)
 mapping_flag = Trixi.transfinite_mapping(faces)
 
 # Unstructured mesh with 24 cells of the square domain [-1, 1]^n.
-mesh_file = joinpath(@__DIR__, "square_unstructured_2.inp")
-isfile(mesh_file) ||
-    download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
-             mesh_file)
+mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/63ff2ea224409e55ee8423b3a33e316a/raw/7db58af7446d1479753ae718930741c47a3b79b7/square_unstructured_2.inp",
+                           joinpath(@__DIR__, "square_unstructured_2.inp"))
 
-# INP mesh files are only support by p4est. Hence, we
-# create a p4est connecvity object first from which
-# we can create a t8code mesh.
-conn = Trixi.read_inp_p4est(mesh_file, Val(2))
-
-mesh = T8codeMesh{2}(conn, polydeg = 3,
-                     mapping = mapping_flag,
-                     initial_refinement_level = 2)
+mesh = T8codeMesh(mesh_file, 2;
+                  mapping = mapping_flag, polydeg = 3,
+                  initial_refinement_level = 2)
 
 # A semidiscretization collects data structures and functions for the spatial discretization.
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
@@ -61,13 +53,18 @@ summary_callback = SummaryCallback()
 # prints the results.
 analysis_callback = AnalysisCallback(semi, interval = 100)
 
+# The SaveSolutionCallback allows to save the solution to a file in regular intervals
+save_solution = SaveSolutionCallback(interval = 100,
+                                     solution_variables = cons2prim)
+
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each
 # time step.
 stepsize_callback = StepsizeCallback(cfl = 1.4)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to
 # the ODE solver.
-callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
+                        stepsize_callback)
 
 ###############################################################################
 # Run the simulation.
@@ -79,3 +76,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
 
 # Print the timer summary.
 summary_callback()
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)

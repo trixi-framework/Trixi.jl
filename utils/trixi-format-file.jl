@@ -2,7 +2,8 @@
 
 using Pkg
 Pkg.activate(; temp = true, io = devnull)
-Pkg.add("JuliaFormatter"; preserve = PRESERVE_ALL, io = devnull)
+Pkg.add(PackageSpec(name = "JuliaFormatter", version = "1.0.60"); preserve = PRESERVE_ALL,
+        io = devnull)
 
 using JuliaFormatter: format_file
 

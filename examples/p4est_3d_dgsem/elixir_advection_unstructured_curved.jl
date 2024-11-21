@@ -1,5 +1,4 @@
 
-using Downloads: download
 using OrdinaryDiffEq
 using Trixi
 
@@ -46,10 +45,8 @@ function mapping(xi, eta, zeta)
 end
 
 # Unstructured mesh with 68 cells of the cube domain [-1, 1]^3
-mesh_file = joinpath(@__DIR__, "cube_unstructured_1.inp")
-isfile(mesh_file) ||
-    download("https://gist.githubusercontent.com/efaulhaber/d45c8ac1e248618885fa7cc31a50ab40/raw/37fba24890ab37cfa49c39eae98b44faf4502882/cube_unstructured_1.inp",
-             mesh_file)
+mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/d45c8ac1e248618885fa7cc31a50ab40/raw/37fba24890ab37cfa49c39eae98b44faf4502882/cube_unstructured_1.inp",
+                           joinpath(@__DIR__, "cube_unstructured_1.inp"))
 
 mesh = P4estMesh{3}(mesh_file, polydeg = 3,
                     mapping = mapping,
@@ -63,7 +60,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 0.1
-ode = semidiscretize(semi, (0.0, 0.1));
+ode = semidiscretize(semi, (0.0, 0.1))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

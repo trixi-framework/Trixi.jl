@@ -10,7 +10,7 @@ gamma = 2.0
 equations_euler = CompressibleEulerEquations2D(gamma)
 
 polydeg = 3
-solver_euler = DGSEM(polydeg, flux_hll)
+solver_euler = DGSEM(polydeg, FluxHLL(min_max_speed_naive))
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (2.0, 2.0)
@@ -48,7 +48,7 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 ###############################################################################
 # ODE solvers, callbacks etc.
 tspan = (0.0, 0.5)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 

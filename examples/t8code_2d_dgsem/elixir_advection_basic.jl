@@ -16,12 +16,10 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
-mapping = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
-
 trees_per_dimension = (8, 8)
 
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
-                  mapping = mapping,
+                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   initial_refinement_level = 1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -32,7 +30,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 1.0
-ode = semidiscretize(semi, (0.0, 1.0));
+ode = semidiscretize(semi, (0.0, 1.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -57,3 +55,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
 
 # Print the timer summary
 summary_callback()
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)

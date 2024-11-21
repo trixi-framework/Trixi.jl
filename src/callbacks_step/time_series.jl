@@ -23,8 +23,7 @@ After the last time step, the results are stored in an HDF5 file `filename` in d
 The real data type `RealT` and data type for solution variables `uEltype` default to the respective
 types used in the solver and the cache.
 
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
+Currently this callback is only implemented for [`TreeMesh`](@ref) and [`UnstructuredMesh2D`](@ref).
 """
 mutable struct TimeSeriesCallback{RealT <: Real, uEltype <: Real, SolutionVariables,
                                   VariableNames, Cache}
@@ -73,7 +72,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "interval" => time_series_callback.interval,
             "solution_variables" => time_series_callback.solution_variables,
             "output_directory" => time_series_callback.output_directory,
-            "filename" => time_series_callback.filename,
+            "filename" => time_series_callback.filename
         ]
         summary_box(io, "TimeSeriesCallback", setup)
     end
@@ -94,6 +93,11 @@ function TimeSeriesCallback(mesh, equations, solver, cache, point_coordinates;
 
     if ndims(point_coordinates) != 2 || size(point_coordinates, 2) != ndims(mesh)
         throw(ArgumentError("`point_coordinates` must be a matrix of size n_points × ndims"))
+    end
+
+    # create the output folder if it does not exist already
+    if mpi_isroot() && !isdir(output_directory)
+        mkpath(output_directory)
     end
 
     # Transpose point_coordinates to our usual format [ndims, n_points]
@@ -213,5 +217,6 @@ function (time_series_callback::TimeSeriesCallback)(integrator)
 end
 
 include("time_series_dg.jl")
-include("time_series_dg2d.jl")
+include("time_series_dg_tree.jl")
+include("time_series_dg_unstructured.jl")
 end # @muladd

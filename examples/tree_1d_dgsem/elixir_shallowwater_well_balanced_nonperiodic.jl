@@ -11,9 +11,9 @@ equations = ShallowWaterEquations1D(gravity_constant = 1.0, H0 = 3.0)
 function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations1D)
     # Set the background values
     H = equations.H0
-    v = 0.0
+    v = 0
 
-    b = (1.5 / exp(0.5 * ((x[1] - 1.0)^2)) + 0.75 / exp(0.5 * ((x[1] + 1.0)^2)))
+    b = (1.5f0 / exp(0.5f0 * ((x[1] - 1)^2)) + 0.75f0 / exp(0.5f0 * ((x[1] + 1)^2)))
 
     return prim2cons(SVector(H, v, b), equations)
 end
@@ -26,7 +26,9 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg = 4, surface_flux = (flux_hll, flux_nonconservative_fjordholm_etal),
+solver = DGSEM(polydeg = 4,
+               surface_flux = (flux_hll,
+                               flux_nonconservative_fjordholm_etal),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################

@@ -23,7 +23,10 @@ mutable struct StructuredMesh{NDIMS, RealT <: Real} <: AbstractMesh{NDIMS}
 end
 
 """
-    StructuredMesh(cells_per_dimension, mapping; RealT=Float64, unsaved_changes=true, mapping_as_string=mapping2string(mapping, length(cells_per_dimension)))
+    StructuredMesh(cells_per_dimension, mapping;
+                   RealT=Float64,
+                   unsaved_changes=true, 
+                   mapping_as_string=mapping2string(mapping, length(cells_per_dimension), RealT=RealT))
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -46,7 +49,8 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
 function StructuredMesh(cells_per_dimension, mapping; RealT = Float64,
                         periodicity = true, unsaved_changes = true,
                         mapping_as_string = mapping2string(mapping,
-                                                           length(cells_per_dimension)))
+                                                           length(cells_per_dimension),
+                                                           RealT))
     NDIMS = length(cells_per_dimension)
 
     # Convert periodicity to a Tuple of a Bool for every dimension
@@ -95,7 +99,7 @@ function StructuredMesh(cells_per_dimension, faces::Tuple; RealT = Float64,
     mapping = transfinite_mapping(faces)
 
     # Collect definitions of face functions in one string (separated by semicolons)
-    face2substring(face) = code_string(face, ntuple(_ -> Float64, NDIMS - 1))
+    face2substring(face) = code_string(face, ntuple(_ -> RealT, NDIMS - 1))
     join_newline(strings) = join(strings, "\n")
 
     faces_definition = faces .|> face2substring .|> string |> join_newline
@@ -141,8 +145,8 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
 end
 
 # Extract a string of the code that defines the mapping function
-function mapping2string(mapping, ndims)
-    string(code_string(mapping, ntuple(_ -> Float64, ndims)))
+function mapping2string(mapping, ndims, RealT = Float64)
+    string(code_string(mapping, ntuple(_ -> RealT, ndims)))
 end
 
 # An internal function wrapping `CodeTracking.code_string` with additional
@@ -160,12 +164,17 @@ end
 
 # Interpolate linearly between left and right value where s should be between -1 and 1
 function linear_interpolate(s, left_value, right_value)
-    0.5 * ((1 - s) * left_value + (1 + s) * right_value)
+    0.5f0 * ((1 - s) * left_value + (1 + s) * right_value)
 end
 
 # Convert min and max coordinates of a rectangle to the corresponding transformation mapping
 function coordinates2mapping(coordinates_min::NTuple{1}, coordinates_max::NTuple{1})
     mapping(xi) = linear_interpolate(xi, coordinates_min[1], coordinates_max[1])
+end
+# Convenience function for 1D: Do not insist on tuples
+function coordinates2mapping(coordinates_min::RealT,
+                             coordinates_max::RealT) where {RealT <: Real}
+    mapping(xi) = linear_interpolate(xi, coordinates_min, coordinates_max)
 end
 
 function coordinates2mapping(coordinates_min::NTuple{2}, coordinates_max::NTuple{2})
@@ -197,7 +206,7 @@ function bilinear_mapping(x, y, faces)
     x3 = faces[1](1) # Top left
     x4 = faces[2](1) # Top right
 
-    return 0.25 * (x1 * (1 - x) * (1 - y) +
+    return 0.25f0 * (x1 * (1 - x) * (1 - y) +
             x2 * (1 + x) * (1 - y) +
             x3 * (1 - x) * (1 + y) +
             x4 * (1 + x) * (1 + y))
@@ -215,7 +224,7 @@ function trilinear_mapping(x, y, z, faces)
     x7 = faces[1](1, 1) # mapped from (-1, 1, 1)
     x8 = faces[2](1, 1) # mapped from ( 1, 1, 1)
 
-    return 0.125 * (x1 * (1 - x) * (1 - y) * (1 - z) +
+    return 0.125f0 * (x1 * (1 - x) * (1 - y) * (1 - z) +
             x2 * (1 + x) * (1 - y) * (1 - z) +
             x3 * (1 - x) * (1 + y) * (1 - z) +
             x4 * (1 + x) * (1 + y) * (1 - z) +
@@ -255,14 +264,16 @@ function correction_term_3d(x, y, z, faces)
                              linear_interpolate(x, faces[1](1, z), faces[2](1, z)) +
                              linear_interpolate(z, faces[5](x, 1), faces[6](x, 1)))
 
-    # Correction for x-terms
+    # Correction for z-terms
     c_z = linear_interpolate(z,
                              linear_interpolate(x, faces[1](y, -1), faces[2](y, -1)) +
                              linear_interpolate(y, faces[3](x, -1), faces[4](x, -1)),
                              linear_interpolate(x, faces[1](y, 1), faces[2](y, 1)) +
                              linear_interpolate(y, faces[3](x, 1), faces[4](x, 1)))
 
-    return 0.5 * (c_x + c_y + c_z)
+    # Each of the 12 edges are counted twice above
+    # so we divide the correction term by two
+    return 0.5f0 * (c_x + c_y + c_z)
 end
 
 # In 3D

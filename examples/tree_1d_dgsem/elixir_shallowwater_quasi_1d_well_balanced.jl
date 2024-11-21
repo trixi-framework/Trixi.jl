@@ -17,11 +17,11 @@ equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81, H0 = 2.0)
 function initial_condition_discontinuous_well_balancedness(x, t,
                                                            equations::ShallowWaterEquationsQuasi1D)
     H = equations.H0
-    v = 0.0
+    v = 0
 
     # for a periodic domain, this choice of `b` and `a` mimic 
     # discontinuity across the periodic boundary.
-    b = 0.5 * (x[1] + 1)
+    b = 0.5f0 * (x[1] + 1)
     a = 2 + x[1]
 
     return prim2cons(SVector(H, v, b, a), equations)
@@ -70,7 +70,7 @@ save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true)
 
-stepsize_callback = StepsizeCallback(cfl = 3.0)
+stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
                         stepsize_callback)

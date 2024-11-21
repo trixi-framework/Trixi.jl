@@ -28,116 +28,6 @@ function create_cache(typ::Type{IndicatorHennemannGassner}, mesh,
     create_cache(typ, equations, dg.basis)
 end
 
-# Modified indicator for ShallowWaterEquations2D to apply full FV method on cells
-# containing some "dry" LGL nodes. That is, if an element is partially "wet" then it becomes a
-# full FV element.
-#
-# TODO: TrixiShallowWater: move new indicator type
-function (indicator_hg::IndicatorHennemannGassnerShallowWater)(u::AbstractArray{<:Any,
-                                                                                4},
-                                                               mesh,
-                                                               equations::ShallowWaterEquations2D,
-                                                               dg::DGSEM, cache;
-                                                               kwargs...)
-    @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
-    @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded, modal_tmp1_threaded = indicator_hg.cache
-    # TODO: Taal refactor, when to `resize!` stuff changed possibly by AMR?
-    #       Shall we implement `resize!(semi::AbstractSemidiscretization, new_size)`
-    #       or just `resize!` whenever we call the relevant methods as we do now?
-    resize!(alpha, nelements(dg, cache))
-    if alpha_smooth
-        resize!(alpha_tmp, nelements(dg, cache))
-    end
-
-    # magic parameters
-    threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-    parameter_s = log((1 - 0.0001) / 0.0001)
-
-    # If the water height `h` at one LGL node is lower than `threshold_partially_wet`
-    # the indicator sets the element-wise blending factor alpha[element] = 1
-    # via the local variable `indicator_wet`. In turn, this ensures that a pure
-    # FV method is used in partially wet cells and guarantees the well-balanced property.
-    #
-    # Hard-coded cut-off value of `threshold_partially_wet = 1e-4` was determined through many numerical experiments.
-    # Overall idea is to increase robustness when computing the velocity on (nearly) dry cells which
-    # could be "dangerous" due to division of conservative variables, e.g., v1 = hv1 / h.
-    # Here, the impact of the threshold on the number of cells being updated with FV is not that
-    # significant. However, its impact on the robustness is very significant.
-    # The value can be seen as a trade-off between accuracy and stability.
-    # Well-balancedness of the scheme on partially wet cells with hydrostatic reconstruction
-    # can only be proven for the FV method (see Chen and Noelle).
-    # Therefore we set alpha to be one regardless of its given value from the modal indicator.
-    threshold_partially_wet = 1e-4
-
-    @threaded for element in eachelement(dg, cache)
-        indicator = indicator_threaded[Threads.threadid()]
-        modal = modal_threaded[Threads.threadid()]
-        modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
-
-        # (Re-)set dummy variable for alpha_dry
-        indicator_wet = 1
-
-        # Calculate indicator variables at Gauss-Lobatto nodes
-        for j in eachnode(dg), i in eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, j, element)
-            h, _, _, _ = u_local
-
-            if h <= threshold_partially_wet
-                indicator_wet = 0
-            end
-
-            indicator[i, j] = indicator_hg.variable(u_local, equations)
-        end
-
-        # Convert to modal representation
-        multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
-                                       indicator, modal_tmp1)
-
-        # Calculate total energies for all modes, without highest, without two highest
-        total_energy = zero(eltype(modal))
-        for j in 1:nnodes(dg), i in 1:nnodes(dg)
-            total_energy += modal[i, j]^2
-        end
-        total_energy_clip1 = zero(eltype(modal))
-        for j in 1:(nnodes(dg) - 1), i in 1:(nnodes(dg) - 1)
-            total_energy_clip1 += modal[i, j]^2
-        end
-        total_energy_clip2 = zero(eltype(modal))
-        for j in 1:(nnodes(dg) - 2), i in 1:(nnodes(dg) - 2)
-            total_energy_clip2 += modal[i, j]^2
-        end
-
-        # Calculate energy in higher modes
-        energy = max((total_energy - total_energy_clip1) / total_energy,
-                     (total_energy_clip1 - total_energy_clip2) / total_energy_clip1)
-
-        alpha_element = 1 / (1 + exp(-parameter_s / threshold * (energy - threshold)))
-
-        # Take care of the case close to pure DG
-        if alpha_element < alpha_min
-            alpha_element = zero(alpha_element)
-        end
-
-        # Take care of the case close to pure FV
-        if alpha_element > 1 - alpha_min
-            alpha_element = one(alpha_element)
-        end
-
-        # Clip the maximum amount of FV allowed or set to 1 depending on indicator_wet
-        if indicator_wet == 0
-            alpha[element] = 1
-        else # Element is not defined as dry but wet
-            alpha[element] = min(alpha_max, alpha_element)
-        end
-    end
-
-    if alpha_smooth
-        apply_smoothing!(mesh, alpha, alpha_tmp, dg, cache)
-    end
-
-    return alpha
-end
-
 # Use this function barrier and unpack inside to avoid passing closures to Polyester.jl
 # with @batch (@threaded).
 # Otherwise, @threaded does not work here with Julia ARM on macOS.
@@ -221,8 +111,8 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
         right = cache.interfaces.neighbor_ids[2, interface]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5 * alpha_tmp[right], alpha[left])
-        alpha[right] = max(alpha_tmp[right], 0.5 * alpha_tmp[left], alpha[right])
+        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[right], alpha[left])
+        alpha[right] = max(alpha_tmp[right], 0.5f0 * alpha_tmp[left], alpha[right])
     end
 
     # Loop over L2 mortars
@@ -233,10 +123,10 @@ function apply_smoothing!(mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
         large = cache.mortars.neighbor_ids[3, mortar]
 
         # Apply smoothing
-        alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[large], alpha[lower])
-        alpha[upper] = max(alpha_tmp[upper], 0.5 * alpha_tmp[large], alpha[upper])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[lower], alpha[large])
-        alpha[large] = max(alpha_tmp[large], 0.5 * alpha_tmp[upper], alpha[large])
+        alpha[lower] = max(alpha_tmp[lower], 0.5f0 * alpha_tmp[large], alpha[lower])
+        alpha[upper] = max(alpha_tmp[upper], 0.5f0 * alpha_tmp[large], alpha[upper])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[lower], alpha[large])
+        alpha[large] = max(alpha_tmp[large], 0.5f0 * alpha_tmp[upper], alpha[large])
     end
 
     return alpha

@@ -35,7 +35,51 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{3},
     return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2)
 end
 
-function create_cache_analysis(analyzer, mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+# Specialized cache for P4estMesh to allow for different ambient dimension from mesh dimension
+function create_cache_analysis(analyzer,
+                               mesh::P4estMesh{3, NDIMS_AMBIENT},
+                               equations, dg::DG, cache,
+                               RealT, uEltype) where {NDIMS_AMBIENT}
+
+    # pre-allocate buffers
+    # We use `StrideArray`s here since these buffers are used in performance-critical
+    # places and the additional information passed to the compiler makes them faster
+    # than native `Array`s.
+    u_local = StrideArray(undef, uEltype,
+                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+    u_tmp1 = StrideArray(undef, uEltype,
+                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    u_tmp2 = StrideArray(undef, uEltype,
+                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    x_local = StrideArray(undef, RealT,
+                          StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                          StaticInt(nnodes(analyzer)), StaticInt(nnodes(analyzer)))
+    x_tmp1 = StrideArray(undef, RealT,
+                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(dg)), StaticInt(nnodes(dg)))
+    x_tmp2 = StrideArray(undef, RealT,
+                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+    jacobian_local = StrideArray(undef, RealT,
+                                 StaticInt(nnodes(analyzer)),
+                                 StaticInt(nnodes(analyzer)),
+                                 StaticInt(nnodes(analyzer)))
+    jacobian_tmp1 = StrideArray(undef, RealT,
+                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)),
+                                StaticInt(nnodes(dg)))
+    jacobian_tmp2 = StrideArray(undef, RealT,
+                                StaticInt(nnodes(analyzer)),
+                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+
+    return (; u_local, u_tmp1, u_tmp2, x_local, x_tmp1, x_tmp2, jacobian_local,
+            jacobian_tmp1, jacobian_tmp2)
+end
+
+function create_cache_analysis(analyzer,
+                               mesh::Union{StructuredMesh{3}, T8codeMesh{3}},
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
@@ -118,7 +162,7 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                          mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                           equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
@@ -190,7 +234,8 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate_via_indices(func::Func, u,
-                               mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                           T8codeMesh{3}},
                                equations, dg::DGSEM, cache,
                                args...; normalize = true) where {Func}
     @unpack weights = dg.basis
@@ -218,7 +263,8 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate(func::Func, u,
-                   mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+                   mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                               T8codeMesh{3}},
                    equations, dg::DG, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, k, element, equations, dg
@@ -248,7 +294,8 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3}},
+                 mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                             T8codeMesh{3}},
                  equations, dg::DG, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
@@ -277,7 +324,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                 mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                  equations::IdealGlmMhdEquations3D,
                  dg::DGSEM, cache)
     @unpack contravariant_vectors = cache.elements
@@ -329,11 +376,16 @@ function analyze(::Val{:linf_divb}, du, u, t,
         end
     end
 
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
+    end
+
     return linf_divb
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::Union{StructuredMesh{3}, P4estMesh{3}},
+                 mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
                  equations::IdealGlmMhdEquations3D,
                  dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
@@ -363,6 +415,11 @@ function analyze(::Val{:linf_divb}, du, u, t,
             divb *= cache.elements.inverse_jacobian[i, j, k, element]
             linf_divb = max(linf_divb, abs(divb))
         end
+    end
+
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
     end
 
     return linf_divb

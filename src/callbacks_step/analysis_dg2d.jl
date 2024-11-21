@@ -29,9 +29,39 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{2},
     return (; u_local, u_tmp1, x_local, x_tmp1)
 end
 
+# Specialized cache for P4estMesh to allow for different ambient dimension from mesh dimension
+function create_cache_analysis(analyzer, mesh::P4estMesh{2, NDIMS_AMBIENT},
+                               equations, dg::DG, cache,
+                               RealT, uEltype) where {NDIMS_AMBIENT}
+
+    # pre-allocate buffers
+    # We use `StrideArray`s here since these buffers are used in performance-critical
+    # places and the additional information passed to the compiler makes them faster
+    # than native `Array`s.
+    u_local = StrideArray(undef, uEltype,
+                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                          StaticInt(nnodes(analyzer)))
+    u_tmp1 = StrideArray(undef, uEltype,
+                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(dg)))
+    x_local = StrideArray(undef, RealT,
+                          StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                          StaticInt(nnodes(analyzer)))
+    x_tmp1 = StrideArray(undef, RealT,
+                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(dg)))
+    jacobian_local = StrideArray(undef, RealT,
+                                 StaticInt(nnodes(analyzer)),
+                                 StaticInt(nnodes(analyzer)))
+    jacobian_tmp1 = StrideArray(undef, RealT,
+                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+
+    return (; u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1)
+end
+
 function create_cache_analysis(analyzer,
-                               mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, T8codeMesh{2}},
+                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                           UnstructuredMesh2D, T8codeMesh{2}},
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
@@ -107,8 +137,9 @@ function calc_error_norms(func, u, t, analyzer,
 end
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                      P4estMesh{2}, T8codeMesh{2}}, equations,
+                          mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                      UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                          equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -175,8 +206,10 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate_via_indices(func::Func, u,
-                               mesh::Union{StructuredMesh{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, T8codeMesh{2}}, equations,
+                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                           UnstructuredMesh2D, P4estMesh{2},
+                                           T8codeMesh{2}},
+                               equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 
@@ -203,8 +236,8 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate(func::Func, u,
-                   mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                               P4estMesh{2}, T8codeMesh{2}},
+                   mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                               UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
                    equations, dg::DG, cache; normalize = true) where {Func}
     integrate_via_indices(u, mesh, equations, dg, cache;
                           normalize = normalize) do u, i, j, element, equations, dg
@@ -232,8 +265,8 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMesh2D,
-                             P4estMesh{2}, T8codeMesh{2}},
+                 mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
+                             UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
                  equations, dg::DG, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,

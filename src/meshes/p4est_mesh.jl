@@ -6,12 +6,23 @@
 #! format: noindent
 
 """
-    P4estMesh{NDIMS} <: AbstractMesh{NDIMS}
+    P4estMesh{NDIMS, NDIMS_AMBIENT} <: AbstractMesh{NDIMS}
 
 An unstructured curved mesh based on trees that uses the C library `p4est`
 to manage trees and mesh refinement.
+
+The parameter `NDIMS` denotes the dimension of the spatial domain or manifold represented
+by the mesh itself, while `NDIMS_AMBIENT` denotes the dimension of the ambient space in
+which the mesh is embedded. For example, the type `P4estMesh{3, 3}` corresponds to a
+standard mesh for a three-dimensional volume, whereas `P4estMesh{2, 3}` corresponds to a
+mesh for a two-dimensional surface or shell in three-dimensional space.
+
+!!! warning "Experimental implementation"
+    The use of `NDIMS != NDIMS_AMBIENT` is an experimental feature and may change in future
+    releases.
 """
-mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NNODES} <:
+mutable struct P4estMesh{NDIMS, NDIMS_AMBIENT, RealT <: Real, IsParallel, P, Ghost,
+                         NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
     p4est       :: P # Either PointerWrapper{p4est_t} or PointerWrapper{p8est_t}
     is_parallel :: IsParallel
@@ -48,7 +59,14 @@ mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NN
         ghost = ghost_new_p4est(p4est)
         ghost_pw = PointerWrapper(ghost)
 
-        mesh = new{NDIMS, eltype(tree_node_coordinates), typeof(is_parallel),
+        # To enable the treatment of a manifold of dimension NDIMS embedded within an
+        # ambient space of dimension NDIMS_AMBIENT, we store both as type parameters and
+        # allow them to differ in the general case. This functionality is used for
+        # constructing discretizations on spherical shell domains for applications in
+        # global atmospheric modelling. The ambient dimension NDIMS_AMBIENT is therefore 
+        # set here in the inner constructor to size(tree_node_coordinates, 1).
+        mesh = new{NDIMS, size(tree_node_coordinates, 1),
+                   eltype(tree_node_coordinates), typeof(is_parallel),
                    typeof(p4est_pw), typeof(ghost_pw), NDIMS + 2, length(nodes)}(p4est_pw,
                                                                                  is_parallel,
                                                                                  ghost_pw,
@@ -66,8 +84,8 @@ mutable struct P4estMesh{NDIMS, RealT <: Real, IsParallel, P, Ghost, NDIMSP2, NN
     end
 end
 
-const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:False}
-const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Real, <:True}
+const SerialP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:False}
+const ParallelP4estMesh{NDIMS} = P4estMesh{NDIMS, <:Any, <:Real, <:True}
 
 @inline mpi_parallel(mesh::SerialP4estMesh) = False()
 @inline mpi_parallel(mesh::ParallelP4estMesh) = True()
@@ -87,16 +105,19 @@ function destroy_mesh(mesh::P4estMesh{3})
 end
 
 @inline Base.ndims(::P4estMesh{NDIMS}) where {NDIMS} = NDIMS
-@inline Base.real(::P4estMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
+@inline Base.real(::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
+@inline ndims_ambient(::P4estMesh{NDIMS, NDIMS_AMBIENT}) where {NDIMS, NDIMS_AMBIENT} = NDIMS_AMBIENT
 
 @inline function ntrees(mesh::P4estMesh)
     return mesh.p4est.trees.elem_count[]
 end
 # returns Int32 by default which causes a weird method error when creating the cache
 @inline ncells(mesh::P4estMesh) = Int(mesh.p4est.local_num_quadrants[])
+@inline ncellsglobal(mesh::P4estMesh) = Int(mesh.p4est.global_num_quadrants[])
 
 function Base.show(io::IO, mesh::P4estMesh)
-    print(io, "P4estMesh{", ndims(mesh), ", ", real(mesh), "}")
+    print(io, "P4estMesh{", ndims(mesh), ", ", ndims_ambient(mesh), ", ", real(mesh),
+          "}")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
@@ -105,12 +126,13 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::P4estMesh)
     else
         setup = [
             "#trees" => ntrees(mesh),
-            "current #cells" => ncells(mesh),
-            "polydeg" => length(mesh.nodes) - 1,
+            "current #cells" => ncellsglobal(mesh),
+            "polydeg" => length(mesh.nodes) - 1
         ]
         summary_box(io,
-                    "P4estMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) *
-                    "}", setup)
+                    "P4estMesh{" * string(ndims(mesh)) * ", " *
+                    string(ndims_ambient(mesh)) *
+                    ", " * string(real(mesh)) * "}", setup)
     end
 end
 
@@ -289,7 +311,8 @@ end
     P4estMesh{NDIMS}(meshfile::String;
                      mapping=nothing, polydeg=1, RealT=Float64,
                      initial_refinement_level=0, unsaved_changes=true,
-                     p4est_partition_allow_for_coarsening=true)
+                     p4est_partition_allow_for_coarsening=true,
+                     boundary_symbols = nothing)
 
 Main mesh constructor for the `P4estMesh` that imports an unstructured, conforming
 mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh parsed
@@ -310,8 +333,9 @@ To create a curved unstructured mesh `P4estMesh` two strategies are available:
                                      straight-sided from the information parsed from the `meshfile`. If a mapping
                                      function is specified then it computes the mapped tree coordinates via polynomial
                                      interpolants with degree `polydeg`. The mesh created by this function will only
-                                     have one boundary `:all`, as distinguishing different physical boundaries is
-                                     non-trivial.
+                                     have one boundary `:all` if `boundary_symbols` is not specified.
+                                     If `boundary_symbols` is specified the mesh file will be parsed for nodesets defining
+                                     the boundary nodes from which boundary edges (2D) and faces (3D) will be assigned.
 
 Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
 function. The `p4est_mesh_from_hohqmesh_abaqus` function obtains the mesh `polydeg` directly from the `meshfile`
@@ -345,11 +369,14 @@ For example, if a two-dimensional base mesh contains 25 elements then setting
 - `p4est_partition_allow_for_coarsening::Bool`: Must be `true` when using AMR to make mesh adaptivity
                                                 independent of domain partitioning. Should be `false` for static meshes
                                                 to permit more fine-grained partitioning.
+- `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
+                                      If `nothing` is passed then all boundaries are named `:all`.
 """
 function P4estMesh{NDIMS}(meshfile::String;
                           mapping = nothing, polydeg = 1, RealT = Float64,
                           initial_refinement_level = 0, unsaved_changes = true,
-                          p4est_partition_allow_for_coarsening = true) where {NDIMS}
+                          p4est_partition_allow_for_coarsening = true,
+                          boundary_symbols = nothing) where {NDIMS}
     # Prevent `p4est` from crashing Julia if the file doesn't exist
     @assert isfile(meshfile)
 
@@ -373,7 +400,8 @@ function P4estMesh{NDIMS}(meshfile::String;
                                                                                               polydeg,
                                                                                               initial_refinement_level,
                                                                                               NDIMS,
-                                                                                              RealT)
+                                                                                              RealT,
+                                                                                              boundary_symbols)
     end
 
     return P4estMesh{NDIMS}(p4est, tree_node_coordinates, nodes,
@@ -381,12 +409,44 @@ function P4estMesh{NDIMS}(meshfile::String;
                             p4est_partition_allow_for_coarsening)
 end
 
+# Wrapper for `p4est_connectivity_from_hohqmesh_abaqus`. The latter is used
+# by `T8codeMesh`, too.
+function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
+                                         n_dimensions, RealT)
+    connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_hohqmesh_abaqus(meshfile,
+                                                                                                         initial_refinement_level,
+                                                                                                         n_dimensions,
+                                                                                                         RealT)
+
+    p4est = new_p4est(connectivity, initial_refinement_level)
+
+    return p4est, tree_node_coordinates, nodes, boundary_names
+end
+
+# Wrapper for `p4est_connectivity_from_standard_abaqus`. The latter is used
+# by `T8codeMesh`, too.
+function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
+                                         initial_refinement_level, n_dimensions, RealT,
+                                         boundary_symbols)
+    connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_standard_abaqus(meshfile,
+                                                                                                         mapping,
+                                                                                                         polydeg,
+                                                                                                         initial_refinement_level,
+                                                                                                         n_dimensions,
+                                                                                                         RealT,
+                                                                                                         boundary_symbols)
+
+    p4est = new_p4est(connectivity, initial_refinement_level)
+
+    return p4est, tree_node_coordinates, nodes, boundary_names
+end
+
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. High-order boundary curve information as well as
 # the boundary names on each tree are provided by the `meshfile` created by
 # [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl).
-function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
-                                         n_dimensions, RealT)
+function p4est_connectivity_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
+                                                 n_dimensions, RealT)
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
@@ -434,17 +494,17 @@ function p4est_mesh_from_hohqmesh_abaqus(meshfile, initial_refinement_level,
         file_idx += 1
     end
 
-    p4est = new_p4est(connectivity, initial_refinement_level)
-
-    return p4est, tree_node_coordinates, nodes, boundary_names
+    return connectivity, tree_node_coordinates, nodes, boundary_names
 end
 
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. The tree node coordinates are computed according to
 # the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
 # names are given the name `:all`.
-function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
-                                         initial_refinement_level, n_dimensions, RealT)
+function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
+                                                 initial_refinement_level, n_dimensions,
+                                                 RealT,
+                                                 boundary_symbols)
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
@@ -467,12 +527,213 @@ function p4est_mesh_from_standard_abaqus(meshfile, mapping, polydeg,
     calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices,
                                 tree_to_vertex)
 
-    p4est = new_p4est(connectivity, initial_refinement_level)
+    if boundary_symbols === nothing
+        # There's no simple and generic way to distinguish boundaries without any information given.
+        # Name all of them :all.
+        boundary_names = fill(:all, 2 * n_dimensions, n_trees)
+    else # Boundary information given
+        # Read in nodes belonging to boundaries
+        node_set_dict = parse_node_sets(meshfile, boundary_symbols)
+        # Read in all elements with associated nodes to specify the boundaries
+        element_node_matrix = parse_elements(meshfile, n_trees, n_dimensions)
 
-    # There's no simple and generic way to distinguish boundaries. Name all of them :all.
-    boundary_names = fill(:all, 2 * n_dimensions, n_trees)
+        # Initialize boundary information matrix with symbol for no boundary / internal connection
+        boundary_names = fill(Symbol("---"), 2 * n_dimensions, n_trees)
 
-    return p4est, tree_node_coordinates, nodes, boundary_names
+        # Fill `boundary_names` such that it can be processed by p4est
+        assign_boundaries_standard_abaqus!(boundary_names, n_trees,
+                                           element_node_matrix, node_set_dict,
+                                           Val(n_dimensions))
+    end
+
+    return connectivity, tree_node_coordinates, nodes, boundary_names
+end
+
+function parse_elements(meshfile, n_trees, n_dims)
+    @assert n_dims in (2, 3) "Only 2D and 3D meshes are supported"
+    # Valid element types (that can be processed by p4est) based on dimension
+    element_types = n_dims == 2 ?
+                    ["*ELEMENT, type=CPS4", "*ELEMENT, type=C2D4",
+        "*ELEMENT, type=S4"] : ["*ELEMENT, type=C3D8"]
+    # 2D quads: 4 nodes + element index, 3D hexes: 8 nodes + element index
+    expected_content_length = n_dims == 2 ? 5 : 9
+
+    element_node_matrix = Matrix{Int64}(undef, n_trees, expected_content_length - 1)
+    el_list_follows = false
+    tree_id = 1
+
+    open(meshfile, "r") do file
+        for line in eachline(file)
+            if any(startswith(line, el_type) for el_type in element_types)
+                el_list_follows = true
+            elseif el_list_follows
+                content = split(line, ",")
+                if length(content) == expected_content_length # Check that we still read in connectivity data
+                    content_int = parse.(Int64, content)
+                    # Add constituent nodes to the element_node_matrix.
+                    # Important: Do not use index from the Abaqus file, but the one from p4est.
+                    element_node_matrix[tree_id, :] = content_int[2:end] # First entry is element id
+                    tree_id += 1
+                else # Processed all elements for this ELSET
+                    el_list_follows = false
+                end
+            end
+        end
+    end
+
+    return element_node_matrix
+end
+
+function parse_node_sets(meshfile, boundary_symbols)
+    nodes_dict = Dict{Symbol, Vector{Int64}}()
+    current_symbol = nothing
+    current_nodes = Int64[]
+
+    open(meshfile, "r") do file
+        for line in eachline(file)
+            # Check if the line contains nodes assembled in a special set, i.e., a physical boundary
+            if startswith(line, "*NSET,NSET=")
+                # Safe the previous nodeset
+                if current_symbol !== nothing
+                    nodes_dict[current_symbol] = current_nodes
+                end
+
+                current_symbol = Symbol(split(line, "=")[2])
+                if current_symbol in boundary_symbols
+                    # New nodeset
+                    current_nodes = Int64[]
+                else # Read only boundary node sets
+                    current_symbol = nothing
+                end
+            elseif current_symbol !== nothing # Read only if there was already a nodeset specified
+                try # Check if line contains nodes
+                    # There is always a trailing comma, remove the corresponding empty string
+                    append!(current_nodes, parse.(Int64, split(line, ",")[1:(end - 1)]))
+                catch # Something different, stop reading in nodes
+                    # If parsing fails, set current_symbol to nothing
+                    nodes_dict[current_symbol] = current_nodes
+                    current_symbol = nothing
+                end
+            end
+        end
+        # Safe the previous nodeset
+        if current_symbol !== nothing
+            nodes_dict[current_symbol] = current_nodes
+        end
+    end
+
+    for symbol in boundary_symbols
+        if !haskey(nodes_dict, symbol)
+            @warn "No nodes found for nodeset :" * "$symbol" * " !"
+        end
+    end
+
+    return nodes_dict
+end
+
+# This function assigns the edges of elements to boundaries by
+# checking if the nodes that define the edges are part of nodesets which correspond to boundaries.
+function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
+                                            element_node_matrix, node_set_dict,
+                                            ::Val{2}) # 2D version
+    for tree in 1:n_trees
+        tree_nodes = element_node_matrix[tree, :]
+        # For node labeling, see
+        # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
+        # and search for "Node ordering and face numbering on elements"
+        for boundary in keys(node_set_dict) # Loop over specified boundaries
+            # Check bottom edge
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[2] in node_set_dict[boundary]
+                # Bottom boundary is position 3 in p4est indexing
+                boundary_names[3, tree] = boundary
+            end
+            # Check right edge
+            if tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[3] in node_set_dict[boundary]
+                # Right boundary is position 2 in p4est indexing
+                boundary_names[2, tree] = boundary
+            end
+            # Check top edge
+            if tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary]
+                # Top boundary is position 4 in p4est indexing
+                boundary_names[4, tree] = boundary
+            end
+            # Check left edge
+            if tree_nodes[4] in node_set_dict[boundary] &&
+               tree_nodes[1] in node_set_dict[boundary]
+                # Left boundary is position 1 in p4est indexing
+                boundary_names[1, tree] = boundary
+            end
+        end
+    end
+
+    return boundary_names
+end
+
+# This function assigns the edges of elements to boundaries by
+# checking if the nodes that define the faces are part of nodesets which correspond to boundaries.
+function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
+                                            element_node_matrix, node_set_dict,
+                                            ::Val{3}) # 3D version
+    for tree in 1:n_trees
+        tree_nodes = element_node_matrix[tree, :]
+        # For node labeling, see
+        # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
+        for boundary in keys(node_set_dict) # Loop over specified boundaries
+            # Check "front face" (y_min)
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[5] in node_set_dict[boundary] &&
+               tree_nodes[6] in node_set_dict[boundary]
+                # Front face is position 3 in p4est indexing
+                boundary_names[3, tree] = boundary
+            end
+            # Check "back face" (y_max)
+            if tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary] &&
+               tree_nodes[7] in node_set_dict[boundary] &&
+               tree_nodes[8] in node_set_dict[boundary]
+                # Front face is position 4 in p4est indexing
+                boundary_names[4, tree] = boundary
+            end
+            # Check "left face" (x_min)
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary] &&
+               tree_nodes[5] in node_set_dict[boundary] &&
+               tree_nodes[8] in node_set_dict[boundary]
+                # Left face is position 1 in p4est indexing
+                boundary_names[1, tree] = boundary
+            end
+            # Check "right face" (x_max)
+            if tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[6] in node_set_dict[boundary] &&
+               tree_nodes[7] in node_set_dict[boundary]
+                # Right face is position 2 in p4est indexing
+                boundary_names[2, tree] = boundary
+            end
+            # Check "bottom face" (z_min)
+            if tree_nodes[1] in node_set_dict[boundary] &&
+               tree_nodes[2] in node_set_dict[boundary] &&
+               tree_nodes[3] in node_set_dict[boundary] &&
+               tree_nodes[4] in node_set_dict[boundary]
+                # Bottom face is position 5 in p4est indexing
+                boundary_names[5, tree] = boundary
+            end
+            # Check "top face" (z_max)
+            if tree_nodes[5] in node_set_dict[boundary] &&
+               tree_nodes[6] in node_set_dict[boundary] &&
+               tree_nodes[7] in node_set_dict[boundary] &&
+               tree_nodes[8] in node_set_dict[boundary]
+                # Top face is position 6 in p4est indexing
+                boundary_names[6, tree] = boundary
+            end
+        end
+    end
+
+    return boundary_names
 end
 
 """
@@ -1220,7 +1481,7 @@ function cubed_sphere_mapping(xi, eta, zeta, inner_radius, thickness, direction)
     r = sqrt(1 + x^2 + y^2)
 
     # Radius of the sphere
-    R = inner_radius + thickness * (0.5 * (zeta + 1))
+    R = inner_radius + thickness * (0.5f0 * (zeta + 1))
 
     # Projection onto the sphere
     return R / r * cube_coordinates[direction]
@@ -1410,7 +1671,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                                        nodes[q])
                     end
                 else # curved_check[face] == 1
-                    # Curved face boundary information is supplied by 
+                    # Curved face boundary information is supplied by
                     # the mesh file. Just read it into a work array
                     for q in 1:nnodes, p in 1:nnodes
                         file_idx += 1
@@ -1483,11 +1744,15 @@ end
 # and return the 3D coordinate point (x, y, z)
 function bilinear_interpolation!(coordinate, face_vertices, u, v)
     for j in 1:3
-        coordinate[j] = 0.25 * (face_vertices[j, 1] * (1 - u) * (1 - v)
+        coordinate[j] = 0.25f0 * (face_vertices[j, 1] * (1 - u) * (1 - v)
                          + face_vertices[j, 2] * (1 + u) * (1 - v)
                          + face_vertices[j, 3] * (1 + u) * (1 + v)
                          + face_vertices[j, 4] * (1 - u) * (1 + v))
     end
+end
+
+function get_global_first_element_ids(mesh::P4estMesh)
+    return unsafe_wrap(Array, mesh.p4est.global_first_quadrant, mpi_nranks() + 1)
 end
 
 function balance!(mesh::P4estMesh{2}, init_fn = C_NULL)

@@ -4,8 +4,8 @@ import Trixi
 # Use a macro to avoid world age issues when defining new initial conditions etc.
 # inside an elixir.
 """
-    @test_trixi_include(elixir; l2=nothing, linf=nothing,
-                                atol=500*eps(), rtol=sqrt(eps()),
+    @test_trixi_include(elixir; l2=nothing, linf=nothing, RealT=Float64,
+                                atol=500*eps(RealT), rtol=sqrt(eps(RealT)),
                                 parameters...)
 
 Test Trixi by calling `trixi_include(elixir; parameters...)`.
@@ -17,8 +17,16 @@ as absolute/relative tolerance.
 macro test_trixi_include(elixir, args...)
     local l2 = get_kwarg(args, :l2, nothing)
     local linf = get_kwarg(args, :linf, nothing)
-    local atol = get_kwarg(args, :atol, 500 * eps())
-    local rtol = get_kwarg(args, :rtol, sqrt(eps()))
+    local RealT = get_kwarg(args, :RealT, :Float64)
+    if RealT === :Float64
+        atol_default = 500 * eps(Float64)
+        rtol_default = sqrt(eps(Float64))
+    elseif RealT === :Float32
+        atol_default = 500 * eps(Float32)
+        rtol_default = sqrt(eps(Float32))
+    end
+    local atol = get_kwarg(args, :atol, atol_default)
+    local rtol = get_kwarg(args, :rtol, rtol_default)
     local skip_coverage = get_kwarg(args, :skip_coverage, false)
     local coverage_override = expr_to_named_tuple(get_kwarg(args, :coverage_override, :()))
     if !(:maxiters in keys(coverage_override))
@@ -33,7 +41,8 @@ macro test_trixi_include(elixir, args...)
     local kwargs = Pair{Symbol, Any}[]
     for arg in args
         if (arg.head == :(=) &&
-            !(arg.args[1] in (:l2, :linf, :atol, :rtol, :coverage_override, :skip_coverage))
+            !(arg.args[1] in (:l2, :linf, :RealT, :atol, :rtol, :coverage_override,
+                              :skip_coverage))
             && !(coverage && arg.args[1] in keys(coverage_override)))
             push!(kwargs, Pair(arg.args...))
         end
@@ -153,7 +162,12 @@ macro test_nowarn_mod(expr, additional_ignore_content = String[])
                                      r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
                                      r"┌ Warning: `parse\(::Type, ::Coloarant\)` is deprecated.+\n│.+\n│.+\n└ @ Plots.+\n",
                                      # TODO: Silence warning introduced by Flux v0.13.13. Should be properly fixed.
-                                     r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n"]
+                                     r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n",
+                                     # NOTE: These warnings arose from Julia 1.10 onwards
+                                     r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
+                                     # Warnings from third party packages
+                                     r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
+                                     r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n"]
                 append!(ignore_content, $additional_ignore_content)
                 for pattern in ignore_content
                     stderr_content = replace(stderr_content, pattern => "")

@@ -22,12 +22,10 @@ solver = DGSEM(polydeg = 3,
 coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (sqrt(2.0), sqrt(2.0))  # maximum coordinates (max(x), max(y))
 
-mapping = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
-
 trees_per_dimension = (8, 8)
 
 mesh = T8codeMesh(trees_per_dimension, polydeg = 3,
-                  mapping = mapping,
+                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                   initial_refinement_level = 1)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -48,7 +46,11 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
+save_solution = SaveSolutionCallback(interval = 200,
+                                     save_initial_solution = true,
+                                     save_final_solution = true)
+
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution)
 
 ###############################################################################
 # run the simulation
@@ -57,3 +59,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-8, reltol = 1.0e-8,
             ode_default_options()..., callback = callbacks);
 summary_callback() # print the timer summary
+
+# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
+# released before `MPI` finalizes.
+!isinteractive() && finalize(mesh)

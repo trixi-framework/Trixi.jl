@@ -91,7 +91,8 @@ function calc_error_norms_per_element(func, u, t, analyzer,
 end
 
 function calc_error_norms(func, u, t, analyzer,
-                          mesh::ParallelP4estMesh{2}, equations,
+                          mesh::Union{ParallelP4estMesh{2}, ParallelT8codeMesh{2}},
+                          equations,
                           initial_condition, dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
     @unpack node_coordinates, inverse_jacobian = cache.elements
@@ -130,7 +131,8 @@ function calc_error_norms(func, u, t, analyzer,
     global_l2_error = Vector(l2_error)
     global_linf_error = Vector(linf_error)
     MPI.Reduce!(global_l2_error, +, mpi_root(), mpi_comm())
-    MPI.Reduce!(global_linf_error, max, mpi_root(), mpi_comm())
+    # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+    MPI.Reduce!(global_linf_error, Base.max, mpi_root(), mpi_comm())
     total_volume = MPI.Reduce(volume, +, mpi_root(), mpi_comm())
     if mpi_isroot()
         l2_error = convert(typeof(l2_error), global_l2_error)
@@ -171,7 +173,8 @@ function integrate_via_indices(func::Func, u,
 end
 
 function integrate_via_indices(func::Func, u,
-                               mesh::ParallelP4estMesh{2}, equations,
+                               mesh::Union{ParallelP4estMesh{2}, ParallelT8codeMesh{2}},
+                               equations,
                                dg::DGSEM, cache, args...; normalize = true) where {Func}
     @unpack weights = dg.basis
 

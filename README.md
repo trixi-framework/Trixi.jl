@@ -4,13 +4,14 @@
 [![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
 [![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 [![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/@trixi-framework)
-[![Build Status](https://github.com/trixi-framework/Trixi.jl/workflows/CI/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
+[![Build Status](https://github.com/trixi-framework/Trixi.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
 [![Codecov](https://codecov.io/gh/trixi-framework/Trixi.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/trixi-framework/Trixi.jl)
 [![Coveralls](https://coveralls.io/repos/github/trixi-framework/Trixi.jl/badge.svg?branch=main)](https://coveralls.io/github/trixi-framework/Trixi.jl?branch=main)
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
-[![Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/Trixi)](https://pkgs.genieframework.com?packages=Trixi)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8695/badge)](https://www.bestpractices.dev/projects/8695)
+<!-- [![Downloads](https://shields.io/endpoint?url=https://pkgs.genieframework.com/api/v1/badge/Trixi)](https://pkgs.genieframework.com?packages=Trixi) -->
 <!-- [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/trixi-framework/Trixi.jl/v0.3.43.svg?style=social&logo=github)](https://github.com/trixi-framework/Trixi.jl) -->
 <!-- [![PkgEval](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/T/Trixi.svg)](https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html) -->
 
@@ -35,8 +36,11 @@ installation and postprocessing procedures. Its features include:
 * Discontinuous Galerkin methods
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
-  * Positivity-preserving limiting
   * [Finite difference summation by parts (SBP) methods](https://github.com/ranocha/SummationByPartsOperators.jl)
+* Advanced limiting strategies
+  * Positivity-preserving limiting
+  * Subcell invariant domain-preserving (IDP) limiting
+  * Entropy-bounded limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
@@ -53,7 +57,7 @@ installation and postprocessing procedures. Its features include:
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
   * Shallow water equations
-  * Several scalar conservation laws (e.g., linear advection, Burgers' equation)
+  * Several scalar conservation laws (e.g., linear advection, Burgers' equation, LWR traffic flow)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
@@ -236,8 +240,8 @@ In addition, you can also refer to Trixi.jl directly as
 
 ## Authors
 Trixi.jl was initiated by [Michael
-Schlottke-Lakemper](https://lakemper.eu)
-(RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
+Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
+(University of Augsburg, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)

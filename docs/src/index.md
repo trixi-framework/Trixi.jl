@@ -30,7 +30,12 @@ installation and postprocessing procedures. Its features include:
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
+  * Subcell invariant domain-preserving (IDP) limiting
   * [Finite difference summation by parts (SBP) methods](https://github.com/ranocha/SummationByPartsOperators.jl)
+* Advanced limiting strategies
+  * Positivity-preserving limiting
+  * Subcell invariant domain-preserving (IDP) limiting
+  * Entropy-bounded limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
@@ -323,8 +328,8 @@ In addition, you can also refer to Trixi.jl directly as
 
 ## [Authors](@id authors-index-md)
 Trixi.jl was initiated by [Michael
-Schlottke-Lakemper](https://lakemper.eu)
-(RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
+Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
+(University of Augsburg, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
 (Johannes Gutenberg University Mainz, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)

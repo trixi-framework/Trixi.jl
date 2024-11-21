@@ -17,18 +17,19 @@ isdir(outdir) && rm(outdir, recursive = true)
 @trixi_testset "elixir_euler_weakform.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         # division by 2.0 corresponds to normalization by the square root of the size of the domain
                         l2=[
                             0.0013536930300254945,
                             0.0014315603442106193,
                             0.001431560344211359,
-                            0.0047393341007602625,
+                            0.0047393341007602625
                         ] ./ 2.0,
                         linf=[
                             0.001514260921466004,
                             0.0020623991944839215,
                             0.002062399194485476,
-                            0.004897700392503701,
+                            0.004897700392503701
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -44,18 +45,19 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         approximation_type=SBP(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         # division by 2.0 corresponds to normalization by the square root of the size of the domain
                         l2=[
                             0.0074706882014934735,
                             0.005306220583603261,
                             0.005306220583613591,
-                            0.014724842607716771,
+                            0.014724842607716771
                         ] ./ 2.0,
                         linf=[
                             0.021563604940952885,
                             0.01359397832530762,
                             0.013593978324845324,
-                            0.03270995869587523,
+                            0.03270995869587523
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -71,18 +73,19 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform.jl"),
                         cells_per_dimension=(4, 4),
                         element_type=Quad(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         # division by 2.0 corresponds to normalization by the square root of the size of the domain
                         l2=[
                             0.00031892254415307093,
                             0.00033637562986771894,
                             0.0003363756298680649,
-                            0.0011100259064243145,
+                            0.0011100259064243145
                         ] ./ 2.0,
                         linf=[
                             0.001073298211445639,
                             0.0013568139808282087,
                             0.0013568139808290969,
-                            0.0032249020004324613,
+                            0.0032249020004324613
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -104,13 +107,13 @@ end
                             0.007801417730672109,
                             0.00708583561714128,
                             0.0070858356171393,
-                            0.015217574294198809,
+                            0.015217574294198809
                         ] ./ 2.0,
                         linf=[
                             0.011572828457858897,
                             0.013965298735070686,
                             0.01396529873508534,
-                            0.04227683691807904,
+                            0.04227683691807904
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -133,13 +136,13 @@ end
                             0.01280067571168776,
                             0.010607599608273302,
                             0.010607599608239775,
-                            0.026408338014056548,
+                            0.026408338014056548
                         ] ./ 2.0,
                         linf=[
                             0.037983023185674814,
                             0.05321027922533417,
                             0.05321027922608157,
-                            0.13392025411844033,
+                            0.13392025411844033
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -163,13 +166,13 @@ end
                             0.0029373718090697975,
                             0.0030629360605489465,
                             0.003062936060545615,
-                            0.0068486089344859755,
+                            0.0068486089344859755
                         ] ./ 2.0,
                         linf=[
                             0.01360165305316885,
                             0.01267402847925303,
                             0.012674028479251254,
-                            0.02210545278615017,
+                            0.02210545278615017
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -184,16 +187,12 @@ end
 @trixi_testset "elixir_euler_bilinear.jl (Bilinear quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_bilinear.jl"),
                         l2=[
-                            1.0259435706215337e-5,
-                            9.014090233720625e-6,
-                            9.014090233223014e-6,
-                            2.738953587401793e-5,
+                            1.0259432774540821e-5, 9.014087689495575e-6,
+                            9.01408768888544e-6, 2.738953324859446e-5
                         ],
                         linf=[
-                            7.362609083649829e-5,
-                            6.874188055272512e-5,
-                            6.874188052830021e-5,
-                            0.0001912435192696904,
+                            7.362605996297233e-5, 6.874189724781488e-5,
+                            6.874189703509614e-5, 0.00019124355334110277
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -208,16 +207,12 @@ end
 @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, SBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         l2=[
-                            1.720476068165337e-5,
-                            1.592168205710526e-5,
-                            1.592168205812963e-5,
-                            4.894094865697305e-5,
+                            1.7204593127904542e-5, 1.5921547179522804e-5,
+                            1.5921547180107928e-5, 4.894071422525737e-5
                         ],
                         linf=[
-                            0.00010525416930584619,
-                            0.00010003778091061122,
-                            0.00010003778085621029,
-                            0.00036426282101720275,
+                            0.00010525416937667842, 0.00010003778102718464,
+                            0.00010003778071832059, 0.0003642628211952825
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -232,17 +227,18 @@ end
 @trixi_testset "elixir_euler_curved.jl (Quadrilateral elements, GaussSBP, flux differencing)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         approximation_type=GaussSBP(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         l2=[
                             3.4666312079259457e-6,
                             3.4392774480368986e-6,
                             3.439277447953705e-6,
-                            1.0965598424665836e-5,
+                            1.0965598424665836e-5
                         ],
                         linf=[
                             1.1327280377004811e-5,
                             1.1343911926253725e-5,
                             1.1343911906935844e-5,
-                            3.679582619220412e-5,
+                            3.679582619220412e-5
                         ],
                         rtol=2 * sqrt(eps()))
     # Ensure that we do not have excessive memory allocations 
@@ -259,17 +255,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_curved.jl"),
                         element_type=Tri(), approximation_type=Polynomial(),
                         volume_integral=VolumeIntegralWeakForm(),
+                        surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         l2=[
                             7.905498158659466e-6,
                             8.731690809663625e-6,
                             8.731690811576996e-6,
-                            2.9113296018693953e-5,
+                            2.9113296018693953e-5
                         ],
                         linf=[
                             3.298811230090237e-5,
                             4.032272476939269e-5,
                             4.032272526011127e-5,
-                            0.00012013725458537294,
+                            0.00012013725458537294
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -287,13 +284,13 @@ end
                             0.0008153911341517156,
                             0.0007768159701964676,
                             0.00047902606811690694,
-                            0.0015551846076348535,
+                            0.0015551846076348535
                         ],
                         linf=[
                             0.0029301131365355726,
                             0.0034427051471457304,
                             0.0028721569841545502,
-                            0.011125365074589944,
+                            0.011125365074589944
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -314,7 +311,7 @@ end
                        4.243843382379403,
                        4.128314378833922,
                        4.128314378397532,
-                       4.081366752807379,
+                       4.081366752807379
                    ], rtol = 0.05)
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -330,16 +327,12 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weakform_periodic.jl"),
                         # division by 2.0 corresponds to normalization by the square root of the size of the domain
                         l2=[
-                            0.0014986508075708323,
-                            0.001528523420746786,
-                            0.0015285234207473158,
-                            0.004846505183839211,
-                        ] ./ 2.0,
+                            0.0007492755162295128, 0.0007641875305302599,
+                            0.0007641875305306243, 0.0024232389721009447
+                        ],
                         linf=[
-                            0.0015062108658376872,
-                            0.0019373508504645365,
-                            0.0019373508504538783,
-                            0.004742686826709086,
+                            0.0015060064614331736, 0.0019371156800773726,
+                            0.0019371156800769285, 0.004742431684202408
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -354,16 +347,12 @@ end
 @trixi_testset "elixir_euler_triangulate_pkg_mesh.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_triangulate_pkg_mesh.jl"),
                         l2=[
-                            2.344080455438114e-6,
-                            1.8610038753097983e-6,
-                            2.4095165666095305e-6,
-                            6.373308158814308e-6,
+                            2.344076909832665e-6, 1.8610002398709756e-6,
+                            2.4095132179484066e-6, 6.37330249340445e-6
                         ],
                         linf=[
-                            2.5099852761334418e-5,
-                            2.2683684021362893e-5,
-                            2.6180448559287584e-5,
-                            5.5752932611508044e-5,
+                            2.509979394305084e-5, 2.2683711321080935e-5,
+                            2.6180377720841363e-5, 5.575278031910713e-5
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -384,13 +373,13 @@ end
                             0.11140378947116614,
                             0.06598161188703612,
                             0.10448953167839563,
-                            0.16023209181809595,
+                            0.16023209181809595
                         ] ./ 2.0,
                         linf=[
                             0.24033843177853664,
                             0.1659992245272325,
                             0.1235468309508845,
-                            0.26911424973147735,
+                            0.26911424973147735
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -412,13 +401,13 @@ end
                             0.11141270656347146,
                             0.06598888014584121,
                             0.1044902203749932,
-                            0.16023037364774995,
+                            0.16023037364774995
                         ] ./ 2.0,
                         linf=[
                             0.2414760062126462,
                             0.1662111846065654,
                             0.12344140473946856,
-                            0.26978428189564774,
+                            0.26978428189564774
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -435,16 +424,12 @@ end
                                  "elixir_euler_rayleigh_taylor_instability.jl"),
                         cells_per_dimension=(8, 8), tspan=(0.0, 0.2),
                         l2=[
-                            0.0709665896982514,
-                            0.005182828752164663,
-                            0.013832655585206478,
-                            0.03247013800580221,
+                            0.07097806723891838, 0.005168550941966817,
+                            0.013820912272220933, 0.03243357220022434
                         ],
                         linf=[
-                            0.4783963902824797,
-                            0.022527207050681054,
-                            0.040307056293369226,
-                            0.0852365428206836,
+                            0.4783395896753895, 0.02244629340135818,
+                            0.04023357731088538, 0.08515807256615027
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -463,13 +448,13 @@ end
                             0.006680001611078062,
                             0.02151676347585447,
                             0.010696524235364626,
-                            0.15052841129694647,
+                            0.15052841129694647
                         ],
                         linf=[
                             0.01544756362800248,
                             0.09517304772476806,
                             0.021957154972646383,
-                            0.33773439650806303,
+                            0.33773439650806303
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -488,13 +473,13 @@ end
                             0.05685148333985476,
                             0.04308122135907089,
                             0.043081221359070915,
-                            0.21098131003847664,
+                            0.21098131003847664
                         ],
                         linf=[
                             0.2360672306096051,
                             0.16684417686971842,
                             0.1668441768697189,
-                            0.8572572782118661,
+                            0.8572572782118661
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -513,13 +498,13 @@ end
                             0.05565849298766252,
                             0.042322816017256494,
                             0.042322816017256466,
-                            0.2064212098324083,
+                            0.2064212098324083
                         ],
                         linf=[
                             0.23633287875008924,
                             0.16930148707515683,
                             0.16930148707515688,
-                            0.8587706761131937,
+                            0.8587706761131937
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -547,13 +532,13 @@ end
                             0.0008966318978421226,
                             0.0011418826379110242,
                             0.001141882637910878,
-                            0.0030918374335671393,
+                            0.0030918374335671393
                         ] ./ 2.0,
                         linf=[
                             0.0015281525343109337,
                             0.00162430960401716,
                             0.0016243096040242655,
-                            0.004447503691245913,
+                            0.004447503691245913
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -583,13 +568,13 @@ end
                             0.0014018725496871129,
                             0.0015887007320868913,
                             0.001588700732086329,
-                            0.003870926821031202,
+                            0.003870926821031202
                         ] ./ 2.0,
                         linf=[
                             0.0029541996523780867,
                             0.0034520465226108854,
                             0.003452046522624652,
-                            0.007677153211004928,
+                            0.007677153211004928
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -604,16 +589,12 @@ end
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         l2=[
-                            1.3333320340010056e-6,
-                            2.044834627970641e-6,
-                            2.044834627855601e-6,
-                            5.282189803559564e-6,
+                            1.333332033888785e-6, 2.044834627786368e-6,
+                            2.0448346278315884e-6, 5.282189803437435e-6
                         ],
                         linf=[
-                            2.7000151718858945e-6,
-                            3.988595028259212e-6,
-                            3.9885950273710336e-6,
-                            8.848583042286862e-6,
+                            2.7000151703315822e-6, 3.988595025372632e-6,
+                            3.9885950240403645e-6, 8.848583036513702e-6
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -628,17 +609,18 @@ end
 @trixi_testset "elixir_euler_fdsbp_periodic.jl (arbitrary reference domain)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         xmin=-200.0, xmax=100.0, #= parameters for reference interval =#
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         l2=[
                             1.333332034149886e-6,
                             2.0448346280892024e-6,
                             2.0448346279766305e-6,
-                            5.282189803510037e-6,
+                            5.282189803510037e-6
                         ],
                         linf=[
                             2.700015170553627e-6,
                             3.988595024262409e-6,
                             3.988595024928543e-6,
-                            8.84858303740188e-6,
+                            8.84858303740188e-6
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -659,17 +641,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         approximation_type=D,
                         coordinates_min=(-3.0, -4.0), coordinates_max=(0.0, -1.0),
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         l2=[
                             0.07318831033918516,
                             0.10039910610067465,
                             0.1003991061006748,
-                            0.2642450566234564,
+                            0.2642450566234564
                         ],
                         linf=[
                             0.36081081739439735,
                             0.5244468027020845,
                             0.5244468027020814,
-                            1.2210130256735705,
+                            1.2210130256735705
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -691,17 +674,18 @@ end
     global D = SummationByPartsOperators.couple_continuously(D_local, mesh_local)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         approximation_type=D,
+                        surface_flux=FluxHLL(min_max_speed_naive),
                         l2=[
                             1.5440402410017893e-5,
                             1.4913189903083485e-5,
                             1.4913189902797073e-5,
-                            2.6104615985156992e-5,
+                            2.6104615985156992e-5
                         ],
                         linf=[
                             4.16334345412217e-5,
                             5.067812788173143e-5,
                             5.067812786885284e-5,
-                            9.887976803746312e-5,
+                            9.887976803746312e-5
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -804,26 +788,26 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_reflective_wall.jl"),
                         cells_per_dimension=4,
                         l2=[
-                            0.0036019536614619687,
-                            0.001734097206958611,
-                            0.008375221008997178,
+                            0.0036019562526881602,
+                            0.0017340971255535853,
+                            0.00837522167692243,
                             0.0,
-                            0.028596796602124414,
-                            0.0018573693138866614,
-                            0.0020807798141551166,
+                            0.028596802654003512,
+                            0.0018573697892233679,
+                            0.0020807798940528956,
                             0.0,
-                            5.301188920230166e-5,
+                            5.301259762428258e-5
                         ],
                         linf=[
-                            0.01692601228199253,
-                            0.009369662298436778,
-                            0.04145169295835428,
+                            0.016925983823703028,
+                            0.009369659529710701,
+                            0.04145170727840005,
                             0.0,
-                            0.11569908670112738,
-                            0.00984964453299233,
-                            0.01141708032148614,
+                            0.1156990108418654,
+                            0.009849648257876749,
+                            0.011417088537145403,
                             0.0,
-                            0.0002992631411931389,
+                            0.0002992621756946904
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -843,13 +827,13 @@ end
                             0.0020316462913319046,
                             0.023669019044882247,
                             0.03446194752754684,
-                            1.9333465252381796e-15,
+                            1.9333465252381796e-15
                         ],
                         linf=[
                             0.010385010095182778,
                             0.08750628939565086,
                             0.12088392994348407,
-                            9.325873406851315e-15,
+                            9.325873406851315e-15
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -869,13 +853,13 @@ end
                             0.004180680322490383,
                             0.07026192411558974,
                             0.11815151697006446,
-                            2.329788936151192e-15,
+                            2.329788936151192e-15
                         ],
                         linf=[
                             0.02076003852980346,
                             0.29169601664914424,
                             0.5674183379872275,
-                            1.1546319456101628e-14,
+                            1.1546319456101628e-14
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -897,13 +881,13 @@ end
                             0.0008309356912456799,
                             0.01522451288799231,
                             0.016033969387208476,
-                            1.2820247308150876e-5,
+                            1.2820247308150876e-5
                         ],
                         linf=[
                             0.001888045014140971,
                             0.05466838692127718,
                             0.06345885709961152,
-                            3.3989933098554914e-5,
+                            3.3989933098554914e-5
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -927,13 +911,13 @@ end
                             7.460461950323111e-5,
                             0.003685589808444905,
                             0.0039101604749887785,
-                            2.0636891126652983e-15,
+                            2.0636891126652983e-15
                         ],
                         linf=[
                             0.000259995400729629,
                             0.0072236204211630906,
                             0.010364675200833062,
-                            1.021405182655144e-14,
+                            1.021405182655144e-14
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 

@@ -38,7 +38,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 
 # Create ODE problem with time span from 0.0 to 1.0
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -78,7 +78,8 @@ callbacks = CallbackSet(summary_callback,
 alg = CarpenterKennedy2N54(williamson_condition = false)
 sol = solve(ode, alg,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks; ode_default_options()...);
+            callback = callbacks;
+            ode_default_options()...); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
 
 # Print the timer summary
 summary_callback()

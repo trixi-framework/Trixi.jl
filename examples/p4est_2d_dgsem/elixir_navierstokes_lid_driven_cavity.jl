@@ -4,12 +4,11 @@ using Trixi
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
-# TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 0.001
+mu = 0.001
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                           Prandtl = prandtl_number())
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
@@ -35,9 +34,9 @@ end
 initial_condition = initial_condition_cavity
 
 # BC types
-velocity_bc_lid = NoSlip((x, t, equations) -> SVector(1.0, 0.0))
-velocity_bc_cavity = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
-heat_bc = Adiabatic((x, t, equations) -> 0.0)
+velocity_bc_lid = NoSlip((x, t, equations_parabolic) -> SVector(1.0, 0.0))
+velocity_bc_cavity = NoSlip((x, t, equations_parabolic) -> SVector(0.0, 0.0))
+heat_bc = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_lid = BoundaryConditionNavierStokesWall(velocity_bc_lid, heat_bc)
 boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity, heat_bc)
 
@@ -62,7 +61,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 25.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 100)

@@ -226,8 +226,8 @@ function _precompile_manual_()
     for RealT in (Int, Float64)
         @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
                                       NamedTuple{(:initial_refinement_level, :n_cells_max),
-                                                 Tuple{Int, Int}}, Type{TreeMesh}, RealT,
-                                      RealT})
+                                                 Tuple{Int, Int}}, Type{TreeMesh},
+                                      RealT, RealT})
         @assert Base.precompile(Tuple{Core.kwftype(typeof(Trixi.Type)),
                                       NamedTuple{(:initial_refinement_level, :n_cells_max),
                                                  Tuple{Int, Int}}, Type{TreeMesh},
@@ -244,10 +244,12 @@ function _precompile_manual_()
     end
     for TreeType in (SerialTree, ParallelTree), NDIMS in 1:3
         @assert Base.precompile(Tuple{typeof(Trixi.initialize!),
-                                      TreeMesh{NDIMS, TreeType{NDIMS}}, Int, Tuple{},
+                                      TreeMesh{NDIMS, TreeType{NDIMS}, Float64}, Int,
+                                      Tuple{},
                                       Tuple{}})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
-                                      TreeMesh{NDIMS, TreeType{NDIMS}}, String, Int})
+                                      TreeMesh{NDIMS, TreeType{NDIMS}, Float64}, String,
+                                      Int})
     end
 
     # Constructors: linear advection
@@ -396,58 +398,58 @@ function _precompile_manual_()
 
         # 1D, serial
         @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
-                                      TreeMesh{1, Trixi.SerialTree{1}},
+                                      TreeMesh{1, Trixi.SerialTree{1}, RealT},
                                       Trixi.ElementContainer1D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
-                                      TreeMesh{1, Trixi.SerialTree{1}},
+                                      TreeMesh{1, Trixi.SerialTree{1}, RealT},
                                       Trixi.ElementContainer1D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
-                                      TreeMesh{1, Trixi.SerialTree{1}}, String})
+                                      TreeMesh{1, Trixi.SerialTree{1}, RealT}, String})
 
         # 2D, serial
         @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
-                                      TreeMesh{2, Trixi.SerialTree{2}},
+                                      TreeMesh{2, Trixi.SerialTree{2}, RealT},
                                       Trixi.ElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
-                                      TreeMesh{2, Trixi.SerialTree{2}},
+                                      TreeMesh{2, Trixi.SerialTree{2}, RealT},
                                       Trixi.ElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
-                                      TreeMesh{2, Trixi.SerialTree{2}},
+                                      TreeMesh{2, Trixi.SerialTree{2}, RealT},
                                       Trixi.ElementContainer2D{RealT, uEltype},
                                       mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
-                                      TreeMesh{2, Trixi.SerialTree{2}}, String})
+                                      TreeMesh{2, Trixi.SerialTree{2}, RealT}, String})
 
         # 2D, parallel
         @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
-                                      TreeMesh{2, Trixi.ParallelTree{2}},
+                                      TreeMesh{2, Trixi.ParallelTree{2}, RealT},
                                       Trixi.ElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
-                                      TreeMesh{2, Trixi.ParallelTree{2}},
+                                      TreeMesh{2, Trixi.ParallelTree{2}, RealT},
                                       Trixi.ElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
-                                      TreeMesh{2, Trixi.ParallelTree{2}},
+                                      TreeMesh{2, Trixi.ParallelTree{2}, RealT},
                                       Trixi.ElementContainer2D{RealT, uEltype},
                                       mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mpi_interfaces), Array{Int, 1},
-                                      TreeMesh{2, Trixi.ParallelTree{2}},
+                                      TreeMesh{2, Trixi.ParallelTree{2}, RealT},
                                       Trixi.ElementContainer2D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
-                                      TreeMesh{2, Trixi.ParallelTree{2}}, String})
+                                      TreeMesh{2, Trixi.ParallelTree{2}, RealT}, String})
 
         # 3D, serial
         @assert Base.precompile(Tuple{typeof(Trixi.init_boundaries), Array{Int, 1},
-                                      TreeMesh{3, Trixi.SerialTree{3}},
+                                      TreeMesh{3, Trixi.SerialTree{3}, RealT},
                                       Trixi.ElementContainer3D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_interfaces), Array{Int, 1},
-                                      TreeMesh{3, Trixi.SerialTree{3}},
+                                      TreeMesh{3, Trixi.SerialTree{3}, RealT},
                                       Trixi.ElementContainer3D{RealT, uEltype}})
         @assert Base.precompile(Tuple{typeof(Trixi.init_mortars), Array{Int, 1},
-                                      TreeMesh{3, Trixi.SerialTree{3}},
+                                      TreeMesh{3, Trixi.SerialTree{3}, RealT},
                                       Trixi.ElementContainer3D{RealT, uEltype},
                                       mortar_type})
         @assert Base.precompile(Tuple{typeof(Trixi.save_mesh_file),
-                                      TreeMesh{3, Trixi.SerialTree{3}}, String})
+                                      TreeMesh{3, Trixi.SerialTree{3}, RealT}, String})
     end
 
     # various `show` methods
@@ -456,16 +458,16 @@ function _precompile_manual_()
         for NDIMS in 1:3
             # serial
             @assert Base.precompile(Tuple{typeof(show), Base.TTY,
-                                          TreeMesh{NDIMS, Trixi.SerialTree{NDIMS}}})
+                                          TreeMesh{NDIMS, Trixi.SerialTree{NDIMS}, RealT}})
             @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY},
                                           MIME"text/plain",
-                                          TreeMesh{NDIMS, Trixi.SerialTree{NDIMS}}})
+                                          TreeMesh{NDIMS, Trixi.SerialTree{NDIMS}, RealT}})
             # parallel
             @assert Base.precompile(Tuple{typeof(show), Base.TTY,
-                                          TreeMesh{NDIMS, Trixi.ParallelTree{NDIMS}}})
+                                          TreeMesh{NDIMS, Trixi.ParallelTree{NDIMS}, RealT}})
             @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY},
                                           MIME"text/plain",
-                                          TreeMesh{NDIMS, Trixi.ParallelTree{NDIMS}}})
+                                          TreeMesh{NDIMS, Trixi.ParallelTree{NDIMS}, RealT}})
         end
 
         # equations
@@ -577,9 +579,6 @@ function _precompile_manual_()
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, lbm_collision_callback_type})
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       lbm_collision_callback_type})
-
-        # infrastructure, special elixirs
-        @assert Base.precompile(Tuple{typeof(trixi_include), String})
     end
 
     @assert Base.precompile(Tuple{typeof(init_mpi)})

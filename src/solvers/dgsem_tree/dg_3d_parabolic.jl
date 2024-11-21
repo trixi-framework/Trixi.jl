@@ -5,114 +5,6 @@
 @muladd begin
 #! format: noindent
 
-# This file collects all methods that have been updated to work with parabolic systems of equations
-#
-# assumptions: parabolic terms are of the form div(f(u, grad(u))) and
-# will be discretized first order form as follows:
-#               1. compute grad(u)
-#               2. compute f(u, grad(u))
-#               3. compute div(f(u, grad(u))) (i.e., the "regular" rhs! call)
-# boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
-function rhs_parabolic!(du, u, t, mesh::TreeMesh{3},
-                        equations_parabolic::AbstractEquationsParabolic,
-                        initial_condition, boundary_conditions_parabolic, source_terms,
-                        dg::DG, parabolic_scheme, cache, cache_parabolic)
-    @unpack viscous_container = cache_parabolic
-    @unpack u_transformed, gradients, flux_viscous = viscous_container
-
-    # Convert conservative variables to a form more suitable for viscous flux calculations
-    @trixi_timeit timer() "transform variables" begin
-        transform_variables!(u_transformed, u, mesh, equations_parabolic,
-                             dg, parabolic_scheme, cache, cache_parabolic)
-    end
-
-    # Compute the gradients of the transformed variables
-    @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
-                       boundary_conditions_parabolic, dg, cache, cache_parabolic)
-    end
-
-    # Compute and store the viscous fluxes
-    @trixi_timeit timer() "calculate viscous fluxes" begin
-        calc_viscous_fluxes!(flux_viscous, gradients, u_transformed, mesh,
-                             equations_parabolic, dg, cache, cache_parabolic)
-    end
-
-    # The remainder of this function is essentially a regular rhs! for parabolic
-    # equations (i.e., it computes the divergence of the viscous fluxes)
-    #
-    # OBS! In `calc_viscous_fluxes!`, the viscous flux values at the volume nodes of each element have
-    # been computed and stored in `fluxes_viscous`. In the following, we *reuse* (abuse) the
-    # `interfaces` and `boundaries` containers in `cache_parabolic` to interpolate and store the
-    # *fluxes* at the element surfaces, as opposed to interpolating and storing the *solution* (as it
-    # is done in the hyperbolic operator). That is, `interfaces.u`/`boundaries.u` store *viscous flux values*
-    # and *not the solution*.  The advantage is that a) we do not need to allocate more storage, b) we
-    # do not need to recreate the existing data structure only with a different name, and c) we do not
-    # need to interpolate solutions *and* gradients to the surfaces.
-
-    # TODO: parabolic; reconsider current data structure reuse strategy
-
-    # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
-
-    # Calculate volume integral
-    @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, flux_viscous, mesh, equations_parabolic, dg, cache)
-    end
-
-    # Prolong solution to interfaces
-    @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
-    end
-
-    # Calculate interface fluxes
-    @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                             equations_parabolic, dg, cache_parabolic)
-    end
-
-    # Prolong solution to boundaries
-    @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache_parabolic, flux_viscous, mesh, equations_parabolic,
-                            dg.surface_integral, dg, cache)
-    end
-
-    # Calculate boundary fluxes
-    @trixi_timeit timer() "boundary flux" begin
-        calc_boundary_flux_divergence!(cache_parabolic, t,
-                                       boundary_conditions_parabolic,
-                                       mesh, equations_parabolic,
-                                       dg.surface_integral, dg)
-    end
-
-    # Prolong solution to mortars
-    @trixi_timeit timer() "prolong2mortars" begin
-        prolong2mortars!(cache, flux_viscous, mesh, equations_parabolic,
-                         dg.mortar, dg.surface_integral, dg)
-    end
-
-    # Calculate mortar fluxes
-    @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                          equations_parabolic,
-                          dg.mortar, dg.surface_integral, dg, cache)
-    end
-
-    # Calculate surface integrals
-    @trixi_timeit timer() "surface integral" begin
-        calc_surface_integral!(du, u, mesh, equations_parabolic,
-                               dg.surface_integral, dg, cache_parabolic)
-    end
-
-    # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" begin
-        apply_jacobian_parabolic!(du, mesh, equations_parabolic, dg, cache_parabolic)
-    end
-
-    return nothing
-end
-
 # Transform solution variables prior to taking the gradient
 # (e.g., conservative to primitive variables). Defaults to doing nothing.
 # TODO: can we avoid copying data?
@@ -249,7 +141,7 @@ function calc_interface_flux!(surface_flux_values,
 
             # Compute interface flux as mean of left and right viscous fluxes
             # TODO: parabolic; only BR1 at the moment
-            flux = 0.5 * (flux_ll + flux_rr)
+            flux = 0.5f0 * (flux_ll + flux_rr)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)
@@ -596,8 +488,8 @@ end
 
 # `cache` is the hyperbolic cache, i.e., in particular not `cache_parabolic`.
 # This is because mortar handling is done in the (hyperbolic) `cache`.
-# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since 
-#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and 
+# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since
+#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and
 # hyperbolic-parabolic systems.
 function prolong2mortars!(cache,
                           flux_viscous::Vector{Array{uEltype, 5}},
@@ -834,37 +726,32 @@ function calc_mortar_flux!(surface_flux_values,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations = cache.mortars
-    @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,
-    fstar_lower_left_threaded, fstar_lower_right_threaded,
+    @unpack (fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
+    fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
     fstar_tmp1_threaded) = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_upper_left = fstar_upper_left_threaded[Threads.threadid()]
-        fstar_upper_right = fstar_upper_right_threaded[Threads.threadid()]
-        fstar_lower_left = fstar_lower_left_threaded[Threads.threadid()]
-        fstar_lower_right = fstar_lower_right_threaded[Threads.threadid()]
+        fstar_upper_left = fstar_primary_upper_left_threaded[Threads.threadid()]
+        fstar_upper_right = fstar_primary_upper_right_threaded[Threads.threadid()]
+        fstar_lower_left = fstar_primary_lower_left_threaded[Threads.threadid()]
+        fstar_lower_right = fstar_primary_lower_right_threaded[Threads.threadid()]
         fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
 
         # Calculate fluxes
         orientation = orientations[mortar]
         calc_fstar!(fstar_upper_left, equations_parabolic, surface_flux, dg,
-                    u_upper_left, mortar,
-                    orientation)
+                    u_upper_left, mortar, orientation)
         calc_fstar!(fstar_upper_right, equations_parabolic, surface_flux, dg,
-                    u_upper_right,
-                    mortar, orientation)
+                    u_upper_right, mortar, orientation)
         calc_fstar!(fstar_lower_left, equations_parabolic, surface_flux, dg,
-                    u_lower_left, mortar,
-                    orientation)
+                    u_lower_left, mortar, orientation)
         calc_fstar!(fstar_lower_right, equations_parabolic, surface_flux, dg,
-                    u_lower_right,
-                    mortar, orientation)
+                    u_lower_right, mortar, orientation)
 
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations_parabolic, mortar_l2, dg, cache,
-                                   mortar,
-                                   fstar_upper_left, fstar_upper_right,
+                                   mortar, fstar_upper_left, fstar_upper_right,
                                    fstar_lower_left, fstar_lower_right,
                                    fstar_tmp1)
     end
@@ -881,11 +768,100 @@ end
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i, j,
                                            interface)
         # TODO: parabolic; only BR1 at the moment
-        flux = 0.5 * (u_ll + u_rr)
+        flux = 0.5f0 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations_parabolic, dg, i, j)
     end
+
+    return nothing
+end
+
+@inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::TreeMesh{3},
+                                            equations_parabolic::AbstractEquationsParabolic,
+                                            mortar_l2::LobattoLegendreMortarL2,
+                                            dg::DGSEM, cache,
+                                            mortar,
+                                            fstar_upper_left, fstar_upper_right,
+                                            fstar_lower_left, fstar_lower_right,
+                                            fstar_tmp1)
+    lower_left_element = cache.mortars.neighbor_ids[1, mortar]
+    lower_right_element = cache.mortars.neighbor_ids[2, mortar]
+    upper_left_element = cache.mortars.neighbor_ids[3, mortar]
+    upper_right_element = cache.mortars.neighbor_ids[4, mortar]
+    large_element = cache.mortars.neighbor_ids[5, mortar]
+
+    # Copy flux small to small
+    if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 1
+        elseif cache.mortars.orientations[mortar] == 2
+            # L2 mortars in y-direction
+            direction = 3
+        else # if cache.mortars.orientations[mortar] == 3
+            # L2 mortars in z-direction
+            direction = 5
+        end
+    else # large_sides[mortar] == 2 -> small elements on left side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 2
+        elseif cache.mortars.orientations[mortar] == 2
+            # L2 mortars in y-direction
+            direction = 4
+        else # if cache.mortars.orientations[mortar] == 3
+            # L2 mortars in z-direction
+            direction = 6
+        end
+    end
+    surface_flux_values[:, :, :, direction, upper_left_element] .= fstar_upper_left
+    surface_flux_values[:, :, :, direction, upper_right_element] .= fstar_upper_right
+    surface_flux_values[:, :, :, direction, lower_left_element] .= fstar_lower_left
+    surface_flux_values[:, :, :, direction, lower_right_element] .= fstar_lower_right
+
+    # Project small fluxes to large element
+    if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 2
+        elseif cache.mortars.orientations[mortar] == 2
+            # L2 mortars in y-direction
+            direction = 4
+        else # if cache.mortars.orientations[mortar] == 3
+            # L2 mortars in z-direction
+            direction = 6
+        end
+    else # large_sides[mortar] == 2 -> small elements on left side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 1
+        elseif cache.mortars.orientations[mortar] == 2
+            # L2 mortars in y-direction
+            direction = 3
+        else # if cache.mortars.orientations[mortar] == 3
+            # L2 mortars in z-direction
+            direction = 5
+        end
+    end
+
+    multiply_dimensionwise!(view(surface_flux_values, :, :, :, direction,
+                                 large_element),
+                            mortar_l2.reverse_lower, mortar_l2.reverse_upper,
+                            fstar_upper_left, fstar_tmp1)
+    add_multiply_dimensionwise!(view(surface_flux_values, :, :, :, direction,
+                                     large_element),
+                                mortar_l2.reverse_upper, mortar_l2.reverse_upper,
+                                fstar_upper_right, fstar_tmp1)
+    add_multiply_dimensionwise!(view(surface_flux_values, :, :, :, direction,
+                                     large_element),
+                                mortar_l2.reverse_lower, mortar_l2.reverse_lower,
+                                fstar_lower_left, fstar_tmp1)
+    add_multiply_dimensionwise!(view(surface_flux_values, :, :, :, direction,
+                                     large_element),
+                                mortar_l2.reverse_upper, mortar_l2.reverse_lower,
+                                fstar_lower_right, fstar_tmp1)
 
     return nothing
 end
@@ -962,7 +938,7 @@ function calc_gradient!(gradients, u_transformed, t,
                 u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                    equations_parabolic, dg, i, j,
                                                    interface)
-                flux = 0.5 * (u_ll + u_rr)
+                flux = 0.5f0 * (u_ll + u_rr)
 
                 # Copy flux to left and right element storage
                 for v in eachvariable(equations_parabolic)
@@ -1133,24 +1109,6 @@ function apply_jacobian_parabolic!(du, mesh::TreeMesh{3},
         factor = inverse_jacobian[element]
 
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            for v in eachvariable(equations)
-                du[v, i, j, k, element] *= factor
-            end
-        end
-    end
-
-    return nothing
-end
-
-function apply_jacobian_parabolic!(du, mesh::P4estMesh{3},
-                                   equations::AbstractEquationsParabolic,
-                                   dg::DG, cache)
-    @unpack inverse_jacobian = cache.elements
-
-    @threaded for element in eachelement(dg, cache)
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            factor = inverse_jacobian[i, j, k, element]
-
             for v in eachvariable(equations)
                 du[v, i, j, k, element] *= factor
             end

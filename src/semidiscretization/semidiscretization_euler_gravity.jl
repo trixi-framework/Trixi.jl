@@ -59,7 +59,7 @@ function Base.show(io::IO, ::MIME"text/plain", parameters::ParametersEulerGravit
             "gravitational constant (G)" => parameters.gravitational_constant,
             "CFL (gravity)" => parameters.cfl,
             "max. #iterations" => parameters.n_iterations_max,
-            "time integrator" => parameters.timestep_gravity,
+            "time integrator" => parameters.timestep_gravity
         ]
         summary_box(io, "ParametersEulerGravity", setup)
     end
@@ -134,7 +134,26 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler,
                                                                       parameters, cache)
 end
 
-# TODO: AD, add appropriate method for remake
+function remake(semi::SemidiscretizationEulerGravity;
+                uEltype = real(semi.semi_gravity.solver),
+                semi_euler = semi.semi_euler,
+                semi_gravity = semi.semi_gravity,
+                parameters = semi.parameters)
+    semi_euler = remake(semi_euler, uEltype = uEltype)
+    semi_gravity = remake(semi_gravity, uEltype = uEltype)
+
+    # Recreate cache, i.e., registers for u with e.g. AD datatype
+    u_ode = compute_coefficients(zero(real(semi_gravity)), semi_gravity)
+    du_ode = similar(u_ode)
+    u_tmp1_ode = similar(u_ode)
+    u_tmp2_ode = similar(u_ode)
+    cache = (; u_ode, du_ode, u_tmp1_ode, u_tmp2_ode)
+
+    SemidiscretizationEulerGravity{typeof(semi_euler), typeof(semi_gravity),
+                                   typeof(parameters), typeof(cache)}(semi_euler,
+                                                                      semi_gravity,
+                                                                      parameters, cache)
+end
 
 function Base.show(io::IO, semi::SemidiscretizationEulerGravity)
     @nospecialize semi # reduce precompilation time

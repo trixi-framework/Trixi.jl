@@ -35,8 +35,9 @@
 # There is a default example for this mesh type that can be executed by
 
 using Trixi
-redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-trixi_include(default_example_unstructured())
+rm("out", force = true, recursive = true) #hide #md
+redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+    trixi_include(default_example_unstructured())
 end #hide #md
 
 # This will compute a smooth, manufactured solution test case for the 2D compressible Euler equations
@@ -52,8 +53,8 @@ end #hide #md
 # To convert the HDF5-formatted `.h5` output file(s) from Trixi.jl into VTK format execute the following
 
 using Trixi2Vtk
-redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-trixi2vtk("out/solution_000180.h5", output_directory="out")
+redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+    trixi2vtk("out/solution_000000180.h5", output_directory = "out")
 end #hide #md
 
 # Note this step takes about 15-30 seconds as the package `Trixi2Vtk` must be precompiled and executed for the first time
@@ -62,8 +63,8 @@ end #hide #md
 # where the new files will be saved; it defaults to the current directory. (2) Specifying a higher number of
 # visualization nodes. For instance, if we want to use 12 uniformly spaced nodes for visualization we can execute
 
-redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-trixi2vtk("out/solution_000180.h5", output_directory="out", nvisnodes=12)
+redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+    trixi2vtk("out/solution_000000180.h5", output_directory = "out", nvisnodes = 12)
 end #hide #md
 
 # By default `trixi2vtk` sets `nvisnodes` to be the same as the number of nodes specified in
@@ -71,8 +72,8 @@ end #hide #md
 
 # Finally, if you want to convert all the solution files to VTK execute
 
-redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-trixi2vtk("out/solution_000*.h5", output_directory="out", nvisnodes=12)
+redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+    trixi2vtk("out/solution_000*.h5", output_directory = "out", nvisnodes = 12)
 end #hide #md
 
 # then it is possible to open the `.pvd` file with ParaView and create a video of the simulation.
@@ -94,64 +95,64 @@ end #hide #md
 
 # The associated `ice_cream_straight_sides.control` file is created below.
 open("out/ice_cream_straight_sides.control", "w") do io
-  println(io, raw"""
-\begin{CONTROL_INPUT}
-    \begin{RUN_PARAMETERS}
-        mesh file name   = ice_cream_straight_sides.mesh
-        plot file name   = ice_cream_straight_sides.tec
-        stats file name  = none
-        mesh file format = ISM-v2
-        polynomial order = 4
-        plot file format = skeleton
-    \end{RUN_PARAMETERS}
+    println(io, raw"""
+  \begin{CONTROL_INPUT}
+      \begin{RUN_PARAMETERS}
+          mesh file name   = ice_cream_straight_sides.mesh
+          plot file name   = ice_cream_straight_sides.tec
+          stats file name  = none
+          mesh file format = ISM-v2
+          polynomial order = 4
+          plot file format = skeleton
+      \end{RUN_PARAMETERS}
 
-    \begin{BACKGROUND_GRID}
-        x0 = [-8.0, -8.0, 0.0]
-        dx = [1.0, 1.0, 0.0]
-        N  = [16,16,1]
-    \end{BACKGROUND_GRID}
+      \begin{BACKGROUND_GRID}
+          x0 = [-8.0, -8.0, 0.0]
+          dx = [1.0, 1.0, 0.0]
+          N  = [16,16,1]
+      \end{BACKGROUND_GRID}
 
-    \begin{SPRING_SMOOTHER}
-        smoothing            = ON
-        smoothing type       = LinearAndCrossBarSpring
-        number of iterations = 25
-    \end{SPRING_SMOOTHER}
+      \begin{SPRING_SMOOTHER}
+          smoothing            = ON
+          smoothing type       = LinearAndCrossBarSpring
+          number of iterations = 25
+      \end{SPRING_SMOOTHER}
 
-\end{CONTROL_INPUT}
+  \end{CONTROL_INPUT}
 
-\begin{MODEL}
+  \begin{MODEL}
 
-    \begin{INNER_BOUNDARIES}
+      \begin{INNER_BOUNDARIES}
 
-        \begin{CHAIN}
-            name = IceCreamCone
-            \begin{END_POINTS_LINE}
-                name = LeftSlant
-                xStart = [-2.0, 1.0, 0.0]
-                xEnd   = [ 0.0, -3.0, 0.0]
-            \end{END_POINTS_LINE}
+          \begin{CHAIN}
+              name = IceCreamCone
+              \begin{END_POINTS_LINE}
+                  name = LeftSlant
+                  xStart = [-2.0, 1.0, 0.0]
+                  xEnd   = [ 0.0, -3.0, 0.0]
+              \end{END_POINTS_LINE}
 
-            \begin{END_POINTS_LINE}
-                name = RightSlant
-                xStart = [ 0.0, -3.0, 0.0]
-                xEnd   = [ 2.0, 1.0, 0.0]
-            \end{END_POINTS_LINE}
+              \begin{END_POINTS_LINE}
+                  name = RightSlant
+                  xStart = [ 0.0, -3.0, 0.0]
+                  xEnd   = [ 2.0, 1.0, 0.0]
+              \end{END_POINTS_LINE}
 
-            \begin{CIRCULAR_ARC}
-                name        = IceCream
-                units       = degrees
-                center      = [ 0.0, 1.0, 0.0]
-                radius      = 2.0
-                start angle = 0.0
-                end angle   = 180.0
-            \end{CIRCULAR_ARC}
-        \end{CHAIN}
+              \begin{CIRCULAR_ARC}
+                  name        = IceCream
+                  units       = degrees
+                  center      = [ 0.0, 1.0, 0.0]
+                  radius      = 2.0
+                  start angle = 0.0
+                  end angle   = 180.0
+              \end{CIRCULAR_ARC}
+          \end{CHAIN}
 
-    \end{INNER_BOUNDARIES}
+      \end{INNER_BOUNDARIES}
 
-\end{MODEL}
-\end{FILE}
-""")
+  \end{MODEL}
+  \end{FILE}
+  """)
 end
 
 # The first three blocks of information are wrapped within a `CONTROL_INPUT` environment block as they define the
@@ -304,18 +305,18 @@ equations = CompressibleEulerEquations2D(1.4) # set gas gamma = 1.4
 ## freestream flow state with Ma_inf = 0.3
 @inline function uniform_flow_state(x, t, equations::CompressibleEulerEquations2D)
 
-  ## set the freestream flow parameters
-  rho_freestream = 1.0
-  u_freestream = 0.3
-  p_freestream = inv(equations.gamma)
+    ## set the freestream flow parameters
+    rho_freestream = 1.0
+    u_freestream = 0.3
+    p_freestream = inv(equations.gamma)
 
-  theta = 0.0 # zero angle of attack
-  si, co = sincos(theta)
-  v1 = u_freestream * co
-  v2 = u_freestream * si
+    theta = 0.0 # zero angle of attack
+    si, co = sincos(theta)
+    v1 = u_freestream * co
+    v2 = u_freestream * si
 
-  prim = SVector(rho_freestream, v1, v2, p_freestream)
-  return prim2cons(prim, equations)
+    prim = SVector(rho_freestream, v1, v2, p_freestream)
+    return prim2cons(prim, equations)
 end
 
 ## initial condition
@@ -325,13 +326,13 @@ initial_condition = uniform_flow_state
 boundary_condition_uniform_flow = BoundaryConditionDirichlet(uniform_flow_state)
 
 ## boundary condition dictionary
-boundary_conditions = Dict( :Bottom     => boundary_condition_uniform_flow,
-                            :Top        => boundary_condition_uniform_flow,
-                            :Right      => boundary_condition_uniform_flow,
-                            :Left       => boundary_condition_uniform_flow,
-                            :LeftSlant  => boundary_condition_slip_wall,
-                            :RightSlant => boundary_condition_slip_wall,
-                            :IceCream   => boundary_condition_slip_wall );
+boundary_conditions = Dict(:Bottom => boundary_condition_uniform_flow,
+                           :Top => boundary_condition_uniform_flow,
+                           :Right => boundary_condition_uniform_flow,
+                           :Left => boundary_condition_uniform_flow,
+                           :LeftSlant => boundary_condition_slip_wall,
+                           :RightSlant => boundary_condition_slip_wall,
+                           :IceCream => boundary_condition_slip_wall);
 
 ## DGSEM solver.
 ##    1) polydeg must be >= the polynomial order set in the HOHQMesh control file to guarantee
@@ -339,8 +340,8 @@ boundary_conditions = Dict( :Bottom     => boundary_condition_uniform_flow,
 ##    2) VolumeIntegralFluxDifferencing with central volume flux is activated
 ##       for dealiasing
 volume_flux = flux_ranocha
-solver = DGSEM(polydeg=4, surface_flux=flux_hll,
-               volume_integral=VolumeIntegralFluxDifferencing(volume_flux))
+solver = DGSEM(polydeg = 4, surface_flux = flux_hll,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ## create the unstructured mesh from your mesh file
 mesh_file = joinpath("out", "ice_cream_straight_sides.mesh")
@@ -348,29 +349,28 @@ mesh = UnstructuredMesh2D(mesh_file)
 
 ## Create semidiscretization with all spatial discretization-related components
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions=boundary_conditions)
+                                    boundary_conditions = boundary_conditions)
 
 ## Create ODE problem from semidiscretization with time span from 0.0 to 2.0
 tspan = (0.0, 2.0)
 ode = semidiscretize(semi, tspan)
 
-
 ## Create the callbacks to output solution files and adapt the time step
 summary_callback = SummaryCallback()
-save_solution = SaveSolutionCallback(interval=10,
-                                     save_initial_solution=true,
-                                     save_final_solution=true)
-stepsize_callback = StepsizeCallback(cfl=1.0)
+save_solution = SaveSolutionCallback(interval = 10,
+                                     save_initial_solution = true,
+                                     save_final_solution = true)
+stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
 
-redirect_stdio(stdout=devnull, stderr=devnull) do # code that prints annoying stuff we don't want to see here #hide #md
-## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition=false),
-            dt=1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep=false, callback=callbacks);
-## print the timer summary
-summary_callback()
+redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
+    ## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
+    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+                dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                save_everystep = false, callback = callbacks)
+    ## print the timer summary
+    summary_callback()
 end #hide #md
 
 # Visualization of the solution is carried out in a similar way as above. That is, one converts the `.h5`
@@ -388,72 +388,72 @@ end #hide #md
 # We create the new control file `ice_cream_curved_sides.control` file below and will then highlight the
 # major differences compared to `ice_cream_straight_sides.control`.
 open("out/ice_cream_curved_sides.control", "w") do io
-  println(io, raw"""
-\begin{CONTROL_INPUT}
-    \begin{RUN_PARAMETERS}
-        mesh file name   = ice_cream_curved_sides.mesh
-        plot file name   = ice_cream_curved_sides.tec
-        stats file name  = none
-        mesh file format = ISM-v2
-        polynomial order = 4
-        plot file format = skeleton
-    \end{RUN_PARAMETERS}
+    println(io, raw"""
+  \begin{CONTROL_INPUT}
+      \begin{RUN_PARAMETERS}
+          mesh file name   = ice_cream_curved_sides.mesh
+          plot file name   = ice_cream_curved_sides.tec
+          stats file name  = none
+          mesh file format = ISM-v2
+          polynomial order = 4
+          plot file format = skeleton
+      \end{RUN_PARAMETERS}
 
-    \begin{BACKGROUND_GRID}
-        background grid size = [1.0, 1.0, 0.0]
-    \end{BACKGROUND_GRID}
+      \begin{BACKGROUND_GRID}
+          background grid size = [1.0, 1.0, 0.0]
+      \end{BACKGROUND_GRID}
 
-    \begin{SPRING_SMOOTHER}
-        smoothing            = ON
-        smoothing type       = LinearAndCrossBarSpring
-        number of iterations = 25
-    \end{SPRING_SMOOTHER}
+      \begin{SPRING_SMOOTHER}
+          smoothing            = ON
+          smoothing type       = LinearAndCrossBarSpring
+          number of iterations = 25
+      \end{SPRING_SMOOTHER}
 
-\end{CONTROL_INPUT}
+  \end{CONTROL_INPUT}
 
-\begin{MODEL}
+  \begin{MODEL}
 
-    \begin{OUTER_BOUNDARY}
-        \begin{PARAMETRIC_EQUATION_CURVE}
-            name = OuterCircle
-            xEqn = x(t) = 8.0*sin(2.0*pi*t)
-            yEqn = y(t) = 8.0*cos(2.0*pi*t)
-            zEqn = z(t) = 0.0
-        \end{PARAMETRIC_EQUATION_CURVE}
+      \begin{OUTER_BOUNDARY}
+          \begin{PARAMETRIC_EQUATION_CURVE}
+              name = OuterCircle
+              xEqn = x(t) = 8.0*sin(2.0*pi*t)
+              yEqn = y(t) = 8.0*cos(2.0*pi*t)
+              zEqn = z(t) = 0.0
+          \end{PARAMETRIC_EQUATION_CURVE}
 
-    \end{OUTER_BOUNDARY}
+      \end{OUTER_BOUNDARY}
 
-    \begin{INNER_BOUNDARIES}
+      \begin{INNER_BOUNDARIES}
 
-        \begin{CHAIN}
-            name = IceCreamCone
-            \begin{END_POINTS_LINE}
-                name = LeftSlant
-                xStart = [-2.0, 1.0, 0.0]
-                xEnd   = [ 0.0, -3.0, 0.0]
-            \end{END_POINTS_LINE}
+          \begin{CHAIN}
+              name = IceCreamCone
+              \begin{END_POINTS_LINE}
+                  name = LeftSlant
+                  xStart = [-2.0, 1.0, 0.0]
+                  xEnd   = [ 0.0, -3.0, 0.0]
+              \end{END_POINTS_LINE}
 
-            \begin{END_POINTS_LINE}
-                name = RightSlant
-                xStart = [ 0.0, -3.0, 0.0]
-                xEnd   = [ 2.0, 1.0, 0.0]
-            \end{END_POINTS_LINE}
+              \begin{END_POINTS_LINE}
+                  name = RightSlant
+                  xStart = [ 0.0, -3.0, 0.0]
+                  xEnd   = [ 2.0, 1.0, 0.0]
+              \end{END_POINTS_LINE}
 
-            \begin{CIRCULAR_ARC}
-                name        = IceCream
-                units       = degrees
-                center      = [ 0.0, 1.0, 0.0]
-                radius      = 2.0
-                start angle = 0.0
-                end angle   = 180.0
-            \end{CIRCULAR_ARC}
-        \end{CHAIN}
+              \begin{CIRCULAR_ARC}
+                  name        = IceCream
+                  units       = degrees
+                  center      = [ 0.0, 1.0, 0.0]
+                  radius      = 2.0
+                  start angle = 0.0
+                  end angle   = 180.0
+              \end{CIRCULAR_ARC}
+          \end{CHAIN}
 
-    \end{INNER_BOUNDARIES}
+      \end{INNER_BOUNDARIES}
 
-\end{MODEL}
-\end{FILE}
-""")
+  \end{MODEL}
+  \end{FILE}
+  """)
 end
 
 # The first alteration is that we have altered the second block of information
@@ -500,10 +500,10 @@ output = generate_mesh(control_file);
 # dictionary because we now have a boundary named `OuterCircle` instead of four edges of a bounding box.
 
 ## boundary condition dictionary
-boundary_conditions = Dict( :OuterCircle => boundary_condition_uniform_flow,
-                            :LeftSlant   => boundary_condition_slip_wall,
-                            :RightSlant  => boundary_condition_slip_wall,
-                            :IceCream    => boundary_condition_slip_wall );
+boundary_conditions = Dict(:OuterCircle => boundary_condition_uniform_flow,
+                           :LeftSlant => boundary_condition_slip_wall,
+                           :RightSlant => boundary_condition_slip_wall,
+                           :IceCream => boundary_condition_slip_wall);
 
 # Also, we must update the construction of the mesh from our new mesh file `ice_cream_curved_sides.mesh` that
 # is located in the `out` folder.
@@ -512,11 +512,9 @@ boundary_conditions = Dict( :OuterCircle => boundary_condition_uniform_flow,
 mesh_file = joinpath("out", "ice_cream_curved_sides.mesh")
 mesh = UnstructuredMesh2D(mesh_file);
 
-
 # We can then post-process the solution file at the final time on the new mesh with `Trixi2Vtk` and visualize with ParaView.
 
 # ![simulation_curved_sides](https://user-images.githubusercontent.com/25242486/129733924-778795c1-9119-419a-8b89-bcbe13e33cd7.png)
-
 
 # ## Setting up a simulation with AMR via `P4estMesh`
 # The above explained mesh file format of `ISM-V2` only works with `UnstructuredMesh2D` and so does
@@ -567,7 +565,6 @@ mesh = UnstructuredMesh2D(mesh_file);
 
 # ![simulation_straight_sides_p4est_amr](https://user-images.githubusercontent.com/74359358/168049930-8abce6ac-cd47-4d04-b40b-0fa459bbd98d.png)
 
-
 # ## Package versions
 
 # These results were obtained using the following versions.
@@ -577,4 +574,4 @@ versioninfo()
 
 using Pkg
 Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "Trixi2Vtk", "HOHQMesh"],
-           mode=PKGMODE_MANIFEST)
+           mode = PKGMODE_MANIFEST)

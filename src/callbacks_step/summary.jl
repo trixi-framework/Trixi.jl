@@ -152,7 +152,13 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
         Polyester.reset_threads!()
     end
 
-    mpi_isroot() || return nothing
+    # The summary callback should only print information on the root process.
+    # However, all other MPI processes should also reset the timer so that
+    # it can be used to diagnose performance.
+    if !mpi_isroot()
+        reset_timer!(timer())
+        return nothing
+    end
 
     print_startup_message()
 
@@ -201,6 +207,9 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
 
     # technical details
     setup = Pair{String, Any}["#threads" => Threads.nthreads()]
+    if !_PREFERENCE_POLYESTER
+        push!(setup, "Polyester" => "disabled")
+    end
     if mpi_isparallel()
         push!(setup,
               "#MPI ranks" => mpi_nranks())

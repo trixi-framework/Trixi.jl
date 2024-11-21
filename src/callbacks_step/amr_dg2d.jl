@@ -76,7 +76,10 @@ function rebalance_solver!(u_ode::AbstractVector, mesh::TreeMesh{2}, equations,
     end # GC.@preserve old_u_ode
 end
 
-# Refine elements in the DG solver based on a list of cell_ids that should be refined
+# Refine elements in the DG solver based on a list of cell_ids that should be refined.
+# On `P4estMesh`, if an element refines the solution scaled by the Jacobian `J*u` is interpolated
+# from the parent element into the four children elements. The solution on each child
+# element is then recovered by dividing by the new element Jacobians.
 function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estMesh{2}},
                  equations, dg::DGSEM, cache, elements_to_refine)
     # Return early if there is nothing to do
@@ -96,8 +99,22 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
     # Retain current solution data
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+    old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
+    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        if mesh isa P4estMesh
+            # Loop over all elements in old container and scale the old solution by the Jacobian
+            # prior to projection
+            for old_element_id in 1:old_n_elements
+                for v in eachvariable(equations)
+                    old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
+                                                     old_inverse_jacobian[..,
+                                                                          old_element_id])
+                end
+            end
+        end
 
         reinitialize_containers!(mesh, equations, dg, cache)
 
@@ -112,10 +129,34 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
                 # Refine element and store solution directly in new data structure
                 refine_element!(u, element_id, old_u, old_element_id,
                                 adaptor, equations, dg)
+
+                if mesh isa P4estMesh
+                    # Before `element_id` is incremented, divide by the new Jacobians on each
+                    # child element and save the result
+                    for m in 0:3 # loop over the children
+                        for v in eachvariable(equations)
+                            u[v, .., element_id + m] .*= (0.25f0 .*
+                                                          cache.elements.inverse_jacobian[..,
+                                                                                          element_id + m])
+                        end
+                    end
+                end
+
+                # Increment `element_id` on the refined mesh with the number
+                # of children, i.e., 4 in 2D
                 element_id += 2^ndims(mesh)
             else
-                # Copy old element data to new element container
-                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                if mesh isa P4estMesh
+                    # Copy old element data to new element container and remove Jacobian scaling
+                    for v in eachvariable(equations)
+                        u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
+                                                 old_inverse_jacobian[..,
+                                                                      old_element_id])
+                    end
+                else # isa TreeMesh
+                    @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                end
+                # No refinement occurred, so increment `element_id` on the new mesh by one
                 element_id += 1
             end
         end
@@ -125,7 +166,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
         @assert element_id ==
                 nelements(dg, cache) +
                 1||element_id == nelements(dg, cache) + 2^ndims(mesh) "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-    end # GC.@preserve old_u_ode
+    end # GC.@preserve old_u_ode old_inverse_jacobian
 
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
@@ -137,7 +178,7 @@ function refine!(u_ode::AbstractVector, adaptor, mesh::Union{TreeMesh{2}, P4estM
 end
 
 function refine!(u_ode::AbstractVector, adaptor,
-                 mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}},
+                 mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
                  equations, dg::DGSEM, cache, cache_parabolic,
                  elements_to_refine)
     # Call `refine!` for the hyperbolic part, which does the heavy lifting of
@@ -228,7 +269,10 @@ function refine_element!(u::AbstractArray{<:Any, 4}, element_id,
     return nothing
 end
 
-# Coarsen elements in the DG solver based on a list of cell_ids that should be removed
+# Coarsen elements in the DG solver based on a list of cell_ids that should be removed.
+# On `P4estMesh`, if an element coarsens the solution scaled by the Jacobian `J*u` is projected
+# from the four children elements back onto the parent element. The solution on the parent
+# element is then recovered by dividing by the new element Jacobian.
 function coarsen!(u_ode::AbstractVector, adaptor,
                   mesh::Union{TreeMesh{2}, P4estMesh{2}},
                   equations, dg::DGSEM, cache, elements_to_remove)
@@ -246,11 +290,25 @@ function coarsen!(u_ode::AbstractVector, adaptor,
     to_be_removed = falses(nelements(dg, cache))
     to_be_removed[elements_to_remove] .= true
 
-    # Retain current solution data
+    # Retain current solution data and Jacobians
     old_n_elements = nelements(dg, cache)
     old_u_ode = copy(u_ode)
-    GC.@preserve old_u_ode begin # OBS! If we don't GC.@preserve old_u_ode, it might be GC'ed
+    old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
+    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
+    GC.@preserve old_u_ode old_inverse_jacobian begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
+
+        if mesh isa P4estMesh
+            # Loop over all elements in old container and scale the old solution by the Jacobian
+            # prior to projection
+            for old_element_id in 1:old_n_elements
+                for v in eachvariable(equations)
+                    old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
+                                                     old_inverse_jacobian[..,
+                                                                          old_element_id])
+                end
+            end
+        end
 
         reinitialize_containers!(mesh, equations, dg, cache)
 
@@ -277,17 +335,39 @@ function coarsen!(u_ode::AbstractVector, adaptor,
                 # Coarsen elements and store solution directly in new data structure
                 coarsen_elements!(u, element_id, old_u, old_element_id,
                                   adaptor, equations, dg)
+
+                if mesh isa P4estMesh
+                    # Before `element_id` is incremented, divide by the new Jacobian and save
+                    # the result in the parent element
+                    for v in eachvariable(equations)
+                        u[v, .., element_id] .*= (4 .*
+                                                  cache.elements.inverse_jacobian[..,
+                                                                                  element_id])
+                    end
+                end
+
+                # Increment `element_id` on the coarsened mesh by one and `skip` = 3 in 2D
+                # because 4 children elements become 1 parent element
                 element_id += 1
                 skip = 2^ndims(mesh) - 1
             else
-                # Copy old element data to new element container
-                @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                if mesh isa P4estMesh
+                    # Copy old element data to new element container and remove Jacobian scaling
+                    for v in eachvariable(equations)
+                        u[v, .., element_id] .= (old_u[v, .., old_element_id] .*
+                                                 old_inverse_jacobian[..,
+                                                                      old_element_id])
+                    end
+                else # isa TreeMesh
+                    @views u[:, .., element_id] .= old_u[:, .., old_element_id]
+                end
+                # No coarsening occurred, so increment `element_id` on the new mesh by one
                 element_id += 1
             end
         end
         # If everything is correct, we should have processed all elements.
         @assert element_id==nelements(dg, cache) + 1 "element_id = $element_id, nelements(dg, cache) = $(nelements(dg, cache))"
-    end # GC.@preserve old_u_ode
+    end # GC.@preserve old_u_ode old_inverse_jacobian
 
     # Sanity check
     if mesh isa TreeMesh && isperiodic(mesh.tree) && nmortars(cache.mortars) == 0 &&
@@ -299,7 +379,7 @@ function coarsen!(u_ode::AbstractVector, adaptor,
 end
 
 function coarsen!(u_ode::AbstractVector, adaptor,
-                  mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}},
+                  mesh::Union{TreeMesh{2}, P4estMesh{2}, TreeMesh{3}, P4estMesh{3}},
                   equations, dg::DGSEM, cache, cache_parabolic,
                   elements_to_remove)
     # Call `coarsen!` for the hyperbolic part, which does the heavy lifting of
@@ -385,7 +465,12 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
 
     # Return early if there is nothing to do.
     if !any(difference .!= 0)
-        return nothing
+        if mpi_isparallel()
+            # MPICache init uses all-to-all communication -> reinitialize even if there is nothing to do
+            # locally (there still might be other MPI ranks that have refined elements)
+            reinitialize_containers!(mesh, equations, dg, cache)
+        end
+        return
     end
 
     # Number of (local) cells/elements.
@@ -396,19 +481,30 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
     old_index = 1
     new_index = 1
 
-    # Note: This is true for `quads` only.
+    # Note: This is true for `quads`.
     T8_CHILDREN = 4
 
-    # Retain current solution data.
+    # Retain current solution and inverse Jacobian data.
     old_u_ode = copy(u_ode)
+    old_inverse_jacobian = copy(cache.elements.inverse_jacobian)
 
+    # OBS! If we don't GC.@preserve old_u_ode and old_inverse_jacobian, they might be GC'ed
     GC.@preserve old_u_ode begin
         old_u = wrap_array(old_u_ode, mesh, equations, dg, cache)
 
+        # Loop over all elements in old container and scale the old solution by the Jacobian
+        # prior to interpolation or projection
+        for old_element_id in 1:old_nelems
+            for v in eachvariable(equations)
+                old_u[v, .., old_element_id] .= (old_u[v, .., old_element_id] ./
+                                                 old_inverse_jacobian[..,
+                                                                      old_element_id])
+            end
+        end
+
         reinitialize_containers!(mesh, equations, dg, cache)
 
-        resize!(u_ode,
-                nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache))
+        resize!(u_ode, nvariables(equations) * ndofs(mesh, dg, cache))
         u = wrap_array(u_ode, mesh, equations, dg, cache)
 
         while old_index <= old_nelems && new_index <= new_nelems
@@ -417,6 +513,18 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
                 # Refine element and store solution directly in new data structure.
                 refine_element!(u, new_index, old_u, old_index, adaptor, equations, dg)
 
+                # Before indices are incremented divide by the new Jacobians on each
+                # child element and save the result
+                for m in 0:3 # loop over the children
+                    for v in eachvariable(equations)
+                        u[v, .., new_index + m] .*= (0.25f0 .*
+                                                     cache.elements.inverse_jacobian[..,
+                                                                                     new_index + m])
+                    end
+                end
+
+                # Increment `old_index` on the original mesh and the `new_index`
+                # on the refined mesh with the number of children, i.e., T8_CHILDREN = 4
                 old_index += 1
                 new_index += T8_CHILDREN
 
@@ -431,19 +539,34 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
                 coarsen_elements!(u, new_index, old_u, old_index, adaptor, equations,
                                   dg)
 
+                # Before the indices are incremented divide by the new Jacobian and save
+                # the result again in the parent element
+                for v in eachvariable(equations)
+                    u[v, .., new_index] .*= (4 .* cache.elements.inverse_jacobian[..,
+                                                                             new_index])
+                end
+
+                # Increment `old_index` on the original mesh with the number of children
+                # (T8_CHILDREN = 4 in 2D) and the `new_index` by one for the single
+                # coarsened element
                 old_index += T8_CHILDREN
                 new_index += 1
 
             else # No changes.
 
-                # Copy old element data to new element container.
-                @views u[:, .., new_index] .= old_u[:, .., old_index]
+                # Copy old element data to new element container and remove Jacobian scaling
+                for v in eachvariable(equations)
+                    u[v, .., new_index] .= (old_u[v, .., old_index] .*
+                                            old_inverse_jacobian[.., old_index])
+                end
 
+                # No refinement / coarsening occurred, so increment element index
+                # on each mesh by one
                 old_index += 1
                 new_index += 1
             end
         end # while
-    end # GC.@preserve old_u_ode
+    end # GC.@preserve old_u_ode old_inverse_jacobian
 
     return nothing
 end
@@ -452,12 +575,6 @@ end
 function create_cache(::Type{ControllerThreeLevel},
                       mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
                       dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
-end
-
-function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh{2},
-                      equations, dg::DG, cache)
     controller_value = Vector{Int}(undef, nelements(dg, cache))
     return (; controller_value)
 end

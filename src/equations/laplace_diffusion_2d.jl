@@ -35,35 +35,4 @@ function penalty(u_outer, u_inner, inv_h, equations_parabolic::LaplaceDiffusion2
     return dg.penalty_parameter * (u_outer - u_inner) * equations_parabolic.diffusivity
 end
 
-# Dirichlet-type boundary condition for use with a parabolic solver in weak form
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
-                                                                  normal::AbstractVector,
-                                                                  x, t,
-                                                                  operator_type::Gradient,
-                                                                  equations_parabolic::LaplaceDiffusion2D)
-    return boundary_condition.boundary_value_function(x, t, equations_parabolic)
-end
-
-@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
-                                                                  normal::AbstractVector,
-                                                                  x, t,
-                                                                  operator_type::Divergence,
-                                                                  equations_parabolic::LaplaceDiffusion2D)
-    return flux_inner
-end
-
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
-                                                                normal::AbstractVector,
-                                                                x, t,
-                                                                operator_type::Divergence,
-                                                                equations_parabolic::LaplaceDiffusion2D)
-    return boundary_condition.boundary_normal_flux_function(x, t, equations_parabolic)
-end
-
-@inline function (boundary_condition::BoundaryConditionNeumann)(flux_inner, u_inner,
-                                                                normal::AbstractVector,
-                                                                x, t,
-                                                                operator_type::Gradient,
-                                                                equations_parabolic::LaplaceDiffusion2D)
-    return flux_inner
-end
+# General Dirichlet and Neumann boundary condition functions are defined in `src/equations/laplace_diffusion_1d.jl`.

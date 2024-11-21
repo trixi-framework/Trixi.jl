@@ -7,10 +7,10 @@
 
 mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2} <:
                AbstractContainer
-    u::Array{uEltype, NDIMSP2}       # [primary/secondary, variable, i, j, interface]
-    local_neighbor_ids::Vector{Int}                   # [interface]
+    u::Array{uEltype, NDIMSP2}                  # [primary/secondary, variable, i, j, interface]
+    local_neighbor_ids::Vector{Int}             # [interface]
     node_indices::Vector{NTuple{NDIMS, Symbol}} # [interface]
-    local_sides::Vector{Int}                   # [interface]
+    local_sides::Vector{Int}                    # [interface]
 
     # internal `resize!`able storage
     _u::Vector{uEltype}
@@ -43,7 +43,8 @@ function Base.resize!(mpi_interfaces::P4estMPIInterfaceContainer, capacity)
 end
 
 # Create MPI interface container and initialize interface data
-function init_mpi_interfaces(mesh::ParallelP4estMesh, equations, basis, elements)
+function init_mpi_interfaces(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
+                             equations, basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
 
@@ -88,11 +89,11 @@ end
 # the normal vectors on the surface of the small elements for each mortar.
 mutable struct P4estMPIMortarContainer{NDIMS, uEltype <: Real, RealT <: Real, NDIMSP1,
                                        NDIMSP2, NDIMSP3} <: AbstractContainer
-    u::Array{uEltype, NDIMSP3} # [small/large side, variable, position, i, j, mortar]
-    local_neighbor_ids::Vector{Vector{Int}} # [mortar]
-    local_neighbor_positions::Vector{Vector{Int}} # [mortar]
-    node_indices::Matrix{NTuple{NDIMS, Symbol}} # [small/large, mortar]
-    normal_directions::Array{RealT, NDIMSP2} # [dimension, i, j, position, mortar]
+    u::Array{uEltype, NDIMSP3}                    # [small/large side, variable, position, i, j, mortar]
+    local_neighbor_ids::Vector{Vector{Int}}       # [mortar][ids]
+    local_neighbor_positions::Vector{Vector{Int}} # [mortar][positions]
+    node_indices::Matrix{NTuple{NDIMS, Symbol}}   # [small/large, mortar]
+    normal_directions::Array{RealT, NDIMSP2}      # [dimension, i, j, position, mortar]
     # internal `resize!`able storage
     _u::Vector{uEltype}
     _node_indices::Vector{NTuple{NDIMS, Symbol}}
@@ -133,7 +134,8 @@ function Base.resize!(mpi_mortars::P4estMPIMortarContainer, capacity)
 end
 
 # Create MPI mortar container and initialize MPI mortar data
-function init_mpi_mortars(mesh::ParallelP4estMesh, equations, basis, elements)
+function init_mpi_mortars(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh}, equations,
+                          basis, elements)
     NDIMS = ndims(mesh)
     RealT = real(mesh)
     uEltype = eltype(elements)

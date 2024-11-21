@@ -421,6 +421,8 @@ end
 function init_boundaries!(boundaries, elements, mesh::TreeMesh2D)
     # Exit early if there are no boundaries to initialize
     if nboundaries(boundaries) == 0
+        # In this case n_boundaries_per_direction still needs to be reset!
+        boundaries.n_boundaries_per_direction = SVector(0, 0, 0, 0)
         return nothing
     end
 
@@ -765,6 +767,7 @@ end
 # Container data structure (structure-of-arrays style) for DG MPI interfaces
 mutable struct MPIInterfaceContainer2D{uEltype <: Real} <: AbstractContainer
     u::Array{uEltype, 4}            # [leftright, variables, i, interfaces]
+    # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
     local_neighbor_ids::Vector{Int} # [interfaces]
     orientations::Vector{Int}       # [interfaces]
     remote_sides::Vector{Int}       # [interfaces]
@@ -905,6 +908,8 @@ function init_mpi_interfaces!(mpi_interfaces, elements, mesh::TreeMesh2D)
 
             # Create interface between elements
             count += 1
+            # Note: `local_neighbor_ids` stores the MPI-local neighbors, 
+            # but with globally valid index!
             mpi_interfaces.local_neighbor_ids[count] = element
 
             if iseven(direction) # element is "left" of interface, remote cell is "right" of interface
@@ -939,8 +944,9 @@ end
 mutable struct MPIL2MortarContainer2D{uEltype <: Real} <: AbstractContainer
     u_upper::Array{uEltype, 4} # [leftright, variables, i, mortars]
     u_lower::Array{uEltype, 4} # [leftright, variables, i, mortars]
-    local_neighbor_ids::Vector{Vector{Int}}       # [mortars]
-    local_neighbor_positions::Vector{Vector{Int}} # [mortars]
+    # Note: `local_neighbor_ids` stores the MPI-local neighbors, but with globally valid index!
+    local_neighbor_ids::Vector{Vector{Int}}       # [mortars][ids]
+    local_neighbor_positions::Vector{Vector{Int}} # [mortars][positions]
     # Large sides: left -> 1, right -> 2
     large_sides::Vector{Int}  # [mortars]
     orientations::Vector{Int} # [mortars]
@@ -1212,6 +1218,8 @@ function init_mpi_mortars!(mpi_mortars, elements, mesh::TreeMesh2D)
             # 3 -> large element
             count += 1
 
+            # Note: `local_neighbor_ids` stores the MPI-local neighbors, 
+            # but with globally valid index!
             local_neighbor_ids = Vector{Int}()
             local_neighbor_positions = Vector{Int}()
             if is_own_cell(mesh.tree, lower_cell_id)
