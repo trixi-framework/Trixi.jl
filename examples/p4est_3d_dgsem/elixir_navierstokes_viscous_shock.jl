@@ -36,26 +36,26 @@ prandtl_number() = 3 / 4
 
 ### Free choices: ###
 gamma = 5 / 3
-rho_0 = 1
+gamma_() = 5 / 3 # Need function to avoid allocations due to IC calls
+
 # In Margolin et al., the Navier-Stokes equations are given for an 
 # isotropic stress tensor τ, i.e., ∇ ⋅ τ = μ Δu 
-mu_isotropic = 0.1
-v = 1 # Shock speed
+mu_isotropic() = 0.1
+
+rho_0() = 1
+v() = 1 # Shock speed
 
 domain_length = 5.0
 
 ### Derived quantities ###
 
-Ma = 2 / sqrt(3 - gamma) # Mach number for alpha = 0.5
-c_0 = v / Ma # Speed of sound ahead of the shock
+Ma() = 2 / sqrt(3 - gamma_()) # Mach number for alpha = 0.5
+c_0() = v() / Ma() # Speed of sound ahead of the shock
 
 # From constant enthalpy condition
-p_0 = c_0^2 * rho_0 / gamma
+p_0() = c_0()^2 * rho_0() / gamma_()
 
-l = mu_isotropic / (rho_0 * v) * 2 * gamma / (gamma + 1) # Appropriate length scale
-
-# Helper function for coordinate transformation. See eq. (33) in Margolin et al. (2017)
-chi_of_y(y) = 2 * exp(y / (2 * l))
+l() = mu_isotropic() / (rho_0() * v()) * 2 * gamma_() / (gamma_() + 1) # Appropriate length scale
 
 """
     initial_condition_viscous_shock(x, t, equations)
@@ -68,14 +68,16 @@ The version implemented here is described in
   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 """
 function initial_condition_viscous_shock(x, t, equations)
-    y = x[1] - v * t # Translated coordinate
+    y = x[1] - v() * t # Translated coordinate
 
-    chi = chi_of_y(y)
+    # Coordinate transformation. See eq. (33) in Margolin et al. (2017)
+    chi = 2 * exp(y / (2 * l()))
+
     w = 1 + 1 / (2 * chi^2) * (1 - sqrt(1 + 2 * chi^2))
 
-    rho = rho_0 / w
-    u = v * (1 - w)
-    p = p_0 / w * (1 + (gamma - 1) / 2 * Ma^2 * (1 - w^2))
+    rho = rho_0() / w
+    u = v() * (1 - w)
+    p = p_0() * 1 / w * (1 + (gamma_() - 1) / 2 * Ma()^2 * (1 - w^2))
 
     return prim2cons(SVector(rho, u, 0, 0, p), equations)
 end
@@ -88,7 +90,7 @@ equations = CompressibleEulerEquations3D(gamma)
 
 # Trixi implements the stress tensor in deviatoric form, thus we need to 
 # convert the "isotropic viscosity" to the "deviatoric viscosity"
-mu_deviatoric() = mu_isotropic * 3 / 4
+mu_deviatoric() = mu_isotropic() * 3 / 4
 equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu_deviatoric(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
@@ -108,7 +110,8 @@ mesh = P4estMesh(trees_per_dimension,
 
 # Prescribe pure influx based on initial conditions
 function boundary_condition_inflow(u_inner, normal_direction::AbstractVector, x, t,
-                                   surface_flux_function, equations::CompressibleEulerEquations3D)
+                                   surface_flux_function,
+                                   equations::CompressibleEulerEquations3D)
     u_cons = initial_condition_viscous_shock(x, t, equations)
     flux = Trixi.flux(u_cons, normal_direction, equations)
 
@@ -117,7 +120,8 @@ end
 
 # Completely free outflow
 function boundary_condition_outflow(u_inner, normal_direction::AbstractVector, x, t,
-                                    surface_flux_function, equations::CompressibleEulerEquations3D)
+                                    surface_flux_function,
+                                    equations::CompressibleEulerEquations3D)
     # Calculate the boundary flux entirely from the internal solution state
     flux = Trixi.flux(u_inner, normal_direction, equations)
 
@@ -129,15 +133,19 @@ boundary_conditions = Dict(:x_neg => boundary_condition_inflow,
 
 ### Viscous boundary conditions ###
 # For the viscous BCs, we use the known analytical solution
-velocity_bc = NoSlip((x, t, equations) -> Trixi.velocity(initial_condition(x,
-                                                                           t,
-                                                                           equations),
-                                                         equations_parabolic))
+velocity_bc = NoSlip() do x, t, equations_parabolic
+    Trixi.velocity(initial_condition_viscous_shock(x,
+                                                   t,
+                                                   equations_parabolic),
+                   equations_parabolic)
+end
 
-heat_bc = Isothermal((x, t, equations) -> Trixi.temperature(initial_condition(x,
-                                                                              t,
-                                                                              equations),
-                                                            equations_parabolic))
+heat_bc = Isothermal() do x, t, equations_parabolic
+    Trixi.temperature(initial_condition_viscous_shock(x,
+                                                      t,
+                                                      equations_parabolic),
+                      equations_parabolic)
+end
 
 boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, heat_bc)
 
