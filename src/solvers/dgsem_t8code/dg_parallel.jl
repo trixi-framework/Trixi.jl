@@ -75,8 +75,8 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelT8codeMesh,
                                                                                                         nvars,
                                                                                                         nnodes,
                                                                                                         uEltype)
-    n_elements_global = Int(t8_forest_get_global_num_elements(mesh.forest))
-    n_elements_local = Int(t8_forest_get_local_num_elements(mesh.forest))
+    n_elements_global = Int(t8_forest_get_global_num_elements(mesh.forest.pointer))
+    n_elements_local = Int(t8_forest_get_local_num_elements(mesh.forest.pointer))
 
     n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
     n_elements_by_rank[mpi_rank() + 1] = n_elements_local

@@ -2,7 +2,7 @@
 # created throughout the life time of a Julia session. t8code objects
 # should remove themselves from the tracker when they get finalized.
 if !@isdefined(__T8CODE_OBJECT_TRACKER)
-    __T8CODE_OBJECT_TRACKER = Set()
+    __T8CODE_OBJECT_TRACKER = Dict()
 end
 
 """
@@ -41,8 +41,17 @@ function init_t8code()
 
         MPI.add_finalize_hook!() do
             # Finalize all registered t8code objects before MPI shuts down.
-            for obj in __T8CODE_OBJECT_TRACKER
-                finalize(unsafe_pointer_to_objref(obj))
+            while length(__T8CODE_OBJECT_TRACKER) > 0
+                unique_id = first(__T8CODE_OBJECT_TRACKER).first
+
+                # Make sure all MPI ranks finalize the same object.
+                if mpi_isparallel()
+                    unique_id = MPI.bcast(unique_id, mpi_comm(), root = mpi_root())
+                end
+
+                # Finalize the object. The object deregisters itself from the
+                # object tracker automatically.
+                finalize(__T8CODE_OBJECT_TRACKER[unique_id])
             end
 
             status = T8code.Libt8.sc_finalize_noabort()
@@ -61,7 +70,7 @@ function init_t8code()
     return nothing
 end
 
-function trixi_t8_get_local_element_levels(forest)
+function trixi_t8_get_local_element_levels(forest::Ptr{t8_forest})
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
 
@@ -108,8 +117,8 @@ end
 # \return greater zero if the first entry in `elements` should be refined,
 #         smaller zero if the family `elements` shall be coarsened,
 #         zero else.
-function adapt_callback(forest,
-                        forest_from,
+function adapt_callback(forest::Ptr{t8_forest},
+                        forest_from::Ptr{t8_forest},
                         which_tree,
                         lelement_id,
                         ts,
@@ -131,7 +140,7 @@ function adapt_callback(forest,
     return Cint(indicators[offset + lelement_id + 1])
 end
 
-function trixi_t8_adapt_new(old_forest, indicators)
+function trixi_t8_adapt_new(old_forest::Ptr{t8_forest}, indicators)
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
@@ -193,15 +202,15 @@ end
 # Coarsen or refine marked cells and rebalance forest. Return a difference between
 # old and new mesh.
 function trixi_t8_adapt!(mesh, indicators)
-    old_levels = trixi_t8_get_local_element_levels(mesh.forest)
+    old_levels = trixi_t8_get_local_element_levels(mesh.forest.pointer)
 
-    forest_cached = trixi_t8_adapt_new(mesh.forest, indicators)
+    forest_cached = trixi_t8_adapt_new(mesh.forest.pointer, indicators)
 
     new_levels = trixi_t8_get_local_element_levels(forest_cached)
 
     differences = trixi_t8_get_difference(old_levels, new_levels, 2^ndims(mesh))
 
-    mesh.forest = forest_cached
+    mesh.forest.pointer = forest_cached
 
     return differences
 end

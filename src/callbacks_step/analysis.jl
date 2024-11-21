@@ -558,7 +558,7 @@ function get_elements_per_level(min_level, max_level, mesh::P4estMesh, solver, c
 end
 
 function get_elements_per_level(min_level, max_level, mesh::T8codeMesh, solver, cache)
-    levels = trixi_t8_get_local_element_levels(mesh.forest)
+    levels = trixi_t8_get_local_element_levels(mesh.forest.pointer)
 
     return [count(==(l), levels) for l in min_level:max_level]
 end

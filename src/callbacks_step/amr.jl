@@ -965,7 +965,7 @@ function current_element_levels(mesh::P4estMesh, solver, cache)
 end
 
 function current_element_levels(mesh::T8codeMesh, solver, cache)
-    return trixi_t8_get_local_element_levels(mesh.forest)
+    return trixi_t8_get_local_element_levels(mesh.forest.pointer)
 end
 
 # TODO: Taal refactor, merge the two loops of ControllerThreeLevel and IndicatorLöhner etc.?
