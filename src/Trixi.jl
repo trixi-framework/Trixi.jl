@@ -37,7 +37,8 @@ using SciMLBase: CallbackSet, DiscreteCallback,
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
                   AbstractODEIntegrator, init, step!, check_error,
                   get_proposed_dt, set_proposed_dt!,
-                  terminate!, remake
+                  terminate!, remake, add_tstop!, has_tstop, first_tstop
+
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
@@ -70,6 +71,7 @@ using TriplotBase: TriplotBase
 using TriplotRecipes: DGTriPseudocolor
 @reexport using SimpleUnPack: @unpack
 using SimpleUnPack: @pack!
+using DataStructures: BinaryHeap, FasterForward, extract_all!
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
@@ -176,6 +178,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        hydrostatic_reconstruction_chen_noelle, flux_nonconservative_chen_noelle,
        flux_hll_chen_noelle,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
+       DissipationEntropyStableLump, DissipationEntropyStable,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
        min_max_speed_chen_noelle,
@@ -217,7 +220,7 @@ export density, pressure, density_pressure, velocity, global_mean_vars,
        equilibrium_distribution, waterheight_pressure, density_product
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
        cross_helicity,
-       enstrophy
+       enstrophy, magnetic_field, divergence_cleaning_field
 export lake_at_rest_error
 export ncomponents, eachcomponent
 export get_component
