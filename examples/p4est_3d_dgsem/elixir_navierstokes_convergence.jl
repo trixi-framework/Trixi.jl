@@ -265,5 +265,3 @@ time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol, dt = 1e-5,
             ode_default_options()..., callback = callbacks)
 summary_callback() # print the timer summary
-
-display(analysis_callback(sol))
