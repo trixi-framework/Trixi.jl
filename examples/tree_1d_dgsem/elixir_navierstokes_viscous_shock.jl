@@ -35,8 +35,7 @@ alpha = 0.5
 prandtl_number() = 1
 
 ### Free choices: ###
-gamma = 5 / 3
-gamma_() = 5 / 3 # Need function to avoid allocations due to IC calls
+gamma() = 5 / 3
 
 mu() = 0.1
 
@@ -47,13 +46,13 @@ domain_length = 5.0
 
 ### Derived quantities ###
 
-Ma() = 2 / sqrt(3 - gamma_()) # Mach number for alpha = 0.5
+Ma() = 2 / sqrt(3 - gamma()) # Mach number for alpha = 0.5
 c_0() = v() / Ma() # Speed of sound ahead of the shock
 
 # From constant enthalpy condition
-p_0() = c_0()^2 * rho_0() / gamma_()
+p_0() = c_0()^2 * rho_0() / gamma()
 
-l() = mu() / (rho_0() * v()) * 2 * gamma_() / (gamma_() + 1) # Appropriate length scale
+l() = mu() / (rho_0() * v()) * 2 * gamma() / (gamma() + 1) # Appropriate length scale
 
 """
     initial_condition_viscous_shock(x, t, equations)
@@ -75,7 +74,7 @@ function initial_condition_viscous_shock(x, t, equations)
 
     rho = rho_0() / w
     u = v() * (1 - w)
-    p = p_0() * 1 / w * (1 + (gamma_() - 1) / 2 * Ma()^2 * (1 - w^2))
+    p = p_0() * 1 / w * (1 + (gamma() - 1) / 2 * Ma()^2 * (1 - w^2))
 
     return prim2cons(SVector(rho, u, p), equations)
 end
@@ -84,7 +83,7 @@ initial_condition = initial_condition_viscous_shock
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
-equations = CompressibleEulerEquations1D(gamma)
+equations = CompressibleEulerEquations1D(gamma())
 equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
