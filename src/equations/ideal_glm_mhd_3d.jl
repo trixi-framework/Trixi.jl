@@ -44,6 +44,7 @@ function default_analysis_integrals(::IdealGlmMhdEquations3D)
     (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
+# Helper function to extract the magnetic field vector from the conservative variables
 magnetic_field(u, equations::IdealGlmMhdEquations3D) = SVector(u[6], u[7], u[8])
 
 # Set initial conditions at physical location `x` for time `t`
