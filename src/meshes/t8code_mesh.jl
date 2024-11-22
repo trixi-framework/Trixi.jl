@@ -611,8 +611,8 @@ function T8codeMesh(trees_per_dimension, eclass;
         end
     end
 
-    # analytical = trixi_t8_mapping_c(mapping)
-    analytical = mapping
+    analytical = trixi_t8_mapping_c(mapping)
+    # analytical = mapping
     name = ""
     user_data = vertices
     # user_data = C_NULL
@@ -620,7 +620,6 @@ function T8codeMesh(trees_per_dimension, eclass;
     jacobian = C_NULL # type: t8_geom_analytic_jacobian_fn
     load_tree_data = @t8_load_tree_data(t8_geom_load_tree_data_vertices) # type: t8_geom_load_tree_data_fn
     tree_negative_volume = C_NULL # type: t8_geom_tree_negative_volume_fn
-    # TODO: Was added recently. Leads to SegFaults
     tree_compatible = C_NULL # type: t8_geom_tree_compatible_fn
 
     geometry = t8_geometry_analytic_new(name, analytical, jacobian,

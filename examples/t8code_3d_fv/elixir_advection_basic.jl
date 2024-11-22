@@ -11,7 +11,6 @@ solver = FV(order = 2, extended_reconstruction_stencil = false,
             surface_flux = flux_lax_friedrichs)
 
 # Option 1: coordinates
-# For all problems see the 2D file...
 coordinates_min = (0.0, 0.0, 0.0) # minimum coordinates (min(x), min(y), min(z))
 coordinates_max = (8.0, 8.0, 8.0) # maximum coordinates (max(x), max(y), max(z))
 
@@ -58,11 +57,14 @@ end
 
 trees_per_dimension = (2, 2, 2)
 
+# For explanations, see 2D elixir.
+GC.enable(false)
+
 eclass = T8_ECLASS_HEX
 mesh = T8codeMesh(trees_per_dimension, eclass;
-                  mapping = trixi_t8_mapping_c(),
+                  # mapping = Trixi.trixi_t8_mapping_c(mapping),
                   # Plan is to use either
-                  # coordinates_max = coordinates_max, coordinates_min = coordinates_min,
+                  coordinates_max = coordinates_max, coordinates_min = coordinates_min,
                   # or at least
                   # mapping = mapping,
                   initial_refinement_level = 5)
@@ -94,6 +96,8 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback()
+
+GC.enable(true)
 
 # Finalize `T8codeMesh` to make sure MPI related objects in t8code are
 # released before `MPI` finalizes.

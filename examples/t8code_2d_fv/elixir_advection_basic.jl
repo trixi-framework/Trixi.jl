@@ -13,11 +13,7 @@ solver = FV(order = 2, extended_reconstruction_stencil = false,
 # Option 1: coordinates
 coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max = (8.0, 8.0) # maximum coordinates (max(x), max(y))
-# Note and TODO: The plan is to move the auxiliary routine trixi_t8_mapping and the macro to a
-# different place.
-# Then, somehow, I get SegFaults when using this `mapping_coordinates` or (equally) when
-# using `coordinates_min/max` and then use the `coordinates2mapping` within the constructor.
-# With both other mappings I don't get that.
+
 mapping_coordinates = Trixi.coordinates2mapping(coordinates_min, coordinates_max)
 
 # Option 2: faces
@@ -83,15 +79,28 @@ end
 trees_per_dimension = (2, 2)
 
 # Disabling the gc for almost the entire elixir seems to work in order to fix the SegFault errors with trixi_t8_mapping_c and mapping_coordinates
-# GC.enable(false)
+# It's also possible to move this to the constructor.
+GC.enable(false)
 
+# Notes:
+# Life time issue for the GC tracked Julia object used in C. Only with coordinates_min/max
+# - GC enabled:
+#   o for mapping, mapping_faces: every three options work
+#   o trixi_t8_mapping_c from elixir: `mapping_coordinates` doesn't work. SegFaults when evaluate geometry
+#   o trixi_t8_mapping_c() from file: `mapping_coordinates` doesn't work. SegFaults when evaluate geometry
+#   o pass mapping_coordinates doesn't work. SegFaults when evaluate geometry
+#   o pass coordinates_min/max doesn't work. SegFaults when evaluate geometry
+# - GC disabled as in elixir:
+#   o Everything seems to work
+
+# NOTE: When I remove `using T8code` at the top of this elixir, things like `t8_cmesh_t` and `T8_ECLASS_QUAD` are unkown.
 eclass = T8_ECLASS_QUAD
 mesh = T8codeMesh(trees_per_dimension, eclass,
-                  mapping = trixi_t8_mapping_c(),
+                  # mapping = Trixi.trixi_t8_mapping_c(mapping_coordinates),
                   # Plan is to use either
-                  # coordinates_max = coordinates_max, coordinates_min = coordinates_min,
+                  coordinates_max = coordinates_max, coordinates_min = coordinates_min,
                   # or at least
-                  # mapping = mapping,
+                  # mapping = mapping_coordinates,
                   initial_refinement_level = 6)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -122,7 +131,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             save_everystep = false, callback = callbacks);
 summary_callback()
 
-# GC.enable(true)
+GC.enable(true)
 
 # Finalize `T8codeMesh` to make sure MPI related objects in t8code are
 # released before `MPI` finalizes.

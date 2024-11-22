@@ -193,3 +193,47 @@ function trixi_t8_adapt!(mesh, indicators)
 
     return differences
 end
+
+function trixi_t8_mapping_c(mapping)
+    function trixi_t8_mapping(cmesh, gtreeid, ref_coords, num_coords, out_coords,
+                              tree_data, user_data)
+        @T8_ASSERT(cmesh isa Ptr{t8_cmesh})
+        @T8_ASSERT(gtreeid isa t8_gloidx_t)
+        @T8_ASSERT(ref_coords isa Ptr{Cdouble})
+        @T8_ASSERT(num_coords isa Csize_t)
+        @T8_ASSERT(out_coords isa Ptr{Cdouble})
+        @T8_ASSERT(tree_data isa Ptr{Cvoid})
+        @T8_ASSERT(user_data isa Ptr{Cvoid})
+
+        ltreeid = t8_cmesh_get_local_id(cmesh, gtreeid)
+        eclass = t8_cmesh_get_tree_class(cmesh, ltreeid)
+        T8code.t8_geom_compute_linear_geometry(eclass, tree_data,
+                                               ref_coords, num_coords, out_coords)
+
+        ndims = t8_cmesh_get_dimension(cmesh)
+        for i in 1:num_coords
+            offset_3d = 3 * (i - 1) + 1
+
+            xi = unsafe_load(out_coords, offset_3d)
+            eta = unsafe_load(out_coords, offset_3d + 1)
+            if ndims == 2
+                x = mapping(xi, eta)
+            else # ndims == 3
+                zeta = unsafe_load(out_coords, offset_3d + 2)
+                x = mapping(xi, eta, zeta)
+            end
+
+            unsafe_store!(out_coords, x[1], offset_3d)
+            unsafe_store!(out_coords, x[2], offset_3d + 1)
+            if ndims == 3
+                unsafe_store!(out_coords, x[3], offset_3d + 2)
+            end
+        end
+
+        return nothing
+    end
+
+    return @cfunction($trixi_t8_mapping, Cvoid,
+                      (t8_cmesh_t, t8_gloidx_t, Ptr{Cdouble}, Csize_t, Ptr{Cdouble},
+                       Ptr{Cvoid}, Ptr{Cvoid}))
+end
