@@ -233,14 +233,14 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_navierstokes_viscous_shock.jl"),
                         l2=[
-                            0.0037611419514324567,
-                            0.0031130623550597895,
-                            0.0032646075737842403
+                            0.00025762354103445303,
+                            0.0001433692781569829,
+                            0.00017369861968287976
                         ],
                         linf=[
-                            0.019311368481275126,
-                            0.013898566510286758,
-                            0.01496339059101559
+                            0.0016731940030498826,
+                            0.0010638575921477766,
+                            0.0011495207677434394
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

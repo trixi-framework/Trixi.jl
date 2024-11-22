@@ -39,12 +39,13 @@ gamma() = 5 / 3
 
 # In Margolin et al., the Navier-Stokes equations are given for an 
 # isotropic stress tensor τ, i.e., ∇ ⋅ τ = μ Δu 
-mu_isotropic() = 0.1
+mu_isotropic() = 0.15
+mu_bar() = mu_isotropic() / (gamma() - 1) # Re-scaled viscosity
 
 rho_0() = 1
 v() = 1 # Shock speed
 
-domain_length = 5.0
+domain_length = 4.0
 
 ### Derived quantities ###
 
@@ -54,7 +55,7 @@ c_0() = v() / Ma() # Speed of sound ahead of the shock
 # From constant enthalpy condition
 p_0() = c_0()^2 * rho_0() / gamma()
 
-l() = mu_isotropic() / (rho_0() * v()) * 2 * gamma() / (gamma() + 1) # Appropriate length scale
+l() = mu_bar() / (rho_0() * v()) * 2 * gamma() / (gamma() + 1) # Appropriate length scale
 
 """
     initial_condition_viscous_shock(x, t, equations)
@@ -89,7 +90,7 @@ equations = CompressibleEulerEquations2D(gamma())
 
 # Trixi implements the stress tensor in deviatoric form, thus we need to 
 # convert the "isotropic viscosity" to the "deviatoric viscosity"
-mu_deviatoric() = mu_isotropic() * 3 / 4
+mu_deviatoric() = mu_bar() * 3 / 4
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu_deviatoric(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())

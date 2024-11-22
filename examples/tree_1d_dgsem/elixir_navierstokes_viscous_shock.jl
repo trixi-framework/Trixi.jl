@@ -37,12 +37,13 @@ prandtl_number() = 1
 ### Free choices: ###
 gamma() = 5 / 3
 
-mu() = 0.1
+mu() = 0.15
+mu_bar() = mu() / (gamma() - 1) # Re-scaled viscosity
 
 rho_0() = 1
 v() = 1 # Shock speed
 
-domain_length = 5.0
+domain_length = 4.0
 
 ### Derived quantities ###
 
@@ -52,7 +53,7 @@ c_0() = v() / Ma() # Speed of sound ahead of the shock
 # From constant enthalpy condition
 p_0() = c_0()^2 * rho_0() / gamma()
 
-l() = mu() / (rho_0() * v()) * 2 * gamma() / (gamma() + 1) # Appropriate length scale
+l() = mu_bar() / (rho_0() * v()) * 2 * gamma() / (gamma() + 1) # Appropriate length scale
 
 """
     initial_condition_viscous_shock(x, t, equations)
@@ -84,7 +85,7 @@ initial_condition = initial_condition_viscous_shock
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 equations = CompressibleEulerEquations1D(gamma())
-equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusion1D(equations, mu = mu_bar(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
