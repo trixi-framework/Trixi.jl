@@ -295,15 +295,48 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
     return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
 end
 
+"""
+    semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
+                   restart_file::AbstractString)
+
+Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
+that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+The parabolic right-hand side is the first function of the split ODE problem and
+will be used by default by the implicit part of IMEX methods from the
+SciML ecosystem.
+
+The initial condition etc. is taken from the `restart_file`.
+"""
+function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
+                        restart_file::AbstractString;
+                        reset_threads = true)
+    # Optionally reset Polyester.jl threads. See
+    # https://github.com/trixi-framework/Trixi.jl/issues/1583
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
+    if reset_threads
+        Polyester.reset_threads!()
+    end
+
+    u0_ode = load_restart_file(semi, restart_file)
+    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
+    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
+    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
+    # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
+    # first function implicitly and the second one explicitly. Thus, we pass the
+    # stiffer parabolic function first.
+    return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+end
+
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
-    @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
+    @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition,
+    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations,
                                       boundary_conditions, source_terms, solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter.counters[1], runtime)
@@ -312,7 +345,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
 end
 
 function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabolic, t)
-    @unpack mesh, equations_parabolic, initial_condition, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
+    @unpack mesh, equations_parabolic, boundary_conditions_parabolic, source_terms, solver, solver_parabolic, cache, cache_parabolic = semi
 
     u = wrap_array(u_ode, mesh, equations_parabolic, solver, cache_parabolic)
     du = wrap_array(du_ode, mesh, equations_parabolic, solver, cache_parabolic)
@@ -321,7 +354,6 @@ function rhs_parabolic!(du_ode, u_ode, semi::SemidiscretizationHyperbolicParabol
     time_start = time_ns()
     @trixi_timeit timer() "parabolic rhs!" rhs_parabolic!(du, u, t, mesh,
                                                           equations_parabolic,
-                                                          initial_condition,
                                                           boundary_conditions_parabolic,
                                                           source_terms,
                                                           solver, solver_parabolic,

@@ -15,7 +15,7 @@ By default, Polyester.jl is enabled, but it can
 be useful for performance comparisons to switch to the Julia core backend.
 
 This does not fully disable Polyester.jl,
-buy only its use as part of Trixi.jl's `@threaded` macro.
+but only its use as part of Trixi.jl's [`@threaded`](@ref) macro.
 """
 function set_polyester!(toggle::Bool; force = true)
     set_preferences!(TRIXI_UUID, "polyester" => toggle, force = force)
@@ -284,6 +284,11 @@ end
 # when using `@fastmath`, which we also get from
 # [Fortran](https://godbolt.org/z/Yrsa1js7P)
 # or [C++](https://godbolt.org/z/674G7Pccv).
+#
+# Note however that such a custom reimplementation can cause incompatibilities with other
+# packages. Currently we are affected by an issue with MPI.jl on ARM, see
+# https://github.com/trixi-framework/Trixi.jl/issues/1922
+# The workaround is to resort to Base.min / Base.max when using MPI reductions.
 """
     Trixi.max(x, y, ...)
 
