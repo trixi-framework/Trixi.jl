@@ -46,7 +46,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
                                                           eig_vals; verbose)
 
     # Special case of e = 3
-    if num_stages == 3
+    if num_stages == consistency_order
         a_unknown = [0.25] # Use classic SSPRK33 (Shu-Osher) Butcher Tableau
     else
         monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
