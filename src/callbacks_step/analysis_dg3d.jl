@@ -307,16 +307,20 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
+                 mesh::TreeMesh{3}, equations,
                  dg::DGSEM, cache)
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, k, element, equations,
                                                          dg, cache, derivative_matrix
         divb = zero(eltype(u))
         for l in eachnode(dg)
-            divb += (derivative_matrix[i, l] * u[6, l, j, k, element] +
-                     derivative_matrix[j, l] * u[7, i, l, k, element] +
-                     derivative_matrix[k, l] * u[8, i, j, l, element])
+            B_ljk = magnetic_field(u[:, l, j, k, element], equations)
+            B_ilk = magnetic_field(u[:, i, l, k, element], equations)
+            B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+
+            divb += (derivative_matrix[i, l] * B_ljk[1] +
+                     derivative_matrix[j, l] * B_ilk[2] +
+                     derivative_matrix[k, l] * B_ijl[3])
         end
         divb *= cache.elements.inverse_jacobian[element]
         divb^2
@@ -325,7 +329,7 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                 equations::IdealGlmMhdEquations3D,
+                 equations,
                  dg::DGSEM, cache)
     @unpack contravariant_vectors = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
@@ -341,15 +345,16 @@ function analyze(::Val{:l2_divb}, du, u, t,
                                                     element)
         # Compute the transformed divergence
         for l in eachnode(dg)
+            B_ljk = magnetic_field(u[:, l, j, k, element], equations)
+            B_ilk = magnetic_field(u[:, i, l, k, element], equations)
+            B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+
             divb += (derivative_matrix[i, l] *
-                     (Ja11 * u[6, l, j, k, element] + Ja12 * u[7, l, j, k, element] +
-                      Ja13 * u[8, l, j, k, element]) +
+                     (Ja11 * B_ljk[1] + Ja12 * B_ljk[2] + Ja13 * B_ljk[3]) +
                      derivative_matrix[j, l] *
-                     (Ja21 * u[6, i, l, k, element] + Ja22 * u[7, i, l, k, element] +
-                      Ja23 * u[8, i, l, k, element]) +
+                     (Ja21 * B_ilk[1] + Ja22 * B_ilk[2] + Ja23 * B_ilk[3]) +
                      derivative_matrix[k, l] *
-                     (Ja31 * u[6, i, j, l, element] + Ja32 * u[7, i, j, l, element] +
-                      Ja33 * u[8, i, j, l, element]))
+                     (Ja31 * B_ijl[1] + Ja32 * B_ijl[2] + Ja33 * B_ijl[3]))
         end
         divb *= cache.elements.inverse_jacobian[i, j, k, element]
         divb^2
@@ -357,7 +362,7 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::TreeMesh{3}, equations::IdealGlmMhdEquations3D,
+                 mesh::TreeMesh{3}, equations,
                  dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
 
@@ -367,13 +372,22 @@ function analyze(::Val{:linf_divb}, du, u, t,
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             for l in eachnode(dg)
-                divb += (derivative_matrix[i, l] * u[6, l, j, k, element] +
-                         derivative_matrix[j, l] * u[7, i, l, k, element] +
-                         derivative_matrix[k, l] * u[8, i, j, l, element])
+                B_ljk = magnetic_field(u[:, l, j, k, element], equations)
+                B_ilk = magnetic_field(u[:, i, l, k, element], equations)
+                B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+
+                divb += (derivative_matrix[i, l] * B_ljk[1] +
+                         derivative_matrix[j, l] * B_ilk[2] +
+                         derivative_matrix[k, l] * B_ijl[3])
             end
             divb *= cache.elements.inverse_jacobian[element]
             linf_divb = max(linf_divb, abs(divb))
         end
+    end
+
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
     end
 
     return linf_divb
@@ -381,7 +395,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                 equations::IdealGlmMhdEquations3D,
+                 equations,
                  dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -400,16 +414,25 @@ function analyze(::Val{:linf_divb}, du, u, t,
                                                         k, element)
             # Compute the transformed divergence
             for l in eachnode(dg)
-                divb += (derivative_matrix[i, l] * (Ja11 * u[6, l, j, k, element] +
-                          Ja12 * u[7, l, j, k, element] + Ja13 * u[8, l, j, k, element]) +
-                         derivative_matrix[j, l] * (Ja21 * u[6, i, l, k, element] +
-                          Ja22 * u[7, i, l, k, element] + Ja23 * u[8, i, l, k, element]) +
-                         derivative_matrix[k, l] * (Ja31 * u[6, i, j, l, element] +
-                          Ja32 * u[7, i, j, l, element] + Ja33 * u[8, i, j, l, element]))
+                B_ljk = magnetic_field(u[:, l, j, k, element], equations)
+                B_ilk = magnetic_field(u[:, i, l, k, element], equations)
+                B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+
+                divb += (derivative_matrix[i, l] * (Ja11 * B_ljk[1] +
+                          Ja12 * B_ljk[2] + Ja13 * B_ljk[3]) +
+                         derivative_matrix[j, l] * (Ja21 * B_ilk[1] +
+                          Ja22 * B_ilk[2] + Ja23 * B_ilk[3]) +
+                         derivative_matrix[k, l] * (Ja31 * B_ijl[1] +
+                          Ja32 * B_ijl[2] + Ja33 * B_ijl[3]))
             end
             divb *= cache.elements.inverse_jacobian[i, j, k, element]
             linf_divb = max(linf_divb, abs(divb))
         end
+    end
+
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
     end
 
     return linf_divb
