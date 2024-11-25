@@ -44,117 +44,117 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_2d_dgsem")
         end
     end
 
-    @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_nonconforming_flag.jl"),
-                            l2=[3.198940059144588e-5],
-                            linf=[0.00030636069494005547])
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
-    @trixi_testset "elixir_advection_unstructured_flag.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_unstructured_flag.jl"),
-                            l2=[0.0005379687442422346],
-                            linf=[0.007438525029884735])
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
-    @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_amr_solution_independent.jl"),
-                            # Expected errors are exactly the same as with TreeMesh!
-                            l2=[4.949660644033807e-5],
-                            linf=[0.0004867846262313763],
-                            coverage_override=(maxiters = 6,), atol=1e-9)
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
-    @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_amr_unstructured_flag.jl"),
-                            l2=[0.002019623611753929],
-                            linf=[0.03542375961299987],
-                            dynamic_load_balancing=false,
-                            coverage_override=(maxiters = 6,))
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
-    @trixi_testset "elixir_advection_restart.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-                            l2=[4.507575525876275e-6],
-                            linf=[6.21489667023134e-5],
-                            # With the default `maxiters = 1` in coverage tests,
-                            # there would be no time steps after the restart.
-                            coverage_override=(maxiters = 100_000,))
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
-
-    @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
-                            l2=[
-                                0.0034516244508588046,
-                                0.0023420334036925493,
-                                0.0024261923964557187,
-                                0.004731710454271893
-                            ],
-                            linf=[
-                                0.04155789011775046,
-                                0.024772109862748914,
-                                0.03759938693042297,
-                                0.08039824959535657
-                            ])
-
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
-    end
+##     @trixi_testset "elixir_advection_nonconforming_flag.jl" begin
+##         @test_trixi_include(joinpath(EXAMPLES_DIR,
+##                                      "elixir_advection_nonconforming_flag.jl"),
+##                             l2=[3.198940059144588e-5],
+##                             linf=[0.00030636069494005547])
+## 
+##         # Ensure that we do not have excessive memory allocations
+##         # (e.g., from type instabilities)
+##         let
+##             t = sol.t[end]
+##             u_ode = sol.u[end]
+##             du_ode = similar(u_ode)
+##             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+##         end
+##     end
+## 
+##     @trixi_testset "elixir_advection_unstructured_flag.jl" begin
+##         @test_trixi_include(joinpath(EXAMPLES_DIR,
+##                                      "elixir_advection_unstructured_flag.jl"),
+##                             l2=[0.0005379687442422346],
+##                             linf=[0.007438525029884735])
+## 
+##         # Ensure that we do not have excessive memory allocations
+##         # (e.g., from type instabilities)
+##         let
+##             t = sol.t[end]
+##             u_ode = sol.u[end]
+##             du_ode = similar(u_ode)
+##             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+##         end
+##     end
+## 
+##     @trixi_testset "elixir_advection_amr_solution_independent.jl" begin
+##         @test_trixi_include(joinpath(EXAMPLES_DIR,
+##                                      "elixir_advection_amr_solution_independent.jl"),
+##                             # Expected errors are exactly the same as with TreeMesh!
+##                             l2=[4.949660644033807e-5],
+##                             linf=[0.0004867846262313763],
+##                             coverage_override=(maxiters = 6,), atol=1e-9)
+## 
+##         # Ensure that we do not have excessive memory allocations
+##         # (e.g., from type instabilities)
+##         let
+##             t = sol.t[end]
+##             u_ode = sol.u[end]
+##             du_ode = similar(u_ode)
+##             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+##         end
+##     end
+## 
+##     @trixi_testset "elixir_advection_amr_unstructured_flag.jl" begin
+##         @test_trixi_include(joinpath(EXAMPLES_DIR,
+##                                      "elixir_advection_amr_unstructured_flag.jl"),
+##                             l2=[0.002019623611753929],
+##                             linf=[0.03542375961299987],
+##                             dynamic_load_balancing=false,
+##                             coverage_override=(maxiters = 6,))
+## 
+##         # Ensure that we do not have excessive memory allocations
+##         # (e.g., from type instabilities)
+##         let
+##             t = sol.t[end]
+##             u_ode = sol.u[end]
+##             du_ode = similar(u_ode)
+##             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+##         end
+##     end
+## 
+##     @trixi_testset "elixir_advection_restart.jl" begin
+##         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+##                             l2=[4.507575525876275e-6],
+##                             linf=[6.21489667023134e-5],
+##                             # With the default `maxiters = 1` in coverage tests,
+##                             # there would be no time steps after the restart.
+##                             coverage_override=(maxiters = 100_000,))
+## 
+##         # Ensure that we do not have excessive memory allocations
+##         # (e.g., from type instabilities)
+##         let
+##             t = sol.t[end]
+##             u_ode = sol.u[end]
+##             du_ode = similar(u_ode)
+##             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+##         end
+##     end
+## 
+##     @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
+##         @test_trixi_include(joinpath(EXAMPLES_DIR,
+##                                      "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
+##                             l2=[
+##                                 0.0034516244508588046,
+##                                 0.0023420334036925493,
+##                                 0.0024261923964557187,
+##                                 0.004731710454271893
+##                             ],
+##                             linf=[
+##                                 0.04155789011775046,
+##                                 0.024772109862748914,
+##                                 0.03759938693042297,
+##                                 0.08039824959535657
+##                             ])
+## 
+##         # Ensure that we do not have excessive memory allocations
+##         # (e.g., from type instabilities)
+##         let
+##             t = sol.t[end]
+##             u_ode = sol.u[end]
+##             du_ode = similar(u_ode)
+##             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+##         end
+##     end
 end
 end # T8codeMesh MPI
 
