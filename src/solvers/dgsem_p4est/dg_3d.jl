@@ -79,7 +79,7 @@ end
 
 # Extract the two varying indices from a symbolic index tuple.
 # For example, `surface_indices((Indexing.i_forward, Indexing.last, Indexing.i_forward)) == (Indexing.i_forward, Indexing.i_forward)`.
-@inline function surface_indices(indices::NTuple{3, Symbol})
+@inline function surface_indices(indices::NTuple{3, IndexInfo})
     i1, i2, i3 = indices
     index = i1
     (index === Indexing.first || index === Indexing.last) && return (i2, i3)
