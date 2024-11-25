@@ -1,5 +1,6 @@
 using OrdinaryDiffEq
 using Trixi
+import Trixi.Indexing
 
 ###############################################################################
 # Coupled semidiscretization of two linear advection systems using converter functions

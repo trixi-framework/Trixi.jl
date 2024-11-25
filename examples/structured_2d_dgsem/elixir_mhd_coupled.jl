@@ -1,5 +1,6 @@
 using OrdinaryDiffEq
 using Trixi
+import Trixi.Indexing
 
 ###############################################################################
 # Two semidiscretizations of the ideal GLM-MHD systems using converter functions such that
