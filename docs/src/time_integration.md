@@ -84,7 +84,7 @@ In this tutorial, we will demonstrate how you can use the second-order P-ERK tim
 1. First, ensure you have the necessary packages installed. For the optimization of the stability polynomial $P_{2; S}$, you need the `Convex.jl` and `ECOS.jl` packages.
 You can install them using Julia's package manager:
 
-```julia
+```@repl 1
 using Pkg
 Pkg.add("Trixi")
 Pkg.add("Convex")
@@ -93,14 +93,15 @@ Pkg.add("ECOS")
 
 2. Now you can load the necessary packages:
 
-```julia
+```@setup 1
 using Convex, ECOS
+using OrdinaryDiffEq
 using Trixi
 ```
 
 3. Define the ODE problem and the semidiscretization setup. For this example, we will use a simple advection problem.
 
-```julia
+```@example 1
 # Define the mesh
 cells_per_dimension = 100
 coordinates_min = 0.0
@@ -125,7 +126,7 @@ semi = SemidiscretizationHyperbolic(mesh,
 
 4. Define the necessary callbacks for the simulation. Callbacks are used to perform actions at specific points during the integration process.
 
-```julia
+```@example 1
 # Define some standard callbacks
 summary_callback  = SummaryCallback()
 alive_callback    = AliveCallback()
@@ -144,7 +145,7 @@ callbacks = CallbackSet(summary_callback,
 The `tspan` parameter is a tuple `(t_start, t_end)` that defines the start and end times for the simulation. 
 The `semidiscretize` function is used to create the ODE problem from the simulation setup.
 
-```julia
+```@example 1
 # Define the time span
 tspan = (0.0, 1.0)
 
@@ -164,7 +165,7 @@ ode = semidiscretize(semi, tspan)
   This is then followed by the computation of the spectrum $\boldsymbol \sigma(J)$ using `LinearAlgebra.eigvals`.
   Equipped with the spectrum, the optimal stability polynomial is computed, from which the corresponding Runge-Kutta method is derived. Other constructors (if the coefficients $\boldsymbol{\alpha}$ of the stability polynomial are already available, or if a reduced spectrum $\widetilde{\boldsymbol{\sigma}}$ should be used) are discussed below.
 
-```julia
+```@example 1
 # Construct second order-explicit Runge-Kutta method with 6 stages for given simulation setup (`semi`)
 # `tspan` provides the bounds for the bisection routine that is used to calculate the maximum timestep.
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
@@ -172,7 +173,7 @@ ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 
 7. With everything now set up, you can now use `Trixi.solve` to solve the ODE problem. The `solve` function takes the ODE problem, the time integrator, and some options such as the time step (`dt`), whether to save every step (`save_everystep`), and the callbacks.
 
-```julia
+```@example 1
 # Solve the ODE problem using PERK2
 sol = Trixi.solve(ode, ode_algorithm,
                   dt = 1.0, # overwritten by `stepsize_callback`
@@ -192,24 +193,24 @@ There are two additional constructors for the `PairedExplicitRK2` method besides
 In the previous tutorial the CFL number was set manually to $2.5$.
 To avoid this trial-and error process, instantiations of `AbstractPairedExplicitRK` methods can automatically compute the stable CFL number for a given simulation setup using the [`Trixi.calculate_cfl`](@ref) function.
 When constructing the time integrator from a semidiscretization `semi`, 
-```julia
+```@example 1
 # Construct third-order paired-explicit Runge-Kutta method with 8 stages for given simulation setup.                               
 ode_algorithm = Trixi.PairedExplicitRK3(8, tspan, semi)
 ```
 the maximum timestep `dt` is stored by the `ode_algorithm`.
 This can then be used to compute the stable CFL number for the given simulation setup:
-```julia
+```@example 1
 cfl_number = Trixi.calculate_cfl(ode_algorithm, ode)
 ```
 For nonlinear problems, the spectrum will in general change over the course of the simulation.
 Thus, it is often necessary to reduce the optimal `cfl_number` by a safety factor:
-```julia
+```@example 1
 # For non-linear problems, the CFL number should be reduced by a safety factor
 # as the spectrum changes (in general) over the course of a simulation
 stepsize_callback = StepsizeCallback(cfl = 0.85 * cfl_number)
 ```
 If the optimal monomial coefficients are precomputed, the user needs to set the obtained maximum timestep from the optimization manually via
-```julia
+```@example 1
 ode_algorithm.dt_opt = 42.0 # The timestep obtained from the optimization
 ```
 Then, the stable CFL number can be computed as described above.
