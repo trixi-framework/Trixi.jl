@@ -60,7 +60,11 @@ function stability_polynomials!(pnoms, consistency_order, num_stage_evals,
     end
 
     # For optimization only the maximum is relevant
-    return maximum(abs(pnoms))
+    if consistency_order - num_stage_evals == 0
+        return maximum(abs.(pnoms)) # If there is no variable to optimize, we need to use the broadcast operator.
+    else
+        return maximum(abs(pnoms))
+    end
 end
 
 #=
@@ -151,7 +155,11 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         println("Concluded stability polynomial optimization \n")
     end
 
-    gamma_opt = evaluate(gamma)
+    if consistency_order - num_stage_evals != 0
+        gamma_opt = evaluate(gamma)
+    else
+        gamma_opt = nothing # If there is no variable to optimize, return gamma_opt as nothing.
+    end
 
     # Catch case S = 3 (only one opt. variable)
     if isa(gamma_opt, Number)
