@@ -17,7 +17,7 @@ include("test_trixi.jl")
     @test length(Trixi.T8code.T8CODE_OBJECT_TRACKER) == 0
 
     # We expect that it throws the warning below and `libsc` prints 'Memory inbalance' to stderr.
-    @test_warn "Inconsistent state detected after finalizing t8code." Trixi.MPI.Finalize() === Nothing
+    @test_warn "Inconsistent state detected after finalizing t8code." Trixi.MPI.Finalize()===Nothing
 end
 
 end # module
