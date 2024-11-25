@@ -59,6 +59,7 @@ function extract_p4est_mesh_view(elements_parent,
 end
 
 function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
+    @autoinfiltrate
     interfaces = interfaces_parent
     u_new = Array{eltype(interfaces.u)}(undef, (size(interfaces.u)[1:3]..., size(mesh.cell_ids)[1]*2))
     u_new[:, :, :, 1:2:end] .= interfaces.u[:, :, :, (mesh.cell_ids.*2 .-1)]
