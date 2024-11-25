@@ -56,6 +56,25 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     end
 end
 
+"""
+    Trixi.update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
+
+Update the `mesh` object with the `new_forest`. Ownership of the old forest
+goes to caller.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh.
+- `new_forest::Ptr{t8_forest}`: New forest.
+
+Returns nothing.
+"""
+function update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
+    # `mesh.forest` must not be overwritten. Its lifetime is attached to the
+    # `mesh` lifetime. Thus, this setter function.
+    mesh.forest.pointer = new_forest
+    return nothing
+end
+
 const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
 const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 @inline mpi_parallel(mesh::SerialT8codeMesh) = False()
@@ -65,8 +84,8 @@ const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 @inline Base.real(::T8codeMesh{NDIMS, RealT}) where {NDIMS, RealT} = RealT
 
 @inline ntrees(mesh::T8codeMesh) = size(mesh.tree_node_coordinates)[end]
-@inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_local_num_elements(mesh.forest.pointer))
-@inline ncellsglobal(mesh::T8codeMesh) = Int(t8_forest_get_global_num_elements(mesh.forest.pointer))
+@inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_local_num_elements(mesh.forest))
+@inline ncellsglobal(mesh::T8codeMesh) = Int(t8_forest_get_global_num_elements(mesh.forest))
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -230,7 +249,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     # The adapt callback refines the forest according to the `levels` array.
     # For each tree the callback recursively increases the refinement level
     # till it matches with the associated section in `levels.
-    forest = adapt(forest, adapt_callback; recursive = true, balance = false,
+    forest = adapt_forest(forest, adapt_callback; recursive = true, balance = false,
                    partition = false, ghost = false, user_data = C_NULL)
 
     @assert t8_forest_get_global_num_elements(forest) == nelements
@@ -805,41 +824,24 @@ function adapt_callback_wrapper(forest,
 end
 
 """
-    Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+    Trixi.adapt_forest!(forest::Ptr{t8_forest}, adapt_callback; kwargs...)
 
-Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
+Adapt a `T8codeMesh` according to a user-defined `adapt_callback`. This
+function is primarily for internal use. See `Trixi.adapt!(mesh::T8codeMesh,
+adapt_callback; kwargs...)` for a more detailed documentation.
 
 # Arguments
-- `mesh::T8codeMesh`: Initialized mesh object.
+- `forest::Ptr{t8_forest}`: New forest.
 - `adapt_callback`: A user-defined callback which tells the adaption routines
                     if an element should be refined, coarsened or stay unchanged.
+- `kwargs`: Refer to `Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)`.
 
-    The expected callback signature is as follows:
+Note that the old forest usually gets deallocated within t8code. Call
+`t8_forest_ref(Ref(mesh.forest))` beforehand to prevent that.
 
-      `adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family, user_data)`
-        # Arguments
-        - `forest`: Pointer to the analyzed forest.
-        - `ltreeid`: Local index of the current tree where the analyzed elements are part of.
-        - `eclass_scheme`: Element class of `elements`.
-        - `lelemntid`: Local index of the first element in `elements`.
-        - `elements`: Array of elements. If consecutive elements form a family
-                      they are passed together, otherwise `elements` consists of just one element.
-        - `is_family`: Boolean signifying if `elements` represents a family or not.
-        - `user_data`: Void pointer to some arbitrary user data. Default value is `C_NULL`.
-        # Returns
-          -1 : Coarsen family of elements.
-           0 : Stay unchanged.
-           1 : Refine element.
-
-- `kwargs`:
-    - `recursive = true`: Adapt the forest recursively. If true the caller must ensure that the callback
-                          returns 0 for every analyzed element at some point to stop the recursion.
-    - `balance = true`: Make sure the adapted forest is 2^(NDIMS-1):1 balanced.
-    - `partition = true`: Partition the forest to redistribute elements evenly among MPI ranks.
-    - `ghost = true`: Create a ghost layer for MPI data exchange.
-    - `user_data = C_NULL`: Pointer to some arbitrary user-defined data.
+Returns a `Ptr{t8_forest}` to a new forest.
 """
-function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance = true,
+function adapt_forest(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance = true,
                partition = true, ghost = true, user_data = C_NULL)
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
@@ -874,7 +876,7 @@ function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance
         GC.enable(false)
 
         # The old forest is destroyed here.
-        # Call `t8_forest_ref(Ref(mesh.forest.pointer))` to keep it.
+        # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
         t8_forest_commit(new_forest)
 
         GC.enable(true)
@@ -883,9 +885,47 @@ function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance
     return new_forest
 end
 
+"""
+    Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+
+Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh object.
+- `adapt_callback`: A user-defined callback which tells the adaption routines
+                    if an element should be refined, coarsened or stay unchanged.
+
+    The expected callback signature is as follows:
+
+      `adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family, user_data)`
+        # Arguments
+        - `forest`: Pointer to the analyzed forest.
+        - `ltreeid`: Local index of the current tree where the analyzed elements are part of.
+        - `eclass_scheme`: Element class of `elements`.
+        - `lelemntid`: Local index of the first element in `elements`.
+        - `elements`: Array of elements. If consecutive elements form a family
+                      they are passed together, otherwise `elements` consists of just one element.
+        - `is_family`: Boolean signifying if `elements` represents a family or not.
+        - `user_data`: Void pointer to some arbitrary user data. Default value is `C_NULL`.
+        # Returns
+          -1 : Coarsen family of elements.
+           0 : Stay unchanged.
+           1 : Refine element.
+
+- `kwargs`:
+    - `recursive = true`: Adapt the forest recursively. If true the caller must ensure that the callback
+                          returns 0 for every analyzed element at some point to stop the recursion.
+    - `balance = true`: Make sure the adapted forest is 2^(NDIMS-1):1 balanced.
+    - `partition = true`: Partition the forest to redistribute elements evenly among MPI ranks.
+    - `ghost = true`: Create a ghost layer for MPI data exchange.
+    - `user_data = C_NULL`: Pointer to some arbitrary user-defined data.
+
+Returrns nothing.
+"""
 function adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
-    # Call `t8_forest_ref(Ref(mesh.forest.pointer))` to keep it.
-    mesh.forest.pointer = adapt(mesh.forest.pointer, adapt_callback; kwargs...)
+    # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
+    update_forest!(mesh, adapt_forest(mesh.forest.pointer, adapt_callback; kwargs...))
+    return nothing
 end
 
 """
@@ -898,18 +938,17 @@ function balance!(mesh::T8codeMesh)
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
 
-    let set_from = mesh.forest.pointer, no_repartition = 1, do_ghost = 1
+    let set_from = mesh.forest, no_repartition = 1, do_ghost = 1
         t8_forest_set_balance(new_forest, set_from, no_repartition)
         t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
         t8_forest_commit(new_forest)
     end
 
-    mesh.forest.pointer = new_forest
-
+    update_forest!(mesh, new_forest)
     return nothing
 end
 
-function partition(forest::Ptr{t8_forest})
+function partition_forest(forest::Ptr{t8_forest})
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
@@ -932,13 +971,13 @@ Partition a `T8codeMesh` in order to redistribute elements evenly among MPI rank
 - `mesh::T8codeMesh`: Initialized mesh object.
 """
 function partition!(mesh::T8codeMesh)
-    mesh.forest.pointer = partition(mesh.forest.pointer)
+    update_forest!(mesh, partition_forest(mesh.forest))
     return nothing
 end
 
 # Compute the global ids (zero-indexed) of first element in each MPI rank.
 function get_global_first_element_ids(mesh::T8codeMesh)
-    n_elements_local = Int(t8_forest_get_local_num_elements(mesh.forest.pointer))
+    n_elements_local = Int(t8_forest_get_local_num_elements(mesh.forest))
     n_elements_by_rank = Vector{Int}(undef, mpi_nranks())
     n_elements_by_rank[mpi_rank() + 1] = n_elements_local
     MPI.Allgather!(MPI.UBuffer(n_elements_by_rank, 1), mpi_comm())
@@ -946,10 +985,10 @@ function get_global_first_element_ids(mesh::T8codeMesh)
 end
 
 function count_interfaces(mesh::T8codeMesh)
-    return count_interfaces(mesh.forest.pointer, ndims(mesh))
+    return count_interfaces(mesh.forest, ndims(mesh))
 end
 
-function count_interfaces(forest::Ptr{t8_forest}, ndims)
+function count_interfaces(forest, ndims)
     @assert t8_forest_is_committed(forest) != 0
 
     num_local_elements = t8_forest_get_local_num_elements(forest)
@@ -1089,25 +1128,25 @@ end
 # Instead, I opted for good documentation.
 function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                          boundary_names; mpi_mesh_info = nothing)
-    @assert t8_forest_is_committed(mesh.forest.pointer) != 0
+    @assert t8_forest_is_committed(mesh.forest) != 0
 
-    num_local_elements = t8_forest_get_local_num_elements(mesh.forest.pointer)
-    num_local_trees = t8_forest_get_num_local_trees(mesh.forest.pointer)
+    num_local_elements = t8_forest_get_local_num_elements(mesh.forest)
+    num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
 
     if !isnothing(mpi_mesh_info)
         #! format: off
-        remotes = t8_forest_ghost_get_remotes(mesh.forest.pointer)
-        ghost_num_trees = t8_forest_ghost_num_trees(mesh.forest.pointer)
+        remotes = t8_forest_ghost_get_remotes(mesh.forest)
+        ghost_num_trees = t8_forest_ghost_num_trees(mesh.forest)
 
         ghost_remote_first_elem = [num_local_elements +
-                                   t8_forest_ghost_remote_first_elem(mesh.forest.pointer, remote)
+                                   t8_forest_ghost_remote_first_elem(mesh.forest, remote)
                                    for remote in remotes]
 
         ghost_tree_element_offsets = [num_local_elements +
-                                      t8_forest_ghost_get_tree_element_offset(mesh.forest.pointer, itree)
+                                      t8_forest_ghost_get_tree_element_offset(mesh.forest, itree)
                                       for itree in 0:(ghost_num_trees - 1)]
 
-        ghost_global_treeids = [t8_forest_ghost_get_global_treeid(mesh.forest.pointer, itree)
+        ghost_global_treeids = [t8_forest_ghost_get_global_treeid(mesh.forest, itree)
                                 for itree in 0:(ghost_num_trees - 1)]
         #! format: on
     end
@@ -1136,7 +1175,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     ]
 
     # Helper variables to compute unique global MPI interface/mortar ids.
-    max_level = t8_forest_get_maxlevel(mesh.forest.pointer)
+    max_level = t8_forest_get_maxlevel(mesh.forest)
     max_tree_num_elements = UInt128(2^ndims(mesh))^max_level
 
     # These two variables help to ensure that we count MPI mortars from smaller
@@ -1144,20 +1183,20 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     visited_global_mortar_ids = Set{UInt128}([])
     global_mortar_id_to_local = Dict{UInt128, Int}([])
 
-    cmesh = t8_forest_get_cmesh(mesh.forest.pointer)
+    cmesh = t8_forest_get_cmesh(mesh.forest)
 
     # Loop over all local trees.
     for itree in 0:(num_local_trees - 1)
-        tree_class = t8_forest_get_tree_class(mesh.forest.pointer, itree)
-        eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest.pointer, tree_class)
+        tree_class = t8_forest_get_tree_class(mesh.forest, itree)
+        eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest, tree_class)
 
-        num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest.pointer, itree)
+        num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, itree)
 
-        global_itree = t8_forest_global_tree_id(mesh.forest.pointer, itree)
+        global_itree = t8_forest_global_tree_id(mesh.forest, itree)
 
         # Loop over all local elements of the current local tree.
         for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(mesh.forest.pointer, itree, ielement)
+            element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
 
             level = t8_element_level(eclass_scheme, element)
 
@@ -1179,7 +1218,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                 forest_is_balanced = Cint(1)
 
                 # Query neighbor information from t8code.
-                t8_forest_leaf_face_neighbors(mesh.forest.pointer, itree, element,
+                t8_forest_leaf_face_neighbors(mesh.forest, itree, element,
                                               pneighbor_leaves_ref, iface, dual_faces_ref,
                                               num_neighbors_ref,
                                               pelement_indices_ref, pneigh_scheme_ref,
@@ -1237,7 +1276,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                     # Compute the `orientation` of the touching faces.
                     if t8_element_is_root_boundary(eclass_scheme, element, iface) == 1
-                        itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(mesh.forest.pointer,
+                        itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(mesh.forest,
                                                                             itree)
                         iface_in_tree = t8_element_tree_face(eclass_scheme, element, iface)
                         orientation_ref = Ref{Cint}()
@@ -1423,12 +1462,12 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 end
 
 function get_levels(mesh::T8codeMesh)
-    return trixi_t8_get_local_element_levels(mesh.forest.pointer)
+    return trixi_t8_get_local_element_levels(mesh.forest)
 end
 
 function get_cmesh_info(mesh::T8codeMesh)
-    @assert t8_forest_is_committed(mesh.forest.pointer) == 1
-    cmesh = t8_forest_get_cmesh(mesh.forest.pointer)
+    @assert t8_forest_is_committed(mesh.forest) == 1
+    cmesh = t8_forest_get_cmesh(mesh.forest)
     return get_cmesh_info(cmesh, ndims(mesh))
 end
 

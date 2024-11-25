@@ -264,13 +264,13 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
     # Retrieve the number of elements per tree. Since a tree can be distributed
     # among multiple ranks a reduction operation sums them all up. The latter
     # is done on the root rank only.
-    num_global_trees = t8_forest_get_num_global_trees(mesh.forest.pointer)
+    num_global_trees = t8_forest_get_num_global_trees(mesh.forest)
     num_elements_per_tree = zeros(t8_gloidx_t, num_global_trees)
-    num_local_trees = t8_forest_get_num_local_trees(mesh.forest.pointer)
+    num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
     for local_tree_id in 0:(num_local_trees - 1)
-        num_local_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest.pointer,
+        num_local_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest,
                                                                      local_tree_id)
-        global_tree_id = t8_forest_global_tree_id(mesh.forest.pointer, local_tree_id)
+        global_tree_id = t8_forest_global_tree_id(mesh.forest, local_tree_id)
         num_elements_per_tree[global_tree_id + 1] = num_local_elements_in_tree
     end
 

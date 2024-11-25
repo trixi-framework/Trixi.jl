@@ -51,7 +51,7 @@ function init_t8code()
     return nothing
 end
 
-function trixi_t8_get_local_element_levels(forest::Ptr{t8_forest})
+function trixi_t8_get_local_element_levels(forest)
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
 
@@ -121,7 +121,7 @@ function adapt_callback(forest::Ptr{t8_forest},
     return Cint(indicators[offset + lelement_id + 1])
 end
 
-function trixi_t8_adapt_new(old_forest::Ptr{t8_forest}, indicators)
+function trixi_t8_adapt_new(old_forest, indicators)
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
@@ -183,15 +183,15 @@ end
 # Coarsen or refine marked cells and rebalance forest. Return a difference between
 # old and new mesh.
 function trixi_t8_adapt!(mesh, indicators)
-    old_levels = trixi_t8_get_local_element_levels(mesh.forest.pointer)
+    old_levels = trixi_t8_get_local_element_levels(mesh.forest)
 
-    forest_cached = trixi_t8_adapt_new(mesh.forest.pointer, indicators)
+    forest_cached = trixi_t8_adapt_new(mesh.forest, indicators)
 
     new_levels = trixi_t8_get_local_element_levels(forest_cached)
 
     differences = trixi_t8_get_difference(old_levels, new_levels, 2^ndims(mesh))
 
-    mesh.forest.pointer = forest_cached
+    update_forest!(mesh, forest_cached)
 
     return differences
 end
