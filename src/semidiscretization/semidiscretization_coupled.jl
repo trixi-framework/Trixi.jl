@@ -452,11 +452,11 @@ mutable struct BoundaryConditionCoupled{NDIMS,
         NDIMS = length(indices)
         u_boundary = Array{uEltype, NDIMS * 2 - 1}(undef, ntuple(_ -> 0, NDIMS * 2 - 1))
 
-        if indices[1] in (:begin, :end)
+        if indices[1] in (Indexing.first, Indexing.last)
             other_orientation = 1
-        elseif indices[2] in (:begin, :end)
+        elseif indices[2] in (Indexing.first, Indexing.last)
             other_orientation = 2
-        else # indices[3] in (:begin, :end)
+        else # indices[3] in (Indexing.first, Indexing.last)
             other_orientation = 3
         end
 

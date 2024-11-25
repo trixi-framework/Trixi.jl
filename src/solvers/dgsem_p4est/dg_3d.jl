@@ -29,9 +29,9 @@ function create_cache(mesh::Union{P4estMesh{3}, T8codeMesh{3}}, equations,
     (; fstar_primary_threaded, fstar_secondary_threaded, fstar_tmp_threaded, u_threaded)
 end
 
-#     index_to_start_step_3d(index::Symbol, index_range)
+#     index_to_start_step_3d(index::IndexInfo, index_range)
 #
-# Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
+# Given an `index` and an `indexrange` (usually `eachnode(dg)`),
 # return `index_start, index_step_i, index_step_j`, i.e., a tuple containing
 # - `index_start`,   an index value to begin a loop
 # - `index_step_i`,  an index step to update during an `i` loop
@@ -41,9 +41,9 @@ end
 # !!! warning
 #     This assumes that loops using the return values are written as
 #
-#     i_volume_start, i_volume_step_i, i_volume_step_j = index_to_start_step_3d(symbolic_index_i, index_range)
-#     j_volume_start, j_volume_step_i, j_volume_step_j = index_to_start_step_3d(symbolic_index_j, index_range)
-#     k_volume_start, k_volume_step_i, k_volume_step_j = index_to_start_step_3d(symbolic_index_k, index_range)
+#     i_volume_start, i_volume_step_i, i_volume_step_j = index_to_start_step_3d(index_info_i, index_range)
+#     j_volume_start, j_volume_step_i, j_volume_step_j = index_to_start_step_3d(index_info_j, index_range)
+#     k_volume_start, k_volume_step_i, k_volume_step_j = index_to_start_step_3d(index_info_k, index_range)
 #
 #     i_volume, j_volume, k_volume = i_volume_start, j_volume_start, k_volume_start
 #     for j_surface in index_range
@@ -58,36 +58,36 @@ end
 #       j_volume += j_volume_step_j
 #       k_volume += k_volume_step_j
 #     end
-@inline function index_to_start_step_3d(index::Symbol, index_range)
+@inline function index_to_start_step_3d(index::IndexInfo, index_range)
     index_begin = first(index_range)
     index_end = last(index_range)
 
-    if index === :begin
+    if index === Indexing.first
         return index_begin, 0, 0
-    elseif index === :end
+    elseif index === Indexing.last
         return index_end, 0, 0
-    elseif index === :i_forward
+    elseif index === Indexing.i_forward
         return index_begin, 1, index_begin - index_end - 1
-    elseif index === :i_backward
+    elseif index === Indexing.i_backward
         return index_end, -1, index_end + 1 - index_begin
-    elseif index === :j_forward
+    elseif index === Indexing.j_forward
         return index_begin, 0, 1
-    else # if index === :j_backward
+    else # if index === Indexing.j_backward
         return index_end, 0, -1
     end
 end
 
 # Extract the two varying indices from a symbolic index tuple.
-# For example, `surface_indices((:i_forward, :end, :j_forward)) == (:i_forward, :j_forward)`.
+# For example, `surface_indices((Indexing.i_forward, Indexing.last, Indexing.i_forward)) == (Indexing.i_forward, Indexing.i_forward)`.
 @inline function surface_indices(indices::NTuple{3, Symbol})
     i1, i2, i3 = indices
     index = i1
-    (index === :begin || index === :end) && return (i2, i3)
+    (index === Indexing.first || index === Indexing.last) && return (i2, i3)
 
     index = i2
-    (index === :begin || index === :end) && return (i1, i3)
+    (index === Indexing.first || index === Indexing.last) && return (i1, i3)
 
-    # i3 in (:begin, :end)
+    # i3 in (Indexing.first, Indexing.last)
     return (i1, i2)
 end
 
