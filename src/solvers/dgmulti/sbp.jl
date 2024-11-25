@@ -221,7 +221,10 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
                 for id in nzrange(A_base, i)
                     j = rows[id]
                     u_j = u[j]
-                    A_ij = vals[id]
+
+                    # we use the negative of A_ij since A is skew-symmetric, 
+                    # and we are accessing the transpose of A. 
+                    A_ij = -vals[id]
                     AF_ij = 2 * A_ij *
                             volume_flux(u_i, u_j, normal_direction, equations)
                     du_i = du_i + AF_ij
