@@ -16,7 +16,8 @@ include("test_trixi.jl")
                                   Trixi.StartUpDG.MeshData],))
     @test isnothing(check_no_implicit_imports(Trixi,
                                               skip = (Core, Base, Trixi.P4est, Trixi.T8code,
-                                                      Trixi.EllipsisNotation)))
+                                                      Trixi.EllipsisNotation,
+                                                      Trixi.Indexing)))
     @test isnothing(check_no_stale_explicit_imports(Trixi,
                                                     ignore = (:derivative_operator,
                                                               :periodic_derivative_operator,
