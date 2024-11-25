@@ -62,13 +62,21 @@ coupling_function12 = (x, u, equations_other, equations_own) -> u
 coupling_function13 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
-boundary_conditions_x_neg1 = BoundaryConditionCoupled(2, (Indexing.last, Indexing.i_forward), Float64,
+boundary_conditions_x_neg1 = BoundaryConditionCoupled(2,
+                                                      (Indexing.last, Indexing.i_forward),
+                                                      Float64,
                                                       coupling_function12)
-boundary_conditions_x_pos1 = BoundaryConditionCoupled(2, (Indexing.first, Indexing.i_forward), Float64,
+boundary_conditions_x_pos1 = BoundaryConditionCoupled(2,
+                                                      (Indexing.first, Indexing.i_forward),
+                                                      Float64,
                                                       coupling_function12)
-boundary_conditions_y_neg1 = BoundaryConditionCoupled(3, (Indexing.i_forward, Indexing.last), Float64,
+boundary_conditions_y_neg1 = BoundaryConditionCoupled(3,
+                                                      (Indexing.i_forward, Indexing.last),
+                                                      Float64,
                                                       coupling_function13)
-boundary_conditions_y_pos1 = BoundaryConditionCoupled(3, (Indexing.i_forward, Indexing.first), Float64,
+boundary_conditions_y_pos1 = BoundaryConditionCoupled(3,
+                                                      (Indexing.i_forward, Indexing.first),
+                                                      Float64,
                                                       coupling_function13)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -94,13 +102,21 @@ coupling_function21 = (x, u, equations_other, equations_own) -> u
 coupling_function24 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
-boundary_conditions_x_neg2 = BoundaryConditionCoupled(1, (Indexing.last, Indexing.i_forward), Float64,
+boundary_conditions_x_neg2 = BoundaryConditionCoupled(1,
+                                                      (Indexing.last, Indexing.i_forward),
+                                                      Float64,
                                                       coupling_function21)
-boundary_conditions_x_pos2 = BoundaryConditionCoupled(1, (Indexing.first, Indexing.i_forward), Float64,
+boundary_conditions_x_pos2 = BoundaryConditionCoupled(1,
+                                                      (Indexing.first, Indexing.i_forward),
+                                                      Float64,
                                                       coupling_function21)
-boundary_conditions_y_neg2 = BoundaryConditionCoupled(4, (Indexing.i_forward, Indexing.last), Float64,
+boundary_conditions_y_neg2 = BoundaryConditionCoupled(4,
+                                                      (Indexing.i_forward, Indexing.last),
+                                                      Float64,
                                                       coupling_function24)
-boundary_conditions_y_pos2 = BoundaryConditionCoupled(4, (Indexing.i_forward, Indexing.first), Float64,
+boundary_conditions_y_pos2 = BoundaryConditionCoupled(4,
+                                                      (Indexing.i_forward, Indexing.first),
+                                                      Float64,
                                                       coupling_function24)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -126,13 +142,21 @@ coupling_function34 = (x, u, equations_other, equations_own) -> u
 coupling_function31 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
-boundary_conditions_x_neg3 = BoundaryConditionCoupled(4, (Indexing.last, Indexing.i_forward), Float64,
+boundary_conditions_x_neg3 = BoundaryConditionCoupled(4,
+                                                      (Indexing.last, Indexing.i_forward),
+                                                      Float64,
                                                       coupling_function34)
-boundary_conditions_x_pos3 = BoundaryConditionCoupled(4, (Indexing.first, Indexing.i_forward), Float64,
+boundary_conditions_x_pos3 = BoundaryConditionCoupled(4,
+                                                      (Indexing.first, Indexing.i_forward),
+                                                      Float64,
                                                       coupling_function34)
-boundary_conditions_y_neg3 = BoundaryConditionCoupled(1, (Indexing.i_forward, Indexing.last), Float64,
+boundary_conditions_y_neg3 = BoundaryConditionCoupled(1,
+                                                      (Indexing.i_forward, Indexing.last),
+                                                      Float64,
                                                       coupling_function31)
-boundary_conditions_y_pos3 = BoundaryConditionCoupled(1, (Indexing.i_forward, Indexing.first), Float64,
+boundary_conditions_y_pos3 = BoundaryConditionCoupled(1,
+                                                      (Indexing.i_forward, Indexing.first),
+                                                      Float64,
                                                       coupling_function31)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -158,13 +182,21 @@ coupling_function43 = (x, u, equations_other, equations_own) -> u
 coupling_function42 = (x, u, equations_other, equations_own) -> u
 
 # Define the coupling boundary conditions and the system it is coupled to.
-boundary_conditions_x_neg4 = BoundaryConditionCoupled(3, (Indexing.last, Indexing.i_forward), Float64,
+boundary_conditions_x_neg4 = BoundaryConditionCoupled(3,
+                                                      (Indexing.last, Indexing.i_forward),
+                                                      Float64,
                                                       coupling_function43)
-boundary_conditions_x_pos4 = BoundaryConditionCoupled(3, (Indexing.first, Indexing.i_forward), Float64,
+boundary_conditions_x_pos4 = BoundaryConditionCoupled(3,
+                                                      (Indexing.first, Indexing.i_forward),
+                                                      Float64,
                                                       coupling_function43)
-boundary_conditions_y_neg4 = BoundaryConditionCoupled(2, (Indexing.i_forward, Indexing.last), Float64,
+boundary_conditions_y_neg4 = BoundaryConditionCoupled(2,
+                                                      (Indexing.i_forward, Indexing.last),
+                                                      Float64,
                                                       coupling_function42)
-boundary_conditions_y_pos4 = BoundaryConditionCoupled(2, (Indexing.i_forward, Indexing.first), Float64,
+boundary_conditions_y_pos4 = BoundaryConditionCoupled(2,
+                                                      (Indexing.i_forward, Indexing.first),
+                                                      Float64,
                                                       coupling_function42)
 
 # A semidiscretization collects data structures and functions for the spatial discretization

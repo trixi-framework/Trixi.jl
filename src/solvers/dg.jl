@@ -751,7 +751,6 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg:
         end
     end
 end
-
 end # @muladd; put it up here because module definition below needs to be at top level
 
 # For some mesh types, elements next to a surface may have local coordinate systems

@@ -94,28 +94,34 @@ end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            interfaces.node_indices[side, interface_id] = (Indexing.first, surface_index1,
+            interfaces.node_indices[side, interface_id] = (Indexing.first,
+                                                           surface_index1,
                                                            surface_index2)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            interfaces.node_indices[side, interface_id] = (Indexing.last, surface_index1,
+            interfaces.node_indices[side, interface_id] = (Indexing.last,
+                                                           surface_index1,
                                                            surface_index2)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            interfaces.node_indices[side, interface_id] = (surface_index1, Indexing.first,
+            interfaces.node_indices[side, interface_id] = (surface_index1,
+                                                           Indexing.first,
                                                            surface_index2)
         elseif faces[side] == 3
             # Index face in positive y-direction
-            interfaces.node_indices[side, interface_id] = (surface_index1, Indexing.last,
+            interfaces.node_indices[side, interface_id] = (surface_index1,
+                                                           Indexing.last,
                                                            surface_index2)
         elseif faces[side] == 4
             # Index face in negative z-direction
             interfaces.node_indices[side, interface_id] = (surface_index1,
-                                                           surface_index2, Indexing.first)
+                                                           surface_index2,
+                                                           Indexing.first)
         else # faces[side] == 5
             # Index face in positive z-direction
             interfaces.node_indices[side, interface_id] = (surface_index1,
-                                                           surface_index2, Indexing.last)
+                                                           surface_index2,
+                                                           Indexing.last)
         end
     end
 
@@ -127,22 +133,28 @@ end
                                              face, boundary_id)
     if face == 0
         # Index face in negative x-direction
-        boundaries.node_indices[boundary_id] = (Indexing.first, Indexing.i_forward, Indexing.j_forward)
+        boundaries.node_indices[boundary_id] = (Indexing.first, Indexing.i_forward,
+                                                Indexing.j_forward)
     elseif face == 1
         # Index face in positive x-direction
-        boundaries.node_indices[boundary_id] = (Indexing.last, Indexing.i_forward, Indexing.j_forward)
+        boundaries.node_indices[boundary_id] = (Indexing.last, Indexing.i_forward,
+                                                Indexing.j_forward)
     elseif face == 2
         # Index face in negative y-direction
-        boundaries.node_indices[boundary_id] = (Indexing.i_forward, Indexing.first, Indexing.j_forward)
+        boundaries.node_indices[boundary_id] = (Indexing.i_forward, Indexing.first,
+                                                Indexing.j_forward)
     elseif face == 3
         # Index face in positive y-direction
-        boundaries.node_indices[boundary_id] = (Indexing.i_forward, Indexing.last, Indexing.j_forward)
+        boundaries.node_indices[boundary_id] = (Indexing.i_forward, Indexing.last,
+                                                Indexing.j_forward)
     elseif face == 4
         # Index face in negative z-direction
-        boundaries.node_indices[boundary_id] = (Indexing.i_forward, Indexing.j_forward, Indexing.first)
+        boundaries.node_indices[boundary_id] = (Indexing.i_forward, Indexing.j_forward,
+                                                Indexing.first)
     else # face == 5
         # Index face in positive z-direction
-        boundaries.node_indices[boundary_id] = (Indexing.i_forward, Indexing.j_forward, Indexing.last)
+        boundaries.node_indices[boundary_id] = (Indexing.i_forward, Indexing.j_forward,
+                                                Indexing.last)
     end
 
     return boundaries

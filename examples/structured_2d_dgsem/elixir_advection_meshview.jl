@@ -56,17 +56,25 @@ coupling_function = (x, u, equations_other, equations_own) -> u
 # For a system with coupling in x and y see examples/structured_2d_dgsem/elixir_advection_coupled.jl.
 boundary_conditions1 = (
                         # Connect left boundary with right boundary of left mesh
-                        x_neg = BoundaryConditionCoupled(2, (Indexing.last, Indexing.i_forward), Float64,
+                        x_neg = BoundaryConditionCoupled(2,
+                                                         (Indexing.last,
+                                                          Indexing.i_forward), Float64,
                                                          coupling_function),
-                        x_pos = BoundaryConditionCoupled(2, (Indexing.first, Indexing.i_forward), Float64,
+                        x_pos = BoundaryConditionCoupled(2,
+                                                         (Indexing.first,
+                                                          Indexing.i_forward), Float64,
                                                          coupling_function),
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
 boundary_conditions2 = (
                         # Connect left boundary with right boundary of left mesh
-                        x_neg = BoundaryConditionCoupled(1, (Indexing.last, Indexing.i_forward), Float64,
+                        x_neg = BoundaryConditionCoupled(1,
+                                                         (Indexing.last,
+                                                          Indexing.i_forward), Float64,
                                                          coupling_function),
-                        x_pos = BoundaryConditionCoupled(1, (Indexing.first, Indexing.i_forward), Float64,
+                        x_pos = BoundaryConditionCoupled(1,
+                                                         (Indexing.first,
+                                                          Indexing.i_forward), Float64,
                                                          coupling_function),
                         y_neg = boundary_condition_periodic,
                         y_pos = boundary_condition_periodic)
