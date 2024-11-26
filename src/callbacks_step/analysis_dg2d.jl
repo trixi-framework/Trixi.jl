@@ -297,22 +297,6 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{2}, equations::IdealMhdMultiIonEquations2D,
-                 dg::DG, cache)
-    integrate_via_indices(u, mesh, equations, dg, cache, cache,
-                          dg.basis.derivative_matrix) do u, i, j, element, equations,
-                                                         dg, cache, derivative_matrix
-        divb = zero(eltype(u))
-        for k in eachnode(dg)
-            divb += (derivative_matrix[i, k] * u[1, k, j, element] +
-                     derivative_matrix[j, k] * u[2, i, k, element])
-        end
-        divb *= cache.elements.inverse_jacobian[element]
-        divb^2
-    end |> sqrt
-end
-
-function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                              T8codeMesh{2}},
                  equations, dg::DGSEM, cache)
@@ -355,28 +339,6 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
                 divb += (derivative_matrix[i, k] * B1_kj +
                          derivative_matrix[j, k] * B2_ik)
-            end
-            divb *= cache.elements.inverse_jacobian[element]
-            linf_divb = max(linf_divb, abs(divb))
-        end
-    end
-
-    return linf_divb
-end
-
-function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::TreeMesh{2}, equations::IdealMhdMultiIonEquations2D,
-                 dg::DG, cache)
-    @unpack derivative_matrix, weights = dg.basis
-
-    # integrate over all elements to get the divergence-free condition errors
-    linf_divb = zero(eltype(u))
-    for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            divb = zero(eltype(u))
-            for k in eachnode(dg)
-                divb += (derivative_matrix[i, k] * u[1, k, j, element] +
-                         derivative_matrix[j, k] * u[2, i, k, element])
             end
             divb *= cache.elements.inverse_jacobian[element]
             linf_divb = max(linf_divb, abs(divb))
