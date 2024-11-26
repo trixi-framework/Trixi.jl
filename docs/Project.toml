@@ -1,7 +1,9 @@
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Changelog = "5217a498-cd5d-4ec6-b8c2-9b85a09b6e3e"
+Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 HOHQMesh = "e4f4c7b8-17cb-445a-93c5-f69190ed6c8c"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"

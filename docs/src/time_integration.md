@@ -80,7 +80,6 @@ Nevertheless, due to their optimized stability properties and low-storage nature
 #### Tutorial: Using `PairedExplicitRK2`
 
 In this tutorial, we will demonstrate how you can use the second-order P-ERK time integrator. You need the packages `Convex.jl` and `ECOS.jl`, so be sure they are added to your environment.
-```
 
 1. First, you need to load the necessary packages:
 
