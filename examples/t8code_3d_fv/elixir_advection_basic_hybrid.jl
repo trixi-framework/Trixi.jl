@@ -41,6 +41,15 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             save_everystep = false, callback = callbacks);
 summary_callback()
 
+# Note: Since the mesh must be finalizized by hand in the elixir, it is not defined anymore here.
+# Moved allocation test to the elixirs for now.
+let
+    t = sol.t[end]
+    u_ode = sol.u[end]
+    du_ode = similar(u_ode)
+    @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+end
+
 # Finalize `T8codeMesh` to make sure MPI related objects in t8code are
 # released before `MPI` finalizes.
 !isinteractive() && finalize(mesh)

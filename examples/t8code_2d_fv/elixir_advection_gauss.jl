@@ -44,6 +44,13 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),#Euler(),
             save_everystep = false, callback = callbacks);
 summary_callback()
 
+let
+    t = sol.t[end]
+    u_ode = sol.u[end]
+    du_ode = similar(u_ode)
+    @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+end
+
 # Finalize `T8codeMesh` to make sure MPI related objects in t8code are
 # released before `MPI` finalizes.
 !isinteractive() && finalize(mesh)

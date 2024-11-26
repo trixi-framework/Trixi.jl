@@ -93,7 +93,7 @@ GC.enable(false)
 # - GC disabled as in elixir:
 #   o Everything seems to work
 
-# NOTE: When I remove `using T8code` at the top of this elixir, things like `t8_cmesh_t` and `T8_ECLASS_QUAD` are unkown.
+# NOTE: When I remove `using T8code` at the top of this elixir, things like `t8_cmesh_t` and `T8_ECLASS_QUAD` are unknown.
 eclass = T8_ECLASS_QUAD
 mesh = T8codeMesh(trees_per_dimension, eclass,
                   # mapping = Trixi.trixi_t8_mapping_c(mapping_coordinates),
@@ -130,6 +130,15 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 summary_callback()
+
+# Note: Since the mesh must be finalizized by hand in the elixir, it is not defined anymore here.
+# Moved allocation test to the elixirs for now.
+let
+    t = sol.t[end]
+    u_ode = sol.u[end]
+    du_ode = similar(u_ode)
+    @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+end
 
 GC.enable(true)
 
