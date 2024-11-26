@@ -79,19 +79,10 @@ Nevertheless, due to their optimized stability properties and low-storage nature
 
 #### Tutorial: Using `PairedExplicitRK2`
 
-In this tutorial, we will demonstrate how you can use the second-order P-ERK time integrator.
-
-1. First, ensure you have the necessary packages installed. For the optimization of the stability polynomial $P_{2; S}$, you need the `Convex.jl` and `ECOS.jl` packages.
-You can install them using Julia's package manager:
-
-```@repl 1
-using Pkg
-Pkg.add("Trixi")
-Pkg.add("Convex")
-Pkg.add("ECOS")
+In this tutorial, we will demonstrate how you can use the second-order P-ERK time integrator. You need the packages `Convex.jl` and `ECOS.jl`, so be sure they are added to your environment.
 ```
 
-2. Now you can load the necessary packages:
+1. First, you need to load the necessary packages:
 
 ```@setup 1
 using Convex, ECOS
@@ -99,7 +90,7 @@ using OrdinaryDiffEq
 using Trixi
 ```
 
-3. Define the ODE problem and the semidiscretization setup. For this example, we will use a simple advection problem.
+2. Define the ODE problem and the semidiscretization setup. For this example, we will use a simple advection problem.
 
 ```@example 1
 # Define the mesh
@@ -124,7 +115,7 @@ semi = SemidiscretizationHyperbolic(mesh,
                                     solver)
 ```
 
-4. Define the necessary callbacks for the simulation. Callbacks are used to perform actions at specific points during the integration process.
+3. Define the necessary callbacks for the simulation. Callbacks are used to perform actions at specific points during the integration process.
 
 ```@example 1
 # Define some standard callbacks
@@ -141,7 +132,7 @@ callbacks = CallbackSet(summary_callback,
                         stepsize_callback)
 ```
 
-5. Define the ODE problem by specifying the time span over which the ODE will be solved. 
+4. Define the ODE problem by specifying the time span over which the ODE will be solved. 
 The `tspan` parameter is a tuple `(t_start, t_end)` that defines the start and end times for the simulation. 
 The `semidiscretize` function is used to create the ODE problem from the simulation setup.
 
@@ -153,7 +144,7 @@ tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 ```
 
-6. In this step we will construct the time integrator. In order to do this, you need the following components:
+5. In this step we will construct the time integrator. In order to do this, you need the following components:
 
   - Number of Stages: The number of stages $S$ in the Runge-Kutta method. 
   In this example, we use `6` stages.
@@ -171,7 +162,7 @@ ode = semidiscretize(semi, tspan)
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 ```
 
-7. With everything now set up, you can now use `Trixi.solve` to solve the ODE problem. The `solve` function takes the ODE problem, the time integrator, and some options such as the time step (`dt`), whether to save every step (`save_everystep`), and the callbacks.
+6. With everything now set up, you can now use `Trixi.solve` to solve the ODE problem. The `solve` function takes the ODE problem, the time integrator, and some options such as the time step (`dt`), whether to save every step (`save_everystep`), and the callbacks.
 
 ```@example 1
 # Solve the ODE problem using PERK2
@@ -180,7 +171,7 @@ sol = Trixi.solve(ode, ode_algorithm,
                   save_everystep = false, callback = callbacks)
 ```
 
-8. Advanced constructors:
+7. Advanced constructors:
 There are two additional constructors for the `PairedExplicitRK2` method besides the one taking in a semidiscretization `semi`:
   - `PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString)` constructs a `num_stages`-stage method from the given optimal monomial_coeffs $\boldsymbol \alpha$.
   These are expected to be present in the provided directory in the form of a `gamma_<S>.txt` file, where `<S>` is the number of stages `num_stages`.
