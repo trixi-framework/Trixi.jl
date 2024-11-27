@@ -929,7 +929,7 @@ function adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
     return nothing
 end
 
-function balance_forest(forest::Ptr{t8_forest})
+function balance_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}})
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
