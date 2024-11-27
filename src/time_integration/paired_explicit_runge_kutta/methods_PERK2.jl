@@ -200,9 +200,8 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
     finalstep::Bool # added for convenience
     dtchangeable::Bool
     force_stepfail::Bool
-    # PairedExplicitRK2 stages:
+    # Additional PairedExplicitRK2 stage
     k1::uType
-    k_higher::uType
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK2;
@@ -211,9 +210,8 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
     du = zero(u0)
     u_tmp = zero(u0)
 
-    # PairedExplicitRK2 stages
+    # Additional PairedExplicitRK2 stage
     k1 = zero(u0)
-    k_higher = zero(u0)
 
     t0 = first(ode.tspan)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
@@ -226,7 +224,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
                                                                      ode.tspan;
                                                                      kwargs...),
                                              false, true, false,
-                                             k1, k_higher)
+                                             k1)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -262,46 +260,18 @@ function step!(integrator::PairedExplicitRK2Integrator)
     end
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
-        # k1
-        integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
-        @threaded for i in eachindex(integrator.du)
-            integrator.k1[i] = integrator.du[i] * integrator.dt
-        end
-
-        # Construct current state
-        @threaded for i in eachindex(integrator.u)
-            integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
-        end
-        # k2
-        integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                     integrator.t + alg.c[2] * integrator.dt)
-
-        @threaded for i in eachindex(integrator.du)
-            integrator.k_higher[i] = integrator.du[i] * integrator.dt
-        end
+        # First and second stage are identical across all single/standalone PERK methods
+        PERK_k1!(integrator, prob.p)
+        PERK_k2!(integrator, prob.p, alg.c)
 
         # Higher stages
         for stage in 3:(alg.num_stages)
-            # Construct current state
-            @threaded for i in eachindex(integrator.u)
-                integrator.u_tmp[i] = integrator.u[i] +
-                                      alg.a_matrix[stage - 2, 1] *
-                                      integrator.k1[i] +
-                                      alg.a_matrix[stage - 2, 2] *
-                                      integrator.k_higher[i]
-            end
-
-            integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                         integrator.t + alg.c[stage] * integrator.dt)
-
-            @threaded for i in eachindex(integrator.du)
-                integrator.k_higher[i] = integrator.du[i] * integrator.dt
-            end
+            PERK_ki!(integrator, prob.p, alg.c, alg.a_matrix, stage)
         end
 
         @threaded for i in eachindex(integrator.u)
-            integrator.u[i] += alg.b1 * integrator.k1[i] +
-                               alg.bS * integrator.k_higher[i]
+            integrator.u[i] += integrator.dt * (alg.b1 * integrator.k1[i] +
+                                alg.bS * integrator.du[i])
         end
     end # PairedExplicitRK2 step
 

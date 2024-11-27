@@ -82,8 +82,8 @@ end
                         save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8), # Adding a small epsilon to avoid floating-point precision issues
                         callbacks=CallbackSet(summary_callback, save_solution,
                                               analysis_callback, alive_callback),
-                        l2=[5.726144786001842e-7],
-                        linf=[3.430730019182704e-6])
+                        l2=[5.727164156769191e-7],
+                        linf=[3.4323776822997587e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
