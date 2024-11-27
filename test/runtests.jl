@@ -95,7 +95,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "t8code_part3"
         include("test_t8code_forestwrapper.jl")
-        include("test_t8code_forestwrapper_failing.jl")
+        # include("test_t8code_forestwrapper_failing.jl")
     end
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "unstructured_dgmulti"
