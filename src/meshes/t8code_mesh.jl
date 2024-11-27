@@ -66,7 +66,7 @@ goes to caller.
 - `mesh::T8codeMesh`: Initialized mesh.
 - `new_forest::Ptr{t8_forest}`: New forest.
 
-Returns nothing.
+Returns `nothing`.
 """
 function update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
     # `mesh.forest` must not be overwritten. Its lifetime is attached to the
