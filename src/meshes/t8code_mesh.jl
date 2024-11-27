@@ -925,7 +925,7 @@ Returns `nothing`.
 """
 function adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
     # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
-    update_forest!(mesh, adapt_forest(mesh.forest.pointer, adapt_callback; kwargs...))
+    update_forest!(mesh, adapt_forest(mesh.forest, adapt_callback; kwargs...))
     return nothing
 end
 
