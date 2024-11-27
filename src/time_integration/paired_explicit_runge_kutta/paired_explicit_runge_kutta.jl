@@ -134,10 +134,9 @@ end
     # Construct current state
     @threaded for i in eachindex(integrator.u)
         integrator.u_tmp[i] = integrator.u[i] +
-                              integrator.dt * (a_matrix[stage - 2, 1] *
-                               integrator.k1[i] +
-                               a_matrix[stage - 2, 2] *
-                               integrator.du[i])
+                              integrator.dt *
+                              (a_matrix[stage - 2, 1] * integrator.k1[i] +
+                               a_matrix[stage - 2, 2] * integrator.du[i])
     end
 
     integrator.f(integrator.du, integrator.u_tmp, p,
