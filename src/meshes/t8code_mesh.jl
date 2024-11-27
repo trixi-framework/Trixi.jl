@@ -921,7 +921,7 @@ Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
     - `ghost = true`: Create a ghost layer for MPI data exchange.
     - `user_data = C_NULL`: Pointer to some arbitrary user-defined data.
 
-Returrns nothing.
+Returns `nothing`.
 """
 function adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
     # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
