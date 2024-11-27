@@ -114,7 +114,7 @@ semi = SemidiscretizationHyperbolic(mesh,
                                     solver)
 ```
 
-3. Define the necessary callbacks for the simulation. Callbacks are used to perform actions at specific points during the integration process.
+3. Define the necessary [callbacks](../callbacks.md) for the simulation. Callbacks are used to perform actions at specific points during the integration process.
 
 ```@example PERK-example-1
 # Define some standard callbacks
@@ -183,7 +183,7 @@ There are two additional constructors for the `PairedExplicitRK2` method besides
 In the previous tutorial the CFL number was set manually to $2.5$.
 To avoid this trial-and error process, instantiations of `AbstractPairedExplicitRK` methods can automatically compute the stable CFL number for a given simulation setup using the [`Trixi.calculate_cfl`](@ref) function.
 When constructing the time integrator from a semidiscretization `semi`, 
-```@example 1
+```@example PERK-example-1
 # Construct third-order paired-explicit Runge-Kutta method with 8 stages for given simulation setup.                               
 ode_algorithm = Trixi.PairedExplicitRK3(8, tspan, semi)
 ```
