@@ -841,7 +841,8 @@ Note that the old forest usually gets deallocated within t8code. Call
 
 Returns a `Ptr{t8_forest}` to a new forest.
 """
-function adapt_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}}, adapt_callback; recursive = true,
+function adapt_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}}, adapt_callback;
+                      recursive = true,
                       balance = true,
                       partition = true, ghost = true, user_data = C_NULL)
     # Check that forest is a committed, that is valid and usable, forest.
