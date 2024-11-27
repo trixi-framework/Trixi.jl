@@ -5,7 +5,7 @@ using Trixi
 
 include("test_trixi.jl")
 
-# Dummy variable in order to supress a warning.
+# Dummy variable in order to suppress a warning.
 EXAMPLES_DIR = joinpath(examples_dir(), "t8code_2d_dgsem")
 
 @trixi_testset "test T8codeMesh failing automatic cleanup" begin
