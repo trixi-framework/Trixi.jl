@@ -824,7 +824,7 @@ function adapt_callback_wrapper(forest,
 end
 
 """
-    Trixi.adapt_forest!(forest::Ptr{t8_forest}, adapt_callback; kwargs...)
+    Trixi.adapt_forest(forest::Ptr{t8_forest}, adapt_callback; kwargs...)
 
 Adapt a `T8codeMesh` according to a user-defined `adapt_callback`. This
 function is primarily for internal use. See `Trixi.adapt!(mesh::T8codeMesh,
