@@ -934,7 +934,7 @@ function balance_forest(forest::Ptr{t8_forest})
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
 
-    let set_from = mesh.forest, no_repartition = 1, do_ghost = 1
+    let set_from = forest, no_repartition = 1, do_ghost = 1
         t8_forest_set_balance(new_forest, set_from, no_repartition)
         t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
         t8_forest_commit(new_forest)
