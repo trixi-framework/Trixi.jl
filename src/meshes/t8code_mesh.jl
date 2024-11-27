@@ -958,7 +958,7 @@ function balance!(mesh::T8codeMesh)
     return nothing
 end
 
-function partition_forest(forest::Ptr{t8_forest})
+function partition_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}})
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
