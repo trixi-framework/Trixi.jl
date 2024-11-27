@@ -195,7 +195,7 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
     finalstep::Bool # added for convenience
     dtchangeable::Bool
     force_stepfail::Bool
-    # Additional PERK registers
+    # Additional PERK3 registers
     k1::uType
     kS1::uType
 end
