@@ -972,7 +972,7 @@ Partition a `T8codeMesh` in order to redistribute elements evenly among MPI rank
 - `mesh::T8codeMesh`: Initialized mesh object.
 """
 function partition!(mesh::T8codeMesh)
-    update_forest!(mesh, partition_forest(mesh.forest))
+    update_forest!(mesh, partition_forest(mesh.forest.pointer))
     return nothing
 end
 
