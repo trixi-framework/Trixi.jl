@@ -83,7 +83,7 @@ In this tutorial, we will demonstrate how you can use the second-order PERK time
 
 1. First, you need to load the necessary packages:
 
-```@setup 1
+```@example 1
 using Convex, ECOS
 using OrdinaryDiffEq
 using Trixi
