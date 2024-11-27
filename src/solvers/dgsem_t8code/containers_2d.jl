@@ -29,8 +29,7 @@ function calc_node_coordinates!(node_coordinates,
         global_itree = t8_forest_global_tree_id(mesh.forest, itree)
 
         for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(mesh.forest, itree,
-                                                    ielement)
+            element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
             element_level = t8_element_level(eclass_scheme, element)
 
             # Note, `t8_quad_len` is encoded as an integer (Morton encoding) in
