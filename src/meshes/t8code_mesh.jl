@@ -951,7 +951,7 @@ Balance a `T8codeMesh` to ensure 2^(NDIMS-1):1 face neighbors.
 # Arguments
 - `mesh::T8codeMesh`: Initialized mesh object.
 
-Returns noothing.
+Returns `nothing`.
 """
 function balance!(mesh::T8codeMesh)
     update_forest!(mesh, balance_forest(mesh.forest.pointer))
