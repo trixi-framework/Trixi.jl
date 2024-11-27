@@ -5,6 +5,9 @@ using Trixi
 
 include("test_trixi.jl")
 
+# Dummy variable in order to supress a warning.
+EXAMPLES_DIR = joinpath(examples_dir(), "t8code_2d_dgsem")
+
 @trixi_testset "test T8codeMesh automatic cleanup" begin
     @test length(Trixi.T8code.T8CODE_OBJECT_TRACKER) == 0
 
