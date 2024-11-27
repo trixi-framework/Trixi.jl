@@ -120,27 +120,28 @@ end
     integrator.f(integrator.k1, integrator.u, p, integrator.t)
 end
 
-@inline function PERK_k2!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, c)
+@inline function PERK_k2!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg)
     @threaded for i in eachindex(integrator.du)
-        integrator.u_tmp[i] = integrator.u[i] + c[2] * integrator.dt * integrator.k1[i]
+        integrator.u_tmp[i] = integrator.u[i] +
+                              alg.c[2] * integrator.dt * integrator.k1[i]
     end
 
     integrator.f(integrator.du, integrator.u_tmp, p,
-                 integrator.t + c[2] * integrator.dt)
+                 integrator.t + alg.c[2] * integrator.dt)
 end
 
-@inline function PERK_ki!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, c,
-                          a_matrix, stage)
+@inline function PERK_ki!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg,
+                          stage)
     # Construct current state
     @threaded for i in eachindex(integrator.u)
         integrator.u_tmp[i] = integrator.u[i] +
                               integrator.dt *
-                              (a_matrix[stage - 2, 1] * integrator.k1[i] +
-                               a_matrix[stage - 2, 2] * integrator.du[i])
+                              (alg.a_matrix[stage - 2, 1] * integrator.k1[i] +
+                               alg.a_matrix[stage - 2, 2] * integrator.du[i])
     end
 
     integrator.f(integrator.du, integrator.u_tmp, p,
-                 integrator.t + c[stage] * integrator.dt)
+                 integrator.t + alg.c[stage] * integrator.dt)
 end
 
 # used for AMR (Adaptive Mesh Refinement)
