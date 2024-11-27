@@ -17,8 +17,8 @@ solver = DGSEM(RealT = RealT, polydeg = 13, surface_flux = flux_lax_friedrichs)
 
 # CARE: Important to use higher precision datatype for coordinates
 # as these are used for type promotion of the mesh (points etc.)
-coordinates_min = (-convert(RealT, 1),)
-coordinates_max = (convert(RealT, 1),)
+coordinates_min = (-one(RealT),)
+coordinates_max = (one(RealT),)
 cells_per_dimension = (1,)
 
 # `StructuredMesh` infers datatype from coordinates
@@ -31,7 +31,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # CARE: Important to use higher precision datatype in specification of final time
-tspan = (zero(RealT), convert(RealT, 1))
+tspan = (zero(RealT), one(RealT))
 
 ode = semidiscretize(semi, tspan);
 
