@@ -255,7 +255,7 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     @assert t8_forest_get_global_num_elements(forest) == nelements
 
     if mpi_isparallel()
-        forest = partition(forest)
+        forest = partition_forest(forest)
     end
 
     return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
@@ -929,12 +929,7 @@ function adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
     return nothing
 end
 
-"""
-    Trixi.balance!(mesh::T8codeMesh)
-
-Balance a `T8codeMesh` to ensure 2^(NDIMS-1):1 face neighbors.
-"""
-function balance!(mesh::T8codeMesh)
+function balance_forest(forest::Ptr{t8_forest})
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
@@ -945,7 +940,21 @@ function balance!(mesh::T8codeMesh)
         t8_forest_commit(new_forest)
     end
 
-    update_forest!(mesh, new_forest)
+    return new_forest
+end
+
+"""
+    Trixi.balance!(mesh::T8codeMesh)
+
+Balance a `T8codeMesh` to ensure 2^(NDIMS-1):1 face neighbors.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh object.
+
+Returns noothing.
+"""
+function balance!(mesh::T8codeMesh)
+    update_forest!(mesh, balance_forest(mesh.forest.pointer))
     return nothing
 end
 
@@ -970,6 +979,8 @@ Partition a `T8codeMesh` in order to redistribute elements evenly among MPI rank
 
 # Arguments
 - `mesh::T8codeMesh`: Initialized mesh object.
+
+Returns nothing.
 """
 function partition!(mesh::T8codeMesh)
     update_forest!(mesh, partition_forest(mesh.forest.pointer))
