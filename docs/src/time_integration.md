@@ -67,19 +67,19 @@ The optimization problem (1) can be solved using the algorithms described in [Ke
 In Trixi.jl, the former approach is implemented by means of convex optimization using the [Convex.jl](https://github.com/jump-dev/Convex.jl) package.
 
 The resulting stability polynomial $P_{p;S}$ is then used to construct an optimized Runge-Kutta method.
-Trixi.jl implements the [Paired-Explicit Runge-Kutta (P-ERK)](https://doi.org/10.1016/j.jcp.2019.05.014) method, a low-storage, multirate-ready method with optimized domain of absolute stability.
+Trixi.jl implements the [Paired-Explicit Runge-Kutta (PERK)](https://doi.org/10.1016/j.jcp.2019.05.014) method, a low-storage, multirate-ready method with optimized domain of absolute stability.
 
-### Paired-Explicit Runge-Kutta (P-ERK) Schemes
+### Paired-Explicit Runge-Kutta (PERK) Schemes
 
-Paired-Explicit Runge-Kutta (P-ERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ODEs.
+Paired-Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ODEs.
 In the [original publication](https://doi.org/10.1016/j.jcp.2019.05.014), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470)- and [fourth](https://doi.org/10.48550/arXiv.2408.05470)-order in subsequent works.
 
-By construction, P-ERK schemes are suited for integrating multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
-Nevertheless, due to their optimized stability properties and low-storage nature, the P-ERK schemes are also highly efficient when applied as standalone methods.
+By construction, PERK schemes are suited for integrating multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
+Nevertheless, due to their optimized stability properties and low-storage nature, the PERK schemes are also highly efficient when applied as standalone methods.
 
 #### Tutorial: Using `PairedExplicitRK2`
 
-In this tutorial, we will demonstrate how you can use the second-order P-ERK time integrator. You need the packages `Convex.jl` and `ECOS.jl`, so be sure they are added to your environment.
+In this tutorial, we will demonstrate how you can use the second-order PERK time integrator. You need the packages `Convex.jl` and `ECOS.jl`, so be sure they are added to your environment.
 
 1. First, you need to load the necessary packages:
 
@@ -205,9 +205,9 @@ ode_algorithm.dt_opt = 42.0 # The timestep obtained from the optimization
 ```
 Then, the stable CFL number can be computed as described above.
 
-#### Currently implemented P-ERK methods
+#### Currently implemented PERK methods
 
 ##### Single/Standalone methods
 
-- [`Trixi.PairedExplicitRK2`](@ref): Second-order P-ERK method with at least two stages.
-- [`Trixi.PairedExplicitRK3`](@ref): Third-order P-ERK method with at least three stages.
+- [`Trixi.PairedExplicitRK2`](@ref): Second-order PERK method with at least two stages.
+- [`Trixi.PairedExplicitRK3`](@ref): Third-order PERK method with at least three stages.
