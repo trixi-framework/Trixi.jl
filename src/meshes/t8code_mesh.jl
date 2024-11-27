@@ -983,7 +983,7 @@ Partition a `T8codeMesh` in order to redistribute elements evenly among MPI rank
 Returns `nothing`.
 """
 function partition!(mesh::T8codeMesh)
-    update_forest!(mesh, partition_forest(mesh.forest.pointer))
+    update_forest!(mesh, partition_forest(mesh.forest))
     return nothing
 end
 
