@@ -136,8 +136,8 @@ end
     @threaded for i in eachindex(integrator.u)
         integrator.u_tmp[i] = integrator.u[i] +
                               integrator.dt *
-                              (alg.a_matrix[stage - 2, 1] * integrator.k1[i] +
-                               alg.a_matrix[stage - 2, 2] * integrator.du[i])
+                              (alg.a_matrix[1, stage - 2] * integrator.k1[i] +
+                               alg.a_matrix[2, stage - 2] * integrator.du[i])
     end
 
     integrator.f(integrator.du, integrator.u_tmp, p,
