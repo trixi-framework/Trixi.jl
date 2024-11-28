@@ -163,7 +163,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
 
         # write header of output file
         open(joinpath(output_directory, analysis_filename), "w") do io
-            print(io, "#timestep ")
+            print(io, "timestep ")
             print(io, "time ")
             print(io, "dt ")
             if :l2_error in analysis_errors
