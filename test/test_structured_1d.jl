@@ -72,6 +72,15 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
     end
+
+    # Test `resize!`
+    integrator = init(ode, ode_algorithm, dt = 42.0, callback = callbacks)
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
+    @test length(integrator.k1) == 42
+    @test length(integrator.kS1) == 42
 end
 
 # Testing the third-order paired explicit Runge-Kutta (PERK) method without stepsize callback
