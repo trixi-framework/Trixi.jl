@@ -114,7 +114,7 @@ semi = SemidiscretizationHyperbolic(mesh,
                                     solver)
 ```
 
-3. Define the necessary [callbacks](callbacks.md) for the simulation. Callbacks are used to perform actions at specific points during the integration process.
+3. Define the necessary [callbacks](@ref callbacks-id) for the simulation. Callbacks are used to perform actions at specific points during the integration process.
 
 ```@example PERK-example-1
 # Define some standard callbacks
