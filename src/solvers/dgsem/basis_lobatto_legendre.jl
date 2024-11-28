@@ -558,8 +558,8 @@ This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
   Algorithms for scientists and engineers. 
   [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
 """
-# From FLUXO (but really from blue book by Kopriva)
 function gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
+    # From FLUXO (but really from blue book by Kopriva)
     n_iterations = 20
     tolerance = 2 * eps(RealT) # Relative tolerance for Newton iteration
 

@@ -17,8 +17,8 @@ solver = DGSEM(RealT = RealT, polydeg = 7, surface_flux = flux_lax_friedrichs)
 
 # CARE: Important to use higher precision datatype for coordinates
 # as these are used for type promotion of the mesh (points etc.)
-coordinates_min = -convert(RealT, 1) # minimum coordinate
-coordinates_max = convert(RealT, 1) # maximum coordinate
+coordinates_min = -one(RealT) # minimum coordinate
+coordinates_max = one(RealT) # maximum coordinate
 
 # For `TreeMesh` the datatype has to be specified explicitly,
 # i.e., is not inferred from the coordinates.
@@ -34,7 +34,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 # ODE solvers, callbacks etc.
 
 # CARE: Important to use higher precision datatype in specification of final time
-tspan = (zero(RealT), convert(RealT, 1))
+tspan = (zero(RealT), one(RealT))
 
 ode = semidiscretize(semi, tspan);
 
