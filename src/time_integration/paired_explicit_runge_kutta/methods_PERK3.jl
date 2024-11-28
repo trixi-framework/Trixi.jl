@@ -135,11 +135,12 @@ Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively 
 
 Note: To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages.
 """
-mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
-    const num_stages::Int # S
+struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
+    num_stages::Int # S
 
     a_matrix::Matrix{Float64}
     c::Vector{Float64}
+
     dt_opt::Union{Float64, Nothing}
 end
 
