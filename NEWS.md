@@ -11,8 +11,8 @@ for human readability.
 - The `AnalysisCallback` output generated with the `save_analysis = true` option now prints
   floating point numbers in their respective (full) precision. 
   Previously, only the first 8 digits where printed to file.
-  Furthermore, the names of the printed fields are now only seperated by a single whitespace, 
-  in contrast to before where this where multiple, depending on the actual name of the printed data.
+  Furthermore, the names of the printed fields are now only separated by a single white space, 
+  in contrast to before where this were multiple, depending on the actual name of the printed data.
 
 ## Changes in the v0.9 lifecycle
 
