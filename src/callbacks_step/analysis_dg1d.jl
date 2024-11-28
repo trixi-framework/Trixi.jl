@@ -60,24 +60,18 @@ function calc_error_norms(func, u, t, analyzer,
         multiply_scalar_dimensionwise!(jacobian_local, vandermonde,
                                        inv.(view(inverse_jacobian, :, element)))
 
-        # This
-        #@. jacobian_local = abs(jacobian_local)
-        # does not work with LoopVectorization and higher precision datatypes, see
-        # https://github.com/trixi-framework/Trixi.jl/pull/2128/files#r1814883509
-        # Thus we use instead
-        for (index, value) in enumerate(jacobian_local)
-            jacobian_local[index] = abs(value)
-        end
-
         # Calculate errors at each analysis node
         for i in eachnode(analyzer)
             u_exact = initial_condition(get_node_coords(x_local, equations, dg, i), t,
                                         equations)
             diff = func(u_exact, equations) -
                    func(get_node_vars(u_local, equations, dg, i), equations)
-            l2_error += diff .^ 2 * (weights[i] * jacobian_local[i])
+            # We take absolute value as we need the Jacobian here for the volume calculation
+            abs_jacobian_local_i = abs(jacobian_local[i])
+
+            l2_error += diff .^ 2 * (weights[i] * abs_jacobian_local_i)
             linf_error = @. max(linf_error, abs(diff))
-            total_volume += weights[i] * jacobian_local[i]
+            total_volume += weights[i] * abs_jacobian_local_i
         end
     end
 
