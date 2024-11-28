@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh}, output_directory,
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, P4estMeshView, T8codeMesh}, output_directory,
                         timestep = 0)
     save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
@@ -303,7 +303,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
                                   periodicity = periodicity_,
                                   unsaved_changes = false)
         mesh.current_filename = mesh_file
-    elseif mesh_type == "P4estMesh"
+    elseif mesh_type == "P4estMesh" || mesh_type == "P4estMeshView"
         p4est_filename, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
             return read(attributes(file)["p4est_file"]),

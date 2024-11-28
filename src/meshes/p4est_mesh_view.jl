@@ -12,10 +12,13 @@ mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <: Abs
     parent::Parent
     cell_ids::Vector{Int}
     unsaved_changes::Bool
+    current_filename::String
 end
 
 function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}, cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}
-    return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids, parent.unsaved_changes)
+    return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids,
+                                                                      parent.unsaved_changes,
+                                                                      parent.current_filename)
 end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
@@ -139,5 +142,47 @@ function prolong2interfaces!(cache, u,
 
     return nothing
 end
+
+# Does not save the mesh itself to an HDF5 file. Instead saves important attributes
+# of the mesh, like its size and the type of boundary mapping function.
+# Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
+# these attributes for plotting purposes
+function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
+                        mpi_parallel::False)
+    # Create output directory (if it does not exist)
+    mkpath(output_directory)
+
+    # Determine file name based on existence of meaningful time step
+    if timestep > 0
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+        p4est_filename = @sprintf("p4est_data_%09d", timestep)
+    else
+        filename = joinpath(output_directory, "mesh.h5")
+        p4est_filename = "p4est_data"
+    end
+
+    p4est_file = joinpath(output_directory, p4est_filename)
+
+    # Save the complete connectivity and `p4est` data to disk.
+    save_p4est!(p4est_file, mesh.parent.p4est)
+
+    # Open file (clobber existing content)
+    h5open(filename, "w") do file
+        # Add context information as attributes
+        attributes(file)["mesh_type"] = get_name(mesh)
+        attributes(file)["ndims"] = ndims(mesh)
+        attributes(file)["p4est_file"] = p4est_filename
+
+        file["tree_node_coordinates"] = mesh.parent.tree_node_coordinates[.., mesh.cell_ids]
+        file["nodes"] = Vector(mesh.parent.nodes) # the mesh uses `SVector`s for the nodes
+        # to increase the runtime performance
+        # but HDF5 can only handle plain arrays
+        file["boundary_names"] = mesh.parent.boundary_names .|> String
+    end
+
+    return filename
+end
+
+@inline mpi_parallel(mesh::P4estMeshView) = False()
 
 end # @muladd
