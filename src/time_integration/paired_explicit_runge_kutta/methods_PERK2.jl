@@ -140,7 +140,7 @@ mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     bS::Float64
     cS::Float64
     dt_opt::Union{Float64, Nothing}
-end # struct PairedExplicitRK2
+end
 
 # Constructor that reads the coefficients from a file
 function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,

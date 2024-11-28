@@ -141,7 +141,7 @@ mutable struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
     a_matrix::Matrix{Float64}
     c::Vector{Float64}
     dt_opt::Union{Float64, Nothing}
-end # struct PairedExplicitRK3
+end
 
 # Constructor for previously computed A Coeffs
 function PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
