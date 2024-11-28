@@ -760,6 +760,31 @@ end
     @test isapprox(drag_f, 1.5427441885921553, atol = 1e-13)
     @test isapprox(lift_f, 0.005621910087395724, atol = 1e-13)
 end
+
+@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        l2=[
+                            0.0002576236264053728,
+                            0.00014336949098706463,
+                            7.189100338239794e-17,
+                            0.00017369905124642074
+                        ],
+                        linf=[
+                            0.0016731940983241156,
+                            0.0010638640749656147,
+                            5.59044079947959e-16,
+                            0.001149532023891009
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
