@@ -1,4 +1,4 @@
-name: GPU Compatibility
+name: GPU Package Compatibility
 
 on:
   pull_request:
