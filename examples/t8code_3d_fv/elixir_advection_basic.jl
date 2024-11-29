@@ -1,6 +1,5 @@
 using OrdinaryDiffEq
 using Trixi
-using T8code
 
 advection_velocity = (0.2, -0.7, 0.5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
@@ -25,43 +24,13 @@ function mapping(xi, eta, zeta)
     return SVector(x, y, z)
 end
 
-function trixi_t8_mapping(cmesh, gtreeid, ref_coords, num_coords, out_coords,
-                          tree_data, user_data)
-    ltreeid = t8_cmesh_get_local_id(cmesh, gtreeid)
-    eclass = t8_cmesh_get_tree_class(cmesh, ltreeid)
-    T8code.t8_geom_compute_linear_geometry(eclass, tree_data,
-                                           ref_coords, num_coords, out_coords)
-
-    for i in 1:num_coords
-        offset_3d = 3 * (i - 1) + 1
-
-        xi = unsafe_load(out_coords, offset_3d)
-        eta = unsafe_load(out_coords, offset_3d + 1)
-        zeta = unsafe_load(out_coords, offset_3d + 2)
-        # xyz = mapping_coordinates(xi, eta, zeta)
-        xyz = mapping(xi, eta, zeta)
-
-        unsafe_store!(out_coords, xyz[1], offset_3d)
-        unsafe_store!(out_coords, xyz[2], offset_3d + 1)
-        unsafe_store!(out_coords, xyz[3], offset_3d + 2)
-    end
-
-    return nothing
-end
-
-function trixi_t8_mapping_c()
-    @cfunction($trixi_t8_mapping, Cvoid,
-               (t8_cmesh_t, t8_gloidx_t, Ptr{Cdouble}, Csize_t,
-                Ptr{Cdouble}, Ptr{Cvoid}, Ptr{Cvoid}))
-end
-
 trees_per_dimension = (2, 2, 2)
 
 # For explanations, see 2D elixir.
 GC.enable(false)
 
-eclass = T8_ECLASS_HEX
-mesh = T8codeMesh(trees_per_dimension, eclass;
+element_class = :hex
+mesh = T8codeMesh(trees_per_dimension, element_class;
                   # mapping = Trixi.trixi_t8_mapping_c(mapping),
                   # Plan is to use either
                   coordinates_max = coordinates_max, coordinates_min = coordinates_min,

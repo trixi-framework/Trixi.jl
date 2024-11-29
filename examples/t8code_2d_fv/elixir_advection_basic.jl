@@ -1,6 +1,5 @@
 using OrdinaryDiffEq
 using Trixi
-using T8code
 
 advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
@@ -40,42 +39,6 @@ function mapping(xi, eta)
     return SVector(x, y)
 end
 
-# Note and TODO:
-# Normally, this should be put somewhere else. For now, that doesn't work properly.
-# For instance, in `src/auxiliary/t8code.jl`
-# Problem: Even when define this routine somewhere else (then by using a closure) and called
-# directly within this elixir (e.g. mapping = trixi_t8_mapping_c(mapping)), we get the SegFault error.
-# - Is the function called with the correct parameters? Memory location correct? It seems so, yes.
-# - Life time issue for the GC tracked Julia object used in C? **Yes, see gc deactivation in elixir.**
-function trixi_t8_mapping(cmesh, gtreeid, ref_coords, num_coords, out_coords,
-                          tree_data, user_data)
-    ltreeid = t8_cmesh_get_local_id(cmesh, gtreeid)
-    eclass = t8_cmesh_get_tree_class(cmesh, ltreeid)
-    T8code.t8_geom_compute_linear_geometry(eclass, tree_data,
-                                           ref_coords, num_coords, out_coords)
-
-    for i in 1:num_coords
-        offset_3d = 3 * (i - 1) + 1
-
-        xi = unsafe_load(out_coords, offset_3d)
-        eta = unsafe_load(out_coords, offset_3d + 1)
-        # xy = mapping_coordinates(xi, eta)
-        # xy = mapping_faces(xi, eta)
-        xy = mapping(xi, eta)
-
-        unsafe_store!(out_coords, xy[1], offset_3d)
-        unsafe_store!(out_coords, xy[2], offset_3d + 1)
-    end
-
-    return nothing
-end
-
-function trixi_t8_mapping_c()
-    @cfunction($trixi_t8_mapping, Cvoid,
-               (t8_cmesh_t, t8_gloidx_t, Ptr{Cdouble}, Csize_t,
-                Ptr{Cdouble}, Ptr{Cvoid}, Ptr{Cvoid}))
-end
-
 trees_per_dimension = (2, 2)
 
 # Disabling the gc for almost the entire elixir seems to work in order to fix the SegFault errors with trixi_t8_mapping_c and mapping_coordinates
@@ -93,9 +56,8 @@ GC.enable(false)
 # - GC disabled as in elixir:
 #   o Everything seems to work
 
-# NOTE: When I remove `using T8code` at the top of this elixir, things like `t8_cmesh_t` and `T8_ECLASS_QUAD` are unknown.
-eclass = T8_ECLASS_QUAD
-mesh = T8codeMesh(trees_per_dimension, eclass,
+element_class = :quad
+mesh = T8codeMesh(trees_per_dimension, element_class,
                   # mapping = Trixi.trixi_t8_mapping_c(mapping_coordinates),
                   # Plan is to use either
                   coordinates_max = coordinates_max, coordinates_min = coordinates_min,
@@ -133,6 +95,7 @@ summary_callback()
 
 # Note: Since the mesh must be finalizized by hand in the elixir, it is not defined anymore here.
 # Moved allocation test to the elixirs for now.
+using Test
 let
     t = sol.t[end]
     u_ode = sol.u[end]

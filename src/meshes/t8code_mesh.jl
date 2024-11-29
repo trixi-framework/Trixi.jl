@@ -487,8 +487,7 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
 end
 
 # New interface for FV solver
-# Parameter eclass decides which class of element are used.
-function T8codeMesh(trees_per_dimension, eclass;
+function T8codeMesh(trees_per_dimension, element_class;
                     mapping = nothing, faces = nothing, coordinates_min = nothing,
                     coordinates_max = nothing,
                     RealT = Float64, initial_refinement_level = 0,
@@ -628,9 +627,13 @@ function T8codeMesh(trees_per_dimension, eclass;
 
     t8_cmesh_register_geometry(cmesh, geometry)
 
+    element_classes = Dict(:quad => T8_ECLASS_QUAD,
+                           :triangle => T8_ECLASS_TRIANGLE,
+                           :hex => T8_ECLASS_HEX)
+    element_class_t8 = element_classes[element_class]
     for itree in 1:num_trees
         offset_vertices = 3 * vertices_per_tree * (itree - 1)
-        t8_cmesh_set_tree_class(cmesh, itree - 1, eclass)
+        t8_cmesh_set_tree_class(cmesh, itree - 1, element_class_t8)
         t8_cmesh_set_tree_vertices(cmesh, itree - 1,
                                    @views(vertices[(1 + offset_vertices):end]),
                                    vertices_per_tree)
