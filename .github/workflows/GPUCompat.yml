@@ -81,5 +81,6 @@ jobs:
     #       julia --project=. -e '
     #       using Pkg;
     #       Pkg.activate(temp=true);
+    #       Pkg.develop(PackageSpec(path=pwd()));
     #       Pkg.add("AMDGPU");
     #       Pkg.update()'
