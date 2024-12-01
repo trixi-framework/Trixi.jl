@@ -98,7 +98,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
 end
 
 @doc raw"""
-    PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString; dt_opt = nothing,
+    PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString, dt_opt = nothing,
                       bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                       verbose = false, bS = 1.0, cS = 0.5)
@@ -143,7 +143,7 @@ mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
 end # struct PairedExplicitRK2
 
 # Constructor that reads the coefficients from a file
-function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString;
+function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
                            dt_opt = nothing,
                            bS = 1.0, cS = 0.5)
     # If the user has the monomial coefficients, they also must have the optimal time step
