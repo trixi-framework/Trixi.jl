@@ -1138,8 +1138,6 @@ function calc_mortar_flux!(surface_flux_values,
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
     @unpack fstar_upper_threaded, fstar_lower_threaded = cache
-
-    # NOTE: Probably stored in mortar_ec and not cache (?)
     @unpack fstar_upper_correction_threaded, fstar_lower_correction_threaded = cache
 
     @threaded for mortar in eachmortar(dg, cache)
@@ -1157,11 +1155,8 @@ function calc_mortar_flux!(surface_flux_values,
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_ec, dg, cache,
                                    mortar, fstar_upper, fstar_lower)
-    #end
 
-    # TODO: Not sure if we need to conclude the upper loop first!
-    #@threaded for mortar in eachmortar(dg, cache)
-        # Entropy correction procedure
+        ### Entropy correction procedure ###
 
         # Choose thread-specific pre-allocated container
         fstar_upper_correction = fstar_upper_correction_threaded[Threads.threadid()]
@@ -1238,7 +1233,6 @@ end
     return nothing
 end
 
-# NOTE: Not sure if we need specialized function!
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::TreeMesh{2}, equations,
                                             mortar_type::Union{LobattoLegendreMortarL2,
