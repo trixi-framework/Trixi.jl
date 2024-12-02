@@ -1,7 +1,7 @@
 # Package extension for adding Convex-based features to Trixi.jl
 module TrixiConvexECOSExt
 
-# Required for coefficient optimization in P-ERK scheme integrators
+# Required for coefficient optimization in PERK scheme integrators
 if isdefined(Base, :get_extension)
     using Convex: MOI, solve!, Variable, minimize, evaluate
     using ECOS: Optimizer

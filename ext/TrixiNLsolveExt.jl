@@ -2,7 +2,7 @@
 module TrixiNLsolveExt
 
 # Required for finding coefficients in Butcher tableau in the third order of 
-# P-ERK scheme integrators
+# PERK scheme integrators
 if isdefined(Base, :get_extension)
     using NLsolve: nlsolve
 else
