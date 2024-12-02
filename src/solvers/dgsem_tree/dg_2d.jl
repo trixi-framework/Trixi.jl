@@ -1071,29 +1071,30 @@ function calc_flux_correction!(surface_flux_values,
                                direction, large_element_id, mortar,
                                fstar_upper_correction, fstar_lower_correction,
                                surface_flux)
+    orientation = cache.mortars.orientations[mortar]
+
     # Call pointwise two-point numerical flux function
     # Note: Due to symmetric fluxes, "left" and "right" is meaningless here
-    @trixi_timeit timer() "fstar" for j in 1:nnodes(dg), i in 1:nnodes(dg)
-        # Extract state
-        u_ll_large = view(u_large, :, i)
-        u_rr_upper = view(u_large_upper, :, j)
-        u_rr_lower = view(u_large_lower, :, j)
+    @trixi_timeit timer() "fstar" for j in 1:nnodes(dg)
+        u_rr_upper = get_node_vars(u_large_upper, equations, dg, j)
+        u_rr_lower = get_node_vars(u_large_lower, equations, dg, j)
 
-        # Calculate flux
-        flux_upper = surface_flux(u_ll_large, u_rr_upper,
-                                  cache.mortars.orientations[mortar],
-                                  equations)
-        flux_lower = surface_flux(u_ll_large, u_rr_lower,
-                                  cache.mortars.orientations[mortar],
-                                  equations)
+        for i in 1:nnodes(dg)
+            u_ll_large = get_node_vars(u_large, equations, dg, i)
 
-        # Copy flux back to actual flux array
-        set_node_vars!(fstar_upper_correction, flux_upper, equations, dg, i, j)
-        set_node_vars!(fstar_lower_correction, flux_lower, equations, dg, i, j)
+            flux_upper = surface_flux(u_ll_large, u_rr_upper,
+                                      orientation, equations)
+            flux_lower = surface_flux(u_ll_large, u_rr_lower,
+                                      orientation, equations)
+
+            # Copy flux back to actual flux array
+            set_node_vars!(fstar_upper_correction, flux_upper, equations, dg, i, j)
+            set_node_vars!(fstar_lower_correction, flux_lower, equations, dg, i, j)
+        end
     end
 
     # Loop over all variables
-    @trixi_timeit timer() "correction" for v in eachvariable(equations)
+    @trixi_timeit timer() "Flux Correction for EC/ES" for v in eachvariable(equations)
         # Loop over all nodes on large face
         for j in 1:nnodes(dg)
             # Calculate flux corrections for fⱼ
