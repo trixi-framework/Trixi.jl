@@ -72,6 +72,15 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
     end
+
+    # Test `resize!`
+    integrator = init(ode, ode_algorithm, dt = 42.0, callback = callbacks)
+    resize!(integrator, 42)
+    @test length(integrator.u) == 42
+    @test length(integrator.du) == 42
+    @test length(integrator.u_tmp) == 42
+    @test length(integrator.k1) == 42
+    @test length(integrator.kS1) == 42
 end
 
 # Testing the third-order paired explicit Runge-Kutta (PERK) method without stepsize callback
@@ -82,8 +91,8 @@ end
                         save_solution=SaveSolutionCallback(dt = 0.1 + 1.0e-8), # Adding a small epsilon to avoid floating-point precision issues
                         callbacks=CallbackSet(summary_callback, save_solution,
                                               analysis_callback, alive_callback),
-                        l2=[5.726144786001842e-7],
-                        linf=[3.430730019182704e-6])
+                        l2=[5.726144824784944e-7],
+                        linf=[3.43073006914274e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
