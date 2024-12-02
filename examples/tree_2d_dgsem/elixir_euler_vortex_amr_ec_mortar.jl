@@ -120,7 +120,8 @@ surf_flux = flux_hll
 basis = LobattoLegendreBasis(Float64, polydeg)
 solver = DGSEM(basis, surf_flux,
                VolumeIntegralWeakForm(),
-               MortarEC(basis))
+               MortarEC(basis)
+               )
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
@@ -128,7 +129,7 @@ coordinates_max = (10.0, 10.0)
 refinement_patches = ((type = "box", coordinates_min = (-5.0, -5.0),
                        coordinates_max = (5.0, 5.0)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 3,
                 refinement_patches = refinement_patches,
                 n_cells_max = 10_000)
 
@@ -145,7 +146,8 @@ summary_callback = SummaryCallback()
 analysis_interval = 500
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
-                                     extra_analysis_errors = (:conservation_error,))
+                                     extra_analysis_errors = (:conservation_error,),
+                                     extra_analysis_integrals = (entropy,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
@@ -158,7 +160,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-stepsize_callback = StepsizeCallback(cfl = 1.1)
+stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
