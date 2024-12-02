@@ -115,11 +115,11 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 end
 initial_condition = initial_condition_isentropic_vortex
 
-polydeg = 3
-surf_flux = flux_hll
+polydeg = 2
+surf_flux = flux_ranocha
 basis = LobattoLegendreBasis(Float64, polydeg)
 solver = DGSEM(basis, surf_flux,
-               VolumeIntegralWeakForm(),
+               VolumeIntegralFluxDifferencing(flux_ranocha),
                MortarEC(basis)
                )
 
@@ -129,7 +129,7 @@ coordinates_max = (10.0, 10.0)
 refinement_patches = ((type = "box", coordinates_min = (-5.0, -5.0),
                        coordinates_max = (5.0, 5.0)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 4,
                 refinement_patches = refinement_patches,
                 n_cells_max = 10_000)
 
@@ -143,10 +143,12 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 500
+analysis_interval = 50_000
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      extra_analysis_errors = (:conservation_error,),
+                                     save_analysis = true,
+                                     analysis_filename = "analysis_ER.dat",
                                      extra_analysis_integrals = (entropy,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
@@ -160,7 +162,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-stepsize_callback = StepsizeCallback(cfl = 0.8)
+stepsize_callback = StepsizeCallback(cfl = 0.3)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
