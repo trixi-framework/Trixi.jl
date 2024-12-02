@@ -314,8 +314,8 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
         mpi_println(" #elements:      " *
                     @sprintf("% 14d", nelementsglobal(mesh, solver, cache)))
 
-        # Level information (only show for AMR)
-        print_amr_information(integrator.opts.callback, mesh, solver, cache)
+        # Level information (only for AMR and/or non-uniform `TreeMesh`es)
+        print_level_information(integrator.opts.callback, mesh, solver, cache)
         mpi_println()
 
         # Open file for appending and store time step and time information
@@ -434,7 +434,8 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
             res = maximum(abs, view(du, v, ..))
             if mpi_isparallel()
                 # TODO: Debugging, here is a type instability
-                global_res = MPI.Reduce!(Ref(res), max, mpi_root(), mpi_comm())
+                # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+                global_res = MPI.Reduce!(Ref(res), Base.max, mpi_root(), mpi_comm())
                 if mpi_isroot()
                     res::eltype(du) = global_res[]
                 end
@@ -488,21 +489,7 @@ function (analysis_callback::AnalysisCallback)(io, du, u, u_ode, t, semi)
     return nothing
 end
 
-# Print level information only if AMR is enabled
-function print_amr_information(callbacks, mesh, solver, cache)
-
-    # Return early if there is nothing to print
-    uses_amr(callbacks) || return nothing
-
-    # Get global minimum and maximum level from the AMRController
-    min_level = max_level = 0
-    for cb in callbacks.discrete_callbacks
-        if cb.affect! isa AMRCallback
-            min_level = cb.affect!.controller.base_level
-            max_level = cb.affect!.controller.max_level
-        end
-    end
-
+function print_level_information(mesh, solver, cache, min_level, max_level)
     # Get local element count per level
     elements_per_level = get_elements_per_level(min_level, max_level, mesh, solver,
                                                 cache)
@@ -519,6 +506,45 @@ function print_amr_information(callbacks, mesh, solver, cache)
                 @sprintf("% 14d", elements_per_level[1]))
 
     return nothing
+end
+
+function print_level_information(callbacks, mesh::TreeMesh, solver, cache)
+    if uses_amr(callbacks)
+        # Get global minimum and maximum level from the AMRController
+        min_level = max_level = 0
+        for cb in callbacks.discrete_callbacks
+            if cb.affect! isa AMRCallback
+                min_level = cb.affect!.controller.base_level
+                max_level = cb.affect!.controller.max_level
+            end
+        end
+        print_level_information(mesh, solver, cache, min_level, max_level)
+        # Special check for `TreeMesh`es without AMR.
+        # These meshes may still be non-uniform due to `refinement_patches`, see 
+        # `refine_box!`, `coarsen_box!`, and `refine_sphere!`.
+    elseif minimum_level(mesh.tree) != maximum_level(mesh.tree)
+        min_level = minimum_level(mesh.tree)
+        max_level = maximum_level(mesh.tree)
+        print_level_information(mesh, solver, cache, min_level, max_level)
+    else # Uniform mesh
+        return nothing
+    end
+end
+
+function print_level_information(callbacks, mesh, solver, cache)
+    if uses_amr(callbacks)
+        # Get global minimum and maximum level from the AMRController
+        min_level = max_level = 0
+        for cb in callbacks.discrete_callbacks
+            if cb.affect! isa AMRCallback
+                min_level = cb.affect!.controller.base_level
+                max_level = cb.affect!.controller.max_level
+            end
+        end
+        print_level_information(mesh, solver, cache, min_level, max_level)
+    else # Uniform mesh
+        return nothing
+    end
 end
 
 function get_elements_per_level(min_level, max_level, mesh::P4estMesh, solver, cache)
@@ -603,6 +629,8 @@ function analyze(quantity::typeof(enstrophy), du, u, t,
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
+    # We do not apply `enstrophy` directly here because we might later have different `quantity`s
+    # that we wish to integrate, which can share this routine.
     analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
             cache_parabolic)
 end
@@ -657,6 +685,15 @@ include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
 
+# This version of `analyze` is used for [`AnalysisSurfaceIntegral`](@ref) which requires
+# `semi` to be passed along to retrieve the current boundary indices, which are non-static 
+# in the case of AMR.
+function analyze(quantity::AnalysisSurfaceIntegral, du, u, t,
+                 semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    analyze(quantity, du, u, t, mesh, equations, solver, cache, semi)
+end
+
 # Special analyze for `SemidiscretizationHyperbolicParabolic` such that
 # precomputed gradients are available. Required for `enstrophy` (see above) and viscous forces.
 # Note that this needs to be included after `analysis_surface_integral_2d.jl` to
@@ -669,6 +706,6 @@ function analyze(quantity::AnalysisSurfaceIntegral{Variable},
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     equations_parabolic = semi.equations_parabolic
     cache_parabolic = semi.cache_parabolic
-    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache,
+    analyze(quantity, du, u, t, mesh, equations, equations_parabolic, solver, cache, semi,
             cache_parabolic)
 end

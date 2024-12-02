@@ -172,7 +172,7 @@ function Base.getproperty(integrator::SimpleIntegrator3Sstar, field::Symbol)
 end
 
 function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
-              dt, callback = nothing, kwargs...)
+              dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     u_tmp1 = similar(u)
@@ -189,13 +189,11 @@ function init(ode::ODEProblem, alg::SimpleAlgorithm3Sstar;
     # initialize callbacks
     if callback isa CallbackSet
         foreach(callback.continuous_callbacks) do cb
-            error("unsupported")
+            throw(ArgumentError("Continuous callbacks are unsupported with the 3 star time integration methods."))
         end
         foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
-    elseif !isnothing(callback)
-        error("unsupported")
     end
 
     return integrator
@@ -267,13 +265,15 @@ function step!(integrator::SimpleIntegrator3Sstar)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    # handle callbacks
-    if callbacks isa CallbackSet
-        foreach(callbacks.discrete_callbacks) do cb
-            if cb.condition(integrator.u, integrator.t, integrator)
-                cb.affect!(integrator)
+    @trixi_timeit timer() "Step-Callbacks" begin
+        # handle callbacks
+        if callbacks isa CallbackSet
+            foreach(callbacks.discrete_callbacks) do cb
+                if cb.condition(integrator.u, integrator.t, integrator)
+                    cb.affect!(integrator)
+                end
+                return nothing
             end
-            return nothing
         end
     end
 

@@ -14,7 +14,7 @@ function save_restart_file(u, time, dt, timestep,
     @unpack output_directory = restart_callback
 
     # Filename based on current time step
-    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+    filename = joinpath(output_directory, @sprintf("restart_%09d.h5", timestep))
 
     # Restart files always store conservative variables
     data = u
@@ -48,7 +48,8 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
-                                       UnstructuredMesh2D, SerialP4estMesh},
+                                       UnstructuredMesh2D, SerialP4estMesh,
+                                       SerialT8codeMesh},
                            equations, dg::DG, cache, restart_file)
 
     # allocate memory
@@ -88,12 +89,13 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
 end
 
 function save_restart_file(u, time, dt, timestep,
-                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations,
+                           mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                       ParallelT8codeMesh}, equations,
                            dg::DG, cache,
                            restart_callback)
     @unpack output_directory = restart_callback
     # Filename based on current time step
-    filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+    filename = joinpath(output_directory, @sprintf("restart_%09d.h5", timestep))
 
     if HDF5.has_parallel()
         save_restart_file_parallel(u, time, dt, timestep, mesh, equations, dg, cache,
@@ -105,7 +107,8 @@ function save_restart_file(u, time, dt, timestep,
 end
 
 function save_restart_file_parallel(u, time, dt, timestep,
-                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                                ParallelT8codeMesh},
                                     equations, dg::DG, cache,
                                     filename)
 
@@ -151,7 +154,8 @@ function save_restart_file_parallel(u, time, dt, timestep,
 end
 
 function save_restart_file_on_root(u, time, dt, timestep,
-                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                               ParallelT8codeMesh},
                                    equations, dg::DG, cache,
                                    filename)
 
@@ -204,7 +208,8 @@ function save_restart_file_on_root(u, time, dt, timestep,
     return filename
 end
 
-function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equations,
+function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                       ParallelT8codeMesh}, equations,
                            dg::DG, cache, restart_file)
     if HDF5.has_parallel()
         load_restart_file_parallel(mesh, equations, dg, cache, restart_file)
@@ -213,7 +218,8 @@ function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh}, equ
     end
 end
 
-function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                                ParallelT8codeMesh},
                                     equations, dg::DG, cache, restart_file)
 
     # Calculate element and node counts by MPI rank
@@ -264,7 +270,8 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
     return u_ode
 end
 
-function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMesh},
+function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                               ParallelT8codeMesh},
                                    equations, dg::DG, cache, restart_file)
 
     # Calculate element and node counts by MPI rank
@@ -337,7 +344,7 @@ function save_adaptive_time_integrator(integrator,
         timestep = integrator.stats.naccept
 
         # Filename based on current time step
-        filename = joinpath(output_directory, @sprintf("restart_%06d.h5", timestep))
+        filename = joinpath(output_directory, @sprintf("restart_%09d.h5", timestep))
 
         # Open file (preserve existing content)
         h5open(filename, "r+") do file

@@ -16,7 +16,8 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-struct SemidiscretizationCoupled{S, Indices, EquationList} <: AbstractSemidiscretization
+mutable struct SemidiscretizationCoupled{S, Indices, EquationList} <:
+               AbstractSemidiscretization
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
@@ -383,7 +384,10 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
         c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
 
         # c_h is proportional to its own time step divided by the complete MHD time step
-        equations.c_h = glm_scale * c_h_deltat / dt
+        # We use @reset here since the equations are immutable (to work on GPUs etc.).
+        # Thus, we need to modify the equations field of the semidiscretization.
+        @reset equations.c_h = glm_scale * c_h_deltat / dt
+        semi.equations = equations
     end
 
     return semi_coupled
@@ -429,7 +433,12 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct BoundaryConditionCoupled{NDIMS, other_semi_index, NDIMST2M1,
+mutable struct BoundaryConditionCoupled{NDIMS,
+                                        # Store the other semi index as type parameter,
+                                        # so that retrieving the other semidiscretization
+                                        # is type-stable.
+                                        # x-ref: https://github.com/trixi-framework/Trixi.jl/pull/1979
+                                        other_semi_index, NDIMST2M1,
                                         uEltype <: Real, Indices, CouplingConverter}
     # NDIMST2M1 == NDIMS * 2 - 1
     # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
@@ -481,13 +490,13 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
         if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
             flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
                                              equations) +
-                    0.5 *
+                    0.5f0 *
                     surface_flux_function[2](u_inner, u_boundary, orientation,
                                              equations))
         else # u_boundary is "left" of boundary, u_inner is "right" of boundary
             flux = (surface_flux_function[1](u_boundary, u_inner, orientation,
                                              equations) +
-                    0.5 *
+                    0.5f0 *
                     surface_flux_function[2](u_boundary, u_inner, orientation,
                                              equations))
         end

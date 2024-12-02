@@ -1,5 +1,8 @@
 
+# Convex and ECOS are imported because they are used for finding the optimal time step and optimal 
+# monomial coefficients in the stability polynomial of PERK time integrators.
 using Convex, ECOS
+
 using OrdinaryDiffEq
 using Trixi
 
@@ -29,7 +32,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 # Create ODE problem with time span from 0.0 to 20.0
 tspan = (0.0, 20.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -44,9 +47,15 @@ stepsize_callback = StepsizeCallback(cfl = 2.5)
 
 alive_callback = AliveCallback(alive_interval = analysis_interval)
 
+save_solution = SaveSolutionCallback(dt = 0.1,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback,
                         alive_callback,
+                        save_solution,
                         analysis_callback,
                         stepsize_callback)
 
@@ -59,7 +68,7 @@ callbacks = CallbackSet(summary_callback,
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 
 sol = Trixi.solve(ode, ode_algorithm,
-                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  dt = 1.0, # Manual time step value, will be overwritten by the stepsize_callback when it is specified.
                   save_everystep = false, callback = callbacks);
 
 # Print the timer summary

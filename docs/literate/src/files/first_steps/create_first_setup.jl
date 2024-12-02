@@ -60,7 +60,7 @@ equations = LinearScalarAdvectionEquation2D(advection_velocity)
 # All minimum and all maximum coordinates must be combined into `Tuples`.
 
 coordinates_min = (-1.0, -1.0)
-coordinates_max = ( 1.0,  1.0)
+coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 30_000)
@@ -72,7 +72,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # in the weak formulation `DGSEM` initializes the surface flux as `flux_central` and uses the physical flux for
 # the volume integral.
 
-solver = DGSEM(polydeg=3)
+solver = DGSEM(polydeg = 3)
 
 # Now we need to define an initial condition for our problem. All the already implemented
 # initial conditions for [`LinearScalarAdvectionEquation2D`](@ref) can be found in
@@ -108,7 +108,7 @@ initial_condition = initial_condition_sinpi
 # equation itself as arguments and returns the source term as a static vector `SVector`.
 
 function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation2D)
-    u = - 2 * exp(-t) * sinpi(2*(x[1] - t)) * sinpi(2*(x[2] - t))
+    u = -2 * exp(-t) * sinpi(2 * (x[1] - t)) * sinpi(2 * (x[2] - t))
     return SVector(u)
 end
 
@@ -182,7 +182,8 @@ save_restart = SaveRestartCallback(interval = 100, save_final_restart = true)
 # Create a `CallbackSet` to collect all callbacks so that they can be passed to the `solve`
 # function.
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, stepsize_callback,
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        stepsize_callback,
                         save_solution, save_restart);
 
 # The last step is to choose the time integration method. OrdinaryDiffEq.jl defines a wide range of
@@ -203,13 +204,11 @@ summary_callback()
 # Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or
 # efficiency of your setup.
 
-
 # ## Visualize the solution
 
 # In the previous part of the tutorial, we calculated the final solution of the given problem, now we want
 # to visualize it. A more detailed explanation of visualization methods can be found in the section
 # [Visualization](@ref visualization).
-
 
 # ### Using Plots.jl
 
@@ -243,7 +242,6 @@ plot(pd["scalar"])
 
 plot!(getmesh(pd))
 
-
 # ### Using Trixi2Vtk.jl
 
 # Another way to visualize a solution is to extract it from a saved HDF5 file. After we used the
@@ -260,28 +258,28 @@ plot!(getmesh(pd))
 # import Pkg
 # Pkg.add(["Trixi2Vtk"])
 # ```
-# Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000032.h5` with
+# Now we load the Trixi2Vtk.jl package and convert the file `out/solution_000000032.h5` with
 # the final solution using the [`trixi2vtk`](@ref) function saving the resulting file in the
 # `out` folder.
 
 using Trixi2Vtk
-trixi2vtk(joinpath("out", "solution_000032.h5"), output_directory="out")
+trixi2vtk(joinpath("out", "solution_000000032.h5"), output_directory = "out")
 
-# Now two files `solution_000032.vtu` and `solution_000032_celldata.vtu` have been generated in the
+# Now two files `solution_000000032.vtu` and `solution_000000032_celldata.vtu` have been generated in the
 # `out` folder. The first one contains all the information for visualizing the solution, the
 # second one contains all the cell-based or discretization-based information.
 
 # Now let's visualize the solution from the generated files in ParaView. Follow this short
 # instruction to get the visualization.
 # - Download, install and open [ParaView](https://www.paraview.org/download/).
-# - Press `Ctrl+O` and select the generated files `solution_000032.vtu` and
-#   `solution_000032_celldata.vtu` from the `out` folder.
+# - Press `Ctrl+O` and select the generated files `solution_000000032.vtu` and
+#   `solution_000000032_celldata.vtu` from the `out` folder.
 # - In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near
-#   `solution_000032.vtu`.
+#   `solution_000000032.vtu`.
 # - In the lower-left corner in the Properties window, change the Coloring from Solid Color to
 #   scalar. This already generates the visualization of the final solution.
 # - Now let's add the mesh to the visualization. In the upper-left corner in the
-#   Pipeline Browser window, left-click on the eye-icon near `solution_000032_celldata.vtu`.
+#   Pipeline Browser window, left-click on the eye-icon near `solution_000000032_celldata.vtu`.
 # - In the lower-left corner in the Properties window, change the Representation from Surface
 #   to Wireframe. Then a white grid should appear on the visualization.
 # Now, if you followed the instructions exactly, you should get a similar image as shown in the
@@ -293,4 +291,4 @@ trixi2vtk(joinpath("out", "solution_000032.h5"), output_directory="out")
 # Trixi.jl. If you have an interest in contributing to Trixi.jl as a developer, refer to the third
 # part of the introduction titled [Changing Trixi.jl itself](@ref changing_trixi).
 
-Sys.rm("out"; recursive=true, force=true) #hide #md
+Sys.rm("out"; recursive = true, force = true) #hide #md

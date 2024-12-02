@@ -148,7 +148,7 @@ end
 function flux(u, gradients, orientation::Integer,
               equations::CompressibleNavierStokesDiffusion2D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
-    rho, v1, v2, _ = convert_transformed_to_primitive(u, equations)
+    _, v1, v2, _ = convert_transformed_to_primitive(u, equations)
     # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
     # either computed directly or reverse engineered from the gradient of the entropy variables
     # by way of the `convert_gradient_variables` function.
@@ -157,13 +157,13 @@ function flux(u, gradients, orientation::Integer,
 
     # Components of viscous stress tensor
 
-    # (4/3 * (v1)_x - 2/3 * (v2)_y)
-    tau_11 = 4.0 / 3.0 * dv1dx - 2.0 / 3.0 * dv2dy
+    # (4 * (v1)_x / 3 - 2 * (v2)_y / 3)
+    tau_11 = 4 * dv1dx / 3 - 2 * dv2dy / 3
     # ((v1)_y + (v2)_x)
     # stress tensor is symmetric
     tau_12 = dv1dy + dv2dx # = tau_21
     # (4/3 * (v2)_y - 2/3 * (v1)_x)
-    tau_22 = 4.0 / 3.0 * dv2dy - 2.0 / 3.0 * dv1dx
+    tau_22 = 4 * dv2dy / 3 - 2 * dv1dx / 3
 
     # Fick's law q = -kappa * grad(T) = -kappa * grad(p / (R rho))
     # with thermal diffusivity constant kappa = gamma μ R / ((gamma-1) Pr)
@@ -181,7 +181,7 @@ function flux(u, gradients, orientation::Integer,
 
     if orientation == 1
         # viscous flux components in the x-direction
-        f1 = zero(rho)
+        f1 = 0
         f2 = tau_11 * mu
         f3 = tau_12 * mu
         f4 = (v1 * tau_11 + v2 * tau_12 + q1) * mu
@@ -190,7 +190,7 @@ function flux(u, gradients, orientation::Integer,
     else # if orientation == 2
         # viscous flux components in the y-direction
         # Note, symmetry is exploited for tau_12 = tau_21
-        g1 = zero(rho)
+        g1 = 0
         g2 = tau_12 * mu # tau_21 * mu
         g3 = tau_22 * mu
         g4 = (v1 * tau_12 + v2 * tau_22 + q2) * mu
@@ -276,16 +276,23 @@ end
 @inline function temperature(u, equations::CompressibleNavierStokesDiffusion2D)
     rho, rho_v1, rho_v2, rho_e = u
 
-    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1^2 + rho_v2^2) / rho)
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2) / rho)
     T = p / rho
     return T
+end
+
+@inline function velocity(u, equations::CompressibleNavierStokesDiffusion2D)
+    rho = u[1]
+    v1 = u[2] / rho
+    v2 = u[3] / rho
+    return SVector(v1, v2)
 end
 
 @inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
     omega = vorticity(u, gradients, equations)
-    return 0.5 * u[1] * omega^2
+    return 0.5f0 * u[1] * omega^2
 end
 
 @inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion2D)

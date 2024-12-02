@@ -308,6 +308,37 @@ The inverse conversion is performed by [`cons2prim`](@ref).
 function prim2cons end
 
 """
+    velocity(u, equations)
+
+Return the velocity vector corresponding to the equations, e.g., fluid velocity for
+Euler's equations. The velocity in certain orientation or normal direction (scalar) can be computed
+with `velocity(u, orientation, equations)` or `velocity(u, normal_direction, equations)`
+respectively. The `velocity(u, normal_direction, equations)` function calls
+`velocity(u, equations)` to compute the velocity vector and then normal vector, thus allowing
+a general function to be written for the AbstractEquations type. However, the
+`velocity(u, orientation, equations)` is written for each equation separately to ensure
+only the velocity in the desired direction (orientation) is computed.
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function velocity end
+
+@inline function velocity(u, normal_direction::AbstractVector,
+                          equations::AbstractEquations{2})
+    vel = velocity(u, equations)
+    v = vel[1] * normal_direction[1] + vel[2] * normal_direction[2]
+    return v
+end
+
+@inline function velocity(u, normal_direction::AbstractVector,
+                          equations::AbstractEquations{3})
+    vel = velocity(u, equations)
+    v = vel[1] * normal_direction[1] + vel[2] * normal_direction[2] +
+        vel[3] * normal_direction[3]
+    return v
+end
+
+"""
     entropy(u, equations)
 
 Return the chosen entropy of the conserved variables `u` for a given set of
@@ -512,4 +543,8 @@ abstract type AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} <:
 abstract type AbstractTrafficFlowLWREquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("traffic_flow_lwr_1d.jl")
+
+abstract type AbstractMaxwellEquations{NDIMS, NVARS} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("maxwell_1d.jl")
 end # @muladd

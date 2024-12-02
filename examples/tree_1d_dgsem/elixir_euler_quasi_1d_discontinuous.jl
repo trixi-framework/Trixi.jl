@@ -18,10 +18,11 @@ A discontinuous initial condition taken from
 """
 function initial_condition_discontinuity(x, t,
                                          equations::CompressibleEulerEquationsQuasi1D)
-    rho = (x[1] < 0) ? 3.4718 : 2.0
-    v1 = (x[1] < 0) ? -2.5923 : -3.0
-    p = (x[1] < 0) ? 5.7118 : 2.639
-    a = (x[1] < 0) ? 1.0 : 1.5
+    RealT = eltype(x)
+    rho = (x[1] < 0) ? RealT(3.4718) : RealT(2.0)
+    v1 = (x[1] < 0) ? RealT(-2.5923) : RealT(-3.0)
+    p = (x[1] < 0) ? RealT(5.7118) : RealT(2.639)
+    a = (x[1] < 0) ? 1.0f0 : 1.5f0
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end

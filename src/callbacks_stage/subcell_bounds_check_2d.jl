@@ -5,8 +5,8 @@
 @muladd begin
 #! format: noindent
 
-@inline function check_bounds(u, equations, solver, cache,
-                              limiter::SubcellLimiterIDP)
+@inline function check_bounds(u, equations::AbstractEquations{2}, # only works for 2D
+                              solver, cache, limiter::SubcellLimiterIDP)
     (; local_twosided, positivity, local_onesided) = solver.volume_integral.limiter
     (; variable_bounds) = limiter.cache.subcell_limiter_coefficients
     (; idp_bounds_delta_local, idp_bounds_delta_global) = limiter.cache
@@ -98,49 +98,6 @@
         # Update global maximum deviations
         idp_bounds_delta_global[key] = max(idp_bounds_delta_global[key],
                                            idp_bounds_delta_local[key])
-    end
-
-    return nothing
-end
-
-@inline function save_bounds_check_errors(output_directory, time, iter, equations,
-                                          limiter::SubcellLimiterIDP)
-    (; local_twosided, positivity, local_onesided) = limiter
-    (; idp_bounds_delta_local) = limiter.cache
-
-    # Print to output file
-    open(joinpath(output_directory, "deviations.txt"), "a") do f
-        print(f, iter, ", ", time)
-        if local_twosided
-            for v in limiter.local_twosided_variables_cons
-                v_string = string(v)
-                print(f, ", ", idp_bounds_delta_local[Symbol(v_string, "_min")],
-                      ", ", idp_bounds_delta_local[Symbol(v_string, "_max")])
-            end
-        end
-        if local_onesided
-            for (variable, min_or_max) in limiter.local_onesided_variables_nonlinear
-                key = Symbol(string(variable), "_", string(min_or_max))
-                print(f, ", ", idp_bounds_delta_local[key])
-            end
-        end
-        if positivity
-            for v in limiter.positivity_variables_cons
-                if v in limiter.local_twosided_variables_cons
-                    continue
-                end
-                print(f, ", ", idp_bounds_delta_local[Symbol(string(v), "_min")])
-            end
-            for variable in limiter.positivity_variables_nonlinear
-                print(f, ", ", idp_bounds_delta_local[Symbol(string(variable), "_min")])
-            end
-        end
-        println(f)
-    end
-
-    # Reset local maximum deviations
-    for (key, _) in idp_bounds_delta_local
-        idp_bounds_delta_local[key] = zero(eltype(idp_bounds_delta_local[key]))
     end
 
     return nothing

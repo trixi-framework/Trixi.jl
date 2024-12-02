@@ -29,10 +29,39 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{2},
     return (; u_local, u_tmp1, x_local, x_tmp1)
 end
 
+# Specialized cache for P4estMesh to allow for different ambient dimension from mesh dimension
+function create_cache_analysis(analyzer, mesh::P4estMesh{2, NDIMS_AMBIENT},
+                               equations, dg::DG, cache,
+                               RealT, uEltype) where {NDIMS_AMBIENT}
+
+    # pre-allocate buffers
+    # We use `StrideArray`s here since these buffers are used in performance-critical
+    # places and the additional information passed to the compiler makes them faster
+    # than native `Array`s.
+    u_local = StrideArray(undef, uEltype,
+                          StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                          StaticInt(nnodes(analyzer)))
+    u_tmp1 = StrideArray(undef, uEltype,
+                         StaticInt(nvariables(equations)), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(dg)))
+    x_local = StrideArray(undef, RealT,
+                          StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                          StaticInt(nnodes(analyzer)))
+    x_tmp1 = StrideArray(undef, RealT,
+                         StaticInt(NDIMS_AMBIENT), StaticInt(nnodes(analyzer)),
+                         StaticInt(nnodes(dg)))
+    jacobian_local = StrideArray(undef, RealT,
+                                 StaticInt(nnodes(analyzer)),
+                                 StaticInt(nnodes(analyzer)))
+    jacobian_tmp1 = StrideArray(undef, RealT,
+                                StaticInt(nnodes(analyzer)), StaticInt(nnodes(dg)))
+
+    return (; u_local, u_tmp1, x_local, x_tmp1, jacobian_local, jacobian_tmp1)
+end
+
 function create_cache_analysis(analyzer,
                                mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                           UnstructuredMesh2D,
-                                           P4estMesh{2}, T8codeMesh{2}},
+                                           UnstructuredMesh2D, T8codeMesh{2}},
                                equations, dg::DG, cache,
                                RealT, uEltype)
 
@@ -250,30 +279,17 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::TreeMesh{2},
-                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache)
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, element, equations,
                                                          dg, cache, derivative_matrix
         divb = zero(eltype(u))
         for k in eachnode(dg)
-            divb += (derivative_matrix[i, k] * u[6, k, j, element] +
-                     derivative_matrix[j, k] * u[7, i, k, element])
-        end
-        divb *= cache.elements.inverse_jacobian[element]
-        divb^2
-    end |> sqrt
-end
+            B1_kj, _, _ = magnetic_field(u[:, k, j, element], equations)
+            _, B2_ik, _ = magnetic_field(u[:, i, k, element], equations)
 
-function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::TreeMesh{2}, equations::IdealGlmMhdMulticomponentEquations2D,
-                 dg::DG, cache)
-    integrate_via_indices(u, mesh, equations, dg, cache, cache,
-                          dg.basis.derivative_matrix) do u, i, j, element, equations,
-                                                         dg, cache, derivative_matrix
-        divb = zero(eltype(u))
-        for k in eachnode(dg)
-            divb += (derivative_matrix[i, k] * u[5, k, j, element] +
-                     derivative_matrix[j, k] * u[6, i, k, element])
+            divb += (derivative_matrix[i, k] * B1_kj +
+                     derivative_matrix[j, k] * B2_ik)
         end
         divb *= cache.elements.inverse_jacobian[element]
         divb^2
@@ -283,7 +299,7 @@ end
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                              T8codeMesh{2}},
-                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache)
     @unpack contravariant_vectors = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, element, equations,
@@ -294,10 +310,13 @@ function analyze(::Val{:l2_divb}, du, u, t,
         Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
         # Compute the transformed divergence
         for k in eachnode(dg)
+            B1_kj, B2_kj, _ = magnetic_field(u[:, k, j, element], equations)
+            B1_ik, B2_ik, _ = magnetic_field(u[:, i, k, element], equations)
+
             divb += (derivative_matrix[i, k] *
-                     (Ja11 * u[6, k, j, element] + Ja12 * u[7, k, j, element]) +
+                     (Ja11 * B1_kj + Ja12 * B2_kj) +
                      derivative_matrix[j, k] *
-                     (Ja21 * u[6, i, k, element] + Ja22 * u[7, i, k, element]))
+                     (Ja21 * B1_ik + Ja22 * B2_ik))
         end
         divb *= cache.elements.inverse_jacobian[i, j, element]
         divb^2
@@ -306,7 +325,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{2},
-                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
 
     # integrate over all elements to get the divergence-free condition errors
@@ -315,30 +334,11 @@ function analyze(::Val{:linf_divb}, du, u, t,
         for j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             for k in eachnode(dg)
-                divb += (derivative_matrix[i, k] * u[6, k, j, element] +
-                         derivative_matrix[j, k] * u[7, i, k, element])
-            end
-            divb *= cache.elements.inverse_jacobian[element]
-            linf_divb = max(linf_divb, abs(divb))
-        end
-    end
+                B1_kj, _, _ = magnetic_field(u[:, k, j, element], equations)
+                _, B2_ik, _ = magnetic_field(u[:, i, k, element], equations)
 
-    return linf_divb
-end
-
-function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::TreeMesh{2}, equations::IdealGlmMhdMulticomponentEquations2D,
-                 dg::DG, cache)
-    @unpack derivative_matrix, weights = dg.basis
-
-    # integrate over all elements to get the divergence-free condition errors
-    linf_divb = zero(eltype(u))
-    for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            divb = zero(eltype(u))
-            for k in eachnode(dg)
-                divb += (derivative_matrix[i, k] * u[5, k, j, element] +
-                         derivative_matrix[j, k] * u[6, i, k, element])
+                divb += (derivative_matrix[i, k] * B1_kj +
+                         derivative_matrix[j, k] * B2_ik)
             end
             divb *= cache.elements.inverse_jacobian[element]
             linf_divb = max(linf_divb, abs(divb))
@@ -351,7 +351,7 @@ end
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                              T8codeMesh{2}},
-                 equations::IdealGlmMhdEquations2D, dg::DGSEM, cache)
+                 equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors = cache.elements
 
@@ -367,10 +367,13 @@ function analyze(::Val{:linf_divb}, du, u, t,
                                                   element)
             # Compute the transformed divergence
             for k in eachnode(dg)
+                B1_kj, B2_kj, _ = magnetic_field(u[:, k, j, element], equations)
+                B1_ik, B2_ik, _ = magnetic_field(u[:, i, k, element], equations)
+
                 divb += (derivative_matrix[i, k] *
-                         (Ja11 * u[6, k, j, element] + Ja12 * u[7, k, j, element]) +
+                         (Ja11 * B1_kj + Ja12 * B2_kj) +
                          derivative_matrix[j, k] *
-                         (Ja21 * u[6, i, k, element] + Ja22 * u[7, i, k, element]))
+                         (Ja21 * B1_ik + Ja22 * B2_ik))
             end
             divb *= cache.elements.inverse_jacobian[i, j, element]
             linf_divb = max(linf_divb, abs(divb))

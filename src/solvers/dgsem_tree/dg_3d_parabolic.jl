@@ -141,7 +141,7 @@ function calc_interface_flux!(surface_flux_values,
 
             # Compute interface flux as mean of left and right viscous fluxes
             # TODO: parabolic; only BR1 at the moment
-            flux = 0.5 * (flux_ll + flux_rr)
+            flux = 0.5f0 * (flux_ll + flux_rr)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)
@@ -488,8 +488,8 @@ end
 
 # `cache` is the hyperbolic cache, i.e., in particular not `cache_parabolic`.
 # This is because mortar handling is done in the (hyperbolic) `cache`.
-# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since 
-#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and 
+# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since
+#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and
 # hyperbolic-parabolic systems.
 function prolong2mortars!(cache,
                           flux_viscous::Vector{Array{uEltype, 5}},
@@ -726,37 +726,32 @@ function calc_mortar_flux!(surface_flux_values,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations = cache.mortars
-    @unpack (fstar_upper_left_threaded, fstar_upper_right_threaded,
-    fstar_lower_left_threaded, fstar_lower_right_threaded,
+    @unpack (fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
+    fstar_primary_lower_left_threaded, fstar_primary_lower_right_threaded,
     fstar_tmp1_threaded) = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_upper_left = fstar_upper_left_threaded[Threads.threadid()]
-        fstar_upper_right = fstar_upper_right_threaded[Threads.threadid()]
-        fstar_lower_left = fstar_lower_left_threaded[Threads.threadid()]
-        fstar_lower_right = fstar_lower_right_threaded[Threads.threadid()]
+        fstar_upper_left = fstar_primary_upper_left_threaded[Threads.threadid()]
+        fstar_upper_right = fstar_primary_upper_right_threaded[Threads.threadid()]
+        fstar_lower_left = fstar_primary_lower_left_threaded[Threads.threadid()]
+        fstar_lower_right = fstar_primary_lower_right_threaded[Threads.threadid()]
         fstar_tmp1 = fstar_tmp1_threaded[Threads.threadid()]
 
         # Calculate fluxes
         orientation = orientations[mortar]
         calc_fstar!(fstar_upper_left, equations_parabolic, surface_flux, dg,
-                    u_upper_left, mortar,
-                    orientation)
+                    u_upper_left, mortar, orientation)
         calc_fstar!(fstar_upper_right, equations_parabolic, surface_flux, dg,
-                    u_upper_right,
-                    mortar, orientation)
+                    u_upper_right, mortar, orientation)
         calc_fstar!(fstar_lower_left, equations_parabolic, surface_flux, dg,
-                    u_lower_left, mortar,
-                    orientation)
+                    u_lower_left, mortar, orientation)
         calc_fstar!(fstar_lower_right, equations_parabolic, surface_flux, dg,
-                    u_lower_right,
-                    mortar, orientation)
+                    u_lower_right, mortar, orientation)
 
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations_parabolic, mortar_l2, dg, cache,
-                                   mortar,
-                                   fstar_upper_left, fstar_upper_right,
+                                   mortar, fstar_upper_left, fstar_upper_right,
                                    fstar_lower_left, fstar_lower_right,
                                    fstar_tmp1)
     end
@@ -773,11 +768,100 @@ end
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i, j,
                                            interface)
         # TODO: parabolic; only BR1 at the moment
-        flux = 0.5 * (u_ll + u_rr)
+        flux = 0.5f0 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations_parabolic, dg, i, j)
     end
+
+    return nothing
+end
+
+@inline function mortar_fluxes_to_elements!(surface_flux_values,
+                                            mesh::TreeMesh{3},
+                                            equations_parabolic::AbstractEquationsParabolic,
+                                            mortar_l2::LobattoLegendreMortarL2,
+                                            dg::DGSEM, cache,
+                                            mortar,
+                                            fstar_upper_left, fstar_upper_right,
+                                            fstar_lower_left, fstar_lower_right,
+                                            fstar_tmp1)
+    lower_left_element = cache.mortars.neighbor_ids[1, mortar]
+    lower_right_element = cache.mortars.neighbor_ids[2, mortar]
+    upper_left_element = cache.mortars.neighbor_ids[3, mortar]
+    upper_right_element = cache.mortars.neighbor_ids[4, mortar]
+    large_element = cache.mortars.neighbor_ids[5, mortar]
+
+    # Copy flux small to small
+    if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 1
+        elseif cache.mortars.orientations[mortar] == 2
+            # L2 mortars in y-direction
+            direction = 3
+        else # if cache.mortars.orientations[mortar] == 3
+            # L2 mortars in z-direction
+            direction = 5
+        end
+    else # large_sides[mortar] == 2 -> small elements on left side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 2
+        elseif cache.mortars.orientations[mortar] == 2
+            # L2 mortars in y-direction
+            direction = 4
+        else # if cache.mortars.orientations[mortar] == 3
+            # L2 mortars in z-direction
+            direction = 6
+        end
+    end
+    surface_flux_values[:, :, :, direction, upper_left_element] .= fstar_upper_left
+    surface_flux_values[:, :, :, direction, upper_right_element] .= fstar_upper_right
+    surface_flux_values[:, :, :, direction, lower_left_element] .= fstar_lower_left
+    surface_flux_values[:, :, :, direction, lower_right_element] .= fstar_lower_right
+
+    # Project small fluxes to large element
+    if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 2
+        elseif cache.mortars.orientations[mortar] == 2
+            # L2 mortars in y-direction
+            direction = 4
+        else # if cache.mortars.orientations[mortar] == 3
+            # L2 mortars in z-direction
+            direction = 6
+        end
+    else # large_sides[mortar] == 2 -> small elements on left side
+        if cache.mortars.orientations[mortar] == 1
+            # L2 mortars in x-direction
+            direction = 1
+        elseif cache.mortars.orientations[mortar] == 2
+            # L2 mortars in y-direction
+            direction = 3
+        else # if cache.mortars.orientations[mortar] == 3
+            # L2 mortars in z-direction
+            direction = 5
+        end
+    end
+
+    multiply_dimensionwise!(view(surface_flux_values, :, :, :, direction,
+                                 large_element),
+                            mortar_l2.reverse_lower, mortar_l2.reverse_upper,
+                            fstar_upper_left, fstar_tmp1)
+    add_multiply_dimensionwise!(view(surface_flux_values, :, :, :, direction,
+                                     large_element),
+                                mortar_l2.reverse_upper, mortar_l2.reverse_upper,
+                                fstar_upper_right, fstar_tmp1)
+    add_multiply_dimensionwise!(view(surface_flux_values, :, :, :, direction,
+                                     large_element),
+                                mortar_l2.reverse_lower, mortar_l2.reverse_lower,
+                                fstar_lower_left, fstar_tmp1)
+    add_multiply_dimensionwise!(view(surface_flux_values, :, :, :, direction,
+                                     large_element),
+                                mortar_l2.reverse_upper, mortar_l2.reverse_lower,
+                                fstar_lower_right, fstar_tmp1)
 
     return nothing
 end
@@ -854,7 +938,7 @@ function calc_gradient!(gradients, u_transformed, t,
                 u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                    equations_parabolic, dg, i, j,
                                                    interface)
-                flux = 0.5 * (u_ll + u_rr)
+                flux = 0.5f0 * (u_ll + u_rr)
 
                 # Copy flux to left and right element storage
                 for v in eachvariable(equations_parabolic)

@@ -33,9 +33,9 @@ end
 initial_condition = initial_condition_cavity
 
 # BC types
-velocity_bc_lid = NoSlip((x, t, equations) -> SVector(1.0, 0.0))
-velocity_bc_cavity = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
-heat_bc = Adiabatic((x, t, equations) -> 0.0)
+velocity_bc_lid = NoSlip((x, t, equations_parabolic) -> SVector(1.0, 0.0))
+velocity_bc_cavity = NoSlip((x, t, equations_parabolic) -> SVector(0.0, 0.0))
+heat_bc = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_lid = BoundaryConditionNavierStokesWall(velocity_bc_lid, heat_bc)
 boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity, heat_bc)
 
@@ -57,13 +57,13 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 10.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
-callbacks = CallbackSet(summary_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
