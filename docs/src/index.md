@@ -363,7 +363,7 @@ Participating research groups in alphabetical order:
 
 [High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) 🇩🇪](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
 
-[High-Performance Scientific Computing, University of Augsburg 🇩🇪](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
+[High-Performance Scientific Computing, University of Augsburg 🇩🇪](https://hpsc.math.uni-augsburg.de)
 
 [Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz 🇩🇪](https://ranocha.de)
 
