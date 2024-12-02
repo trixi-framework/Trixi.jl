@@ -15,21 +15,22 @@ The Sedov blast wave setup based on Flash
 """
 function initial_condition_sedov_blast_wave(x, t, equations::CompressibleEulerEquations1D)
     # Set up polar coordinates
-    inicenter = SVector(0.0)
+    RealT = eltype(x)
+    inicenter = SVector(0)
     x_norm = x[1] - inicenter[1]
     r = abs(x_norm)
 
     # Setup based on https://flash.rochester.edu/site/flashcode/user_support/flash_ug_devel/node187.html#SECTION010114000000000000000
-    r0 = 0.21875 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
+    r0 = 0.21875f0 # = 3.5 * smallest dx (for domain length=4 and max-ref=6)
     # r0 = 0.5 # = more reasonable setup
-    E = 1.0
-    p0_inner = 6 * (equations.gamma - 1) * E / (3 * pi * r0)
-    p0_outer = 1.0e-5 # = true Sedov setup
+    E = 1
+    p0_inner = 6 * (equations.gamma - 1) * E / (3 * convert(RealT, pi) * r0)
+    p0_outer = convert(RealT, 1.0e-5) # = true Sedov setup
     # p0_outer = 1.0e-3 # = more reasonable setup
 
     # Calculate primitive variables
-    rho = 1.0
-    v1 = 0.0
+    rho = 1
+    v1 = 0
     p = r > r0 ? p0_outer : p0_inner
 
     return prim2cons(SVector(rho, v1, p), equations)

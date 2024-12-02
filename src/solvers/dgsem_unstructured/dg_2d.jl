@@ -20,7 +20,10 @@ function create_cache(mesh::UnstructuredMesh2D, equations,
 
     # perform a check on the sufficient metric identities condition for free-stream preservation
     # and halt computation if it fails
-    if !isapprox(max_discrete_metric_identities(dg, cache), 0, atol = 1e-12)
+    # For `Float64`, this gives 1.8189894035458565e-12
+    # For `Float32`, this gives 1.1920929f-5
+    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
+    if !isapprox(max_discrete_metric_identities(dg, cache), 0, atol = atol)
         error("metric terms fail free-stream preservation check with maximum error $(max_discrete_metric_identities(dg, cache))")
     end
 
@@ -33,7 +36,7 @@ end
 
 function rhs!(du, u, t,
               mesh::UnstructuredMesh2D, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
+              boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
@@ -244,14 +247,10 @@ function calc_interface_flux!(surface_flux_values,
             flux = surface_flux(u_ll, u_rr, outward_direction, equations)
 
             # Compute both nonconservative fluxes
-            # In general, nonconservative fluxes can depend on both the contravariant
-            # vectors (normal direction) at the current node and the averaged ones.
-            # However, both are the same at watertight interfaces, so we pass the
-            # `outward_direction` twice.
             noncons_primary = nonconservative_flux(u_ll, u_rr, outward_direction,
-                                                   outward_direction, equations)
+                                                   equations)
             noncons_secondary = nonconservative_flux(u_rr, u_ll, outward_direction,
-                                                     outward_direction, equations)
+                                                     equations)
 
             # Copy flux to primary and secondary element storage
             # Note the sign change for the components in the secondary element!
@@ -260,10 +259,10 @@ function calc_interface_flux!(surface_flux_values,
                 # the interpretation of global SBP operators coupled discontinuously via
                 # central fluxes/SATs
                 surface_flux_values[v, primary_index, primary_side, primary_element] = (flux[v] +
-                                                                                        0.5 *
+                                                                                        0.5f0 *
                                                                                         noncons_primary[v])
                 surface_flux_values[v, secondary_index, secondary_side, secondary_element] = -(flux[v] +
-                                                                                               0.5 *
+                                                                                               0.5f0 *
                                                                                                noncons_secondary[v])
             end
 
@@ -446,20 +445,15 @@ end
     flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
 
     # Compute pointwise nonconservative numerical flux at the boundary.
-    # In general, nonconservative fluxes can depend on both the contravariant
-    # vectors (normal direction) at the current node and the averaged ones.
-    # However, both are the same at watertight interfaces, so we pass the
-    # `outward_direction` twice.
-    # Note: This does not set any type of boundary condition for the nonconservative term
-    noncons_flux = nonconservative_flux(u_inner, u_inner, outward_direction,
-                                        outward_direction, equations)
+    noncons_flux = boundary_condition(u_inner, outward_direction, x, t,
+                                      nonconservative_flux, equations)
 
     for v in eachvariable(equations)
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
         surface_flux_values[v, node_index, side_index, element_index] = flux[v] +
-                                                                        0.5 *
+                                                                        0.5f0 *
                                                                         noncons_flux[v]
     end
 end

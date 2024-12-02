@@ -38,7 +38,8 @@ initial_condition = initial_condition_sedov_blast_wave
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(3)
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
 shock_indicator_variable = density_pressure
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 1.0,

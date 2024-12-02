@@ -12,8 +12,8 @@ equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -0.5, -0.25) # minimum coordinates (min(x), min(y), min(z))
-coordinates_max = (0.0, 0.5, 0.25) # maximum coordinates (max(x), max(y), max(z))
+coordinates_min = (-1.0, -0.5, -0.5) # minimum coordinates (min(x), min(y), min(z))
+coordinates_max = (0.0, 0.5, 0.5) # maximum coordinates (max(x), max(y), max(z))
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
@@ -61,7 +61,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh,
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 0.5)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

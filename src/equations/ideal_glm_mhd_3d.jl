@@ -11,8 +11,8 @@
 The ideal compressible GLM-MHD equations for an ideal gas with ratio of
 specific heats `gamma` in three space dimensions.
 """
-mutable struct IdealGlmMhdEquations3D{RealT <: Real} <:
-               AbstractIdealGlmMhdEquations{3, 9}
+struct IdealGlmMhdEquations3D{RealT <: Real} <:
+       AbstractIdealGlmMhdEquations{3, 9}
     gamma::RealT               # ratio of specific heats
     inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
     c_h::RealT                 # GLM cleaning speed
@@ -28,6 +28,11 @@ function IdealGlmMhdEquations3D(gamma; initial_c_h = convert(typeof(gamma), NaN)
     IdealGlmMhdEquations3D(promote(gamma, initial_c_h)...)
 end
 
+# Outer constructor for `@reset` works correctly
+function IdealGlmMhdEquations3D(gamma, inv_gamma_minus_one, c_h)
+    IdealGlmMhdEquations3D(gamma, c_h)
+end
+
 have_nonconservative_terms(::IdealGlmMhdEquations3D) = True()
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations3D)
     ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
@@ -38,6 +43,9 @@ end
 function default_analysis_integrals(::IdealGlmMhdEquations3D)
     (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
+
+# Helper function to extract the magnetic field vector from the conservative variables
+magnetic_field(u, equations::IdealGlmMhdEquations3D) = SVector(u[6], u[7], u[8])
 
 # Set initial conditions at physical location `x` for time `t`
 """
@@ -219,18 +227,15 @@ end
     flux_nonconservative_powell(u_ll, u_rr, orientation::Integer,
                                 equations::IdealGlmMhdEquations3D)
     flux_nonconservative_powell(u_ll, u_rr,
-                                normal_direction_ll     ::AbstractVector,
-                                normal_direction_average::AbstractVector,
+                                normal_direction::AbstractVector,
                                 equations::IdealGlmMhdEquations3D)
 
 Non-symmetric two-point flux discretizing the nonconservative (source) term of
 Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations3D`](@ref).
 
-On curvilinear meshes, this nonconservative flux depends on both the
-contravariant vector (normal direction) at the current node and the averaged
-one. This is different from numerical fluxes used to discretize conservative
-terms.
+On curvilinear meshes, the implementation differs from the reference since we use the averaged 
+normal direction for the metrics dealiasing.
 
 ## References
 - Marvin Bohm, Andrew R.Winters, Gregor J. Gassner, Dominik Derigs,
@@ -287,8 +292,7 @@ terms.
 end
 
 @inline function flux_nonconservative_powell(u_ll, u_rr,
-                                             normal_direction_ll::AbstractVector,
-                                             normal_direction_average::AbstractVector,
+                                             normal_direction::AbstractVector,
                                              equations::IdealGlmMhdEquations3D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
@@ -298,16 +302,11 @@ end
     v3_ll = rho_v3_ll / rho_ll
     v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
 
-    # Note that `v_dot_n_ll` uses the `normal_direction_ll` (contravariant vector
-    # at the same node location) while `B_dot_n_rr` uses the averaged normal
-    # direction. The reason for this is that `v_dot_n_ll` depends only on the left
-    # state and multiplies some gradient while `B_dot_n_rr` is used to compute
-    # the divergence of B.
-    v_dot_n_ll = v1_ll * normal_direction_ll[1] + v2_ll * normal_direction_ll[2] +
-                 v3_ll * normal_direction_ll[3]
-    B_dot_n_rr = B1_rr * normal_direction_average[1] +
-                 B2_rr * normal_direction_average[2] +
-                 B3_rr * normal_direction_average[3]
+    v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] +
+                 v3_ll * normal_direction[3]
+    B_dot_n_rr = B1_rr * normal_direction[1] +
+                 B2_rr * normal_direction[2] +
+                 B3_rr * normal_direction[3]
 
     # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
     # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2,3}, 0, 0, 0, v_{1,2,3})
@@ -1003,6 +1002,20 @@ end
 
 @inline function density(u, equations::IdealGlmMhdEquations3D)
     return u[1]
+end
+
+@inline function velocity(u, equations::IdealGlmMhdEquations3D)
+    rho = u[1]
+    v1 = u[2] / rho
+    v2 = u[3] / rho
+    v3 = u[4] / rho
+    return SVector(v1, v2, v3)
+end
+
+@inline function velocity(u, orientation::Int, equations::IdealGlmMhdEquations3D)
+    rho = u[1]
+    v = u[orientation + 1] / rho
+    return v
 end
 
 @inline function pressure(u, equations::IdealGlmMhdEquations3D)
