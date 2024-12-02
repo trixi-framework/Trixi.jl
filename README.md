@@ -267,7 +267,7 @@ Participating research groups in alphabetical order:
 
 [Applied Mathematics, Department of Mathematics, University of Hamburg :de:](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
 
-[Applied Mathematics, Linköping University :sweden:](https://liu.se/en/employee/andwi94)
+[Division of Applied Mathematics, Department of Mathematics, Linköping University :sweden:](https://liu.se/en/employee/andwi94)
 
 [Computational and Applied Mathematics, Rice University :us:](https://jlchan.github.io/)
 
