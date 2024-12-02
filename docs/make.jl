@@ -117,6 +117,8 @@ open(joinpath(@__DIR__, "src", "changelog.md"), "w") do io
         println(io, line)
     end
 end
+# Remove temporary file
+rm(joinpath(@__DIR__, "src", "changelog_tmp.md"))
 
 # Make documentation
 makedocs(
