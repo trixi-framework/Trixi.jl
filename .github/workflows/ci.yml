@@ -135,7 +135,7 @@ jobs:
           directories: src,examples,ext
       - uses: codecov/codecov-action@v5
         with:
-          file: ./lcov.info
+          files: ./lcov.info
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: true
