@@ -268,6 +268,12 @@ end
 @timed_testset "interpolation" begin
     @testset "nodes and weights" begin
         @test Trixi.gauss_nodes_weights(1) == ([0.0], [2.0])
+
+        @test Trixi.gauss_nodes_weights(2)[1] ≈ [-1 / sqrt(3), 1 / sqrt(3)]
+        @test Trixi.gauss_nodes_weights(2)[2] == [1.0, 1.0]
+
+        @test Trixi.gauss_nodes_weights(3)[1] ≈ [-sqrt(3 / 5), 0.0, sqrt(3 / 5)]
+        @test Trixi.gauss_nodes_weights(3)[2] ≈ [5 / 9, 8 / 9, 5 / 9]
     end
 
     @testset "multiply_dimensionwise" begin
