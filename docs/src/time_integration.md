@@ -75,7 +75,7 @@ Paired-Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced
 In the [original publication](https://doi.org/10.1016/j.jcp.2019.05.014), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470) and [fourth](https://doi.org/10.48550/arXiv.2408.05470) order in subsequent works.
 
 By construction, PERK schemes are suited for integrating multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
-Nevertheless, due to their optimized stability properties and low-storage nature, the PERK schemes are also highly efficient when applied as standalone methods. In Trixi.jl, the standalone PERK integrators require that all stages of the method be active.
+Nevertheless, due to their optimized stability properties and low-storage nature, the PERK schemes are also highly efficient when applied as standalone methods. In Trixi.jl, the _standalone_ PERK integrators are implemented such that all stages of the method are active.
 
 #### Tutorial: Using `PairedExplicitRK2`
 
