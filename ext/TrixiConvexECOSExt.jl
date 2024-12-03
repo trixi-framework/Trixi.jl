@@ -164,27 +164,35 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
             end
         end
 
-        # Use last optimal values for gamma in (potentially) next iteration
-        problem = minimize(stability_polynomials!(pnoms, consistency_order,
-                                                  num_stage_evals,
-                                                  normalized_powered_eigvals_scaled,
-                                                  gamma))
+        # Check if there are variables to optimize
+        if num_stage_evals - consistency_order > 0
+            # Use last optimal values for gamma in (potentially) next iteration
+            problem = minimize(stability_polynomials!(pnoms, consistency_order,
+                                                      num_stage_evals,
+                                                      normalized_powered_eigvals_scaled,
+                                                      gamma))
 
-        solve!(problem,
-               # Parameters taken from default values for EiCOS
-               MOI.OptimizerWithAttributes(Optimizer, "gamma" => 0.99,
-                                           "delta" => 2e-7,
-                                           "feastol" => 1e-9,
-                                           "abstol" => 1e-9,
-                                           "reltol" => 1e-9,
-                                           "feastol_inacc" => 1e-4,
-                                           "abstol_inacc" => 5e-5,
-                                           "reltol_inacc" => 5e-5,
-                                           "nitref" => 9,
-                                           "maxit" => 100,
-                                           "verbose" => 3); silent = true)
+            solve!(problem,
+                   # Parameters taken from default values for EiCOS
+                   MOI.OptimizerWithAttributes(Optimizer, "gamma" => 0.99,
+                                               "delta" => 2e-7,
+                                               "feastol" => 1e-9,
+                                               "abstol" => 1e-9,
+                                               "reltol" => 1e-9,
+                                               "feastol_inacc" => 1e-4,
+                                               "abstol_inacc" => 5e-5,
+                                               "reltol_inacc" => 5e-5,
+                                               "nitref" => 9,
+                                               "maxit" => 100,
+                                               "verbose" => 3); silent = true)
 
-        abs_p = problem.optval
+            abs_p = problem.optval
+        else
+            abs_p = stability_polynomials!(pnoms, consistency_order,
+                                           num_stage_evals,
+                                           normalized_powered_eigvals_scaled,
+                                           gamma)
+        end
 
         if abs_p < 1
             dtmin = dt
@@ -197,7 +205,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         println("Concluded stability polynomial optimization \n")
     end
 
-    if consistency_order - num_stage_evals != 0
+    if num_stage_evals - consistency_order > 0
         gamma_opt = evaluate(gamma)
     else
         gamma_opt = nothing # If there is no variable to optimize, return gamma_opt as nothing.
@@ -250,27 +258,33 @@ function Trixi.bisect_stability_polynomial_PERK4(num_eig_vals,
     while dtmax - dtmin > dteps
         dt = 0.5 * (dtmax + dtmin)
 
-        # Use last optimal values for gamma in (potentially) next iteration
-        problem = minimize(stability_polynomials_PERK4!(pnoms,
-                                                        num_stage_evals,
-                                                        normalized_powered_eigvals,
-                                                        gamma, dt, cS3))
+        if num_stage_evals > 5
+            # Use last optimal values for gamma in (potentially) next iteration
+            problem = minimize(stability_polynomials_PERK4!(pnoms,
+                                                            num_stage_evals,
+                                                            normalized_powered_eigvals,
+                                                            gamma, dt, cS3))
 
-        solve!(problem,
-               # Parameters taken from default values for EiCOS
-               MOI.OptimizerWithAttributes(Optimizer, "gamma" => 0.99,
-                                           "delta" => 2e-7,
-                                           "feastol" => 1e-9,
-                                           "abstol" => 1e-9,
-                                           "reltol" => 1e-9,
-                                           "feastol_inacc" => 1e-4,
-                                           "abstol_inacc" => 5e-5,
-                                           "reltol_inacc" => 5e-5,
-                                           "nitref" => 9,
-                                           "maxit" => 100,
-                                           "verbose" => 3); silent = true)
+            solve!(problem,
+                   # Parameters taken from default values for EiCOS
+                   MOI.OptimizerWithAttributes(Optimizer, "gamma" => 0.99,
+                                               "delta" => 2e-7,
+                                               "feastol" => 1e-9,
+                                               "abstol" => 1e-9,
+                                               "reltol" => 1e-9,
+                                               "feastol_inacc" => 1e-4,
+                                               "abstol_inacc" => 5e-5,
+                                               "reltol_inacc" => 5e-5,
+                                               "nitref" => 9,
+                                               "maxit" => 100,
+                                               "verbose" => 3); silent = true)
 
-        abs_p = problem.optval
+            abs_p = problem.optval
+        else
+            abs_p = stability_polynomials_PERK4!(pnoms, num_stage_evals,
+                                                 normalized_powered_eigvals,
+                                                 gamma, dt, cS3)
+        end
 
         if abs_p < 1
             dtmin = dt
