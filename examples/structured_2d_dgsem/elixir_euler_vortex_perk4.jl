@@ -56,7 +56,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 end
 initial_condition = initial_condition_isentropic_vortex
 
-EdgeLength = 20
+EdgeLength = 20.0
 
 N_passes = 1
 T_end = EdgeLength * N_passes
