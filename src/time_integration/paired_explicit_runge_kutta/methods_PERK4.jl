@@ -115,7 +115,7 @@ end
     - `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
       equation has been semidiscretized.
     - `cS3` (`Float64`, optional): Value of $c_{S-3}$ in the Butcher tableau, where
-      $S$ is the number of stages. Default is 1.0f0.
+      $S$ is the number of stages. Default is `1.0f0`.
 
 The following structures and methods provide an implementation of
 the fourth-order paired explicit Runge-Kutta (P-ERK) method

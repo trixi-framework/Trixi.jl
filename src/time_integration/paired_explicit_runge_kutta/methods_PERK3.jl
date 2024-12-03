@@ -118,7 +118,7 @@ end
       equation has been semidiscretized.
     - `verbose` (`Bool`, optional): Verbosity flag, default is false.
     - `cS2` (`Float64`, optional): Value of $c_{S-2}$ in the Butcher tableau, where
-      $S$ is the number of stages. Default is 1.0f0.
+      $S$ is the number of stages. Default is `1.0f0`.
 
 The following structures and methods provide an implementation of
 the third-order paired explicit Runge-Kutta (PERK) method
