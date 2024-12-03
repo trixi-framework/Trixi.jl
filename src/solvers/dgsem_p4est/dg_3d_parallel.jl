@@ -20,7 +20,7 @@ function rhs!(du, u, t,
     # Prolong solution to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars" begin
         prolong2mpimortars!(cache, u, mesh, equations,
-                            dg.mortar, dg.surface_integral, dg)
+                            dg.mortar, dg)
     end
 
     # Start to send MPI data
@@ -305,7 +305,7 @@ function prolong2mpimortars!(cache, u,
                              mesh::Union{ParallelP4estMesh{3}, ParallelT8codeMesh{3}},
                              equations,
                              mortar_l2::LobattoLegendreMortarL2,
-                             surface_integral, dg::DGSEM)
+                             dg::DGSEM)
     @unpack node_indices = cache.mpi_mortars
     index_range = eachnode(dg)
 
