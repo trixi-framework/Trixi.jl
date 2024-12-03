@@ -199,9 +199,11 @@ Thus, it is often necessary to reduce the optimal `cfl_number` by a safety facto
 # as the spectrum changes (in general) over the course of a simulation
 stepsize_callback = StepsizeCallback(cfl = 0.85 * cfl_number)
 ```
-If the optimal monomial coefficients are precomputed, the user needs to set the obtained maximum timestep from the optimization manually via
-```@example PERK-example-1
-ode_algorithm.dt_opt = 42.0 # The timestep obtained from the optimization
+If the optimal monomial coefficients are precomputed, the user needs to provide the obtained maximum timestep `dt_opt` from the optimization at construction stage.
+The corresponding constructor has signature
+```julia
+PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
+                  dt_opt = nothing; cS2 = 1.0f0)
 ```
 Then, the stable CFL number can be computed as described above.
 
