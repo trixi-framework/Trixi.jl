@@ -22,7 +22,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 tspan = (load_time(restart_filename), 10.0)
 dt = load_dt(restart_filename)
-ode = semidiscretize(semi, tspan, restart_filename);
+ode = semidiscretize(semi, tspan, restart_filename)
 
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
 save_solution.condition.save_initial_solution = false

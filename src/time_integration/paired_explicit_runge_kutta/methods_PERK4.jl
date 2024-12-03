@@ -35,28 +35,24 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages, tspan,
                                                                     eig_vals, cS3;
                                                                     verbose)
 
-        a_unknown = zeros(num_coeffs_max)
-        a_unknown[1] = monomial_coeffs[1]
+        a_unknown = copy(monomial_coeffs)
         l = 2
         for _ in 5:(num_stages - 2)
-            a_unknown[l] = monomial_coeffs[l] / monomial_coeffs[l - 1]
+            a_unknown[l] /= monomial_coeffs[l - 1]
             l += 1
         end
         reverse!(a_unknown)
 
-        num_coeffs_max = num_stages - 5
+        a_matrix = zeros(2, num_coeffs_max)
+        a_matrix[1, :] = c[3:(num_stages - 3)]
 
-        a_matrix = zeros(num_coeffs_max, 2)
-        a_matrix[:, 1] = c[3:(num_stages - 3)]
-
-        a_matrix[:, 1] -= a_unknown
-        a_matrix[:, 2] = a_unknown
+        a_matrix[1, :] -= a_unknown
+        a_matrix[2, :] = a_unknown
     end
 
     # Constant/non-optimized part of the Butcher matrix
-    a_matrix_constant = [0.479274057836310-0.114851811257441 / cS3 0.114851811257441/cS3
-                         0.1397682537005989 0.648906880894214
-                         0.1830127018922191 0.028312163512968]
+    a_matrix_constant = [(0.479274057836310-(0.114851811257441 / cS3)) 0.1397682537005989 0.1830127018922191
+                         0.114851811257441/cS3 0.648906880894214 0.028312163512968]
 
     return a_matrix, a_matrix_constant, c, dt_opt
 end
@@ -76,8 +72,8 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages,
 
     num_coeffs_max = num_stages - 5
 
-    a_matrix = zeros(num_coeffs_max, 2)
-    a_matrix[:, 1] = c[3:(num_stages - 3)]
+    a_matrix = zeros(2, num_coeffs_max)
+    a_matrix[1, :] = c[3:(num_stages - 3)]
 
     path_a_coeffs = joinpath(base_path_a_coeffs,
                              "a_" * string(num_stages) * ".txt")
@@ -88,14 +84,13 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages,
 
     @assert num_a_coeffs == num_coeffs_max
     if num_coeffs_max > 0
-        a_matrix[:, 1] -= a_coeffs
-        a_matrix[:, 2] = a_coeffs
+        a_matrix[1, :] -= a_coeffs
+        a_matrix[2, :] = a_coeffs
     end
 
     # Constant/non-optimized part of the Butcher matrix
-    a_matrix_constant = [0.479274057836310-0.114851811257441 / cS3 0.114851811257441/cS3
-                         0.1397682537005989 0.648906880894214
-                         0.1830127018922191 0.028312163512968]
+    a_matrix_constant = [(0.479274057836310-(0.114851811257441 / cS3)) 0.1397682537005989 0.1830127018922191
+                         0.114851811257441/cS3 0.648906880894214 0.028312163512968]
 
     return a_matrix, a_matrix_constant, c
 end
@@ -130,14 +125,16 @@ The method has been proposed in
   Fourth-Order Paired-Explicit Runge-Kutta Methods
   [DOI:10.48550/arXiv.2408.05470](https://doi.org/10.48550/arXiv.2408.05470)
 """
-mutable struct PairedExplicitRK4 <: AbstractPairedExplicitRKSingle
-    const num_stages::Int # S
+struct PairedExplicitRK4 <: AbstractPairedExplicitRKSingle
+    num_stages::Int # S
 
-    a_matrix::Union{Matrix{Float64}, Nothing} # Nothing for S = 5
+    # Optimized coefficients, i.e., flexible part of the Butcher array matrix A.
+    a_matrix::Union{Matrix{Float64}, Nothing}
     # This part of the Butcher array matrix A is constant for all PERK methods, i.e., 
     # regardless of the optimized coefficients.
     a_matrix_constant::Matrix{Float64}
     c::Vector{Float64}
+
     dt_opt::Union{Float64, Nothing}
 end # struct PairedExplicitRK4
 
@@ -197,9 +194,8 @@ mutable struct PairedExplicitRK4Integrator{RealT <: Real, uType, Params, Sol, F,
     finalstep::Bool # added for convenience
     dtchangeable::Bool
     force_stepfail::Bool
-    # PairedExplicitRK stages:
+    # Additional PERK register
     k1::uType
-    k_higher::uType
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK4;
@@ -208,9 +204,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK4;
     du = zero(u0)
     u_tmp = zero(u0)
 
-    # PairedExplicitRK stages
-    k1 = zero(u0)
-    k_higher = zero(u0)
+    k1 = zero(u0) # Additional PERK register
 
     t0 = first(ode.tspan)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
@@ -223,7 +217,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK4;
                                                                      ode.tspan;
                                                                      kwargs...),
                                              false, true, false,
-                                             k1, k_higher)
+                                             k1)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -238,40 +232,43 @@ function init(ode::ODEProblem, alg::PairedExplicitRK4;
     return integrator
 end
 
-@inline function last_three_stages!(integrator::PairedExplicitRK4Integrator, alg, p)
+@inline function last_three_stages!(integrator::PairedExplicitRK4Integrator, p, alg)
     for stage in 1:2
         @threaded for u_ind in eachindex(integrator.u)
             integrator.u_tmp[u_ind] = integrator.u[u_ind] +
-                                      alg.a_matrix_constant[stage, 1] *
-                                      integrator.k1[u_ind] +
-                                      alg.a_matrix_constant[stage, 2] *
-                                      integrator.k_higher[u_ind]
+                                      integrator.dt *
+                                      (alg.a_matrix_constant[1, stage] *
+                                       integrator.k1[u_ind] +
+                                       alg.a_matrix_constant[2, stage] *
+                                       integrator.du[u_ind])
         end
 
         integrator.f(integrator.du, integrator.u_tmp, p,
                      integrator.t +
                      alg.c[alg.num_stages - 3 + stage] * integrator.dt)
-
-        @threaded for u_ind in eachindex(integrator.du)
-            integrator.k_higher[u_ind] = integrator.du[u_ind] * integrator.dt
-        end
     end
 
     # Last stage
-    @threaded for i in eachindex(integrator.du)
+    @threaded for i in eachindex(integrator.u)
         integrator.u_tmp[i] = integrator.u[i] +
-                              alg.a_matrix_constant[3, 1] * integrator.k1[i] +
-                              alg.a_matrix_constant[3, 2] * integrator.k_higher[i]
+                              integrator.dt *
+                              (alg.a_matrix_constant[1, 3] * integrator.k1[i] +
+                               alg.a_matrix_constant[2, 3] * integrator.du[i])
+    end
+
+    # Store K_{S-1} in `k1`:
+    @threaded for i in eachindex(integrator.u)
+        integrator.k1[i] = integrator.du[i]
     end
 
     integrator.f(integrator.du, integrator.u_tmp, p,
                  integrator.t + alg.c[alg.num_stages] * integrator.dt)
 
     @threaded for u_ind in eachindex(integrator.u)
-        # Note that 'k_higher' carries the values of K_{S-1}
+        # Note that 'k1' carries the values of K_{S-1}
         # and that we construct 'K_S' "in-place" from 'integrator.du'
-        integrator.u[u_ind] += 0.5 * (integrator.k_higher[u_ind] +
-                                integrator.du[u_ind] * integrator.dt)
+        integrator.u[u_ind] += 0.5 * integrator.dt *
+                               (integrator.k1[u_ind] + integrator.du[u_ind])
     end
 end
 
@@ -296,46 +293,27 @@ function step!(integrator::PairedExplicitRK4Integrator)
     end
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
-        k1!(integrator, prob.p, alg.c)
-
-        # k2
-        integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                     integrator.t + alg.c[2] * integrator.dt)
-
-        @threaded for i in eachindex(integrator.du)
-            integrator.k_higher[i] = integrator.du[i] * integrator.dt
-        end
+        PERK_k1!(integrator, prob.p)
+        PERK_k2!(integrator, prob.p, alg)
 
         # Higher stages until "constant" stages
         for stage in 3:(alg.num_stages - 3)
-            # Construct current state
-            @threaded for i in eachindex(integrator.du)
-                integrator.u_tmp[i] = integrator.u[i] +
-                                      alg.a_matrix[stage - 2, 1] *
-                                      integrator.k1[i] +
-                                      alg.a_matrix[stage - 2, 2] *
-                                      integrator.k_higher[i]
-            end
-
-            integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                         integrator.t + alg.c[stage] * integrator.dt)
-
-            @threaded for i in eachindex(integrator.du)
-                integrator.k_higher[i] = integrator.du[i] * integrator.dt
-            end
+            PERK_ki!(integrator, prob.p, alg, stage)
         end
 
-        last_three_stages!(integrator, alg, prob.p)
-    end # PairedExplicitRK step timer
+        last_three_stages!(integrator, prob.p, alg)
+    end
 
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    # handle callbacks
-    if callbacks isa CallbackSet
-        for cb in callbacks.discrete_callbacks
-            if cb.condition(integrator.u, integrator.t, integrator)
-                cb.affect!(integrator)
+    @trixi_timeit timer() "Step-Callbacks" begin
+        # handle callbacks
+        if callbacks isa CallbackSet
+            for cb in callbacks.discrete_callbacks
+                if cb.condition(integrator.u, integrator.t, integrator)
+                    cb.affect!(integrator)
+                end
             end
         end
     end

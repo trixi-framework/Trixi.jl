@@ -92,15 +92,14 @@ callbacks = CallbackSet(summary_callback,
 # set up time integration algorithm
 
 num_stages = 19
-
-current_directory = @__DIR__
 coefficient_file = "a_" * string(num_stages) * ".txt"
 
 # Download the optimized PERK4 coefficients
+path_coeff_file = mktempdir()
 Trixi.download("https://gist.githubusercontent.com/DanielDoehring/84f266ff61f0a69a0127cec64056275e/raw/1a66adbe1b425d33daf502311ecbdd4b191b89cc/a_19.txt",
-               joinpath(current_directory, coefficient_file))
+               joinpath(path_coeff_file, coefficient_file))
 
-ode_algorithm = Trixi.PairedExplicitRK4(num_stages, current_directory)
+ode_algorithm = Trixi.PairedExplicitRK4(num_stages, path_coeff_file)
 
 ###############################################################################
 # run the simulation
@@ -108,8 +107,5 @@ ode_algorithm = Trixi.PairedExplicitRK4(num_stages, current_directory)
 sol = Trixi.solve(ode, ode_algorithm,
                   dt = 42.0, # Not used
                   save_everystep = false, callback = callbacks);
-
-# Clean up the downloaded file                  
-rm(joinpath(current_directory, coefficient_file))
 
 summary_callback()

@@ -1,7 +1,7 @@
 # Package extension for adding Convex-based features to Trixi.jl
 module TrixiConvexECOSExt
 
-# Required for coefficient optimization in P-ERK scheme integrators
+# Required for coefficient optimization in PERK scheme integrators
 if isdefined(Base, :get_extension)
     using Convex: MOI, solve!, Variable, minimize, evaluate
     using ECOS: Optimizer
@@ -28,8 +28,8 @@ using Trixi: Trixi, undo_normalization!, undo_normalization_PERK4!,
 # Undo normalization of stability polynomial coefficients by index factorial
 # relative to consistency order.
 function Trixi.undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
-    for k in (consistency_order + 1):num_stage_evals
-        gamma_opt[k - consistency_order] /= factorial(k)
+    for k in 1:(num_stage_evals - consistency_order)
+        gamma_opt[k] /= factorial(k+consistency_order)
     end
 end
 
@@ -65,7 +65,11 @@ function stability_polynomials!(pnoms, consistency_order, num_stage_evals,
     end
 
     # For optimization only the maximum is relevant
-    return maximum(abs(pnoms))
+    if consistency_order - num_stage_evals == 0
+        return maximum(abs.(pnoms)) # If there is no variable to optimize, we need to use the broadcast operator.
+    else
+        return maximum(abs(pnoms))
+    end
 end
 
 # Specialized form of the stability polynomials for fourth-order PERK schemes.
@@ -194,7 +198,11 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         println("Concluded stability polynomial optimization \n")
     end
 
-    gamma_opt = evaluate(gamma)
+    if consistency_order - num_stage_evals != 0
+        gamma_opt = evaluate(gamma)
+    else
+        gamma_opt = nothing # If there is no variable to optimize, return gamma_opt as nothing.
+    end
 
     # Catch case S = 3 (only one opt. variable)
     if isa(gamma_opt, Number)
@@ -276,7 +284,6 @@ function Trixi.bisect_stability_polynomial_PERK4(num_eig_vals,
     end
 
     gamma_opt = []
-
     if num_stage_evals > 5
         gamma_opt = evaluate(gamma)
 

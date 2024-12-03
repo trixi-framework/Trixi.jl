@@ -19,12 +19,12 @@ function initial_condition_discontinuous_well_balancedness(x, t,
                                                            equations::ShallowWaterEquations1D)
     # Set the background values
     H = equations.H0
-    v = 0.0
-    b = 0.0
+    v = 0
+    b = zero(eltype(x))
 
     # Setup a discontinuous bottom topography
-    if x[1] >= 0.5 && x[1] <= 0.75
-        b = 2.0 + 0.5 * sin(2.0 * pi * x[1])
+    if x[1] >= 0.5f0 && x[1] <= 0.75f0
+        b = 2 + 0.5f0 * sinpi(2 * x[1])
     end
 
     return prim2cons(SVector(H, v, b), equations)
