@@ -60,7 +60,7 @@ where $p$ denotes the order of consistency of the scheme, $S$ is the number of s
 ```
 In particular, for $S > p$ the Runge-Kutta method includes some free coefficients which may be used to adapt the domain of absolute stability to the problem at hand.
 Since Trixi.jl [supports exact computation of the Jacobian $J$ by means of automatic differentiation](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/differentiable_programming/), we have access to the Jacobian of a given simulation setup.
-For small (up to approximately $10^4$ DoF) systems, the spectrum $\boldsymbol \sigma = \left \{ \lambda_m \right \}_{m=1, \dots, M}$ can be computed directly using [`LinearAlgebra.eigvals(J)`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.eigvals).
+For small (say, up to roughly $10^4$ DoF) systems, the spectrum $\boldsymbol \sigma = \left \{ \lambda_m \right \}_{m=1, \dots, M}$ can be computed directly using [`LinearAlgebra.eigvals(J)`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.eigvals).
 For larger systems, we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://doi.org/10.1016/j.jcp.2024.113223). This approach computes a reduced set of (estimated) eigenvalues $\widetilde{\boldsymbol \sigma}$ around the convex hull of the spectrum by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
 
 The optimization problem (1) can be solved using the algorithms described in [Ketcheson, Ahmadia (2012)](http://dx.doi.org/10.2140/camcos.2012.7.247) for a moderate number of stages $S$ or [Doehring, Gassner, Torrilhon (2024)](https://doi.org/10.1007/s10915-024-02478-5) for a large number of stages $S$.
@@ -72,7 +72,7 @@ Trixi.jl implements the [Paired-Explicit Runge-Kutta (PERK)](https://doi.org/10.
 ### Paired-Explicit Runge-Kutta (PERK) Schemes
 
 Paired-Explicit Runge-Kutta (PERK) or `PairedExplicitRK` schemes are an advanced class of numerical methods designed to efficiently solve ODEs.
-In the [original publication](https://doi.org/10.1016/j.jcp.2019.05.014), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470)- and [fourth](https://doi.org/10.48550/arXiv.2408.05470)-order in subsequent works.
+In the [original publication](https://doi.org/10.1016/j.jcp.2019.05.014), second-order schemes were introduced, which have been extended to [third](https://doi.org/10.1016/j.jcp.2022.111470) and [fourth](https://doi.org/10.48550/arXiv.2408.05470) order in subsequent works.
 
 By construction, PERK schemes are suited for integrating multirate systems, i.e., systems with varying characteristics speeds throughout the domain.
 Nevertheless, due to their optimized stability properties and low-storage nature, the PERK schemes are also highly efficient when applied as standalone methods. In Trixi.jl, the standalone PERK integrators require that all stages of the method be active.
@@ -161,7 +161,7 @@ Next, we will construct the time integrator. In order to do this, you need the f
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 ```
 
-With everything now set up, you can now use `Trixi.solve` to solve the ODE problem. The `solve` function takes the ODE problem, the time integrator, and some options such as the time step (`dt`), whether to save every step (`save_everystep`), and the callbacks.
+With everything set up, you can now use `Trixi.solve` to solve the ODE problem. The `solve` function takes the ODE problem, the time integrator, and some options such as the time step (`dt`), whether to save every step (`save_everystep`), and the callbacks.
 
 ```@example PERK-example-1
 # Solve the ODE problem using PERK2
@@ -178,10 +178,10 @@ There are two additional constructors for the `PairedExplicitRK2` method besides
   - `PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64})` constructs a `num_stages`-stage using the optimization approach by Ketcheson and Ahmadia for the (reduced) spectrum `eig_vals`.
   The use-case for this constructor would be a large system, for which the computation of all eigenvalues is infeasible.
 
-#### Automatic computation of stable CFL Number
+#### Automatic computation of a stable CFL Number
 
 In the previous tutorial the CFL number was set manually to $2.5$.
-To avoid this trial-and error process, instantiations of `AbstractPairedExplicitRK` methods can automatically compute the stable CFL number for a given simulation setup using the [`Trixi.calculate_cfl`](@ref) function.
+To avoid the manual trial-and-error process behind this, instantiations of `AbstractPairedExplicitRK` methods can automatically compute the stable CFL number for a given simulation setup using the [`Trixi.calculate_cfl`](@ref) function.
 When constructing the time integrator from a semidiscretization `semi`, 
 ```@example PERK-example-1
 # Construct third-order paired-explicit Runge-Kutta method with 8 stages for given simulation setup.                               
