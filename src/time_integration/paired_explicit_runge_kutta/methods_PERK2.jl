@@ -241,17 +241,6 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
     return integrator
 end
 
-# Function that computes the first stage of a general P-ERK method
-# (in fact every explicit Runge-Kutta method)
-@inline function k1!(integrator::AbstractPairedExplicitRKIntegrator, p, c)
-    integrator.f(integrator.du, integrator.u, p, integrator.t)
-
-    @threaded for i in eachindex(integrator.du)
-        integrator.k1[i] = integrator.du[i] * integrator.dt
-        integrator.u_tmp[i] = integrator.u[i] + c[2] * integrator.k1[i]
-    end
-end
-
 function step!(integrator::PairedExplicitRK2Integrator)
     @unpack prob = integrator.sol
     @unpack alg = integrator
