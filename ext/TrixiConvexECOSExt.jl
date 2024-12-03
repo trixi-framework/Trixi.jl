@@ -102,7 +102,11 @@ function stability_polynomials_PERK4!(pnoms, num_stage_evals,
     end
 
     # For optimization only the maximum is relevant
-    return maximum(abs(pnoms))
+    if num_stage_evals == 5
+        return maximum(abs.(pnoms)) # If there is no variable to optimize, we need to use the broadcast operator.
+    else
+        return maximum(abs(pnoms))
+    end
 end
 
 #=

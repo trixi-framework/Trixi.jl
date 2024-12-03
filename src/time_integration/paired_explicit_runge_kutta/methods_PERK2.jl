@@ -32,9 +32,9 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since first entry of A is always zero (explicit method) and second is given by c_2 (consistency)
-    coeffs_max = num_stages - 2
+    num_coeffs_max = num_stages - 2
 
-    a_matrix = zeros(2, coeffs_max)
+    a_matrix = zeros(2, num_coeffs_max)
     a_matrix[1, :] = c[3:end]
 
     consistency_order = 2
@@ -52,7 +52,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
 
     if num_stages != consistency_order
         num_monomial_coeffs = length(monomial_coeffs)
-        @assert num_monomial_coeffs == coeffs_max
+        @assert num_monomial_coeffs == num_coeffs_max
         A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
         a_matrix[1, :] -= A
         a_matrix[2, :] = A
@@ -74,9 +74,9 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
     stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since first entry of A is always zero (explicit method) and second is given by c_2 (consistency)
-    coeffs_max = num_stages - 2
+    num_coeffs_max = num_stages - 2
 
-    a_matrix = zeros(2, coeffs_max)
+    a_matrix = zeros(2, num_coeffs_max)
     a_matrix[1, :] = c[3:end]
 
     path_monomial_coeffs = joinpath(base_path_monomial_coeffs,
@@ -86,7 +86,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
     monomial_coeffs = readdlm(path_monomial_coeffs, Float64)
     num_monomial_coeffs = size(monomial_coeffs, 1)
 
-    @assert num_monomial_coeffs == coeffs_max
+    @assert num_monomial_coeffs == num_coeffs_max
     A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
 
     a_matrix[1, :] -= A

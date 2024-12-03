@@ -75,9 +75,9 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     c = compute_c_coeffs(num_stages, cS2)
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
-    a_coeffs_max = num_stages - 2
+    num_a_coeffs_max = num_stages - 2
 
-    a_matrix = zeros(2, a_coeffs_max)
+    a_matrix = zeros(2, num_a_coeffs_max)
     a_matrix[1, :] = c[3:end]
 
     path_a_coeffs = joinpath(base_path_a_coeffs,
@@ -87,7 +87,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     a_coeffs = readdlm(path_a_coeffs, Float64)
     num_a_coeffs = size(a_coeffs, 1)
 
-    @assert num_a_coeffs == a_coeffs_max
+    @assert num_a_coeffs == num_a_coeffs_max
     # Fill A-matrix in PERK style
     a_matrix[1, :] -= a_coeffs
     a_matrix[2, :] = a_coeffs
