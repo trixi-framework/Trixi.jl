@@ -15,7 +15,7 @@ end
 using LinearAlgebra: eigvals
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, undo_normalization!, undo_normalization_PERK4!,
+using Trixi: Trixi, undo_normalization!,
              bisect_stability_polynomial, bisect_stability_polynomial_PERK4, @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
@@ -27,15 +27,10 @@ using Trixi: Trixi, undo_normalization!, undo_normalization_PERK4!,
 
 # Undo normalization of stability polynomial coefficients by index factorial
 # relative to consistency order.
-function Trixi.undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
-    for k in 1:(num_stage_evals - consistency_order)
-        gamma_opt[k] /= factorial(k+consistency_order)
-    end
-end
-
-function Trixi.undo_normalization_PERK4!(gamma_opt, num_stage_evals)
-    for k in 1:(num_stage_evals - 5)
-        gamma_opt[k] /= factorial(k + 4)
+function Trixi.undo_normalization!(gamma_opt, num_stage_evals,
+                                   num_reduced_coeffs, fac_offset)
+    for k in 1:(num_stage_evals - num_reduced_coeffs)
+        gamma_opt[k] /= factorial(k + fac_offset)
     end
 end
 
@@ -209,7 +204,8 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         gamma_opt = [gamma_opt]
     end
 
-    undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
+    undo_normalization!(gamma_opt, num_stage_evals,
+                        consistency_order, consistency_order)
 
     return gamma_opt, dt
 end
@@ -283,17 +279,18 @@ function Trixi.bisect_stability_polynomial_PERK4(num_eig_vals,
         println("Concluded stability polynomial optimization \n")
     end
 
-    gamma_opt = []
     if num_stage_evals > 5
         gamma_opt = evaluate(gamma)
-
-        # Catch case S = 6 (only one opt. variable)
-        if isa(gamma_opt, Number)
-            gamma_opt = [gamma_opt]
-        end
-
-        undo_normalization_PERK4!(gamma_opt, num_stage_evals)
+    else
+        gamma_opt = nothing # If there is no variable to optimize, return gamma_opt as nothing.
     end
+
+    # Catch case S = 6 (only one opt. variable)
+    if isa(gamma_opt, Number)
+        gamma_opt = [gamma_opt]
+    end
+
+    undo_normalization!(gamma_opt, num_stage_evals, 5, 4)
 
     return gamma_opt, dt
 end

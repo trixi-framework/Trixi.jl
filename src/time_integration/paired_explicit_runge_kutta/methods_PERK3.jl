@@ -49,8 +49,6 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     if num_stages == consistency_order
         a_unknown = [0.25] # Use classic SSPRK33 (Shu-Osher) Butcher Tableau
     else
-        undo_normalization!(monomial_coeffs, consistency_order, num_stages)
-
         # Solve the nonlinear system of equations from monomial coefficient and
         # Butcher array abscissae c to find Butcher matrix A
         # This function is extended in TrixiNLsolveExt.jl
