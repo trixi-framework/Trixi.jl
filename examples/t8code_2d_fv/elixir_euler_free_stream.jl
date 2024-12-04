@@ -74,6 +74,7 @@ summary_callback() # print the timer summary
 
 # Note: Since the mesh must be finalizized by hand in the elixir, it is not defined anymore here.
 # Moved allocation test to the elixirs for now.
+using Test
 let
     t = sol.t[end]
     u_ode = sol.u[end]
