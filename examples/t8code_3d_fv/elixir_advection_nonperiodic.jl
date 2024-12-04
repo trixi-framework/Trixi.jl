@@ -51,13 +51,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # Solve needs some value here but it will be overwritten by the stepsize_callback.
             save_everystep = false, callback = callbacks);
 summary_callback()
-
-# Note: Since the mesh must be finalizized by hand in the elixir, it is not defined anymore here.
-# Moved allocation test to the elixirs for now.
-using Test
-let
-    t = sol.t[end]
-    u_ode = sol.u[end]
-    du_ode = similar(u_ode)
-    @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-end
