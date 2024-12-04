@@ -101,6 +101,10 @@ function default_analysis_integrals(::IdealGlmMhdMulticomponentEquations2D)
     (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
+# Helper function to extract the magnetic field vector from the conservative variables
+magnetic_field(u, equations::IdealGlmMhdMulticomponentEquations2D) = SVector(u[5], u[6],
+                                                                             u[7])
+
 """
     initial_condition_convergence_test(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
 

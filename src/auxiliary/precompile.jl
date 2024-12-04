@@ -329,8 +329,10 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{typeof(Trixi.gauss_nodes_weights), Int})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_upper), Int})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_lower), Int})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int, Val{:gauss}})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int, Val{:gauss}})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int,
+                                  Val{:gauss}})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int,
+                                  Val{:gauss}})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int,
                                   Val{:gauss_lobatto}})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int,

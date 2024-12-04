@@ -104,7 +104,3 @@ let
 end
 
 GC.enable(true)
-
-# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
-# released before `MPI` finalizes.
-!isinteractive() && finalize(mesh)

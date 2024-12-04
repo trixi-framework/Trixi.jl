@@ -21,11 +21,11 @@ cells_per_dimension = (16, 16)
 mesh = DGMultiMesh(dg, cells_per_dimension; is_on_boundary)
 
 # BC types
-boundary_condition_left = BoundaryConditionDirichlet((x, t, equations) -> SVector(1 +
-                                                                                  0.1 *
-                                                                                  x[2]))
-boundary_condition_zero = BoundaryConditionDirichlet((x, t, equations) -> SVector(0.0))
-boundary_condition_neumann_zero = BoundaryConditionNeumann((x, t, equations) -> SVector(0.0))
+boundary_condition_left = BoundaryConditionDirichlet((x, t, equations_parabolic) -> SVector(1 +
+                                                                                            0.1 *
+                                                                                            x[2]))
+boundary_condition_zero = BoundaryConditionDirichlet((x, t, equations_parabolic) -> SVector(0.0))
+boundary_condition_neumann_zero = BoundaryConditionNeumann((x, t, equations_parabolic) -> SVector(0.0))
 
 # define inviscid boundary conditions
 boundary_conditions = (; :left => boundary_condition_left,

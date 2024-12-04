@@ -82,7 +82,3 @@ let
     du_ode = similar(u_ode)
     @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
 end
-
-# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
-# released before `MPI` finalizes.
-!isinteractive() && finalize(mesh)
