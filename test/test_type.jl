@@ -32,7 +32,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 6,
-                            n_cells_max = 30_000
+                            n_cells_max = 30_000)
 
             @test typeof(mesh.tree) == SerialTree{1, RealT}
 
@@ -41,7 +41,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 5,
-                            n_cells_max = 30_000
+                            n_cells_max = 30_000)
 
             @test typeof(mesh.tree) == SerialTree{2, RealT}
 
@@ -52,7 +52,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 4,
-                            n_cells_max = 30_000
+                            n_cells_max = 30_000)
 
             @test typeof(mesh.tree) == SerialTree{3, RealT}
         end
