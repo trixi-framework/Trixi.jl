@@ -130,6 +130,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2cons)
 
+# Why?
 example_callback = TrixiExtensionExample.ExampleStepCallback(message = "안녕하세요?")
 
 stepsize_callback = StepsizeCallback(cfl = 1.6)

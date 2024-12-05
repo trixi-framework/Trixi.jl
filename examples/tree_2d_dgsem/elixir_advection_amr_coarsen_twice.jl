@@ -25,10 +25,11 @@ end
 function (indicator::IndicatorAlwaysCoarsen)(u::AbstractArray{<:Any, 4},
                                              mesh, equations, dg, cache;
                                              t, kwargs...)
+    RealT = eltype(u)
     alpha = indicator.cache.alpha
     resize!(alpha, nelements(dg, cache))
 
-    alpha .= -1.0
+    alpha .= RealT(-1)
 
     return alpha
 end
