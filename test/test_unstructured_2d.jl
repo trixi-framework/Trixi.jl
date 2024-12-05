@@ -335,8 +335,8 @@ end
                         ],
                         linf=[
                             Float32(2.776782342826098),
-                            3.2162943f0, # this needs to be adapted
-                            3.6683278f0, # this needed to be adapted
+                            3.2116454f0, # this needs to be adapted
+                            3.6616623f0, # this needed to be adapted
                             Float32(2.052861364219655)
                         ],
                         tspan=(0.0f0, 0.25f0),

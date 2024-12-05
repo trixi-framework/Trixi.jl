@@ -1,0 +1,86 @@
+name: GPU Package Compatibility
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'AUTHORS.md'
+      - 'CITATION.bib'
+      - 'CONTRIBUTING.md'
+      - 'LICENSE.md'
+      - 'NEWS.md'
+      - 'README.md'
+      - '.zenodo.json'
+      - '.github/workflows/benchmark.yml'
+      - '.github/workflows/CompatHelper.yml'
+      - '.github/workflows/TagBot.yml'
+      - 'benchmark/**'
+      - 'docs/**'
+      - 'utils/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    name: ${{ matrix.os }} - ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: '1.10'
+            os: ubuntu-latest
+            arch: x64
+          - version: '1.10'
+            os: windows-latest
+            arch: x64
+          # CUDA.jl only supports 64-bit Linux and Windows, see https://github.com/JuliaGPU/CUDA.jl?tab=readme-ov-file#requirements
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+
+      - name: Display version info
+        run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
+
+      - name: Cache Julia packages
+        uses: julia-actions/cache@v2
+
+      - name: Build project
+        uses: julia-actions/julia-buildpkg@v1
+
+      # Only CUDA.jl is needed for GPU compatibility test now
+      - name: Add CUDA.jl to environment
+        run: |
+          julia --project=. -e '
+          using Pkg; 
+          Pkg.activate(temp=true);
+          Pkg.develop(PackageSpec(path=pwd())); 
+          Pkg.add("CUDA");
+          Pkg.update()'
+
+    #   - name: Add Metal.jl to environment
+    #     run: |
+    #       julia --project=. -e '
+    #       using Pkg;
+    #       Pkg.activate(temp=true);
+    #       Pkg.develop(PackageSpec(path=pwd()));
+    #       Pkg.add("Metal");
+    #       Pkg.update()'
+
+    #   - name: Add AMDGPU.jl to environment
+    #     run: |
+    #       julia --project=. -e '
+    #       using Pkg;
+    #       Pkg.activate(temp=true);
+    #       Pkg.develop(PackageSpec(path=pwd()));
+    #       Pkg.add("AMDGPU");
+    #       Pkg.update()'

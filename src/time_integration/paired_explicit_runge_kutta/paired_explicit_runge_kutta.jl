@@ -108,11 +108,40 @@ function solve!(integrator::AbstractPairedExplicitRKIntegrator)
 
     @trixi_timeit timer() "main loop" while !integrator.finalstep
         step!(integrator)
-    end # "main loop" timer
+    end
 
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                                   (prob.u0, integrator.u),
                                   integrator.sol.prob)
+end
+
+# Function that computes the first stage of a general PERK method
+@inline function PERK_k1!(integrator::AbstractPairedExplicitRKIntegrator, p)
+    integrator.f(integrator.k1, integrator.u, p, integrator.t)
+end
+
+@inline function PERK_k2!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg)
+    @threaded for i in eachindex(integrator.du)
+        integrator.u_tmp[i] = integrator.u[i] +
+                              alg.c[2] * integrator.dt * integrator.k1[i]
+    end
+
+    integrator.f(integrator.du, integrator.u_tmp, p,
+                 integrator.t + alg.c[2] * integrator.dt)
+end
+
+@inline function PERK_ki!(integrator::AbstractPairedExplicitRKSingleIntegrator, p, alg,
+                          stage)
+    # Construct current state
+    @threaded for i in eachindex(integrator.u)
+        integrator.u_tmp[i] = integrator.u[i] +
+                              integrator.dt *
+                              (alg.a_matrix[1, stage - 2] * integrator.k1[i] +
+                               alg.a_matrix[2, stage - 2] * integrator.du[i])
+    end
+
+    integrator.f(integrator.du, integrator.u_tmp, p,
+                 integrator.t + alg.c[stage] * integrator.dt)
 end
 
 # used for AMR (Adaptive Mesh Refinement)
@@ -122,7 +151,6 @@ function Base.resize!(integrator::AbstractPairedExplicitRKIntegrator, new_size)
     resize!(integrator.u_tmp, new_size)
 
     resize!(integrator.k1, new_size)
-    resize!(integrator.k_higher, new_size)
 end
 
 # get a cache where the RHS can be stored

@@ -148,7 +148,7 @@ end
 function flux(u, gradients, orientation::Integer,
               equations::CompressibleNavierStokesDiffusion1D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
-    rho, v1, _ = convert_transformed_to_primitive(u, equations)
+    _, v1, _ = convert_transformed_to_primitive(u, equations)
     # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
     # either computed directly or reverse engineered from the gradient of the entropy variables
     # by way of the `convert_gradient_variables` function.
@@ -255,6 +255,12 @@ end
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho_v1^2 / rho)
     T = p / rho
     return T
+end
+
+@inline function velocity(u, equations::CompressibleNavierStokesDiffusion1D)
+    rho = u[1]
+    v1 = u[2] / rho
+    return v1
 end
 
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:NoSlip,
