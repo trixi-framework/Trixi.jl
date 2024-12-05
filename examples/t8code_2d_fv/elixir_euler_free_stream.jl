@@ -25,21 +25,15 @@ function mapping(xi_, eta_)
     return SVector(x, y)
 end
 
-###############################################################################
-# Get the uncurved mesh from a file (downloads the file if not available locally)
+trees_per_dimension = (2, 2)
 
-# Unstructured mesh with 48 cells of the square domain [-1, 1]^n
-mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/a075f8ec39a67fa9fad8f6f84342cbca/raw/a7206a02ed3a5d3cadacd8d9694ac154f9151db7/square_unstructured_1.inp",
-                           joinpath(@__DIR__, "square_unstructured_1.inp"))
-
-# Note:
-# Including mapping does not work yet for FV.
-mesh = T8codeMesh(mesh_file, 2; polydeg = 0,
+element_class = :quad
+mesh = T8codeMesh(trees_per_dimension, element_class,
                   mapping = mapping,
-                  initial_refinement_level = 2)
+                  initial_refinement_level = 4)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition)))
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+# TODO: Non-periodic: boundary_conditions = Dict(:all => BoundaryConditionDirichlet(initial_condition)))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -54,7 +48,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-stepsize_callback = StepsizeCallback(cfl = 0.9)
+stepsize_callback = StepsizeCallback(cfl = 0.6)
 
 save_solution = SaveSolutionCallback(interval = 10,
                                      solution_variables = cons2prim)
@@ -70,4 +64,4 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+summary_callback()

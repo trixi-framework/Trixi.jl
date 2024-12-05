@@ -376,6 +376,31 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_free_stream.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_free_stream.jl"),
+                        l2=[
+                            1.7973125925423364e-16,
+                            1.1963859347595053e-15,
+                            1.0488601018970845e-15,
+                            2.0355102069233768e-15
+                        ],
+                        l2=[
+                            2.063350241405049e-15,
+                            1.8571016296925367e-14,
+                            5.023759186428833e-15,
+                            4.618527782440651e-14
+                        ],
+                        atol=1.0e-17,)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_kelvin_helmholtz_instability.jl" begin
     @trixi_testset "first-order FV" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
