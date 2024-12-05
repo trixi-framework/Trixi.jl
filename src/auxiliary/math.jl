@@ -15,7 +15,7 @@ By default, Polyester.jl is enabled, but it can
 be useful for performance comparisons to switch to the Julia core backend.
 
 This does not fully disable Polyester.jl,
-buy only its use as part of Trixi.jl's `@threaded` macro.
+but only its use as part of Trixi.jl's [`@threaded`](@ref) macro.
 """
 function set_polyester!(toggle::Bool; force = true)
     set_preferences!(TRIXI_UUID, "polyester" => toggle, force = force)

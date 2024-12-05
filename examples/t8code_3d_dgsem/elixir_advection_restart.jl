@@ -21,7 +21,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 tspan = (load_time(restart_filename), 2.0)
 dt = load_dt(restart_filename)
-ode = semidiscretize(semi, tspan, restart_filename);
+ode = semidiscretize(semi, tspan, restart_filename)
 
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
 save_solution.condition.save_initial_solution = false
@@ -38,7 +38,3 @@ load_timestep!(integrator, restart_filename)
 
 sol = solve!(integrator)
 summary_callback() # print the timer summary
-
-# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
-# released before `MPI` finalizes.
-!isinteractive() && finalize(mesh)

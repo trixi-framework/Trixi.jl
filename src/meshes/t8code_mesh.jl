@@ -7,7 +7,7 @@ to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    forest      :: Ptr{t8_forest} # cpointer to forest
+    forest      :: T8code.ForestWrapper
     is_parallel :: IsParallel
 
     # This specifies the geometry interpolation for each tree.
@@ -34,7 +34,7 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                                RealT = Float64) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
 
-        mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
+        mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
                                                                                 is_parallel)
 
         mesh.nodes = nodes
@@ -44,18 +44,35 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
         mesh.unsaved_changes = true
 
         finalizer(mesh) do mesh
-            # When finalizing, `forest`, `scheme`, `cmesh`, and `geometry` are
-            # also cleaned up from within `t8code`. The cleanup code for
-            # `cmesh` does some MPI calls for deallocating shared memory
-            # arrays. Due to garbage collection in Julia the order of shutdown
-            # is not deterministic. Hence, "manual" finalization might be
-            # necessary in order to avoid MPI-related error output when closing
-            # the Julia program/session.
-            t8_forest_unref(Ref(mesh.forest))
+            # In serial mode we can finalize the forest right away. In parallel
+            # mode we keep the forest till Trixi shuts down or the user
+            # finalizes the forest wrapper explicitly.
+            if !mpi_isparallel()
+                finalize(mesh.forest)
+            end
         end
 
         return mesh
     end
+end
+
+"""
+    Trixi.update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
+
+Update the `mesh` object with the `new_forest`. Ownership of the old forest
+goes to caller.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh.
+- `new_forest::Ptr{t8_forest}`: New forest.
+
+Returns `nothing`.
+"""
+function update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
+    # `mesh.forest` must not be overwritten. Its lifetime is attached to the
+    # `mesh` lifetime. Thus, this setter function.
+    mesh.forest.pointer = new_forest
+    return nothing
 end
 
 const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
@@ -232,13 +249,13 @@ function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
     # The adapt callback refines the forest according to the `levels` array.
     # For each tree the callback recursively increases the refinement level
     # till it matches with the associated section in `levels.
-    forest = adapt(forest, adapt_callback; recursive = true, balance = false,
-                   partition = false, ghost = false, user_data = C_NULL)
+    forest = adapt_forest(forest, adapt_callback; recursive = true, balance = false,
+                          partition = false, ghost = false, user_data = C_NULL)
 
     @assert t8_forest_get_global_num_elements(forest) == nelements
 
     if mpi_isparallel()
-        forest = partition(forest)
+        forest = partition_forest(forest)
     end
 
     return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
@@ -853,42 +870,27 @@ function adapt_callback_wrapper(forest,
 end
 
 """
-    Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+    Trixi.adapt_forest(forest::Ptr{t8_forest}, adapt_callback; kwargs...)
 
-Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
+Adapt a `T8codeMesh` according to a user-defined `adapt_callback`. This
+function is primarily for internal use. See `Trixi.adapt!(mesh::T8codeMesh,
+adapt_callback; kwargs...)` for a more detailed documentation.
 
 # Arguments
-- `mesh::T8codeMesh`: Initialized mesh object.
+- `forest::Ptr{t8_forest}`: New forest.
 - `adapt_callback`: A user-defined callback which tells the adaption routines
                     if an element should be refined, coarsened or stay unchanged.
+- `kwargs`: Refer to `Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)`.
 
-    The expected callback signature is as follows:
+Note that the old forest usually gets deallocated within t8code. Call
+`t8_forest_ref(Ref(mesh.forest))` beforehand to prevent that.
 
-      `adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family, user_data)`
-        # Arguments
-        - `forest`: Pointer to the analyzed forest.
-        - `ltreeid`: Local index of the current tree where the analyzed elements are part of.
-        - `eclass_scheme`: Element class of `elements`.
-        - `lelemntid`: Local index of the first element in `elements`.
-        - `elements`: Array of elements. If consecutive elements form a family
-                      they are passed together, otherwise `elements` consists of just one element.
-        - `is_family`: Boolean signifying if `elements` represents a family or not.
-        - `user_data`: Void pointer to some arbitrary user data. Default value is `C_NULL`.
-        # Returns
-          -1 : Coarsen family of elements.
-           0 : Stay unchanged.
-           1 : Refine element.
-
-- `kwargs`:
-    - `recursive = true`: Adapt the forest recursively. If true the caller must ensure that the callback
-                          returns 0 for every analyzed element at some point to stop the recursion.
-    - `balance = true`: Make sure the adapted forest is 2^(NDIMS-1):1 balanced.
-    - `partition = true`: Partition the forest to redistribute elements evenly among MPI ranks.
-    - `ghost = true`: Create a ghost layer for MPI data exchange.
-    - `user_data = C_NULL`: Pointer to some arbitrary user-defined data.
+Returns a `Ptr{t8_forest}` to a new forest.
 """
-function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance = true,
-               partition = true, ghost = true, user_data = C_NULL)
+function adapt_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}}, adapt_callback;
+                      recursive = true,
+                      balance = true,
+                      partition = true, ghost = true, user_data = C_NULL)
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
 
@@ -931,33 +933,79 @@ function adapt(forest::Ptr{t8_forest}, adapt_callback; recursive = true, balance
     return new_forest
 end
 
+"""
+    Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+
+Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh object.
+- `adapt_callback`: A user-defined callback which tells the adaption routines
+                    if an element should be refined, coarsened or stay unchanged.
+
+    The expected callback signature is as follows:
+
+      `adapt_callback(forest, ltreeid, eclass_scheme, lelemntid, elements, is_family, user_data)`
+        # Arguments
+        - `forest`: Pointer to the analyzed forest.
+        - `ltreeid`: Local index of the current tree where the analyzed elements are part of.
+        - `eclass_scheme`: Element class of `elements`.
+        - `lelemntid`: Local index of the first element in `elements`.
+        - `elements`: Array of elements. If consecutive elements form a family
+                      they are passed together, otherwise `elements` consists of just one element.
+        - `is_family`: Boolean signifying if `elements` represents a family or not.
+        - `user_data`: Void pointer to some arbitrary user data. Default value is `C_NULL`.
+        # Returns
+          -1 : Coarsen family of elements.
+           0 : Stay unchanged.
+           1 : Refine element.
+
+- `kwargs`:
+    - `recursive = true`: Adapt the forest recursively. If true the caller must ensure that the callback
+                          returns 0 for every analyzed element at some point to stop the recursion.
+    - `balance = true`: Make sure the adapted forest is 2^(NDIMS-1):1 balanced.
+    - `partition = true`: Partition the forest to redistribute elements evenly among MPI ranks.
+    - `ghost = true`: Create a ghost layer for MPI data exchange.
+    - `user_data = C_NULL`: Pointer to some arbitrary user-defined data.
+
+Returns `nothing`.
+"""
 function adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
     # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
-    mesh.forest = adapt(mesh.forest, adapt_callback; kwargs...)
+    update_forest!(mesh, adapt_forest(mesh.forest, adapt_callback; kwargs...))
+    return nothing
+end
+
+function balance_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}})
+    new_forest_ref = Ref{t8_forest_t}()
+    t8_forest_init(new_forest_ref)
+    new_forest = new_forest_ref[]
+
+    let set_from = forest, no_repartition = 1, do_ghost = 1
+        t8_forest_set_balance(new_forest, set_from, no_repartition)
+        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
+        t8_forest_commit(new_forest)
+    end
+
+    return new_forest
 end
 
 """
     Trixi.balance!(mesh::T8codeMesh)
 
 Balance a `T8codeMesh` to ensure 2^(NDIMS-1):1 face neighbors.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh object.
+
+Returns `nothing`.
 """
 function balance!(mesh::T8codeMesh)
-    new_forest_ref = Ref{t8_forest_t}()
-    t8_forest_init(new_forest_ref)
-    new_forest = new_forest_ref[]
-
-    let set_from = mesh.forest, no_repartition = 1, do_ghost = 1
-        t8_forest_set_balance(new_forest, set_from, no_repartition)
-        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
-        t8_forest_commit(new_forest)
-    end
-
-    mesh.forest = new_forest
-
+    update_forest!(mesh, balance_forest(mesh.forest))
     return nothing
 end
 
-function partition(forest::Ptr{t8_forest})
+function partition_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}})
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
@@ -978,9 +1026,11 @@ Partition a `T8codeMesh` in order to redistribute elements evenly among MPI rank
 
 # Arguments
 - `mesh::T8codeMesh`: Initialized mesh object.
+
+Returns `nothing`.
 """
 function partition!(mesh::T8codeMesh)
-    mesh.forest = partition(mesh.forest)
+    update_forest!(mesh, partition_forest(mesh.forest))
     return nothing
 end
 
@@ -997,7 +1047,7 @@ function count_interfaces(mesh::T8codeMesh)
     return count_interfaces(mesh.forest, ndims(mesh))
 end
 
-function count_interfaces(forest::Ptr{t8_forest}, ndims)
+function count_interfaces(forest, ndims)
     @assert t8_forest_is_committed(forest) != 0
 
     num_local_elements = t8_forest_get_local_num_elements(forest)
