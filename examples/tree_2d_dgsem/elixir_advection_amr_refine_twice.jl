@@ -25,11 +25,10 @@ end
 function (indicator::IndicatorAlwaysRefine)(u::AbstractArray{<:Any, 4},
                                             mesh, equations, dg, cache;
                                             t, kwargs...)
-    RealT = eltype(u)
     alpha = indicator.cache.alpha
     resize!(alpha, nelements(dg, cache))
 
-    alpha .= RealT(1)
+    fill!(alpha, 1)
 
     return alpha
 end

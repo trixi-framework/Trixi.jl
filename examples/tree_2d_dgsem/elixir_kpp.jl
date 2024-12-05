@@ -39,7 +39,9 @@ end
 end
 
 # Wavespeeds
-@inline wavespeed(::KPPEquation2D) = 1.0 # mark
+# Please note that the return type should be modified if other
+# floating point types should be used.
+@inline wavespeed(::KPPEquation2D) = 1.0
 @inline Trixi.max_abs_speeds(u, equation::KPPEquation2D) = (wavespeed(equation),
                                                             wavespeed(equation))
 @inline Trixi.max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equation::KPPEquation2D) = wavespeed(equation)
