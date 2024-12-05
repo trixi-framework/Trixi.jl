@@ -344,7 +344,7 @@ summary_callback()
 
 source_region(x) = sum(abs2, x) < 6^2 # calculate sources within radius 6 around origin
 # gradually reduce acoustic source term amplitudes to zero, starting at radius 5
-weights(x) = sum(abs2, x) < 5^2 ? one(RealT) : cospi(0.5f0 * (norm(x) - 5))
+weights(x) = sum(abs2, x) < 5^2 ? one(eltype(x)) : cospi(0.5f0 * (norm(x) - 5))
 
 semi = SemidiscretizationEulerAcoustics(semi_acoustics, semi_euler,
                                         source_region = source_region, weights = weights)
