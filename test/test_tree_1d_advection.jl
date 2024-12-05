@@ -142,6 +142,20 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
     end
 end
+
+@trixi_testset "elixir_advection_doublefloat.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_doublefloat.jl"),
+                        l2=Double64[6.80895929885700039832943251427357703e-11],
+                        linf=Double64[5.82834770064525291688100323411704252e-10])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 end # module

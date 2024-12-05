@@ -268,6 +268,12 @@ end
 @timed_testset "interpolation" begin
     @testset "nodes and weights" begin
         @test Trixi.gauss_nodes_weights(1) == ([0.0], [2.0])
+
+        @test Trixi.gauss_nodes_weights(2)[1] ≈ [-1 / sqrt(3), 1 / sqrt(3)]
+        @test Trixi.gauss_nodes_weights(2)[2] == [1.0, 1.0]
+
+        @test Trixi.gauss_nodes_weights(3)[1] ≈ [-sqrt(3 / 5), 0.0, sqrt(3 / 5)]
+        @test Trixi.gauss_nodes_weights(3)[2] ≈ [5 / 9, 8 / 9, 5 / 9]
     end
 
     @testset "multiply_dimensionwise" begin
@@ -1700,7 +1706,7 @@ end
 
     ode_algorithm = Trixi.PairedExplicitRK2(6, path_coeff_file)
 
-    @test isapprox(ode_algorithm.a_matrix,
+    @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.12405417889682908 0.07594582110317093
                     0.16178873711001726 0.13821126288998273
                     0.16692313960864164 0.2330768603913584
@@ -1713,7 +1719,7 @@ end
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK2(12, tspan, vec(eig_vals))
 
-    @test isapprox(ode_algorithm.a_matrix,
+    @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.06453812656711647 0.02637096434197444
                     0.09470601372274887 0.041657622640887494
                     0.12332877820069793 0.058489403617483886
@@ -1733,7 +1739,7 @@ end
 
     ode_algorithm = Trixi.PairedExplicitRK3(8, path_coeff_file)
 
-    @test isapprox(ode_algorithm.a_matrix,
+    @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.33551678438002486 0.06448322158043965
                     0.49653494442225443 0.10346507941960345
                     0.6496890912144586 0.15031092070647037
@@ -1748,7 +1754,7 @@ end
     tspan = (0.0, 1.0)
     ode_algorithm = Trixi.PairedExplicitRK3(13, tspan, vec(eig_vals))
 
-    @test isapprox(ode_algorithm.a_matrix,
+    @test isapprox(transpose(ode_algorithm.a_matrix),
                    [0.19121164778938382 0.008788355190848427
                     0.28723462747227385 0.012765384448655121
                     0.38017717196008227 0.019822834000382223
