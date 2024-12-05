@@ -48,7 +48,8 @@ function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
     dens = dens0 +
            (Chi - 1) * 0.5f0 * (1 + (tanh(slope * (r + R)) - (tanh(slope * (r - R)) + 1)))
     # velocity blob is zero
-    velx = velx0 - velx0 * 0.5f0 * (1 + (tanh(slope * (r + R)) - (tanh(slope * (r - R)) + 1)))
+    velx = velx0 -
+           velx0 * 0.5f0 * (1 + (tanh(slope * (r + R)) - (tanh(slope * (r - R)) + 1)))
     return prim2cons(SVector(dens, velx, vely0, p0), equations)
 end
 initial_condition = initial_condition_blob

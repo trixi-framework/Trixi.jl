@@ -22,7 +22,7 @@ function initial_condition_colliding_flow_astro(x, t,
     rho = convert(RealT, 0.0247)
     c = convert(RealT, 0.2)
     p = c^2 / gamma * rho
-    vel =  convert(RealT, 13.907432274789372)
+    vel = convert(RealT, 13.907432274789372)
     slope = 1
     v1 = -vel * tanh(slope * x[1])
     # add small initial disturbance to the field, but only close to the interface

@@ -27,7 +27,7 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
     sin_phi, cos_phi = sincos(phi)
 
     # Calculate primitive variables
-    rho = r > 0.5f0  ? one(RealT) : RealT(1.1691)
+    rho = r > 0.5f0 ? one(RealT) : RealT(1.1691)
     v1 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * cos_phi
     v2 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * sin_phi
     p = r > 0.5f0 ? RealT(1.0E-3) : RealT(1.245)
