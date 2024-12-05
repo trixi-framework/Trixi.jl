@@ -23,7 +23,6 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
     # domain size is [-1,+1]^2
     RealT = eltype(x)
     slope = 15
-    amplitude = convert(RealT, 0.02)
     B = tanh(slope * x[2] + 7.5f0) - tanh(slope * x[2] - 7.5f0)
     rho = 0.5f0 + 0.75f0 * B
     v1 = 0.5f0 * (B - 1)
