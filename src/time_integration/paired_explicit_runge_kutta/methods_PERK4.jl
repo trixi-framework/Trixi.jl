@@ -233,13 +233,13 @@ end
 
 @inline function last_three_stages!(integrator::PairedExplicitRK4Integrator, p, alg)
     for stage in 1:2
-        @threaded for u_ind in eachindex(integrator.u)
-            integrator.u_tmp[u_ind] = integrator.u[u_ind] +
+        @threaded for i in eachindex(integrator.u)
+            integrator.u_tmp[u_ind] = integrator.u[i] +
                                       integrator.dt *
                                       (alg.a_matrix_constant[1, stage] *
-                                       integrator.k1[u_ind] +
+                                       integrator.k1[i] +
                                        alg.a_matrix_constant[2, stage] *
-                                       integrator.du[u_ind])
+                                       integrator.du[i])
         end
 
         integrator.f(integrator.du, integrator.u_tmp, p,
@@ -263,11 +263,11 @@ end
     integrator.f(integrator.du, integrator.u_tmp, p,
                  integrator.t + alg.c[alg.num_stages] * integrator.dt)
 
-    @threaded for u_ind in eachindex(integrator.u)
+    @threaded for i in eachindex(integrator.u)
         # Note that 'k1' carries the values of K_{S-1}
         # and that we construct 'K_S' "in-place" from 'integrator.du'
         integrator.u[u_ind] += 0.5 * integrator.dt *
-                               (integrator.k1[u_ind] + integrator.du[u_ind])
+                               (integrator.k1[i] + integrator.du[i])
     end
 end
 
