@@ -34,27 +34,27 @@ isdir(outdir) && rm(outdir, recursive = true)
                             initial_refinement_level = 6,
                             n_cells_max = 30_000)
 
-            @test typeof(mesh.tree) == SerialTree{1, RealT}
+            @test typeof(@inferred mesh.tree) == SerialTree{1, RealT}
 
-            coordinates_min = (-convert(RealT, 1), -convert(RealT, 42))
-            coordinates_max = (convert(RealT, 1), convert(RealT, 42))
+            coordinates_min = (-convert(RealT, 42), -convert(RealT, 42))
+            coordinates_max = (convert(RealT, 42), convert(RealT, 42))
 
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 5,
                             n_cells_max = 30_000)
 
-            @test typeof(mesh.tree) == SerialTree{2, RealT}
+            @test typeof(@inferred mesh.tree) == SerialTree{2, RealT}
 
-            coordinates_min = (-convert(RealT, 1), -convert(RealT, 42), 
+            coordinates_min = (-convert(RealT, pi), -convert(RealT, pi), 
                                -convert(RealT, pi))
-            coordinates_max = (convert(RealT, 1), convert(RealT, 42), 
+            coordinates_max = (convert(RealT, pi), convert(RealT, pi), 
                                convert(RealT, pi))
 
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 4,
                             n_cells_max = 30_000)
 
-            @test typeof(mesh.tree) == SerialTree{3, RealT}
+            @test typeof(@inferred mesh.tree) == SerialTree{3, RealT}
         end
     end
 
