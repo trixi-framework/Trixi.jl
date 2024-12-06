@@ -28,21 +28,22 @@ end
 
 # Initial condition
 function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquations2D)
+    RealT = eltype(x)
     @unpack g, c_p, c_v = setup
 
     # center of perturbation
-    center_x = 10000.0
-    center_z = 2000.0
+    center_x = 10000
+    center_z = 2000
     # radius of perturbation
-    radius = 2000.0
+    radius = 2000
     # distance of current x to center of perturbation
     r = sqrt((x[1] - center_x)^2 + (x[2] - center_z)^2)
 
     # perturbation in potential temperature
-    potential_temperature_ref = 300.0
-    potential_temperature_perturbation = 0.0
+    potential_temperature_ref = 300
+    potential_temperature_perturbation = zero(RealT)
     if r <= radius
-        potential_temperature_perturbation = 2 * cospi(0.5 * r / radius)^2
+        potential_temperature_perturbation = 2 * cospi(0.5f0 * r / radius)^2
     end
     potential_temperature = potential_temperature_ref + potential_temperature_perturbation
 
@@ -50,7 +51,7 @@ function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquations2D)
     exner = 1 - g / (c_p * potential_temperature) * x[2]
 
     # pressure
-    p_0 = 100_000.0  # reference pressure
+    p_0 = 100_000  # reference pressure
     R = c_p - c_v    # gas constant (dry air)
     p = p_0 * exner^(c_p / R)
 
@@ -60,9 +61,9 @@ function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquations2D)
     # density
     rho = p / (R * T)
 
-    v1 = 20.0
-    v2 = 0.0
-    E = c_v * T + 0.5 * (v1^2 + v2^2)
+    v1 = 20
+    v2 = 0
+    E = c_v * T + 0.5f0 * (v1^2 + v2^2)
     return SVector(rho, rho * v1, rho * v2, rho * E)
 end
 

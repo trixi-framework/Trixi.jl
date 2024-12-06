@@ -20,16 +20,17 @@ Initial condition for the monopole in a boundary layer setup, used in combinatio
 [`boundary_condition_monopole`](@ref).
 """
 function initial_condition_monopole(x, t, equations::AcousticPerturbationEquations2D)
-    m = 0.3 # Mach number
+    RealT = eltype(x)
+    m = convert(RealT, 0.3) # Mach number
 
-    v1_prime = 0.0
-    v2_prime = 0.0
-    p_prime = 0.0
+    v1_prime = 0
+    v2_prime = 0
+    p_prime = 0
 
     v1_mean = x[2] > 1 ? m : m * (2 * x[2] - 2 * x[2]^2 + x[2]^4)
-    v2_mean = 0.0
-    c_mean = 1.0
-    rho_mean = 1.0
+    v2_mean = 0
+    c_mean = 1
+    rho_mean = 1
 
     prim = SVector(v1_prime, v2_prime, p_prime, v1_mean, v2_mean, c_mean, rho_mean)
 
@@ -48,6 +49,7 @@ with [`initial_condition_monopole`](@ref).
 function boundary_condition_monopole(u_inner, orientation, direction, x, t,
                                      surface_flux_function,
                                      equations::AcousticPerturbationEquations2D)
+    RealT = eltype(u_inner)
     if direction != 3
         error("expected direction = 3, got $direction instead")
     end
@@ -56,9 +58,9 @@ function boundary_condition_monopole(u_inner, orientation, direction, x, t,
     # we use a sinusoidal boundary state for the perturbed variables. For the rest of the -y boundary
     # we set the boundary state to the inner state and multiply the perturbed velocity in the
     # y-direction by -1.
-    if -0.05 <= x[1] <= 0.05 # Monopole
-        v1_prime = 0.0
-        v2_prime = p_prime = sin(2 * pi * t)
+    if RealT(-0.05) <= x[1] <= RealT(0.05) # Monopole
+        v1_prime = 0
+        v2_prime = p_prime = sinpi(2 * t)
 
         prim_boundary = SVector(v1_prime, v2_prime, p_prime, u_inner[4], u_inner[5],
                                 u_inner[6], u_inner[7])

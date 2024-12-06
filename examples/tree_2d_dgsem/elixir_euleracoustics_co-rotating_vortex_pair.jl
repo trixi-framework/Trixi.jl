@@ -30,9 +30,10 @@ end
 
 # Analytical flow solution, used for the initial condition of the flow simulation
 function velocity(x, t, vortex_pair::VortexPair)
+    RealT = eltype(x)
     @unpack r0, rc, circulation = vortex_pair
 
-    omega = circulation / (4 * pi * r0^2)
+    omega = circulation / (4 * convert(RealT, pi) * r0^2)
     si, co = sincos(omega * t)
     b = SVector(r0 * co, r0 * si) # vortex centers are b and -b
     z_plus = x - b
@@ -47,9 +48,9 @@ function velocity(x, t, vortex_pair::VortexPair)
     si_plus, co_plus = sincos(theta_plus)
     si_minus, co_minus = sincos(theta_minus)
 
-    v1 = -circulation / (2 * pi) * (r_plus / (rc^2 + r_plus^2) * si_plus +
+    v1 = -circulation / (2 * convert(RealT, pi)) * (r_plus / (rc^2 + r_plus^2) * si_plus +
           r_minus / (rc^2 + r_minus^2) * si_minus)
-    v2 = circulation / (2 * pi) * (r_plus / (rc^2 + r_plus^2) * co_plus +
+    v2 = circulation / (2 * convert(RealT, pi)) * (r_plus / (rc^2 + r_plus^2) * co_plus +
           r_minus / (rc^2 + r_minus^2) * co_minus)
 
     return SVector(v1, v2)
@@ -69,7 +70,7 @@ function (initial_condition::InitialCondition)(x, t,
 
     v = velocity(x, t, vortex_pair)
     p0 = rho0 * c0^2 / gamma
-    p = p0 - 0.5 * (gamma - 1) / gamma * sum(v .^ 2) # Bernoulli's principle
+    p = p0 - 0.5f0 * (gamma - 1) / gamma * sum(v .^ 2) # Bernoulli's principle
 
     prim = SVector(rho0, v[1], v[2], p)
     return prim2cons(prim, equations)
@@ -341,9 +342,9 @@ summary_callback()
 ###############################################################################
 # set up coupled semidiscretization
 
-source_region(x) = sum(abs2, x) < 6.0^2 # calculate sources within radius 6 around origin
+source_region(x) = sum(abs2, x) < 6^2 # calculate sources within radius 6 around origin
 # gradually reduce acoustic source term amplitudes to zero, starting at radius 5
-weights(x) = sum(abs2, x) < 5.0^2 ? 1.0 : cospi(0.5 * (norm(x) - 5.0))
+weights(x) = sum(abs2, x) < 5^2 ? one(eltype(x)) : cospi(0.5f0 * (norm(x) - 5))
 
 semi = SemidiscretizationEulerAcoustics(semi_acoustics, semi_euler,
                                         source_region = source_region, weights = weights)

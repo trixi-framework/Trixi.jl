@@ -25,17 +25,18 @@ end
 function (indicator::IndicatorRefineCoarsen)(u::AbstractArray{<:Any, 4},
                                              mesh, equations, dg, cache;
                                              t, kwargs...)
+    RealT = eltype(u)
     alpha = indicator.cache.alpha
     resize!(alpha, nelements(dg, cache))
 
-    if t >= 0.7 && t < 1.0
+    if t >= RealT(0.7) && t < 1
         # Refine to max level
-        alpha .= 1.0
-    elseif t >= 1.0
+        alpha .= one(RealT)
+    elseif t >= 1
         # Coarsen to base level
-        alpha .= -1.0
+        alpha .= -one(RealT)
     else
-        alpha .= 0.0
+        alpha .= zero(RealT)
     end
 
     return alpha

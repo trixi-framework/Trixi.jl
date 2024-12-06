@@ -28,7 +28,7 @@ function (indicator::IndicatorAlwaysRefine)(u::AbstractArray{<:Any, 4},
     alpha = indicator.cache.alpha
     resize!(alpha, nelements(dg, cache))
 
-    alpha .= 1.0
+    fill!(alpha, 1)
 
     return alpha
 end
