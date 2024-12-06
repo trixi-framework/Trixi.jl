@@ -26,35 +26,39 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @timed_testset "TreeMesh & SerialTree type consistence" begin
+        get_tree(mesh::TreeMesh) = mesh.tree
         for RealT in (Float32, Float64)
             coordinates_min = -convert(RealT, 1)
             coordinates_max = convert(RealT, 1)
 
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 6,
-                            n_cells_max = 30_000)
+                            n_cells_max = 30_000,
+                            RealT = RealT)
 
-            @test typeof(@inferred mesh.tree) == SerialTree{1, RealT}
+            @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{1, RealT}
 
             coordinates_min = (-convert(RealT, 42), -convert(RealT, 42))
             coordinates_max = (convert(RealT, 42), convert(RealT, 42))
 
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 5,
-                            n_cells_max = 30_000)
+                            n_cells_max = 30_000,
+                            RealT = RealT)
 
-            @test typeof(@inferred mesh.tree) == SerialTree{2, RealT}
+            @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{2, RealT}
 
-            coordinates_min = (-convert(RealT, pi), -convert(RealT, pi), 
+            coordinates_min = (-convert(RealT, pi), -convert(RealT, pi),
                                -convert(RealT, pi))
-            coordinates_max = (convert(RealT, pi), convert(RealT, pi), 
+            coordinates_max = (convert(RealT, pi), convert(RealT, pi),
                                convert(RealT, pi))
 
             mesh = TreeMesh(coordinates_min, coordinates_max,
                             initial_refinement_level = 4,
-                            n_cells_max = 30_000)
+                            n_cells_max = 30_000,
+                            RealT = RealT)
 
-            @test typeof(@inferred mesh.tree) == SerialTree{3, RealT}
+            @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{3, RealT}
         end
     end
 
