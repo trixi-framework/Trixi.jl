@@ -8,7 +8,7 @@
 function calc_dt_for_cleaning_speed(cfl::Real, mesh,
                                     equations::Union{AbstractIdealGlmMhdEquations,
                                                      AbstractIdealGlmMhdMulticomponentEquations,
-                                                     IdealMhdMultiIonEquations2D},
+                                                     IdealGlmMhdMultiIonEquations2D},
                                     dg::DG, cache)
     # compute time step for GLM linear advection equation with c_h=1 for the DG discretization on
     # Cartesian meshes
@@ -30,7 +30,7 @@ end
 function calc_dt_for_cleaning_speed(cfl::Real, mesh,
                                     equations::Union{AbstractIdealGlmMhdEquations,
                                                      AbstractIdealGlmMhdMulticomponentEquations,
-                                                     IdealMhdMultiIonEquations2D},
+                                                     IdealGlmMhdMultiIonEquations2D},
                                     dg::DGMulti, cache)
     rd = dg.basis
     md = mesh.md

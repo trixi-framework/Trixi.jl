@@ -4,8 +4,8 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the ideal MHD equations
-equations = IdealMhdMultiIonEquations2D(gammas = (2.0, 2.0),
-                                        charge_to_mass = (1.0, 1.0))
+equations = IdealGlmMhdMultiIonEquations2D(gammas = (2.0, 2.0),
+                                           charge_to_mass = (1.0, 1.0))
 
 initial_condition = initial_condition_weak_blast_wave
 
