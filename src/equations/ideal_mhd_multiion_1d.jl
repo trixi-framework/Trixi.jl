@@ -179,7 +179,7 @@ end
 """
 Standard source terms of the multi-ion MHD equations
 """
-function source_terms_standard(u, x, t, equations::IdealMhdMultiIonEquations1D)
+function source_terms_lorentz(u, x, t, equations::IdealMhdMultiIonEquations1D)
     @unpack charge_to_mass = equations
     B1, B2, B3 = magnetic_field(u, equations)
     v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,

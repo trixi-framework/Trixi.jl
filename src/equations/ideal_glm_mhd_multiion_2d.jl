@@ -6,9 +6,35 @@
 #! format: noindent
 
 @doc raw"""
-    IdealGlmMhdMultiIonEquations2D
+    IdealGlmMhdMultiIonEquations2D(; gammas, charge_to_mass, 
+                                   electron_pressure = electron_pressure_zero,
+                                   initial_c_h = NaN)
 
-The ideal compressible multi-ion MHD equations in two space dimensions.
+The ideal compressible multi-ion MHD equations in two space dimensions augmented with a 
+generalized Langange multipliers (GLM) divergence-cleaning technique. This is a
+multi-species variant of the ideal GLM-MHD equations for calorically perfect plasmas
+with independent momentum and energy equations for each ion species. This implementation 
+assumes that the equations are non-dimensionalized such, that the vacuum permeability is ``\mu_0 = 1``.
+
+In case of more than one ion species, the specific heat capcity ratios `gammas` and the charge-to-mass 
+ratios `charge_to_mass` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
+
+The argument `electron_pressure` can be used to pass a function that computes the electron
+pressure as a function of the state `u` with the signature `electron_pressure(u, equations::IdealGlmMhdMultiIonEquations2D)`.
+By default, the electron pressure is zero.
+
+The argument `initial_c_h` can be used to set the GLM divergence-cleaning speed. Note that 
+`initial_c_h = 0` deactivates the divergence cleaning. The callback [`GlmSpeedCallback`](@ref)
+can be used to adjust the GLM divergence-cleaning speed according to the time-step size.
+
+References:
+- G. Toth, A. Glocer, Y. Ma, D. Najib, Multi-Ion Magnetohydrodynamics 429 (2010). Numerical 
+  Modeling of Space Plasma Flows, 213–218.
+- A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
+  of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+
+!!! ATTENTION: In case of more than one ion species, these equations should ALWAYS be used
+    with `source_terms_lorentz`.
 """
 mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
                                               ElectronPressure} <:
@@ -91,33 +117,10 @@ function default_analysis_integrals(::IdealGlmMhdMultiIonEquations2D)
     (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
-# """
-#     initial_condition_convergence_test(x, t, equations::IdealGlmMhdMultiIonEquations2D)
-
-# An Alfvén wave as smooth initial condition used for convergence tests.
-# """
-# function initial_condition_convergence_test(x, t, equations::IdealGlmMhdMultiIonEquations2D)
-#   # smooth Alfvén wave test from Derigs et al. FLASH (2016)
-#   # domain must be set to [0, 1], γ = 5/3
-
-#   rho = 1.0
-#   prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-#   v1 = zero(real(equations))
-#   si, co = sincos(2 * pi * x[1])
-#   v2 = 0.1 * si
-#   v3 = 0.1 * co
-#   p = 0.1
-#   B1 = 1.0
-#   B2 = v2
-#   B3 = v3
-#   prim_other = SVector{7, real(equations)}(v1, v2, v3, p, B1, B2, B3)
-#   return prim2cons(vcat(prim_other, prim_rho), equations)
-# end
-
 """
     initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations2D)
 
-A weak blast wave adapted from
+A weak blast wave (adapted to multi-ion MHD) from
 - Sebastian Hennemann, Gregor J. Gassner (2020)
   A provably entropy stable subcell shock capturing approach for high order split form DG
   [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
@@ -157,9 +160,7 @@ function initial_condition_weak_blast_wave(x, t,
     return prim2cons(SVector(prim), equations)
 end
 
-# TODO: Add initial condition equilibrium
-
-# Calculate 1D flux in for a single point
+# 2D flux of the GLM-MHD equations in the direction `orientation`
 @inline function flux(u, orientation::Integer,
                       equations::IdealGlmMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(u, equations)
@@ -231,9 +232,13 @@ end
 end
 
 """
-Standard source terms of the multi-ion MHD equations
+         source_terms_lorentz(u, x, t, equations::IdealGlmMhdMultiIonEquations2D)
+
+Source terms due to the Lorentz' force for plasmas with more than one ion species. These source 
+terms are a fundamental, inseparable part of the multi-ion GLM-MHD equations, and vanish for 
+a single-species plasma.
 """
-function source_terms_standard(u, x, t, equations::IdealGlmMhdMultiIonEquations2D)
+function source_terms_lorentz(u, x, t, equations::IdealGlmMhdMultiIonEquations2D)
     @unpack charge_to_mass = equations
     B1, B2, B3 = magnetic_field(u, equations)
     v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
@@ -262,20 +267,31 @@ function source_terms_standard(u, x, t, equations::IdealGlmMhdMultiIonEquations2
 end
 
 """
-  electron_pressure_zero(u, equations::IdealGlmMhdMultiIonEquations2D)
-Returns the value of zero for the electron pressure. Consistent with the single-fluid MHD equations.
+         electron_pressure_zero(u, equations::IdealGlmMhdMultiIonEquations2D)
+
+Returns the value of zero for the electron pressure. Needed for consistency with the 
+single-fluid MHD equations in the limit of one ion species.
 """
 function electron_pressure_zero(u, equations::IdealGlmMhdMultiIonEquations2D)
     return zero(u[1])
 end
 
 """
-Total entropy-conserving non-conservative two-point "flux"" as described in 
-- Rueda-Ramírez et al. (2023)
-The term is composed of three parts
-* The Powell term: Implemented
-* The MHD term: Implemented
-* The "term 3": Implemented
+        flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
+                                               orientation::Integer,
+                                               equations::IdealGlmMhdMultiIonEquations2D)
+
+Entropy-conserving non-conservative two-point "flux"" as described in 
+- A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
+  of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+
+The term is composed of four individual non-conservative terms:
+1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
+   is evaluated as a funciton of the charge-averaged velocity.
+2. The Lorentz-force term, which becomes a conservative term in the limit of one ion species for vanishing
+   electron pressure gradients.
+3. The "multi-ion" term, which vanishes in the limit of one ion species.
+4. The GLM term, which is needed for Galilean invariance.
 """
 @inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
                                                         orientation::Integer,
@@ -319,19 +335,19 @@ The term is composed of three parts
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
     if orientation == 1
-        # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
+        # Entries of Godunov-Powell term for induction equation (already in Trixi's non-conservative form)
         f[1] = v1_plus_ll * B1_rr
         f[2] = v2_plus_ll * B1_rr
         f[3] = v3_plus_ll * B1_rr
 
         for k in eachcomponent(equations)
-            # Compute term 2 (MHD)
+            # Compute term Lorentz term
             f2 = charge_ratio_ll[k] * (0.5 * mag_norm_avg - B1_avg * B1_avg + pe_mean)
             f3 = charge_ratio_ll[k] * (-B1_avg * B2_avg)
             f4 = charge_ratio_ll[k] * (-B1_avg * B3_avg)
             f5 = vk1_plus_ll[k] * pe_mean
 
-            # Compute term 3 (only needed for NCOMP>1)
+            # Compute multi-ion term (vanishes for NCOMP==1)
             vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
             vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
             vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
@@ -344,7 +360,7 @@ The term is composed of three parts
             f5 += (B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
                    B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg))
 
-            # Adjust non-conservative terms 2 and 3 to Trixi discretization: CHANGE!?!
+            # Adjust Lorentz and multi-ion non-conservative terms to Trixi discretization
             f2 = 2 * f2 -
                  charge_ratio_ll[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll + pe_ll)
             f3 = 2 * f3 + charge_ratio_ll[k] * B1_ll * B2_ll
@@ -357,7 +373,7 @@ The term is composed of three parts
                   -
                   B3_ll * (vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll))
 
-            # Compute Powell term (already consistent with Trixi's non-conservative discretization)
+            # Compute Godunov-Powell term (already consistent with Trixi's non-conservative discretization)
             f2 += charge_ratio_ll[k] * B1_ll * B1_rr
             f3 += charge_ratio_ll[k] * B2_ll * B1_rr
             f4 += charge_ratio_ll[k] * B3_ll * B1_rr
@@ -366,26 +382,26 @@ The term is composed of three parts
             # Compute GLM term for the energy
             f5 += v1_plus_ll * psi_ll * psi_rr
 
-            # Append to the flux vector
+            # Add to the flux vector
             set_component!(f, k, 0, f2, f3, f4, f5, equations)
         end
         # Compute GLM term for psi
         f[end] = v1_plus_ll * psi_rr
 
     else #if orientation == 2
-        # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
+        # Entries of Godunov-Powell term for induction equation (already in Trixi's non-conservative form)
         f[1] = v1_plus_ll * B2_rr
         f[2] = v2_plus_ll * B2_rr
         f[3] = v3_plus_ll * B2_rr
 
         for k in eachcomponent(equations)
-            # Compute term 2 (MHD)
+            # Compute term Lorentz term
             f2 = charge_ratio_ll[k] * (-B2_avg * B1_avg)
             f3 = charge_ratio_ll[k] * (-B2_avg * B2_avg + 0.5 * mag_norm_avg + pe_mean)
             f4 = charge_ratio_ll[k] * (-B2_avg * B3_avg)
             f5 = vk2_plus_ll[k] * pe_mean
 
-            # Compute term 3 (only needed for NCOMP>1)
+            # Compute multi-ion term (vanishes for NCOMP==1)
             vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
             vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
             vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
@@ -398,7 +414,7 @@ The term is composed of three parts
             f5 += (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
                    B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg))
 
-            # Adjust non-conservative terms 2 and 3 to Trixi discretization: CHANGE!?!
+            # Adjust Lorentz and multi-ion non-conservative terms to Trixi discretization
             f2 = 2 * f2 + charge_ratio_ll[k] * B2_ll * B1_ll
             f3 = 2 * f3 -
                  charge_ratio_ll[k] * (0.5 * mag_norm_ll - B2_ll * B2_ll + pe_ll)
@@ -411,7 +427,7 @@ The term is composed of three parts
                   -
                   B3_ll * (vk2_minus_ll * B3_ll - vk3_minus_ll * B2_ll))
 
-            # Compute Powell term (already consistent with Trixi's non-conservative discretization)
+            # Compute Godunov-Powell term (already consistent with Trixi's non-conservative discretization)
             f2 += charge_ratio_ll[k] * B1_ll * B2_rr
             f3 += charge_ratio_ll[k] * B2_ll * B2_rr
             f4 += charge_ratio_ll[k] * B3_ll * B2_rr
@@ -420,7 +436,7 @@ The term is composed of three parts
             # Compute GLM term for the energy
             f5 += v2_plus_ll * psi_ll * psi_rr
 
-            # Append to the flux vector
+            # Add to the flux vector
             set_component!(f, k, 0, f2, f3, f4, f5, equations)
         end
         # Compute GLM term for psi
@@ -431,11 +447,20 @@ The term is composed of three parts
 end
 
 """
-Total central non-conservative two-point "flux"", where the symmetric parts are computed with standard averages
-The term is composed of three parts
-* The Powell term: Implemented. The central Powell "flux" is equivalent to the EC Powell "flux".
-* The MHD term: Implemented
-* The "term 3": Implemented
+        flux_nonconservative_central(u_ll, u_rr, orientation::Integer,
+                                     equations::IdealGlmMhdMultiIonEquations2D)
+
+Central non-conservative two-point "flux", where the symmetric parts are computed with standard averages.
+The use of this term together with flux_central with VolumeIntegralFluxDifferencing yields a "standard"
+(weak-form) DGSEM discretization of the multi-ion GLM-MHD system. 
+
+The term is composed of four individual non-conservative terms:
+1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
+   is evaluated as a funciton of the charge-averaged velocity.
+2. The Lorentz-force term, which becomes a conservative term in the limit of one ion species for vanishing
+   electron pressure gradients.
+3. The "multi-ion" term, which vanishes in the limit of one ion species.
+4. The GLM term, which is needed for Galilean invariance.
 """
 @inline function flux_nonconservative_central(u_ll, u_rr, orientation::Integer,
                                               equations::IdealGlmMhdMultiIonEquations2D)
@@ -471,25 +496,25 @@ The term is composed of three parts
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
     if orientation == 1
-        # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
+        # Entries of Godunov-Powell term for induction equation (already in Trixi's non-conservative form)
         f[1] = v1_plus_ll * B1_rr
         f[2] = v2_plus_ll * B1_rr
         f[3] = v3_plus_ll * B1_rr
         for k in eachcomponent(equations)
-            # Compute term 2 (MHD)
+            # Compute Lorentz term
             f2 = charge_ratio_ll[k] * (0.5 * mag_norm_rr - B1_rr * B1_rr + pe_rr)
             f3 = charge_ratio_ll[k] * (-B1_rr * B2_rr)
             f4 = charge_ratio_ll[k] * (-B1_rr * B3_rr)
             f5 = vk1_plus_ll[k] * pe_rr
 
-            # Compute term 3 (only needed for NCOMP>1)
+            # Compute multi-ion term (vanishes for NCOMP==1)
             vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
             vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
             vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
             f5 += (B2_ll * (vk1_minus_rr * B2_rr - vk2_minus_rr * B1_rr) +
                    B3_ll * (vk1_minus_rr * B3_rr - vk3_minus_rr * B1_rr))
 
-            # Compute Powell term (already consistent with Trixi's non-conservative discretization)
+            # Compute Godunov-Powell term (already consistent with Trixi's non-conservative discretization)
             f2 += charge_ratio_ll[k] * B1_ll * B1_rr
             f3 += charge_ratio_ll[k] * B2_ll * B1_rr
             f4 += charge_ratio_ll[k] * B3_ll * B1_rr
@@ -507,26 +532,26 @@ The term is composed of three parts
         f[end] = v1_plus_ll * psi_rr
 
     else #if orientation == 2
-        # Entries of Powell term for induction equation (already in Trixi's non-conservative form)
+        # Entries of Godunov-Powell term for induction equation (already in Trixi's non-conservative form)
         f[1] = v1_plus_ll * B2_rr
         f[2] = v2_plus_ll * B2_rr
         f[3] = v3_plus_ll * B2_rr
 
         for k in eachcomponent(equations)
-            # Compute term 2 (MHD)
+            # Compute Lorentz term
             f2 = charge_ratio_ll[k] * (-B2_rr * B1_rr)
             f3 = charge_ratio_ll[k] * (-B2_rr * B2_rr + 0.5 * mag_norm_rr + pe_rr)
             f4 = charge_ratio_ll[k] * (-B2_rr * B3_rr)
             f5 = vk2_plus_ll[k] * pe_rr
 
-            # Compute term 3 (only needed for NCOMP>1)
+            # Compute multi-ion term (vanishes for NCOMP==1)
             vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
             vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
             vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
             f5 += (B1_ll * (vk2_minus_rr * B1_rr - vk1_minus_rr * B2_rr) +
                    B3_ll * (vk2_minus_rr * B3_rr - vk3_minus_rr * B2_rr))
 
-            # Compute Powell term (already consistent with Trixi's non-conservative discretization)
+            # Compute Godunov-Powell term (already consistent with Trixi's non-conservative discretization)
             f2 += charge_ratio_ll[k] * B1_ll * B2_rr
             f3 += charge_ratio_ll[k] * B2_ll * B2_rr
             f4 += charge_ratio_ll[k] * B3_ll * B2_rr
@@ -550,11 +575,12 @@ end
 """
 flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultiIonEquations2D)
 
-Entropy conserving two-point flux adapted by:
-- Rueda-Ramírez et al. (2023)
-This flux (together with the MHD non-conservative term) is consistent in the case of one species with the flux of:
-- Derigs et al. (2018)
-  Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
+Entropy conserving two-point flux for the multi-ion GLM-MHD equations from
+- A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
+  of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+
+This flux (together with the MHD non-conservative term) is consistent in the case of one ion species with the flux of:
+- Derigs et al. (2018). Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
   divergence diminishing ideal magnetohydrodynamics equations for multi-ion
   [DOI: 10.1016/j.jcp.2018.03.002](https://doi.org/10.1016/j.jcp.2018.03.002)
 """
@@ -657,7 +683,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
             vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
 
-            # Ignore orientation since it is always "1" in 1D
+            # Fill the fluxes for the mass and momentum equations
             f1 = rho_mean * v1_avg
             f2 = f1 * v1_avg + p_mean
             f3 = f1 * v2_avg
@@ -676,10 +702,10 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
                    +
                    0.5 * vk1_plus_avg * mag_norm_avg -
                    vk1_plus_avg * B1_avg * B1_avg - vk2_plus_avg * B1_avg * B2_avg -
-                   vk3_plus_avg * B1_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
+                   vk3_plus_avg * B1_avg * B3_avg   # Additional terms related to the Lorentz non-conservative term (momentum eqs)
                    -
                    B2_avg * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) -
-                   B3_avg * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg))             # Terms coming from the non-conservative term 3 (induction equation!)
+                   B3_avg * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg))             # Terms related to the multi-ion non-conservative term (induction equation!)
 
             set_component!(f, k, f1, f2, f3, f4, f5, equations)
         end
@@ -754,7 +780,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
             vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
 
-            # Ignore orientation since it is always "1" in 1D
+            # Fill the fluxes for the mass and momentum equations
             f1 = rho_mean * v2_avg
             f2 = f1 * v1_avg
             f3 = f1 * v2_avg + p_mean
@@ -773,10 +799,10 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
                    +
                    0.5 * vk2_plus_avg * mag_norm_avg -
                    vk1_plus_avg * B2_avg * B1_avg - vk2_plus_avg * B2_avg * B2_avg -
-                   vk3_plus_avg * B2_avg * B3_avg   # Additional terms coming from the MHD non-conservative term (momentum eqs)
+                   vk3_plus_avg * B2_avg * B3_avg   # Additional terms related to the Lorentz non-conservative term (momentum eqs)
                    -
                    B1_avg * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) -
-                   B3_avg * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg))             # Terms coming from the non-conservative term 3 (induction equation!)
+                   B3_avg * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg))             # Terms related to the multi-ion non-conservative term (induction equation!)
 
             set_component!(f, k, f1, f2, f3, f4, f5, equations)
         end
@@ -785,10 +811,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
     return SVector(f)
 end
 
-"""
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-  !!!ATTENTION: This routine is provisional. TODO: Update with the right max_abs_speed
-"""
+# This routine approximates the maximum wave speed as sum of the maximum ion velocity 
+# for all species and the maximum magnetosonic speed.
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::IdealGlmMhdMultiIonEquations2D)
     # Calculate fast magnetoacoustic wave speeds
@@ -834,9 +859,7 @@ end
     return (abs(v1) + cf_x_direction, abs(v2) + cf_y_direction)
 end
 
-"""
-Convert conservative variables to primitive
-"""
+#Convert conservative variables to primitive
 function cons2prim(u, equations::IdealGlmMhdMultiIonEquations2D)
     @unpack gammas = equations
     B1, B2, B3 = magnetic_field(u, equations)
@@ -865,9 +888,7 @@ function cons2prim(u, equations::IdealGlmMhdMultiIonEquations2D)
     return SVector(prim)
 end
 
-"""
-Convert conservative variables to entropy
-"""
+#Convert conservative variables to entropy variables
 @inline function cons2entropy(u, equations::IdealGlmMhdMultiIonEquations2D)
     @unpack gammas = equations
     B1, B2, B3 = magnetic_field(u, equations)
@@ -899,9 +920,7 @@ Convert conservative variables to entropy
     return SVector(entropy)
 end
 
-"""
-Convert primitive to conservative variables
-"""
+# Convert primitive to conservative variables
 @inline function prim2cons(prim, equations::IdealGlmMhdMultiIonEquations2D)
     @unpack gammas = equations
     B1, B2, B3 = magnetic_field(prim, equations)
@@ -929,10 +948,10 @@ Convert primitive to conservative variables
     return SVector(cons)
 end
 
-"""
-Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoacoustic eigenvalue
-  !!! ATTENTION: This routine is provisional.. Change once the fastest wave speed is known!!
-"""
+# Compute the fastest wave speed for ideal multi-ion GLM-MHD equations: c_f, the fast 
+# magnetoacoustic eigenvalue. This routine computes the fast magnetosonic speed for each ion
+# species using the single-fluid MHD expressions and approximates the multi-ion c_f as 
+# the maximum of these individual magnetosonic speeds.
 @inline function calc_fast_wavespeed(cons, orientation::Integer,
                                      equations::IdealGlmMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(cons, equations)
@@ -972,9 +991,13 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
 end
 
 """
-Routine to compute the Charge-averaged velocities:
-* v*_plus: Charge-averaged velocity
-* vk*_plus: Contribution of each species to the charge-averaged velocity
+v1, v2, v3, vk1, vk2, vk3 = charge_averaged_velocities(u,
+                                                       equations::IdealGlmMhdMultiIonEquations2D)
+
+
+Compute the charge-averaged velocities (v1, v2, and v3) and each ion species' contribution
+to the charge-averaged velocities (vk1, vk2, and vk3). The output variables vk1, vk2, and vk3
+are SVectors of size ncomponents(equations).
 """
 @inline function charge_averaged_velocities(u,
                                             equations::IdealGlmMhdMultiIonEquations2D)
@@ -1005,10 +1028,11 @@ Routine to compute the Charge-averaged velocities:
 end
 
 """
-Get the flow variables of component k
+    get_component(k, u, equations::IdealGlmMhdMultiIonEquations2D)
+
+Get the hydrodynamic variables of component (ion species) k.
 """
 @inline function get_component(k, u, equations::IdealGlmMhdMultiIonEquations2D)
-    # The first 3 entries of u contain the magnetic field. The following entries contain the density, momentum (3 entries), and energy of each component.
     return SVector(u[3 + (k - 1) * 5 + 1],
                    u[3 + (k - 1) * 5 + 2],
                    u[3 + (k - 1) * 5 + 3],
@@ -1017,11 +1041,13 @@ Get the flow variables of component k
 end
 
 """
-Set the flow variables of component k
+    set_component!(u, k, u1, u2, u3, u4, u5,
+                   equations::IdealGlmMhdMultiIonEquations2D)
+
+Set the hydrodynamic variables of component (ion species) k.
 """
 @inline function set_component!(u, k, u1, u2, u3, u4, u5,
                                 equations::IdealGlmMhdMultiIonEquations2D)
-    # The first 3 entries of u contain the magnetic field. The following entries contain the density, momentum (3 entries), and energy of each component.
     u[3 + (k - 1) * 5 + 1] = u1
     u[3 + (k - 1) * 5 + 2] = u2
     u[3 + (k - 1) * 5 + 3] = u3
@@ -1031,9 +1057,13 @@ Set the flow variables of component k
     return u
 end
 
+# Extract magnetic field from solution vector
 magnetic_field(u, equations::IdealGlmMhdMultiIonEquations2D) = SVector(u[1], u[2], u[3])
+
+# Extract GLM divergence-cleaning field from solution vector
 divergence_cleaning_field(u, equations::IdealGlmMhdMultiIonEquations2D) = u[end]
 
+# Get total density as the sum of the individual densities of the ion species
 @inline function density(u, equations::IdealGlmMhdMultiIonEquations2D)
     rho = zero(real(equations))
     for k in eachcomponent(equations)
@@ -1042,9 +1072,7 @@ divergence_cleaning_field(u, equations::IdealGlmMhdMultiIonEquations2D) = u[end]
     return rho
 end
 
-"""
-Computes the sum of the densities times the sum of the pressures
-"""
+# Computes the sum of the densities times the sum of the pressures
 @inline function density_pressure(u, equations::IdealGlmMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(u, equations)
     psi = divergence_cleaning_field(cons, equations)
@@ -1074,7 +1102,9 @@ DissipationEntropyStable(max_abs_speed=max_abs_speed_naive)
 
 Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable.
 See:
-    * Rueda-Ramírez et al. (2023)
+- A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
+  of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  
 The maximum absolute wave speed is estimated as
 `max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
 defaulting to [`max_abs_speed_naive`](@ref).

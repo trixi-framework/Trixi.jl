@@ -31,7 +31,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 10_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_standard)
+                                    source_terms = source_terms_lorentz)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
