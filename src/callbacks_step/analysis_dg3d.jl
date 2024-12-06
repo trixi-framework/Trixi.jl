@@ -349,9 +349,13 @@ function analyze(::Val{:l2_divb}, du, u, t,
                                                     element)
         # Compute the transformed divergence
         for l in eachnode(dg)
-            B_ljk = magnetic_field(u[:, l, j, k, element], equations)
-            B_ilk = magnetic_field(u[:, i, l, k, element], equations)
-            B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+            u_ljk = get_node_vars(u, equations, dg, l, j, k, element)
+            u_ilk = get_node_vars(u, equations, dg, i, l, k, element)
+            u_ijl = get_node_vars(u, equations, dg, i, j, l, element)
+
+            B_ljk = magnetic_field(u_ljk, equations)
+            B_ilk = magnetic_field(u_ilk, equations)
+            B_ijl = magnetic_field(u_ijl, equations)
 
             divb += (derivative_matrix[i, l] *
                      (Ja11 * B_ljk[1] + Ja12 * B_ljk[2] + Ja13 * B_ljk[3]) +
@@ -422,9 +426,13 @@ function analyze(::Val{:linf_divb}, du, u, t,
                                                         k, element)
             # Compute the transformed divergence
             for l in eachnode(dg)
-                B_ljk = magnetic_field(u[:, l, j, k, element], equations)
-                B_ilk = magnetic_field(u[:, i, l, k, element], equations)
-                B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+                u_ljk = get_node_vars(u, equations, dg, l, j, k, element)
+                u_ilk = get_node_vars(u, equations, dg, i, l, k, element)
+                u_ijl = get_node_vars(u, equations, dg, i, j, l, element)
+
+                B_ljk = magnetic_field(u_ljk, equations)
+                B_ilk = magnetic_field(u_ilk, equations)
+                B_ijl = magnetic_field(u_ijl, equations)
 
                 divb += (derivative_matrix[i, l] * (Ja11 * B_ljk[1] +
                           Ja12 * B_ljk[2] + Ja13 * B_ljk[3]) +
