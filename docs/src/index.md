@@ -30,7 +30,12 @@ installation and postprocessing procedures. Its features include:
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
+  * Subcell invariant domain-preserving (IDP) limiting
   * [Finite difference summation by parts (SBP) methods](https://github.com/ranocha/SummationByPartsOperators.jl)
+* Advanced limiting strategies
+  * Positivity-preserving limiting
+  * Subcell invariant domain-preserving (IDP) limiting
+  * Entropy-bounded limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))

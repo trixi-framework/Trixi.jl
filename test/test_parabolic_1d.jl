@@ -28,6 +28,21 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_restart.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_advection_diffusion_restart.jl"),
+                        l2=[1.0671615777620987e-5],
+                        linf=[3.861509422325993e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion.jl (AMR)" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion.jl"),

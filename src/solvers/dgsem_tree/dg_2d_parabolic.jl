@@ -15,7 +15,7 @@
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
 function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
-                        initial_condition, boundary_conditions_parabolic, source_terms,
+                        boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack viscous_container = cache_parabolic
     @unpack u_transformed, gradients, flux_viscous = viscous_container
@@ -623,12 +623,12 @@ function calc_mortar_flux!(surface_flux_values,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_upper = fstar_upper_threaded[Threads.threadid()]
-        fstar_lower = fstar_lower_threaded[Threads.threadid()]
+        fstar_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_lower = fstar_primary_lower_threaded[Threads.threadid()]
 
         # Calculate fluxes
         orientation = orientations[mortar]

@@ -196,9 +196,6 @@ with a low-order FV method. Used with limiter [`SubcellLimiterIDP`](@ref).
     mainly because the implementation assumes that low- and high-order schemes have the same
     surface terms, which is not guaranteed for non-conforming meshes. The low-order scheme
     with a high-order mortar is not invariant domain preserving.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct VolumeIntegralSubcellLimiting{VolumeFluxDG, VolumeFluxFV, Limiter} <:
        AbstractVolumeIntegral

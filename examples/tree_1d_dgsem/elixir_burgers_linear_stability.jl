@@ -8,8 +8,9 @@ using Trixi
 equations = InviscidBurgersEquation1D()
 
 function initial_condition_linear_stability(x, t, equation::InviscidBurgersEquation1D)
+    RealT = eltype(x)
     k = 1
-    2 + sinpi(k * (x[1] - 0.7)) |> SVector
+    SVector(2 + sinpi(k * (x[1] - convert(RealT, 0.7))))
 end
 
 volume_flux = flux_ec

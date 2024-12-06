@@ -227,16 +227,16 @@ end
     @trixi_testset "elixir_mhd_ec.jl" begin
         @test_trixi_include(joinpath(examples_dir(), "structured_2d_dgsem",
                                      "elixir_mhd_ec.jl"),
-                            l2=[0.04937480811868297, 0.06117033019988596,
-                                0.060998028674664716, 0.03155145889799417,
-                                0.2319175391388658, 0.02476283192966346,
-                                0.024483244374818587, 0.035439957899127385,
-                                0.0016022148194667542],
-                            linf=[0.24749024430983746, 0.2990608279625713,
-                                0.3966937932860247, 0.22265033744519683,
-                                0.9757376320946505, 0.12123736788315098,
-                                0.12837436699267113, 0.17793825293524734,
-                                0.03460761690059514],
+                            l2=[0.04937478399958968, 0.0611701500558669,
+                                0.06099805934392425, 0.031551737882277144,
+                                0.23191853685798858, 0.02476297013104899,
+                                0.024482975007695532, 0.035440179203707095,
+                                0.0016002328034991635],
+                            linf=[0.24744671083295033, 0.2990591185187605,
+                                0.3968520446251412, 0.2226544553988576,
+                                0.9752669317263143, 0.12117894533967843,
+                                0.12845218263379432, 0.17795590713819576,
+                                0.0348517136607105],
                             tspan=(0.0, 0.3))
 
         # Ensure that we do not have excessive memory allocations
@@ -442,7 +442,7 @@ end
         end
     end
 
-    @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
+    @trixi_testset "elixir_euler_fdsbp_periodic.jl (2D)" begin
         @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                      "elixir_euler_fdsbp_periodic.jl"),
                             l2=[
@@ -465,6 +465,33 @@ end
             u_ode = sol.u[end]
             du_ode = similar(u_ode)
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        end
+    end
+
+    @trixi_testset "elixir_euler_fdsbp_periodic.jl (3D)" begin
+        @test_trixi_include(joinpath(examples_dir(),
+                                     "dgmulti_3d/elixir_euler_fdsbp_periodic.jl"),
+                            l2=[
+                                7.561896970325353e-5,
+                                6.884047859361093e-5,
+                                6.884047859363204e-5,
+                                6.884047859361148e-5,
+                                0.000201107274617457
+                            ],
+                            linf=[
+                                0.0001337520020225913,
+                                0.00011571467799287305,
+                                0.0001157146779990903,
+                                0.00011571467799376123,
+                                0.0003446082308800058
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
 end
