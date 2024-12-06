@@ -39,7 +39,7 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
         c = SVector(0.0, 1.0, 1 / 2)
 
         # Butcher tableau
-        #   c |       a
+        #   c |       A
         #   0 |
         #   1 |   1
         # 1/2 | 1/4  1/4
@@ -210,11 +210,14 @@ function solve!(integrator::SimpleIntegratorSSP)
         integrator.iter += 1
         integrator.t += integrator.dt
 
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
+        @trixi_timeit timer() "Step-Callbacks" begin
+            # handle callbacks
+            if callbacks isa CallbackSet
+                foreach(callbacks.discrete_callbacks) do cb
+                    if cb.condition(integrator.u, integrator.t, integrator)
+                        cb.affect!(integrator)
+                    end
+                    return nothing
                 end
             end
         end
