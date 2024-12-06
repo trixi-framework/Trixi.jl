@@ -34,8 +34,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     # - 2 Since first entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     coeffs_max = num_stages - 2
 
-    a_matrix = zeros(coeffs_max, 2)
-    a_matrix[:, 1] = c[3:end]
+    a_matrix = zeros(2, coeffs_max)
+    a_matrix[1, :] = c[3:end]
 
     consistency_order = 2
 
@@ -49,15 +49,16 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                           dtmax,
                                                           dteps,
                                                           eig_vals; verbose)
-    monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
-                                          num_stages)
 
-    num_monomial_coeffs = length(monomial_coeffs)
-    @assert num_monomial_coeffs == coeffs_max
-    A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
-
-    a_matrix[:, 1] -= A
-    a_matrix[:, 2] = A
+    if num_stages != consistency_order
+        monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
+                                              num_stages)
+        num_monomial_coeffs = length(monomial_coeffs)
+        @assert num_monomial_coeffs == coeffs_max
+        A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
+        a_matrix[1, :] -= A
+        a_matrix[2, :] = A
+    end
 
     return a_matrix, c, dt_opt
 end
@@ -77,8 +78,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
     # - 2 Since first entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     coeffs_max = num_stages - 2
 
-    a_matrix = zeros(coeffs_max, 2)
-    a_matrix[:, 1] = c[3:end]
+    a_matrix = zeros(2, coeffs_max)
+    a_matrix[1, :] = c[3:end]
 
     path_monomial_coeffs = joinpath(base_path_monomial_coeffs,
                                     "gamma_" * string(num_stages) * ".txt")
@@ -90,8 +91,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
     @assert num_monomial_coeffs == coeffs_max
     A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
 
-    a_matrix[:, 1] -= A
-    a_matrix[:, 2] = A
+    a_matrix[1, :] -= A
+    a_matrix[2, :] = A
 
     return a_matrix, c
 end
@@ -130,16 +131,17 @@ optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solve
 
 Note: To use this integrator, the user must import the `Convex` and `ECOS` packages.
 """
-mutable struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
-    const num_stages::Int
+struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
+    num_stages::Int
 
     a_matrix::Matrix{Float64}
     c::Vector{Float64}
     b1::Float64
     bS::Float64
     cS::Float64
+
     dt_opt::Union{Float64, Nothing}
-end # struct PairedExplicitRK2
+end
 
 # Constructor that reads the coefficients from a file
 function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
@@ -199,9 +201,8 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
     finalstep::Bool # added for convenience
     dtchangeable::Bool
     force_stepfail::Bool
-    # PairedExplicitRK2 stages:
+    # Additional PERK register
     k1::uType
-    k_higher::uType
 end
 
 function init(ode::ODEProblem, alg::PairedExplicitRK2;
@@ -210,9 +211,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
     du = zero(u0)
     u_tmp = zero(u0)
 
-    # PairedExplicitRK2 stages
-    k1 = zero(u0)
-    k_higher = zero(u0)
+    k1 = zero(u0) # Additional PERK register
 
     t0 = first(ode.tspan)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
@@ -225,7 +224,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK2;
                                                                      ode.tspan;
                                                                      kwargs...),
                                              false, true, false,
-                                             k1, k_higher)
+                                             k1)
 
     # initialize callbacks
     if callback isa CallbackSet
@@ -261,48 +260,21 @@ function step!(integrator::PairedExplicitRK2Integrator)
     end
 
     @trixi_timeit timer() "Paired Explicit Runge-Kutta ODE integration step" begin
-        # k1
-        integrator.f(integrator.du, integrator.u, prob.p, integrator.t)
-        @threaded for i in eachindex(integrator.du)
-            integrator.k1[i] = integrator.du[i] * integrator.dt
-        end
-
-        # Construct current state
-        @threaded for i in eachindex(integrator.u)
-            integrator.u_tmp[i] = integrator.u[i] + alg.c[2] * integrator.k1[i]
-        end
-        # k2
-        integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                     integrator.t + alg.c[2] * integrator.dt)
-
-        @threaded for i in eachindex(integrator.du)
-            integrator.k_higher[i] = integrator.du[i] * integrator.dt
-        end
+        # First and second stage are identical across all single/standalone PERK methods
+        PERK_k1!(integrator, prob.p)
+        PERK_k2!(integrator, prob.p, alg)
 
         # Higher stages
         for stage in 3:(alg.num_stages)
-            # Construct current state
-            @threaded for i in eachindex(integrator.u)
-                integrator.u_tmp[i] = integrator.u[i] +
-                                      alg.a_matrix[stage - 2, 1] *
-                                      integrator.k1[i] +
-                                      alg.a_matrix[stage - 2, 2] *
-                                      integrator.k_higher[i]
-            end
-
-            integrator.f(integrator.du, integrator.u_tmp, prob.p,
-                         integrator.t + alg.c[stage] * integrator.dt)
-
-            @threaded for i in eachindex(integrator.du)
-                integrator.k_higher[i] = integrator.du[i] * integrator.dt
-            end
+            PERK_ki!(integrator, prob.p, alg, stage)
         end
 
         @threaded for i in eachindex(integrator.u)
-            integrator.u[i] += alg.b1 * integrator.k1[i] +
-                               alg.bS * integrator.k_higher[i]
+            integrator.u[i] += integrator.dt *
+                               (alg.b1 * integrator.k1[i] +
+                                alg.bS * integrator.du[i])
         end
-    end # PairedExplicitRK2 step
+    end
 
     integrator.iter += 1
     integrator.t += integrator.dt

@@ -51,7 +51,7 @@ create_cache(mesh, equations, mortar::Nothing, uEltype) = NamedTuple()
 nmortars(mortar::Nothing) = 0
 
 function prolong2mortars!(cache, u, mesh, equations, mortar::Nothing,
-                          surface_integral, dg::DG)
+                          dg::DG)
     @assert isempty(eachmortar(dg, cache))
 end
 
