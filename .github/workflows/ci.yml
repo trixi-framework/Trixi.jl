@@ -113,12 +113,12 @@ jobs:
           arch: ${{ matrix.arch }}
       - run: julia -e 'using InteractiveUtils; versioninfo(verbose=true)'
       - uses: julia-actions/cache@v2
-      # Update all packages
-      - name: Update All Packages
-        run: julia -e 'using Pkg; Pkg.update()'
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ''
+      # Update all packages
+      - name: Update All Packages
+        run: julia -e 'using Pkg; Pkg.update()'
       - name: Run tests without coverage
         uses: julia-actions/julia-runtest@v1
         with:
