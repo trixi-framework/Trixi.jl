@@ -213,3 +213,4 @@ Then, the stable CFL number can be computed as described above.
 
 - [`Trixi.PairedExplicitRK2`](@ref): Second-order PERK method with at least two stages.
 - [`Trixi.PairedExplicitRK3`](@ref): Third-order PERK method with at least three stages.
+- [`Trixi.PairedExplicitRK4`](@ref): Fourth-order PERK method with at least _five_ stages.
