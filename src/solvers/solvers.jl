@@ -10,4 +10,5 @@ include("solvers_parabolic.jl")
 
 include("dg.jl")
 include("dgmulti.jl")
+include("fv_t8code/fv.jl")
 end # @muladd
