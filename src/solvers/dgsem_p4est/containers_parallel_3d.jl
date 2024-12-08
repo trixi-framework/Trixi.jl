@@ -9,11 +9,11 @@
 @inline function init_mpi_interface_node_indices!(mpi_interfaces::P4estMPIInterfaceContainer{3},
                                                   faces, local_side, orientation,
                                                   mpi_interface_id)
-    # Align interface at the primary element (primary element has surface indices (:i_forward, :j_forward)).
+    # Align interface at the primary element (primary element has surface indices (Indexing.i_forward, Indexing.j_forward)).
     # The secondary element needs to be indexed differently.
     if local_side == 1
-        surface_index1 = :i_forward
-        surface_index2 = :j_forward
+        surface_index1 = Indexing.i_forward
+        surface_index2 = Indexing.j_forward
     else # local_side == 2
         surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2],
                                                                       faces[1],
@@ -22,28 +22,28 @@
 
     if faces[local_side] == 0
         # Index face in negative x-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (:begin, surface_index1,
+        mpi_interfaces.node_indices[mpi_interface_id] = (Indexing.first, surface_index1,
                                                          surface_index2)
     elseif faces[local_side] == 1
         # Index face in positive x-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (:end, surface_index1,
+        mpi_interfaces.node_indices[mpi_interface_id] = (Indexing.last, surface_index1,
                                                          surface_index2)
     elseif faces[local_side] == 2
         # Index face in negative y-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, :begin,
+        mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, Indexing.first,
                                                          surface_index2)
     elseif faces[local_side] == 3
         # Index face in positive y-direction
-        mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, :end,
+        mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, Indexing.last,
                                                          surface_index2)
     elseif faces[local_side] == 4
         # Index face in negative z-direction
         mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, surface_index2,
-                                                         :begin)
+                                                         Indexing.first)
     else # faces[local_side] == 5
         # Index face in positive z-direction
         mpi_interfaces.node_indices[mpi_interface_id] = (surface_index1, surface_index2,
-                                                         :end)
+                                                         Indexing.last)
     end
 
     return mpi_interfaces
@@ -57,8 +57,8 @@ end
         # Align mortar at small side.
         # The large side needs to be indexed differently.
         if side == 1
-            surface_index1 = :i_forward
-            surface_index2 = :j_forward
+            surface_index1 = Indexing.i_forward
+            surface_index2 = Indexing.j_forward
         else
             surface_index1, surface_index2 = orientation_to_indices_p4est(faces[2],
                                                                           faces[1],
@@ -67,28 +67,28 @@ end
 
         if faces[side] == 0
             # Index face in negative x-direction
-            mortars.node_indices[side, mortar_id] = (:begin, surface_index1,
+            mortars.node_indices[side, mortar_id] = (Indexing.first, surface_index1,
                                                      surface_index2)
         elseif faces[side] == 1
             # Index face in positive x-direction
-            mortars.node_indices[side, mortar_id] = (:end, surface_index1,
+            mortars.node_indices[side, mortar_id] = (Indexing.last, surface_index1,
                                                      surface_index2)
         elseif faces[side] == 2
             # Index face in negative y-direction
-            mortars.node_indices[side, mortar_id] = (surface_index1, :begin,
+            mortars.node_indices[side, mortar_id] = (surface_index1, Indexing.first,
                                                      surface_index2)
         elseif faces[side] == 3
             # Index face in positive y-direction
-            mortars.node_indices[side, mortar_id] = (surface_index1, :end,
+            mortars.node_indices[side, mortar_id] = (surface_index1, Indexing.last,
                                                      surface_index2)
         elseif faces[side] == 4
             # Index face in negative z-direction
             mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2,
-                                                     :begin)
+                                                     Indexing.first)
         else # faces[side] == 5
             # Index face in positive z-direction
             mortars.node_indices[side, mortar_id] = (surface_index1, surface_index2,
-                                                     :end)
+                                                     Indexing.last)
         end
     end
 
