@@ -7,7 +7,7 @@
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
+function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
@@ -118,7 +118,7 @@ function prolong2interfaces!(cache, u,
 end
 
 function calc_interface_flux!(surface_flux_values,
-                              mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                              mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                               nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
@@ -186,7 +186,7 @@ end
 
 # Inlined version of the interface flux computation for conservation laws
 @inline function calc_interface_flux!(surface_flux_values,
-                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                      mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                                       nonconservative_terms::False, equations,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
@@ -245,7 +245,7 @@ end
 end
 
 function prolong2boundaries!(cache, u,
-                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG)
     @unpack boundaries = cache
     index_range = eachnode(dg)
@@ -382,7 +382,7 @@ end
 end
 
 function prolong2mortars!(cache, u,
-                          mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
+                          mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}}, equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -449,7 +449,7 @@ function prolong2mortars!(cache, u,
 end
 
 function calc_mortar_flux!(surface_flux_values,
-                           mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                           mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                            nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
@@ -635,7 +635,7 @@ end
 end
 
 function calc_surface_integral!(du, u,
-                                mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)
