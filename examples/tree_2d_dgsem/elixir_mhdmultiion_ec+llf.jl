@@ -9,10 +9,9 @@ equations = IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667),
 
 initial_condition = initial_condition_weak_blast_wave
 
-flux_es = FluxPlusDissipation(flux_ruedaramirez_etal, DissipationEntropyStable())
-
 volume_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
-surface_flux = (flux_es, flux_nonconservative_ruedaramirez_etal)
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)
+
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
