@@ -1121,25 +1121,7 @@ end
     return rho_total * p_total
 end
 
-"""
-DissipationEntropyStable(max_abs_speed=max_abs_speed_naive)
-
-Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable.
-See:
-- A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
-  of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
-  [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
-  
-The maximum absolute wave speed is estimated as
-`max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
-defaulting to [`max_abs_speed_naive`](@ref).
-"""
-struct DissipationEntropyStable{MaxAbsSpeed}
-    max_abs_speed::MaxAbsSpeed
-end
-
-DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
-
+# Specialization of DissipationEntropyStable for the multi-ion GLM-MHD equations
 @inline function (dissipation::DissipationEntropyStable)(u_ll, u_rr,
                                                          orientation_or_normal_direction,
                                                          equations::IdealGlmMhdMultiIonEquations2D)
@@ -1300,9 +1282,5 @@ DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
     end
 
     return dissipation
-end
-
-function Base.show(io::IO, d::DissipationEntropyStable)
-    print(io, "DissipationEntropyStable(", d.max_abs_speed, ")")
 end
 end # @muladd

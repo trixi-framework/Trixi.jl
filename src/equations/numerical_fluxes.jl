@@ -222,6 +222,40 @@ See [`FluxLaxFriedrichs`](@ref).
 const flux_lax_friedrichs = FluxLaxFriedrichs()
 
 """
+    DissipationEntropyStable(max_abs_speed=max_abs_speed_naive)
+
+Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable. This operator
+must be used together with an entropy-conservative two-point flux function (here `flux_ec`) to yield 
+an entropy-stable surface flux. The surface flux function can be initialized as:
+```
+flux_es = FluxPlusDissipation(flux_ec, DissipationEntropyStable())
+```
+
+In particular, the numerical flux has the form
+```math
+f^{ES} = f^{EC} + \frac{1}{2} λ_{max} H (w_R - w_L),
+````
+where ``f^{EC}`` is the entropy-conservative two-point flux function computed with `flux_ec`, ``λ_{max}`` 
+is the maximum wave speed estimated as `max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
+defaulting to [`max_abs_speed_naive`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
+depends on the states `u_ll` and `u_rr`, and ``(w_R - w_L)`` is the jump in entropy variables.
+
+For the derivation of the dissipation matrix for the multi-ion GLM-MHD equations, see:
+- A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
+  of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
+"""
+struct DissipationEntropyStable{MaxAbsSpeed}
+    max_abs_speed::MaxAbsSpeed
+end
+
+DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
+
+function Base.show(io::IO, d::DissipationEntropyStable)
+    print(io, "DissipationEntropyStable(", d.max_abs_speed, ")")
+end
+
+"""
     FluxHLL(min_max_speed=min_max_speed_davis)
 
 Create an HLL (Harten, Lax, van Leer) numerical flux where the minimum and maximum
