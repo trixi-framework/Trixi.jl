@@ -217,7 +217,7 @@ export boundary_condition_do_nothing,
        BoundaryConditionCoupled
 
 export initial_condition_convergence_test, source_terms_convergence_test,
-source_terms_lorentz
+       source_terms_lorentz
 export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic,
        boundary_condition_poisson_nonperiodic

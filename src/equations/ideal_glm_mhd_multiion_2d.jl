@@ -80,6 +80,27 @@ function IdealGlmMhdMultiIonEquations2D(; gammas, charge_to_mass,
                                                                      initial_c_h)
 end
 
+# Outer constructor for `@reset` works correctly
+function IdealGlmMhdMultiIonEquations2D(gammas, charge_to_mass, electron_pressure, c_h)
+    _gammas = promote(gammas...)
+    _charge_to_mass = promote(charge_to_mass...)
+    RealT = promote_type(eltype(_gammas), eltype(_charge_to_mass))
+
+    NVARS = length(_gammas) * 5 + 4
+    NCOMP = length(_gammas)
+
+    __gammas = SVector(map(RealT, _gammas))
+    __charge_to_mass = SVector(map(RealT, _charge_to_mass))
+
+    c_h = convert(RealT, c_h)
+
+    return IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT,
+                                          typeof(electron_pressure)}(__gammas,
+                                                                     __charge_to_mass,
+                                                                     electron_pressure,
+                                                                     c_h)
+end
+
 @inline function Base.real(::IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT}) where {
                                                                                          NVARS,
                                                                                          NCOMP,
