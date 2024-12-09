@@ -9,7 +9,8 @@
     GlmSpeedCallback(; glm_scale=0.5, cfl, semi_indices=())
 
 Update the divergence cleaning wave speed `c_h` according to the time step
-computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations.
+computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations, the multi-component
+GLM-MHD equations, and the multi-ion GLM-MHD equations.
 The `cfl` number should be set to the same value as for the time step size calculation. The
 `glm_scale` ensures that the GLM wave speed is lower than the fastest physical waves in the MHD
 solution and should thus be set to a value within the interval [0,1]. Note that `glm_scale = 0`
