@@ -29,7 +29,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         # Helper function to test if the compiler can infer the `TreeType`
         # which forms the basis for the `TreeMesh`.
         # When this test passes, functions such as 
-        # `total_volume(mesh)` should also pass, see
+        # `total_volume(mesh)` should also be inferrable, see
         # https://github.com/trixi-framework/Trixi.jl/pull/2191
         get_tree(mesh::TreeMesh) = mesh.tree
         for RealT in (Float32, Float64)
