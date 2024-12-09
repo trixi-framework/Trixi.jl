@@ -16,7 +16,7 @@ multi-species variant of the ideal GLM-MHD equations for calorically perfect pla
 with independent momentum and energy equations for each ion species. This implementation 
 assumes that the equations are non-dimensionalized such, that the vacuum permeability is ``\mu_0 = 1``.
 
-In case of more than one ion species, the specific heat capcity ratios `gammas` and the charge-to-mass 
+In case of more than one ion species, the specific heat capacity ratios `gammas` and the charge-to-mass 
 ratios `charge_to_mass` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
 
 The argument `electron_pressure` can be used to pass a function that computes the electron
@@ -316,7 +316,7 @@ ATTENTION: The non-conservative fluxes derived in the reference above are writte
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
-   is evaluated as a funciton of the charge-averaged velocity.
+   is evaluated as a function of the charge-averaged velocity.
 2. The Lorentz-force term, which becomes a conservative term in the limit of one ion species for vanishing
    electron pressure gradients.
 3. The "multi-ion" term, which vanishes in the limit of one ion species.
@@ -477,7 +477,7 @@ ATTENTION: The central non-conservative fluxes are written as the product
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
-   is evaluated as a funciton of the charge-averaged velocity.
+   is evaluated as a function of the charge-averaged velocity.
 2. The Lorentz-force term, which becomes a conservative term in the limit of one ion species for vanishing
    electron pressure gradients.
 3. The "multi-ion" term, which vanishes in the limit of one ion species.
