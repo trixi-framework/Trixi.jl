@@ -13,6 +13,7 @@ mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataC
     show_mesh::Bool
     plot_data_creator::PlotDataCreator
     plot_creator::PlotCreator
+    figure
     plot_arguments::Dict{Symbol, Any}
 end
 
@@ -98,7 +99,7 @@ function VisualizationCallback(; interval = 0,
     visualization_callback = VisualizationCallback(interval,
                                                    solution_variables, variable_names,
                                                    show_mesh,
-                                                   plot_data_creator, plot_creator,
+                                                   plot_data_creator, plot_creator, nothing,
                                                    Dict{Symbol, Any}(plot_arguments))
 
     # Warn users if they create a visualization callback without having loaded the Plots package
@@ -110,8 +111,9 @@ function VisualizationCallback(; interval = 0,
     #       Requires.jl only when Plots is present.
     #       In the future, we should update/remove this warning if other plotting packages are
     #       starting to be used.
-    if !(:Plots in names(@__MODULE__, all = true))
-        @warn "Package `Plots` not loaded but required by `VisualizationCallback` to visualize results"
+    if !(:Plots in names(@__MODULE__, all = true) || :Makie in names(@__MODULE__, all = true))
+        println(names(@__MODULE__, all = true))
+        @warn "Package `Plots` or `Makie` required by `VisualizationCallback` to visualize results"
     end
 
     DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
@@ -145,7 +147,7 @@ end
 function (visualization_callback::VisualizationCallback)(integrator)
     u_ode = integrator.u
     semi = integrator.p
-    @unpack plot_arguments, solution_variables, variable_names, show_mesh, plot_data_creator, plot_creator = visualization_callback
+    @unpack plot_arguments, solution_variables, variable_names, show_mesh, plot_data_creator, plot_creator, figure = visualization_callback
 
     # Extract plot data
     plot_data = plot_data_creator(u_ode, semi, solution_variables = solution_variables)
@@ -158,7 +160,7 @@ function (visualization_callback::VisualizationCallback)(integrator)
     # Create plot
     plot_creator(plot_data, variable_names;
                  show_mesh = show_mesh, plot_arguments = plot_arguments,
-                 time = integrator.t, timestep = integrator.stats.naccept)
+                 time = integrator.t, timestep = integrator.stats.naccept, figure = figure)
 
     # avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
@@ -168,7 +170,7 @@ end
 """
     show_plot(plot_data, variable_names;
               show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
-              time=nothing, timestep=nothing)
+              time=nothing, timestep=nothing, figure=nothing)
 
 Visualize the plot data object provided in `plot_data` and display result, plotting only the
 variables in `variable_names` and, optionally, the mesh (if `show_mesh` is `true`).  Additionally,
@@ -184,7 +186,7 @@ See also: [`VisualizationCallback`](@ref), [`save_plot`](@ref)
 """
 function show_plot(plot_data, variable_names;
                    show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
-                   time = nothing, timestep = nothing)
+                   time = nothing, timestep = nothing, figure = nothing)
     # Gather subplots
     plots = []
     for v in variable_names
@@ -257,5 +259,42 @@ function save_plot(plot_data, variable_names;
     # Determine filename and save plot
     filename = joinpath("out", @sprintf("solution_%09d.png", timestep))
     Plots.savefig(filename)
+end
+
+"""
+    show_plot_makie(plot_data, variable_names;
+                    show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
+                    time=nothing, timestep=nothing, figure=nothing)
+
+Visualize the plot data object provided in `plot_data` and display result using Makie.
+Only the variables in `variable_names` are plotted and, optionally, the mesh (if
+`show_mesh` is `true`). Additionally, `plot_arguments` will be unpacked and passed as
+keyword arguments to the `Plots.plot` command.
+
+This function is the default `plot_creator` argument for the [`VisualizationCallback`](@ref).
+`time` and `timestep` are currently unused by this function.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+See also: [`VisualizationCallback`](@ref), [`save_plot`](@ref)
+"""
+function show_plot_makie(plot_data, variable_names;
+                         show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
+                         time = nothing, timestep = nothing, figure = nothing)
+
+    if figure === nothing
+        @warn "Creating new figure"
+        figure = GLMakie.Figure()
+    end
+
+    for v in 1:size(variable_names)[1]
+        GLMakie.volume(figure[intTo2DInt(v)...], plot_data.data[v];
+                       algorithm = :mip, plot_arguments...)
+    end
+
+    GLMakie.display(visualization_callback.figure)
+
+    # TODO: show_mesh
 end
 end # @muladd
