@@ -32,6 +32,7 @@ References:
   Modeling of Space Plasma Flows, 213–218.
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
 !!! ATTENTION: In case of more than one ion species, these equations should ALWAYS be used
     with `source_terms_lorentz`.
@@ -284,6 +285,7 @@ end
 Entropy-conserving non-conservative two-point "flux"" as described in 
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
@@ -578,6 +580,7 @@ flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultiIonEq
 Entropy conserving two-point flux for the multi-ion GLM-MHD equations from
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
 This flux (together with the MHD non-conservative term) is consistent in the case of one ion species with the flux of:
 - Derigs et al. (2018). Ideal GLM-MHD: About the entropy consistent nine-wave magnetic field
@@ -1104,6 +1107,7 @@ Create a local Lax-Friedrichs-type dissipation operator that is provably entropy
 See:
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
   
 The maximum absolute wave speed is estimated as
 `max_abs_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
