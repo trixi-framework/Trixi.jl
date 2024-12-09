@@ -308,6 +308,12 @@ Entropy-conserving non-conservative two-point "flux"" as described in
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
+ATTENTION: The non-conservative fluxes derived in the reference above are written as the product
+           of local and symmetric parts and are meant to be used in the same way as the conservative
+           fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
+           the fluxes are multiplied by 2 because the non-conservative fluxes are always multiplied 
+           by 0.5 whenever they are used in the Trixi code
+
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
    is evaluated as a funciton of the charge-averaged velocity.
@@ -333,6 +339,7 @@ The term is composed of four individual non-conservative terms:
     mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
     mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
+    psi_avg = 0.5 * (psi_ll + psi_rr)
 
     # Mean electron pressure
     pe_ll = equations.electron_pressure(u_ll, equations)
@@ -358,10 +365,11 @@ The term is composed of four individual non-conservative terms:
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
     if orientation == 1
-        # Entries of Godunov-Powell term for induction equation (already in Trixi's non-conservative form)
-        f[1] = v1_plus_ll * B1_rr
-        f[2] = v2_plus_ll * B1_rr
-        f[3] = v3_plus_ll * B1_rr
+        # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
+        # multiplied by 0.5 whenever it's used in the Trixi code)
+        f[1] = 2.0f0 * v1_plus_ll * B1_avg
+        f[2] = 2.0f0 * v2_plus_ll * B1_avg
+        f[3] = 2.0f0 * v3_plus_ll * B1_avg
 
         for k in eachcomponent(equations)
             # Compute term Lorentz term
@@ -383,39 +391,31 @@ The term is composed of four individual non-conservative terms:
             f5 += (B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
                    B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg))
 
-            # Adjust Lorentz and multi-ion non-conservative terms to Trixi discretization
-            f2 = 2 * f2 -
-                 charge_ratio_ll[k] * (0.5 * mag_norm_ll - B1_ll * B1_ll + pe_ll)
-            f3 = 2 * f3 + charge_ratio_ll[k] * B1_ll * B2_ll
-            f4 = 2 * f4 + charge_ratio_ll[k] * B1_ll * B3_ll
-            f5 = (2 * f5
-                  -
-                  vk1_plus_ll[k] * pe_ll
-                  -
-                  B2_ll * (vk1_minus_ll * B2_ll - vk2_minus_ll * B1_ll)
-                  -
-                  B3_ll * (vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll))
-
-            # Compute Godunov-Powell term (already consistent with Trixi's non-conservative discretization)
-            f2 += charge_ratio_ll[k] * B1_ll * B1_rr
-            f3 += charge_ratio_ll[k] * B2_ll * B1_rr
-            f4 += charge_ratio_ll[k] * B3_ll * B1_rr
-            f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B1_rr
+            # Compute Godunov-Powell term
+            f2 += charge_ratio_ll[k] * B1_ll * B1_avg
+            f3 += charge_ratio_ll[k] * B2_ll * B1_avg
+            f4 += charge_ratio_ll[k] * B3_ll * B1_avg
+            f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
+                  B1_avg
 
             # Compute GLM term for the energy
-            f5 += v1_plus_ll * psi_ll * psi_rr
+            f5 += v1_plus_ll * psi_ll * psi_avg
 
-            # Add to the flux vector
-            set_component!(f, k, 0, f2, f3, f4, f5, equations)
+            # Add to the flux vector (multiply by 2 because the non-conservative flux is 
+            # multiplied by 0.5 whenever it's used in the Trixi code)
+            set_component!(f, k, 0, 2.0f0 * f2, 2.0f0 * f3, 2.0f0 * f4, 2.0f0 * f5,
+                           equations)
         end
-        # Compute GLM term for psi
-        f[end] = v1_plus_ll * psi_rr
+        # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
+        # multiplied by 0.5 whenever it's used in the Trixi code)
+        f[end] = 2.0f0 * v1_plus_ll * psi_avg
 
     else #if orientation == 2
-        # Entries of Godunov-Powell term for induction equation (already in Trixi's non-conservative form)
-        f[1] = v1_plus_ll * B2_rr
-        f[2] = v2_plus_ll * B2_rr
-        f[3] = v3_plus_ll * B2_rr
+        # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
+        # multiplied by 0.5 whenever it's used in the Trixi code)
+        f[1] = 2.0f0 * v1_plus_ll * B2_avg
+        f[2] = 2.0f0 * v2_plus_ll * B2_avg
+        f[3] = 2.0f0 * v3_plus_ll * B2_avg
 
         for k in eachcomponent(equations)
             # Compute term Lorentz term
@@ -437,33 +437,24 @@ The term is composed of four individual non-conservative terms:
             f5 += (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
                    B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg))
 
-            # Adjust Lorentz and multi-ion non-conservative terms to Trixi discretization
-            f2 = 2 * f2 + charge_ratio_ll[k] * B2_ll * B1_ll
-            f3 = 2 * f3 -
-                 charge_ratio_ll[k] * (0.5 * mag_norm_ll - B2_ll * B2_ll + pe_ll)
-            f4 = 2 * f4 + charge_ratio_ll[k] * B2_ll * B3_ll
-            f5 = (2 * f5
-                  -
-                  vk2_plus_ll[k] * pe_ll
-                  -
-                  B1_ll * (vk2_minus_ll * B1_ll - vk1_minus_ll * B2_ll)
-                  -
-                  B3_ll * (vk2_minus_ll * B3_ll - vk3_minus_ll * B2_ll))
-
-            # Compute Godunov-Powell term (already consistent with Trixi's non-conservative discretization)
-            f2 += charge_ratio_ll[k] * B1_ll * B2_rr
-            f3 += charge_ratio_ll[k] * B2_ll * B2_rr
-            f4 += charge_ratio_ll[k] * B3_ll * B2_rr
-            f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B2_rr
+            # Compute Godunov-Powell term
+            f2 += charge_ratio_ll[k] * B1_ll * B2_avg
+            f3 += charge_ratio_ll[k] * B2_ll * B2_avg
+            f4 += charge_ratio_ll[k] * B3_ll * B2_avg
+            f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
+                  B2_avg
 
             # Compute GLM term for the energy
-            f5 += v2_plus_ll * psi_ll * psi_rr
+            f5 += v2_plus_ll * psi_ll * psi_avg
 
-            # Add to the flux vector
-            set_component!(f, k, 0, f2, f3, f4, f5, equations)
+            # Add to the flux vector (multiply by 2 because the non-conservative flux is 
+            # multiplied by 0.5 whenever it's used in the Trixi code)
+            set_component!(f, k, 0, 2.0f0 * f2, 2.0f0 * f3, 2.0f0 * f4, 2.0f0 * f5,
+                           equations)
         end
-        # Compute GLM term for psi
-        f[end] = v2_plus_ll * psi_rr
+        # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
+        # multiplied by 0.5 whenever it's used in the Trixi code)
+        f[end] = 2.0f0 * v2_plus_ll * psi_avg
     end
 
     return SVector(f)
@@ -475,7 +466,14 @@ end
 
 Central non-conservative two-point "flux", where the symmetric parts are computed with standard averages.
 The use of this term together with flux_central with VolumeIntegralFluxDifferencing yields a "standard"
-(weak-form) DGSEM discretization of the multi-ion GLM-MHD system. 
+(weak-form) DGSEM discretization of the multi-ion GLM-MHD system. This flux can also be used to construct a
+standard local Lax-Friedrichs flux using `surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)`.
+
+ATTENTION: The central non-conservative fluxes are written as the product
+           of local and symmetric parts and are meant to be used in the same way as the conservative
+           fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
+           we omit the 0.5 when computing averages because the non-conservative flux is multiplied by 
+           0.5 whenever it's used in the Trixi code
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
@@ -495,9 +493,11 @@ The term is composed of four individual non-conservative terms:
     psi_rr = divergence_cleaning_field(u_rr, equations)
 
     # Compute important averages
+    mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
 
     # Electron pressure 
+    pe_ll = equations.electron_pressure(u_ll, equations)
     pe_rr = equations.electron_pressure(u_rr, equations)
 
     # Compute charge ratio of u_ll
@@ -519,77 +519,87 @@ The term is composed of four individual non-conservative terms:
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
     if orientation == 1
-        # Entries of Godunov-Powell term for induction equation (already in Trixi's non-conservative form)
-        f[1] = v1_plus_ll * B1_rr
-        f[2] = v2_plus_ll * B1_rr
-        f[3] = v3_plus_ll * B1_rr
+        # Entries of Godunov-Powell term for induction equation
+        f[1] = v1_plus_ll * (B1_ll + B1_rr)
+        f[2] = v2_plus_ll * (B1_ll + B1_rr)
+        f[3] = v3_plus_ll * (B1_ll + B1_rr)
         for k in eachcomponent(equations)
             # Compute Lorentz term
-            f2 = charge_ratio_ll[k] * (0.5 * mag_norm_rr - B1_rr * B1_rr + pe_rr)
-            f3 = charge_ratio_ll[k] * (-B1_rr * B2_rr)
-            f4 = charge_ratio_ll[k] * (-B1_rr * B3_rr)
-            f5 = vk1_plus_ll[k] * pe_rr
+            f2 = charge_ratio_ll[k] * ((0.5 * mag_norm_ll - B1_ll * B1_ll + pe_ll) +
+                  (0.5 * mag_norm_rr - B1_rr * B1_rr + pe_rr))
+            f3 = charge_ratio_ll[k] * ((-B1_ll * B2_ll) + (-B1_rr * B2_rr))
+            f4 = charge_ratio_ll[k] * ((-B1_ll * B3_ll) + (-B1_rr * B3_rr))
+            f5 = vk1_plus_ll[k] * (pe_ll + pe_rr)
 
-            # Compute multi-ion term (vanishes for NCOMP==1)
+            # Compute multi-ion term, which vanishes for NCOMP==1
+            vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
+            vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
+            vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
             vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
             vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
             vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
-            f5 += (B2_ll * (vk1_minus_rr * B2_rr - vk2_minus_rr * B1_rr) +
-                   B3_ll * (vk1_minus_rr * B3_rr - vk3_minus_rr * B1_rr))
+            f5 += (B2_ll * ((vk1_minus_ll * B2_ll - vk2_minus_ll * B1_ll) +
+                    (vk1_minus_rr * B2_rr - vk2_minus_rr * B1_rr)) +
+                   B3_ll * ((vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll) +
+                    (vk1_minus_rr * B3_rr - vk3_minus_rr * B1_rr)))
 
-            # Compute Godunov-Powell term (already consistent with Trixi's non-conservative discretization)
-            f2 += charge_ratio_ll[k] * B1_ll * B1_rr
-            f3 += charge_ratio_ll[k] * B2_ll * B1_rr
-            f4 += charge_ratio_ll[k] * B3_ll * B1_rr
-            f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B1_rr
+            # Compute Godunov-Powell term
+            f2 += charge_ratio_ll[k] * B1_ll * (B1_ll + B1_rr)
+            f3 += charge_ratio_ll[k] * B2_ll * (B1_ll + B1_rr)
+            f4 += charge_ratio_ll[k] * B3_ll * (B1_ll + B1_rr)
+            f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
+                  (B1_ll + B1_rr)
 
             # Compute GLM term for the energy
-            f5 += v1_plus_ll * psi_ll * psi_rr
-
-            # It's not needed to adjust to Trixi's non-conservative form
+            f5 += v1_plus_ll * psi_ll * (psi_ll + psi_rr)
 
             # Append to the flux vector
             set_component!(f, k, 0, f2, f3, f4, f5, equations)
         end
         # Compute GLM term for psi
-        f[end] = v1_plus_ll * psi_rr
+        f[end] = v1_plus_ll * (psi_ll + psi_rr)
 
     else #if orientation == 2
-        # Entries of Godunov-Powell term for induction equation (already in Trixi's non-conservative form)
-        f[1] = v1_plus_ll * B2_rr
-        f[2] = v2_plus_ll * B2_rr
-        f[3] = v3_plus_ll * B2_rr
+        # Entries of Godunov-Powell term for induction equation
+        f[1] = v1_plus_ll * (B2_ll + B2_rr)
+        f[2] = v2_plus_ll * (B2_ll + B2_rr)
+        f[3] = v3_plus_ll * (B2_ll + B2_rr)
 
         for k in eachcomponent(equations)
             # Compute Lorentz term
-            f2 = charge_ratio_ll[k] * (-B2_rr * B1_rr)
-            f3 = charge_ratio_ll[k] * (-B2_rr * B2_rr + 0.5 * mag_norm_rr + pe_rr)
-            f4 = charge_ratio_ll[k] * (-B2_rr * B3_rr)
-            f5 = vk2_plus_ll[k] * pe_rr
+            f2 = charge_ratio_ll[k] * ((-B2_ll * B1_ll) + (-B2_rr * B1_rr))
+            f3 = charge_ratio_ll[k] * ((-B2_ll * B2_ll + 0.5 * mag_norm_ll + pe_ll) +
+                  (-B2_rr * B2_rr + 0.5 * mag_norm_rr + pe_rr))
+            f4 = charge_ratio_ll[k] * ((-B2_ll * B3_ll) + (-B2_rr * B3_rr))
+            f5 = vk2_plus_ll[k] * (pe_ll + pe_rr)
 
             # Compute multi-ion term (vanishes for NCOMP==1)
+            vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
+            vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
+            vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
             vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
             vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
             vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
-            f5 += (B1_ll * (vk2_minus_rr * B1_rr - vk1_minus_rr * B2_rr) +
-                   B3_ll * (vk2_minus_rr * B3_rr - vk3_minus_rr * B2_rr))
+            f5 += (B1_ll * ((vk2_minus_ll * B1_ll - vk1_minus_ll * B2_ll) +
+                    (vk2_minus_rr * B1_rr - vk1_minus_rr * B2_rr)) +
+                   B3_ll * ((vk2_minus_ll * B3_ll - vk3_minus_ll * B2_ll) +
+                    (vk2_minus_rr * B3_rr - vk3_minus_rr * B2_rr)))
 
-            # Compute Godunov-Powell term (already consistent with Trixi's non-conservative discretization)
-            f2 += charge_ratio_ll[k] * B1_ll * B2_rr
-            f3 += charge_ratio_ll[k] * B2_ll * B2_rr
-            f4 += charge_ratio_ll[k] * B3_ll * B2_rr
-            f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) * B2_rr
+            # Compute Godunov-Powell term
+            f2 += charge_ratio_ll[k] * B1_ll * (B2_ll + B2_rr)
+            f3 += charge_ratio_ll[k] * B2_ll * (B2_ll + B2_rr)
+            f4 += charge_ratio_ll[k] * B3_ll * (B2_ll + B2_rr)
+            f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
+                  (B2_ll + B2_rr)
 
             # Compute GLM term for the energy
-            f5 += v2_plus_ll * psi_ll * psi_rr
-
-            # It's not needed to adjust to Trixi's non-conservative form
+            f5 += v2_plus_ll * psi_ll * (psi_ll + psi_rr)
 
             # Append to the flux vector
             set_component!(f, k, 0, f2, f3, f4, f5, equations)
         end
         # Compute GLM term for psi
-        f[end] = v2_plus_ll * psi_rr
+        f[end] = v2_plus_ll * (psi_ll + psi_rr)
     end
 
     return SVector(f)
