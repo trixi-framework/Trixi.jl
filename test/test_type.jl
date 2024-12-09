@@ -25,6 +25,48 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "TreeMesh & SerialTree type consistence" begin
+        # Helper function to test if the compiler can infer the `TreeType`
+        # which forms the basis for the `TreeMesh`.
+        # When this test passes, functions such as 
+        # `total_volume(mesh)` should also be inferable, see
+        # https://github.com/trixi-framework/Trixi.jl/pull/2191
+        get_tree(mesh::TreeMesh) = mesh.tree
+        for RealT in (Float32, Float64)
+            coordinates_min = -convert(RealT, 1)
+            coordinates_max = convert(RealT, 1)
+
+            mesh = TreeMesh(coordinates_min, coordinates_max,
+                            initial_refinement_level = 6,
+                            n_cells_max = 30_000,
+                            RealT = RealT)
+
+            @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{1, RealT}
+
+            coordinates_min = (-convert(RealT, 42), -convert(RealT, 42))
+            coordinates_max = (convert(RealT, 42), convert(RealT, 42))
+
+            mesh = TreeMesh(coordinates_min, coordinates_max,
+                            initial_refinement_level = 5,
+                            n_cells_max = 30_000,
+                            RealT = RealT)
+
+            @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{2, RealT}
+
+            coordinates_min = (-convert(RealT, pi), -convert(RealT, pi),
+                               -convert(RealT, pi))
+            coordinates_max = (convert(RealT, pi), convert(RealT, pi),
+                               convert(RealT, pi))
+
+            mesh = TreeMesh(coordinates_min, coordinates_max,
+                            initial_refinement_level = 4,
+                            n_cells_max = 30_000,
+                            RealT = RealT)
+
+            @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{3, RealT}
+        end
+    end
+
     @timed_testset "Acoustic Perturbation 2D" begin
         for RealT in (Float32, Float64)
             v_mean_global = (zero(RealT), zero(RealT))
