@@ -368,9 +368,9 @@ The term is composed of four individual non-conservative terms:
     if orientation == 1
         # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
         # multiplied by 0.5 whenever it's used in the Trixi code)
-        f[1] = 2.0f0 * v1_plus_ll * B1_avg
-        f[2] = 2.0f0 * v2_plus_ll * B1_avg
-        f[3] = 2.0f0 * v3_plus_ll * B1_avg
+        f[1] = 2 * v1_plus_ll * B1_avg
+        f[2] = 2 * v2_plus_ll * B1_avg
+        f[3] = 2 * v3_plus_ll * B1_avg
 
         for k in eachcomponent(equations)
             # Compute term Lorentz term
@@ -404,19 +404,19 @@ The term is composed of four individual non-conservative terms:
 
             # Add to the flux vector (multiply by 2 because the non-conservative flux is 
             # multiplied by 0.5 whenever it's used in the Trixi code)
-            set_component!(f, k, 0, 2.0f0 * f2, 2.0f0 * f3, 2.0f0 * f4, 2.0f0 * f5,
+            set_component!(f, k, 0, 2 * f2, 2 * f3, 2 * f4, 2 * f5,
                            equations)
         end
         # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
         # multiplied by 0.5 whenever it's used in the Trixi code)
-        f[end] = 2.0f0 * v1_plus_ll * psi_avg
+        f[end] = 2 * v1_plus_ll * psi_avg
 
     else #if orientation == 2
         # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
         # multiplied by 0.5 whenever it's used in the Trixi code)
-        f[1] = 2.0f0 * v1_plus_ll * B2_avg
-        f[2] = 2.0f0 * v2_plus_ll * B2_avg
-        f[3] = 2.0f0 * v3_plus_ll * B2_avg
+        f[1] = 2 * v1_plus_ll * B2_avg
+        f[2] = 2 * v2_plus_ll * B2_avg
+        f[3] = 2 * v3_plus_ll * B2_avg
 
         for k in eachcomponent(equations)
             # Compute term Lorentz term
@@ -451,12 +451,12 @@ The term is composed of four individual non-conservative terms:
 
             # Add to the flux vector (multiply by 2 because the non-conservative flux is 
             # multiplied by 0.5 whenever it's used in the Trixi code)
-            set_component!(f, k, 0, 2.0f0 * f2, 2.0f0 * f3, 2.0f0 * f4, 2.0f0 * f5,
+            set_component!(f, k, 0, 2 * f2, 2 * f3, 2 * f4, 2 * f5,
                            equations)
         end
         # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
         # multiplied by 0.5 whenever it's used in the Trixi code)
-        f[end] = 2.0f0 * v2_plus_ll * psi_avg
+        f[end] = 2 * v2_plus_ll * psi_avg
     end
 
     return SVector(f)
@@ -1017,12 +1017,12 @@ end
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 4.0f0 * a_square * b1^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b1^2)))
         else #if orientation == 2
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 4.0f0 * a_square * b2^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b2^2)))
         end
     end
 
