@@ -39,7 +39,7 @@ References:
 """
 mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
                                               ElectronPressure} <:
-               AbstractIdealMhdMultiIonEquations{2, NVARS, NCOMP}
+               AbstractIdealGlmMhdMultiIonEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
     electron_pressure::ElectronPressure       # Function to compute the electron pressure
@@ -170,7 +170,7 @@ function initial_condition_weak_blast_wave(x, t,
     return prim2cons(SVector(prim), equations)
 end
 
-# 2D flux of the GLM-MHD equations in the direction `orientation`
+# 2D flux of the multi-ion GLM-MHD equations in the direction `orientation`
 @inline function flux(u, orientation::Integer,
                       equations::IdealGlmMhdMultiIonEquations2D)
     B1, B2, B3 = magnetic_field(u, equations)
@@ -1034,8 +1034,7 @@ are SVectors of size ncomponents(equations).
     vk3_plus = zero(MVector{ncomponents(equations), eltype(u)})
 
     for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u,
-                                                       equations::IdealGlmMhdMultiIonEquations2D)
+        rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u, equations)
 
         total_electron_charge += rho * equations.charge_to_mass[k]
         vk1_plus[k] = rho_v1 * equations.charge_to_mass[k]
