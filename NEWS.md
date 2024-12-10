@@ -9,7 +9,7 @@ for human readability.
 #### Changed
 
 - The `PairedExplicitRK2` constructor with second argument `base_path_monomial_coeffs::AbstractString` requires 
-  now `dt_opt`, `b1`, `cS` to be given as keyword arguments ([#2184]).
+  now `dt_opt`, `bS`, `cS` to be given as keyword arguments ([#2184]).
   Previously, those where standard function parameters, in the same order as listed above.
 
 ## Changes in the v0.9 lifecycle
