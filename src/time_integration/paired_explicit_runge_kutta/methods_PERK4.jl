@@ -233,7 +233,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK4;
     return integrator
 end
 
-@inline function PERK4_KS2_to_KS!(integrator::PairedExplicitRK4Integrator, p, alg)
+@inline function PERK4_kS2_to_kS!(integrator::PairedExplicitRK4Integrator, p, alg)
     for stage in 1:2
         @threaded for i in eachindex(integrator.u)
             integrator.u_tmp[u_ind] = integrator.u[i] +
@@ -302,7 +302,7 @@ function step!(integrator::PairedExplicitRK4Integrator)
             PERK_ki!(integrator, prob.p, alg, stage)
         end
 
-        PERK4_KS2_to_KS!(integrator, prob.p, alg)
+        PERK4_kS2_to_kS!(integrator, prob.p, alg)
     end
 
     integrator.iter += 1
