@@ -184,6 +184,35 @@ end
     return flux
 end
 
+# Dirichlet-type boundary condition for use with TreeMesh or StructuredMesh
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                  orientation_or_normal,
+                                                                  direction,
+                                                                  x, t,
+                                                                  surface_flux_functions::Tuple,
+                                                                  equations)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal,
+                                     equations)
+        noncons = nonconservative_flux_function(u_inner, u_boundary,
+                                                orientation_or_normal,
+                                                equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal,
+                                     equations)
+        noncons = nonconservative_flux_function(u_boundary, u_inner,
+                                                orientation_or_normal,
+                                                equations)
+    end
+
+    return flux + 0.5f0 * noncons
+end
+
 # Dirichlet-type boundary condition for use with UnstructuredMesh2D
 # Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
