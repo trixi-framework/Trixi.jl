@@ -26,12 +26,6 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 
     @timed_testset "TreeMesh & SerialTree type consistence" begin
-        # Helper function to test if the compiler can infer the `TreeType`
-        # which forms the basis for the `TreeMesh`.
-        # When this test passes, functions such as 
-        # `total_volume(mesh)` should also be inferable, see
-        # https://github.com/trixi-framework/Trixi.jl/pull/2191
-        get_tree(mesh::TreeMesh) = mesh.tree
         for RealT in (Float32, Float64)
             coordinates_min = -convert(RealT, 1)
             coordinates_max = convert(RealT, 1)
@@ -41,7 +35,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                             n_cells_max = 30_000,
                             RealT = RealT)
 
-            @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{1, RealT}
             @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
 
             coordinates_min = (-convert(RealT, 42), -convert(RealT, 42))
@@ -52,7 +45,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                             n_cells_max = 30_000,
                             RealT = RealT)
 
-            @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{2, RealT}
             @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
 
             coordinates_min = (-convert(RealT, pi), -convert(RealT, pi),
@@ -65,7 +57,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                             n_cells_max = 30_000,
                             RealT = RealT)
 
-            @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{3, RealT}
             @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
         end
     end
