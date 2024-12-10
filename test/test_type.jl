@@ -2150,7 +2150,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             directions = [1, 2]
             normal_direction = SVector(one(RealT))
 
-            surface_flux_function = flux_lax_friedrichs
+            surface_flux_function = (flux_lax_friedrichs, flux_lax_friedrichs)
             dissipation = DissipationLocalLaxFriedrichs()
             numflux = FluxHLL()
 
@@ -2239,7 +2239,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             directions = [1, 2, 3, 4]
             normal_direction = SVector(one(RealT), zero(RealT))
 
-            surface_flux_function = flux_lax_friedrichs
+            surface_flux_function = (flux_lax_friedrichs, flux_lax_friedrichs)
             dissipation = DissipationLocalLaxFriedrichs()
             numflux = FluxHLL()
 
