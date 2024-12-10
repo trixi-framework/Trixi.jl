@@ -161,18 +161,18 @@ function initial_condition_weak_blast_wave(x, t,
     # Calculate primitive variables
     rho = zero(real(equations))
     if r > 0.5
-        rho = 1.0f0
+        rho = 1.0
     else
-        rho = 1.1691f0
+        rho = 1.1691
     end
-    v1 = r > 0.5 ? 0.0f0 : 0.1882f0 * cos(phi)
-    v2 = r > 0.5 ? 0.0f0 : 0.1882f0 * sin(phi)
-    p = r > 0.5 ? 1.0f0 : 1.245f0
+    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
+    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
+    p = r > 0.5 ? 1.0 : 1.245
 
     prim = zero(MVector{nvariables(equations), real(equations)})
-    prim[1] = 1.0f0
-    prim[2] = 1.0f0
-    prim[3] = 1.0f0
+    prim[1] = 1.0
+    prim[2] = 1.0
+    prim[3] = 1.0
     for k in eachcomponent(equations)
         set_component!(prim, k,
                        2^(k - 1) * (1 - 2) / (1 - 2^ncomponents(equations)) * rho, v1,
