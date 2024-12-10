@@ -237,12 +237,12 @@ end
 @inline function PERK4_kS2_to_kS!(integrator::PairedExplicitRK4Integrator, p, alg)
     for stage in 1:2
         @threaded for i in eachindex(integrator.u)
-            integrator.u_tmp[u_ind] = integrator.u[i] +
-                                      integrator.dt *
-                                      (alg.a_matrix_constant[1, stage] *
-                                       integrator.k1[i] +
-                                       alg.a_matrix_constant[2, stage] *
-                                       integrator.du[i])
+            integrator.u_tmp[i] = integrator.u[i] +
+                                  integrator.dt *
+                                  (alg.a_matrix_constant[1, stage] *
+                                   integrator.k1[i] +
+                                   alg.a_matrix_constant[2, stage] *
+                                   integrator.du[i])
         end
 
         integrator.f(integrator.du, integrator.u_tmp, p,
@@ -269,8 +269,8 @@ end
     @threaded for i in eachindex(integrator.u)
         # Note that 'k1' carries the values of K_{S-1}
         # and that we construct 'K_S' "in-place" from 'integrator.du'
-        integrator.u[u_ind] += 0.5 * integrator.dt *
-                               (integrator.k1[i] + integrator.du[i])
+        integrator.u[i] += 0.5 * integrator.dt *
+                           (integrator.k1[i] + integrator.du[i])
     end
 end
 

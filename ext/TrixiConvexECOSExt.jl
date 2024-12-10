@@ -34,22 +34,6 @@ function Trixi.undo_normalization!(gamma_opt, num_stage_evals,
     end
 end
 
-@inline function stability_polynomials_fixed_coeffs!(pnoms, num_eig_vals,
-                                                     normalized_powered_eigvals_scaled,
-                                                     consistency_order)
-    # Initialize with zero'th order (z^0) coefficient
-    for i in 1:num_eig_vals
-        pnoms[i] = 1.0
-    end
-
-    # First `consistency_order` terms of the exponential
-    for k in 1:consistency_order
-        for i in 1:num_eig_vals
-            pnoms[i] += normalized_powered_eigvals_scaled[i, k]
-        end
-    end
-end
-
 # Compute stability polynomials for paired explicit Runge-Kutta up to specified consistency
 # order, including contributions from free coefficients for higher orders, and
 # return the maximum absolute value
@@ -58,9 +42,16 @@ function stability_polynomials!(pnoms, consistency_order,
                                 num_eig_vals,
                                 normalized_powered_eigvals_scaled,
                                 gamma)
-    stability_polynomials_fixed_coeffs!(pnoms, num_eig_vals,
-                                        normalized_powered_eigvals_scaled,
-                                        consistency_order)
+    # Initialize with zero'th order (z^0) coefficient
+    for i in 1:num_eig_vals
+        pnoms[i] = 1.0
+    end
+    # First `consistency_order` terms of the exponential
+    for k in 1:consistency_order
+        for i in 1:num_eig_vals
+            pnoms[i] += normalized_powered_eigvals_scaled[i, k]
+        end
+    end
 
     # Contribution from free coefficients
     for k in (consistency_order + 1):num_stage_evals
@@ -86,8 +77,16 @@ function stability_polynomials_PERK4!(pnoms, num_stage_evals,
     k2 = 0.03726406530405851 / cS3
     # Note: `cS3` = c_{S-3} is in principle free, while the other abscissae are fixed to 1.0
 
-    stability_polynomials_fixed_coeffs!(pnoms, num_eig_vals, normalized_powered_eigvals,
-                                        4)
+    # Initialize with zero'th order (z^0) coefficient
+    for i in 1:num_eig_vals
+        pnoms[i] = 1.0
+    end
+    # First `consistency_order` = 4 terms of the exponential
+    for k in 1:4
+        for i in 1:num_eig_vals
+            pnoms[i] += dt^k * normalized_powered_eigvals[i, k]
+        end
+    end
 
     # "Fixed" term due to choice of the PERK4 Butcher tableau
     # Required to un-do the normalization of the eigenvalues here
