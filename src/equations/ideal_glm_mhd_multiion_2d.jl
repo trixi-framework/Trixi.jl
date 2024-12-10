@@ -161,18 +161,18 @@ function initial_condition_weak_blast_wave(x, t,
     # Calculate primitive variables
     rho = zero(real(equations))
     if r > 0.5
-        rho = 1.0
+        rho = 1.0f0
     else
-        rho = 1.1691
+        rho = 1.1691f0
     end
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-    p = r > 0.5 ? 1.0 : 1.245
+    v1 = r > 0.5 ? 0.0f0 : 0.1882f0 * cos(phi)
+    v2 = r > 0.5 ? 0.0f0 : 0.1882f0 * sin(phi)
+    p = r > 0.5 ? 1.0f0 : 1.245f0
 
     prim = zero(MVector{nvariables(equations), real(equations)})
-    prim[1] = 1.0
-    prim[2] = 1.0
-    prim[3] = 1.0
+    prim[1] = 1.0f0
+    prim[2] = 1.0f0
+    prim[3] = 1.0f0
     for k in eachcomponent(equations)
         set_component!(prim, k,
                        2^(k - 1) * (1 - 2) / (1 - 2^ncomponents(equations)) * rho, v1,
@@ -191,8 +191,8 @@ end
     v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
                                                                                          equations)
 
-    mag_en = 0.5 * (B1^2 + B2^2 + B3^2)
-    div_clean_energy = 0.5 * psi^2
+    mag_en = 0.5f0 * (B1^2 + B2^2 + B3^2)
+    div_clean_energy = 0.5f0 * psi^2
 
     f = zero(MVector{nvariables(equations), eltype(u)})
 
@@ -206,7 +206,7 @@ end
             v1 = rho_v1 / rho
             v2 = rho_v2 / rho
             v3 = rho_v3 / rho
-            kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
+            kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
             p = (gamma - 1) * (rho_e - kin_en - mag_en - div_clean_energy)
@@ -232,7 +232,7 @@ end
             v1 = rho_v1 / rho
             v2 = rho_v2 / rho
             v3 = rho_v3 / rho
-            kin_en = 0.5 * rho * (v1^2 + v2^2 + v3^2)
+            kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
             p = (gamma - 1) * (rho_e - kin_en - mag_en - div_clean_energy)
@@ -333,18 +333,18 @@ The term is composed of four individual non-conservative terms:
     psi_rr = divergence_cleaning_field(u_rr, equations)
 
     # Compute important averages
-    B1_avg = 0.5 * (B1_ll + B1_rr)
-    B2_avg = 0.5 * (B2_ll + B2_rr)
-    B3_avg = 0.5 * (B3_ll + B3_rr)
+    B1_avg = 0.5f0 * (B1_ll + B1_rr)
+    B2_avg = 0.5f0 * (B2_ll + B2_rr)
+    B3_avg = 0.5f0 * (B3_ll + B3_rr)
     mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-    mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
-    psi_avg = 0.5 * (psi_ll + psi_rr)
+    mag_norm_avg = 0.5f0 * (mag_norm_ll + mag_norm_rr)
+    psi_avg = 0.5f0 * (psi_ll + psi_rr)
 
     # Mean electron pressure
     pe_ll = equations.electron_pressure(u_ll, equations)
     pe_rr = equations.electron_pressure(u_rr, equations)
-    pe_mean = 0.5 * (pe_ll + pe_rr)
+    pe_mean = 0.5f0 * (pe_ll + pe_rr)
 
     # Compute charge ratio of u_ll
     charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
@@ -373,7 +373,7 @@ The term is composed of four individual non-conservative terms:
 
         for k in eachcomponent(equations)
             # Compute term Lorentz term
-            f2 = charge_ratio_ll[k] * (0.5 * mag_norm_avg - B1_avg * B1_avg + pe_mean)
+            f2 = charge_ratio_ll[k] * (0.5f0 * mag_norm_avg - B1_avg * B1_avg + pe_mean)
             f3 = charge_ratio_ll[k] * (-B1_avg * B2_avg)
             f4 = charge_ratio_ll[k] * (-B1_avg * B3_avg)
             f5 = vk1_plus_ll[k] * pe_mean
@@ -385,9 +385,9 @@ The term is composed of four individual non-conservative terms:
             vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
             vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
             vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
-            vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
-            vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
-            vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
+            vk1_minus_avg = 0.5f0 * (vk1_minus_ll + vk1_minus_rr)
+            vk2_minus_avg = 0.5f0 * (vk2_minus_ll + vk2_minus_rr)
+            vk3_minus_avg = 0.5f0 * (vk3_minus_ll + vk3_minus_rr)
             f5 += (B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
                    B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg))
 
@@ -420,7 +420,8 @@ The term is composed of four individual non-conservative terms:
         for k in eachcomponent(equations)
             # Compute term Lorentz term
             f2 = charge_ratio_ll[k] * (-B2_avg * B1_avg)
-            f3 = charge_ratio_ll[k] * (-B2_avg * B2_avg + 0.5 * mag_norm_avg + pe_mean)
+            f3 = charge_ratio_ll[k] *
+                 (-B2_avg * B2_avg + 0.5f0 * mag_norm_avg + pe_mean)
             f4 = charge_ratio_ll[k] * (-B2_avg * B3_avg)
             f5 = vk2_plus_ll[k] * pe_mean
 
@@ -431,9 +432,9 @@ The term is composed of four individual non-conservative terms:
             vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
             vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
             vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
-            vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
-            vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
-            vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
+            vk1_minus_avg = 0.5f0 * (vk1_minus_ll + vk1_minus_rr)
+            vk2_minus_avg = 0.5f0 * (vk2_minus_ll + vk2_minus_rr)
+            vk3_minus_avg = 0.5f0 * (vk3_minus_ll + vk3_minus_rr)
             f5 += (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
                    B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg))
 
@@ -525,8 +526,8 @@ The term is composed of four individual non-conservative terms:
         f[3] = v3_plus_ll * (B1_ll + B1_rr)
         for k in eachcomponent(equations)
             # Compute Lorentz term
-            f2 = charge_ratio_ll[k] * ((0.5 * mag_norm_ll - B1_ll * B1_ll + pe_ll) +
-                  (0.5 * mag_norm_rr - B1_rr * B1_rr + pe_rr))
+            f2 = charge_ratio_ll[k] * ((0.5f0 * mag_norm_ll - B1_ll * B1_ll + pe_ll) +
+                  (0.5f0 * mag_norm_rr - B1_rr * B1_rr + pe_rr))
             f3 = charge_ratio_ll[k] * ((-B1_ll * B2_ll) + (-B1_rr * B2_rr))
             f4 = charge_ratio_ll[k] * ((-B1_ll * B3_ll) + (-B1_rr * B3_rr))
             f5 = vk1_plus_ll[k] * (pe_ll + pe_rr)
@@ -568,8 +569,8 @@ The term is composed of four individual non-conservative terms:
         for k in eachcomponent(equations)
             # Compute Lorentz term
             f2 = charge_ratio_ll[k] * ((-B2_ll * B1_ll) + (-B2_rr * B1_rr))
-            f3 = charge_ratio_ll[k] * ((-B2_ll * B2_ll + 0.5 * mag_norm_ll + pe_ll) +
-                  (-B2_rr * B2_rr + 0.5 * mag_norm_rr + pe_rr))
+            f3 = charge_ratio_ll[k] * ((-B2_ll * B2_ll + 0.5f0 * mag_norm_ll + pe_ll) +
+                  (-B2_rr * B2_rr + 0.5f0 * mag_norm_rr + pe_rr))
             f4 = charge_ratio_ll[k] * ((-B2_ll * B3_ll) + (-B2_rr * B3_rr))
             f5 = vk2_plus_ll[k] * (pe_ll + pe_rr)
 
@@ -635,19 +636,19 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
     # Compute averages for global variables
-    v1_plus_avg = 0.5 * (v1_plus_ll + v1_plus_rr)
-    v2_plus_avg = 0.5 * (v2_plus_ll + v2_plus_rr)
-    v3_plus_avg = 0.5 * (v3_plus_ll + v3_plus_rr)
-    B1_avg = 0.5 * (B1_ll + B1_rr)
-    B2_avg = 0.5 * (B2_ll + B2_rr)
-    B3_avg = 0.5 * (B3_ll + B3_rr)
+    v1_plus_avg = 0.5f0 * (v1_plus_ll + v1_plus_rr)
+    v2_plus_avg = 0.5f0 * (v2_plus_ll + v2_plus_rr)
+    v3_plus_avg = 0.5f0 * (v3_plus_ll + v3_plus_rr)
+    B1_avg = 0.5f0 * (B1_ll + B1_rr)
+    B2_avg = 0.5f0 * (B2_ll + B2_rr)
+    B3_avg = 0.5f0 * (B3_ll + B3_rr)
     mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
     mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
-    mag_norm_avg = 0.5 * (mag_norm_ll + mag_norm_rr)
-    psi_avg = 0.5 * (psi_ll + psi_rr)
+    mag_norm_avg = 0.5f0 * (mag_norm_ll + mag_norm_rr)
+    psi_avg = 0.5f0 * (psi_ll + psi_rr)
 
     if orientation == 1
-        psi_B1_avg = 0.5 * (B1_ll * psi_ll + B1_rr * psi_rr)
+        psi_B1_avg = 0.5f0 * (B1_ll * psi_ll + B1_rr * psi_rr)
 
         # Magnetic field components from f^MHD
         f6 = equations.c_h * psi_avg
@@ -679,13 +680,13 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
             p_ll = (gammas[k] - 1) *
-                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll -
-                    0.5 * psi_ll^2)
+                   (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
+                    0.5f0 * psi_ll^2)
             p_rr = (gammas[k] - 1) *
-                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr -
-                    0.5 * psi_rr^2)
-            beta_ll = 0.5 * rho_ll / p_ll
-            beta_rr = 0.5 * rho_rr / p_rr
+                   (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
+                    0.5f0 * psi_rr^2)
+            beta_ll = 0.5f0 * rho_ll / p_ll
+            beta_rr = 0.5f0 * rho_rr / p_rr
             # for convenience store vk_plus⋅B
             vel_dot_mag_ll = vk1_plus_ll[k] * B1_ll + vk2_plus_ll[k] * B2_ll +
                              vk3_plus_ll[k] * B3_ll
@@ -693,19 +694,19 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
                              vk3_plus_rr[k] * B3_rr
 
             # Compute the necessary mean values needed for either direction
-            rho_avg = 0.5 * (rho_ll + rho_rr)
+            rho_avg = 0.5f0 * (rho_ll + rho_rr)
             rho_mean = ln_mean(rho_ll, rho_rr)
             beta_mean = ln_mean(beta_ll, beta_rr)
-            beta_avg = 0.5 * (beta_ll + beta_rr)
-            p_mean = 0.5 * rho_avg / beta_avg
-            v1_avg = 0.5 * (v1_ll + v1_rr)
-            v2_avg = 0.5 * (v2_ll + v2_rr)
-            v3_avg = 0.5 * (v3_ll + v3_rr)
-            vel_norm_avg = 0.5 * (vel_norm_ll + vel_norm_rr)
-            vel_dot_mag_avg = 0.5 * (vel_dot_mag_ll + vel_dot_mag_rr)
-            vk1_plus_avg = 0.5 * (vk1_plus_ll[k] + vk1_plus_rr[k])
-            vk2_plus_avg = 0.5 * (vk2_plus_ll[k] + vk2_plus_rr[k])
-            vk3_plus_avg = 0.5 * (vk3_plus_ll[k] + vk3_plus_rr[k])
+            beta_avg = 0.5f0 * (beta_ll + beta_rr)
+            p_mean = 0.5f0 * rho_avg / beta_avg
+            v1_avg = 0.5f0 * (v1_ll + v1_rr)
+            v2_avg = 0.5f0 * (v2_ll + v2_rr)
+            v3_avg = 0.5f0 * (v3_ll + v3_rr)
+            vel_norm_avg = 0.5f0 * (vel_norm_ll + vel_norm_rr)
+            vel_dot_mag_avg = 0.5f0 * (vel_dot_mag_ll + vel_dot_mag_rr)
+            vk1_plus_avg = 0.5f0 * (vk1_plus_ll[k] + vk1_plus_rr[k])
+            vk2_plus_avg = 0.5f0 * (vk2_plus_ll[k] + vk2_plus_rr[k])
+            vk3_plus_avg = 0.5f0 * (vk3_plus_ll[k] + vk3_plus_rr[k])
             # v_minus
             vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
             vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
@@ -713,9 +714,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
             vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
             vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
-            vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
-            vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
-            vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
+            vk1_minus_avg = 0.5f0 * (vk1_minus_ll + vk1_minus_rr)
+            vk2_minus_avg = 0.5f0 * (vk2_minus_ll + vk2_minus_rr)
+            vk3_minus_avg = 0.5f0 * (vk3_minus_ll + vk3_minus_rr)
 
             # Fill the fluxes for the mass and momentum equations
             f1 = rho_mean * v1_avg
@@ -724,17 +725,17 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             f4 = f1 * v3_avg
 
             # total energy flux is complicated and involves the previous eight components
-            v1_plus_mag_avg = 0.5 * (vk1_plus_ll[k] * mag_norm_ll +
+            v1_plus_mag_avg = 0.5f0 * (vk1_plus_ll[k] * mag_norm_ll +
                                vk1_plus_rr[k] * mag_norm_rr)
             # Euler part
-            f5 = f1 * 0.5 * (1 / (gammas[k] - 1) / beta_mean - vel_norm_avg) +
+            f5 = f1 * 0.5f0 * (1 / (gammas[k] - 1) / beta_mean - vel_norm_avg) +
                  f2 * v1_avg + f3 * v2_avg + f4 * v3_avg
             # MHD part
-            f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v1_plus_mag_avg +
+            f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5f0 * v1_plus_mag_avg +
                    B1_avg * vel_dot_mag_avg                                               # Same terms as in Derigs (but with v_plus)
                    + f9 * psi_avg - equations.c_h * psi_B1_avg # GLM term
                    +
-                   0.5 * vk1_plus_avg * mag_norm_avg -
+                   0.5f0 * vk1_plus_avg * mag_norm_avg -
                    vk1_plus_avg * B1_avg * B1_avg - vk2_plus_avg * B1_avg * B2_avg -
                    vk3_plus_avg * B1_avg * B3_avg   # Additional terms related to the Lorentz non-conservative term (momentum eqs)
                    -
@@ -744,7 +745,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             set_component!(f, k, f1, f2, f3, f4, f5, equations)
         end
     else #if orientation == 2
-        psi_B2_avg = 0.5 * (B2_ll * psi_ll + B2_rr * psi_rr)
+        psi_B2_avg = 0.5f0 * (B2_ll * psi_ll + B2_rr * psi_rr)
 
         # Magnetic field components from f^MHD
         f6 = v2_plus_avg * B1_avg - v1_plus_avg * B2_avg
@@ -776,13 +777,13 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
             p_ll = (gammas[k] - 1) *
-                   (rho_e_ll - 0.5 * rho_ll * vel_norm_ll - 0.5 * mag_norm_ll -
-                    0.5 * psi_ll^2)
+                   (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
+                    0.5f0 * psi_ll^2)
             p_rr = (gammas[k] - 1) *
-                   (rho_e_rr - 0.5 * rho_rr * vel_norm_rr - 0.5 * mag_norm_rr -
-                    0.5 * psi_rr^2)
-            beta_ll = 0.5 * rho_ll / p_ll
-            beta_rr = 0.5 * rho_rr / p_rr
+                   (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
+                    0.5f0 * psi_rr^2)
+            beta_ll = 0.5f0 * rho_ll / p_ll
+            beta_rr = 0.5f0 * rho_rr / p_rr
             # for convenience store vk_plus⋅B
             vel_dot_mag_ll = vk1_plus_ll[k] * B1_ll + vk2_plus_ll[k] * B2_ll +
                              vk3_plus_ll[k] * B3_ll
@@ -790,19 +791,19 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
                              vk3_plus_rr[k] * B3_rr
 
             # Compute the necessary mean values needed for either direction
-            rho_avg = 0.5 * (rho_ll + rho_rr)
+            rho_avg = 0.5f0 * (rho_ll + rho_rr)
             rho_mean = ln_mean(rho_ll, rho_rr)
             beta_mean = ln_mean(beta_ll, beta_rr)
-            beta_avg = 0.5 * (beta_ll + beta_rr)
-            p_mean = 0.5 * rho_avg / beta_avg
-            v1_avg = 0.5 * (v1_ll + v1_rr)
-            v2_avg = 0.5 * (v2_ll + v2_rr)
-            v3_avg = 0.5 * (v3_ll + v3_rr)
-            vel_norm_avg = 0.5 * (vel_norm_ll + vel_norm_rr)
-            vel_dot_mag_avg = 0.5 * (vel_dot_mag_ll + vel_dot_mag_rr)
-            vk1_plus_avg = 0.5 * (vk1_plus_ll[k] + vk1_plus_rr[k])
-            vk2_plus_avg = 0.5 * (vk2_plus_ll[k] + vk2_plus_rr[k])
-            vk3_plus_avg = 0.5 * (vk3_plus_ll[k] + vk3_plus_rr[k])
+            beta_avg = 0.5f0 * (beta_ll + beta_rr)
+            p_mean = 0.5f0 * rho_avg / beta_avg
+            v1_avg = 0.5f0 * (v1_ll + v1_rr)
+            v2_avg = 0.5f0 * (v2_ll + v2_rr)
+            v3_avg = 0.5f0 * (v3_ll + v3_rr)
+            vel_norm_avg = 0.5f0 * (vel_norm_ll + vel_norm_rr)
+            vel_dot_mag_avg = 0.5f0 * (vel_dot_mag_ll + vel_dot_mag_rr)
+            vk1_plus_avg = 0.5f0 * (vk1_plus_ll[k] + vk1_plus_rr[k])
+            vk2_plus_avg = 0.5f0 * (vk2_plus_ll[k] + vk2_plus_rr[k])
+            vk3_plus_avg = 0.5f0 * (vk3_plus_ll[k] + vk3_plus_rr[k])
             # v_minus
             vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
             vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
@@ -810,9 +811,9 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
             vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
             vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
-            vk1_minus_avg = 0.5 * (vk1_minus_ll + vk1_minus_rr)
-            vk2_minus_avg = 0.5 * (vk2_minus_ll + vk2_minus_rr)
-            vk3_minus_avg = 0.5 * (vk3_minus_ll + vk3_minus_rr)
+            vk1_minus_avg = 0.5f0 * (vk1_minus_ll + vk1_minus_rr)
+            vk2_minus_avg = 0.5f0 * (vk2_minus_ll + vk2_minus_rr)
+            vk3_minus_avg = 0.5f0 * (vk3_minus_ll + vk3_minus_rr)
 
             # Fill the fluxes for the mass and momentum equations
             f1 = rho_mean * v2_avg
@@ -821,17 +822,17 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             f4 = f1 * v3_avg
 
             # total energy flux is complicated and involves the previous eight components
-            v2_plus_mag_avg = 0.5 * (vk2_plus_ll[k] * mag_norm_ll +
+            v2_plus_mag_avg = 0.5f0 * (vk2_plus_ll[k] * mag_norm_ll +
                                vk2_plus_rr[k] * mag_norm_rr)
             # Euler part
-            f5 = f1 * 0.5 * (1 / (gammas[k] - 1) / beta_mean - vel_norm_avg) +
+            f5 = f1 * 0.5f0 * (1 / (gammas[k] - 1) / beta_mean - vel_norm_avg) +
                  f2 * v1_avg + f3 * v2_avg + f4 * v3_avg
             # MHD part
-            f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5 * v2_plus_mag_avg +
+            f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5f0 * v2_plus_mag_avg +
                    B2_avg * vel_dot_mag_avg                                               # Same terms as in Derigs (but with v_plus)
                    + f9 * psi_avg - equations.c_h * psi_B2_avg # GLM term
                    +
-                   0.5 * vk2_plus_avg * mag_norm_avg -
+                   0.5f0 * vk2_plus_avg * mag_norm_avg -
                    vk1_plus_avg * B2_avg * B1_avg - vk2_plus_avg * B2_avg * B2_avg -
                    vk3_plus_avg * B2_avg * B3_avg   # Additional terms related to the Lorentz non-conservative term (momentum eqs)
                    -
@@ -911,7 +912,7 @@ function cons2prim(u, equations::IdealGlmMhdMultiIonEquations2D)
         v3 = srho * rho_v3
 
         p = (gammas[k] - 1) * (rho_e -
-             0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
+             0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
               + B1 * B1 + B2 * B2 + B3 * B3
               + psi * psi))
 
@@ -935,7 +936,7 @@ end
         rho, v1, v2, v3, p = get_component(k, prim, equations)
         s = log(p) - gammas[k] * log(rho)
         rho_p = rho / p
-        w1 = (gammas[k] - s) / (gammas[k] - 1) - 0.5 * rho_p * (v1^2 + v2^2 + v3^2)
+        w1 = (gammas[k] - s) / (gammas[k] - 1) - 0.5f0 * rho_p * (v1^2 + v2^2 + v3^2)
         w2 = rho_p * v1
         w3 = rho_p * v2
         w4 = rho_p * v3
@@ -971,9 +972,9 @@ end
         rho_v3 = rho * v3
 
         rho_e = p / (gammas[k] - 1.0) +
-                0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
-                0.5 * (B1^2 + B2^2 + B3^2) +
-                0.5 * psi^2
+                0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
+                0.5f0 * (B1^2 + B2^2 + B3^2) +
+                0.5f0 * psi^2
 
         set_component!(cons, k, rho, rho_v1, rho_v2, rho_v3, rho_e, equations)
     end
@@ -1001,7 +1002,8 @@ end
         v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
         p = (gamma - 1) *
-            (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
+            (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+             0.5f0 * psi^2)
         a_square = gamma * p / rho
         sqrt_rho = sqrt(rho)
 
@@ -1012,12 +1014,14 @@ end
 
         if orientation == 1
             c_f = max(c_f,
-                      sqrt(0.5 * (a_square + b_square) +
-                           0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b1^2)))
+                      sqrt(0.5f0 * (a_square + b_square) +
+                           0.5f0 *
+                           sqrt((a_square + b_square)^2 - 4.0f0 * a_square * b1^2)))
         else #if orientation == 2
             c_f = max(c_f,
-                      sqrt(0.5 * (a_square + b_square) +
-                           0.5 * sqrt((a_square + b_square)^2 - 4.0 * a_square * b2^2)))
+                      sqrt(0.5f0 * (a_square + b_square) +
+                           0.5f0 *
+                           sqrt((a_square + b_square)^2 - 4.0f0 * a_square * b2^2)))
         end
     end
 
