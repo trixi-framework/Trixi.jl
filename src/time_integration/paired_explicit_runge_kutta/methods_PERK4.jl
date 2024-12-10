@@ -5,11 +5,7 @@
 @muladd begin
 #! format: noindent
 
-# Compute the Butcher tableau for a paired explicit Runge-Kutta method order 4
-# using a list of eigenvalues
-function compute_PairedExplicitRK4_butcher_tableau(num_stages, tspan,
-                                                   eig_vals::Vector{ComplexF64};
-                                                   verbose = false, cS3)
+function PERK4_compute_c_coeffs(num_stages, cS3)
     c = ones(num_stages) # Best internal stability properties
     c[1] = 0.0
 
@@ -17,6 +13,22 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages, tspan,
     c[num_stages - 2] = 0.479274057836310
     c[num_stages - 1] = sqrt(3) / 6 + 0.5
     c[num_stages] = -sqrt(3) / 6 + 0.5
+
+    return c
+end
+
+# Constant/non-optimized part of the Butcher matrix
+function PERK4_a_matrix_constant(cS3)
+    return [(0.479274057836310-(0.114851811257441 / cS3)) 0.1397682537005989 0.1830127018922191
+            0.114851811257441/cS3 0.648906880894214 0.028312163512968]
+end
+
+# Compute the Butcher tableau for a paired explicit Runge-Kutta method order 4
+# using a list of eigenvalues
+function compute_PairedExplicitRK4_butcher_tableau(num_stages, tspan,
+                                                   eig_vals::Vector{ComplexF64};
+                                                   verbose = false, cS3)
+    c = PERK4_compute_c_coeffs(num_stages, cS3)
 
     num_coeffs_max = num_stages - 5
     a_matrix = zeros(2, num_coeffs_max)
@@ -49,9 +61,7 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages, tspan,
         a_matrix[2, :] = a_unknown
     end
 
-    # Constant/non-optimized part of the Butcher matrix
-    a_matrix_constant = [(0.479274057836310-(0.114851811257441 / cS3)) 0.1397682537005989 0.1830127018922191
-                         0.114851811257441/cS3 0.648906880894214 0.028312163512968]
+    a_matrix_constant = PERK4_a_matrix_constant(cS3)
 
     return a_matrix, a_matrix_constant, c, dt_opt
 end
@@ -61,13 +71,7 @@ end
 function compute_PairedExplicitRK4_butcher_tableau(num_stages,
                                                    base_path_a_coeffs::AbstractString,
                                                    cS3)
-    c = ones(num_stages) # Best internal stability properties
-    c[1] = 0.0
-
-    c[num_stages - 3] = cS3
-    c[num_stages - 2] = 0.479274057836310
-    c[num_stages - 1] = sqrt(3) / 6 + 0.5
-    c[num_stages] = -sqrt(3) / 6 + 0.5
+    c = PERK4_compute_c_coeffs(num_stages, cS3)
 
     num_coeffs_max = num_stages - 5
 
@@ -87,9 +91,7 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages,
         a_matrix[2, :] = a_coeffs
     end
 
-    # Constant/non-optimized part of the Butcher matrix
-    a_matrix_constant = [(0.479274057836310-(0.114851811257441 / cS3)) 0.1397682537005989 0.1830127018922191
-                         0.114851811257441/cS3 0.648906880894214 0.028312163512968]
+    a_matrix_constant = PERK4_a_matrix_constant(cS3)
 
     return a_matrix, a_matrix_constant, c
 end
@@ -231,7 +233,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK4;
     return integrator
 end
 
-@inline function last_three_stages!(integrator::PairedExplicitRK4Integrator, p, alg)
+@inline function PERK4_KS2_to_KS!(integrator::PairedExplicitRK4Integrator, p, alg)
     for stage in 1:2
         @threaded for u_ind in eachindex(integrator.u)
             integrator.u_tmp[u_ind] = integrator.u[u_ind] +
@@ -300,7 +302,7 @@ function step!(integrator::PairedExplicitRK4Integrator)
             PERK_ki!(integrator, prob.p, alg, stage)
         end
 
-        last_three_stages!(integrator, prob.p, alg)
+        PERK4_KS2_to_KS!(integrator, prob.p, alg)
     end
 
     integrator.iter += 1

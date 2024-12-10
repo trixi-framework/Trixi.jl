@@ -34,14 +34,9 @@ function Trixi.undo_normalization!(gamma_opt, num_stage_evals,
     end
 end
 
-# Compute stability polynomials for paired explicit Runge-Kutta up to specified consistency
-# order, including contributions from free coefficients for higher orders, and
-# return the maximum absolute value
-function stability_polynomials!(pnoms, consistency_order, num_stage_evals,
-                                normalized_powered_eigvals_scaled,
-                                gamma)
-    num_eig_vals = length(pnoms)
-
+@inline function stability_polynomials_fixed_coeffs!(pnoms, num_eig_vals,
+                                                     normalized_powered_eigvals_scaled,
+                                                     consistency_order)
     # Initialize with zero'th order (z^0) coefficient
     for i in 1:num_eig_vals
         pnoms[i] = 1.0
@@ -53,6 +48,19 @@ function stability_polynomials!(pnoms, consistency_order, num_stage_evals,
             pnoms[i] += normalized_powered_eigvals_scaled[i, k]
         end
     end
+end
+
+# Compute stability polynomials for paired explicit Runge-Kutta up to specified consistency
+# order, including contributions from free coefficients for higher orders, and
+# return the maximum absolute value
+function stability_polynomials!(pnoms, consistency_order,
+                                num_stage_evals,
+                                num_eig_vals,
+                                normalized_powered_eigvals_scaled,
+                                gamma)
+    stability_polynomials_fixed_coeffs!(pnoms, num_eig_vals,
+                                        normalized_powered_eigvals_scaled,
+                                        consistency_order)
 
     # Contribution from free coefficients
     for k in (consistency_order + 1):num_stage_evals
@@ -69,26 +77,17 @@ end
 
 # Specialized form of the stability polynomials for fourth-order PERK schemes.
 function stability_polynomials_PERK4!(pnoms, num_stage_evals,
+                                      num_eig_vals,
                                       normalized_powered_eigvals,
-                                      gamma, dt, cS3)
-    num_eig_vals = length(pnoms)
-
+                                      gamma,
+                                      dt, cS3)
     # Constants arising from the particular form of Butcher tableau chosen for the 4th order PERK methods
     k1 = 0.001055026310046423 / cS3
     k2 = 0.03726406530405851 / cS3
     # Note: `cS3` = c_{S-3} is in principle free, while the other abscissae are fixed to 1.0
 
-    # Initialize with zero'th order (z^0) coefficient
-    for i in 1:num_eig_vals
-        pnoms[i] = 1.0
-    end
-
-    # First `consistency_order` = 4 terms of the exponential
-    for k in 1:4
-        for i in 1:num_eig_vals
-            pnoms[i] += dt^k * normalized_powered_eigvals[i, k]
-        end
-    end
+    stability_polynomials_fixed_coeffs!(pnoms, num_eig_vals, normalized_powered_eigvals,
+                                        4)
 
     # "Fixed" term due to choice of the PERK4 Butcher tableau
     # Required to un-do the normalization of the eigenvalues here
@@ -106,6 +105,17 @@ function stability_polynomials_PERK4!(pnoms, num_stage_evals,
         return maximum(abs.(pnoms)) # If there is no variable to optimize, we need to use the broadcast operator.
     else
         return maximum(abs(pnoms))
+    end
+end
+
+@inline function normalized_power_eigvals!(normalized_powered_eigvals,
+                                           num_eig_vals, eig_vals,
+                                           num_stage_evals)
+    for j in 1:num_stage_evals
+        fac_j = factorial(j)
+        for i in 1:num_eig_vals
+            normalized_powered_eigvals[i, j] = eig_vals[i]^j / fac_j
+        end
     end
 end
 
@@ -136,13 +146,9 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
     gamma = Variable(num_stage_evals - consistency_order)
 
     normalized_powered_eigvals = zeros(Complex{Float64}, num_eig_vals, num_stage_evals)
-
-    for j in 1:num_stage_evals
-        fac_j = factorial(j)
-        for i in 1:num_eig_vals
-            normalized_powered_eigvals[i, j] = eig_vals[i]^j / fac_j
-        end
-    end
+    normalized_power_eigvals!(normalized_powered_eigvals,
+                              num_eig_vals, eig_vals,
+                              num_stage_evals)
 
     normalized_powered_eigvals_scaled = similar(normalized_powered_eigvals)
 
@@ -169,6 +175,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
             # Use last optimal values for gamma in (potentially) next iteration
             problem = minimize(stability_polynomials!(pnoms, consistency_order,
                                                       num_stage_evals,
+                                                      num_eig_vals,
                                                       normalized_powered_eigvals_scaled,
                                                       gamma))
 
@@ -190,6 +197,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         else
             abs_p = stability_polynomials!(pnoms, consistency_order,
                                            num_stage_evals,
+                                           num_eig_vals,
                                            normalized_powered_eigvals_scaled,
                                            gamma)
         end
@@ -242,13 +250,9 @@ function Trixi.bisect_stability_polynomial_PERK4(num_eig_vals,
     gamma = Variable(num_stage_evals - 5)
 
     normalized_powered_eigvals = zeros(Complex{Float64}, num_eig_vals, num_stage_evals)
-
-    for j in 1:num_stage_evals
-        fac_j = factorial(j)
-        for i in 1:num_eig_vals
-            normalized_powered_eigvals[i, j] = eig_vals[i]^j / fac_j
-        end
-    end
+    normalized_power_eigvals!(normalized_powered_eigvals,
+                              num_eig_vals, eig_vals,
+                              num_stage_evals)
 
     if verbose
         println("Start optimization of stability polynomial \n")
@@ -262,6 +266,7 @@ function Trixi.bisect_stability_polynomial_PERK4(num_eig_vals,
             # Use last optimal values for gamma in (potentially) next iteration
             problem = minimize(stability_polynomials_PERK4!(pnoms,
                                                             num_stage_evals,
+                                                            num_eig_vals,
                                                             normalized_powered_eigvals,
                                                             gamma, dt, cS3))
 
@@ -282,6 +287,7 @@ function Trixi.bisect_stability_polynomial_PERK4(num_eig_vals,
             abs_p = problem.optval
         else
             abs_p = stability_polynomials_PERK4!(pnoms, num_stage_evals,
+                                                 num_eig_vals,
                                                  normalized_powered_eigvals,
                                                  gamma, dt, cS3)
         end

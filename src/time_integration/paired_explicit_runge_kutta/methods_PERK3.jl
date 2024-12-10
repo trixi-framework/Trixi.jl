@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Initialize Butcher array abscissae c for PairedExplicitRK3 based on SSPRK33 base method
-function compute_c_coeffs(num_stages, cS2)
+function PERK3_compute_c_coeffs(num_stages, cS2)
     c = zeros(eltype(cS2), num_stages)
 
     # Last timesteps as for SSPRK33, see motivation in Section 3.3 of
@@ -28,7 +28,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
                                                    eig_vals::Vector{ComplexF64};
                                                    verbose = false, cS2)
     # Initialize array of c
-    c = compute_c_coeffs(num_stages, cS2)
+    c = PERK3_compute_c_coeffs(num_stages, cS2)
 
     # Initialize the array of our solution
     a_unknown = zeros(num_stages - 2)
@@ -72,7 +72,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                    cS2)
 
     # Initialize array of c
-    c = compute_c_coeffs(num_stages, cS2)
+    c = PERK3_compute_c_coeffs(num_stages, cS2)
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
     num_a_coeffs_max = num_stages - 2
