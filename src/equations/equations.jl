@@ -492,10 +492,11 @@ include("ideal_glm_mhd_multicomponent_1d.jl")
 include("ideal_glm_mhd_multicomponent_2d.jl")
 
 # IdealMhdMultiIonEquations
-abstract type AbstractIdealMhdMultiIonEquations{NDIMS, NVARS, NCOMP} <:
+abstract type AbstractIdealGlmMhdMultiIonEquations{NDIMS, NVARS, NCOMP} <:
               AbstractEquations{NDIMS, NVARS} end
 include("ideal_mhd_multiion_1d.jl")
 include("ideal_glm_mhd_multiion_2d.jl")
+include("ideal_glm_mhd_multiion_3d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS,
@@ -518,22 +519,23 @@ In particular, not the components themselves are returned.
 end
 
 # Retrieve number of components from equation instance for the multi-ion case
-@inline function ncomponents(::AbstractIdealMhdMultiIonEquations{NDIMS, NVARS, NCOMP}) where {
-                                                                                              NDIMS,
-                                                                                              NVARS,
-                                                                                              NCOMP
-                                                                                              }
+@inline function ncomponents(::AbstractIdealGlmMhdMultiIonEquations{NDIMS, NVARS,
+                                                                    NCOMP}) where {
+                                                                                   NDIMS,
+                                                                                   NVARS,
+                                                                                   NCOMP
+                                                                                   }
     NCOMP
 end
 
 """
-    eachcomponent(equations::AbstractIdealMhdMultiIonEquations)
+    eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractIdealMhdMultiIonEquations`. 
+for the components in `AbstractIdealGlmMhdMultiIonEquations`. 
 In particular, not the components themselves are returned.
 """
-@inline function eachcomponent(equations::AbstractIdealMhdMultiIonEquations)
+@inline function eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)
     Base.OneTo(ncomponents(equations))
 end
 

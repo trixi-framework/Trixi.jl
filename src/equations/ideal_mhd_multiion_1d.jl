@@ -11,7 +11,7 @@
 The ideal compressible multi-ion MHD equations in one space dimension.
 """
 mutable struct IdealMhdMultiIonEquations1D{NVARS, NCOMP, RealT <: Real} <:
-               AbstractIdealMhdMultiIonEquations{1, NVARS, NCOMP}
+               AbstractIdealGlmMhdMultiIonEquations{1, NVARS, NCOMP}
     gammas         :: SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass :: SVector{NCOMP, RealT} # Charge to mass ratios
 
