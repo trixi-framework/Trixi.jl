@@ -5,7 +5,7 @@
 @muladd begin
 #! format: noindent
 
-function PERK2_compute_c_coeffs(num_stages, cS2)
+function PERK2_compute_c_coeffs(num_stages, cS)
     c = zeros(num_stages)
     for k in 2:num_stages
         c[k] = cS * (k - 1) / (num_stages - 1)
