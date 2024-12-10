@@ -519,7 +519,6 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
                                     dg::DGMulti{NDIMS}) where {NDIMS}
     rd = dg.basis
     md = mesh.md
-    surface_flux, nonconservative_flux = dg.surface_integral.surface_flux
 
     # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
     # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
@@ -549,18 +548,10 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
             cons_flux_at_face_node = boundary_condition(u_face_values[i, f],
                                                         face_normal, face_coordinates,
                                                         t,
-                                                        surface_flux, equations)
+                                                        dg.surface_integral.surface_flux,
+                                                        equations)
 
-            # Compute pointwise nonconservative numerical flux at the boundary.
-            noncons_flux_at_face_node = boundary_condition(u_face_values[i, f],
-                                                           face_normal,
-                                                           face_coordinates,
-                                                           t,
-                                                           nonconservative_flux,
-                                                           equations)
-
-            flux_face_values[i, f] = (cons_flux_at_face_node +
-                                      0.5 * noncons_flux_at_face_node) * Jf[i, f]
+            flux_face_values[i, f] = (cons_flux_at_face_node) * Jf[i, f]
         end
     end
 
