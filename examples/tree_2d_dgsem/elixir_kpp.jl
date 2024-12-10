@@ -24,11 +24,12 @@ end
 # Since the KPP problem is a scalar equation, the entropy-conservative flux is uniquely determined
 @inline function Trixi.flux_ec(u_ll, u_rr, orientation::Integer, ::KPPEquation2D)
     # The tolerance of 1e-12 is based on experience and somewhat arbitrarily chosen
-    if abs(u_ll[1] - u_rr[1]) < 1e-12
-        return 0.5 * (flux(u_ll, orientation, KPPEquation2D()) +
+    RealT = eltype(u_ll)
+    if abs(u_ll[1] - u_rr[1]) < RealT(1e-12)
+        return 0.5f0 * (flux(u_ll, orientation, KPPEquation2D()) +
                 flux(u_rr, orientation, KPPEquation2D()))
     else
-        factor = 1.0 / (u_rr[1] - u_ll[1])
+        factor = 1 / (u_rr[1] - u_ll[1])
         if orientation == 1
             return SVector(factor * (-cos(u_rr[1]) + cos(u_ll[1])))
         else
@@ -38,6 +39,8 @@ end
 end
 
 # Wavespeeds
+# Please note that the return type should be modified if other
+# floating point types should be used.
 @inline wavespeed(::KPPEquation2D) = 1.0
 @inline Trixi.max_abs_speeds(u, equation::KPPEquation2D) = (wavespeed(equation),
                                                             wavespeed(equation))
@@ -46,7 +49,7 @@ end
                                                                                                            norm(normal_direction)
 
 # Compute entropy: we use the square entropy
-@inline Trixi.entropy(u::Real, ::KPPEquation2D) = 0.5 * u^2
+@inline Trixi.entropy(u::Real, ::KPPEquation2D) = 0.5f0 * u^2
 @inline Trixi.entropy(u, ::KPPEquation2D) = entropy(u[1], equation)
 
 # Convert between conservative, primitive, and entropy variables. The conserved quantity "u" is also
@@ -59,10 +62,11 @@ Trixi.varnames(::Any, ::KPPEquation2D) = ("u",)
 
 # Standard KPP test problem with discontinuous initial condition
 function initial_condition_kpp(x, t, ::KPPEquation2D)
+    RealT = eltype(x)
     if x[1]^2 + x[2]^2 < 1
-        return SVector(0.25 * 14.0 * pi)
+        return SVector(0.25f0 * 14 * convert(RealT, pi))
     else
-        return SVector(0.25 * pi)
+        return SVector(0.25f0 * convert(RealT, pi))
     end
 end
 

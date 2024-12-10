@@ -13,12 +13,12 @@ equations = ShallowWaterEquations2D(gravity_constant = 9.81, H0 = 3.25)
 function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations2D)
     # Set the background values
     H = equations.H0
-    v1 = 0.0
-    v2 = 0.0
+    v1 = 0
+    v2 = 0
     # bottom topography taken from Pond.control in [HOHQMesh](https://github.com/trixi-framework/HOHQMesh)
     x1, x2 = x
-    b = (1.5 / exp(0.5 * ((x1 - 1.0)^2 + (x2 - 1.0)^2)) +
-         0.75 / exp(0.5 * ((x1 + 1.0)^2 + (x2 + 1.0)^2)))
+    b = (1.5f0 / exp(0.5f0 * ((x1 - 1)^2 + (x2 - 1)^2)) +
+         0.75f0 / exp(0.5f0 * ((x1 + 1)^2 + (x2 + 1)^2)))
     return prim2cons(SVector(H, v1, v2, b), equations)
 end
 
@@ -67,14 +67,15 @@ ode = semidiscretize(semi, tspan)
 function initial_condition_discontinuous_well_balancedness(x, t, element_id,
                                                            equations::ShallowWaterEquations2D)
     # Set the background values
+    RealT = eltype(x)
     H = equations.H0
-    v1 = 0.0
-    v2 = 0.0
-    b = 0.0
+    v1 = 0
+    v2 = 0
+    b = zero(RealT)
 
     # Setup a discontinuous bottom topography using the element id number
     if element_id == 7
-        b = 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
+        b = 2 + 0.5f0 * sinpi(2 * x[1]) + 0.5f0 * cospi(2 * x[2])
     end
 
     return prim2cons(SVector(H, v1, v2, b), equations)
