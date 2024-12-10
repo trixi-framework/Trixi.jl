@@ -426,7 +426,6 @@ end
                                      surface_integral, dg::DG, cache,
                                      node_index, side_index, element_index,
                                      boundary_index)
-    surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack normal_directions = cache.elements
     @unpack u, node_coordinates = cache.boundaries
 
@@ -442,19 +441,15 @@ end
 
     # Call pointwise numerical flux function for the conservative part
     # in the normal direction on the boundary
-    flux = boundary_condition(u_inner, outward_direction, x, t, surface_flux, equations)
+    flux = boundary_condition(u_inner, outward_direction, x, t, surface_integral.surface_flux, equations)
 
     # Compute pointwise nonconservative numerical flux at the boundary.
-    noncons_flux = boundary_condition(u_inner, outward_direction, x, t,
-                                      nonconservative_flux, equations)
 
     for v in eachvariable(equations)
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        surface_flux_values[v, node_index, side_index, element_index] = flux[v] +
-                                                                        0.5f0 *
-                                                                        noncons_flux[v]
+        surface_flux_values[v, node_index, side_index, element_index] = flux[v]
     end
 end
 
