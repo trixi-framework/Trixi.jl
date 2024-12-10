@@ -578,7 +578,7 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
             u_inner = u_rr
         end
         x = get_node_coords(node_coordinates, equations, dg, boundary)
-        
+
         flux = boundary_condition(u_inner, orientations[boundary], direction, x, t,
                                   surface_integral.surface_flux,
                                   equations)

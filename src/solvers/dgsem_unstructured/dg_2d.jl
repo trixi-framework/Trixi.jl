@@ -441,7 +441,8 @@ end
 
     # Call pointwise numerical flux function for the conservative part
     # in the normal direction on the boundary
-    flux = boundary_condition(u_inner, outward_direction, x, t, surface_integral.surface_flux, equations)
+    flux = boundary_condition(u_inner, outward_direction, x, t,
+                              surface_integral.surface_flux, equations)
 
     # Compute pointwise nonconservative numerical flux at the boundary.
 
