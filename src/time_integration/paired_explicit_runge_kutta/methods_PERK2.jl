@@ -5,6 +5,15 @@
 @muladd begin
 #! format: noindent
 
+function PERK2_compute_c_coeffs(num_stages, cS2)
+    c = zeros(num_stages)
+    for k in 2:num_stages
+        c[k] = cS * (k - 1) / (num_stages - 1)
+    end
+
+    return c
+end
+
 # Compute the coefficients of the A matrix in the Butcher tableau using
 # stage scaling factors and monomial coefficients
 function compute_a_coeffs(num_stage_evals, stage_scaling_factors, monomial_coeffs)
@@ -24,11 +33,7 @@ end
 # using a list of eigenvalues
 function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                    bS, cS; verbose = false)
-    # c Vector from Butcher Tableau (defines timestep per stage)
-    c = zeros(num_stages)
-    for k in 2:num_stages
-        c[k] = cS * (k - 1) / (num_stages - 1)
-    end
+    c = PERK2_compute_c_coeffs(num_stages, cS)
     stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since first entry of A is always zero (explicit method) and second is given by c_2 (consistency)
@@ -66,11 +71,7 @@ end
 function compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                    base_path_monomial_coeffs::AbstractString,
                                                    bS, cS)
-    # c Vector form Butcher Tableau (defines timestep per stage)
-    c = zeros(num_stages)
-    for k in 2:num_stages
-        c[k] = cS * (k - 1) / (num_stages - 1)
-    end
+    c = PERK2_compute_c_coeffs(num_stages, cS)
     stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since first entry of A is always zero (explicit method) and second is given by c_2 (consistency)
