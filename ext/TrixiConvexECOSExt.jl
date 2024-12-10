@@ -107,9 +107,9 @@ function stability_polynomials_PERK4!(pnoms, num_stage_evals,
     end
 end
 
-@inline function normalized_power_eigvals!(normalized_powered_eigvals,
-                                           num_eig_vals, eig_vals,
-                                           num_stage_evals)
+@inline function normalize_power_eigvals!(normalized_powered_eigvals,
+                                          num_eig_vals, eig_vals,
+                                          num_stage_evals)
     for j in 1:num_stage_evals
         fac_j = factorial(j)
         for i in 1:num_eig_vals
@@ -145,9 +145,9 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
     gamma = Variable(num_stage_evals - consistency_order)
 
     normalized_powered_eigvals = zeros(Complex{Float64}, num_eig_vals, num_stage_evals)
-    normalized_power_eigvals!(normalized_powered_eigvals,
-                              num_eig_vals, eig_vals,
-                              num_stage_evals)
+    normalize_power_eigvals!(normalized_powered_eigvals,
+                             num_eig_vals, eig_vals,
+                             num_stage_evals)
 
     normalized_powered_eigvals_scaled = similar(normalized_powered_eigvals)
 
@@ -249,9 +249,9 @@ function Trixi.bisect_stability_polynomial_PERK4(num_eig_vals,
     gamma = Variable(num_stage_evals - 5)
 
     normalized_powered_eigvals = zeros(Complex{Float64}, num_eig_vals, num_stage_evals)
-    normalized_power_eigvals!(normalized_powered_eigvals,
-                              num_eig_vals, eig_vals,
-                              num_stage_evals)
+    normalize_power_eigvals!(normalized_powered_eigvals,
+                             num_eig_vals, eig_vals,
+                             num_stage_evals)
 
     if verbose
         println("Start optimization of stability polynomial \n")
