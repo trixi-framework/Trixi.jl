@@ -5,6 +5,15 @@
 @muladd begin
 #! format: noindent
 
+function PERK2_compute_c_coeffs(num_stages, cS)
+    c = zeros(num_stages)
+    for k in 2:num_stages
+        c[k] = cS * (k - 1) / (num_stages - 1)
+    end
+
+    return c
+end
+
 # Compute the coefficients of the A matrix in the Butcher tableau using
 # stage scaling factors and monomial coefficients
 function compute_a_coeffs(num_stage_evals, stage_scaling_factors, monomial_coeffs)
@@ -24,17 +33,13 @@ end
 # using a list of eigenvalues
 function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                    bS, cS; verbose = false)
-    # c Vector from Butcher Tableau (defines timestep per stage)
-    c = zeros(num_stages)
-    for k in 2:num_stages
-        c[k] = cS * (k - 1) / (num_stages - 1)
-    end
+    c = PERK2_compute_c_coeffs(num_stages, cS)
     stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since first entry of A is always zero (explicit method) and second is given by c_2 (consistency)
-    coeffs_max = num_stages - 2
+    num_coeffs_max = num_stages - 2
 
-    a_matrix = zeros(2, coeffs_max)
+    a_matrix = zeros(2, num_coeffs_max)
     a_matrix[1, :] = c[3:end]
 
     consistency_order = 2
@@ -51,10 +56,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                           eig_vals; verbose)
 
     if num_stages != consistency_order
-        monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
-                                              num_stages)
         num_monomial_coeffs = length(monomial_coeffs)
-        @assert num_monomial_coeffs == coeffs_max
+        @assert num_monomial_coeffs == num_coeffs_max
         A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
         a_matrix[1, :] -= A
         a_matrix[2, :] = A
@@ -68,17 +71,13 @@ end
 function compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                    base_path_monomial_coeffs::AbstractString,
                                                    bS, cS)
-    # c Vector form Butcher Tableau (defines timestep per stage)
-    c = zeros(num_stages)
-    for k in 2:num_stages
-        c[k] = cS * (k - 1) / (num_stages - 1)
-    end
+    c = PERK2_compute_c_coeffs(num_stages, cS)
     stage_scaling_factors = bS * reverse(c[2:(end - 1)])
 
     # - 2 Since first entry of A is always zero (explicit method) and second is given by c_2 (consistency)
-    coeffs_max = num_stages - 2
+    num_coeffs_max = num_stages - 2
 
-    a_matrix = zeros(2, coeffs_max)
+    a_matrix = zeros(2, num_coeffs_max)
     a_matrix[1, :] = c[3:end]
 
     path_monomial_coeffs = joinpath(base_path_monomial_coeffs,
@@ -88,7 +87,7 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
     monomial_coeffs = readdlm(path_monomial_coeffs, Float64)
     num_monomial_coeffs = size(monomial_coeffs, 1)
 
-    @assert num_monomial_coeffs == coeffs_max
+    @assert num_monomial_coeffs == num_coeffs_max
     A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
 
     a_matrix[1, :] -= A
@@ -113,13 +112,13 @@ end
        In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
     - `tspan`: Time span of the simulation.
     - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
-    -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
+    - `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
       equation has been semidiscretized.
     - `verbose` (`Bool`, optional): Verbosity flag, default is false.
-    - `bS` (`Float64`, optional): Value of b in the Butcher tableau at b_s, when 
-      s is the number of stages, default is 1.0.
-    - `cS` (`Float64`, optional): Value of c in the Butcher tableau at c_s, when
-      s is the number of stages, default is 0.5.
+    - `bS` (`Float64`, optional): Value of $b_S$ in the Butcher tableau, where
+      $S$ is the number of stages. Default is `1.0`.
+    - `cS` (`Float64`, optional): Value of $c_S$ in the Butcher tableau, where
+      $S$ is the number of stages. Default is `0.5`.
 
 The following structures and methods provide a minimal implementation of
 the second-order paired explicit Runge-Kutta (PERK) method
@@ -129,7 +128,8 @@ optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solve
   Paired explicit Runge-Kutta schemes for stiff systems of equations
   [DOI: 10.1016/j.jcp.2019.05.014](https://doi.org/10.1016/j.jcp.2019.05.014)
 
-Note: To use this integrator, the user must import the `Convex` and `ECOS` packages.
+Note: To use this integrator, the user must import the `Convex` and `ECOS` packages
+unless the coefficients are provided in a "gamma_<num_stages>.txt" file.
 """
 struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     num_stages::Int
@@ -147,6 +147,7 @@ end
 function PairedExplicitRK2(num_stages, base_path_monomial_coeffs::AbstractString,
                            dt_opt = nothing,
                            bS = 1.0, cS = 0.5)
+    @assert num_stages>=2 "PERK2 requires at least two stages"
     # If the user has the monomial coefficients, they also must have the optimal time step
     a_matrix, c = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                             base_path_monomial_coeffs,
@@ -160,6 +161,7 @@ end
 function PairedExplicitRK2(num_stages, tspan, semi::AbstractSemidiscretization;
                            verbose = false,
                            bS = 1.0, cS = 0.5)
+    @assert num_stages>=2 "PERK2 requires at least two stages"
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     return PairedExplicitRK2(num_stages, tspan, eig_vals; verbose, bS, cS)
@@ -170,6 +172,7 @@ end
 function PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false,
                            bS = 1.0, cS = 0.5)
+    @assert num_stages>=2 "PERK2 requires at least two stages"
     a_matrix, c, dt_opt = compute_PairedExplicitRK2_butcher_tableau(num_stages,
                                                                     eig_vals, tspan,
                                                                     bS, cS;
