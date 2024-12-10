@@ -42,6 +42,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                             RealT = RealT)
 
             @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{1, RealT}
+            @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
 
             coordinates_min = (-convert(RealT, 42), -convert(RealT, 42))
             coordinates_max = (convert(RealT, 42), convert(RealT, 42))
@@ -52,6 +53,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                             RealT = RealT)
 
             @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{2, RealT}
+            @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
 
             coordinates_min = (-convert(RealT, pi), -convert(RealT, pi),
                                -convert(RealT, pi))
@@ -64,6 +66,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                             RealT = RealT)
 
             @test typeof(@inferred get_tree(mesh)) == Trixi.SerialTree{3, RealT}
+            @test typeof(@inferred Trixi.total_volume(mesh)) == RealT
         end
     end
 
