@@ -35,7 +35,7 @@ References:
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
 !!! ATTENTION: In case of more than one ion species, these equations should ALWAYS be used
-    with `source_terms_lorentz`.
+    with [`source_terms_lorentz`](@ref).
 """
 mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
                                               ElectronPressure} <:
@@ -212,7 +212,7 @@ end
 end
 
 """
-        flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
+    flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
                                                orientation::Integer,
                                                equations::IdealGlmMhdMultiIonEquations2D)
 
@@ -375,11 +375,12 @@ The term is composed of four individual non-conservative terms:
 end
 
 """
-        flux_nonconservative_central(u_ll, u_rr, orientation::Integer,
-                                     equations::IdealGlmMhdMultiIonEquations2D)
+    flux_nonconservative_central(u_ll, u_rr, orientation::Integer,
+                                 equations::IdealGlmMhdMultiIonEquations2D)
 
 Central non-conservative two-point "flux", where the symmetric parts are computed with standard averages.
-The use of this term together with flux_central with VolumeIntegralFluxDifferencing yields a "standard"
+The use of this term together with [`flux_central`](@ref) 
+with [`VolumeIntegralFluxDifferencing`](@ref) yields a "standard"
 (weak-form) DGSEM discretization of the multi-ion GLM-MHD system. This flux can also be used to construct a
 standard local Lax-Friedrichs flux using `surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)`.
 
@@ -520,7 +521,7 @@ The term is composed of four individual non-conservative terms:
 end
 
 """
-flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultiIonEquations2D)
+    flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultiIonEquations2D)
 
 Entropy conserving two-point flux for the multi-ion GLM-MHD equations from
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
