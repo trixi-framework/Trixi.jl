@@ -111,6 +111,7 @@ function initial_condition_weak_blast_wave(x, t,
     # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
+    RealT = eltype(x)
     inicenter = (0, 0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
@@ -118,20 +119,15 @@ function initial_condition_weak_blast_wave(x, t,
     phi = atan(y_norm, x_norm)
 
     # Calculate primitive variables
-    rho = zero(real(equations))
-    if r > 0.5
-        rho = 1.0
-    else
-        rho = 1.1691
-    end
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos(phi)
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin(phi)
-    p = r > 0.5 ? 1.0 : 1.245
+    rho = r > 0.5f0 ? one(RealT) : convert(RealT, 1.1691)
+    v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(phi)
+    v2 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * sin(phi)
+    p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
 
     prim = zero(MVector{nvariables(equations), real(equations)})
-    prim[1] = 1.0
-    prim[2] = 1.0
-    prim[3] = 1.0
+    prim[1] = 1
+    prim[2] = 1
+    prim[3] = 1
     for k in eachcomponent(equations)
         set_component!(prim, k,
                        2^(k - 1) * (1 - 2) / (1 - 2^ncomponents(equations)) * rho, v1,
