@@ -34,7 +34,7 @@ References:
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
-!!! info "The multi-ion GLM-MHD require source terms"
+!!! info "The multi-ion GLM-MHD equations require source terms"
     In case of more than one ion species, the multi-ion GLM-MHD equations should ALWAYS be used
     with [`source_terms_lorentz`](@ref).
 """
@@ -222,7 +222,7 @@ Entropy-conserving non-conservative two-point "flux"" as described in
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
-!!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi"
+!!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi.jl"
     The non-conservative fluxes derived in the reference above are written as the product
     of local and symmetric parts and are meant to be used in the same way as the conservative
     fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
