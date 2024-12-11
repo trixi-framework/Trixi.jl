@@ -1,4 +1,4 @@
-module TestExamples2DEulerMulticomponent
+module TestExamples2DIdealGlmMhdMultiIon
 
 using Test
 using Trixi
@@ -45,6 +45,14 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
                             0.6078381519649727,
                             0.00673110606965085
                         ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
 @trixi_testset "elixir_mhdmultiion_es.jl" begin
@@ -81,10 +89,18 @@ end
                             0.4949375933243716,
                             0.003287251595115295
                         ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 
-@trixi_testset "elixir_mhdmultiion_ec+llf.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec+llf.jl"),
+@trixi_testset "elixir_mhdmultiion_ec.jl with local Lax-Friedrichs at the surface" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
                         l2=[
                             0.017668026737187294,
                             0.017797845988889206,
@@ -116,7 +132,16 @@ end
                             0.08694877996306204,
                             0.49493751138636366,
                             0.003287414714660175
-                        ])
+                        ],
+                        surface_flux=(flux_lax_friedrichs, flux_nonconservative_central))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 end
 

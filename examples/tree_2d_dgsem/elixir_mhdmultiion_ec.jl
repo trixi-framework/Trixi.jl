@@ -3,7 +3,7 @@ using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
-# semidiscretization of the ideal MHD equations
+# semidiscretization of the ideal multi-ion MHD equations
 equations = IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667),
                                            charge_to_mass = (1.0, 2.0))
 

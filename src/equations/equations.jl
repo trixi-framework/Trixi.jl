@@ -494,6 +494,7 @@ include("ideal_glm_mhd_multicomponent_2d.jl")
 # IdealMhdMultiIonEquations
 abstract type AbstractIdealGlmMhdMultiIonEquations{NDIMS, NVARS, NCOMP} <:
               AbstractEquations{NDIMS, NVARS} end
+include("ideal_glm_mhd_multiion.jl")
 include("ideal_mhd_multiion_1d.jl")
 include("ideal_glm_mhd_multiion_2d.jl")
 include("ideal_glm_mhd_multiion_3d.jl")
