@@ -55,6 +55,53 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     end
 end
 
+@trixi_testset "Provably entropy-stable LLF-type fluxes for multi-ion GLM-MHD" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
+                        l2=[
+                            0.017668017558288736,
+                            0.01779783612885502,
+                            0.027841673842076285,
+                            0.015603429086471762,
+                            0.017849042999817964,
+                            0.01814196379994667,
+                            0.005478212889809162,
+                            0.20585517887094282,
+                            0.021301245733548135,
+                            0.03018506565829777,
+                            0.02938517728342881,
+                            0.01837279433780041,
+                            0.11810307914710033,
+                            0.0002962677911603057
+                        ],
+                        linf=[
+                            0.06594754030722516,
+                            0.06587779693691242,
+                            0.09451464686853495,
+                            0.06787230638663028,
+                            0.08910065803824378,
+                            0.08828064474448032,
+                            0.023647579422062297,
+                            0.8059383650828509,
+                            0.1224367642558366,
+                            0.15930418161523857,
+                            0.15382860284948224,
+                            0.08695364286964764,
+                            0.4949375933243716,
+                            0.003287251595115295
+                        ],
+                        surface_flux=(FluxPlusDissipation(flux_ruedaramirez_etal,
+                                                          DissipationEntropyStable()),
+                                      flux_nonconservative_ruedaramirez_etal))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhdmultiion_ec.jl with local Lax-Friedrichs at the surface" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
                         l2=[
