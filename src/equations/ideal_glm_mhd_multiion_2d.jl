@@ -34,7 +34,8 @@ References:
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
-!!! ATTENTION: In case of more than one ion species, these equations should ALWAYS be used
+!!! info "The multi-ion GLM-MHD require source terms"
+    In case of more than one ion species, the multi-ion GLM-MHD equations should ALWAYS be used
     with [`source_terms_lorentz`](@ref).
 """
 mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
@@ -221,11 +222,12 @@ Entropy-conserving non-conservative two-point "flux"" as described in
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
-ATTENTION: The non-conservative fluxes derived in the reference above are written as the product
-           of local and symmetric parts and are meant to be used in the same way as the conservative
-           fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
-           the fluxes are multiplied by 2 because the non-conservative fluxes are always multiplied 
-           by 0.5 whenever they are used in the Trixi code
+!!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi"
+    The non-conservative fluxes derived in the reference above are written as the product
+    of local and symmetric parts and are meant to be used in the same way as the conservative
+    fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
+    the fluxes are multiplied by 2 because the non-conservative fluxes are always multiplied 
+    by 0.5 whenever they are used in the Trixi code.
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
@@ -384,11 +386,12 @@ with [`VolumeIntegralFluxDifferencing`](@ref) yields a "standard"
 (weak-form) DGSEM discretization of the multi-ion GLM-MHD system. This flux can also be used to construct a
 standard local Lax-Friedrichs flux using `surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)`.
 
-ATTENTION: The central non-conservative fluxes are written as the product
-           of local and symmetric parts and are meant to be used in the same way as the conservative
-           fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
-           we omit the 0.5 when computing averages because the non-conservative flux is multiplied by 
-           0.5 whenever it's used in the Trixi code
+!!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi"
+    The central non-conservative fluxes implemented in this function are written as the product
+    of local and symmetric parts, where the symmetric part is a standard average. These fluxes
+    are meant to be used in the same way as the conservative fluxes (i.e., flux + flux_noncons 
+    in both volume and surface integrals). In this routine, the fluxes are multiplied by 2 because 
+    the non-conservative fluxes are always multiplied by 0.5 whenever they are used in the Trixi code.
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
