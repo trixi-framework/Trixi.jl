@@ -92,6 +92,9 @@ end
 Compute the charge-averaged velocities (`v1`, `v2`, and `v3`) and each ion species' contribution
 to the charge-averaged velocities (`vk1`, `vk2`, and `vk3`). The output variables `vk1`, `vk2`, and `vk3`
 are `SVectors` of size `ncomponents(equations)`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 @inline function charge_averaged_velocities(u,
                                             equations::AbstractIdealGlmMhdMultiIonEquations)
@@ -124,6 +127,9 @@ end
     get_component(k, u, equations::AbstractIdealGlmMhdMultiIonEquations)
 
 Get the hydrodynamic variables of component (ion species) `k`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 @inline function get_component(k, u, equations::AbstractIdealGlmMhdMultiIonEquations)
     return SVector(u[3 + (k - 1) * 5 + 1],
@@ -138,6 +144,9 @@ end
                    equations::AbstractIdealGlmMhdMultiIonEquations)
 
 Set the hydrodynamic variables (`u1` to `u5`) of component (ion species) `k`.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
 """
 @inline function set_component!(u, k, u1, u2, u3, u4, u5,
                                 equations::AbstractIdealGlmMhdMultiIonEquations)
