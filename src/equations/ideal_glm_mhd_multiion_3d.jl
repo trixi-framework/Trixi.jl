@@ -34,8 +34,9 @@ References:
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
-!!! ATTENTION: In case of more than one ion species, these equations should ALWAYS be used
-    with `source_terms_lorentz`.
+!!! info "The multi-ion GLM-MHD equations require source terms"
+    In case of more than one ion species, the multi-ion GLM-MHD equations should ALWAYS be used
+    with [`source_terms_lorentz`](@ref).
 """
 mutable struct IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT <: Real,
                                               ElectronPressure} <:
@@ -66,12 +67,11 @@ function IdealGlmMhdMultiIonEquations3D(; gammas, charge_to_mass,
     _gammas = promote(gammas...)
     _charge_to_mass = promote(charge_to_mass...)
     RealT = promote_type(eltype(_gammas), eltype(_charge_to_mass))
+    __gammas = SVector(map(RealT, _gammas))
+    __charge_to_mass = SVector(map(RealT, _charge_to_mass))
 
     NVARS = length(_gammas) * 5 + 4
     NCOMP = length(_gammas)
-
-    __gammas = SVector(map(RealT, _gammas))
-    __charge_to_mass = SVector(map(RealT, _charge_to_mass))
 
     return IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT,
                                           typeof(electron_pressure)}(__gammas,
@@ -82,23 +82,10 @@ end
 
 # Outer constructor for `@reset` works correctly
 function IdealGlmMhdMultiIonEquations3D(gammas, charge_to_mass, electron_pressure, c_h)
-    _gammas = promote(gammas...)
-    _charge_to_mass = promote(charge_to_mass...)
-    RealT = promote_type(eltype(_gammas), eltype(_charge_to_mass))
-
-    NVARS = length(_gammas) * 5 + 4
-    NCOMP = length(_gammas)
-
-    __gammas = SVector(map(RealT, _gammas))
-    __charge_to_mass = SVector(map(RealT, _charge_to_mass))
-
-    c_h = convert(RealT, c_h)
-
-    return IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT,
-                                          typeof(electron_pressure)}(__gammas,
-                                                                     __charge_to_mass,
-                                                                     electron_pressure,
-                                                                     c_h)
+    return IdealGlmMhdMultiIonEquations3D(gammas = gammas,
+                                          charge_to_mass = charge_to_mass,
+                                          electron_pressure = electron_pressure,
+                                          initial_c_h = c_h)
 end
 
 @inline function Base.real(::IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT}) where {
@@ -109,43 +96,14 @@ end
     RealT
 end
 
-have_nonconservative_terms(::IdealGlmMhdMultiIonEquations3D) = True()
-
-function varnames(::typeof(cons2cons), equations::IdealGlmMhdMultiIonEquations3D)
-    cons = ("B1", "B2", "B3")
-    for i in eachcomponent(equations)
-        cons = (cons...,
-                tuple("rho_" * string(i), "rho_v1_" * string(i), "rho_v2_" * string(i),
-                      "rho_v3_" * string(i), "rho_e_" * string(i))...)
-    end
-    cons = (cons..., "psi")
-
-    return cons
-end
-
-function varnames(::typeof(cons2prim), equations::IdealGlmMhdMultiIonEquations3D)
-    prim = ("B1", "B2", "B3")
-    for i in eachcomponent(equations)
-        prim = (prim...,
-                tuple("rho_" * string(i), "v1_" * string(i), "v2_" * string(i),
-                      "v3_" * string(i), "p_" * string(i))...)
-    end
-    prim = (prim..., "psi")
-
-    return prim
-end
-
-function default_analysis_integrals(::IdealGlmMhdMultiIonEquations3D)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
-end
-
 """
     initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations3D)
 
 A weak blast wave (adapted to multi-ion MHD) from
-- Sebastian Hennemann, Gregor J. Gassner (2020)
-  A provably entropy stable subcell shock capturing approach for high order split form DG
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
+- Hennemann, S., Rueda-Ramírez, A. M., Hindenlang, F. J., & Gassner, G. J. (2021). A provably entropy 
+  stable subcell shock capturing approach for high order split form DG for the compressible Euler equations. 
+  Journal of Computational Physics, 426, 109935. [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044).
+  [DOI: 10.1016/j.jcp.2020.109935](https://doi.org/10.1016/j.jcp.2020.109935)
 """
 function initial_condition_weak_blast_wave(x, t,
                                            equations::IdealGlmMhdMultiIonEquations3D)
@@ -202,9 +160,10 @@ end
 
         for k in eachcomponent(equations)
             rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-            v1 = rho_v1 / rho
-            v2 = rho_v2 / rho
-            v3 = rho_v3 / rho
+            rho_inv = 1 / rho
+            v1 = rho_v1 * rho_inv
+            v2 = rho_v2 * rho_inv
+            v3 = rho_v3 * rho_inv
             kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
@@ -228,9 +187,10 @@ end
 
         for k in eachcomponent(equations)
             rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-            v1 = rho_v1 / rho
-            v2 = rho_v2 / rho
-            v3 = rho_v3 / rho
+            rho_inv = 1 / rho
+            v1 = rho_v1 * rho_inv
+            v2 = rho_v2 * rho_inv
+            v3 = rho_v3 * rho_inv
             kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
@@ -254,9 +214,10 @@ end
 
         for k in eachcomponent(equations)
             rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-            v1 = rho_v1 / rho
-            v2 = rho_v2 / rho
-            v3 = rho_v3 / rho
+            rho_inv = 1 / rho
+            v1 = rho_v1 * rho_inv
+            v2 = rho_v2 * rho_inv
+            v3 = rho_v3 * rho_inv
             kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
@@ -279,51 +240,6 @@ end
 end
 
 """
-         source_terms_lorentz(u, x, t, equations::IdealGlmMhdMultiIonEquations3D)
-
-Source terms due to the Lorentz' force for plasmas with more than one ion species. These source 
-terms are a fundamental, inseparable part of the multi-ion GLM-MHD equations, and vanish for 
-a single-species plasma.
-"""
-function source_terms_lorentz(u, x, t, equations::IdealGlmMhdMultiIonEquations3D)
-    @unpack charge_to_mass = equations
-    B1, B2, B3 = magnetic_field(u, equations)
-    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
-                                                                                         equations)
-
-    s = zero(MVector{nvariables(equations), eltype(u)})
-
-    for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-        v1 = rho_v1 / rho
-        v2 = rho_v2 / rho
-        v3 = rho_v3 / rho
-        v1_diff = v1_plus - v1
-        v2_diff = v2_plus - v2
-        v3_diff = v3_plus - v3
-        r_rho = charge_to_mass[k] * rho
-        s2 = r_rho * (v2_diff * B3 - v3_diff * B2)
-        s3 = r_rho * (v3_diff * B1 - v1_diff * B3)
-        s4 = r_rho * (v1_diff * B2 - v2_diff * B1)
-        s5 = v1 * s2 + v2 * s3 + v3 * s4
-
-        set_component!(s, k, 0, s2, s3, s4, s5, equations)
-    end
-
-    return SVector(s)
-end
-
-"""
-         electron_pressure_zero(u, equations::IdealGlmMhdMultiIonEquations3D)
-
-Returns the value of zero for the electron pressure. Needed for consistency with the 
-single-fluid MHD equations in the limit of one ion species.
-"""
-function electron_pressure_zero(u, equations::IdealGlmMhdMultiIonEquations3D)
-    return zero(u[1])
-end
-
-"""
         flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
                                                orientation::Integer,
                                                equations::IdealGlmMhdMultiIonEquations3D)
@@ -333,11 +249,12 @@ Entropy-conserving non-conservative two-point "flux"" as described in
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 
-ATTENTION: The non-conservative fluxes derived in the reference above are written as the product
-           of local and symmetric parts and are meant to be used in the same way as the conservative
-           fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
-           the fluxes are multiplied by 2 because the non-conservative fluxes are always multiplied 
-           by 0.5 whenever they are used in the Trixi code
+!!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi.jl"
+    The non-conservative fluxes derived in the reference above are written as the product
+    of local and symmetric parts and are meant to be used in the same way as the conservative
+    fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
+    the fluxes are multiplied by 2 because the non-conservative fluxes are always multiplied 
+    by 0.5 whenever they are used in the Trixi code.
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
@@ -537,15 +454,17 @@ end
                                      equations::IdealGlmMhdMultiIonEquations3D)
 
 Central non-conservative two-point "flux", where the symmetric parts are computed with standard averages.
-The use of this term together with flux_central with VolumeIntegralFluxDifferencing yields a "standard"
+The use of this term together with [`flux_central`](@ref) 
+with [`VolumeIntegralFluxDifferencing`](@ref) yields a "standard"
 (weak-form) DGSEM discretization of the multi-ion GLM-MHD system. This flux can also be used to construct a
 standard local Lax-Friedrichs flux using `surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)`.
 
-ATTENTION: The central non-conservative fluxes are written as the product
-           of local and symmetric parts and are meant to be used in the same way as the conservative
-           fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
-           we omit the 0.5 when computing averages because the non-conservative flux is multiplied by 
-           0.5 whenever it's used in the Trixi code
+!!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi"
+    The central non-conservative fluxes implemented in this function are written as the product
+    of local and symmetric parts, where the symmetric part is a standard average. These fluxes
+    are meant to be used in the same way as the conservative fluxes (i.e., flux + flux_noncons 
+    in both volume and surface integrals). In this routine, the fluxes are multiplied by 2 because 
+    the non-conservative fluxes are always multiplied by 0.5 whenever they are used in the Trixi code.
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
@@ -782,12 +701,14 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
                                                                               equations)
 
-            v1_ll = rho_v1_ll / rho_ll
-            v2_ll = rho_v2_ll / rho_ll
-            v3_ll = rho_v3_ll / rho_ll
-            v1_rr = rho_v1_rr / rho_rr
-            v2_rr = rho_v2_rr / rho_rr
-            v3_rr = rho_v3_rr / rho_rr
+            rho_inv_ll = 1 / rho_ll
+            v1_ll = rho_v1_ll * rho_inv_ll
+            v2_ll = rho_v2_ll * rho_inv_ll
+            v3_ll = rho_v3_ll * rho_inv_ll
+            rho_inv_rr = 1 / rho_rr
+            v1_rr = rho_v1_rr * rho_inv_rr
+            v2_rr = rho_v2_rr * rho_inv_rr
+            v3_rr = rho_v3_rr * rho_inv_rr
             vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
@@ -879,12 +800,14 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
                                                                               equations)
 
-            v1_ll = rho_v1_ll / rho_ll
-            v2_ll = rho_v2_ll / rho_ll
-            v3_ll = rho_v3_ll / rho_ll
-            v1_rr = rho_v1_rr / rho_rr
-            v2_rr = rho_v2_rr / rho_rr
-            v3_rr = rho_v3_rr / rho_rr
+            rho_inv_ll = 1 / rho_ll
+            v1_ll = rho_v1_ll * rho_inv_ll
+            v2_ll = rho_v2_ll * rho_inv_ll
+            v3_ll = rho_v3_ll * rho_inv_ll
+            rho_inv_rr = 1 / rho_rr
+            v1_rr = rho_v1_rr * rho_inv_rr
+            v2_rr = rho_v2_rr * rho_inv_rr
+            v3_rr = rho_v3_rr * rho_inv_rr
             vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
@@ -976,12 +899,14 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
                                                                               equations)
 
-            v1_ll = rho_v1_ll / rho_ll
-            v2_ll = rho_v2_ll / rho_ll
-            v3_ll = rho_v3_ll / rho_ll
-            v1_rr = rho_v1_rr / rho_rr
-            v2_rr = rho_v2_rr / rho_rr
-            v3_rr = rho_v3_rr / rho_rr
+            rho_inv_ll = 1 / rho_ll
+            v1_ll = rho_v1_ll * rho_inv_ll
+            v2_ll = rho_v2_ll * rho_inv_ll
+            v3_ll = rho_v3_ll * rho_inv_ll
+            rho_inv_rr = 1 / rho_rr
+            v1_rr = rho_v1_rr * rho_inv_rr
+            v2_rr = rho_v2_rr * rho_inv_rr
+            v3_rr = rho_v3_rr * rho_inv_rr
             vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
@@ -1101,9 +1026,10 @@ end
     v3 = zero(real(equations))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u, equations)
-        v1 = max(v1, abs(rho_v1 / rho))
-        v2 = max(v2, abs(rho_v2 / rho))
-        v3 = max(v3, abs(rho_v3 / rho))
+        rho_inv = 1 / rho
+        v1 = max(v1, abs(rho_v1 * rho_inv))
+        v2 = max(v2, abs(rho_v2 * rho_inv))
+        v3 = max(v3, abs(rho_v3 * rho_inv))
     end
 
     cf_x_direction = calc_fast_wavespeed(u, 1, equations)
@@ -1112,95 +1038,6 @@ end
 
     return (abs(v1) + cf_x_direction, abs(v2) + cf_y_direction,
             abs(v3) + cf_z_direction)
-end
-
-#Convert conservative variables to primitive
-function cons2prim(u, equations::IdealGlmMhdMultiIonEquations3D)
-    @unpack gammas = equations
-    B1, B2, B3 = magnetic_field(u, equations)
-    psi = divergence_cleaning_field(u, equations)
-
-    prim = zero(MVector{nvariables(equations), eltype(u)})
-    prim[1] = B1
-    prim[2] = B2
-    prim[3] = B3
-    for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-        srho = 1 / rho
-        v1 = srho * rho_v1
-        v2 = srho * rho_v2
-        v3 = srho * rho_v3
-
-        p = (gammas[k] - 1) * (rho_e -
-             0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3
-              + B1 * B1 + B2 * B2 + B3 * B3
-              + psi * psi))
-
-        set_component!(prim, k, rho, v1, v2, v3, p, equations)
-    end
-    prim[end] = psi
-
-    return SVector(prim)
-end
-
-#Convert conservative variables to entropy variables
-@inline function cons2entropy(u, equations::IdealGlmMhdMultiIonEquations3D)
-    @unpack gammas = equations
-    B1, B2, B3 = magnetic_field(u, equations)
-    psi = divergence_cleaning_field(u, equations)
-
-    prim = cons2prim(u, equations)
-    entropy = zero(MVector{nvariables(equations), eltype(u)})
-    rho_p_plus = zero(real(equations))
-    for k in eachcomponent(equations)
-        rho, v1, v2, v3, p = get_component(k, prim, equations)
-        s = log(p) - gammas[k] * log(rho)
-        rho_p = rho / p
-        w1 = (gammas[k] - s) / (gammas[k] - 1) - 0.5f0 * rho_p * (v1^2 + v2^2 + v3^2)
-        w2 = rho_p * v1
-        w3 = rho_p * v2
-        w4 = rho_p * v3
-        w5 = -rho_p
-        rho_p_plus += rho_p
-
-        set_component!(entropy, k, w1, w2, w3, w4, w5, equations)
-    end
-
-    # Additional non-conservative variables
-    entropy[1] = rho_p_plus * B1
-    entropy[2] = rho_p_plus * B2
-    entropy[3] = rho_p_plus * B3
-    entropy[end] = rho_p_plus * psi
-
-    return SVector(entropy)
-end
-
-# Convert primitive to conservative variables
-@inline function prim2cons(prim, equations::IdealGlmMhdMultiIonEquations3D)
-    @unpack gammas = equations
-    B1, B2, B3 = magnetic_field(prim, equations)
-    psi = divergence_cleaning_field(prim, equations)
-
-    cons = zero(MVector{nvariables(equations), eltype(prim)})
-    cons[1] = B1
-    cons[2] = B2
-    cons[3] = B3
-    for k in eachcomponent(equations)
-        rho, v1, v2, v3, p = get_component(k, prim, equations)
-        rho_v1 = rho * v1
-        rho_v2 = rho * v2
-        rho_v3 = rho * v3
-
-        rho_e = p / (gammas[k] - 1.0) +
-                0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
-                0.5f0 * (B1^2 + B2^2 + B3^2) +
-                0.5f0 * psi^2
-
-        set_component!(cons, k, rho, rho_v1, rho_v2, rho_v3, rho_e, equations)
-    end
-    cons[end] = psi
-
-    return SVector(cons)
 end
 
 # Compute the fastest wave speed for ideal multi-ion GLM-MHD equations: c_f, the fast 
@@ -1216,15 +1053,16 @@ end
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
 
-        v1 = rho_v1 / rho
-        v2 = rho_v2 / rho
-        v3 = rho_v3 / rho
+        rho_inv = 1 / rho
+        v1 = rho_v1 * rho_inv
+        v2 = rho_v2 * rho_inv
+        v3 = rho_v3 * rho_inv
         v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
         p = (gamma - 1) *
             (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2) -
              0.5f0 * psi^2)
-        a_square = gamma * p / rho
+        a_square = gamma * p * rho_inv
         sqrt_rho = sqrt(rho)
 
         b1 = B1 / sqrt_rho
@@ -1251,112 +1089,5 @@ end
     end
 
     return c_f
-end
-
-"""
-v1, v2, v3, vk1, vk2, vk3 = charge_averaged_velocities(u,
-                                                       equations::IdealGlmMhdMultiIonEquations3D)
-
-
-Compute the charge-averaged velocities (v1, v2, and v3) and each ion species' contribution
-to the charge-averaged velocities (vk1, vk2, and vk3). The output variables vk1, vk2, and vk3
-are SVectors of size ncomponents(equations).
-"""
-@inline function charge_averaged_velocities(u,
-                                            equations::IdealGlmMhdMultiIonEquations3D)
-    total_electron_charge = zero(real(equations))
-
-    vk1_plus = zero(MVector{ncomponents(equations), eltype(u)})
-    vk2_plus = zero(MVector{ncomponents(equations), eltype(u)})
-    vk3_plus = zero(MVector{ncomponents(equations), eltype(u)})
-
-    for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u,
-                                                       equations)
-
-        total_electron_charge += rho * equations.charge_to_mass[k]
-        vk1_plus[k] = rho_v1 * equations.charge_to_mass[k]
-        vk2_plus[k] = rho_v2 * equations.charge_to_mass[k]
-        vk3_plus[k] = rho_v3 * equations.charge_to_mass[k]
-    end
-    vk1_plus ./= total_electron_charge
-    vk2_plus ./= total_electron_charge
-    vk3_plus ./= total_electron_charge
-    v1_plus = sum(vk1_plus)
-    v2_plus = sum(vk2_plus)
-    v3_plus = sum(vk3_plus)
-
-    return v1_plus, v2_plus, v3_plus, SVector(vk1_plus), SVector(vk2_plus),
-           SVector(vk3_plus)
-end
-
-"""
-    get_component(k, u, equations::IdealGlmMhdMultiIonEquations3D)
-
-Get the hydrodynamic variables of component (ion species) k.
-"""
-@inline function get_component(k, u, equations::IdealGlmMhdMultiIonEquations3D)
-    return SVector(u[3 + (k - 1) * 5 + 1],
-                   u[3 + (k - 1) * 5 + 2],
-                   u[3 + (k - 1) * 5 + 3],
-                   u[3 + (k - 1) * 5 + 4],
-                   u[3 + (k - 1) * 5 + 5])
-end
-
-"""
-    set_component!(u, k, u1, u2, u3, u4, u5,
-                   equations::IdealGlmMhdMultiIonEquations3D)
-
-Set the hydrodynamic variables of component (ion species) k.
-"""
-@inline function set_component!(u, k, u1, u2, u3, u4, u5,
-                                equations::IdealGlmMhdMultiIonEquations3D)
-    u[3 + (k - 1) * 5 + 1] = u1
-    u[3 + (k - 1) * 5 + 2] = u2
-    u[3 + (k - 1) * 5 + 3] = u3
-    u[3 + (k - 1) * 5 + 4] = u4
-    u[3 + (k - 1) * 5 + 5] = u5
-
-    return u
-end
-
-# Extract magnetic field from solution vector
-magnetic_field(u, equations::IdealGlmMhdMultiIonEquations3D) = SVector(u[1], u[2], u[3])
-
-# Extract GLM divergence-cleaning field from solution vector
-divergence_cleaning_field(u, equations::IdealGlmMhdMultiIonEquations3D) = u[end]
-
-# Get total density as the sum of the individual densities of the ion species
-@inline function density(u, equations::IdealGlmMhdMultiIonEquations3D)
-    rho = zero(real(equations))
-    for k in eachcomponent(equations)
-        rho += u[3 + (k - 1) * 5 + 1]
-    end
-    return rho
-end
-
-# Computes the sum of the densities times the sum of the pressures
-@inline function density_pressure(u, equations::IdealGlmMhdMultiIonEquations3D)
-    B1, B2, B3 = magnetic_field(u, equations)
-    psi = divergence_cleaning_field(cons, equations)
-
-    rho_total = zero(real(equations))
-    p_total = zero(real(equations))
-    for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-
-        v1 = rho_v1 / rho
-        v2 = rho_v2 / rho
-        v3 = rho_v3 / rho
-        v_mag = sqrt(v1^2 + v2^2 + v3^2)
-        gamma = equations.gammas[k]
-
-        p = (gamma - 1) *
-            (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
-
-        rho_total += rho
-        p_total += p
-    end
-    return rho_total * p_total
 end
 end # @muladd
