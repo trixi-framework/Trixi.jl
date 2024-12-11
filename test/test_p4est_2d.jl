@@ -231,10 +231,10 @@ end
                             0.3507514f0
                         ],
                         linf=[
-                            0.2942562f0,
+                            0.2930063f0,
                             0.4079147f0,
                             0.3972956f0,
-                            1.0810697f0
+                            1.0764117f0
                         ],
                         tspan=(0.0f0, 1.0f0),
                         rtol=10 * sqrt(eps(Float32)), # to make CI pass
@@ -296,8 +296,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
@@ -514,8 +514,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
@@ -617,17 +617,18 @@ end
 
 @trixi_testset "elixir_mhd_rotor.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
-                        l2=[0.4552094211937344, 0.8918052934760807, 0.8324715234680768,
+                        l2=[0.4551839744017604, 0.8917986079085971, 0.832474072904728,
                             0.0,
-                            0.9801268321975978, 0.10475722739111007,
-                            0.15551326369033164,
+                            0.98015167453983, 0.10475978783943254,
+                            0.15551175906375883,
                             0.0,
-                            2.0602990858239632e-5],
-                        linf=[10.19421969147307, 18.254409357804683, 10.031954811332596,
+                            2.026208477271868e-5],
+                        linf=[10.19496728149964, 18.23726813972206,
+                            10.04367783820621,
                             0.0,
-                            19.646870938371492, 1.3938679692894465, 1.8725058401937984,
+                            19.63022306543678, 1.3952679820406384, 1.8716515525771589,
                             0.0,
-                            0.0016201762010257296],
+                            0.0017266639582675424],
                         tspan=(0.0, 0.02))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

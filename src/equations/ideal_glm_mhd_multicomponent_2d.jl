@@ -101,6 +101,10 @@ function default_analysis_integrals(::IdealGlmMhdMulticomponentEquations2D)
     (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
+# Helper function to extract the magnetic field vector from the conservative variables
+magnetic_field(u, equations::IdealGlmMhdMulticomponentEquations2D) = SVector(u[5], u[6],
+                                                                             u[7])
+
 """
     initial_condition_convergence_test(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
 
@@ -114,11 +118,10 @@ function initial_condition_convergence_test(x, t,
     alpha = 0.25f0 * convert(RealT, pi)
     x_perp = x[1] * cos(alpha) + x[2] * sin(alpha)
     B_perp = convert(RealT, 0.1) * sinpi(2 * x_perp)
-    rho = 1
-    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                rho
+    rho = one(RealT)
+    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
+                                                                rho / (1 -
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     v1 = -B_perp * sin(alpha)
@@ -157,13 +160,12 @@ function initial_condition_weak_blast_wave(x, t,
 
     prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
                                                                 2^(i - 1) * (1 - 2) /
+                                                                (RealT(1) -
+                                                                 2^ncomponents(equations)) :
+                                                                2^(i - 1) * (1 - 2) *
+                                                                RealT(1.1691) /
                                                                 (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                one(RealT) :
-                                                                2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                convert(RealT, 1.1691)
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi

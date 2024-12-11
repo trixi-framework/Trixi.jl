@@ -4,15 +4,39 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.9 lifecycle
+
+#### Added
+
+- New time integrator `PairedExplicitRK3`, implementing the third-order paired explicit Runge-Kutta
+  method with [Convex.jl](https://github.com/jump-dev/Convex.jl), [ECOS.jl](https://github.com/jump-dev/ECOS.jl),
+  and [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) ([#2008])
+- `LobattoLegendreBasis` and related datastructures made fully floating-type general,
+  enabling calculations with higher than double (`Float64`) precision ([#2128])
+
 ## Changes when updating to v0.9 from v0.8.x
+
+#### Added
+
+- Boundary conditions are now supported on nonconservative terms ([#2062]).
 
 #### Changed
 
 - We removed the first argument `semi` corresponding to a `Semidiscretization` from the 
   `AnalysisSurfaceIntegral` constructor, as it is no longer needed (see [#1959]).
-  The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`. ([#2069])
+  The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`.
+  ([#2069])
 - In functions `rhs!`, `rhs_parabolic!`  we removed the unused argument `initial_condition`. ([#2037])
   Users should not be affected by this.
+- Nonconservative terms depend only on `normal_direction_average` instead of both 
+  `normal_direction_average` and `normal_direction_ll`, such that the function signature is now 
+  identical with conservative fluxes. This required a change of the `normal_direction` in
+  `flux_nonconservative_powell` ([#2062]).
+
+#### Deprecated
+
+#### Removed
+
 
 ## Changes in the v0.8 lifecycle
 

@@ -19,8 +19,8 @@ struct ParametersEulerGravity{RealT <: Real, TimestepGravity}
     background_density     :: RealT # aka rho0
     gravitational_constant :: RealT # aka G
     cfl                    :: RealT
-    resid_tol              :: RealT
-    n_iterations_max       :: Int
+    resid_tol              :: RealT # Hyp.-Diff. Eq. steady state tolerance
+    n_iterations_max       :: Int   # Max. number of iterations of the pseudo-time gravity solver
     timestep_gravity       :: TimestepGravity
 end
 
@@ -124,6 +124,7 @@ function SemidiscretizationEulerGravity(semi_euler::SemiEuler,
           SemidiscretizationHyperbolic{Mesh, <:AbstractHyperbolicDiffusionEquations}}
     u_ode = compute_coefficients(zero(real(semi_gravity)), semi_gravity)
     du_ode = similar(u_ode)
+    # Registers for gravity solver, tailored to the 2N and 3S* methods implemented below
     u_tmp1_ode = similar(u_ode)
     u_tmp2_ode = similar(u_ode)
     cache = (; u_ode, du_ode, u_tmp1_ode, u_tmp2_ode)
@@ -217,6 +218,9 @@ end
     calc_error_norms(func, u, t, analyzer, semi.semi_euler, cache_analysis)
 end
 
+# Coupled Euler and gravity solver at each Runge-Kutta stage, 
+# corresponding to Algorithm 2 in Schlottke-Lakemper et al. (2020),
+# https://dx.doi.org/10.1016/j.jcp.2021.110467
 function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     @unpack semi_euler, semi_gravity, cache = semi
 
@@ -294,33 +298,33 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
     finalstep = false
     @unpack n_iterations_max, cfl, resid_tol, timestep_gravity = parameters
     iter = 0
-    t = zero(real(semi_gravity.solver))
+    tau = zero(real(semi_gravity.solver)) # Pseudo-time
 
     # iterate gravity solver until convergence or maximum number of iterations are reached
     @unpack equations = semi_gravity
     while !finalstep
-        dt = @trixi_timeit timer() "calculate dt" begin
-            cfl * max_dt(u_gravity, t, semi_gravity.mesh,
+        dtau = @trixi_timeit timer() "calculate dtau" begin
+            cfl * max_dt(u_gravity, tau, semi_gravity.mesh,
                    have_constant_speed(equations), equations,
                    semi_gravity.solver, semi_gravity.cache)
         end
 
         # evolve solution by one pseudo-time step
         time_start = time_ns()
-        timestep_gravity(cache, u_euler, t, dt, parameters, semi_gravity)
+        timestep_gravity(cache, u_euler, tau, dtau, parameters, semi_gravity)
         runtime = time_ns() - time_start
         put!(gravity_counter, runtime)
 
         # update iteration counter
         iter += 1
-        t += dt
+        tau += dtau
 
         # check if we reached the maximum number of iterations
         if n_iterations_max > 0 && iter >= n_iterations_max
             @warn "Max iterations reached: Gravity solver failed to converge!" residual=maximum(abs,
                                                                                                 @views du_gravity[1,
                                                                                                                   ..,
-                                                                                                                  :]) t=t dt=dt
+                                                                                                                  :]) tau=tau dtau=dtau
             finalstep = true
         end
 
@@ -334,38 +338,41 @@ function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
 end
 
 # Integrate gravity solver for 2N-type low-storage schemes
-function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
+function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
+                              semi_gravity,
                               a, b, c)
     G = gravity_parameters.gravitational_constant
     rho0 = gravity_parameters.background_density
     grav_scale = -4.0 * pi * G
 
+    # Note that `u_ode` is `u_gravity` in `rhs!` above
     @unpack u_ode, du_ode, u_tmp1_ode = cache
     u_tmp1_ode .= zero(eltype(u_tmp1_ode))
     du_gravity = wrap_array(du_ode, semi_gravity)
     for stage in eachindex(c)
-        t_stage = t + dt * c[stage]
+        tau_stage = tau + dtau * c[stage]
 
         # rhs! has the source term for the harmonic problem
         # We don't need a `@trixi_timeit timer() "rhs!"` here since that's already
         # included in the `rhs!` call.
-        rhs!(du_ode, u_ode, semi_gravity, t_stage)
+        rhs!(du_ode, u_ode, semi_gravity, tau_stage)
 
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 (spatial mean value)
         n_elements = size(u_euler)[end]
+        # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
         @threaded for element in 1:n_elements
             @views @. du_gravity[1, .., element] += grav_scale *
                                                     (u_euler[1, .., element] - rho0)
         end
 
         a_stage = a[stage]
-        b_stage_dt = b[stage] * dt
+        b_stage_dtau = b[stage] * dtau
         @trixi_timeit timer() "Runge-Kutta step" begin
             @threaded for idx in eachindex(u_ode)
                 u_tmp1_ode[idx] = du_ode[idx] - u_tmp1_ode[idx] * a_stage
-                u_ode[idx] += u_tmp1_ode[idx] * b_stage_dt
+                u_ode[idx] += u_tmp1_ode[idx] * b_stage_dtau
             end
         end
     end
@@ -373,7 +380,7 @@ function timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gr
     return nothing
 end
 
-function timestep_gravity_carpenter_kennedy_erk54_2N!(cache, u_euler, t, dt,
+function timestep_gravity_carpenter_kennedy_erk54_2N!(cache, u_euler, tau, dtau,
                                                       gravity_parameters, semi_gravity)
     # Coefficients for Carpenter's 5-stage 4th-order low-storage Runge-Kutta method
     a = SVector(0.0, 567301805773.0 / 1357537059087.0,
@@ -386,34 +393,36 @@ function timestep_gravity_carpenter_kennedy_erk54_2N!(cache, u_euler, t, dt,
                 2526269341429.0 / 6820363962896.0,
                 2006345519317.0 / 3224310063776.0, 2802321613138.0 / 2924317926251.0)
 
-    timestep_gravity_2N!(cache, u_euler, t, dt, gravity_parameters, semi_gravity, a, b,
-                         c)
+    timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters, semi_gravity,
+                         a, b, c)
 end
 
 # Integrate gravity solver for 3S*-type low-storage schemes
-function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters,
+function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
                                   semi_gravity,
                                   gamma1, gamma2, gamma3, beta, delta, c)
     G = gravity_parameters.gravitational_constant
     rho0 = gravity_parameters.background_density
     grav_scale = -4 * G * pi
 
+    # Note that `u_ode` is `u_gravity` in `rhs!` above
     @unpack u_ode, du_ode, u_tmp1_ode, u_tmp2_ode = cache
     u_tmp1_ode .= zero(eltype(u_tmp1_ode))
     u_tmp2_ode .= u_ode
     du_gravity = wrap_array(du_ode, semi_gravity)
     for stage in eachindex(c)
-        t_stage = t + dt * c[stage]
+        tau_stage = tau + dtau * c[stage]
 
         # rhs! has the source term for the harmonic problem
         # We don't need a `@trixi_timeit timer() "rhs!"` here since that's already
         # included in the `rhs!` call.
-        rhs!(du_ode, u_ode, semi_gravity, t_stage)
+        rhs!(du_ode, u_ode, semi_gravity, tau_stage)
 
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
         n_elements = size(u_euler)[end]
+        # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
         @threaded for element in 1:n_elements
             @views @. du_gravity[1, .., element] += grav_scale *
                                                     (u_euler[1, .., element] - rho0)
@@ -423,14 +432,15 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters,
         gamma1_stage = gamma1[stage]
         gamma2_stage = gamma2[stage]
         gamma3_stage = gamma3[stage]
-        beta_stage_dt = beta[stage] * dt
+        beta_stage_dtau = beta[stage] * dtau
         @trixi_timeit timer() "Runge-Kutta step" begin
             @threaded for idx in eachindex(u_ode)
+                # See Algorithm 1 (3S* method) in Schlottke-Lakemper et al. (2020)
                 u_tmp1_ode[idx] += delta_stage * u_ode[idx]
                 u_ode[idx] = (gamma1_stage * u_ode[idx] +
                               gamma2_stage * u_tmp1_ode[idx] +
                               gamma3_stage * u_tmp2_ode[idx] +
-                              beta_stage_dt * du_ode[idx])
+                              beta_stage_dtau * du_ode[idx])
             end
         end
     end
@@ -438,7 +448,8 @@ function timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters,
     return nothing
 end
 
-function timestep_gravity_erk51_3Sstar!(cache, u_euler, t, dt, gravity_parameters,
+# First-order, 5-stage, 3S*-storage optimized method
+function timestep_gravity_erk51_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
                                         semi_gravity)
     # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
     # and examples/parameters_hypdiff_lax_friedrichs.toml
@@ -461,11 +472,13 @@ function timestep_gravity_erk51_3Sstar!(cache, u_euler, t, dt, gravity_parameter
     c = SVector(0.0000000000000000E+00, 1.9189497208340553E-01, 1.9580448818599061E-01,
                 2.4241635859769023E-01, 5.0728347557552977E-01)
 
-    timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
+    timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
+                             semi_gravity,
                              gamma1, gamma2, gamma3, beta, delta, c)
 end
 
-function timestep_gravity_erk52_3Sstar!(cache, u_euler, t, dt, gravity_parameters,
+# Second-order, 5-stage, 3S*-storage optimized method
+function timestep_gravity_erk52_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
                                         semi_gravity)
     # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
     # and examples/parameters_hypdiff_lax_friedrichs.toml
@@ -488,11 +501,13 @@ function timestep_gravity_erk52_3Sstar!(cache, u_euler, t, dt, gravity_parameter
     c = SVector(0.0000000000000000E+00, 4.5158640252832094E-01, 1.0221535725056414E+00,
                 1.4280257701954349E+00, 7.1581334196229851E-01)
 
-    timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
+    timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
+                             semi_gravity,
                              gamma1, gamma2, gamma3, beta, delta, c)
 end
 
-function timestep_gravity_erk53_3Sstar!(cache, u_euler, t, dt, gravity_parameters,
+# Third-order, 5-stage, 3S*-storage optimized method
+function timestep_gravity_erk53_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
                                         semi_gravity)
     # New 3Sstar coefficients optimized for polynomials of degree polydeg=3
     # and examples/parameters_hypdiff_lax_friedrichs.toml
@@ -515,7 +530,8 @@ function timestep_gravity_erk53_3Sstar!(cache, u_euler, t, dt, gravity_parameter
     c = SVector(0.0000000000000000E+00, 8.4476964977404881E-02, 2.8110631488732202E-01,
                 5.7093842145029405E-01, 7.2999896418559662E-01)
 
-    timestep_gravity_3Sstar!(cache, u_euler, t, dt, gravity_parameters, semi_gravity,
+    timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
+                             semi_gravity,
                              gamma1, gamma2, gamma3, beta, delta, c)
 end
 

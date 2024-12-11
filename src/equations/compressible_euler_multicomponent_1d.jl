@@ -136,10 +136,9 @@ function initial_condition_convergence_test(x, t,
     rho = ini
 
     # Here we compute an arbitrary number of different rhos. (one rho is double the next rho while the sum of all rhos is 1)
-    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                rho
+    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
+                                                                rho / (1 -
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     prim1 = rho * v1
@@ -204,13 +203,12 @@ function initial_condition_weak_blast_wave(x, t,
 
     prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
                                                                 2^(i - 1) * (1 - 2) /
+                                                                (RealT(1) -
+                                                                 2^ncomponents(equations)) :
+                                                                2^(i - 1) * (1 - 2) *
+                                                                RealT(1.1691) /
                                                                 (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                one(RealT) :
-                                                                2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                convert(RealT, 1.1691)
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
 
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos_phi
@@ -617,5 +615,11 @@ end
 @inline function densities(u, v, equations::CompressibleEulerMulticomponentEquations1D)
     return SVector{ncomponents(equations), real(equations)}(u[i + 2] * v
                                                             for i in eachcomponent(equations))
+end
+
+@inline function velocity(u, equations::CompressibleEulerMulticomponentEquations1D)
+    rho = density(u, equations)
+    v1 = u[1] / rho
+    return v1
 end
 end # @muladd
