@@ -295,7 +295,7 @@ end
 
     beta_plus_ll = 0
     beta_plus_rr = 0
-    # Get the lumped dissipation for all components
+    # Compute the dissipation for the hydrodynamic quantities of all components
     for k in eachcomponent(equations)
         rho_ll, v1_ll, v2_ll, v3_ll, p_ll = get_component(k, prim_ll, equations)
         rho_rr, v1_rr, v2_rr, v3_rr, p_rr = get_component(k, prim_rr, equations)
@@ -393,15 +393,15 @@ end
         set_component!(dissipation, k, d1, d2, d3, d4, d5, equations)
     end
 
-    # Set the magnetic field and psi terms
+    # Compute the dissipation related to the magnetic and divergence-cleaning fields
     h_B_psi = 1 / (beta_plus_ll + beta_plus_rr)
 
-    # diagonal entries
+    # Dissipation due to the diagonal entries of the dissipation matrix H
     dissipation[1] = -0.5f0 * λ * h_B_psi * (w_rr[1] - w_ll[1])
     dissipation[2] = -0.5f0 * λ * h_B_psi * (w_rr[2] - w_ll[2])
     dissipation[3] = -0.5f0 * λ * h_B_psi * (w_rr[3] - w_ll[3])
     dissipation[end] = -0.5f0 * λ * h_B_psi * (w_rr[end] - w_ll[end])
-    # Off-diagonal entries
+    # Dissipation due to the off-diagonal entries of the dissipation matrix H
     for k in eachcomponent(equations)
         _, _, _, _, w5_ll = get_component(k, w_ll, equations)
         _, _, _, _, w5_rr = get_component(k, w_rr, equations)
