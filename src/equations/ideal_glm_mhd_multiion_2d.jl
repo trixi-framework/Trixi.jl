@@ -211,8 +211,8 @@ end
 
 """
     flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
-                                               orientation::Integer,
-                                               equations::IdealGlmMhdMultiIonEquations2D)
+                                           orientation::Integer,
+                                           equations::IdealGlmMhdMultiIonEquations2D)
 
 Entropy-conserving non-conservative two-point "flux"" as described in 
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
