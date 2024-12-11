@@ -55,8 +55,8 @@ EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2
     end
 end
 
-@trixi_testset "elixir_mhdmultiion_es.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_es.jl"),
+@trixi_testset "Provably entropy-stable LLF-type fluxes for multi-ion GLM-MHD" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
                         l2=[
                             0.017668017558288736,
                             0.01779783612885502,
@@ -88,7 +88,10 @@ end
                             0.08695364286964764,
                             0.4949375933243716,
                             0.003287251595115295
-                        ])
+                        ],
+                        surface_flux=(FluxPlusDissipation(flux_ruedaramirez_etal,
+                                                          DissipationEntropyStable()),
+                                      flux_nonconservative_ruedaramirez_etal))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
