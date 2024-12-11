@@ -55,9 +55,10 @@ function source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEqu
 
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-        v1 = rho_v1 / rho
-        v2 = rho_v2 / rho
-        v3 = rho_v3 / rho
+        rho_inv = 1 / rho
+        v1 = rho_v1 * rho_inv
+        v2 = rho_v2 * rho_inv
+        v3 = rho_v3 * rho_inv
         v1_diff = v1_plus - v1
         v2_diff = v2_plus - v2
         v3_diff = v3_plus - v3
@@ -177,10 +178,10 @@ function cons2prim(u, equations::AbstractIdealGlmMhdMultiIonEquations)
     prim[3] = B3
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-        srho = 1 / rho
-        v1 = srho * rho_v1
-        v2 = srho * rho_v2
-        v3 = srho * rho_v3
+        rho_inv = 1 / rho
+        v1 = rho_inv * rho_v1
+        v2 = rho_inv * rho_v2
+        v3 = rho_inv * rho_v3
 
         p = (gammas[k] - 1) * (rho_e -
              0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3

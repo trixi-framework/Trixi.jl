@@ -158,9 +158,10 @@ end
 
         for k in eachcomponent(equations)
             rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-            v1 = rho_v1 / rho
-            v2 = rho_v2 / rho
-            v3 = rho_v3 / rho
+            rho_inv = 1 / rho
+            v1 = rho_v1 * rho_inv
+            v2 = rho_v2 * rho_inv
+            v3 = rho_v3 * rho_inv
             kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
@@ -184,9 +185,10 @@ end
 
         for k in eachcomponent(equations)
             rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-            v1 = rho_v1 / rho
-            v2 = rho_v2 / rho
-            v3 = rho_v3 / rho
+            rho_inv = 1 / rho
+            v1 = rho_v1 * rho_inv
+            v2 = rho_v2 * rho_inv
+            v3 = rho_v3 * rho_inv
             kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
 
             gamma = equations.gammas[k]
@@ -582,13 +584,14 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
                                                                               equations)
             rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
                                                                               equations)
-
-            v1_ll = rho_v1_ll / rho_ll
-            v2_ll = rho_v2_ll / rho_ll
-            v3_ll = rho_v3_ll / rho_ll
-            v1_rr = rho_v1_rr / rho_rr
-            v2_rr = rho_v2_rr / rho_rr
-            v3_rr = rho_v3_rr / rho_rr
+            rho_inv_ll = 1 / rho_ll
+            v1_ll = rho_v1_ll * rho_inv_ll
+            v2_ll = rho_v2_ll * rho_inv_ll
+            v3_ll = rho_v3_ll * rho_inv_ll
+            rho_inv_rr = 1 / rho_rr
+            v1_rr = rho_v1_rr * rho_inv_rr
+            v2_rr = rho_v2_rr * rho_inv_rr
+            v3_rr = rho_v3_rr * rho_inv_rr
             vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
@@ -680,12 +683,14 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
             rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
                                                                               equations)
 
-            v1_ll = rho_v1_ll / rho_ll
-            v2_ll = rho_v2_ll / rho_ll
-            v3_ll = rho_v3_ll / rho_ll
-            v1_rr = rho_v1_rr / rho_rr
-            v2_rr = rho_v2_rr / rho_rr
-            v3_rr = rho_v3_rr / rho_rr
+            rho_inv_ll = 1 / rho_ll
+            v1_ll = rho_v1_ll * rho_inv_ll
+            v2_ll = rho_v2_ll * rho_inv_ll
+            v3_ll = rho_v3_ll * rho_inv_ll
+            rho_inv_rr = 1 / rho_rr
+            v1_rr = rho_v1_rr * rho_inv_rr
+            v2_rr = rho_v2_rr * rho_inv_rr
+            v3_rr = rho_v3_rr * rho_inv_rr
             vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
             vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
@@ -820,15 +825,16 @@ end
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
 
-        v1 = rho_v1 / rho
-        v2 = rho_v2 / rho
-        v3 = rho_v3 / rho
+        rho_inv = 1 / rho
+        v1 = rho_v1 * rho_inv
+        v2 = rho_v2 * rho_inv
+        v3 = rho_v3 * rho_inv
         v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
         p = (gamma - 1) *
             (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2) -
              0.5f0 * psi^2)
-        a_square = gamma * p / rho
+        a_square = gamma * p * rho_inv
         sqrt_rho = sqrt(rho)
 
         b1 = B1 / sqrt_rho
