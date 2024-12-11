@@ -1,4 +1,4 @@
-module TestExamples2DEulerMulticomponent
+module TestExamples2DIdealGlmMhdMultiIon
 
 using Test
 using Trixi

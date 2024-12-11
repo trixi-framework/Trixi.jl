@@ -38,11 +38,12 @@ function default_analysis_integrals(::AbstractIdealGlmMhdMultiIonEquations)
 end
 
 """
-         source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
+    source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
 
 Source terms due to the Lorentz' force for plasmas with more than one ion species. These source 
 terms are a fundamental, inseparable part of the multi-ion GLM-MHD equations, and vanish for 
-a single-species plasma.
+a single-species plasma. In particular, they have to be used for every
+simulation of [`IdealGlmMhdMultiIonEquations2D`](@ref).
 """
 function source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
     @unpack charge_to_mass = equations
@@ -73,7 +74,7 @@ function source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEqu
 end
 
 """
-         electron_pressure_zero(u, equations::AbstractIdealGlmMhdMultiIonEquations)
+    electron_pressure_zero(u, equations::AbstractIdealGlmMhdMultiIonEquations)
 
 Returns the value of zero for the electron pressure. Needed for consistency with the 
 single-fluid MHD equations in the limit of one ion species.
@@ -83,13 +84,13 @@ function electron_pressure_zero(u, equations::AbstractIdealGlmMhdMultiIonEquatio
 end
 
 """
-v1, v2, v3, vk1, vk2, vk3 = charge_averaged_velocities(u,
+    v1, v2, v3, vk1, vk2, vk3 = charge_averaged_velocities(u,
                                                        equations::AbstractIdealGlmMhdMultiIonEquations)
 
 
-Compute the charge-averaged velocities (v1, v2, and v3) and each ion species' contribution
-to the charge-averaged velocities (vk1, vk2, and vk3). The output variables vk1, vk2, and vk3
-are SVectors of size ncomponents(equations).
+Compute the charge-averaged velocities (`v1`, `v2`, and `v3`) and each ion species' contribution
+to the charge-averaged velocities (`vk1`, `vk2`, and `vk3`). The output variables `vk1`, `vk2`, and `vk3`
+are `SVectors` of size `ncomponents(equations)`.
 """
 @inline function charge_averaged_velocities(u,
                                             equations::AbstractIdealGlmMhdMultiIonEquations)
@@ -121,7 +122,7 @@ end
 """
     get_component(k, u, equations::AbstractIdealGlmMhdMultiIonEquations)
 
-Get the hydrodynamic variables of component (ion species) k.
+Get the hydrodynamic variables of component (ion species) `k`.
 """
 @inline function get_component(k, u, equations::AbstractIdealGlmMhdMultiIonEquations)
     return SVector(u[3 + (k - 1) * 5 + 1],
@@ -135,7 +136,7 @@ end
     set_component!(u, k, u1, u2, u3, u4, u5,
                    equations::AbstractIdealGlmMhdMultiIonEquations)
 
-Set the hydrodynamic variables of component (ion species) k.
+Set the hydrodynamic variables (`u1` to `u5`) of component (ion species) `k`.
 """
 @inline function set_component!(u, k, u1, u2, u3, u4, u5,
                                 equations::AbstractIdealGlmMhdMultiIonEquations)
@@ -241,7 +242,7 @@ end
         rho_v2 = rho * v2
         rho_v3 = rho * v3
 
-        rho_e = p / (gammas[k] - 1.0) +
+        rho_e = p / (gammas[k] - 1) +
                 0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) +
                 0.5f0 * (B1^2 + B2^2 + B3^2) +
                 0.5f0 * psi^2
