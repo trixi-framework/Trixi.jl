@@ -101,7 +101,7 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
-  
+
 @trixi_testset "elixir_mhdmultiion_ec.jl with local Lax-Friedrichs at the surface" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_ec.jl"),
                         l2=[
