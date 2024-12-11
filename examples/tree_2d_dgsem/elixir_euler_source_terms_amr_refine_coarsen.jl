@@ -31,12 +31,12 @@ function (indicator::IndicatorRefineCoarsen)(u::AbstractArray{<:Any, 4},
 
     if t >= RealT(0.7) && t < 1
         # Refine to max level
-        alpha .= one(RealT)
+        fill!(alpha, 1)
     elseif t >= 1
         # Coarsen to base level
-        alpha .= -one(RealT)
+        fill!(alpha, -1)
     else
-        alpha .= zero(RealT)
+        fill!(alpha, 0)
     end
 
     return alpha
