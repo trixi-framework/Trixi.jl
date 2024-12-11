@@ -834,11 +834,11 @@ end
             (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2) -
              0.5f0 * psi^2)
         a_square = gamma * p * rho_inv
-        sqrt_rho = sqrt(rho)
+        inv_sqrt_rho = 1 / sqrt(rho)
 
-        b1 = B1 / sqrt_rho
-        b2 = B2 / sqrt_rho
-        b3 = B3 / sqrt_rho
+        b1 = B1 * inv_sqrt_rho
+        b2 = B2 * inv_sqrt_rho
+        b3 = B3 * inv_sqrt_rho
         b_square = b1^2 + b2^2 + b3^2
 
         if orientation == 1
