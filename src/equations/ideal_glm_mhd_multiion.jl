@@ -308,10 +308,10 @@ end
     psi_rr = divergence_cleaning_field(u_rr, equations)
 
     # Some global averages
-    B1_avg = 0.5 * (B1_ll + B1_rr)
-    B2_avg = 0.5 * (B2_ll + B2_rr)
-    B3_avg = 0.5 * (B3_ll + B3_rr)
-    psi_avg = 0.5 * (psi_ll + psi_rr)
+    B1_avg = 0.5f0 * (B1_ll + B1_rr)
+    B2_avg = 0.5f0 * (B2_ll + B2_rr)
+    B3_avg = 0.5f0 * (B3_ll + B3_rr)
+    psi_avg = 0.5f0 * (psi_ll + psi_rr)
 
     dissipation = zero(MVector{nvariables(equations), eltype(u_ll)})
 
@@ -326,33 +326,33 @@ end
         w1_rr, w2_rr, w3_rr, w4_rr, w5_rr = get_component(k, w_rr, equations)
 
         # Auxiliary variables
-        beta_ll = 0.5 * rho_ll / p_ll
-        beta_rr = 0.5 * rho_rr / p_rr
+        beta_ll = 0.5f0 * rho_ll / p_ll
+        beta_rr = 0.5f0 * rho_rr / p_rr
         vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
         vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
         # Mean variables
         rho_ln = ln_mean(rho_ll, rho_rr)
         beta_ln = ln_mean(beta_ll, beta_rr)
-        rho_avg = 0.5 * (rho_ll + rho_rr)
-        v1_avg = 0.5 * (v1_ll + v1_rr)
-        v2_avg = 0.5 * (v2_ll + v2_rr)
-        v3_avg = 0.5 * (v3_ll + v3_rr)
-        beta_avg = 0.5 * (beta_ll + beta_rr)
+        rho_avg = 0.5f0 * (rho_ll + rho_rr)
+        v1_avg = 0.5f0 * (v1_ll + v1_rr)
+        v2_avg = 0.5f0 * (v2_ll + v2_rr)
+        v3_avg = 0.5f0 * (v3_ll + v3_rr)
+        beta_avg = 0.5f0 * (beta_ll + beta_rr)
         tau = 1 / (beta_ll + beta_rr)
-        p_mean = 0.5 * rho_avg / beta_avg
-        p_star = 0.5 * rho_ln / beta_ln
-        vel_norm_avg = 0.5 * (vel_norm_ll + vel_norm_rr)
+        p_mean = 0.5f0 * rho_avg / beta_avg
+        p_star = 0.5f0 * rho_ln / beta_ln
+        vel_norm_avg = 0.5f0 * (vel_norm_ll + vel_norm_rr)
         vel_avg_norm = v1_avg^2 + v2_avg^2 + v3_avg^2
         E_bar = p_star / (gammas[k] - 1) +
-                0.5 * rho_ln * (2 * vel_avg_norm - vel_norm_avg)
+                0.5f0 * rho_ln * (2 * vel_avg_norm - vel_norm_avg)
 
         h11 = rho_ln
         h12 = rho_ln * v1_avg
         h13 = rho_ln * v2_avg
         h14 = rho_ln * v3_avg
         h15 = E_bar
-        d1 = -0.5 * λ *
+        d1 = -0.5f0 * λ *
              (h11 * (w1_rr - w1_ll) +
               h12 * (w2_rr - w2_ll) +
               h13 * (w3_rr - w3_ll) +
@@ -364,7 +364,7 @@ end
         h23 = h21 * v2_avg
         h24 = h21 * v3_avg
         h25 = (E_bar + p_mean) * v1_avg
-        d2 = -0.5 * λ *
+        d2 = -0.5f0 * λ *
              (h21 * (w1_rr - w1_ll) +
               h22 * (w2_rr - w2_ll) +
               h23 * (w3_rr - w3_ll) +
@@ -376,7 +376,7 @@ end
         h33 = rho_ln * v2_avg^2 + p_mean
         h34 = h31 * v3_avg
         h35 = (E_bar + p_mean) * v2_avg
-        d3 = -0.5 * λ *
+        d3 = -0.5f0 * λ *
              (h31 * (w1_rr - w1_ll) +
               h32 * (w2_rr - w2_ll) +
               h33 * (w3_rr - w3_ll) +
@@ -388,7 +388,7 @@ end
         h43 = h34
         h44 = rho_ln * v3_avg^2 + p_mean
         h45 = (E_bar + p_mean) * v3_avg
-        d4 = -0.5 * λ *
+        d4 = -0.5f0 * λ *
              (h41 * (w1_rr - w1_ll) +
               h42 * (w2_rr - w2_ll) +
               h43 * (w3_rr - w3_ll) +
@@ -402,7 +402,7 @@ end
         h55 = ((p_star^2 / (gammas[k] - 1) + E_bar * E_bar) / rho_ln
                +
                vel_avg_norm * p_mean)
-        d5 = -0.5 * λ *
+        d5 = -0.5f0 * λ *
              (h51 * (w1_rr - w1_ll) +
               h52 * (w2_rr - w2_ll) +
               h53 * (w3_rr - w3_ll) +
@@ -419,31 +419,31 @@ end
     h_B_psi = 1 / (beta_plus_ll + beta_plus_rr)
 
     # diagonal entries
-    dissipation[1] = -0.5 * λ * h_B_psi * (w_rr[1] - w_ll[1])
-    dissipation[2] = -0.5 * λ * h_B_psi * (w_rr[2] - w_ll[2])
-    dissipation[3] = -0.5 * λ * h_B_psi * (w_rr[3] - w_ll[3])
-    dissipation[end] = -0.5 * λ * h_B_psi * (w_rr[end] - w_ll[end])
+    dissipation[1] = -0.5f0 * λ * h_B_psi * (w_rr[1] - w_ll[1])
+    dissipation[2] = -0.5f0 * λ * h_B_psi * (w_rr[2] - w_ll[2])
+    dissipation[3] = -0.5f0 * λ * h_B_psi * (w_rr[3] - w_ll[3])
+    dissipation[end] = -0.5f0 * λ * h_B_psi * (w_rr[end] - w_ll[end])
     # Off-diagonal entries
     for k in eachcomponent(equations)
         _, _, _, _, w5_ll = get_component(k, w_ll, equations)
         _, _, _, _, w5_rr = get_component(k, w_rr, equations)
 
-        dissipation[1] -= 0.5 * λ * h_B_psi * B1_avg * (w5_rr - w5_ll)
-        dissipation[2] -= 0.5 * λ * h_B_psi * B2_avg * (w5_rr - w5_ll)
-        dissipation[3] -= 0.5 * λ * h_B_psi * B3_avg * (w5_rr - w5_ll)
-        dissipation[end] -= 0.5 * λ * h_B_psi * psi_avg * (w5_rr - w5_ll)
+        dissipation[1] -= 0.5f0 * λ * h_B_psi * B1_avg * (w5_rr - w5_ll)
+        dissipation[2] -= 0.5f0 * λ * h_B_psi * B2_avg * (w5_rr - w5_ll)
+        dissipation[3] -= 0.5f0 * λ * h_B_psi * B3_avg * (w5_rr - w5_ll)
+        dissipation[end] -= 0.5f0 * λ * h_B_psi * psi_avg * (w5_rr - w5_ll)
 
         # Dissipation for the energy equation of species k depending on w_1, w_2, w_3 and w_end
         ind_E = 3 + (k - 1) * 5 + 5
-        dissipation[ind_E] -= 0.5 * λ * h_B_psi * B1_avg * (w_rr[1] - w_ll[1])
-        dissipation[ind_E] -= 0.5 * λ * h_B_psi * B2_avg * (w_rr[2] - w_ll[2])
-        dissipation[ind_E] -= 0.5 * λ * h_B_psi * B3_avg * (w_rr[3] - w_ll[3])
-        dissipation[ind_E] -= 0.5 * λ * h_B_psi * psi_avg * (w_rr[end] - w_ll[end])
+        dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B1_avg * (w_rr[1] - w_ll[1])
+        dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B2_avg * (w_rr[2] - w_ll[2])
+        dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B3_avg * (w_rr[3] - w_ll[3])
+        dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * psi_avg * (w_rr[end] - w_ll[end])
 
         # Dissipation for the energy equation of all ion species depending on w_5
         for kk in eachcomponent(equations)
             ind_E = 3 + (kk - 1) * 5 + 5
-            dissipation[ind_E] -= 0.5 * λ *
+            dissipation[ind_E] -= 0.5f0 * λ *
                                   (h_B_psi *
                                    (B1_avg^2 + B2_avg^2 + B3_avg^2 + psi_avg^2)) *
                                   (w5_rr - w5_ll)
