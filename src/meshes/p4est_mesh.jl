@@ -499,63 +499,140 @@ function p4est_connectivity_from_hohqmesh_abaqus(meshfile, initial_refinement_le
     return connectivity, tree_node_coordinates, nodes, boundary_names
 end
 
+function preprocess_standard_abaqus(meshfile,
+                                    linear_quads,
+                                    linear_hexes,
+                                    quadratic_quads,
+                                    quadratic_hexes,
+                                    n_dimensions)
+    meshfile_preproc = replace(meshfile, ".inp" => "_preproc.inp")
+
+    # Line number where the element section begins
+    elements_begin_idx = 0
+    # Line number where the node and element sets begin (if present)
+    sets_begin_idx = 0
+
+    total_lines = 0
+    open(meshfile, "r") do infile
+        # Copy header and node data to pre-processed file
+        open(meshfile_preproc, "w") do outfile
+            for (line_index, line) in enumerate(eachline(infile))
+                println(outfile, line)
+                if occursin("******* E L E M E N T S *************", line)
+                    elements_begin_idx = line_index + 1
+                    break
+                end
+
+                total_lines += 1
+            end
+        end
+
+        # Find the line number where the node and element sets begin
+        for (line_index, line) in enumerate(eachline(infile))
+            if line_index >= elements_begin_idx
+                if startswith(line, "*ELSET") || startswith(line, "*NSET")
+                    sets_begin_idx = line_index
+                    break
+                end
+
+                total_lines += 1
+            end
+        end
+
+        # Catch the case where there are no node or element sets
+        if sets_begin_idx == 0
+            sets_begin_idx = total_lines + 1
+        end
+    end
+    # Need to add `elements_begin_idx - 1` since the loop above starts at `elements_begin_idx`
+    sets_begin_idx += elements_begin_idx - 1
+
+    open(meshfile, "r") do infile
+        open(meshfile_preproc, "a") do outfile
+            print_following_lines = false
+            element_index = 1
+
+            for (line_index, line) in enumerate(eachline(infile))
+                # Act only in the element section
+                if elements_begin_idx <= line_index < sets_begin_idx
+                    # Check if a new element type/element set is defined
+                    if startswith(line, "*ELEMENT")
+                        # Retrieve element type
+                        current_element_type = match(r"\*ELEMENT, type=([^,]+)", line).captures[1]
+
+                        if n_dimensions == 2 &&
+                           (occursin(linear_quads, current_element_type) ||
+                            occursin(quadratic_quads, current_element_type))
+                            print_following_lines = true
+                            println(outfile, line)
+                        elseif n_dimensions == 3 &&
+                               (occursin(linear_hexes, current_element_type) ||
+                                occursin(quadratic_hexes, current_element_type))
+                            print_following_lines = true
+                            println(outfile, line)
+                        else
+                            print_following_lines = false
+                        end
+                    else # Element data in line
+                        # Check for linear elements - then we just copy the line
+                        if print_following_lines
+                            parts = split(line, ',')
+                            parts[1] = string(element_index)
+                            println(outfile, join(parts, ','))
+                            element_index += 1
+                        end
+                    end
+                end
+
+                # Print node and element sets as they are
+                if line_index >= sets_begin_idx
+                    println(outfile, line)
+                end
+            end # Loop over lines in `.inp` files
+        end # Open output file in append mode
+    end # Open meshfile in read mode
+
+    # TODO: Return 
+    return meshfile_preproc, elements_begin_idx, sets_begin_idx
+end
+
 # p4est can handle only linear elements. This function checks the `meshfile` 
 # for quadratic elements (highest order supported by Standard Abaqus) and
 # replaces them with linear elements. The higher-order (quadratic) boundaries are handled 
 # "internally" by Trixi as for the HOHQMesh-Abaqus case.
-function preprocess_standard_abaqus_for_p4est(meshfile, dim,
-                                              linear_trusses,
+function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
                                               linear_quads,
                                               linear_hexes,
-                                              quadratic_trusses,
                                               quadratic_quads,
-                                              quadratic_hexes)
-    meshfile_p4est_rdy = replace(meshfile, ".inp" => "_p4est_ready.inp")
+                                              quadratic_hexes,
+                                              elements_begin_idx,
+                                              sets_begin_idx)
+    meshfile_p4est_rdy = replace(meshfile_pre_proc,
+                                 "_preproc.inp" => "_p4est_ready.inp")
     order = 1 # Highest order of elements present in the mesh.
 
-    elements_begin_index = 0 # Line number where the element section begins
-    open(meshfile, "r") do infile
+    current_element_type = ""
+    new_line = ""
+
+    open(meshfile_pre_proc, "r") do infile
         open(meshfile_p4est_rdy, "w") do outfile
             for (line_index, line) in enumerate(eachline(infile))
-                # Copy header and node data to p4est_ready file
-                println(outfile, line)
-                if occursin("******* E L E M E N T S *************", line)
-                    elements_begin_index = line_index + 1
-                    break
-                end
-            end
-        end
-    end
-
-    current_element_type = ""
-    open(meshfile, "r") do infile
-        open(meshfile_p4est_rdy, "a") do outfile
-            for (line_index, line) in enumerate(eachline(infile))
-                # Act only in the element section
-                if line_index >= elements_begin_index
+                # Copy header and node data
+                if line_index < elements_begin_idx || line_index >= sets_begin_idx
+                    println(outfile, line)
+                else # Element data
                     # Check if a new element type/element set is defined
-                    if startswith(line, "*")
+                    if startswith(line, "*ELEMENT")
                         # Retrieve element type
                         current_element_type = match(r"\*ELEMENT, type=([^,]+)", line).captures[1]
 
-                        # TODO: Do I want to keep trusses at all? Same for quads in 3D.
-                        # TODO: Should also probably start labeling the elements starting from 1 
-                        # to have agreement with element & p4est tree index.
-
                         # Check for linear elements - then we just copy the line
-                        if occursin(linear_trusses, current_element_type) ||
-                           occursin(linear_quads, current_element_type) ||
+                        if occursin(linear_quads, current_element_type) ||
                            occursin(linear_hexes, current_element_type)
                             println(outfile, line)
                         else # Quadratic element - replace with linear
                             order = 2
-                            if occursin(quadratic_trusses, current_element_type)
-                                # Distinction between 2D/3D should not make a difference here,
-                                # Done for clarity & consistency here.
-                                linear_truss_type = dim == 2 ? "T2D2" : "T3D2"
-                                new_line = replace(line,
-                                                   current_element_type => linear_truss_type)
-                            elseif occursin(quadratic_quads, current_element_type)
+                            if occursin(quadratic_quads, current_element_type)
                                 linear_quad_type = "CPS4"
                                 new_line = replace(line,
                                                    current_element_type => linear_quad_type)
@@ -568,17 +645,12 @@ function preprocess_standard_abaqus_for_p4est(meshfile, dim,
                         end
                     else # Element data in line
                         # Check for linear elements - then we just copy the line
-                        if occursin(linear_trusses, current_element_type) ||
-                           occursin(linear_quads, current_element_type)
+                        if occursin(linear_quads, current_element_type) ||
+                           occursin(linear_hexes, current_element_type)
                             println(outfile, line)
                         else
                             parts = split(line, ',')
-                            if occursin(quadratic_trusses, current_element_type)
-                                # Print the first (element), second (vertex 1), and fourth/last (vertex 2) indices to file
-                                # For node order of quadratic trusses, check e.g. 
-                                # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch29s02ael13.html
-                                new_line = join([parts[1], parts[2], parts[4]], ',')
-                            elseif occursin(quadratic_quads, current_element_type)
+                            if occursin(quadratic_quads, current_element_type)
                                 # Print the first (element), second to fifth (vertices 1-4) indices to file
                                 # For node order of quadratic quads, check e.g.
                                 # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael02.html
@@ -607,11 +679,11 @@ function preprocess_standard_abaqus_for_p4est(meshfile, dim,
                             end
                             println(outfile, new_line)
                         end
-                    end # Line start if
-                end # Check if in element section of `.inp` file
-            end # Loop over lines in `.inp` files
-        end # Open output file in append mode
-    end # Open meshfile in read mode
+                    end
+                end
+            end
+        end
+    end
 
     return meshfile_p4est_rdy, order
 end
@@ -627,21 +699,10 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
 
     ### Regular expressions for Abaqus element types ###
 
-    # Linear trusses begin with T2D2 (2D) or T3D2 (3D),
-    # and may be followed by a bunch of Abaqus specifics ("E", "H", "T", etc.).
-    # These are, however, not relevant for the p4est mesh connectivity.
-    # For a full list of elements, see http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt10eli01.html
-    linear_trusses = r"^(T2D2|T3D2).*$"
-
     # These are the standard Abaqus linear quads. 
     # Note that there are many(!) more variants designed for specific purposes in the Abaqus solver.
     # To keep it simple we support only basic quads, membranes, and shells here.
     linear_quads = r"^(CPE4|CPEG4|CPS4|M3D4|S4|SFM3D4).*$"
-
-    # Quadratic trusses begin with T2D3 (2D) or T3D3 (3D),
-    # and may be followed by a bunch of Abaqus specifics ("E", "H", "T", etc.).
-    # These are, however, not relevant for the p4est mesh connectivity.
-    quadratic_trusses = r"^(T2D3|T3D3).*$"
 
     # Same logic as for linear quads:
     # Support only basic quads, membranes, and shells here.
@@ -651,15 +712,22 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     linear_hexes = r"^(C3D8).*$"
     quadratic_hexes = r"^(C3D20|C3D27).*$"
 
+    meshfile_preproc, elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
+                                                                                      linear_quads,
+                                                                                      linear_hexes,
+                                                                                      quadratic_quads,
+                                                                                      quadratic_hexes,
+                                                                                      n_dimensions)
+
     # Preprocess the meshfile to replace quadratic elements with linear elements
-    meshfile_p4est_rdy, mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile,
-                                                                            n_dimensions,
-                                                                            linear_trusses,
+    meshfile_p4est_rdy, mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile_preproc,
                                                                             linear_quads,
                                                                             linear_hexes,
-                                                                            quadratic_trusses,
                                                                             quadratic_quads,
-                                                                            quadratic_hexes)
+                                                                            quadratic_hexes,
+                                                                            elements_begin_idx,
+                                                                            sets_begin_idx)
+    mesh_polydeg = 1 # TODO
 
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile_p4est_rdy, Val(n_dimensions))
@@ -703,7 +771,8 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
         # Name all of them :all.
         boundary_names = fill(:all, 2 * n_dimensions, n_trees)
     else # Boundary information given
-        # TODO: Not sure which meshfile is required here - linear or quadratic?
+        # TODO: Not sure which meshfile is required here!
+
         # Read in nodes belonging to boundaries
         node_set_dict = parse_node_sets(meshfile, boundary_symbols)
         # Read in all elements with associated nodes to specify the boundaries
