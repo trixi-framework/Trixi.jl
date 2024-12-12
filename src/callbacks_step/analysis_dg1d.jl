@@ -40,6 +40,44 @@ function create_cache_analysis(analyzer, mesh::StructuredMesh{1},
 end
 
 function calc_error_norms(func, u, t, analyzer,
+                          mesh::TreeMesh{1}, equations, initial_condition,
+                          dg::DGSEM, cache, cache_analysis)
+    @unpack vandermonde, weights = analyzer
+    @unpack node_coordinates = cache.elements
+    @unpack u_local, x_local = cache_analysis
+
+    # Set up data structures
+    l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
+    linf_error = copy(l2_error)
+
+    # Iterate over all elements for error calculations
+    for element in eachelement(dg, cache)
+        # Interpolate solution and node locations to analysis nodes
+        multiply_dimensionwise!(u_local, vandermonde, view(u, :, :, element))
+        multiply_dimensionwise!(x_local, vandermonde,
+                                view(node_coordinates, :, :, element))
+
+        # Calculate errors at each analysis node
+        volume_jacobian_ = volume_jacobian(element, mesh, cache)
+
+        for i in eachnode(analyzer)
+            u_exact = initial_condition(get_node_coords(x_local, equations, dg, i), t,
+                                        equations)
+            diff = func(u_exact, equations) -
+                   func(get_node_vars(u_local, equations, dg, i), equations)
+            l2_error += diff .^ 2 * (weights[i] * volume_jacobian_)
+            linf_error = @. max(linf_error, abs(diff))
+        end
+    end
+
+    # For L2 error, divide by total volume
+    total_volume_ = total_volume(mesh)
+    l2_error = @. sqrt(l2_error / total_volume_)
+
+    return l2_error, linf_error
+end
+
+function calc_error_norms(func, u, t, analyzer,
                           mesh::StructuredMesh{1}, equations, initial_condition,
                           dg::DGSEM, cache, cache_analysis)
     @unpack vandermonde, weights = analyzer
@@ -77,44 +115,6 @@ function calc_error_norms(func, u, t, analyzer,
 
     # For L2 error, divide by total volume
     l2_error = @. sqrt(l2_error / total_volume)
-
-    return l2_error, linf_error
-end
-
-function calc_error_norms(func, u, t, analyzer,
-                          mesh::TreeMesh{1}, equations, initial_condition,
-                          dg::DGSEM, cache, cache_analysis)
-    @unpack vandermonde, weights = analyzer
-    @unpack node_coordinates = cache.elements
-    @unpack u_local, x_local = cache_analysis
-
-    # Set up data structures
-    l2_error = zero(func(get_node_vars(u, equations, dg, 1, 1), equations))
-    linf_error = copy(l2_error)
-
-    # Iterate over all elements for error calculations
-    for element in eachelement(dg, cache)
-        # Interpolate solution and node locations to analysis nodes
-        multiply_dimensionwise!(u_local, vandermonde, view(u, :, :, element))
-        multiply_dimensionwise!(x_local, vandermonde,
-                                view(node_coordinates, :, :, element))
-
-        # Calculate errors at each analysis node
-        volume_jacobian_ = volume_jacobian(element, mesh, cache)
-
-        for i in eachnode(analyzer)
-            u_exact = initial_condition(get_node_coords(x_local, equations, dg, i), t,
-                                        equations)
-            diff = func(u_exact, equations) -
-                   func(get_node_vars(u_local, equations, dg, i), equations)
-            l2_error += diff .^ 2 * (weights[i] * volume_jacobian_)
-            linf_error = @. max(linf_error, abs(diff))
-        end
-    end
-
-    # For L2 error, divide by total volume
-    total_volume_ = total_volume(mesh)
-    l2_error = @. sqrt(l2_error / total_volume_)
 
     return l2_error, linf_error
 end
@@ -214,7 +214,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
     # integrate over all elements to get the divergence-free condition errors
     linf_divb = zero(eltype(u))
-    for element in eachelement(dg, cache)
+    @batch reduction=(max, linf_divb) for element in eachelement(dg, cache)
         for i in eachnode(dg)
             divb = zero(eltype(u))
             for k in eachnode(dg)
