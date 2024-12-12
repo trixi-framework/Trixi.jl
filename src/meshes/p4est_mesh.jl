@@ -452,10 +452,12 @@ function p4est_connectivity_from_hohqmesh_abaqus(meshfile, initial_refinement_le
     connectivity_pw = PointerWrapper(connectivity)
 
     # These need to be of the type Int for unsafe_wrap below to work
-    n_trees::Int = connectivity_pw.num_trees[]
+    n_trees::Int = connectivity_pw.num_trees[] # = number elements
     n_vertices::Int = connectivity_pw.num_vertices[]
 
     # Extract a copy of the element vertices to compute the tree node coordinates
+    # `vertices` store coordinates of all three dimensions (even for the 2D case)
+    # since the Abaqus `.inp` format always stores 3D coordinates.
     vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
 
     # Readin all the information from the mesh file into a string array
@@ -497,6 +499,119 @@ function p4est_connectivity_from_hohqmesh_abaqus(meshfile, initial_refinement_le
     return connectivity, tree_node_coordinates, nodes, boundary_names
 end
 
+# p4est can handle only linear elements. This function checks the `meshfile` 
+# for quadratic elements (highest order supported by Standard Abaqus) and
+# replaces them with linear elements. The higher-order (quadratic) boundaries are handled 
+# "internally" by Trixi as for the HOHQMesh-Abaqus case.
+function preprocess_standard_abaqus_for_p4est(meshfile, dim,
+                                              linear_trusses,
+                                              linear_quads,
+                                              linear_hexes,
+                                              quadratic_trusses,
+                                              quadratic_quads,
+                                              quadratic_hexes)
+    meshfile_p4est_rdy = replace(meshfile, ".inp" => "_p4est_ready.inp")
+    order = 1 # Highest order of elements present in the mesh.
+
+    elements_begin_index = 0 # Line number where the element section begins
+    open(meshfile, "r") do infile
+        open(meshfile_p4est_rdy, "w") do outfile
+            for (line_index, line) in enumerate(eachline(infile))
+                # Copy header and node data to p4est_ready file
+                println(outfile, line)
+                if occursin("******* E L E M E N T S *************", line)
+                    elements_begin_index = line_index + 1
+                    break
+                end
+            end
+        end
+    end
+
+    current_element_type = ""
+    open(meshfile, "r") do infile
+        open(meshfile_p4est_rdy, "a") do outfile
+            for (line_index, line) in enumerate(eachline(infile))
+                # Act only in the element section
+                if line_index >= elements_begin_index
+                    # Check if a new element type/element set is defined
+                    if startswith(line, "*")
+                        # Retrieve element type
+                        current_element_type = match(r"\*ELEMENT, type=([^,]+)", line).captures[1]
+
+                        # Check for linear elements - then we just copy the line
+                        if occursin(linear_trusses, current_element_type) ||
+                           occursin(linear_quads, current_element_type) ||
+                           occursin(linear_hexes, current_element_type)
+                            println(outfile, line)
+                        else # Quadratic element - replace with linear
+                            order = 2
+                            if occursin(quadratic_trusses, current_element_type)
+                                # Distinction between 2D/3D should not make a difference here,
+                                # Done for clarity & consistency here.
+                                linear_truss_type = dim == 2 ? "T2D2" : "T3D2"
+                                new_line = replace(line,
+                                                   current_element_type => linear_truss_type)
+                            elseif occursin(quadratic_quads, current_element_type)
+                                linear_quad_type = "CPS4"
+                                new_line = replace(line,
+                                                   current_element_type => linear_quad_type)
+                            elseif occursin(quadratic_hexes, current_element_type)
+                                linear_hex_type = "C3D8"
+                                new_line = replace(line,
+                                                   current_element_type => linear_hex_type)
+                            end
+                            println(outfile, new_line)
+                        end
+                    else # Element data in line
+                        # Check for linear elements - then we just copy the line
+                        if occursin(linear_trusses, current_element_type) ||
+                           occursin(linear_quads, current_element_type)
+                            println(outfile, line)
+                        else
+                            parts = split(line, ',')
+                            if occursin(quadratic_trusses, current_element_type)
+                                # Print the first (element), second (vertex 1), and fourth/last (vertex 2) indices to file
+                                # For node order of quadratic trusses, check e.g. 
+                                # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch29s02ael13.html
+                                new_line = join([parts[1], parts[2], parts[4]], ',')
+                            elseif occursin(quadratic_quads, current_element_type)
+                                # Print the first (element), second to fifth (vertices 1-4) indices to file
+                                # For node order of quadratic quads, check e.g.
+                                # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael02.html
+                                new_line = join([
+                                                    parts[1],
+                                                    parts[2],
+                                                    parts[3],
+                                                    parts[4],
+                                                    parts[5]
+                                                ], ',')
+                            elseif occursin(quadratic_hexes, current_element_type)
+                                # Print the first (element), second to ninth (vertices 1-8) indices to file
+                                # The node order is fortunately the same for hexes/bricks of type "C3D20", "C3D27", see
+                                # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael03.html
+                                new_line = join([
+                                                    parts[1],
+                                                    parts[2],
+                                                    parts[3],
+                                                    parts[4],
+                                                    parts[5],
+                                                    parts[6],
+                                                    parts[7],
+                                                    parts[8],
+                                                    parts[9]
+                                                ], ',')
+                            end
+                            println(outfile, new_line)
+                        end
+                    end # Line start if
+                end # Check if in element section of `.inp` file
+            end # Loop over lines in `.inp` files
+        end # Open output file in append mode
+    end # Open meshfile in read mode
+
+    return meshfile_p4est_rdy, order
+end
+
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. The tree node coordinates are computed according to
 # the `mapping` passed to this function using polynomial interpolants of degree `polydeg`. All boundary
@@ -505,14 +620,54 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                  initial_refinement_level, n_dimensions,
                                                  RealT,
                                                  boundary_symbols)
+
+    ### Regular expressions for Abaqus element types ###
+
+    # Linear trusses begin with T2D2 (2D) or T3D2 (3D),
+    # and may be followed by a bunch of Abaqus specifics ("E", "H", "T", etc.).
+    # These are, however, not relevant for the p4est mesh connectivity.
+    # For a full list of elements, see http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt10eli01.html
+    linear_trusses = r"^(T2D2|T3D2).*$"
+
+    # These are the standard Abaqus linear quads. 
+    # Note that there are many(!) more variants designed for specific purposes in the Abaqus solver.
+    # To keep it simple we support only basic quads, membranes, and shells here.
+    linear_quads = r"^(CPE4|CPEG4|CPS4|M3D4|S4|SFM3D4).*$"
+
+    # Quadratic trusses begin with T2D3 (2D) or T3D3 (3D),
+    # and may be followed by a bunch of Abaqus specifics ("E", "H", "T", etc.).
+    # These are, however, not relevant for the p4est mesh connectivity.
+    quadratic_trusses = r"^(T2D3|T3D3).*$"
+
+    # Same logic as for linear quads:
+    # Support only basic quads, membranes, and shells here.
+    quadratic_quads = r"^(CPE8|CPS8|CAX8|S8|M3D8|M3D9).*$"
+
+    # In 3D only standard hexahedra/bricks are supported.
+    linear_hexes = r"^(C3D8).*$"
+    quadratic_hexes = r"^(C3D20|C3D27).*$"
+
+    # Preprocess the meshfile to replace quadratic elements with linear elements
+    meshfile_p4est_rdy, mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile,
+                                                                            n_dimensions,
+                                                                            linear_trusses,
+                                                                            linear_quads,
+                                                                            linear_hexes,
+                                                                            quadratic_trusses,
+                                                                            quadratic_quads,
+                                                                            quadratic_hexes)
+
     # Create the mesh connectivity using `p4est`
-    connectivity = read_inp_p4est(meshfile, Val(n_dimensions))
+    connectivity = read_inp_p4est(meshfile_p4est_rdy, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
 
     # These need to be of the type Int for unsafe_wrap below to work
-    n_trees::Int = connectivity_pw.num_trees[]
+    n_trees::Int = connectivity_pw.num_trees[] # = number elements
     n_vertices::Int = connectivity_pw.num_vertices[]
 
+    # Extract a copy of the element vertices to compute the tree node coordinates
+    # `vertices` store coordinates of all three dimensions (even for the 2D case)
+    # since the Abaqus `.inp` format always stores 3D coordinates.
     vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
     tree_to_vertex = unsafe_wrap(Array, connectivity_pw.tree_to_vertex,
                                  (2^n_dimensions, n_trees))
@@ -524,14 +679,27 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                            ntuple(_ -> length(nodes),
                                                                   n_dimensions)...,
                                                            n_trees)
-    calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices,
-                                tree_to_vertex)
+
+    # No nonlinearity in the mesh. Rely on the mapping function to realize the curvature.                                                           
+    if mesh_polydeg == 1
+        calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices,
+                                    tree_to_vertex)
+    else # mesh_polydeg = 2 => Nonlinearity in supplied mesh
+        mesh_nnodes = mesh_polydeg + 1
+
+        # Note: We ASSUME that the additional node between the end-vertices lies 
+        # on the center on that line, such that we can use Chebyshev-Gauss-Lobatto nodes!
+        # For polydeg = 2, we have the 3 nodes [-1, 0, 1] (within the reference element).
+        cheby_nodes, _ = chebyshev_gauss_lobatto_nodes_weights(mesh_nnodes)
+        nodes = SVector{mesh_nnodes}(cheby_nodes)
+    end
 
     if boundary_symbols === nothing
         # There's no simple and generic way to distinguish boundaries without any information given.
         # Name all of them :all.
         boundary_names = fill(:all, 2 * n_dimensions, n_trees)
     else # Boundary information given
+        # TODO: Not sure which meshfile is required here - linear or quadratic?
         # Read in nodes belonging to boundaries
         node_set_dict = parse_node_sets(meshfile, boundary_symbols)
         # Read in all elements with associated nodes to specify the boundaries
@@ -552,6 +720,7 @@ end
 function parse_elements(meshfile, n_trees, n_dims)
     @assert n_dims in (2, 3) "Only 2D and 3D meshes are supported"
     # Valid element types (that can be processed by p4est) based on dimension
+    # TODO: Make this more general: Use the linear element types defined above!
     element_types = n_dims == 2 ?
                     ["*ELEMENT, type=CPS4", "*ELEMENT, type=C2D4",
         "*ELEMENT, type=S4"] : ["*ELEMENT, type=C3D8"]
@@ -1492,7 +1661,7 @@ end
 # routines found in `mappings_geometry_curved_2d.jl` or `mappings_geometry_straight_2d.jl`
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                                      file_lines::Vector{String}, nodes, vertices, RealT)
-    # Get the number of trees and the number of interpolation nodes
+    # Get the number of trees (elements) and the number of interpolation nodes
     n_trees = last(size(node_coordinates))
     nnodes = length(nodes)
 
@@ -1528,11 +1697,12 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
 
         # Pull the (x,y) values of the four vertices of the current tree out of the global vertices array
         for i in 1:4
-            quad_vertices[i, :] .= vertices[1:2, element_node_ids[i]]
+            quad_vertices[i, :] .= vertices[1:2, element_node_ids[i]] # 2D => 1:2
         end
         # Pull the information to check if boundary is curved in order to read in additional data
         file_idx += 1
         current_line = split(file_lines[file_idx])
+        # Note: This strategy is HOHQMesh-Abaqus.inp specific!
         curved_check[1] = parse(Int, current_line[2])
         curved_check[2] = parse(Int, current_line[3])
         curved_check[3] = parse(Int, current_line[4])
