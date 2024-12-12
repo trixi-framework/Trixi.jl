@@ -186,8 +186,6 @@ function solve!(integrator::SimpleIntegratorSSP)
             terminate!(integrator)
         end
 
-        modify_dt_for_tstops!(integrator)
-
         @. integrator.r0 = integrator.u
         for stage in eachindex(alg.c)
             t_stage = integrator.t + integrator.dt * alg.c[stage]
