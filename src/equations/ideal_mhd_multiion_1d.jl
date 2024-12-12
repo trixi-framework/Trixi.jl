@@ -50,8 +50,6 @@ end
     RealT
 end
 
-have_nonconservative_terms(::IdealMhdMultiIonEquations1D) = True()
-
 function varnames(::typeof(cons2cons), equations::IdealMhdMultiIonEquations1D)
     cons = ("B1", "B2", "B3")
     for i in eachcomponent(equations)
@@ -74,28 +72,9 @@ function varnames(::typeof(cons2prim), equations::IdealMhdMultiIonEquations1D)
     return prim
 end
 
-# """
-#     initial_condition_convergence_test(x, t, equations::IdealMhdMultiIonEquations1D)
-
-# An Alfvén wave as smooth initial condition used for convergence tests.
-# """
-# function initial_condition_convergence_test(x, t, equations::IdealMhdMultiIonEquations1D)
-#   # smooth Alfvén wave test from Derigs et al. FLASH (2016)
-#   # domain must be set to [0, 1], γ = 5/3
-
-#   rho = 1.0
-#   prim_rho  = SVector{ncomponents(equations), real(equations)}(2^(i-1) * (1-2)/(1-2^ncomponents(equations)) * rho for i in eachcomponent(equations))
-#   v1 = 0.0
-#   si, co = sincos(2 * pi * x[1])
-#   v2 = 0.1 * si
-#   v3 = 0.1 * co
-#   p = 0.1
-#   B1 = 1.0
-#   B2 = v2
-#   B3 = v3
-#   prim_other = SVector{7, real(equations)}(v1, v2, v3, p, B1, B2, B3)
-#   return prim2cons(vcat(prim_other, prim_rho), equations)
-# end
+function default_analysis_integrals(::AbstractIdealGlmMhdMultiIonEquations)
+    (entropy_timederivative,)
+end
 
 """
     initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEquations1D)
@@ -137,8 +116,6 @@ function initial_condition_weak_blast_wave(x, t, equations::IdealMhdMultiIonEqua
     return prim2cons(SVector(prim), equations)
 end
 
-# TODO: Add initial condition equilibrium
-
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::IdealMhdMultiIonEquations1D)
     B1, B2, B3 = magnetic_field(u, equations)
@@ -174,36 +151,6 @@ end
     end
 
     return SVector(f)
-end
-
-"""
-Standard source terms of the multi-ion MHD equations
-"""
-function source_terms_lorentz(u, x, t, equations::IdealMhdMultiIonEquations1D)
-    @unpack charge_to_mass = equations
-    B1, B2, B3 = magnetic_field(u, equations)
-    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
-                                                                                         equations)
-
-    s = zero(MVector{nvariables(equations), eltype(u)})
-    for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
-        v1 = rho_v1 / rho
-        v2 = rho_v2 / rho
-        v3 = rho_v3 / rho
-        v1_diff = v1_plus - v1
-        v2_diff = v2_plus - v2
-        v3_diff = v3_plus - v3
-        r_rho = charge_to_mass[k] * rho
-        s2 = r_rho * (v2_diff * B3 - v3_diff * B2)
-        s3 = r_rho * (v3_diff * B1 - v1_diff * B3)
-        s4 = r_rho * (v1_diff * B2 - v2_diff * B1)
-        s5 = v1 * s2 + v2 * s3 + v3 * s4
-
-        set_component!(s, k, 0, s2, s3, s4, s5, equations)
-    end
-
-    return SVector(s)
 end
 
 """
@@ -629,72 +576,5 @@ Compute the fastest wave speed for ideal MHD equations: c_f, the fast magnetoaco
     end
 
     return c_f
-end
-
-"""
-Routine to compute the charge-averaged velocities:
-* v*_plus: Charge-averaged velocity
-* vk*_plus: Contribution of each species to the charge-averaged velocity
-"""
-@inline function charge_averaged_velocities(u, equations::IdealMhdMultiIonEquations1D)
-    total_electron_charge = zero(real(equations))
-
-    vk1_plus = zero(MVector{ncomponents(equations), eltype(u)})
-    vk2_plus = zero(MVector{ncomponents(equations), eltype(u)})
-    vk3_plus = zero(MVector{ncomponents(equations), eltype(u)})
-
-    for k in eachcomponent(equations)
-        rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u,
-                                                       equations::IdealMhdMultiIonEquations1D)
-
-        total_electron_charge += rho * equations.charge_to_mass[k]
-        vk1_plus[k] = rho_v1 * equations.charge_to_mass[k]
-        vk2_plus[k] = rho_v2 * equations.charge_to_mass[k]
-        vk3_plus[k] = rho_v3 * equations.charge_to_mass[k]
-    end
-    vk1_plus ./= total_electron_charge
-    vk2_plus ./= total_electron_charge
-    vk3_plus ./= total_electron_charge
-    v1_plus = sum(vk1_plus)
-    v2_plus = sum(vk2_plus)
-    v3_plus = sum(vk3_plus)
-
-    return v1_plus, v2_plus, v3_plus, SVector(vk1_plus), SVector(vk2_plus),
-           SVector(vk3_plus)
-end
-
-"""
-Get the flow variables of component k
-"""
-@inline function get_component(k, u, equations::IdealMhdMultiIonEquations1D)
-    # The first 3 entries of u contain the magnetic field. The following entries contain the density, momentum (3 entries), and energy of each component.
-    return SVector(u[3 + (k - 1) * 5 + 1],
-                   u[3 + (k - 1) * 5 + 2],
-                   u[3 + (k - 1) * 5 + 3],
-                   u[3 + (k - 1) * 5 + 4],
-                   u[3 + (k - 1) * 5 + 5])
-end
-
-"""
-Set the flow variables of component k
-"""
-@inline function set_component!(u, k, u1, u2, u3, u4, u5,
-                                equations::IdealMhdMultiIonEquations1D)
-    # The first 3 entries of u contain the magnetic field. The following entries contain the density, momentum (3 entries), and energy of each component.
-    u[3 + (k - 1) * 5 + 1] = u1
-    u[3 + (k - 1) * 5 + 2] = u2
-    u[3 + (k - 1) * 5 + 3] = u3
-    u[3 + (k - 1) * 5 + 4] = u4
-    u[3 + (k - 1) * 5 + 5] = u5
-end
-
-magnetic_field(u, equations::IdealMhdMultiIonEquations1D) = SVector(u[1], u[2], u[3])
-
-@inline function density(u, equations::IdealMhdMultiIonEquations1D)
-    rho = zero(real(equations))
-    for k in eachcomponent(equations)
-        rho += u[3 + (k - 1) * 5 + 1]
-    end
-    return rho
 end
 end # @muladd

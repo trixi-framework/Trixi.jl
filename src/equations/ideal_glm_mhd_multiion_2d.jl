@@ -96,6 +96,10 @@ end
     RealT
 end
 
+function default_analysis_integrals(::IdealGlmMhdMultiIonEquations2D)
+    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
+end
+
 """
     initial_condition_weak_blast_wave(x, t, equations::IdealGlmMhdMultiIonEquations2D)
 

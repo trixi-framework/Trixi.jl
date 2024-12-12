@@ -33,10 +33,6 @@ function varnames(::typeof(cons2prim), equations::AbstractIdealGlmMhdMultiIonEqu
     return prim
 end
 
-function default_analysis_integrals(::AbstractIdealGlmMhdMultiIonEquations)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
-end
-
 """
     source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
 

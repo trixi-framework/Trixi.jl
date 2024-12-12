@@ -1,4 +1,4 @@
-module TestExamples1DMHD
+module TestExamples1DMHDMultiIon
 
 using Test
 using Trixi
