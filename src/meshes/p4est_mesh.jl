@@ -522,7 +522,6 @@ function preprocess_standard_abaqus(meshfile,
                     elements_begin_idx = line_index + 1
                     break
                 end
-
                 total_lines += 1
             end
         end
@@ -534,7 +533,6 @@ function preprocess_standard_abaqus(meshfile,
                     sets_begin_idx = line_index
                     break
                 end
-
                 total_lines += 1
             end
         end
@@ -588,11 +586,10 @@ function preprocess_standard_abaqus(meshfile,
                 if line_index >= sets_begin_idx
                     println(outfile, line)
                 end
-            end # Loop over lines in `.inp` files
-        end # Open output file in append mode
-    end # Open meshfile in read mode
+            end
+        end
+    end
 
-    # TODO: Return 
     return meshfile_preproc, elements_begin_idx, sets_begin_idx
 end
 
@@ -609,8 +606,9 @@ function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
                                               sets_begin_idx)
     meshfile_p4est_rdy = replace(meshfile_pre_proc,
                                  "_preproc.inp" => "_p4est_ready.inp")
-    order = 1 # Highest order of elements present in the mesh.
+    order = 1 # Assume linear elements by default
 
+    # Some useful function-wide variables
     current_element_type = ""
     new_line = ""
 
@@ -651,31 +649,15 @@ function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
                         else
                             parts = split(line, ',')
                             if occursin(quadratic_quads, current_element_type)
-                                # Print the first (element), second to fifth (vertices 1-4) indices to file
-                                # For node order of quadratic quads, check e.g.
+                                # Print the first (element), second to fifth (vertices 1-4) indices to file.
+                                # For node order of quadratic (secod-order) quads, see
                                 # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael02.html
-                                new_line = join([
-                                                    parts[1],
-                                                    parts[2],
-                                                    parts[3],
-                                                    parts[4],
-                                                    parts[5]
-                                                ], ',')
+                                new_line = join(parts[1:5], ',')
                             elseif occursin(quadratic_hexes, current_element_type)
-                                # Print the first (element), second to ninth (vertices 1-8) indices to file
+                                # Print the first (element), second to ninth (vertices 1-8) indices to file.
                                 # The node order is fortunately the same for hexes/bricks of type "C3D20", "C3D27", see
                                 # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael03.html
-                                new_line = join([
-                                                    parts[1],
-                                                    parts[2],
-                                                    parts[3],
-                                                    parts[4],
-                                                    parts[5],
-                                                    parts[6],
-                                                    parts[7],
-                                                    parts[8],
-                                                    parts[9]
-                                                ], ',')
+                                new_line = join(parts[1:9], ',')
                             end
                             println(outfile, new_line)
                         end
