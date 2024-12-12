@@ -20,7 +20,7 @@ In case of more than one ion species, the specific heat capacity ratios `gammas`
 ratios `charge_to_mass` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
 
 The argument `electron_pressure` can be used to pass a function that computes the electron
-pressure as a function of the state `u` with the signature `electron_pressure(u, equations::IdealGlmMhdMultiIonEquations2D)`.
+pressure as a function of the state `u` with the signature `electron_pressure(u, equations)`.
 By default, the electron pressure is zero.
 
 The argument `initial_c_h` can be used to set the GLM divergence-cleaning speed. Note that 
@@ -214,7 +214,7 @@ end
                                            orientation::Integer,
                                            equations::IdealGlmMhdMultiIonEquations2D)
 
-Entropy-conserving non-conservative two-point "flux"" as described in 
+Entropy-conserving non-conservative two-point "flux" as described in 
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).

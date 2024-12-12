@@ -20,7 +20,7 @@ In case of more than one ion species, the specific heat capacity ratios `gammas`
 ratios `charge_to_mass` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
 
 The argument `electron_pressure` can be used to pass a function that computes the electron
-pressure as a function of the state `u` with the signature `electron_pressure(u, equations::IdealGlmMhdMultiIonEquations3D)`.
+pressure as a function of the state `u` with the signature `electron_pressure(u, equations)`.
 By default, the electron pressure is zero.
 
 The argument `initial_c_h` can be used to set the GLM divergence-cleaning speed. Note that 
@@ -127,9 +127,9 @@ function initial_condition_weak_blast_wave(x, t,
     p = r > 0.5f0 ? one(RealT) : convert(RealT, 1.245)
 
     prim = zero(MVector{nvariables(equations), real(equations)})
-    prim[1] = 1.0
-    prim[2] = 1.0
-    prim[3] = 1.0
+    prim[1] = 1
+    prim[2] = 1
+    prim[3] = 1
     for k in eachcomponent(equations)
         set_component!(prim, k,
                        2^(k - 1) * (1 - 2) / (1 - 2^ncomponents(equations)) * rho, v1,
@@ -240,11 +240,11 @@ end
 end
 
 """
-        flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
-                                               orientation::Integer,
-                                               equations::IdealGlmMhdMultiIonEquations3D)
+    flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
+                                           orientation::Integer,
+                                           equations::IdealGlmMhdMultiIonEquations3D)
 
-Entropy-conserving non-conservative two-point "flux"" as described in 
+Entropy-conserving non-conservative two-point "flux" as described in 
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
@@ -450,8 +450,8 @@ The term is composed of four individual non-conservative terms:
 end
 
 """
-        flux_nonconservative_central(u_ll, u_rr, orientation::Integer,
-                                     equations::IdealGlmMhdMultiIonEquations3D)
+    flux_nonconservative_central(u_ll, u_rr, orientation::Integer,
+                                 equations::IdealGlmMhdMultiIonEquations3D)
 
 Central non-conservative two-point "flux", where the symmetric parts are computed with standard averages.
 The use of this term together with [`flux_central`](@ref) 
@@ -638,7 +638,7 @@ The term is composed of four individual non-conservative terms:
 end
 
 """
-flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultiIonEquations3D)
+    flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultiIonEquations3D)
 
 Entropy conserving two-point flux for the multi-ion GLM-MHD equations from
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
@@ -1063,11 +1063,11 @@ end
             (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2) -
              0.5f0 * psi^2)
         a_square = gamma * p * rho_inv
-        sqrt_rho = sqrt(rho)
+        inv_sqrt_rho = 1 / sqrt(rho)
 
-        b1 = B1 / sqrt_rho
-        b2 = B2 / sqrt_rho
-        b3 = B3 / sqrt_rho
+        b1 = B1 * inv_sqrt_rho
+        b2 = B2 * inv_sqrt_rho
+        b3 = B3 * inv_sqrt_rho
         b_square = b1^2 + b2^2 + b3^2
 
         if orientation == 1
