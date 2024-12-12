@@ -538,6 +538,7 @@ function preprocess_standard_abaqus_for_p4est(meshfile, dim,
                         # Retrieve element type
                         current_element_type = match(r"\*ELEMENT, type=([^,]+)", line).captures[1]
 
+                        # TODO: Do I want to keep trusses at all? Same for quads in 3D.
                         # Check for linear elements - then we just copy the line
                         if occursin(linear_trusses, current_element_type) ||
                            occursin(linear_quads, current_element_type) ||
