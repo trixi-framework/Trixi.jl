@@ -23,14 +23,15 @@ This forms the basis behind the 3D case found for instance in
 """
 function initial_condition_taylor_green_vortex(x, t,
                                                equations::CompressibleEulerEquations2D)
-    A = 1.0 # magnitude of speed
-    Ms = 0.1 # maximum Mach number
+    RealT = eltype(x)
+    A = 1 # magnitude of speed
+    Ms = convert(RealT, 0.1) # maximum Mach number
 
-    rho = 1.0
+    rho = 1
     v1 = A * sin(x[1]) * cos(x[2])
     v2 = -A * cos(x[1]) * sin(x[2])
     p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
-    p = p + 1.0 / 4.0 * A^2 * rho * (cos(2 * x[1]) + cos(2 * x[2]))
+    p = p + 0.25f0 * A^2 * rho * (cos(2 * x[1]) + cos(2 * x[2]))
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
