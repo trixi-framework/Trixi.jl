@@ -86,7 +86,7 @@ end
 
 """
     v1, v2, v3, vk1, vk2, vk3 = charge_averaged_velocities(u,
-                                                       equations::AbstractIdealGlmMhdMultiIonEquations)
+                                                           equations::AbstractIdealGlmMhdMultiIonEquations)
 
 
 Compute the charge-averaged velocities (`v1`, `v2`, and `v3`) and each ion species' contribution

@@ -6,7 +6,7 @@ using Trixi
 include("test_trixi.jl")
 
 # pathof(Trixi) returns /path/to/Trixi/src/Trixi.jl, dirname gives the parent directory
-EXAMPLES_DIR = joinpath(pathof(Trixi) |> dirname |> dirname, "examples", "tree_2d_dgsem")
+EXAMPLES_DIR = joinpath(examples_dir(), "tree_2d_dgsem")
 
 @testset "MHD Multi-ion" begin
 #! format: noindent
