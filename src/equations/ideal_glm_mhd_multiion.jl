@@ -264,8 +264,8 @@ end
     return SVector(cons)
 end
 
-# Specialization of DissipationEntropyStable for the multi-ion GLM-MHD equations
-# See
+# Specialization of [`DissipationEntropyStable`](@ref) for the multi-ion GLM-MHD equations
+# For details on the multi-ion entropy Jacobian see
 # - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
 #   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
 #   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
