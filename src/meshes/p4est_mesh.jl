@@ -554,6 +554,8 @@ function preprocess_standard_abaqus(meshfile,
                         # Retrieve element type
                         current_element_type = match(r"\*ELEMENT, type=([^,]+)", line).captures[1]
 
+                        # Keep only quads (2D) or hexes (3D), i.e., eliminate all other elements
+                        # like trusses (2D/3D) or quads in 3D.
                         if n_dimensions == 2 &&
                            (occursin(linear_quads, current_element_type) ||
                             occursin(quadratic_quads, current_element_type))
@@ -671,6 +673,7 @@ function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
     return meshfile_p4est_rdy, order
 end
 
+# Read all nodes (not only vertices, i.e., endpoints of elements) into a dict
 function read_nodes_standard_abaqus(meshfile, n_dimensions,
                                     elements_begin_idx, RealT)
     mesh_nodes = Dict{Int, SVector{n_dimensions, RealT}}()
@@ -1947,7 +1950,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                     #        |           |
                     #        *           *
                     #        |           |
-                    #  ^η    |           |
+                    #  ^ η   |           |
                     #  |     *-----*-----*
                     #  |----> ξ
                     # thus we need to flip the nodes for the second xi and eta edges met.
