@@ -47,9 +47,9 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
                                The code string must define the mapping function with the name `mapping`.
                                This will be changed in the future, see [https://github.com/trixi-framework/Trixi.jl/issues/541](https://github.com/trixi-framework/Trixi.jl/issues/541).
 """
-function StructuredMesh(cells_per_dimension, mapping; 
+function StructuredMesh(cells_per_dimension, mapping;
                         RealT = Float64,
-                        periodicity = true, 
+                        periodicity = true,
                         unsaved_changes = true,
                         mapping_as_string = mapping2string(mapping,
                                                            length(cells_per_dimension),
