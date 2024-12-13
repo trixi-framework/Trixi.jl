@@ -14,6 +14,7 @@ mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataC
     plot_data_creator::PlotDataCreator
     plot_creator::PlotCreator
     figure
+    axis
     plot_arguments::Dict{Symbol, Any}
 end
 
@@ -99,7 +100,7 @@ function VisualizationCallback(; interval = 0,
     visualization_callback = VisualizationCallback(interval,
                                                    solution_variables, variable_names,
                                                    show_mesh,
-                                                   plot_data_creator, plot_creator, nothing,
+                                                   plot_data_creator, plot_creator, nothing, [],
                                                    Dict{Symbol, Any}(plot_arguments))
 
     DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
@@ -137,7 +138,7 @@ end
 function (visualization_callback::VisualizationCallback)(integrator)
     u_ode = integrator.u
     semi = integrator.p
-    @unpack plot_arguments, solution_variables, variable_names, show_mesh, plot_data_creator, plot_creator, figure = visualization_callback
+    @unpack plot_arguments, solution_variables, variable_names, show_mesh, plot_data_creator, plot_creator, figure, axis = visualization_callback
     mesh, equations, solver, cache = mesh_equations_solver_cache(integrator.p)
     n = Trixi.ndims(mesh)
 
@@ -152,7 +153,7 @@ function (visualization_callback::VisualizationCallback)(integrator)
     # Create plot
     plot_creator(n, visualization_callback, plot_data, variable_names;
                  show_mesh = show_mesh, plot_arguments = plot_arguments,
-                 time = integrator.t, timestep = integrator.stats.naccept, figure = figure)
+                 time = integrator.t, timestep = integrator.stats.naccept, figure = figure, axis = axis)
 
     # avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
@@ -178,7 +179,7 @@ See also: [`VisualizationCallback`](@ref), [`save_plot`](@ref)
 """
 function show_plot(ndims, visualization_callback, plot_data, variable_names;
                    show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
-                   time = nothing, timestep = nothing, figure = nothing)
+                   time = nothing, timestep = nothing, figure = nothing, axis = nothing)
     # Gather subplots
     plots = []
     for v in variable_names
@@ -289,30 +290,25 @@ See also: [`VisualizationCallback`](@ref), [`save_plot`](@ref)
 """
 function show_plot_makie(ndims, visualization_callback, plot_data, variable_names;
                          show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
-                         time = nothing, timestep = nothing, figure = nothing)
-                         
+                         time = nothing, timestep = nothing, figure = nothing, axis = [])
     if figure === nothing
         @warn "Creating new figure"
         visualization_callback.figure = GLMakie.Figure()
         figure = visualization_callback.figure
-        if ndims == 2
-            for v in 1:size(variable_names)[1]
-                GLMakie.heatmap(figure[makieLayoutHelper(v)...], plot_data.x, plot_data.y, plot_data.data[v], axis=(; title = variable_names[v]))
-            end
-        else
-            for v in 1:size(variable_names)[1]
-                GLMakie.volume(figure[makieLayoutHelper(v)...], plot_data.data[v], axis=(; title = variable_names[v]))
-            end
+        for v in 1:size(variable_names)[1]
+            push!(axis, (ndims == 2) ? GLMakie.Axis(figure[makieLayoutHelper(v)...], title = variable_names[v]) : 
+            GLMakie.Axis3(figure[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v]))
         end
+        visualization_callback.axis = axis
         GLMakie.display(figure)
     else
         if ndims == 2
             for v in 1:size(variable_names)[1]
-                GLMakie.heatmap!(figure[makieLayoutHelper(v)...], plot_data.x, plot_data.y, plot_data.data[v])
+                GLMakie.heatmap!(axis[v], plot_data.x, plot_data.y, plot_data.data[v])
             end
         else
             for v in 1:size(variable_names)[1]
-                GLMakie.volume!(figure[makieLayoutHelper(v)...], plot_data.data[v])
+                GLMakie.volume!(axis[v], plot_data.data[v])
             end
         end
     end
