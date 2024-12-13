@@ -297,11 +297,11 @@ function show_plot_makie(ndims, visualization_callback, plot_data, variable_name
         figure = visualization_callback.figure
         if ndims == 2
             for v in 1:size(variable_names)[1]
-                GLMakie.heatmap(figure[makieLayoutHelper(v)...], plot_data.x, plot_data.y, plot_data.data[v])
+                GLMakie.heatmap(figure[makieLayoutHelper(v)...], plot_data.x, plot_data.y, plot_data.data[v], axis=(; title = variable_names[v]))
             end
         else
             for v in 1:size(variable_names)[1]
-                GLMakie.volume(figure[makieLayoutHelper(v)...], plot_data.data[v])
+                GLMakie.volume(figure[makieLayoutHelper(v)...], plot_data.data[v], axis=(; title = variable_names[v]))
             end
         end
         GLMakie.display(figure)
