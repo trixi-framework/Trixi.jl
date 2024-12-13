@@ -526,11 +526,9 @@ function preprocess_standard_abaqus(meshfile,
 
         # Find the line number where the node and element sets begin
         for (line_index, line) in enumerate(eachline(infile))
-            if line_index >= elements_begin_idx
-                if startswith(line, "*ELSET") || startswith(line, "*NSET")
-                    sets_begin_idx = line_index
-                    break
-                end
+            if startswith(line, "*ELSET") || startswith(line, "*NSET")
+                sets_begin_idx = line_index
+                break
             end
         end
     end
@@ -740,7 +738,6 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                                             quadratic_hexes,
                                                                             elements_begin_idx,
                                                                             sets_begin_idx)
-    #mesh_polydeg = 1 # TODO
 
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile_p4est_rdy, Val(n_dimensions))
@@ -758,8 +755,17 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     tree_to_vertex = unsafe_wrap(Array, connectivity_pw.tree_to_vertex,
                                  (2^n_dimensions, n_trees))
 
-    basis = LobattoLegendreBasis(RealT, mesh_polydeg)
+    basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = basis.nodes
+
+    if mesh_polydeg == 2
+        mesh_nnodes = mesh_polydeg + 1
+        # Note: We ASSUME that the additional node between the end-vertices lies 
+        # on the center on that line, such that we can use Chebyshev-Gauss-Lobatto nodes!
+        # For polydeg = 2, we have the 3 nodes [-1, 0, 1] (within the reference element).
+        cheby_nodes, _ = chebyshev_gauss_lobatto_nodes_weights(mesh_nnodes)
+        nodes = SVector{mesh_nnodes}(cheby_nodes)
+    end
 
     tree_node_coordinates = Array{RealT, n_dimensions + 2}(undef, n_dimensions,
                                                            ntuple(_ -> length(nodes),
@@ -768,31 +774,21 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
 
     # No nonlinearity in the mesh. Rely on the mapping function to realize the curvature.                                                           
     if mesh_polydeg == 1
-        calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping, vertices,
-                                    tree_to_vertex)
+        calc_tree_node_coordinates!(tree_node_coordinates, nodes, mapping,
+                                    vertices, tree_to_vertex)
     else # mesh_polydeg = 2 => Nonlinearity in supplied mesh
-        mesh_nnodes = mesh_polydeg + 1
-
-        # Note: We ASSUME that the additional node between the end-vertices lies 
-        # on the center on that line, such that we can use Chebyshev-Gauss-Lobatto nodes!
-        # For polydeg = 2, we have the 3 nodes [-1, 0, 1] (within the reference element).
-        cheby_nodes_, _ = chebyshev_gauss_lobatto_nodes_weights(mesh_nnodes)
-        cheby_nodes = SVector{mesh_nnodes}(cheby_nodes_)
-
-        println("cheby_nodes: ", cheby_nodes)
-
         mesh_nodes = read_nodes_standard_abaqus(meshfile_preproc, n_dimensions,
                                                 elements_begin_idx, RealT)
 
         element_lines = readlines(open(meshfile_preproc))[elements_begin_idx:(sets_begin_idx - 1)]
 
         if n_dimensions == 2
-            calc_tree_node_coordinates!(tree_node_coordinates, element_lines, cheby_nodes,
-                                        vertices, RealT,
+            calc_tree_node_coordinates!(tree_node_coordinates, element_lines,
+                                        nodes, vertices, RealT,
                                         linear_quads, mesh_nodes)
         else # n_dimensions == 3
-            calc_tree_node_coordinates!(tree_node_coordinates, element_lines, cheby_nodes,
-                                        vertices, RealT,
+            calc_tree_node_coordinates!(tree_node_coordinates, element_lines,
+                                        nodes, vertices, RealT,
                                         linear_hexes, mesh_nodes)
         end
     end
@@ -802,8 +798,6 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
         # Name all of them :all.
         boundary_names = fill(:all, 2 * n_dimensions, n_trees)
     else # Boundary information given
-        # TODO: Not sure which meshfile is required here!
-
         # Read in nodes belonging to boundaries
         node_set_dict = parse_node_sets(meshfile_p4est_rdy, boundary_symbols)
         # Read in all elements with associated nodes to specify the boundaries
@@ -1922,30 +1916,61 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                 for i in 1:4
                     quad_vertices[i, :] .= vertices[1:2, element_node_ids[i]] # 2D => 1:2
                 end
-
-                # CARE: Not tested if this works or if we need to interpolate 
-                # linear elements to have full higher-order elements
                 calc_node_coordinates!(node_coordinates, tree, nodes, quad_vertices)
             else # element_set_order == 2
                 for edge in 1:4
                     node1 = element_nodes[edge + 1] # "Left" node
                     node2 = element_nodes[edge + 5] # "Middle" node
-                    if edge < 4
-                        node3 = element_nodes[edge + 2] # "Right" node
-                    else
-                        node3 = element_nodes[2] # "Right" node
-                    end
+                    node3 = edge == 4 ? element_nodes[2] : element_nodes[edge + 2] # "Right" node
 
                     node1_coords = mesh_nodes[node1]
                     node2_coords = mesh_nodes[node2]
                     node3_coords = mesh_nodes[node3]
 
-                    curve_values[1, 1] = node1_coords[1]
-                    curve_values[1, 2] = node1_coords[2]
-                    curve_values[2, 1] = node2_coords[1]
-                    curve_values[2, 2] = node2_coords[2]
-                    curve_values[3, 1] = node3_coords[1]
-                    curve_values[3, 2] = node3_coords[2]
+                    # The nodes for an Abaqus element are labeled following a closed path 
+                    # around the element:
+                    #
+                    #            <----
+                    #        *-----*-----*
+                    #        |           |
+                    #     |  |           |  ^
+                    #     |  *           *  |
+                    #     v  |           |  |
+                    #        |           |
+                    #        *-----*-----*
+                    #            ---->
+                    # `node_coordinates`, however, requires to sort the nodes into a 
+                    # unique coordinate system, 
+                    # 
+                    #        *-----*-----*
+                    #        |           |
+                    #        |           |
+                    #        *           *
+                    #        |           |
+                    #  ^η    |           |
+                    #  |     *-----*-----*
+                    #  |----> ξ
+                    # thus we need to flip the nodes for the second xi and eta edges met.
+
+                    if edge in [1, 2]
+                        curve_values[1, 1] = node1_coords[1]
+                        curve_values[1, 2] = node1_coords[2]
+
+                        curve_values[2, 1] = node2_coords[1]
+                        curve_values[2, 2] = node2_coords[2]
+
+                        curve_values[3, 1] = node3_coords[1]
+                        curve_values[3, 2] = node3_coords[2]
+                    else # Flip "left" and "right" nodes
+                        curve_values[1, 1] = node3_coords[1]
+                        curve_values[1, 2] = node3_coords[2]
+
+                        curve_values[2, 1] = node2_coords[1]
+                        curve_values[2, 2] = node2_coords[2]
+
+                        curve_values[3, 1] = node1_coords[1]
+                        curve_values[3, 2] = node1_coords[2]
+                    end
 
                     # Construct the curve interpolant for the current side
                     surface_curves[edge] = CurvedSurfaceT(nodes, bary_weights,
