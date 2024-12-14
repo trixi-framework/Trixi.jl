@@ -8,13 +8,14 @@ using Trixi
 advection_velocity = (0.2, -0.7)
 equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
-initial_condition = initial_condition_gauss
+initial_condition = initial_condition_constant
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(:all => boundary_condition)
 
-solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
 
+#=
 # Deformed rectangle that looks like a waving flag,
 # lower and upper faces are sinus curves, left and right are vertical lines.
 f1(s) = SVector(-5.0, 5 * s - 5.0)
@@ -36,6 +37,10 @@ mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/63ff2e
 mesh = P4estMesh{2}(mesh_file, polydeg = 3,
                     mapping = mapping_flag,
                     initial_refinement_level = 1)
+=#
+
+#mesh = P4estMesh{2}("./sd7003_laminar.inp")
+mesh = P4estMesh{2}("./Test_Curved_Abaqus.inp")
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
@@ -43,7 +48,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 10.0)
+tspan = (0.0, 0.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -57,7 +62,7 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_restart = SaveRestartCallback(interval = 100,
                                    save_final_restart = true)
 
-save_solution = SaveSolutionCallback(interval = 100,
+save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
@@ -75,8 +80,10 @@ stepsize_callback = StepsizeCallback(cfl = 0.7)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_restart, save_solution,
-                        amr_callback, stepsize_callback);
+                        #save_restart, 
+                        save_solution,
+                        #amr_callback, 
+                        stepsize_callback);
 
 ###############################################################################
 # run the simulation

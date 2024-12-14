@@ -762,7 +762,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     nodes = basis.nodes
 
     if mesh_polydeg == 2
-        mesh_nnodes = mesh_polydeg + 1
+        mesh_nnodes = mesh_polydeg + 1 # = 3
         # Note: We ASSUME that the additional node between the end-vertices lies 
         # on the center on that line, such that we can use Chebyshev-Gauss-Lobatto nodes!
         # For polydeg = 2, we have the 3 nodes [-1, 0, 1] (within the reference element).
