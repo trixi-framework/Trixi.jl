@@ -116,7 +116,7 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     # magic parameters
     # TODO: Are there better values for Float32?
     RealT = real(dg)
-    threshold = 0.5f0 * 10^(convert(RealT, -1.8) * nnodes(dg)^convert(RealT, 0.25))
+    threshold = 0.5f0 * 10^(convert(RealT, -1.8) * nnodes(dg)^0.25f0)
     o_0001 = convert(RealT, 0.0001)
     parameter_s = log((1 - o_0001) / o_0001)
 
