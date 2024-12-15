@@ -40,7 +40,10 @@ mesh = P4estMesh{2}(mesh_file, polydeg = 3,
 =#
 
 #mesh = P4estMesh{2}("./sd7003_laminar.inp")
-mesh = P4estMesh{2}("./Test_Curved_Abaqus.inp")
+
+#mesh = P4estMesh{2}("./Test_Curved_Abaqus.inp")
+
+mesh = P4estMesh{2}("./Test_Abaqus_HOHQMesh_Style.inp")
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
