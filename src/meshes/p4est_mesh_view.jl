@@ -64,7 +64,13 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     interfaces = interfaces_parent
     interfaces.u = interfaces_parent.u[.., mask]
     interfaces.node_indices = interfaces_parent.node_indices[.., mask]
-    interfaces.neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
+    neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
+    # Transform the global (parent) indices into local (view) indices.
+    interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
+    for interface in 1:size(neighbor_ids)[2]
+        interfaces.neighbor_ids[1, interface] = findall(x->x==neighbor_ids[1, interface], mesh.cell_ids)[1]
+        interfaces.neighbor_ids[2, interface] = findall(x->x==neighbor_ids[2, interface], mesh.cell_ids)[1]
+    end
 
 #     u_new = Array{eltype(interfaces.u)}(undef, (size(interfaces.u)[1:3]..., size(mesh.cell_ids)[1]*2))
 #     u_new[:, :, :, 1:2:end] .= interfaces.u[:, :, :, (mesh.cell_ids.*2 .-1)]
