@@ -499,6 +499,9 @@ function p4est_connectivity_from_hohqmesh_abaqus(meshfile, initial_refinement_le
     return connectivity, tree_node_coordinates, nodes, boundary_names
 end
 
+# This removes irrelevant elements from the meshfile, i.e., trusses/beams which are 1D elements.
+# Thus, if `n_dimensions == 2`, only quads are kept, and if `n_dimensions == 3`, 
+# only hexes are kept, i.e., in that case also quads are removed.
 function preprocess_standard_abaqus(meshfile,
                                     linear_quads,
                                     linear_hexes,
@@ -673,7 +676,8 @@ function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
     return meshfile_p4est_rdy, order
 end
 
-# Read all nodes (not only vertices, i.e., endpoints of elements) into a dict
+# Read all nodes (not only vertices, i.e., endpoints of elements) into a dict.
+# Those are required to enable higher-order boundaries for quadratic elements.
 function read_nodes_standard_abaqus(meshfile, n_dimensions,
                                     elements_begin_idx, RealT)
     mesh_nodes = Dict{Int, SVector{n_dimensions, RealT}}()
@@ -1867,6 +1871,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     return file_idx
 end
 
+# Version for quadratic 2D elements, i.e., second-order quads.
+# TODO: 3D version
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                                      element_lines, nodes, vertices, RealT,
                                      linear_quads, mesh_nodes)
@@ -1942,8 +1948,8 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                     #        |           |
                     #        *-----*-----*
                     #            ---->
-                    # `node_coordinates`, however, requires to sort the nodes into a 
-                    # unique coordinate system, 
+                    # `curve_values`, however, requires to sort the nodes into a 
+                    # valid coordinate system, 
                     # 
                     #        *-----*-----*
                     #        |           |
@@ -1953,7 +1959,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                     #  ^ η   |           |
                     #  |     *-----*-----*
                     #  |----> ξ
-                    # thus we need to flip the nodes for the second xi and eta edges met.
+                    # thus we need to flip the node order for the second xi and eta edges met.
 
                     if edge in [1, 2]
                         curve_values[1, 1] = node1_coords[1]
