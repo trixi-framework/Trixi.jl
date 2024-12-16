@@ -8,7 +8,8 @@
 A view on a p4est mesh.
 """
 
-mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <: AbstractMesh{NDIMS}
+mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <:
+               AbstractMesh{NDIMS}
     parent::Parent
     cell_ids::Vector{Int}
     unsaved_changes::Bool
