@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations1D(; gravity, H0 = 0)
+    ShallowWaterEquations1D(; gravity_constant, H0 = 0)
 
 Shallow water equations (SWE) in one space dimension. The equations are given by
 ```math
