@@ -115,7 +115,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
@@ -130,7 +130,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2cons)
 
-example_callback = TrixiExtensionExample.ExampleStepCallback(message = "안녕하세요?")
+example_callback = TrixiExtensionExample.ExampleStepCallback(message = "Initializing callback")
 
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 

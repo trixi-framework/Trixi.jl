@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations1D(; gravity, H0 = 0)
+    ShallowWaterEquations1D(; gravity_constant, H0 = 0)
 
 Shallow water equations (SWE) in one space dimension. The equations are given by
 ```math
@@ -201,7 +201,7 @@ end
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
 that contains the gradient of the bottom topography [`ShallowWaterEquations1D`](@ref).
 
-Gives entropy conservation and well-balancedness on both the volume and surface when combined with 
+Gives entropy conservation and well-balancedness on both the volume and surface when combined with
 [`flux_wintermeyer_etal`](@ref).
 
 Further details are available in the papers:
@@ -210,7 +210,7 @@ Further details are available in the papers:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 - Patrick Ersing, Andrew R. Winters (2023)
-  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on
   curvilinear meshes
   [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
 """
@@ -237,7 +237,7 @@ This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces 
 conservation and well-balancedness.
 
 Further details for the original finite volume formulation are available in
-- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 and for curvilinear 2D case in the paper:
@@ -310,7 +310,7 @@ is nonzero this should only be used as a surface flux otherwise the scheme will 
 For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
 
 Details are available in Eq. (4.1) in the paper:
-- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 """
@@ -582,7 +582,7 @@ end
                        equations::ShallowWaterEquations1D)
 
 Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = sqrt{g * h_roe}`
-See for instance equation (62) in 
+See for instance equation (62) in
 - Paul A. Ullrich, Christiane Jablonowski, and Bram van Leer (2010)
   High-order finite-volume methods for the shallow-water equations on the sphere
   [DOI: 10.1016/j.jcp.2010.04.044](https://doi.org/10.1016/j.jcp.2010.04.044)
@@ -631,7 +631,7 @@ end
 end
 
 # Calculate the error for the "lake-at-rest" test case where H = h+b should
-# be a constant value over time. 
+# be a constant value over time.
 @inline function lake_at_rest_error(u, equations::ShallowWaterEquations1D)
     h, _, b = u
 

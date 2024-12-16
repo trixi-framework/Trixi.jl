@@ -265,13 +265,15 @@ function step!(integrator::SimpleIntegrator3Sstar)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    # handle callbacks
-    if callbacks isa CallbackSet
-        foreach(callbacks.discrete_callbacks) do cb
-            if cb.condition(integrator.u, integrator.t, integrator)
-                cb.affect!(integrator)
+    @trixi_timeit timer() "Step-Callbacks" begin
+        # handle callbacks
+        if callbacks isa CallbackSet
+            foreach(callbacks.discrete_callbacks) do cb
+                if cb.condition(integrator.u, integrator.t, integrator)
+                    cb.affect!(integrator)
+                end
+                return nothing
             end
-            return nothing
         end
     end
 

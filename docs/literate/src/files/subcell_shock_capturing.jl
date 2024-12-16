@@ -219,7 +219,6 @@ sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   callback = callbacks);
 summary_callback() # print the timer summary
 
-
 # ## Visualization
 # As for a standard simulation in Trixi.jl, it is possible to visualize the solution using the
 # `plot` routine from Plots.jl.
@@ -230,8 +229,6 @@ plot(sol)
 # approach using the [`SaveSolutionCallback`](@ref), [`Trixi2Vtk`](https://github.com/trixi-framework/Trixi2Vtk.jl)
 # and [ParaView](https://www.paraview.org/download/). More details about this procedure
 # can be found in the [visualization documentation](@ref visualization).
-# Unfortunately, the support for subcell limiting data is not yet merged into the main branch
-# of Trixi2Vtk but lies in the branch [`bennibolm/node-variables`](https://github.com/bennibolm/Trixi2Vtk.jl/tree/node-variables).
 #-
 # With that implementation and the standard procedure used for Trixi2Vtk you get the following
 # dropdown menu in ParaView.
@@ -246,7 +243,6 @@ plot(sol)
 # You can disable this functionality with `reinterpolate=false` within the call of `trixi2vtk(...)`
 # and get the following visualization.
 # ![blast_wave_paraview_reinterpolate=false](https://github.com/trixi-framework/Trixi.jl/assets/74359358/39274f18-0064-469c-b4da-bac4b843e116)
-
 
 # ## [Bounds checking](@id subcell_bounds_check)
 # Subcell limiting is based on the fulfillment of target bounds - either global or local.

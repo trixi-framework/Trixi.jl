@@ -10,14 +10,15 @@ equations = HyperbolicDiffusionEquations2D()
 function initial_condition_poisson_periodic(x, t, equations::HyperbolicDiffusionEquations2D)
     # elliptic equation: -νΔϕ = f
     # depending on initial constant state, c, for phi this converges to the solution ϕ + c
+    RealT = eltype(x)
     if iszero(t)
-        phi = 0.0
-        q1 = 0.0
-        q2 = 0.0
+        phi = zero(RealT)
+        q1 = zero(RealT)
+        q2 = zero(RealT)
     else
-        phi = sin(2.0 * pi * x[1]) * sin(2.0 * pi * x[2])
-        q1 = 2 * pi * cos(2.0 * pi * x[1]) * sin(2.0 * pi * x[2])
-        q2 = 2 * pi * sin(2.0 * pi * x[1]) * cos(2.0 * pi * x[2])
+        phi = sinpi(2 * x[1]) * sinpi(2 * x[2])
+        q1 = 2 * convert(RealT, pi) * cospi(2 * x[1]) * sinpi(2 * x[2])
+        q2 = 2 * convert(RealT, pi) * sinpi(2 * x[1]) * cospi(2 * x[2])
     end
     return SVector(phi, q1, q2)
 end
@@ -27,8 +28,9 @@ initial_condition = initial_condition_poisson_periodic
                                                equations::HyperbolicDiffusionEquations2D)
     # elliptic equation: -νΔϕ = f
     # analytical solution: phi = sin(2πx)*sin(2πy) and f = -8νπ^2 sin(2πx)*sin(2πy)
+    RealT = eltype(u)
     @unpack inv_Tr = equations
-    C = -8 * equations.nu * pi^2
+    C = -8 * equations.nu * convert(RealT, pi)^2
 
     x1, x2 = x
     tmp1 = sinpi(2 * x1)
@@ -57,7 +59,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 2.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 

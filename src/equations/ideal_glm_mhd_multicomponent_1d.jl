@@ -41,11 +41,11 @@ function IdealGlmMhdMulticomponentEquations1D(; gammas, gas_constants)
     _gas_constants = promote(gas_constants...)
     RealT = promote_type(eltype(_gammas), eltype(_gas_constants))
 
-    NVARS = length(_gammas) + 7
-    NCOMP = length(_gammas)
-
     __gammas = SVector(map(RealT, _gammas))
     __gas_constants = SVector(map(RealT, _gas_constants))
+
+    NVARS = length(_gammas) + 7
+    NCOMP = length(_gammas)
 
     return IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT}(__gammas,
                                                                      __gas_constants)
@@ -89,11 +89,10 @@ function initial_condition_convergence_test(x, t,
     # domain must be set to [0, 1], γ = 5/3
 
     RealT = eltype(x)
-    rho = 1
-    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
-                                                                (1 -
-                                                                 2^ncomponents(equations)) *
-                                                                rho
+    rho = one(RealT)
+    prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
+                                                                rho / (1 -
+                                                                 2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
     v1 = 0
     # TODO: sincospi
@@ -132,16 +131,16 @@ function initial_condition_weak_blast_wave(x, t,
     if r > 0.5f0
         rho = one(RealT)
         prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) *
-                                                                    (1 - 2) / (1 -
-                                                                     2^ncomponents(equations)) *
-                                                                    rho
+                                                                    (1 - 2) * rho /
+                                                                    (1 -
+                                                                     2^ncomponents(equations))
                                                                     for i in eachcomponent(equations))
     else
         rho = convert(RealT, 1.1691)
         prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) *
-                                                                    (1 - 2) / (1 -
-                                                                     2^ncomponents(equations)) *
-                                                                    rho
+                                                                    (1 - 2) * rho /
+                                                                    (1 -
+                                                                     2^ncomponents(equations))
                                                                     for i in eachcomponent(equations))
     end
     v1 = r > 0.5f0 ? zero(RealT) : convert(RealT, 0.1882) * cos(phi)

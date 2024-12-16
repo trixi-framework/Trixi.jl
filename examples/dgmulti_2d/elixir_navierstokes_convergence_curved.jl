@@ -186,10 +186,12 @@ end
 initial_condition = initial_condition_navier_stokes_convergence_test
 
 # BC types
-velocity_bc_top_bottom = NoSlip((x, t, equations) -> initial_condition_navier_stokes_convergence_test(x,
-                                                                                                      t,
-                                                                                                      equations)[2:3])
-heat_bc_top_bottom = Adiabatic((x, t, equations) -> 0.0)
+velocity_bc_top_bottom = NoSlip() do x, t, equations_parabolic
+    u_cons = initial_condition_navier_stokes_convergence_test(x, t, equations_parabolic)
+    return SVector(u_cons[2] / u_cons[1], u_cons[3] / u_cons[1])
+end
+
+heat_bc_top_bottom = Adiabatic((x, t, equations_parabolic) -> 0.0)
 boundary_condition_top_bottom = BoundaryConditionNavierStokesWall(velocity_bc_top_bottom,
                                                                   heat_bc_top_bottom)
 
@@ -216,7 +218,7 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
-callbacks = CallbackSet(summary_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
