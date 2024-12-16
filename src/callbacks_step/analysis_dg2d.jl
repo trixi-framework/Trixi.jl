@@ -30,8 +30,9 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{2},
 end
 
 # Specialized cache for P4estMesh to allow for different ambient dimension from mesh dimension
-function create_cache_analysis(analyzer, mesh::Union{P4estMesh{2, NDIMS_AMBIENT},
-                                                     P4estMeshView{2, NDIMS_AMBIENT}},
+function create_cache_analysis(analyzer,
+                               mesh::Union{P4estMesh{2, NDIMS_AMBIENT},
+                                           P4estMeshView{2, NDIMS_AMBIENT}},
                                equations, dg::DG, cache,
                                RealT, uEltype) where {NDIMS_AMBIENT}
 
