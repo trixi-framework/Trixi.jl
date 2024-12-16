@@ -277,8 +277,8 @@ end
 # - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
 #   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
 #   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
-# Since the entropy Jacobian is a sparse matrix, we do not construct it but directly compute its
-# product with the Jump of the entropy variables.
+# Since the entropy Jacobian is a sparse matrix, we do not construct it but directly compute the
+# action of its product with the jump in the entropy variables.
 #
 # ATTENTION: the variable order for AbstractIdealGlmMhdMultiIonEquations is different than in the reference above. 
 # The first three entries of the state vector `u[1:3]` are the magnetic field components. After that, we have chunks 
