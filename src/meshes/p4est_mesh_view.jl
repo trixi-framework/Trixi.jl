@@ -16,7 +16,8 @@ mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <:
     current_filename::String
 end
 
-function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}, cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}
+function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT},
+                       cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}
     return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids,
                                                                       parent.unsaved_changes,
                                                                       parent.current_filename)
