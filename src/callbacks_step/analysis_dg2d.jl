@@ -30,8 +30,9 @@ function create_cache_analysis(analyzer, mesh::TreeMesh{2},
 end
 
 # Specialized cache for P4estMesh to allow for different ambient dimension from mesh dimension
-function create_cache_analysis(analyzer, mesh::Union{P4estMesh{2, NDIMS_AMBIENT},
-                                                     P4estMeshView{2, NDIMS_AMBIENT}},
+function create_cache_analysis(analyzer,
+                               mesh::Union{P4estMesh{2, NDIMS_AMBIENT},
+                                           P4estMeshView{2, NDIMS_AMBIENT}},
                                equations, dg::DG, cache,
                                RealT, uEltype) where {NDIMS_AMBIENT}
 
@@ -240,7 +241,8 @@ function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                                UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                    equations, dg::DG, cache; normalize = true) where {Func}
-    integrate_via_indices(u, mesh, equations, dg, cache;
+                               UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
+                               T8codeMesh{2}},
                           normalize = normalize) do u, i, j, element, equations, dg
         u_local = get_node_vars(u, equations, dg, i, j, element)
         return func(u_local, equations)
