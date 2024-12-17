@@ -233,9 +233,9 @@ flux_es = FluxPlusDissipation(flux_ec, DissipationEntropyStable())
 
 In particular, the numerical flux has the form
 ```math
-f^{ES} = f^{EC} + \frac{1}{2} λ_{max} H (w_r - w_l),
+f^{\\mathrm{ES}} = f^{\\mathrm{EC}} + \\frac{1}{2} \\lambda_{\\mathrm{max}} H (w_r - w_l),
 ````
-where ``f^{EC}`` is the entropy-conservative two-point flux function (computed with, e.g., `flux_ec`), ``λ_{max}`` 
+where ``f^{\\mathrm{EC}}`` is the entropy-conservative two-point flux function (computed with, e.g., `flux_ec`), ``\\lambda_{\\mathrm{max}}`` 
 is the maximum wave speed estimated as `max_abs_speed(u_l, u_r, orientation_or_normal_direction, equations)`,
 defaulting to [`max_abs_speed_naive`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
 depends on the left and right states `u_l` and `u_r`, and ``(w_r - w_l)`` is the jump in entropy variables.
