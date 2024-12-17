@@ -457,7 +457,7 @@ end
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B3_avg * (w_rr[3] - w_ll[3])
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * psi_avg * (w_rr[end] - w_ll[end])
 
-        # Dissipation for the energy equation of all ion species depending on w_5. These are the values of the dissipation 
+        # Dissipation for the energy equation of all ion species depending on `w_5`. These are the values of the dissipation 
         # vector that depend on the magnetic and divergence-cleaning field terms of the entries marked with a red cross in 
         # Figure 1 of the reference given above.
         for kk in eachcomponent(equations)
