@@ -1524,7 +1524,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                              one(RealT),
                                              one(RealT),
                                              one(RealT))
-            dissipation_es = DissipationEntropyStable()
+            dissipation_es = DissipationLaxFriedrichsEntropyVariables()
             orientations = [1, 2]
 
             @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==

@@ -222,13 +222,13 @@ See [`FluxLaxFriedrichs`](@ref).
 const flux_lax_friedrichs = FluxLaxFriedrichs()
 
 """
-    DissipationEntropyStable(max_abs_speed=max_abs_speed_naive)
+    DissipationLaxFriedrichsEntropyVariables(max_abs_speed=max_abs_speed_naive)
 
 Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable. This operator
 must be used together with an entropy-conservative two-point flux function (e.g., `flux_ec`) to yield 
 an entropy-stable surface flux. The surface flux function can be initialized as:
 ```
-flux_es = FluxPlusDissipation(flux_ec, DissipationEntropyStable())
+flux_es = FluxPlusDissipation(flux_ec, DissipationLaxFriedrichsEntropyVariables())
 ```
 
 In particular, the numerical flux has the form
@@ -243,7 +243,7 @@ Ideally, ``H (w_r - w_l) = (u_r - u_l)``, such that the dissipation operator is 
 Lax-Friedrichs dissipation.
 
 The entropy-stable dissipation operator is computed with the function
-`function (dissipation::DissipationEntropyStable)(u_l, u_r, orientation_or_normal_direction, equations)`,
+`function (dissipation::DissipationLaxFriedrichsEntropyVariables)(u_l, u_r, orientation_or_normal_direction, equations)`,
 which must be specialized for each equation.
 
 For the derivation of the dissipation matrix for the multi-ion GLM-MHD equations, see:
@@ -251,14 +251,14 @@ For the derivation of the dissipation matrix for the multi-ion GLM-MHD equations
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 """
-struct DissipationEntropyStable{MaxAbsSpeed}
+struct DissipationLaxFriedrichsEntropyVariables{MaxAbsSpeed}
     max_abs_speed::MaxAbsSpeed
 end
 
-DissipationEntropyStable() = DissipationEntropyStable(max_abs_speed_naive)
+DissipationLaxFriedrichsEntropyVariables() = DissipationLaxFriedrichsEntropyVariables(max_abs_speed_naive)
 
-function Base.show(io::IO, d::DissipationEntropyStable)
-    print(io, "DissipationEntropyStable(", d.max_abs_speed, ")")
+function Base.show(io::IO, d::DissipationLaxFriedrichsEntropyVariables)
+    print(io, "DissipationLaxFriedrichsEntropyVariables(", d.max_abs_speed, ")")
 end
 
 """

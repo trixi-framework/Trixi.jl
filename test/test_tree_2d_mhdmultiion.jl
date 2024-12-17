@@ -90,7 +90,7 @@ end
                             0.003287251595115295
                         ],
                         surface_flux=(FluxPlusDissipation(flux_ruedaramirez_etal,
-                                                          DissipationEntropyStable()),
+                                                          DissipationLaxFriedrichsEntropyVariables()),
                                       flux_nonconservative_ruedaramirez_etal))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

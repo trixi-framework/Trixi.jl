@@ -272,7 +272,7 @@ end
     return SVector(cons)
 end
 
-# Specialization of [`DissipationEntropyStable`](@ref) for the multi-ion GLM-MHD equations
+# Specialization of [`DissipationLaxFriedrichsEntropyVariables`](@ref) for the multi-ion GLM-MHD equations
 # For details on the multi-ion entropy Jacobian ``H`` see
 # - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
 #   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
@@ -284,9 +284,9 @@ end
 # The first three entries of the state vector `u[1:3]` are the magnetic field components. After that, we have chunks 
 # of 5 entries for the hydrodynamic quantities of each ion species. Finally, the last entry `u[end]` is the divergence 
 # cleaning field. 
-@inline function (dissipation::DissipationEntropyStable)(u_ll, u_rr,
-                                                         orientation_or_normal_direction,
-                                                         equations::AbstractIdealGlmMhdMultiIonEquations)
+@inline function (dissipation::DissipationLaxFriedrichsEntropyVariables)(u_ll, u_rr,
+                                                                         orientation_or_normal_direction,
+                                                                         equations::AbstractIdealGlmMhdMultiIonEquations)
     @unpack gammas = equations
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
