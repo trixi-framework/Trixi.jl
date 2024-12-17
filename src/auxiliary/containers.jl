@@ -358,26 +358,16 @@ Return the computational backend for `x`, which is either a KernelAbstractions b
 If the backend is `nothing`, the default multi-threaded CPU backend is used.
 """
 function trixi_backend(x)
-    if (_PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(x)) ||
-       (_PREFERENCE_THREADING !== :kernelabstractions &&
-        get_backend(x) isa KernelAbstractions.CPU)
+    # TODO: https://github.com/trixi-framework/Trixi.jl/pull/2417
+    if (_PREFERENCE_POLYESTER && LoopVectorization.check_args(x)) ||
+       (_PREFERENCE_USE_NATIVE_THREADING && get_backend(x) isa KernelAbstractions.CPU)
         return nothing
     end
     return get_backend(x)
 end
 
-# TODO: After https://github.com/SciML/RecursiveArrayTools.jl/pull/455 we need to investigate the right way to handle StaticArray as uEltype for MultiDG.
-function trixi_backend(x::VectorOfArray)
-    u = parent(x)
-    # FIXME(vchuravy): This is a workaround because KA.get_backend is ambivalent of where a SArray is residing.
-    if eltype(u) <: StaticArrays.StaticArray
-        return nothing
-    end
-    if length(u) == 0
-        error("VectorOfArray is empty, cannot determine backend.")
-    end
-    # Use the backend of the first element in the parent array
-    return get_backend(u[1])
+function KernelAbstractions.get_backend(::StaticArrays.StaticArraysCore.SVector)
+    return nothing
 end
 
 # For some storage backends like CUDA.jl, empty arrays do seem to simply be
@@ -397,46 +387,46 @@ function unsafe_wrap_or_alloc(to, vector, size)
     end
 end
 
-struct TrixiAdaptor{Storage, RealT} end
+struct TrixiAdaptor{Storage, Real} end
 
 """
-    trixi_adapt(Storage, RealT, x)
+    trixi_adapt(storage, real, x)
 
-Adapt `x` to the storage type `Storage` and real type `RealT`.
+Adapt `x` to the storage type `Storage` and real type `Real`.
 """
-function trixi_adapt(Storage, RealT, x)
-    adapt(TrixiAdaptor{Storage, RealT}(), x)
+function trixi_adapt(storage, real, x)
+    adapt(TrixiAdaptor{storage, real}(), x)
 end
 
 # Custom rules
 # 1. handling of StaticArrays
-function Adapt.adapt_storage(::TrixiAdaptor{<:Any, RealT},
-                             x::StaticArrays.StaticArray) where {RealT}
-    StaticArrays.similar_type(x, RealT)(x)
+function Adapt.adapt_storage(::TrixiAdaptor{<:Any, Real},
+                             x::StaticArrays.StaticArray{S, T, N}) where {Real, S, T, N}
+    StaticArrays.similar_type(x, Real)(x)
 end
 
 # 2. Handling of Arrays
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
-                             x::AbstractArray{T}) where {Storage, RealT,
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
+                             x::AbstractArray{T}) where {Storage, Real,
                                                          T <: AbstractFloat}
-    adapt(Storage{RealT}, x)
+    adapt(Storage{Real}, x)
 end
 
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
-                             x::AbstractArray{T}) where {Storage, RealT,
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
+                             x::AbstractArray{T}) where {Storage, Real,
                                                          T <: StaticArrays.StaticArray}
-    adapt(Storage{StaticArrays.similar_type(T, RealT)}, x)
+    adapt(Storage{StaticArrays.similar_type(T, Real)}, x)
 end
 
 # Our threaded cache contains MArray, it is unlikely that we would want to adapt those
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
-                             x::Array{T}) where {Storage, RealT,
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
+                             x::Array{T}) where {Storage, Real,
                                                  T <: StaticArrays.MArray}
-    adapt(Array{StaticArrays.similar_type(T, RealT)}, x)
+    adapt(Array{StaticArrays.similar_type(T, Real)}, x)
 end
 
-function Adapt.adapt_storage(::TrixiAdaptor{Storage, RealT},
-                             x::AbstractArray) where {Storage, RealT}
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
+                             x::AbstractArray) where {Storage, Real}
     adapt(Storage, x)
 end
 

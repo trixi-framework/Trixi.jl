@@ -103,7 +103,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
             storage_type = Array
         end
         if real_type === nothing
-            real_type = real(semi)
+            real_type = Float64
         end
         semi = trixi_adapt(storage_type, real_type, semi)
         if eltype(tspan) !== real_type

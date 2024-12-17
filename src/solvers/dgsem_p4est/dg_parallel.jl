@@ -5,13 +5,12 @@
 @muladd begin
 #! format: noindent
 
-mutable struct P4estMPICache{BufferType <: DenseVector,
-                             VecInt <: DenseVector{<:Integer}}
+mutable struct P4estMPICache{uEltype}
     mpi_neighbor_ranks::Vector{Int}
-    mpi_neighbor_interfaces::VecOfArrays{VecInt}
-    mpi_neighbor_mortars::VecOfArrays{VecInt}
-    mpi_send_buffers::VecOfArrays{BufferType}
-    mpi_recv_buffers::VecOfArrays{BufferType}
+    mpi_neighbor_interfaces::VectorOfArray{Int, 2, Vector{Vector{Int}}}
+    mpi_neighbor_mortars::VectorOfArray{Int, 2, Vector{Vector{Int}}}
+    mpi_send_buffers::VectorOfArray{uEltype, 2, Vector{Vector{uEltype}}}
+    mpi_recv_buffers::VectorOfArray{uEltype, 2, Vector{Vector{uEltype}}}
     mpi_send_requests::Vector{MPI.Request}
     mpi_recv_requests::Vector{MPI.Request}
     n_elements_by_rank::OffsetArray{Int, 1, Array{Int, 1}}
@@ -26,29 +25,26 @@ function P4estMPICache(uEltype)
     end
 
     mpi_neighbor_ranks = Vector{Int}(undef, 0)
-    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, 0) |> VecOfArrays
-    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, 0) |> VecOfArrays
-    mpi_send_buffers = Vector{Vector{uEltype}}(undef, 0) |> VecOfArrays
-    mpi_recv_buffers = Vector{Vector{uEltype}}(undef, 0) |> VecOfArrays
+    mpi_neighbor_interfaces = VectorOfArray(Vector{Vector{Int}}(undef, 0))
+    mpi_neighbor_mortars = VectorOfArray(Vector{Vector{Int}}(undef, 0))
+    mpi_send_buffers = VectorOfArray(Vector{Vector{uEltype}}(undef, 0))
+    mpi_recv_buffers = VectorOfArray(Vector{Vector{uEltype}}(undef, 0))
     mpi_send_requests = Vector{MPI.Request}(undef, 0)
     mpi_recv_requests = Vector{MPI.Request}(undef, 0)
     n_elements_by_rank = OffsetArray(Vector{Int}(undef, 0), 0:-1)
     n_elements_global = 0
     first_element_global_id = 0
 
-    P4estMPICache{Vector{uEltype}, Vector{Int}}(mpi_neighbor_ranks,
-                                                mpi_neighbor_interfaces,
-                                                mpi_neighbor_mortars,
-                                                mpi_send_buffers, mpi_recv_buffers,
-                                                mpi_send_requests, mpi_recv_requests,
-                                                n_elements_by_rank, n_elements_global,
-                                                first_element_global_id)
+    P4estMPICache{uEltype}(mpi_neighbor_ranks,
+                           mpi_neighbor_interfaces,
+                           mpi_neighbor_mortars,
+                           mpi_send_buffers, mpi_recv_buffers,
+                           mpi_send_requests, mpi_recv_requests,
+                           n_elements_by_rank, n_elements_global,
+                           first_element_global_id)
 end
 
-@inline Base.eltype(::P4estMPICache{BufferType}) where {BufferType} = eltype(BufferType)
-
-# @eval due to @muladd
-@eval Adapt.@adapt_structure(P4estMPICache)
+@inline Base.eltype(::P4estMPICache{uEltype}) where {uEltype} = uEltype
 
 ##
 # Note that the code in `start_mpi_send`/`finish_mpi_receive!` is sensitive to inference on (at least) Julia 1.10.
@@ -65,9 +61,9 @@ function start_mpi_send!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
     n_small_elements = 2^(ndims(mesh) - 1)
 
     for rank in 1:length(mpi_cache.mpi_neighbor_ranks)
-        send_buffer = mpi_cache.mpi_send_buffers[rank]
+        send_buffer = mpi_cache.mpi_send_buffers.u[rank]
 
-        for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[rank])
+        for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces.u[rank])
             first = (index - 1) * data_size + 1
             last = (index - 1) * data_size + data_size
             local_side = cache.mpi_interfaces.local_sides[interface]
@@ -77,15 +73,15 @@ function start_mpi_send!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
 
         # Set send_buffer corresponding to mortar data to NaN and overwrite the parts where local
         # data exists
-        interfaces_data_size = length(mpi_cache.mpi_neighbor_interfaces[rank]) *
+        interfaces_data_size = length(mpi_cache.mpi_neighbor_interfaces.u[rank]) *
                                data_size
-        mortars_data_size = length(mpi_cache.mpi_neighbor_mortars[rank]) *
+        mortars_data_size = length(mpi_cache.mpi_neighbor_mortars.u[rank]) *
                             n_small_elements * 2 * data_size
         # `NaN |> eltype(...)` ensures that the NaN's are of the appropriate floating point type
         send_buffer[(interfaces_data_size + 1):(interfaces_data_size + mortars_data_size)] .= NaN |>
                                                                                               eltype(mpi_cache)
 
-        for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[rank])
+        for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars.u[rank])
             index_base = interfaces_data_size +
                          (index - 1) * n_small_elements * 2 * data_size
             indices = buffer_mortar_indices(mesh, index_base, data_size)
@@ -108,7 +104,7 @@ function start_mpi_send!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
 
     # Start sending
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
-        mpi_cache.mpi_send_requests[index] = MPI.Isend(mpi_cache.mpi_send_buffers[index],
+        mpi_cache.mpi_send_requests[index] = MPI.Isend(mpi_cache.mpi_send_buffers.u[index],
                                                        rank, mpi_rank(), mpi_comm())
     end
 
@@ -117,7 +113,7 @@ end
 
 function start_mpi_receive!(mpi_cache::P4estMPICache)
     for (index, rank) in enumerate(mpi_cache.mpi_neighbor_ranks)
-        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers[index],
+        mpi_cache.mpi_recv_requests[index] = MPI.Irecv!(mpi_cache.mpi_recv_buffers.u[index],
                                                         rank, rank, mpi_comm())
     end
 
@@ -136,9 +132,9 @@ function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cach
     # Start receiving and unpack received data until all communication is finished
     data = MPI.Waitany(mpi_cache.mpi_recv_requests)
     while data !== nothing
-        recv_buffer = mpi_cache.mpi_recv_buffers[data]
+        recv_buffer = mpi_cache.mpi_recv_buffers.u[data]
 
-        for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces[data])
+        for (index, interface) in enumerate(mpi_cache.mpi_neighbor_interfaces.u[data])
             first = (index - 1) * data_size + 1
             last = (index - 1) * data_size + data_size
 
@@ -149,9 +145,9 @@ function finish_mpi_receive!(mpi_cache::P4estMPICache, mesh, equations, dg, cach
             end
         end
 
-        interfaces_data_size = length(mpi_cache.mpi_neighbor_interfaces[data]) *
+        interfaces_data_size = length(mpi_cache.mpi_neighbor_interfaces.u[data]) *
                                data_size
-        for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars[data])
+        for (index, mortar) in enumerate(mpi_cache.mpi_neighbor_mortars.u[data])
             index_base = interfaces_data_size +
                          (index - 1) * n_small_elements * 2 * data_size
             indices = buffer_mortar_indices(mesh, index_base, data_size)
@@ -270,16 +266,16 @@ end
 
 function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
                          mpi_interfaces, mpi_mortars, nvars, n_nodes, uEltype)
-    mpi_neighbor_ranks, _mpi_neighbor_interfaces, _mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_interfaces,
-                                                                                                         mpi_mortars,
-                                                                                                         mesh)
+    mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars = init_mpi_neighbor_connectivity(mpi_interfaces,
+                                                                                                       mpi_mortars,
+                                                                                                       mesh)
 
-    _mpi_send_buffers, _mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(_mpi_neighbor_interfaces,
-                                                                                                          _mpi_neighbor_mortars,
-                                                                                                          ndims(mesh),
-                                                                                                          nvars,
-                                                                                                          n_nodes,
-                                                                                                          uEltype)
+    mpi_send_buffers, mpi_recv_buffers, mpi_send_requests, mpi_recv_requests = init_mpi_data_structures(mpi_neighbor_interfaces,
+                                                                                                        mpi_neighbor_mortars,
+                                                                                                        ndims(mesh),
+                                                                                                        nvars,
+                                                                                                        n_nodes,
+                                                                                                        uEltype)
 
     # Determine local and total number of elements
     n_elements_global = Int(mesh.p4est.global_num_quadrants[])
@@ -290,11 +286,6 @@ function init_mpi_cache!(mpi_cache::P4estMPICache, mesh::ParallelP4estMesh,
     # Account for 1-based indexing in Julia
     first_element_global_id = Int(mesh.p4est.global_first_quadrant[mpi_rank() + 1]) + 1
     @assert n_elements_global==sum(n_elements_by_rank) "error in total number of elements"
-
-    mpi_neighbor_interfaces = VecOfArrays(_mpi_neighbor_interfaces)
-    mpi_neighbor_mortars = VecOfArrays(_mpi_neighbor_mortars)
-    mpi_send_buffers = VecOfArrays(_mpi_send_buffers)
-    mpi_recv_buffers = VecOfArrays(_mpi_recv_buffers)
 
     # TODO reuse existing structures
     @pack! mpi_cache = mpi_neighbor_ranks, mpi_neighbor_interfaces,
@@ -331,17 +322,19 @@ function init_mpi_neighbor_connectivity(mpi_interfaces, mpi_mortars,
     mortar_ids = collect(1:nmpimortars(mpi_mortars))[p]
 
     # For each neighbor rank, init connectivity data structures
-    mpi_neighbor_interfaces = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
-    mpi_neighbor_mortars = Vector{Vector{Int}}(undef, length(mpi_neighbor_ranks))
+    mpi_neighbor_interfaces = VectorOfArray(Vector{Vector{Int}}(undef,
+                                                                length(mpi_neighbor_ranks)))
+    mpi_neighbor_mortars = VectorOfArray(Vector{Vector{Int}}(undef,
+                                                             length(mpi_neighbor_ranks)))
     for (index, rank) in enumerate(mpi_neighbor_ranks)
-        mpi_neighbor_interfaces[index] = interface_ids[findall(==(rank),
-                                                               neighbor_ranks_interface)]
-        mpi_neighbor_mortars[index] = mortar_ids[findall(x -> (rank in x),
-                                                         neighbor_ranks_mortar)]
+        mpi_neighbor_interfaces.u[index] = interface_ids[findall(==(rank),
+                                                                 neighbor_ranks_interface)]
+        mpi_neighbor_mortars.u[index] = mortar_ids[findall(x -> (rank in x),
+                                                           neighbor_ranks_mortar)]
     end
 
     # Check that all interfaces were counted exactly once
-    @assert mapreduce(length, +, mpi_neighbor_interfaces; init = 0) ==
+    @assert mapreduce(length, +, mpi_neighbor_interfaces.u; init = 0) ==
             nmpiinterfaces(mpi_interfaces)
 
     return mpi_neighbor_ranks, mpi_neighbor_interfaces, mpi_neighbor_mortars
@@ -525,26 +518,26 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache,
     data_size = n_nodes^(n_dims - 1) * n_dims
 
     # Create buffers and requests
-    send_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_mortars))
-    recv_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_mortars))
-    for index in 1:length(mpi_neighbor_mortars)
+    send_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_mortars.u))
+    recv_buffers = Vector{Vector{RealT}}(undef, length(mpi_neighbor_mortars.u))
+    for index in 1:length(mpi_neighbor_mortars.u)
         send_buffers[index] = Vector{RealT}(undef,
-                                            length(mpi_neighbor_mortars[index]) *
+                                            length(mpi_neighbor_mortars.u[index]) *
                                             n_small_elements * data_size)
         send_buffers[index] .= NaN |> RealT
         recv_buffers[index] = Vector{RealT}(undef,
-                                            length(mpi_neighbor_mortars[index]) *
+                                            length(mpi_neighbor_mortars.u[index]) *
                                             n_small_elements * data_size)
         recv_buffers[index] .= NaN |> RealT
     end
-    send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_mortars))
-    recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_mortars))
+    send_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_mortars.u))
+    recv_requests = Vector{MPI.Request}(undef, length(mpi_neighbor_mortars.u))
 
     # Fill send buffers
     for rank in 1:length(mpi_neighbor_ranks)
         send_buffer = send_buffers[rank]
 
-        for (index, mortar) in enumerate(mpi_neighbor_mortars[rank])
+        for (index, mortar) in enumerate(mpi_neighbor_mortars.u[rank])
             index_base = (index - 1) * n_small_elements * data_size
             indices = buffer_mortar_indices(mesh, index_base, data_size)
             for position in mpi_mortars.local_neighbor_positions[mortar]
@@ -571,7 +564,7 @@ function exchange_normal_directions!(mpi_mortars, mpi_cache,
     while data !== nothing
         recv_buffer = recv_buffers[data]
 
-        for (index, mortar) in enumerate(mpi_neighbor_mortars[data])
+        for (index, mortar) in enumerate(mpi_neighbor_mortars.u[data])
             index_base = (index - 1) * n_small_elements * data_size
             indices = buffer_mortar_indices(mesh, index_base, data_size)
             for position in 1:n_small_elements

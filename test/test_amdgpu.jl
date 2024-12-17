@@ -1,4 +1,4 @@
-module TestCUDA
+module TestAMDGPU
 
 using Test
 using Trixi
@@ -16,8 +16,8 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=8.311947673061856e-6,
                         linf=6.627000273229378e-5,)
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
+    # # Ensure that we do not have excessive memory allocations
+    # # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
@@ -39,17 +39,17 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
     @test Trixi.storage_type(ode.p.cache.mortars) === Array
 end
 
-@trixi_testset "elixir_advection_basic_gpu.jl Float32 / CUDA" begin
-    # Using CUDA inside the testset since otherwise the bindings are hiddend by the anonymous modules
-    using CUDA
+@trixi_testset "elixir_advection_basic_gpu.jl Float32 / AMDGPU" begin
+    # Using AMDGPU inside the testset since otherwise the bindings are hiddend by the anonymous modules
+    using AMDGPU
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic_gpu.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=nothing,   # [Float32(8.311947673061856e-6)],
                         linf=nothing, # [Float32(6.627000273229378e-5)],
                         RealT=Float32,
                         real_type=Float32,
-                        storage_type=CuArray,
-                        sol=nothing,) # TODO: Remove this once we can run the simulation on the GPU
+                        storage_type=ROCArray,
+                        sol=nothing,) # TODO: Remove this once we can run the simulation on the GPU 
     # # Ensure that we do not have excessive memory allocations
     # # (e.g., from type instabilities)
     # let
@@ -64,13 +64,13 @@ end
     # TODO: remake ignores the mesh itself as well
     @test real(ode.p.mesh) == Float64
 
-    @test ode.u0 isa CuArray
-    @test ode.p.solver.basis.derivative_matrix isa CuArray
+    @test ode.u0 isa ROCArray
+    @test ode.p.solver.basis.derivative_matrix isa ROCArray
 
-    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
-    @test Trixi.storage_type(ode.p.cache.interfaces) === CuArray
-    @test Trixi.storage_type(ode.p.cache.boundaries) === CuArray
-    @test Trixi.storage_type(ode.p.cache.mortars) === CuArray
+    @test Trixi.storage_type(ode.p.cache.elements) === ROCArray
+    @test Trixi.storage_type(ode.p.cache.interfaces) === ROCArray
+    @test Trixi.storage_type(ode.p.cache.boundaries) === ROCArray
+    @test Trixi.storage_type(ode.p.cache.mortars) === ROCArray
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

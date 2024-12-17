@@ -82,7 +82,7 @@ CuArray
 
 ## Element-type conversion with `Trixi.trixi_adapt`.
 
-We can use [`Trixi.trixi_adapt`](@ref) to perform both an element-type and a storage-type adoption:
+We can use [`Trixi.trixi_adapt`](@ref) to perform both an element-type and a storage-type adoption
 
 ```jldoctest adapt
 julia> C = Container(zeros(3))
@@ -98,8 +98,7 @@ Container{CuArray{Float32, 1, CUDA.DeviceMemory}}(Float32[0.0, 0.0, 0.0])
 ```
 
 !!! note
-    `adapt(Array{Float32}, C)` is tempting, but it will do the wrong thing
-    in the presence of `SVector`s and similar arrays from StaticArrays.jl.
+    `adapt(Array{Float32}, C)` is tempting but will do the wrong thing in the presence of `StaticArrays`.
 
 
 ## Writing GPU kernels
@@ -124,11 +123,10 @@ end
     `element`, pass all required fields as arguments, but make sure to `@unpack` them from
     their structs in advance.
 
-2.  Where `trixi_rhs_fct` is called, get the backend, i.e., the hardware we are currently
+2.  Where `trixi_rhs_fct` is called, get the backend, i.e. the hardware we are currently
     running on via `trixi_backend(x)`.
-    This will, e.g., work with `u_ode`. Internally, KernelAbstractions.jl's `get_backend`
-    will be called, i.e., KernelAbstractions.jl has to know the type of `x`.
-
+    This will, e.g., work with `u_ode`. Internally, `KernelAbstractions.jl`'s `get_backend`
+    will be called, i.e. `KernelAbstractions.jl` has to know the type of `x`.
     ```julia
     backend = trixi_backend(u_ode)
     ```
@@ -144,8 +142,8 @@ end
     end
     ```
 
-4.  When `backend` is a `Backend` (a type defined by KernelAbstractions.jl), write a
-    KernelAbstractions.jl kernel:
+4.  When `backend` is a `Backend` (a type defined by `KernelAbstractions.jl`), write a
+    `KernelAbstractions.jl` kernel:
     ```julia
     function trixi_rhs_fct(backend::Backend, mesh, equations, solver, cache, args)
         nelements(solver, cache) == 0 && return nothing  # return early when there are no elements
