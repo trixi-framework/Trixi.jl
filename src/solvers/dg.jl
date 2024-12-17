@@ -400,6 +400,9 @@ struct DG{Basis, Mortar, SurfaceIntegral, VolumeIntegral}
     volume_integral::VolumeIntegral
 end
 
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(DG)
+
 function Base.show(io::IO, dg::DG)
     @nospecialize dg # reduce precompilation time
 
