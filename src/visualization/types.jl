@@ -59,6 +59,42 @@ end
 Base.eltype(pd::AbstractPlotData) = Pair{String, PlotDataSeries{typeof(pd)}}
 
 """
+    PlotData3D
+
+Holds all relevant data for creating 3D plots of multiple solution variables and to visualize the
+mesh.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+"""
+struct PlotData3DCartesian{Coordinates, Data, VariableNames, Vertices} <:
+       AbstractPlotData{3}
+    x::Coordinates
+    y::Coordinates
+    z::Coordinates
+    data::Data
+    variable_names::VariableNames
+    mesh_vertices_x::Vertices
+    mesh_vertices_y::Vertices
+    mesh_vertices_z::Vertices
+    orientation_x::Int
+    orientation_y::Int
+    orientation_z::Int
+end
+
+# Show only a truncated output for convenience (the full data does not make sense)
+function Base.show(io::IO, pd::PlotData3DCartesian)
+    @nospecialize pd # reduce precompilation time
+
+    print(io, "PlotData3DCartesian{",
+          typeof(pd.x), ",",
+          typeof(pd.data), ",",
+          typeof(pd.variable_names), ",",
+          typeof(pd.mesh_vertices_x),
+          "}(<x>, <y>, <z>, <data>, <variable_names>, <mesh_vertices_x>, <mesh_vertices_y>, <mesh_vertices_z>)")
+end
+
+"""
     PlotData2D
 
 Holds all relevant data for creating 2D plots of multiple solution variables and to visualize the
@@ -182,6 +218,103 @@ Extract grid lines from `pd` for plotting with `Plots.plot`.
     This is an experimental feature and may change in future releases.
 """
 getmesh(pd::AbstractPlotData) = PlotMesh(pd)
+
+"""
+    PlotData3D(u, semi [or mesh, equations, solver, cache];
+               solution_variables=nothing,
+               grid_lines=true, max_supported_level=11, nvisnodes=nothing,
+               slice=:xy, point=(0.0, 0.0, 0.0))
+
+Create a new `PlotData3D` object that can be used for visualizing 2D/3D DGSEM solution data array
+`u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
+`semi`. By default, the primitive variables (if existent) or the conservative variables (otherwise)
+from the solution are used for plotting. This can be changed by passing an appropriate conversion
+function to `solution_variables`.
+
+If `grid_lines` is `true`, also extract grid vertices for visualizing the mesh. The output
+resolution is indirectly set via `max_supported_level`: all data is interpolated to
+`2^max_supported_level` uniformly distributed points in each spatial direction, also setting the
+maximum allowed refinement level in the solution. `nvisnodes` specifies the number of visualization
+nodes to be used. If it is `nothing`, twice the number of solution DG nodes are used for
+visualization, and if set to `0`, exactly the number of nodes in the DG elements are used.
+
+When visualizing data from a three-dimensional simulation, a 2D slice is extracted for plotting.
+`slice` specifies the plane that is being sliced and may be `:xy`, `:xz`, or `:yz`.
+The slice position is specified by a `point` that lies on it, which defaults to `(0.0, 0.0, 0.0)`.
+Both of these values are ignored when visualizing 2D data.
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in future releases.
+
+# Examples
+```julia
+julia> using Trixi, Plots
+
+julia> trixi_include(default_example())
+[...]
+
+julia> pd = PlotData3D(sol)
+PlotData3D(...)
+
+julia> plot(pd) # To plot all available variables
+
+julia> plot(pd["scalar"]) # To plot only a single variable
+
+julia> plot!(getmesh(pd)) # To add grid lines to the plot
+```
+"""
+
+function PlotData3D(sol::TrixiODESolution; kwargs...)
+    PlotData3D(sol.u[end], sol.prob.p; kwargs...)
+end
+
+function PlotData3D(u_ode, semi; kwargs...)
+    PlotData3D(wrap_array_native(u_ode, semi),
+               mesh_equations_solver_cache(semi)...;
+               kwargs...)
+end
+
+# Create a PlotData3DCartesian object for TreeMeshes on default.
+function PlotData3D(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
+    PlotData3DCartesian(u, mesh::TreeMesh, equations, solver, cache; kwargs...)
+end
+
+# Create a PlotData3DCartesian for a TreeMesh.
+function PlotData3DCartesian(u, mesh::TreeMesh, equations, solver, cache;
+                             solution_variables = nothing,
+                             grid_lines = true, max_supported_level = 11,
+                             nvisnodes = nothing)
+    @assert ndims(mesh)==3 "unsupported number of dimensions $ndims (must be 3)"
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
+
+    # Extract mesh info
+    center_level_0 = mesh.tree.center_level_0
+    length_level_0 = mesh.tree.length_level_0
+    leaf_cell_ids = leaf_cells(mesh.tree)
+    coordinates = mesh.tree.coordinates[:, leaf_cell_ids]
+    levels = mesh.tree.levels[leaf_cell_ids]
+
+    unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
+                                              solver, cache)
+    x, y, z, data, mesh_vertices_x, mesh_vertices_y, mesh_vertices_z = get_data_3d(center_level_0,
+                                                                                   length_level_0,
+                                                                                   coordinates,
+                                                                                   levels,
+                                                                                   unstructured_data,
+                                                                                   nnodes(solver),
+                                                                                   grid_lines,
+                                                                                   max_supported_level,
+                                                                                   nvisnodes)
+    variable_names = SVector(varnames(solution_variables_, equations))
+
+    orientation_x = 1
+    orientation_y = 2
+    orientation_z = 3
+
+    return PlotData3DCartesian(x, y, z, data, variable_names, mesh_vertices_x,
+                               mesh_vertices_y, mesh_vertices_z,
+                               orientation_x, orientation_y, orientation_z)
+end
 
 """
     PlotData2D(u, semi [or mesh, equations, solver, cache];
