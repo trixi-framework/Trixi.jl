@@ -1,7 +1,7 @@
 # The same setup as tree_2d_dgsem/elixir_advection_basic.jl
 # to verify the StructuredMesh implementation against TreeMesh
 
-using OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -54,7 +54,10 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 ###############################################################################
 # run the simulation
 
-# OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            ode_default_options()..., callback = callbacks);
+# TODO: Currently we can only construct the ODE problem on the GPU, but we cannot solve it on the GPU yet.
+#       Uncomment the calls below to discover missing functionality.
+
+# # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
+# sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+#             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+#             ode_default_options()..., callback = callbacks);
