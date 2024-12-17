@@ -10,9 +10,9 @@ c_inf = 1.0
 rho_inf = 1.4 # with gamma = 1.4 => p_inf = 1.0
 
 Re = 10000.0
-airfoil_cord_length = 1.0
+wall_cord_length = 1.0
 
-t_c = airfoil_cord_length / U_inf
+t_c = wall_cord_length / U_inf
 
 aoa = 4 * pi / 180
 u_x = U_inf * cos(aoa)
@@ -20,10 +20,10 @@ u_y = U_inf * sin(aoa)
 
 gamma = 1.4
 prandtl_number() = 0.72
-mu() = rho_inf * U_inf * airfoil_cord_length / Re
+mu() = rho_inf * U_inf * wall_cord_length / Re
 
-equations = CompressibleEulerEquations2D(gamma)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
+equations = CompressibleEulerEquations3D(gamma)
+equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
@@ -33,10 +33,11 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
 
     v1 = 0.19951281005196486 # 0.2 * cos(aoa)
     v2 = 0.01395129474882506 # 0.2 * sin(aoa)
+    v3 = 0.0
 
     p_freestream = 1.0
 
-    prim = SVector(rho_freestream, v1, v2, p_freestream)
+    prim = SVector(rho_freestream, v1, v2, v3, p_freestream)
     return prim2cons(prim, equations)
 end
 
@@ -45,9 +46,9 @@ initial_condition = initial_condition_mach02_flow
 # Boundary conditions for free-stream testing
 boundary_condition_free_stream = BoundaryConditionDirichlet(initial_condition)
 
-velocity_bc_airfoil = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
+velocity_bc_wall = NoSlip((x, t, equations) -> SVector(0.0, 0.0, 0.0))
 heat_bc = Adiabatic((x, t, equations) -> 0.0)
-boundary_condition_airfoil = BoundaryConditionNavierStokesWall(velocity_bc_airfoil, heat_bc)
+boundary_condition_wall = BoundaryConditionNavierStokesWall(velocity_bc_wall, heat_bc)
 
 polydeg = 3
 
@@ -61,21 +62,34 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surf_flux,
 
 #path = "/storage/home/daniel/PERK4/SD7003/"
 
-path = "/home/daniel/ownCloud - Döhring, Daniel (1MH1D4@rwth-aachen.de)@rwth-aachen.sciebo.de/Job/Doktorand/Content/Meshes/PERK_mesh/SD7003Laminar/"
+path = "/home/daniel/ownCloud - Döhring, Daniel (1MH1D4@rwth-aachen.de)@rwth-aachen.sciebo.de/Job/Doktorand/Content/Meshes/PERK_mesh/SD7003Turbulent/"
+mesh_file = path * "sd7003_turbulent.inp"
 
-#mesh_file = path * "sd7003_laminar_straight_sided_Trixi.inp"
-#mesh_file = path * "sd7003_laminar.inp"
+boundary_symbols = [:wall, :rieminv]
 
-boundary_symbols = [:Airfoil, :FarField]
+mesh = P4estMesh{3}(mesh_file, boundary_symbols = boundary_symbols)
 
-mesh = P4estMesh{2}(mesh_file, boundary_symbols = boundary_symbols,
-                    initial_refinement_level = 0)
+boundary_conditions = Dict(:rieminv => boundary_condition_free_stream,
+                           :wall => boundary_condition_slip_wall)
 
-boundary_conditions = Dict(:FarField => boundary_condition_free_stream,
-                           :Airfoil => boundary_condition_slip_wall)
+velocity_bc = NoSlip() do x, t, equations_parabolic
+    Trixi.velocity(initial_condition_mach02_flow(x,
+                                                   t,
+                                                   equations_parabolic),
+                   equations_parabolic)
+end
 
-boundary_conditions_parabolic = Dict(:FarField => boundary_condition_free_stream,
-                                     :Airfoil => boundary_condition_airfoil)
+heat_bc = Isothermal() do x, t, equations_parabolic
+    Trixi.temperature(initial_condition_mach02_flow(x,
+                                                      t,
+                                                      equations_parabolic),
+                      equations_parabolic)
+end
+
+boundary_condition_rieminv = BoundaryConditionNavierStokesWall(velocity_bc, heat_bc)
+
+boundary_conditions_parabolic = Dict(:rieminv => boundary_condition_rieminv,
+                                     :wall => boundary_condition_wall)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
@@ -85,8 +99,8 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.005 * t_c) # Try to get into a state where initial pressure wave is gone
-tspan = (0.0, 30 * t_c) # Try to get into a state where initial pressure wave is gone
+tspan = (0.0, 0.0 * t_c) # Try to get into a state where initial pressure wave is gone
+#tspan = (0.0, 30 * t_c) # Try to get into a state where initial pressure wave is gone
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -97,19 +111,19 @@ analysis_interval = 25 # PERK4_Multi, PERKSingle
 f_aoa() = aoa
 f_rho_inf() = rho_inf
 f_U_inf() = U_inf
-f_linf() = airfoil_cord_length
+f_linf() = wall_cord_length
 
-drag_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
+drag_coefficient = AnalysisSurfaceIntegral((:wall,),
                                            DragCoefficientPressure(f_aoa(), f_rho_inf(),
                                                                    f_U_inf(), f_linf()))
 
-drag_coefficient_shear_force = AnalysisSurfaceIntegral((:Airfoil,),
+drag_coefficient_shear_force = AnalysisSurfaceIntegral((:wall,),
                                                        DragCoefficientShearStress(f_aoa(),
                                                                                   f_rho_inf(),
                                                                                   f_U_inf(),
                                                                                   f_linf()))
 
-lift_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
+lift_coefficient = AnalysisSurfaceIntegral((:wall,),
                                            LiftCoefficientPressure(f_aoa(), f_rho_inf(),
                                                                    f_U_inf(), f_linf()))
 

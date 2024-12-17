@@ -745,7 +745,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                                             quadratic_hexes,
                                                                             elements_begin_idx,
                                                                             sets_begin_idx)
-
+    mesh_polydeg = 1 # TODO: Only for testing
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile_p4est_rdy, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
@@ -1872,7 +1872,6 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
 end
 
 # Version for quadratic 2D elements, i.e., second-order quads.
-# TODO: 3D version
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                                      element_lines, nodes, vertices, RealT,
                                      linear_quads, mesh_nodes)
@@ -2088,6 +2087,150 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     end
 
     return file_idx
+end
+
+# TODO: 3D version
+function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
+                                     element_lines, nodes, vertices, RealT,
+                                     linear_hexes, mesh_nodes)
+    nnodes = length(nodes)
+
+    # Create a work set of Gamma curves to create the node coordinates
+    CurvedFaceT = CurvedFace{RealT}
+    face_curves = Array{CurvedFaceT}(undef, 6)
+
+    # Create other work arrays to perform the mesh construction
+    element_node_ids = Array{Int}(undef, 8)
+    hex_vertices = Array{RealT}(undef, (3, 8))
+    curve_values = Array{RealT}(undef, (3, nnodes, nnodes))
+
+    # Create the barycentric weights used for the surface interpolations
+    bary_weights_ = barycentric_weights(nodes)
+    bary_weights = SVector{nnodes}(bary_weights_)
+
+    element_set_order = 1
+    tree = 0
+    for line_idx in 1:length(element_lines)
+        line = element_lines[line_idx]
+
+        # Check if a new element type/element set is defined
+        if startswith(line, "*ELEMENT")
+            # Retrieve element type
+            current_element_type = match(r"\*ELEMENT, type=([^,]+)", line).captures[1]
+
+            # Check if these are linear elements
+            if occursin(linear_hexes, current_element_type)
+                element_set_order = 1
+            else
+                element_set_order = 2
+            end
+        else # Element data
+            tree += 1
+
+            # Pull the vertex node IDs
+            line_split = split(line, r",\s+")
+            element_nodes = parse.(Int, line_split)
+
+            if element_set_order == 1
+                element_node_ids[1] = element_nodes[2]
+                element_node_ids[2] = element_nodes[3]
+                element_node_ids[3] = element_nodes[4]
+                element_node_ids[4] = element_nodes[5]
+                element_node_ids[5] = element_nodes[6]
+                element_node_ids[6] = element_nodes[7]
+                element_node_ids[7] = element_nodes[8]
+                element_node_ids[8] = element_nodes[9]
+
+                # Create the node coordinates on this particular element
+                # Pull the (x,y, z) values of the four vertices of the current tree out of the global vertices array
+                for i in 1:8
+                    hex_vertices[i, :] .= vertices[:, element_node_ids[i]] # 3D => 1:3 = :
+                end
+                calc_node_coordinates!(node_coordinates, tree, nodes, quad_vertices)
+            else # element_set_order == 2
+                for face in 1:6
+                    # The second-order face has the following node distribution:
+                    #    NW    N     NE
+                    #    *-----*-----*
+                    #    |           |
+                    #    |           |  
+                    #  W *           * E
+                    #    |           |  
+                    #    |           |
+                    #    *-----*-----*
+                    #    SW    S     SE
+
+                    # TODO: Care for special cases!
+                    node1 = element_nodes[face + 1]  # "SW" node
+                    node2 = element_nodes[face + 8]  # "S"  node
+                    node3 = element_nodes[face + 2]  # "SE" node
+                    node4 = element_nodes[face + 18] # "E"  node
+                    node5 = element_nodes[face + 6]  # "NE" node
+                    node6 = element_nodes[face + 12] # "N"  node
+                    node7 = element_nodes[face + 5]  # "NW" node
+                    node8 = element_nodes[face + 17] # "W"  node
+
+                    #node3 = edge == 4 ? element_nodes[2] : element_nodes[edge + 2] # "Right" node
+
+                    node1_coords = mesh_nodes[node1]
+                    node2_coords = mesh_nodes[node2]
+                    node3_coords = mesh_nodes[node3]
+
+                    # The nodes for an Abaqus element are labeled following a closed path 
+                    # around the element:
+                    #
+                    #            <----
+                    #        *-----*-----*
+                    #        |           |
+                    #     |  |           |  ^
+                    #     |  *           *  |
+                    #     v  |           |  |
+                    #        |           |
+                    #        *-----*-----*
+                    #            ---->
+                    # `curve_values`, however, requires to sort the nodes into a 
+                    # valid coordinate system, 
+                    # 
+                    #        *-----*-----*
+                    #        |           |
+                    #        |           |
+                    #        *           *
+                    #        |           |
+                    #  ^ η   |           |
+                    #  |     *-----*-----*
+                    #  |----> ξ
+                    # thus we need to flip the node order for the second xi and eta edges met.
+
+                    if edge in [1, 2]
+                        curve_values[1, 1] = node1_coords[1]
+                        curve_values[1, 2] = node1_coords[2]
+
+                        curve_values[2, 1] = node2_coords[1]
+                        curve_values[2, 2] = node2_coords[2]
+
+                        curve_values[3, 1] = node3_coords[1]
+                        curve_values[3, 2] = node3_coords[2]
+                    else # Flip "left" and "right" nodes
+                        curve_values[1, 1] = node3_coords[1]
+                        curve_values[1, 2] = node3_coords[2]
+
+                        curve_values[2, 1] = node2_coords[1]
+                        curve_values[2, 2] = node2_coords[2]
+
+                        curve_values[3, 1] = node1_coords[1]
+                        curve_values[3, 2] = node1_coords[2]
+                    end
+
+                    # Construct the curve interpolant for the current side
+                    surface_curves[edge] = CurvedSurfaceT(nodes, bary_weights,
+                                                          copy(curve_values))
+                end
+
+                # Create the node coordinates on this particular element
+                calc_node_coordinates!(node_coordinates, tree, nodes, surface_curves)
+            end
+        end
+    end
 end
 
 # Given the eight `hex_vertices` for a hexahedral element extract
