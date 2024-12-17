@@ -10,7 +10,8 @@
 
 A view on a p4est mesh.
 """
-mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <: AbstractMesh{NDIMS}
+mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <:
+               AbstractMesh{NDIMS}
     parent::Parent
     cell_ids::Vector{Int}
     unsaved_changes::Bool
@@ -26,7 +27,8 @@ Create a P4estMeshView on a P4estMesh parent.
 - `parent`: the parent P4estMesh.
 - `cell_ids`: array of cell ids that are part of this view.
 """
-function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT}, cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}
+function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT},
+                       cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}
     return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids,
                                                                       parent.unsaved_changes,
                                                                       parent.current_filename)
@@ -48,8 +50,10 @@ function extract_p4est_mesh_view(elements_parent,
     elements.inverse_jacobian = elements_parent.inverse_jacobian[.., mesh.cell_ids]
     elements.jacobian_matrix = elements_parent.jacobian_matrix[.., mesh.cell_ids]
     elements.node_coordinates = elements_parent.node_coordinates[.., mesh.cell_ids]
-    elements.contravariant_vectors = elements_parent.contravariant_vectors[.., mesh.cell_ids]
-    elements.surface_flux_values = elements_parent.surface_flux_values[.., mesh.cell_ids]
+    elements.contravariant_vectors = elements_parent.contravariant_vectors[..,
+                                                                           mesh.cell_ids]
+    elements.surface_flux_values = elements_parent.surface_flux_values[..,
+                                                                       mesh.cell_ids]
     elements._inverse_jacobian = vec(elements.inverse_jacobian)
     elements._jacobian_matrix = vec(elements.jacobian_matrix)
     elements._node_coordinates = vec(elements.node_coordinates)
@@ -69,7 +73,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     mask = BitArray(undef, size(interfaces_parent.neighbor_ids)[2])
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
         mask[interface] = (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
-            (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
+                          (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
     end
     interfaces = interfaces_parent
     interfaces.u = interfaces_parent.u[.., mask]
@@ -78,8 +82,12 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Transform the global (parent) indices into local (view) indices.
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
     for interface in 1:size(neighbor_ids)[2]
-        interfaces.neighbor_ids[1, interface] = findall(id->id==neighbor_ids[1, interface], mesh.cell_ids)[1]
-        interfaces.neighbor_ids[2, interface] = findall(id->id==neighbor_ids[2, interface], mesh.cell_ids)[1]
+        interfaces.neighbor_ids[1, interface] = findall(id -> id ==
+                                                              neighbor_ids[1, interface],
+                                                        mesh.cell_ids)[1]
+        interfaces.neighbor_ids[2, interface] = findall(id -> id ==
+                                                              neighbor_ids[2, interface],
+                                                        mesh.cell_ids)[1]
     end
 
     # Flatten the arrays.
@@ -120,7 +128,8 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["p4est_file"] = p4est_filename
 
-        file["tree_node_coordinates"] = mesh.parent.tree_node_coordinates[.., mesh.cell_ids]
+        file["tree_node_coordinates"] = mesh.parent.tree_node_coordinates[..,
+                                                                          mesh.cell_ids]
         file["nodes"] = Vector(mesh.parent.nodes) # the mesh uses `SVector`s for the nodes
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
@@ -131,5 +140,4 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
 end
 
 @inline mpi_parallel(mesh::P4estMeshView) = False()
-
 end # @muladd
