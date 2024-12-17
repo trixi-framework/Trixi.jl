@@ -13,9 +13,10 @@ It stores a set of global indices for each boundary condition type and name to e
 during the call to `calc_boundary_flux!`. The original dictionary form of the boundary conditions
 set by the user in the elixir file is also stored for printing.
 """
-mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any}}
+mutable struct UnstructuredSortedBoundaryTypes{N, BCs <: NTuple{N, Any},
+                                               Vec <: AbstractVector{<:Integer}}
     boundary_condition_types::BCs # specific boundary condition type(s), e.g. BoundaryConditionDirichlet
-    boundary_indices::NTuple{N, Vector{Int}} # integer vectors containing global boundary indices
+    boundary_indices::NTuple{N, Vec} # integer vectors containing global boundary indices
     boundary_dictionary::Dict{Symbol, Any} # boundary conditions as set by the user in the elixir file
     boundary_symbol_indices::Dict{Symbol, Vector{Int}} # integer vectors containing global boundary indices per boundary identifier
 end
@@ -33,10 +34,11 @@ function UnstructuredSortedBoundaryTypes(boundary_conditions::Dict, cache)
     boundary_symbol_indices = Dict{Symbol, Vector{Int}}()
 
     container = UnstructuredSortedBoundaryTypes{n_boundary_types,
-                                                typeof(boundary_condition_types)}(boundary_condition_types,
-                                                                                  boundary_indices,
-                                                                                  boundary_conditions,
-                                                                                  boundary_symbol_indices)
+                                                typeof(boundary_condition_types),
+                                                Vector{Int}}(boundary_condition_types,
+                                                             boundary_indices,
+                                                             boundary_conditions,
+                                                             boundary_symbol_indices)
 
     initialize!(container, cache)
 end
@@ -110,5 +112,16 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     end
 
     return boundary_types_container
+end
+
+function Adapt.adapt_structure(to, bcs::UnstructuredSortedBoundaryTypes)
+    boundary_indices = Adapt.adapt_structure(to, bcs.boundary_indices)
+    n_boundary_types = length(bcs.boundary_condition_types)
+    return UnstructuredSortedBoundaryTypes{n_boundary_types,
+                                           typeof(bcs.boundary_condition_types),
+                                           eltype(boundary_indices)}(bcs.boundary_condition_types,
+                                                                     boundary_indices,
+                                                                     bcs.boundary_dictionary,
+                                                                     bcs.boundary_symbol_indices)
 end
 end # @muladd
