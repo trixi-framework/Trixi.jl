@@ -14,30 +14,35 @@ function init_t8code()
             return nothing
         end
 
-        # Initialize the sc library, has to happen before we initialize t8code.
-        let catch_signals = 0, print_backtrace = 0, log_handler = C_NULL
-            T8code.Libt8.sc_init(mpi_comm(), catch_signals, print_backtrace, log_handler,
-                                 T8code.Libt8.SC_LP_ERROR)
+        # Initialize `libsc`, `p4est`, and `t8code` with log level
+        # `SC_LP_ERROR` to prevent a lot of output in AMR simulations
+        # For development, log level `SC_LP_DEBUG` is recommended.
+        LOG_LEVEL = T8code.Libt8.SC_LP_ERROR
+
+        if T8code.Libt8.sc_is_initialized() == 0
+            # Initialize the sc library, has to happen before we initialize t8code.
+            let catch_signals = 0, print_backtrace = 0, log_handler = C_NULL
+                T8code.Libt8.sc_init(mpi_comm(), catch_signals, print_backtrace,
+                                     log_handler,
+                                     LOG_LEVEL)
+            end
         end
 
         if T8code.Libt8.p4est_is_initialized() == 0
-            # Initialize `p4est` with log level ERROR to prevent a lot of output in AMR simulations
-            T8code.Libt8.p4est_init(C_NULL, T8code.Libt8.SC_LP_ERROR)
+            T8code.Libt8.p4est_init(C_NULL, LOG_LEVEL)
         end
 
-        # Initialize t8code with log level ERROR to prevent a lot of output in AMR simulations.
-        t8_init(T8code.Libt8.SC_LP_ERROR)
-
-        if haskey(ENV, "TRIXI_T8CODE_SC_FINALIZE")
-            # Normally, `sc_finalize` should always be called during shutdown of an
-            # application. It checks whether there is still un-freed memory by t8code
-            # and/or T8code.jl and throws an exception if this is the case. For
-            # production runs this is not mandatory, but is helpful during
-            # development. Hence, this option is only activated when environment
-            # variable TRIXI_T8CODE_SC_FINALIZE exists.
-            @info "T8code.jl: `sc_finalize` will be called during shutdown of Trixi.jl."
-            MPI.add_finalize_hook!(T8code.Libt8.sc_finalize)
+        # Clean up t8code before MPI shuts down.
+        MPI.add_finalize_hook!() do
+            T8code.clean_up()
+            status = T8code.Libt8.sc_finalize_noabort()
+            if status != 0
+                @warn("Inconsistent state detected after finalizing t8code.")
+            end
         end
+
+        # Initialize t8code.
+        t8_init(LOG_LEVEL)
     else
         @warn "Preferences for T8code.jl are not set correctly. Until fixed, using `T8codeMesh` will result in a crash. " *
               "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
@@ -50,7 +55,7 @@ function trixi_t8_get_local_element_levels(forest)
     # Check that forest is a committed, that is valid and usable, forest.
     @assert t8_forest_is_committed(forest) != 0
 
-    levels = Vector{Int}(undef, t8_forest_get_local_num_elements(forest))
+    levels = Vector{UInt8}(undef, t8_forest_get_local_num_elements(forest))
 
     # Get the number of trees that have elements of this process.
     num_local_trees = t8_forest_get_num_local_trees(forest)
@@ -67,7 +72,7 @@ function trixi_t8_get_local_element_levels(forest)
         for ielement in 0:(num_elements_in_tree - 1)
             element = t8_forest_get_element_in_tree(forest, itree, ielement)
             current_index += 1
-            levels[current_index] = t8_element_level(eclass_scheme, element)
+            levels[current_index] = UInt8(t8_element_level(eclass_scheme, element))
         end # for
     end # for
 
@@ -93,8 +98,8 @@ end
 # \return greater zero if the first entry in `elements` should be refined,
 #         smaller zero if the family `elements` shall be coarsened,
 #         zero else.
-function adapt_callback(forest,
-                        forest_from,
+function adapt_callback(forest::Ptr{t8_forest},
+                        forest_from::Ptr{t8_forest},
                         which_tree,
                         lelement_id,
                         ts,
@@ -186,7 +191,7 @@ function trixi_t8_adapt!(mesh, indicators)
 
     differences = trixi_t8_get_difference(old_levels, new_levels, 2^ndims(mesh))
 
-    mesh.forest = forest_cached
+    update_forest!(mesh, forest_cached)
 
     return differences
 end

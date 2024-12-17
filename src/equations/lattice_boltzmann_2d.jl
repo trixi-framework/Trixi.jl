@@ -58,7 +58,7 @@ The main sources for the base implementation were
    Raum**, Master Thesis, University of Cologne, 2018.
 3. Dieter Hänel, **Molekulare Gasdynamik**, Springer-Verlag Berlin Heidelberg, 2004
    [doi:10.1007/3-540-35047-0](https://doi.org/10.1007/3-540-35047-0)
-4. Dieter Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
+4. Timm Krüger et al., **The Lattice Boltzmann Method**, Springer International Publishing, 2017
    [doi:10.1007/978-3-319-44649-3](https://doi.org/10.1007/978-3-319-44649-3)
 """
 struct LatticeBoltzmannEquations2D{RealT <: Real, CollisionOp} <:

@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations2D(; gravity, H0 = 0)
+    ShallowWaterEquations2D(; gravity_constant, H0 = 0)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math
@@ -329,7 +329,7 @@ This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces 
 conservation and well-balancedness.
 
 Further details for the original finite volume formulation are available in
-- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 and for curvilinear 2D case in the paper:
@@ -491,7 +491,7 @@ is nonzero this should only be used as a surface flux otherwise the scheme will 
 For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
 
 Details are available in Eq. (4.1) in the paper:
-- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 """
