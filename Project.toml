@@ -4,6 +4,7 @@ authors = ["Michael Schlottke-Lakemper <michael.schlottke-lakemper@uni-a.de>", "
 version = "0.12.5-DEV"
 
 [deps]
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
 CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
@@ -63,6 +64,7 @@ TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
 
 [compat]
+Adapt = "4"
 Accessors = "0.1.36"
 CodeTracking = "1.0.5"
 ConstructionBase = "1.5"
