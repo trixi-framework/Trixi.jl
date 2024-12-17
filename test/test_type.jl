@@ -1532,6 +1532,12 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred source_terms_lorentz(u, x, t, equations)) ==
                   RealT
 
+            @test eltype(@inferred source_terms_collision_ion_ion(u, x, t, equations)) ==
+                  RealT
+
+            @test eltype(@inferred source_terms_collision_ion_electron(u, x, t, equations)) ==
+                  RealT
+
             for orientation in orientations
                 @test eltype(@inferred flux(u, orientation, equations)) == RealT
                 @test eltype(@inferred flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,

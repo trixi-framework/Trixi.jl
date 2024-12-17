@@ -7,7 +7,17 @@
 
 @doc raw"""
     IdealGlmMhdMultiIonEquations2D(; gammas, charge_to_mass, 
+                                   gas_constants = zero(SVector{length(gammas),
+                                                                eltype(gammas)}),
+                                   molar_masses = zero(SVector{length(gammas),
+                                                               eltype(gammas)}),
+                                   ion_ion_collision_constants = zeros(eltype(gammas),
+                                                               length(gammas),
+                                                               length(gammas)),
+                                   ion_electron_collision_constants = zero(SVector{length(gammas),
+                                                                                   eltype(gammas)}),
                                    electron_pressure = electron_pressure_zero,
+                                   electron_temperature = electron_pressure_zero,
                                    initial_c_h = NaN)
 
 The ideal compressible multi-ion MHD equations in two space dimensions augmented with a 
@@ -19,9 +29,41 @@ assumes that the equations are non-dimensionalized such, that the vacuum permeab
 In case of more than one ion species, the specific heat capacity ratios `gammas` and the charge-to-mass 
 ratios `charge_to_mass` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
 
+The ion-ion and ion-electron collision source terms can be computed using the functions 
+[`source_terms_collision_ion_ion`](@ref) and [`source_terms_collision_ion_electron`](@ref), respectively.
+
+For ion-ion collision terms, the optional arguments `gas_constants`, `molar_masses`, and `ion_ion_collision_constants` 
+must be provided.  For ion-electron collision terms, the optional arguments `gas_constants`, `molar_masses`, 
+`ion_electron_collision_constants`, and `electron_temperature` are required.
+
+- **`gas_constants`** and **`molar_masses`** are tuples containing the gas constant and molar mass of each 
+  ion species, respectively. The **molar masses** can be provided in any unit system, as they are only used to 
+  compute ratios and are independent of the other arguments.
+
+- **`ion_ion_collision_constants`** is a symmetric matrix that contains coefficients to compute the collision
+  frequencies between pairs of ion species. For example, `ion_ion_collision_constants[2, 3]` contains the collision 
+  coefficient for collisions between the ion species 2 and the ion species 3. These constants are derived using the kinetic
+  theory of gases (see, e.g., *Schunk & Nagy, 2000*). They are related to the collision coefficients ``B_{st}`` listed
+  in Table 4.3 of *Schunk & Nagy (2000)*, but are scaled by the molecular mass of ion species ``t`` (i.e., 
+  `ion_ion_collision_constants[2, 3] = ` ``B_{st}/m_{t}``) and must be provided in consistent physical units 
+  (Schunk & Nagy use ``cm^3 K^{3/2} / s``). 
+  See [`source_terms_collision_ion_ion`](@ref) for more details on how these constants are used to compute the collision
+  frequencies.
+
+- **`ion_electron_collision_constants`** is a tuple containing coefficients to compute the ion-electron collision frequency 
+  for each ion species. They correspond to the collision coefficients ``B_{se}` divided by the elementary charge. 
+  The ion-electron collision frequencies can also be computed using the kinetic theory 
+  of gases (see, e.g., *Schunk & Nagy, 2000*). See [`source_terms_collision_ion_electron`](@ref) for more details on how these
+  constants are used to compute the collision frequencies.
+
+- **`electron_temperature`** is a function with the signature `electron_temperature(u, equations)` that can be used
+  compute the electron temperature as a function of the state `u`. The electron temperature is relevant for the computation 
+  of the ion-electron collision source terms.
+
 The argument `electron_pressure` can be used to pass a function that computes the electron
-pressure as a function of the state `u` with the signature `electron_pressure(u, equations::IdealGlmMhdMultiIonEquations2D)`.
-By default, the electron pressure is zero.
+pressure as a function of the state `u` with the signature `electron_pressure(u, equations)`.
+The gradient of the electron pressure is relevant for the computation of the Lorentz flux
+and non-conservative term. By default, the electron pressure is zero.
 
 The argument `initial_c_h` can be used to set the GLM divergence-cleaning speed. Note that 
 `initial_c_h = 0` deactivates the divergence cleaning. The callback [`GlmSpeedCallback`](@ref)
@@ -33,58 +75,121 @@ References:
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
+- Schunk, R. W., & Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry. 
+  Cambridge university press.
 
 !!! info "The multi-ion GLM-MHD equations require source terms"
     In case of more than one ion species, the multi-ion GLM-MHD equations should ALWAYS be used
     with [`source_terms_lorentz`](@ref).
 """
 mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
-                                              ElectronPressure} <:
+                                              ElectronPressure, ElectronTemperature} <:
                AbstractIdealGlmMhdMultiIonEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
-    electron_pressure::ElectronPressure       # Function to compute the electron pressure
-    c_h::RealT                 # GLM cleaning speed
-    function IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT,
-                                            ElectronPressure}(gammas
-                                                              ::SVector{NCOMP, RealT},
-                                                              charge_to_mass
-                                                              ::SVector{NCOMP, RealT},
-                                                              electron_pressure
-                                                              ::ElectronPressure,
-                                                              c_h::RealT) where
-             {NVARS, NCOMP, RealT <: Real, ElectronPressure}
+    gas_constants::SVector{NCOMP, RealT} # Specific gas constants
+    molar_masses::SVector{NCOMP, RealT} # Molar masses (can be provided in any units as they are only used to compute ratios)
+    ion_ion_collision_constants::Array{RealT, 2} # Symmetric matrix of collision frequency coefficients
+    ion_electron_collision_constants::SVector{NCOMP, RealT} # Constants for the ion-electron collision frequencies. The collision frequency is obtained as constant * (e * n_e) / T_e^1.5
+    electron_pressure::ElectronPressure # Function to compute the electron pressure
+    electron_temperature::ElectronTemperature # Function to compute the electron temperature
+    c_h::RealT # GLM cleaning speed
+
+    function IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT, ElectronPressure,
+                                            ElectronTemperature}(gammas
+                                                                 ::SVector{NCOMP,
+                                                                           RealT},
+                                                                 charge_to_mass
+                                                                 ::SVector{NCOMP,
+                                                                           RealT},
+                                                                 gas_constants
+                                                                 ::SVector{NCOMP,
+                                                                           RealT},
+                                                                 molar_masses
+                                                                 ::SVector{NCOMP,
+                                                                           RealT},
+                                                                 ion_ion_collision_constants
+                                                                 ::Array{RealT, 2},
+                                                                 ion_electron_collision_constants
+                                                                 ::SVector{NCOMP,
+                                                                           RealT},
+                                                                 electron_pressure
+                                                                 ::ElectronPressure,
+                                                                 electron_temperature
+                                                                 ::ElectronTemperature,
+                                                                 c_h::RealT) where
+             {NVARS, NCOMP, RealT <: Real, ElectronPressure, ElectronTemperature}
         NCOMP >= 1 ||
             throw(DimensionMismatch("`gammas` and `charge_to_mass` have to be filled with at least one value"))
 
-        new(gammas, charge_to_mass, electron_pressure, c_h)
+        new(gammas, charge_to_mass, gas_constants, molar_masses,
+            ion_ion_collision_constants,
+            ion_electron_collision_constants, electron_pressure, electron_temperature,
+            c_h)
     end
 end
 
 function IdealGlmMhdMultiIonEquations2D(; gammas, charge_to_mass,
+                                        gas_constants = zero(SVector{length(gammas),
+                                                                     eltype(gammas)}),
+                                        molar_masses = zero(SVector{length(gammas),
+                                                                    eltype(gammas)}),
+                                        ion_ion_collision_constants = zeros(eltype(gammas),
+                                                                            length(gammas),
+                                                                            length(gammas)),
+                                        ion_electron_collision_constants = zero(SVector{length(gammas),
+                                                                                        eltype(gammas)}),
                                         electron_pressure = electron_pressure_zero,
+                                        electron_temperature = electron_pressure_zero,
                                         initial_c_h = convert(eltype(gammas), NaN))
     _gammas = promote(gammas...)
     _charge_to_mass = promote(charge_to_mass...)
-    RealT = promote_type(eltype(_gammas), eltype(_charge_to_mass))
+    _gas_constants = promote(gas_constants...)
+    _molar_masses = promote(molar_masses...)
+    _ion_electron_collision_constants = promote(ion_electron_collision_constants...)
+    RealT = promote_type(eltype(_gammas), eltype(_charge_to_mass),
+                         eltype(_gas_constants), eltype(_molar_masses),
+                         eltype(ion_ion_collision_constants),
+                         eltype(_ion_electron_collision_constants))
     __gammas = SVector(map(RealT, _gammas))
     __charge_to_mass = SVector(map(RealT, _charge_to_mass))
+    __gas_constants = SVector(map(RealT, _gas_constants))
+    __molar_masses = SVector(map(RealT, _molar_masses))
+    __ion_ion_collision_constants = map(RealT, ion_ion_collision_constants)
+    __ion_electron_collision_constants = SVector(map(RealT,
+                                                     _ion_electron_collision_constants))
 
     NVARS = length(_gammas) * 5 + 4
     NCOMP = length(_gammas)
 
     return IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT,
-                                          typeof(electron_pressure)}(__gammas,
-                                                                     __charge_to_mass,
-                                                                     electron_pressure,
-                                                                     initial_c_h)
+                                          typeof(electron_pressure),
+                                          typeof(electron_temperature)}(__gammas,
+                                                                        __charge_to_mass,
+                                                                        __gas_constants,
+                                                                        __molar_masses,
+                                                                        __ion_ion_collision_constants,
+                                                                        __ion_electron_collision_constants,
+                                                                        electron_pressure,
+                                                                        electron_temperature,
+                                                                        initial_c_h)
 end
 
 # Outer constructor for `@reset` works correctly
-function IdealGlmMhdMultiIonEquations2D(gammas, charge_to_mass, electron_pressure, c_h)
+function IdealGlmMhdMultiIonEquations2D(gammas, charge_to_mass, gas_constants,
+                                        molar_masses, ion_ion_collision_constants,
+                                        ion_electron_collision_constants,
+                                        electron_pressure,
+                                        electron_temperature,
+                                        c_h)
     return IdealGlmMhdMultiIonEquations2D(gammas = gammas,
                                           charge_to_mass = charge_to_mass,
+                                          gas_constants = gas_constants,
+                                          molar_masses = molar_masses,
+                                          ion_ion_collision_constants = ion_ion_collision_constants,
+                                          ion_electron_collision_constants = ion_electron_collision_constants,
                                           electron_pressure = electron_pressure,
+                                          electron_temperature = electron_temperature,
                                           initial_c_h = c_h)
 end
 
@@ -214,7 +319,7 @@ end
                                            orientation::Integer,
                                            equations::IdealGlmMhdMultiIonEquations2D)
 
-Entropy-conserving non-conservative two-point "flux"" as described in 
+Entropy-conserving non-conservative two-point "flux" as described in 
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
