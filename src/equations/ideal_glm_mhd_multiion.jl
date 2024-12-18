@@ -9,6 +9,14 @@
 
 have_nonconservative_terms(::AbstractIdealGlmMhdMultiIonEquations) = True()
 
+# Variable names for the multi-ion GLM-MHD equation
+# ATTENTION: the variable order for AbstractIdealGlmMhdMultiIonEquations is different than in the reference
+# - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
+#   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+#   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655). 
+# The first three entries of the state vector `cons[1:3]` are the magnetic field components. After that, we have chunks 
+# of 5 entries for the hydrodynamic quantities of each ion species. Finally, the last entry `cons[end]` is the divergence 
+# cleaning field. 
 function varnames(::typeof(cons2cons), equations::AbstractIdealGlmMhdMultiIonEquations)
     cons = ("B1", "B2", "B3")
     for i in eachcomponent(equations)
@@ -83,7 +91,7 @@ end
 
 """
     v1, v2, v3, vk1, vk2, vk3 = charge_averaged_velocities(u,
-                                                       equations::AbstractIdealGlmMhdMultiIonEquations)
+                                                           equations::AbstractIdealGlmMhdMultiIonEquations)
 
 
 Compute the charge-averaged velocities (`v1`, `v2`, and `v3`) and each ion species' contribution
@@ -286,10 +294,21 @@ end
     return SVector(cons)
 end
 
-# Specialization of DissipationEntropyStable for the multi-ion GLM-MHD equations
-@inline function (dissipation::DissipationEntropyStable)(u_ll, u_rr,
-                                                         orientation_or_normal_direction,
-                                                         equations::AbstractIdealGlmMhdMultiIonEquations)
+# Specialization of [`DissipationLaxFriedrichsEntropyVariables`](@ref) for the multi-ion GLM-MHD equations
+# For details on the multi-ion entropy Jacobian ``H`` see
+# - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
+#   of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+#   [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
+# Since the entropy Jacobian is a sparse matrix, we do not construct it but directly compute the
+# action of its product with the jump in the entropy variables.
+#
+# ATTENTION: the variable order for AbstractIdealGlmMhdMultiIonEquations is different than in the reference above. 
+# The first three entries of the state vector `u[1:3]` are the magnetic field components. After that, we have chunks 
+# of 5 entries for the hydrodynamic quantities of each ion species. Finally, the last entry `u[end]` is the divergence 
+# cleaning field. 
+@inline function (dissipation::DissipationLaxFriedrichsEntropyVariables)(u_ll, u_rr,
+                                                                         orientation_or_normal_direction,
+                                                                         equations::AbstractIdealGlmMhdMultiIonEquations)
     @unpack gammas = equations
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
@@ -313,7 +332,15 @@ end
 
     beta_plus_ll = 0
     beta_plus_rr = 0
-    # Get the lumped dissipation for all components
+
+    # Compute the dissipation for the hydrodynamic quantities of each ion species `k`
+    #################################################################################
+
+    # The for loop below fills the entries of `dissipation` that depend on the entries of the diagonal
+    # blocks ``A_k`` of the entropy Jacobian ``H`` in the given reference (see equations (80)-(82)),
+    # but the terms that depend on the magnetic field ``B`` and divergence cleaning field ``psi`` are 
+    # excluded here and considered below. In other words, these are the dissipation values that depend 
+    # on the entries of the entropy Jacobian that are marked in blue in Figure 1 of the reference given above.
     for k in eachcomponent(equations)
         rho_ll, v1_ll, v2_ll, v3_ll, p_ll = get_component(k, prim_ll, equations)
         rho_rr, v1_rr, v2_rr, v3_rr, p_rr = get_component(k, prim_rr, equations)
@@ -411,34 +438,52 @@ end
         set_component!(dissipation, k, d1, d2, d3, d4, d5, equations)
     end
 
-    # Set the magnetic field and psi terms
+    # Compute the dissipation related to the magnetic and divergence-cleaning fields
+    ################################################################################
+
     h_B_psi = 1 / (beta_plus_ll + beta_plus_rr)
 
-    # diagonal entries
+    # Dissipation for the magnetic field components due to the diagonal entries of the 
+    # dissipation matrix ``H``. These are the dissipation values that depend on the diagonal
+    # entries of the entropy Jacobian that are marked in cyan in Figure 1 of the reference given above.
     dissipation[1] = -0.5f0 * λ * h_B_psi * (w_rr[1] - w_ll[1])
     dissipation[2] = -0.5f0 * λ * h_B_psi * (w_rr[2] - w_ll[2])
     dissipation[3] = -0.5f0 * λ * h_B_psi * (w_rr[3] - w_ll[3])
+
+    # Dissipation for the divergence-cleaning field due to the diagonal entry of the 
+    # dissipation matrix ``H``. This dissipation value depends on the single diagonal
+    # entry of the entropy Jacobian that is marked in red in Figure 1 of the reference given above.
     dissipation[end] = -0.5f0 * λ * h_B_psi * (w_rr[end] - w_ll[end])
-    # Off-diagonal entries
+
+    # Dissipation due to the off-diagonal blocks (``B_{off}``) of the dissipation matrix ``H`` and to the entries 
+    # of the block ``A`` that depend on the magnetic field ``B`` and the divergence cleaning field ``psi``. 
+    # See equations (80)-(82) of the given reference.
     for k in eachcomponent(equations)
         _, _, _, _, w5_ll = get_component(k, w_ll, equations)
         _, _, _, _, w5_rr = get_component(k, w_rr, equations)
 
+        # Dissipation for the magnetic field components and divergence cleaning field due to the off-diagonal 
+        # entries of the dissipation matrix ``H`` (block ``B^T`` in equation (80) and Figure 1 of the reference
+        # given above).
         dissipation[1] -= 0.5f0 * λ * h_B_psi * B1_avg * (w5_rr - w5_ll)
         dissipation[2] -= 0.5f0 * λ * h_B_psi * B2_avg * (w5_rr - w5_ll)
         dissipation[3] -= 0.5f0 * λ * h_B_psi * B3_avg * (w5_rr - w5_ll)
         dissipation[end] -= 0.5f0 * λ * h_B_psi * psi_avg * (w5_rr - w5_ll)
 
-        # Dissipation for the energy equation of species k depending on w_1, w_2, w_3 and w_end
-        ind_E = 3 + (k - 1) * 5 + 5
+        # Dissipation for the energy equation of species `k` depending on `w_1`, `w_2`, `w_3` and `w_end`. These are the
+        # values of the dissipation that depend on the off-diagonal block ``B`` of the dissipation matrix ``H`` (see equation (80) 
+        # and Figure 1 of the reference given above.
+        ind_E = 3 + 5 * k # simplified version of 3 + (k - 1) * 5 + 5
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B1_avg * (w_rr[1] - w_ll[1])
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B2_avg * (w_rr[2] - w_ll[2])
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B3_avg * (w_rr[3] - w_ll[3])
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * psi_avg * (w_rr[end] - w_ll[end])
 
-        # Dissipation for the energy equation of all ion species depending on w_5
+        # Dissipation for the energy equation of all ion species depending on `w_5`. These are the values of the dissipation 
+        # vector that depend on the magnetic and divergence-cleaning field terms of the entries marked with a red cross in 
+        # Figure 1 of the reference given above.
         for kk in eachcomponent(equations)
-            ind_E = 3 + (kk - 1) * 5 + 5
+            ind_E = 3 + 5 * kk # simplified version of 3 + (kk - 1) * 5 + 5
             dissipation[ind_E] -= 0.5f0 * λ *
                                   (h_B_psi *
                                    (B1_avg^2 + B2_avg^2 + B3_avg^2 + psi_avg^2)) *

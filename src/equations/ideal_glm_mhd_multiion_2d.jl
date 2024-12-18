@@ -43,8 +43,8 @@ mutable struct IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT <: Real,
                AbstractIdealGlmMhdMultiIonEquations{2, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
-    electron_pressure::ElectronPressure       # Function to compute the electron pressure
-    c_h::RealT                 # GLM cleaning speed
+    electron_pressure::ElectronPressure # Function to compute the electron pressure
+    c_h::RealT # GLM cleaning speed
     function IdealGlmMhdMultiIonEquations2D{NVARS, NCOMP, RealT,
                                             ElectronPressure}(gammas
                                                               ::SVector{NCOMP, RealT},
@@ -114,7 +114,7 @@ function initial_condition_weak_blast_wave(x, t,
     # Adapted MHD version of the weak blast wave from Hennemann & Gassner JCP paper 2020 (Sec. 6.3)
     # Same discontinuity in the velocities but with magnetic fields
     # Set up polar coordinates
-    RealT = real(equations)
+    RealT = eltype(x)
     inicenter = (0, 0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]

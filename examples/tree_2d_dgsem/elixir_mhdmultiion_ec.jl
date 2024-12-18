@@ -13,9 +13,9 @@ initial_condition = initial_condition_weak_blast_wave
 volume_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
 surface_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
 # For provably entropy-stable surface fluxes, use
-# surface_flux = (FluxPlusDissipation(flux_ruedaramirez_etal, DissipationEntropyStable()), 
+# surface_flux = (FluxPlusDissipation(flux_ruedaramirez_etal, DissipationLaxFriedrichsEntropyVariables()), 
 #                 flux_nonconservative_ruedaramirez_etal)
-# For a standard local lax-friedrichs surface flux, use
+# For a standard local Lax-Friedrichs surface flux, use
 # surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)
 
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
