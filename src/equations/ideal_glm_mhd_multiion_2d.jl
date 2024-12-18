@@ -51,7 +51,7 @@ must be provided.  For ion-electron collision terms, the optional arguments `gas
   frequencies.
 
 - **`ion_electron_collision_constants`** is a tuple containing coefficients to compute the ion-electron collision frequency 
-  for each ion species. They correspond to the collision coefficients ``B_{se}` divided by the elementary charge. 
+  for each ion species. They correspond to the collision coefficients `B_{se}` divided by the elementary charge. 
   The ion-electron collision frequencies can also be computed using the kinetic theory 
   of gases (see, e.g., *Schunk & Nagy, 2000*). See [`source_terms_collision_ion_electron`](@ref) for more details on how these
   constants are used to compute the collision frequencies.
