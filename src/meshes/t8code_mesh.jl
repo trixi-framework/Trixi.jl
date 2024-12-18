@@ -747,7 +747,6 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
     if header == " File created by HOHQMesh"
         # Mesh curvature and boundary naming is handled with additional information available in meshfile
         connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_hohqmesh_abaqus(meshfile.path,
-                                                                                                             initial_refinement_level,
                                                                                                              NDIMS,
                                                                                                              RealT)
         # Apply user defined mapping.
@@ -757,7 +756,6 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
         connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_standard_abaqus(meshfile.path,
                                                                                                              mapping,
                                                                                                              polydeg,
-                                                                                                             initial_refinement_level,
                                                                                                              NDIMS,
                                                                                                              RealT,
                                                                                                              boundary_symbols)
