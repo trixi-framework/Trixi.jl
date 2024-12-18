@@ -24,7 +24,7 @@ function create_cache(mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
      u_threaded)
 end
 
-#     index_to_start_step_2d(index::Symbol, index_range)
+#     index_to_start_step_2d(index::IndexInfo, index_range)
 #
 # Given a symbolic `index` and an `indexrange` (usually `eachnode(dg)`),
 # return `index_start, index_step`, i.e., a tuple containing
@@ -45,17 +45,17 @@ end
 #       i_volume += i_volume_step
 #       j_volume += j_volume_step
 #     end
-@inline function index_to_start_step_2d(index::Symbol, index_range)
+@inline function index_to_start_step_2d(index::IndexInfo, index_range)
     index_begin = first(index_range)
     index_end = last(index_range)
 
-    if index === :begin
+    if index === Indexing.first
         return index_begin, 0
-    elseif index === :end
+    elseif index === Indexing.last
         return index_end, 0
-    elseif index === :i_forward
+    elseif index === Indexing.i_forward
         return index_begin, 1
-    else # if index === :i_backward
+    else # if index === Indexing.i_backward
         return index_end, -1
     end
 end
@@ -149,7 +149,7 @@ function calc_interface_flux!(surface_flux_values,
         # Initiate the secondary index to be used in the surface for loop.
         # This index on the primary side will always run forward but
         # the secondary index might need to run backwards for flipped sides.
-        if :i_backward in secondary_indices
+        if Indexing.i_backward in secondary_indices
             node_secondary = index_end
             node_secondary_step = -1
         else
@@ -615,7 +615,7 @@ end
     large_indices = node_indices[2, mortar]
     large_direction = indices2direction(large_indices)
 
-    if :i_backward in large_indices
+    if Indexing.i_backward in large_indices
         for i in eachnode(dg)
             for v in eachvariable(equations)
                 surface_flux_values[v, end + 1 - i, large_direction, large_element] = u_buffer[v,
