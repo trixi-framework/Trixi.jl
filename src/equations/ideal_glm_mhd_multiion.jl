@@ -451,7 +451,7 @@ end
         # Dissipation for the energy equation of species `k` depending on `w_1`, `w_2`, `w_3` and `w_end`. These are the
         # values of the dissipation that depend on the off-diagonal block ``B`` of the dissipation matrix ``H`` (see equation (80) 
         # and Figure 1 of the reference given above.
-        ind_E = 3 + (k - 1) * 5 + 5
+        ind_E = 3 + 5 * k # simplified version of 3 + (k - 1) * 5 + 5
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B1_avg * (w_rr[1] - w_ll[1])
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B2_avg * (w_rr[2] - w_ll[2])
         dissipation[ind_E] -= 0.5f0 * λ * h_B_psi * B3_avg * (w_rr[3] - w_ll[3])
