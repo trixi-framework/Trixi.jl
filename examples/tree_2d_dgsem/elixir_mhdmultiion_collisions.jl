@@ -63,7 +63,7 @@ equations = IdealGlmMhdMultiIonEquations2D(gammas = (5 / 3, 5 / 3),
 # Frictional slowing of an ionized carbon fluid with respect to another background carbon fluid in motion
 function initial_condition_slow_down(x, t, equations::IdealGlmMhdMultiIonEquations2D)
     v11 = 0.65508770000000
-    v21 = 0
+    v21 = 0.0
     v2 = v3 = 0.0
     B1 = B2 = B3 = 0.0
     rho1 = 0.1
@@ -72,7 +72,7 @@ function initial_condition_slow_down(x, t, equations::IdealGlmMhdMultiIonEquatio
     p1 = 0.00040170535986
     p2 = 0.00401705359856
 
-    return prim2cons(SVector(B1, B2, B3, rho1, v11, v2, v3, p1, rho2, v21, v2, v3, p2, 0),
+    return prim2cons(SVector(B1, B2, B3, rho1, v11, v2, v3, p1, rho2, v21, v2, v3, p2, 0.0),
                      equations)
 end
 
