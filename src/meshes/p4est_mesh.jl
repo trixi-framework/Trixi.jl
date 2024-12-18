@@ -598,7 +598,7 @@ function preprocess_standard_abaqus(meshfile,
 end
 
 # p4est can handle only linear elements. This function checks the `meshfile` 
-# for quadratic elements (highest order supported by Standard Abaqus) and
+# for quadratic elements (highest order supported by standard Abaqus) and
 # replaces them with linear elements. The higher-order (quadratic) boundaries are handled 
 # "internally" by Trixi as for the HOHQMesh-Abaqus case.
 function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
@@ -730,6 +730,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     linear_hexes = r"^(C3D8).*$"
     quadratic_hexes = r"^(C3D27).*$"
 
+    # Preprocess the meshfile to remove lower-dimensional elements
     meshfile_preproc, elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
                                                                                       linear_quads,
                                                                                       linear_hexes,
@@ -737,7 +738,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                                                       quadratic_hexes,
                                                                                       n_dimensions)
 
-    # Preprocess the meshfile to replace quadratic elements with linear elements
+    # Copy of mesh for p4est with linear elements only
     meshfile_p4est_rdy, mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile_preproc,
                                                                             linear_quads,
                                                                             linear_hexes,
@@ -787,6 +788,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
         mesh_nodes = read_nodes_standard_abaqus(meshfile_preproc, n_dimensions,
                                                 elements_begin_idx, RealT)
 
+        # Extract element section from pre-processed Abaqus meshfile
         element_lines = readlines(open(meshfile_preproc))[elements_begin_idx:(sets_begin_idx - 1)]
 
         if n_dimensions == 2
