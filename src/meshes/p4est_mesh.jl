@@ -745,7 +745,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                                             quadratic_hexes,
                                                                             elements_begin_idx,
                                                                             sets_begin_idx)
-
+    #mesh_polydeg = 1
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile_p4est_rdy, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
@@ -2145,7 +2145,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                 # Create the node coordinates on this particular element
                 # Pull the (x,y, z) values of the four vertices of the current tree out of the global vertices array
                 for i in 1:8
-                    hex_vertices[i, :] .= vertices[:, element_node_ids[i]] # 3D => 1:3 = :
+                    hex_vertices[:, i] .= vertices[:, element_node_ids[i]] # 3D => 1:3 = :
                 end
                 calc_node_coordinates!(node_coordinates, tree, nodes, quad_vertices)
             else # element_set_order == 2
@@ -2170,9 +2170,11 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                     face_nodes[7] = element_nodes[face + 5]  # "NW" node
                     face_nodes[8] = element_nodes[face + 17] # "W"  node
 
-                    if face < 4
-                        face_nodes[9] = element_nodes[face + 24] # "C"  node
-                    elseif face == 4
+                    if face <= 4
+                        face_nodes[9] = element_nodes[face + 24] # "C" node
+                    end
+
+                    if face == 4
                         face_nodes[3] = element_nodes[2]
                         face_nodes[4] = element_nodes[18]
                         face_nodes[5] = element_nodes[6]
@@ -2235,19 +2237,24 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                     #  |----> ξ
                     # thus we need to flip the node order for the second xi and eta edges met.
 
+                    # TODO: Need probably to do some flips for the different faces, as for the 2D case
                     # Proceed along bottom edge
                     curve_values[:, 1, 1] = node1_coords
-                    curve_values[:, 2, 1] = node2_coords
+                    #curve_values[:, 2, 1] = node2_coords
+                    curve_values[:, 2, 1] = 0.5 .* (node1_coords .+ node3_coords)
+
                     curve_values[:, 3, 1] = node3_coords
 
                     # Proceed along middle line
                     curve_values[:, 1, 2] = node8_coords
-                    curve_values[:, 2, 2] = node9_coords
+                    #curve_values[:, 2, 2] = node9_coords
+                    curve_values[:, 2, 2] = 0.5 .* (node8_coords .+ node4_coords)
                     curve_values[:, 3, 2] = node4_coords
 
                     # Proceed along top edge
                     curve_values[:, 1, 3] = node7_coords
-                    curve_values[:, 2, 3] = node6_coords
+                    #curve_values[:, 2, 3] = node6_coords
+                    curve_values[:, 2, 3] = 0.5 .* (node7_coords .+ node5_coords)
                     curve_values[:, 3, 3] = node5_coords
 
                     # Construct the curve interpolant for the current side
