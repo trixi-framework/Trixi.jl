@@ -728,7 +728,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
 
     # In 3D only standard hexahedra/bricks are supported.
     linear_hexes = r"^(C3D8).*$"
-    quadratic_hexes = r"^(C3D20|C3D27).*$"
+    quadratic_hexes = r"^(C3D27).*$"
 
     meshfile_preproc, elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
                                                                                       linear_quads,
@@ -745,7 +745,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                                             quadratic_hexes,
                                                                             elements_begin_idx,
                                                                             sets_begin_idx)
-    mesh_polydeg = 1 # TODO: Only for testing
+
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile_p4est_rdy, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
@@ -2103,6 +2103,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     element_node_ids = Array{Int}(undef, 8)
     hex_vertices = Array{RealT}(undef, (3, 8))
     curve_values = Array{RealT}(undef, (3, nnodes, nnodes))
+    face_nodes = Array{Int}(undef, 9)
 
     # Create the barycentric weights used for the surface interpolations
     bary_weights_ = barycentric_weights(nodes)
@@ -2154,80 +2155,107 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                     #    *-----*-----*
                     #    |           |
                     #    |           |  
-                    #  W *           * E
+                    #  W *    *C     * E
                     #    |           |  
                     #    |           |
                     #    *-----*-----*
                     #    SW    S     SE
 
-                    # TODO: Care for special cases!
-                    node1 = element_nodes[face + 1]  # "SW" node
-                    node2 = element_nodes[face + 8]  # "S"  node
-                    node3 = element_nodes[face + 2]  # "SE" node
-                    node4 = element_nodes[face + 18] # "E"  node
-                    node5 = element_nodes[face + 6]  # "NE" node
-                    node6 = element_nodes[face + 12] # "N"  node
-                    node7 = element_nodes[face + 5]  # "NW" node
-                    node8 = element_nodes[face + 17] # "W"  node
+                    face_nodes[1] = element_nodes[face + 1]  # "SW" node
+                    face_nodes[2] = element_nodes[face + 9]  # "S"  node
+                    face_nodes[3] = element_nodes[face + 2]  # "SE" node
+                    face_nodes[4] = element_nodes[face + 18] # "E"  node
+                    face_nodes[5] = element_nodes[face + 6]  # "NE" node
+                    face_nodes[6] = element_nodes[face + 13] # "N"  node
+                    face_nodes[7] = element_nodes[face + 5]  # "NW" node
+                    face_nodes[8] = element_nodes[face + 17] # "W"  node
 
-                    #node3 = edge == 4 ? element_nodes[2] : element_nodes[edge + 2] # "Right" node
+                    if face < 4
+                        face_nodes[9] = element_nodes[face + 24] # "C"  node
+                    elseif face == 4
+                        face_nodes[3] = element_nodes[2]
+                        face_nodes[4] = element_nodes[18]
+                        face_nodes[5] = element_nodes[6]
+                    elseif face == 5
+                        face_nodes[1] = element_nodes[2]
+                        face_nodes[2] = element_nodes[10]
+                        face_nodes[3] = element_nodes[3]
+                        face_nodes[4] = element_nodes[11]
+                        face_nodes[5] = element_nodes[4]
+                        face_nodes[6] = element_nodes[12]
+                        face_nodes[7] = element_nodes[5]
+                        face_nodes[8] = element_nodes[13]
+                        face_nodes[9] = element_nodes[23]
+                    elseif face == 6
+                        face_nodes[1] = element_nodes[6]
+                        face_nodes[2] = element_nodes[14]
+                        face_nodes[3] = element_nodes[7]
+                        face_nodes[4] = element_nodes[15]
+                        face_nodes[5] = element_nodes[8]
+                        face_nodes[6] = element_nodes[16]
+                        face_nodes[7] = element_nodes[9]
+                        face_nodes[8] = element_nodes[17]
+                        face_nodes[9] = element_nodes[24]
+                    end
 
-                    node1_coords = mesh_nodes[node1]
-                    node2_coords = mesh_nodes[node2]
-                    node3_coords = mesh_nodes[node3]
+                    node1_coords = mesh_nodes[face_nodes[1]]
+                    node2_coords = mesh_nodes[face_nodes[2]]
+                    node3_coords = mesh_nodes[face_nodes[3]]
+                    node4_coords = mesh_nodes[face_nodes[4]]
+                    node5_coords = mesh_nodes[face_nodes[5]]
+                    node6_coords = mesh_nodes[face_nodes[6]]
+                    node7_coords = mesh_nodes[face_nodes[7]]
+                    node8_coords = mesh_nodes[face_nodes[8]]
+                    node9_coords = mesh_nodes[face_nodes[9]]
 
                     # The nodes for an Abaqus element are labeled following a closed path 
                     # around the element:
                     #
-                    #            <----
-                    #        *-----*-----*
-                    #        |           |
-                    #     |  |           |  ^
-                    #     |  *           *  |
-                    #     v  |           |  |
-                    #        |           |
-                    #        *-----*-----*
-                    #            ---->
+                    #             <----
+                    #         7     6     5
+                    #         *-----*-----*
+                    #         |           |
+                    #     |   |           |   ^
+                    #     |  8*     9*    *4  |
+                    #     v   |           |   |
+                    #         |           |
+                    #         *-----*-----*
+                    #         1     2     3
+                    #             ---->
                     # `curve_values`, however, requires to sort the nodes into a 
                     # valid coordinate system, 
                     # 
                     #        *-----*-----*
                     #        |           |
                     #        |           |
-                    #        *           *
+                    #        *     *     *
                     #        |           |
                     #  ^ η   |           |
                     #  |     *-----*-----*
                     #  |----> ξ
                     # thus we need to flip the node order for the second xi and eta edges met.
 
-                    if edge in [1, 2]
-                        curve_values[1, 1] = node1_coords[1]
-                        curve_values[1, 2] = node1_coords[2]
+                    # Proceed along bottom edge
+                    curve_values[:, 1, 1] = node1_coords
+                    curve_values[:, 2, 1] = node2_coords
+                    curve_values[:, 3, 1] = node3_coords
 
-                        curve_values[2, 1] = node2_coords[1]
-                        curve_values[2, 2] = node2_coords[2]
+                    # Proceed along middle line
+                    curve_values[:, 1, 2] = node8_coords
+                    curve_values[:, 2, 2] = node9_coords
+                    curve_values[:, 3, 2] = node4_coords
 
-                        curve_values[3, 1] = node3_coords[1]
-                        curve_values[3, 2] = node3_coords[2]
-                    else # Flip "left" and "right" nodes
-                        curve_values[1, 1] = node3_coords[1]
-                        curve_values[1, 2] = node3_coords[2]
-
-                        curve_values[2, 1] = node2_coords[1]
-                        curve_values[2, 2] = node2_coords[2]
-
-                        curve_values[3, 1] = node1_coords[1]
-                        curve_values[3, 2] = node1_coords[2]
-                    end
+                    # Proceed along top edge
+                    curve_values[:, 1, 3] = node7_coords
+                    curve_values[:, 2, 3] = node6_coords
+                    curve_values[:, 3, 3] = node5_coords
 
                     # Construct the curve interpolant for the current side
-                    surface_curves[edge] = CurvedSurfaceT(nodes, bary_weights,
-                                                          copy(curve_values))
+                    face_curves[face] = CurvedFaceT(nodes, bary_weights, copy(curve_values))
                 end
 
                 # Create the node coordinates on this particular element
-                calc_node_coordinates!(node_coordinates, tree, nodes, surface_curves)
+                calc_node_coordinates!(node_coordinates, tree, nodes, face_curves)
             end
         end
     end
