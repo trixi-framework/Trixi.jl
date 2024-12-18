@@ -43,7 +43,8 @@ end
 Source terms due to the Lorentz' force for plasmas with more than one ion species. These source 
 terms are a fundamental, inseparable part of the multi-ion GLM-MHD equations, and vanish for 
 a single-species plasma. In particular, they have to be used for every
-simulation of [`IdealGlmMhdMultiIonEquations2D`](@ref).
+simulation of [`IdealMhdMultiIonEquations1D`](@ref), [`IdealGlmMhdMultiIonEquations2D`](@ref),
+and [`IdealGlmMhdMultiIonEquations3D`](@ref).
 """
 function source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
     @unpack charge_to_mass = equations
@@ -290,10 +291,10 @@ Compute the ion-ion collision source terms for the momentum and energy equations
   \vec{s}_{\rho_k \vec{v}_k} =&  \rho_k\sum_{k'}\bar{\nu}_{kk'}(\vec{v}_{k'} - \vec{v}_k),\\
   s_{E_k}  =& 
     3 \sum_{k'} \left(
-    \bar{\nu}_{kk'} \frac{\rho_k M_{1}}{M_{k'} + M_k} R_1 (T_{k'} - T_k)
+    \bar{\nu}_{kk'} \frac{\rho_k M_1}{M_{k'} + M_k} R_1 (T_{k'} - T_k)
     \right) + 
     \sum_{k'} \left(
-        \bar{\nu}_{kk'} \rho_k \frac{M_{k'}}{M_{k'} + M_k} \norm{\vec{v}_{k'} - \vec{v}_k}^2
+        \bar{\nu}_{kk'} \rho_k \frac{M_{k'}}{M_{k'} + M_k} \|\vec{v}_{k'} - \vec{v}_k\|^2
         \right)
         +
         \vec{v}_k \cdot \vec{s}_{\rho_k \vec{v}_k},
@@ -386,6 +387,7 @@ The collision sources read as
         +
         \vec{v}_k \cdot \vec{s}_{\rho_k \vec{v}_k},
 \end{aligned}
+```
 where ``\bar{\nu}_{kk'}`` is the collision frequency of species `k` with the electrons, which is computed as
 ```math
 \begin{aligned}
