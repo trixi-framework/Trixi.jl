@@ -1524,6 +1524,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                              one(RealT),
                                              one(RealT),
                                              one(RealT))
+            dissipation_es = DissipationLaxFriedrichsEntropyVariables()
             orientations = [1, 2]
 
             @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
@@ -1546,6 +1547,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 
                 @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
                                                            equations)) ==
+                      RealT
+                @test eltype(@inferred dissipation_es(u_ll, u_rr, orientation, equations)) ==
                       RealT
             end
 
