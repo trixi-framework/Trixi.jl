@@ -299,8 +299,8 @@ Compute the ion-ion collision source terms for the momentum and energy equations
         \vec{v}_k \cdot \vec{s}_{\rho_k \vec{v}_k},
 \end{aligned}
 ```
-where ``M_k`` is the molar mass of ion species `k` provided in `molar_masses`, 
-``R_k`` is specific gas constant of ion species `k` provided in `gas_constants`, and
+where ``M_k`` is the molar mass of ion species `k` provided in `equations.molar_masses`, 
+``R_k`` is the specific gas constant of ion species `k` provided in `equations.gas_constants`, and
  ``\bar{\nu}_{kk'}`` is the effective collision frequency of species `k` with species `k'`, which is computed as
 ```math
 \begin{aligned}
@@ -308,7 +308,7 @@ where ``M_k`` is the molar mass of ion species `k` provided in `molar_masses`,
 \end{aligned}
 ```
 with the so-called reduced temperature ``T_{k k'}`` and the ion-ion collision constants ``\tilde{B}_{kk'}`` provided
-in `ion_electron_collision_constants`.
+in `equations.ion_electron_collision_constants` (see [`IdealGlmMhdMultiIonEquations2D`](@ref)).
 
 The additional coefficient ``\bar{\nu}^1_{kk'}`` is a non-dimensional drift correction factor proposed by Rambo and 
 Denavit.
@@ -374,15 +374,15 @@ end
     source_terms_collision_ion_electron(u, x, t,
                                         equations::AbstractIdealGlmMhdMultiIonEquations)
 
-Compute the ion-ion collision source terms for the momentum and energy equations of each ion species. We assume v_e = v⁺ 
+Compute the ion-electron collision source terms for the momentum and energy equations of each ion species. We assume ``v_e = v^+`` 
 (no effect of currents on the electron velocity).
 
 The collision sources read as
 ```math
 \begin{aligned}
-    \vec{s}^{ke}_{\rho_k \vec{v}_k} =&  \rho_k \bar{\nu}_{ke} (\vec{v}_{e} - \vec{v}_k),
+    \vec{s}_{\rho_k \vec{v}_k} =&  \rho_k \bar{\nu}_{ke} (\vec{v}_{e} - \vec{v}_k),
     \\
-    s^{ke}_{E_k}  =& 
+    s_{E_k}  =& 
     3  \left(
     \bar{\nu}_{ke} \frac{\rho_k M_{1}}{M_k} R_1 (T_{e} - T_k)
     \right) 
@@ -390,15 +390,18 @@ The collision sources read as
         \vec{v}_k \cdot \vec{s}_{\rho_k \vec{v}_k},
 \end{aligned}
 ```
-where ``\bar{\nu}_{kk'}`` is the collision frequency of species `k` with the electrons, which is computed as
+where ``T_e`` is the electron temperature computed with the function `equations.electron_temperature`, 
+``M_k`` is the molar mass of ion species `k` provided in `equations.molar_masses`, 
+``R_k`` is the specific gas constant of ion species `k` provided in `equations.gas_constants`, and
+``\bar{\nu}_{kk'}`` is the collision frequency of species `k` with the electrons, which is computed as
 ```math
 \begin{aligned}
   \bar{\nu}_{ke} = \tilde{B}_{ke} \frac{e n_e}{T_e^{3/2}},
 \end{aligned}
 ```
-where ``e n_e`` is the total electron charge computed assuming quasi-neutrality, `T_e` is the electron temperature
-computed with `electron_temperature` (see [`IdealGlmMhdMultiIonEquations2D`](@ref)), and ``\tilde{B}_{ke}`` is the
-ion-electron collision coefficient provided in `ion_electron_collision_constants`.
+with the total electron charge ``e n_e`` (computed assuming quasi-neutrality), and the
+ion-electron collision coefficient ``\tilde{B}_{ke}`` provided in `equations.ion_electron_collision_constants`,
+which is scaled with the elementary charge (see [`IdealGlmMhdMultiIonEquations2D`](@ref)).
 
 References:
 - P. Rambo, J. Denavit, Interpenetration and ion separation in colliding plasmas, Physics of Plasmas 1 (1994) 4050–4060.
