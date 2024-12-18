@@ -461,7 +461,7 @@ end
         # vector that depend on the magnetic and divergence-cleaning field terms of the entries marked with a red cross in 
         # Figure 1 of the reference given above.
         for kk in eachcomponent(equations)
-            ind_E = 3 + (kk - 1) * 5 + 5
+            ind_E = 3 + 5 * kk # simplified version of 3 + (kk - 1) * 5 + 5
             dissipation[ind_E] -= 0.5f0 * λ *
                                   (h_B_psi *
                                    (B1_avg^2 + B2_avg^2 + B3_avg^2 + psi_avg^2)) *
