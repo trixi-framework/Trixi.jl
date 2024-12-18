@@ -330,10 +330,10 @@ function source_terms_collision_ion_ion(u, x, t,
         rho_k, v1_k, v2_k, v3_k, p_k = get_component(k, prim, equations)
         T_k = p_k / (rho_k * gas_constants[k])
 
-        S_q1 = 0
-        S_q2 = 0
-        S_q3 = 0
-        S_E = 0
+        S_q1 = zero(eltype(u))
+        S_q2 = zero(eltype(u))
+        S_q3 = zero(eltype(u))
+        S_E = zero(eltype(u))
         for l in eachcomponent(equations)
             rho_l, v1_l, v2_l, v3_l, p_l = get_component(l, prim, equations)
             T_l = p_l / (rho_l * gas_constants[l])
