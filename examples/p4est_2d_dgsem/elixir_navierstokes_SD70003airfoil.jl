@@ -119,13 +119,13 @@ stepsize_callback = StepsizeCallback(cfl = 2.0)
 alive_callback = AliveCallback(alive_interval = 50)
 
 # For plots etc
-save_solution = SaveSolutionCallback(interval = 1_000_000,
+save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
                                      output_directory = "out")
 
-save_restart = SaveRestartCallback(interval = Int(10^7), # Only at end
+save_restart = SaveRestartCallback(interval = analysis_interval,
                                    save_final_restart = true)
 
 callbacks = CallbackSet(summary_callback,
@@ -138,6 +138,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
+# TODO: PERK ?
 sol = solve(ode,
             CarpenterKennedy2N54(williamson_condition = false,
                                  thread = OrdinaryDiffEq.True());
