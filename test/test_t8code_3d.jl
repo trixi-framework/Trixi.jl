@@ -352,8 +352,7 @@ mkdir(outdir)
         end
     end
 
-    # This test is identical to the one in `test_p4est_3d.jl` besides minor
-    # deviations in the expected error norms.
+    # This test is identical to the one in `test_p4est_3d.jl`.
     @trixi_testset "elixir_euler_baroclinic_instability.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_euler_baroclinic_instability.jl"),
