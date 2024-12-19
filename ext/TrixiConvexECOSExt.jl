@@ -56,7 +56,7 @@ function stability_polynomials!(pnoms, consistency_order,
     # Contribution from free coefficients
     for k in (consistency_order + 1):num_stage_evals
         pnoms += gamma[k - consistency_order] *
-                 view(normalized_powered_eigvals_scaled[:, k])
+                 view(normalized_powered_eigvals_scaled, :, k)
     end
 
     # For optimization only the maximum is relevant
