@@ -73,7 +73,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi.jl works
-with Julia v1.8 and newer. We recommend using the latest stable release of Julia.
+with Julia v1.10 and newer. We recommend using the latest stable release of Julia.
 
 ### For users
 Trixi.jl and its related tools are registered Julia packages. Hence, you
