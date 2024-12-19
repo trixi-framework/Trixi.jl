@@ -54,11 +54,11 @@ ode = semidiscretize(semi, tspan);</code></pre><p>To analyse the entropy conserv
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       8.41000000e-07 s
+ #timesteps:                  0                run time:       7.41000000e-07 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:       1357.938 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:       1165.528 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -71,11 +71,11 @@ ode = semidiscretize(semi, tspan);</code></pre><p>To analyse the entropy conserv
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 61                run time:       8.58832612e-01 s
+ #timesteps:                 61                run time:       8.59003874e-01 s
  Δt:             2.65388338e-06                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  8.74974249e-08 s
-                                               PID:            9.44678653e-08 s
- #DOFs per field:         16384                alloc&#39;d memory:       1364.080 MiB
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  8.67038986e-08 s
+                                               PID:            9.44817315e-08 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1171.670 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -83,7 +83,7 @@ ode = semidiscretize(semi, tspan);</code></pre><p>To analyse the entropy conserv
  Linf error:     2.91149630e-01   3.21787795e-01   3.22040740e-01   1.04645370e+00
  ∑∂S/∂U ⋅ Uₜ :  -5.22953111e-18
 ────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre><p>A look at the change in entropy <span>$\sum \partial S/\partial U \cdot U_t$</span> in the analysis callback confirms that the flux is entropy conserving since the change is about machine precision.</p><p>We can plot the approximated solution at the time <code>t=0.4</code>.</p><pre><code class="language-julia hljs">using Plots
-plot(sol)</code></pre><img src="cf36db97.svg" alt="Example block output"/><p>Now, we can use for instance the dissipative flux <a href="../../reference-trixi/#Trixi.flux_lax_friedrichs"><code>flux_lax_friedrichs</code></a> as surface flux to get an entropy stable method.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq, Trixi
+plot(sol)</code></pre><img src="a431cecb.svg" alt="Example block output"/><p>Now, we can use for instance the dissipative flux <a href="../../reference-trixi/#Trixi.flux_lax_friedrichs"><code>flux_lax_friedrichs</code></a> as surface flux to get an entropy stable method.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq, Trixi
 
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
@@ -113,11 +113,11 @@ analysis_callback = AnalysisCallback(semi, interval = 100);</code></pre><p>We no
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       8.52000000e-07 s
+ #timesteps:                  0                run time:       7.71000000e-07 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:        922.495 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:       1065.756 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -130,11 +130,11 @@ analysis_callback = AnalysisCallback(semi, interval = 100);</code></pre><p>We no
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 37                run time:       4.88660396e-01 s
+ #timesteps:                 37                run time:       4.91878792e-01 s
  Δt:             9.70561500e-03                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  8.20373990e-08 s
-                                               PID:            8.79425741e-08 s
- #DOFs per field:         16384                alloc&#39;d memory:        928.634 MiB
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  8.19206018e-08 s
+                                               PID:            8.85329388e-08 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1071.895 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -142,7 +142,7 @@ analysis_callback = AnalysisCallback(semi, interval = 100);</code></pre><p>We no
  Linf error:     2.61815838e-01   2.48816692e-01   2.48316760e-01   9.30972696e-01
  ∑∂S/∂U ⋅ Uₜ :  -1.40306972e-04
 ────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre><p>The change in entropy confirms the expected entropy stability.</p><pre><code class="language-julia hljs">using Plots
-plot(sol)</code></pre><img src="53070c84.svg" alt="Example block output"/><p>Of course, you can use more than these two fluxes in Trixi. Here, we will give a short list of possible fluxes for the compressible Euler equations. For the volume flux Trixi.jl provides for example <a href="../../reference-trixi/#Trixi.flux_ranocha-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_ranocha</code></a>, <a href="../../reference-trixi/#Trixi.flux_shima_etal-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_shima_etal</code></a>, <a href="../../reference-trixi/#Trixi.flux_chandrashekar-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_chandrashekar</code></a>, <a href="../../reference-trixi/#Trixi.flux_kennedy_gruber-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_kennedy_gruber</code></a>. As surface flux you can use all volume fluxes and additionally for instance <a href="../../reference-trixi/#Trixi.flux_lax_friedrichs"><code>flux_lax_friedrichs</code></a>, <a href="../../reference-trixi/#Trixi.flux_hll"><code>flux_hll</code></a>, <a href="../../reference-trixi/#Trixi.flux_hllc-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_hllc</code></a>.</p><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+plot(sol)</code></pre><img src="166874ef.svg" alt="Example block output"/><p>Of course, you can use more than these two fluxes in Trixi. Here, we will give a short list of possible fluxes for the compressible Euler equations. For the volume flux Trixi.jl provides for example <a href="../../reference-trixi/#Trixi.flux_ranocha-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_ranocha</code></a>, <a href="../../reference-trixi/#Trixi.flux_shima_etal-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_shima_etal</code></a>, <a href="../../reference-trixi/#Trixi.flux_chandrashekar-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_chandrashekar</code></a>, <a href="../../reference-trixi/#Trixi.flux_kennedy_gruber-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_kennedy_gruber</code></a>. As surface flux you can use all volume fluxes and additionally for instance <a href="../../reference-trixi/#Trixi.flux_lax_friedrichs"><code>flux_lax_friedrichs</code></a>, <a href="../../reference-trixi/#Trixi.flux_hll"><code>flux_hll</code></a>, <a href="../../reference-trixi/#Trixi.flux_hllc-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_hllc</code></a>.</p><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
 versioninfo()
 
 using Pkg
@@ -164,4 +164,4 @@ Environment:
 <span class="sgr32">⌃</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
   <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
   <span class="sgr90">[a7f1ee26] </span>Trixi v0.9.12-DEV `~/work/Trixi.jl/Trixi.jl`
-<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../scalar_linear_advection_1d/">« 3 Introduction to DG methods</a><a class="docs-footer-nextpage" href="../shock_capturing/">5 Shock capturing with flux differencing and stage limiter »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Thursday 19 December 2024 14:19">Thursday 19 December 2024</span>. Using Julia version 1.10.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../scalar_linear_advection_1d/">« 3 Introduction to DG methods</a><a class="docs-footer-nextpage" href="../shock_capturing/">5 Shock capturing with flux differencing and stage limiter »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Thursday 19 December 2024 14:55">Thursday 19 December 2024</span>. Using Julia version 1.10.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
