@@ -8,20 +8,25 @@
 function rhs!(du, u, t,
               mesh::StructuredMesh{1}, equations,
               boundary_conditions, source_terms::Source,
-              dg::DG, cache) where {Source}
+              dg::DG, cache,
+              element_indices = eachelement(dg, cache),
+              interface_indices = nothing,
+              boundary_indices = nothing,
+              mortar_indices = nothing) where {Source}
     # Reset du
-    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+    @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache, element_indices)
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
         calc_volume_integral!(du, u, mesh,
                               have_nonconservative_terms(equations), equations,
-                              dg.volume_integral, dg, cache)
+                              dg.volume_integral, dg, cache, element_indices)
     end
 
     # Calculate interface and boundary fluxes
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache, u, mesh, equations, dg.surface_integral, dg)
+        calc_interface_flux!(cache, u, mesh, equations, dg.surface_integral, dg,
+                             element_indices)
     end
 
     # Calculate boundary fluxes
@@ -33,25 +38,28 @@ function rhs!(du, u, t,
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations,
-                               dg.surface_integral, dg, cache)
+                               dg.surface_integral, dg, cache,
+                               element_indices)
     end
 
     # Apply Jacobian from mapping to reference element
-    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache)
+    @trixi_timeit timer() "Jacobian" apply_jacobian!(du, mesh, equations, dg, cache,
+                                                     element_indices)
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(du, u, t, source_terms, equations, dg, cache, element_indices)
     end
 
     return nothing
 end
 
 function calc_interface_flux!(cache, u, mesh::StructuredMesh{1},
-                              equations, surface_integral, dg::DG)
+                              equations, surface_integral, dg::DG,
+                              element_indices = eachelement(dg, cache))
     @unpack surface_flux = surface_integral
 
-    @threaded for element in eachelement(dg, cache)
+    @threaded for element in element_indices
         left_element = cache.elements.left_neighbors[1, element]
 
         if left_element > 0 # left_element = 0 at boundaries
