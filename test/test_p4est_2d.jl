@@ -125,8 +125,8 @@ end
     end
 end
 
-@trixi_testset "elixir_advection_view.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_view.jl"),
+@trixi_testset "elixir_advection_meshview.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_meshview.jl"),
                         l2=[0.00013773915040249946],
                         linf=[0.0010140184322192658])
     # Ensure that we do not have excessive memory allocations
