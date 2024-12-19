@@ -142,7 +142,7 @@ end
               RealT=Float64, initial_refinement_level=0, periodicity=true, unsaved_changes=true,
               p4est_partition_allow_for_coarsening=true)
 
-Create a structured curved `P4estMesh` of the specified size.
+Create a structured curved/higher-order `P4estMesh` of the specified size.
 
 There are three ways to map the mesh to the physical domain.
 1. Define a `mapping` that maps the hypercube `[-1, 1]^n`.
@@ -319,9 +319,9 @@ mesh from an Abaqus mesh file (`.inp`). Each element of the conforming mesh pars
 from the `meshfile` is created as a [`p4est`](https://github.com/cburstedde/p4est)
 tree datatype.
 
-To create a curved unstructured mesh `P4estMesh` two strategies are available:
+To create a curved/higher-order unstructured mesh `P4estMesh` two strategies are available:
 
-- `p4est_mesh_from_hohqmesh_abaqus`: High-order, curved boundary information created by
+- `p4est_mesh_from_hohqmesh_abaqus`: High-order, polygonial boundary information created by
                                      [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl) is
                                      available in the `meshfile`. The mesh polynomial degree `polydeg`
                                      of the boundaries is provided from the `meshfile`. The computation of
@@ -1770,7 +1770,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     nnodes = length(nodes)
 
     # Setup the starting file index to read in element indices and the additional
-    # curved boundary information provided by HOHQMesh.
+    # higher-order, polygonial boundary information provided by HOHQMesh.
     file_idx = findfirst(contains("** mesh polynomial degree"), file_lines) + 1
 
     # Create a work set of Gamma curves to create the node coordinates
@@ -1803,7 +1803,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
         for i in 1:4
             quad_vertices[i, :] .= vertices[1:2, element_node_ids[i]] # 2D => 1:2
         end
-        # Pull the information to check if boundary is curved in order to read in additional data
+        # Pull the information to check if boundary is curved/higher-order in order to read in additional data
         file_idx += 1
         current_line = split(file_lines[file_idx])
         # Note: This strategy is HOHQMesh-Abaqus.inp specific!
@@ -1815,7 +1815,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
             # Create the node coordinates on this particular element
             calc_node_coordinates!(node_coordinates, tree, nodes, quad_vertices)
         else
-            # Quadrilateral element has at least one curved side
+            # Quadrilateral element has at least one curved/higher-order side
             # Flip node ordering to make sure the element is right-handed for the interpolations
             m1 = 1
             m2 = 2
@@ -1840,7 +1840,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
                                                                                       2])
                     end
                 else
-                    # When curved_check[i] is 1 this curved boundary information is supplied by the mesh
+                    # When curved_check[i] is 1 this curved/higher-order boundary information is supplied by the mesh
                     # generator. So we just read it into a work array
                     for k in 1:nnodes
                         file_idx += 1
@@ -2003,7 +2003,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     nnodes = length(nodes)
 
     # Setup the starting file index to read in element indices and the additional
-    # curved boundary information provided by HOHQMesh.
+    # curved/higher-order boundary information provided by HOHQMesh.
     file_idx = findfirst(contains("** mesh polynomial degree"), file_lines) + 1
 
     # Create a work set of Gamma curves to create the node coordinates
@@ -2040,7 +2040,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
         for i in 1:8
             hex_vertices[:, i] .= vertices[:, element_node_ids[i]]
         end
-        # Pull the information to check if boundary is curved in order to read in additional data
+        # Pull the information to check if boundary is curved/higher-order in order to read in additional data
         file_idx += 1
         current_line = split(file_lines[file_idx])
         curved_check[1] = parse(Int, current_line[2])
@@ -2053,7 +2053,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
             # Create the node coordinates on this element
             calc_node_coordinates!(node_coordinates, tree, nodes, hex_vertices)
         else
-            # Hexahedral element has at least one curved side
+            # Hexahedral element has at least one curved/higher-order side
             for face in 1:6
                 if curved_check[face] == 0
                     # Face is a flat plane.
@@ -2067,7 +2067,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                                        nodes[q])
                     end
                 else # curved_check[face] == 1
-                    # Curved face boundary information is supplied by
+                    # Curved/higher-order face boundary information is supplied by
                     # the mesh file. Just read it into a work array
                     for q in 1:nnodes, p in 1:nnodes
                         file_idx += 1
