@@ -77,19 +77,19 @@ function initial_condition_slow_down(x, t, equations::IdealGlmMhdMultiIonEquatio
 end
 
 # Temperature of ion 1
-function temperature1(cons, equations::IdealGlmMhdMultiIonEquations2D)
-    prim = cons2prim(cons, equations)
-    rho, _, _, _, p = Trixi.get_component(1, prim, equations)
+function temperature1(u, equations::IdealGlmMhdMultiIonEquations2D)
+    rho_1, _ = Trixi.get_component(1, u, equations)
+    p = pressure(u, equations)
 
-    return p / rho / equations.gas_constants[1]
+    return p[1] / rho_1 / equations.gas_constants[1]
 end
 
 # Temperature of ion 2
-function temperature2(cons, equations::IdealGlmMhdMultiIonEquations2D)
-    prim = cons2prim(cons, equations)
-    rho, _, _, _, p = Trixi.get_component(2, prim, equations)
+function temperature2(u, equations::IdealGlmMhdMultiIonEquations2D)
+    rho_2, _ = Trixi.get_component(2, u, equations)
+    p = pressure(u, equations)
 
-    return p / rho / equations.gas_constants[2]
+    return p[2] / rho_2 / equations.gas_constants[2]
 end
 
 initial_condition = initial_condition_slow_down
