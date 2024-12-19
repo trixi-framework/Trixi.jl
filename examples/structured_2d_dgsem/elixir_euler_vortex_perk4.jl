@@ -56,14 +56,14 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 end
 initial_condition = initial_condition_isentropic_vortex
 
-EdgeLength = 20.0
+edge_length = 20.0
 
 N_passes = 1
-T_end = EdgeLength * N_passes
+T_end = edge_length * N_passes
 tspan = (0.0, T_end)
 
-coordinates_min = (-EdgeLength / 2, -EdgeLength / 2)
-coordinates_max = (EdgeLength / 2, EdgeLength / 2)
+coordinates_min = (-edge_length / 2, -edge_length / 2)
+coordinates_max = (edge_length / 2, edge_length / 2)
 
 cells_per_dimension = (32, 32)
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max)
