@@ -7,25 +7,16 @@ using GLMakie
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advection_velocity = (0.2, -0.7)
-equations = LinearScalarAdvectionEquation2D(advection_velocity)
+advection_velocity = (0.2, -0.7, 0.5)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
-function initial_condition_gauss_largedomain(x, t,
-                                             equation::LinearScalarAdvectionEquation2D)
-    # Store translated coordinate for easy use of exact solution
-    domain_length = SVector(10, 10)
-    x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t, domain_length)
-
-    return SVector(exp(-(x_trans[1]^2 + x_trans[2]^2)))
-end
-initial_condition = initial_condition_gauss_largedomain
-
+initial_condition = initial_condition_gauss
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-5.0, -5.0)
-coordinates_max = (5.0, 5.0)
+coordinates_min = (-5.0, -5.0, -5.0)
+coordinates_max = (5.0, 5.0, 5.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 4,
                 n_cells_max = 30_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -33,7 +24,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 20.0)
+tspan = (0.0, 0.3)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -49,25 +40,27 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-# Enable in-situ visualization with a new plot generated every 20 time steps
-# and additional plotting options passed as keyword arguments
-visualization = VisualizationCallback(interval = 20, clims = (0, 1), plot_creator = Trixi.show_plot_makie)
+                                     
+visualization = VisualizationCallback(interval = 20, clims = (0, 1), plot_data_creator = Trixi.PlotData3D, plot_creator = Trixi.show_plot_makie)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
-                                      base_level = 3,
-                                      med_level = 4, med_threshold = 0.1,
-                                      max_level = 5, max_threshold = 0.6)
+                                      base_level = 4,
+                                      med_level = 5, med_threshold = 0.1,
+                                      max_level = 6, max_threshold = 0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-stepsize_callback = StepsizeCallback(cfl = 1.6)
+stepsize_callback = StepsizeCallback(cfl = 1.2)
 
 callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback,
-                        save_solution, visualization,
-                        amr_callback, stepsize_callback);
+                        analysis_callback,
+                        alive_callback,
+                        save_solution,
+                        visualization,
+                        amr_callback,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
