@@ -87,6 +87,7 @@ end
 
 @inline Base.ndims(::AbstractEquations{NDIMS}) where {NDIMS} = NDIMS
 
+# TODO: @ranocha may this be removed?
 # Equations act like scalars in broadcasting.
 # Using `Ref(equations)` would be more convenient in some circumstances.
 # However, this does not work with Julia v1.9.3 correctly due to a (performance)

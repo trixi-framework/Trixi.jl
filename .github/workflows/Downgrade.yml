@@ -35,8 +35,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.9'
-          # - '~1.9.0-0' # including development versions
+          - '1.10'
+          # - '~1.10.0-0' # including development versions
           # - 'nightly'
         os:
           - ubuntu-latest
