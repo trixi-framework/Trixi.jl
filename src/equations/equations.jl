@@ -496,6 +496,7 @@ abstract type AbstractIdealGlmMhdMultiIonEquations{NDIMS, NVARS, NCOMP} <:
               AbstractEquations{NDIMS, NVARS} end
 include("ideal_glm_mhd_multiion.jl")
 include("ideal_glm_mhd_multiion_2d.jl")
+include("ideal_glm_mhd_multiion_3d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS,

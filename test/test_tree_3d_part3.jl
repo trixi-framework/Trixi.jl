@@ -17,6 +17,9 @@ isdir(outdir) && rm(outdir, recursive = true)
     # MHD
     include("test_tree_3d_mhd.jl")
 
+    # Multi-ion MHD
+    include("test_tree_3d_mhdmultiion.jl")
+
     # Lattice-Boltzmann
     include("test_tree_3d_lbm.jl")
 
