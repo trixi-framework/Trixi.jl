@@ -51,8 +51,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "tree_3d_dgsem")
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Slightly larger values for allowed allocations due to the size of the multi-ion MHD system
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 2000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -100,8 +99,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Slightly larger values for allowed allocations due to the size of the multi-ion MHD system
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 2000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -147,8 +145,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Slightly larger values for allowed allocations due to the size of the multi-ion MHD system
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 2000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 end
