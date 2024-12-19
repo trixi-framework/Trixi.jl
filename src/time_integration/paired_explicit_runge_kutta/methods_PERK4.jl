@@ -48,7 +48,7 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages, tspan,
     if num_stages > 5
         a_unknown = copy(monomial_coeffs)
         for i in 5:(num_stages - 2)
-            a_unknown_1[i - 3] /= monomial_coeffs[i - 4]
+            a_unknown[i - 3] /= monomial_coeffs[i - 4]
         end
         reverse!(a_unknown)
 
