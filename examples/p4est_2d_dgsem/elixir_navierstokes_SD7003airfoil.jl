@@ -77,7 +77,10 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 30 * t_c) # Try to get into a state where initial pressure wave is gone
+# Run simulation until initial pressure wave is gone.
+# Note: This is a very long simulation!
+tspan = (0.0, 30 * t_c)
+
 # Drag/Lift coefficient measurements should then be done over the 30 to 35 t_c interval
 # by restarting the simulation.
 
@@ -106,7 +109,7 @@ lift_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
 
 # For long simulation run, use a large interval.
 # For measurements once the simulation has settled in, one should use a 
-# significantly smaller interval, e.g. TODO 50 to record the drag/lift coefficients.                                                                   
+# significantly smaller interval, e.g. 500 to record the drag/lift coefficients.                                                                   
 analysis_interval = 10_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -116,11 +119,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                                            drag_coefficient_shear_force,
                                                            lift_coefficient))
 
-stepsize_callback = StepsizeCallback(cfl = 2.5)
+stepsize_callback = StepsizeCallback(cfl = 2.2)
 
 alive_callback = AliveCallback(alive_interval = 50)
 
-# For plots etc
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true,
