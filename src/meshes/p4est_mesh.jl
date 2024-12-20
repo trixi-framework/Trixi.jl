@@ -654,7 +654,7 @@ function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
                             parts = split(line, ',')
                             if occursin(quadratic_quads, current_element_type)
                                 # Print the first (element), second to fifth (vertices 1-4) indices to file.
-                                # For node order of quadratic (secod-order) quads, see
+                                # For node order of quadratic (second-order) quads, see
                                 # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael02.html
                                 new_line = join(parts[1:5], ',')
                             elseif occursin(quadratic_hexes, current_element_type)
