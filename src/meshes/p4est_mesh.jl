@@ -659,7 +659,7 @@ function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
                                 new_line = join(parts[1:5], ',')
                             elseif occursin(quadratic_hexes, current_element_type)
                                 # Print the first (element), second to ninth (vertices 1-8) indices to file.
-                                # The node order is fortunately the same for hexes/bricks of type "C3D20", "C3D27", see
+                                # The node order is fortunately the same for hexes/bricks of type "C3D27", see
                                 # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael03.html
                                 new_line = join(parts[1:9], ',')
                             end
