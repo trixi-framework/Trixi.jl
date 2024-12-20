@@ -597,7 +597,7 @@ function preprocess_standard_abaqus(meshfile,
     return meshfile_preproc, elements_begin_idx, sets_begin_idx
 end
 
-# p4est can handle only linear elements. This function checks the `meshfile` 
+# p4est can handle only linear elements. This function checks the `meshfile_pre_proc` 
 # for quadratic elements (highest order supported by standard Abaqus) and
 # replaces them with linear elements. The higher-order (quadratic) boundaries are handled 
 # "internally" by Trixi as for the HOHQMesh-Abaqus case.
