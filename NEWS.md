@@ -13,6 +13,8 @@ for human readability.
   and [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) ([#2008])
 - `LobattoLegendreBasis` and related datastructures made fully floating-type general,
   enabling calculations with higher than double (`Float64`) precision ([#2128])
+- New time integrator `PairedExplicitRK4`, implementing the fourth-order paired explicit Runge-Kutta
+  method with [Convex.jl](https://github.com/jump-dev/Convex.jl), [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 
 ## Changes when updating to v0.9 from v0.8.x
 
