@@ -87,15 +87,8 @@ end
 
 @inline Base.ndims(::AbstractEquations{NDIMS}) where {NDIMS} = NDIMS
 
-# TODO: @ranocha may this be removed?
 # Equations act like scalars in broadcasting.
-# Using `Ref(equations)` would be more convenient in some circumstances.
-# However, this does not work with Julia v1.9.3 correctly due to a (performance)
-# bug in Julia, see
-# - https://github.com/trixi-framework/Trixi.jl/pull/1618
-# - https://github.com/JuliaLang/julia/issues/51118
-# Thus, we use the workaround below.
-Base.broadcastable(equations::AbstractEquations) = (equations,)
+Base.broadcastable(equations::AbstractEquations) = Ref(equations)
 
 """
     flux(u, orientation_or_normal, equations)
