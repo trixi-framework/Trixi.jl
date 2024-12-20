@@ -77,8 +77,10 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.01 * t_c)
-#tspan = (0.0, 30 * t_c) # Try to get into a state where initial pressure wave is gone
+tspan = (0.0, 30 * t_c) # Try to get into a state where initial pressure wave is gone
+# Drag/Lift coefficient measurements should then be done over the 30 to 35 t_c interval
+# by restarting the simulation.
+
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -104,7 +106,7 @@ lift_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
 
 # For long simulation run, use a large interval.
 # For measurements once the simulation has settled in, one should use a 
-# significantly smaller interval, e.g. 50 to record the drag/lift coefficients.                                                                   
+# significantly smaller interval, e.g. TODO 50 to record the drag/lift coefficients.                                                                   
 analysis_interval = 10_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -114,7 +116,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                                            drag_coefficient_shear_force,
                                                            lift_coefficient))
 
-stepsize_callback = StepsizeCallback(cfl = 2.0)
+stepsize_callback = StepsizeCallback(cfl = 2.5)
 
 alive_callback = AliveCallback(alive_interval = 50)
 
@@ -138,7 +140,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# TODO: PERK ?
 sol = solve(ode,
             CarpenterKennedy2N54(williamson_condition = false,
                                  thread = OrdinaryDiffEq.True());
