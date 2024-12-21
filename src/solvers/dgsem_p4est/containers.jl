@@ -528,17 +528,6 @@ function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMesh)
     return interfaces
 end
 
-function init_surfaces!(interfaces, mortars, boundaries, mesh::P4estMeshView{2})
-    # Let `p4est` iterate over all interfaces and call init_surfaces_iter_face
-    iter_face_c = cfunction(init_surfaces_iter_face, Val(ndims(mesh.mesh)))
-    user_data = InitSurfacesIterFaceUserData(interfaces, mortars, boundaries,
-                                             mesh.parent)
-
-    iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
-
-    return interfaces
-end
-
 # Initialization of interfaces after the function barrier
 function init_interfaces_iter_face_inner(info_pw, sides_pw, user_data)
     @unpack interfaces, interface_id, mesh = user_data
@@ -712,21 +701,6 @@ function count_required_surfaces(mesh::P4estMesh)
     user_data = [0, 0, 0]
 
     iterate_p4est(mesh.p4est, user_data; iter_face_c = iter_face_c)
-
-    # Return counters
-    return (interfaces = user_data[1],
-            mortars = user_data[2],
-            boundaries = user_data[3])
-end
-
-function count_required_surfaces(mesh::P4estMeshView)
-    # Let `p4est` iterate over all interfaces and call count_surfaces_iter_face
-    iter_face_c = cfunction(count_surfaces_iter_face, Val(ndims(mesh.parent)))
-
-    # interfaces, mortars, boundaries
-    user_data = [0, 0, 0]
-
-    iterate_p4est(mesh.parent.p4est, user_data; iter_face_c = iter_face_c)
 
     # Return counters
     return (interfaces = user_data[1],
