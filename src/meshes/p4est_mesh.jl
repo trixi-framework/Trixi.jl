@@ -707,7 +707,7 @@ end
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. For linear meshes, the tree node coordinates are 
 # computed according to the `mapping` passed to this function using polynomial interpolants of degree `polydeg`.
-# For quadratic (second-order) meshes, the tree node coordinates are read from the file, similar as for 
+# For quadratic (second-order) meshes, the tree node coordinates are read from the meshfile, similar as for 
 # `p4est_connectivity_from_hohqmesh_abaqus`.
 function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                  n_dimensions,
