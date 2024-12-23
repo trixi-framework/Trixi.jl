@@ -556,7 +556,7 @@ function preprocess_standard_abaqus(meshfile,
                         current_element_type = match(r"\*ELEMENT, type=([^,]+)", line).captures[1]
 
                         # Keep only quads (2D) or hexes (3D), i.e., eliminate all other elements
-                        # like trusses (2D/3D) or quads in 3D.
+                        # like trusses (2D/3D) or quads (3D).
                         if n_dimensions == 2 &&
                            (occursin(linear_quads, current_element_type) ||
                             occursin(quadratic_quads, current_element_type))
