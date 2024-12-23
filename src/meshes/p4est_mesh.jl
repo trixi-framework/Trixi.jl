@@ -454,7 +454,7 @@ function p4est_connectivity_from_hohqmesh_abaqus(meshfile,
     n_vertices::Int = connectivity_pw.num_vertices[]
 
     # Extract a copy of the element vertices to compute the tree node coordinates
-    # `vertices` store coordinates of all three dimensions (even for the 2D case)
+    # `vertices` stores coordinates of all three dimensions (even for the 2D case)
     # since the Abaqus `.inp` format always stores 3D coordinates.
     vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
 
