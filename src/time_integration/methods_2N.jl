@@ -48,7 +48,7 @@ struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
 end
 
 """
-        CarpenterKennedy2N43()
+    CarpenterKennedy2N43()
 The following structures and methods provide a minimal implementation of
 the low-storage explicit Runge-Kutta method of
 
