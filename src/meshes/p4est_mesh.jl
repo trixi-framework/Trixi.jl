@@ -321,7 +321,7 @@ tree datatype.
 
 To create a curved/higher-order unstructured mesh `P4estMesh` two strategies are available:
 
-- `p4est_mesh_from_hohqmesh_abaqus`: High-order, polygonial boundary information created by
+- `p4est_mesh_from_hohqmesh_abaqus`: High-order (curved) boundary information created by
                                      [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl) is
                                      available in the `meshfile`. The mesh polynomial degree `polydeg`
                                      of the boundaries is provided from the `meshfile`. The computation of
@@ -334,7 +334,7 @@ To create a curved/higher-order unstructured mesh `P4estMesh` two strategies are
                                      function is specified then it computes the mapped tree coordinates via polynomial
                                      interpolants with degree `polydeg`. The mesh created by this function will only
                                      have one boundary `:all` if `boundary_symbols` is not specified.
-                                     If `boundary_symbols` is specified the mesh file will be parsed for nodesets defining
+                                     If `boundary_symbols` is specified the `meshfile` will be parsed for nodesets defining
                                      the boundary nodes from which boundary edges (2D) and faces (3D) will be assigned.
 
 Note that the `mapping` and `polydeg` keyword arguments are only used by the `p4est_mesh_from_standard_abaqus`
@@ -766,11 +766,14 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     basis = LobattoLegendreBasis(RealT, polydeg)
     nodes = basis.nodes
 
+    # The highest supported element order is quadratic (second-order) in the standard Abaqus format.
+    # Thus, this check is equivalent to checking for higher-order boundary information.
     if mesh_polydeg == 2
         mesh_nnodes = mesh_polydeg + 1 # = 3
         # Note: We ASSUME that the additional node between the end-vertices lies 
         # on the center on that line, such that we can use Chebyshev-Gauss-Lobatto nodes!
         # For polydeg = 2, we have the 3 nodes [-1, 0, 1] (within the reference element).
+        # Note that these coincide for polydeg = 2 with the Legendre-Gauss-Lobatto nodes. 
         cheby_nodes, _ = chebyshev_gauss_lobatto_nodes_weights(mesh_nnodes)
         nodes = SVector{mesh_nnodes}(cheby_nodes)
     end
@@ -1770,7 +1773,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     nnodes = length(nodes)
 
     # Setup the starting file index to read in element indices and the additional
-    # higher-order, polygonial boundary information provided by HOHQMesh.
+    # higher-order (curved) boundary information provided by HOHQMesh.
     file_idx = findfirst(contains("** mesh polynomial degree"), file_lines) + 1
 
     # Create a work set of Gamma curves to create the node coordinates
