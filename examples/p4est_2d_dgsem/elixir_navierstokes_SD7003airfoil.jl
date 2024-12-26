@@ -27,6 +27,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
     # set the freestream flow parameters such that c_inf = 1.0 => Mach 0.2
     rho_freestream = 1.4
 
+    # Values correspond to `aoa = 4 * pi / 180`
     v1 = 0.19951281005196486 # 0.2 * cos(aoa)
     v2 = 0.01395129474882506 # 0.2 * sin(aoa)
 

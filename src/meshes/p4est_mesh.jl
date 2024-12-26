@@ -454,7 +454,7 @@ function p4est_connectivity_from_hohqmesh_abaqus(meshfile,
     n_vertices::Int = connectivity_pw.num_vertices[]
 
     # Extract a copy of the element vertices to compute the tree node coordinates
-    # `vertices` store coordinates of all three dimensions (even for the 2D case)
+    # `vertices` stores coordinates of all three dimensions (even for the 2D case)
     # since the Abaqus `.inp` format always stores 3D coordinates.
     vertices = unsafe_wrap(Array, connectivity_pw.vertices, (3, n_vertices))
 
@@ -556,7 +556,7 @@ function preprocess_standard_abaqus(meshfile,
                         current_element_type = match(r"\*ELEMENT, type=([^,]+)", line).captures[1]
 
                         # Keep only quads (2D) or hexes (3D), i.e., eliminate all other elements
-                        # like trusses (2D/3D) or quads in 3D.
+                        # like trusses (2D/3D) or quads (3D).
                         if n_dimensions == 2 &&
                            (occursin(linear_quads, current_element_type) ||
                             occursin(quadratic_quads, current_element_type))
@@ -707,7 +707,7 @@ end
 # Create the mesh connectivity, mapped node coordinates within each tree, reference nodes in [-1,1]
 # and a list of boundary names for the `P4estMesh`. For linear meshes, the tree node coordinates are 
 # computed according to the `mapping` passed to this function using polynomial interpolants of degree `polydeg`.
-# For quadratic (second-order) meshes, the tree node coordinates are read from the file, similar as for 
+# For quadratic (second-order) meshes, the tree node coordinates are read from the meshfile, similar as for 
 # `p4est_connectivity_from_hohqmesh_abaqus`.
 function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                  n_dimensions,
