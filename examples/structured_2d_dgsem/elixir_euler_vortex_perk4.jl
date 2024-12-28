@@ -20,25 +20,25 @@ The classical isentropic vortex test case as presented in Section 5.1 of
 """
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
     # Evaluate error after full domain traversion
-    if t == T_end
+    if t == t_end
         t = 0
     end
 
-    # initial center of the vortex
+    # Initial center of the vortex
     inicenter = SVector(0.0, 0.0)
-    # strength of the vortex
+    # Strength of the vortex
     S = 13.5
     # Radius of vortex
     R = 1.5
     # Free-stream Mach 
     M = 0.4
-    # base flow
+    # Base flow
     v1 = 1.0
     v2 = 1.0
     vel = SVector(v1, v2)
 
-    center = inicenter + vel * t # advection of center
-    center = x - center          # distance to centerpoint
+    center = inicenter + vel * t # Advection of center
+    center = x - center          # Distance to centerpoint
     center = SVector(center[2], -center[1])
     r2 = center[1]^2 + center[2]^2
 
@@ -46,11 +46,12 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 
     rho = (1 - (S * M / pi)^2 * (gamma - 1) * exp(2 * f) / 8)^(1 / (gamma - 1))
 
-    du = S / (2 * π * R) * exp(f) # vel. perturbation
+    du = S / (2 * π * R) * exp(f) # Vel. perturbation
     vel = vel + du * center
     v1, v2 = vel
 
     p = rho^gamma / (gamma * M^2)
+
     prim = SVector(rho, v1, v2, p)
     return prim2cons(prim, equations)
 end
@@ -59,8 +60,8 @@ initial_condition = initial_condition_isentropic_vortex
 edge_length = 20.0
 
 N_passes = 1
-T_end = edge_length * N_passes
-tspan = (0.0, T_end)
+t_end = edge_length * N_passes
+tspan = (0.0, t_end)
 
 coordinates_min = (-edge_length / 2, -edge_length / 2)
 coordinates_max = (edge_length / 2, edge_length / 2)
