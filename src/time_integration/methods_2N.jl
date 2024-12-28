@@ -89,7 +89,7 @@ mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    f::F
+    f::F # `rhs` of the semidiscretization
     alg::Alg
     opts::SimpleIntegrator2NOptions
     finalstep::Bool # added for convenience

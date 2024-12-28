@@ -187,7 +187,7 @@ mutable struct PairedExplicitRK4Integrator{RealT <: Real, uType, Params, Sol, F,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F
+    f::F # `rhs` of the semidiscretization
     alg::Alg # This is our own class written above; Abbreviation for ALGorithm
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
