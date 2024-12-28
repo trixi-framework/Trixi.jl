@@ -726,22 +726,24 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     linear_hexes = r"^(C3D8).*$"
     quadratic_hexes = r"^(C3D27).*$"
 
-    # Preprocess the meshfile to remove lower-dimensional elements
-    meshfile_preproc, elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
-                                                                                      linear_quads,
-                                                                                      linear_hexes,
-                                                                                      quadratic_quads,
-                                                                                      quadratic_hexes,
-                                                                                      n_dimensions)
+    if !mpi_isparallel() || (mpi_isparallel() && mpi_isroot())
+        # Preprocess the meshfile to remove lower-dimensional elements
+        meshfile_preproc, elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
+                                                                                          linear_quads,
+                                                                                          linear_hexes,
+                                                                                          quadratic_quads,
+                                                                                          quadratic_hexes,
+                                                                                          n_dimensions)
 
-    # Copy of mesh for p4est with linear elements only
-    meshfile_p4est_rdy, mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile_preproc,
-                                                                            linear_quads,
-                                                                            linear_hexes,
-                                                                            quadratic_quads,
-                                                                            quadratic_hexes,
-                                                                            elements_begin_idx,
-                                                                            sets_begin_idx)
+        # Copy of mesh for p4est with linear elements only
+        meshfile_p4est_rdy, mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile_preproc,
+                                                                                linear_quads,
+                                                                                linear_hexes,
+                                                                                quadratic_quads,
+                                                                                quadratic_hexes,
+                                                                                elements_begin_idx,
+                                                                                sets_begin_idx)
+    end
 
     # Create the mesh connectivity using `p4est`
     connectivity = read_inp_p4est(meshfile_p4est_rdy, Val(n_dimensions))
