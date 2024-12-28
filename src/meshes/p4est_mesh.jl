@@ -501,10 +501,8 @@ end
 # Thus, if `n_dimensions == 2`, only quads are kept, and if `n_dimensions == 3`, 
 # only hexes are kept, i.e., in that case also quads are removed.
 function preprocess_standard_abaqus(meshfile,
-                                    linear_quads,
-                                    linear_hexes,
-                                    quadratic_quads,
-                                    quadratic_hexes,
+                                    linear_quads, linear_hexes,
+                                    quadratic_quads, quadratic_hexes,
                                     n_dimensions)
     meshfile_preproc = replace(meshfile, ".inp" => "_preproc.inp")
 
@@ -602,10 +600,8 @@ end
 # replaces them with linear elements. The higher-order (quadratic) boundaries are handled 
 # "internally" by Trixi as for the HOHQMesh-Abaqus case.
 function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
-                                              linear_quads,
-                                              linear_hexes,
-                                              quadratic_quads,
-                                              quadratic_hexes,
+                                              linear_quads, linear_hexes,
+                                              quadratic_quads, quadratic_hexes,
                                               elements_begin_idx,
                                               sets_begin_idx)
     meshfile_p4est_rdy = replace(meshfile_pre_proc,
