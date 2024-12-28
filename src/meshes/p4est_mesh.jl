@@ -667,7 +667,7 @@ function preprocess_standard_abaqus_for_p4est(meshfile_pre_proc,
         end
     end
 
-    return meshfile_p4est_rdy, order
+    return order
 end
 
 # Read all nodes (not only vertices, i.e., endpoints of elements) into a dict.
@@ -726,6 +726,8 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     linear_hexes = r"^(C3D8).*$"
     quadratic_hexes = r"^(C3D27).*$"
 
+    meshfile_p4est_rdy = replace(meshfile, ".inp" => "_p4est_ready.inp")
+    mesh_polydeg = 1
     if !mpi_isparallel() || (mpi_isparallel() && mpi_isroot())
         # Preprocess the meshfile to remove lower-dimensional elements
         meshfile_preproc, elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
@@ -736,13 +738,22 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                                                           n_dimensions)
 
         # Copy of mesh for p4est with linear elements only
-        meshfile_p4est_rdy, mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile_preproc,
-                                                                                linear_quads,
-                                                                                linear_hexes,
-                                                                                quadratic_quads,
-                                                                                quadratic_hexes,
-                                                                                elements_begin_idx,
-                                                                                sets_begin_idx)
+        mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile_preproc,
+                                                            linear_quads,
+                                                            linear_hexes,
+                                                            quadratic_quads,
+                                                            quadratic_hexes,
+                                                            elements_begin_idx,
+                                                            sets_begin_idx)
+    end
+
+    # Broadcast mesh_polydeg across all MPI ranks
+    if mpi_isparallel()
+        if mpi_isroot()
+            MPI.Bcast!(mesh_polydeg, mpi_root(), mpi_comm())
+        else
+            mesh_polydeg = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+        end
     end
 
     # Create the mesh connectivity using `p4est`
