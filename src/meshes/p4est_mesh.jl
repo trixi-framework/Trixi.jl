@@ -750,7 +750,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     # Broadcast mesh_polydeg across all MPI ranks
     if mpi_isparallel()
         if mpi_isroot()
-            MPI.Bcast!(mesh_polydeg, mpi_root(), mpi_comm())
+            MPI.Bcast!(Ref(mesh_polydeg), mpi_root(), mpi_comm())
         else
             mesh_polydeg = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
         end
