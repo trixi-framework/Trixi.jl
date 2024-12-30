@@ -243,6 +243,12 @@ end
 #   λ_max =
 # end
 
+"""
+    flux_godunov(u_ll, u_rr, orientation, 
+                 equations::LatticeBoltzmannEquations3D)
+
+Godunov (upwind) flux for the Lattice-Boltzmann equations.
+"""
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer,
                               equations::LatticeBoltzmannEquations3D)
     if orientation == 1 # x-direction
