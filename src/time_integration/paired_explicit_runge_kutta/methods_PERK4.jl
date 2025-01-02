@@ -118,7 +118,7 @@ end
 
 The following structures and methods provide an implementation of
 the fourth-order paired explicit Runge-Kutta (P-ERK) method
-optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solver).
+optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
 The method has been proposed in 
 - D. Doehring, L. Christmann, M. Schlottke-Lakemper, G. J. Gassner and M. Torrilhon (2024).
   Fourth-Order Paired-Explicit Runge-Kutta Methods
