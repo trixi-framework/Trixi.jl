@@ -122,7 +122,7 @@ end
 
 The following structures and methods provide a minimal implementation of
 the second-order paired explicit Runge-Kutta (PERK) method
-optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solver).
+optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
 
 - Brian Vermeire (2019).
   Paired explicit Runge-Kutta schemes for stiff systems of equations

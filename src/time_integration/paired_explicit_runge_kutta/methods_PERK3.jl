@@ -120,7 +120,7 @@ end
 
 The following structures and methods provide an implementation of
 the third-order paired explicit Runge-Kutta (PERK) method
-optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solver).
+optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
 The original paper is
 - Nasab, Vermeire (2022)
 Third-order Paired Explicit Runge-Kutta schemes for stiff systems of equations
