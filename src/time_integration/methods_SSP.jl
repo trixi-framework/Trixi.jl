@@ -83,14 +83,14 @@ mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
     du::uType
     r0::uType
     t::RealT
-    tdir::RealT
+    tdir::RealT # DIRection of time integration, i.e, if one marches forward or backward in time
     dt::RealT # current time step
     dtcache::RealT # manually set time step
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
     f::F # `rhs` of the semidiscretization
-    alg::Alg
+    alg::Alg # SimpleSSPRK33
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
     dtchangeable::Bool
