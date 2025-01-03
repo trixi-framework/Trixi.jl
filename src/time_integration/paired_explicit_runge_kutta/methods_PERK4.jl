@@ -135,7 +135,7 @@ struct PairedExplicitRK4 <: AbstractPairedExplicitRKSingle
     c::Vector{Float64}
 
     dt_opt::Union{Float64, Nothing}
-end # struct PairedExplicitRK4
+end
 
 # Constructor for previously computed A Coeffs
 function PairedExplicitRK4(num_stages, base_path_a_coeffs::AbstractString,
