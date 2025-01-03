@@ -80,13 +80,15 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages,
                              "a_" * string(num_stages) * ".txt")
 
     @assert isfile(path_a_coeffs) "Couldn't find file $path_a_coeffs"
-    a_coeffs = readdlm(path_a_coeffs, Float64)
-    num_a_coeffs = size(a_coeffs, 1)
+    if num_stages > 5
+        a_coeffs = readdlm(path_a_coeffs, Float64)
+        num_a_coeffs = size(a_coeffs, 1)
 
-    @assert num_a_coeffs == num_coeffs_max
-    if num_coeffs_max > 0
-        a_matrix[1, :] -= a_coeffs
-        a_matrix[2, :] = a_coeffs
+        @assert num_a_coeffs == num_coeffs_max
+        if num_coeffs_max > 0
+            a_matrix[1, :] -= a_coeffs
+            a_matrix[2, :] = a_coeffs
+        end
     end
 
     a_matrix_constant = PERK4_a_matrix_constant(cS3)
