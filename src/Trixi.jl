@@ -314,12 +314,10 @@ function __init__()
         end
     end
 
-    @require GLMakie="e9467ef8-e4e7-5192-8a1a-b1aee30e663a" begin
-        using .GLMakie: GLMakie
-    end
-
-    @require CairoMakie="13f3f980-e62b-5c42-98c6-ff1f3baf88f0" begin
-        using .CairoMakie: CairoMakie
+    @static if !isdefined(Base, :get_extension)
+        @require GLMakie="e9467ef8-e4e7-5192-8a1a-b1aee30e663a" begin
+            include("../ext/TrixiGLMakieExt.jl")
+        end
     end
 
     @static if !isdefined(Base, :get_extension)
