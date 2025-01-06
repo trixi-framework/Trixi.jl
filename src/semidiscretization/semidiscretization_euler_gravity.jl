@@ -266,11 +266,6 @@ end
 function update_gravity!(semi::SemidiscretizationEulerGravity, u_ode)
     @unpack semi_euler, semi_gravity, parameters, gravity_counter, cache = semi
 
-    # Can be changed by AMR
-    resize!(cache.du_ode, length(cache.u_ode))
-    resize!(cache.u_tmp1_ode, length(cache.u_ode))
-    resize!(cache.u_tmp2_ode, length(cache.u_ode))
-
     u_euler = wrap_array(u_ode, semi_euler)
     u_gravity = wrap_array(cache.u_ode, semi_gravity)
     du_gravity = wrap_array(cache.du_ode, semi_gravity)
@@ -544,7 +539,17 @@ end
                                              t, iter; kwargs...)
     passive_args = ((semi.cache.u_ode,
                      mesh_equations_solver_cache(semi.semi_gravity)...),)
-    amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)..., semi, t, iter;
-                 kwargs..., passive_args = passive_args)
+    has_changed = amr_callback(u_ode, mesh_equations_solver_cache(semi.semi_euler)...,
+                               semi, t, iter;
+                               kwargs..., passive_args = passive_args)
+
+    if has_changed
+        new_length = length(semi.cache.u_ode)
+        resize!(semi.cache.du_ode, new_length)
+        resize!(semi.cache.u_tmp1_ode, new_length)
+        resize!(semi.cache.u_tmp2_ode, new_length)
+    end
+
+    return has_changed
 end
 end # @muladd
