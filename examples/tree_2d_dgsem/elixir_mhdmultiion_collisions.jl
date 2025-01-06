@@ -53,7 +53,7 @@ equations = IdealGlmMhdMultiIonEquations2D(gammas = (5 / 3, 5 / 3),
                                            gas_constants = (1.0, 1.0), # [nondimensional]
                                            molar_masses = (1.0, 1.0), # [nondimensional]
                                            ion_ion_collision_constants = [0.0 0.4079382480442680;
-                                                                          0.4079382480442680 0.0], # [nondimensional] (computed with eq (4.142) of Schunk&Nagy (2009))
+                                                                          0.4079382480442680 0.0], # [nondimensional] (computed with eq (4.142) of Schunk & Nagy (2009))
                                            ion_electron_collision_constants = (8.56368379833E-06,
                                                                                8.56368379833E-06), # [nondimensional] (computed with eq (9) of Ghosh et al. (2019))
                                            electron_pressure = electron_pressure_constantTe,
@@ -81,7 +81,7 @@ function temperature1(u, equations::IdealGlmMhdMultiIonEquations2D)
     rho_1, _ = Trixi.get_component(1, u, equations)
     p = pressure(u, equations)
 
-    return p[1] / rho_1 / equations.gas_constants[1]
+    return p[1] / (rho_1 * equations.gas_constants[1])
 end
 
 # Temperature of ion 2
@@ -89,7 +89,7 @@ function temperature2(u, equations::IdealGlmMhdMultiIonEquations2D)
     rho_2, _ = Trixi.get_component(2, u, equations)
     p = pressure(u, equations)
 
-    return p[2] / rho_2 / equations.gas_constants[2]
+    return p[2] / (rho_2 * equations.gas_constants[2])
 end
 
 initial_condition = initial_condition_slow_down

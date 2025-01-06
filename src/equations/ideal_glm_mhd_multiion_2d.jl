@@ -32,8 +32,8 @@ ratios `charge_to_mass` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
 The ion-ion and ion-electron collision source terms can be computed using the functions 
 [`source_terms_collision_ion_ion`](@ref) and [`source_terms_collision_ion_electron`](@ref), respectively.
 
-For ion-ion collision terms, the optional arguments `gas_constants`, `molar_masses`, and `ion_ion_collision_constants` 
-must be provided.  For ion-electron collision terms, the optional arguments `gas_constants`, `molar_masses`, 
+For ion-ion collision terms, the optional keyword arguments `gas_constants`, `molar_masses`, and `ion_ion_collision_constants` 
+must be provided.  For ion-electron collision terms, the optional keyword arguments `gas_constants`, `molar_masses`, 
 `ion_electron_collision_constants`, and `electron_temperature` are required.
 
 - **`gas_constants`** and **`molar_masses`** are tuples containing the gas constant and molar mass of each 

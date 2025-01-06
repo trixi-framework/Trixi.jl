@@ -518,8 +518,7 @@ where ``M_k`` is the molar mass of ion species `k` provided in `equations.molar_
 with the so-called reduced temperature ``T_{k k'}`` and the ion-ion collision constants ``\tilde{B}_{kk'}`` provided
 in `equations.ion_electron_collision_constants` (see [`IdealGlmMhdMultiIonEquations2D`](@ref)).
 
-The additional coefficient ``\bar{\nu}^1_{kk'}`` is a non-dimensional drift correction factor proposed by Rambo and 
-Denavit.
+The additional coefficient ``\bar{\nu}^1_{kk'}`` is a non-dimensional drift correction factor proposed by Rambo and Denavit.
 
 References:
 - P. Rambo, J. Denavit, Interpenetration and ion separation in colliding plasmas, Physics of Plasmas 1 (1994) 4050–4060.
