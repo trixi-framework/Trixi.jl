@@ -268,7 +268,7 @@ function step!(integrator::PairedExplicitRK3Integrator)
         end
 
         # We need to store `du` of the S-1 stage in `kS1` for the final update:
-        integrator.kS1[i] .= integrator.du[i]
+        integrator.kS1 .= integrator.du
 
         PERK_ki!(integrator, prob.p, alg, alg.num_stages)
 
