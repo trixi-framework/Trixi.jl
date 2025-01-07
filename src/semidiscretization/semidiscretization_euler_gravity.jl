@@ -227,6 +227,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     u_euler = wrap_array(u_ode, semi_euler)
     du_euler = wrap_array(du_ode, semi_euler)
     u_gravity = wrap_array(cache.u_ode, semi_gravity)
+    n_elements = size(u_euler)[end]
 
     time_start = time_ns()
 
@@ -236,7 +237,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationEulerGravity, t)
     # compute gravitational potential and forces
     @trixi_timeit timer() "gravity solver" update_gravity!(semi, u_ode)
 
-    n_elements = size(u_euler)[end]
     # add gravitational source source_terms to the Euler part
     if ndims(semi_euler) == 1
         @threaded for element in 1:n_elements
@@ -347,8 +347,11 @@ function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
 
     # Note that `u_ode` is `u_gravity` in `rhs!` above
     @unpack u_ode, du_ode, u_tmp1_ode = cache
+    n_elements = size(u_euler)[end]
+
     u_tmp1_ode .= zero(eltype(u_tmp1_ode))
     du_gravity = wrap_array(du_ode, semi_gravity)
+
     for stage in eachindex(c)
         tau_stage = tau + dtau * c[stage]
 
@@ -360,7 +363,6 @@ function timestep_gravity_2N!(cache, u_euler, tau, dtau, gravity_parameters,
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 (spatial mean value)
-        n_elements = size(u_euler)[end]
         # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
         @threaded for element in 1:n_elements
             @views @. du_gravity[1, .., element] += grav_scale *
@@ -407,9 +409,12 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
 
     # Note that `u_ode` is `u_gravity` in `rhs!` above
     @unpack u_ode, du_ode, u_tmp1_ode, u_tmp2_ode = cache
+    n_elements = size(u_euler)[end]
+
     u_tmp1_ode .= zero(eltype(u_tmp1_ode))
     u_tmp2_ode .= u_ode
     du_gravity = wrap_array(du_ode, semi_gravity)
+
     for stage in eachindex(c)
         tau_stage = tau + dtau * c[stage]
 
@@ -421,7 +426,6 @@ function timestep_gravity_3Sstar!(cache, u_euler, tau, dtau, gravity_parameters,
         # Source term: Jeans instability OR coupling convergence test OR blast wave
         # put in gravity source term proportional to Euler density
         # OBS! subtract off the background density ρ_0 around which the Jeans instability is perturbed
-        n_elements = size(u_euler)[end]
         # Note: Adding to `du_gravity` is essentially adding to `du_ode`!
         @threaded for element in 1:n_elements
             @views @. du_gravity[1, .., element] += grav_scale *
