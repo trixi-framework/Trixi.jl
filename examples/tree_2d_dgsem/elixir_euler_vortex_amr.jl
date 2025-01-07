@@ -29,10 +29,10 @@ function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any, 4},
     alpha = indicator_vortex.cache.alpha
     resize!(alpha, nelements(dg, cache))
 
-    # get analytical vortex center (based on assumption that center=[0.0,0.0]
+    # get analytical vortex center (based on assumption that center=[0.0, 0.0]
     # at t=0.0 and that we stop after one period)
     domain_length = mesh.tree.length_level_0
-    if t < 0.5 * domain_length
+    if t < 0.5f0 * domain_length
         center = (t, t)
     else
         center = (t - domain_length, t - domain_length)
@@ -84,17 +84,18 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     # for error convergence: make sure that the end time is such that the vortex is back at the initial state!!
     # for the current velocity and domain size: t_end should be a multiple of 20s
     # initial center of the vortex
-    inicenter = SVector(0.0, 0.0)
+    RealT = eltype(x)
+    inicenter = SVector(0, 0)
     # size and strength of the vortex
-    iniamplitude = 5.0
+    iniamplitude = 5
     # base flow
-    rho = 1.0
-    v1 = 1.0
-    v2 = 1.0
+    rho = 1
+    v1 = 1
+    v2 = 1
     vel = SVector(v1, v2)
-    p = 25.0
+    p = convert(RealT, 25)
     rt = p / rho                  # ideal gas equation
-    t_loc = 0.0
+    t_loc = 0
     cent = inicenter + vel * t_loc      # advection of center
     # ATTENTION: handle periodic BC, but only for v1 = v2 = 1.0 (!!!!)
 
@@ -104,7 +105,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     # cross product with iniaxis = [0, 0, 1]
     cent = SVector(-cent[2], cent[1])
     r2 = cent[1]^2 + cent[2]^2
-    du = iniamplitude / (2 * π) * exp(0.5 * (1 - r2)) # vel. perturbation
+    du = iniamplitude / (2 * convert(RealT, pi)) * exp(0.5f0 * (1 - r2)) # vel. perturbation
     dtemp = -(equations.gamma - 1) / (2 * equations.gamma * rt) * du^2 # isentropic
     rho = rho * (1 + dtemp)^(1 / (equations.gamma - 1))
     vel = vel + du * cent

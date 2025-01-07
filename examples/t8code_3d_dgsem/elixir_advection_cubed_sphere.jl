@@ -1,54 +1,34 @@
 using OrdinaryDiffEq
 using Trixi
 
-# Oscillating Gaussian-shaped source terms
-function source_terms_gauss(u, x, t, equations::AcousticPerturbationEquations2D)
-    RealT = eltype(u)
-    r = convert(RealT, 0.1)
-    A = 1
-    f = 2
-
-    # Velocity sources
-    s1 = 0
-    s2 = 0
-    # Pressure source
-    s3 = exp(-(x[1]^2 + x[2]^2) / (2 * r^2)) * A * sinpi(2 * f * t)
-
-    # Mean sources
-    s4 = s5 = s6 = s7 = 0
-
-    return SVector(s1, s2, s3, s4, s5, s6, s7)
-end
-
 ###############################################################################
-# semidiscretization of the acoustic perturbation equations
+# semidiscretization of the linear advection equation
 
-equations = AcousticPerturbationEquations2D(v_mean_global = (-0.5, 0.25),
-                                            c_mean_global = 1.0,
-                                            rho_mean_global = 1.0)
-
-initial_condition = initial_condition_constant
+advection_velocity = (0.2, -0.7, 0.5)
+equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-3.0, -3.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (3.0, 3.0) # maximum coordinates (max(x), max(y))
+initial_condition = initial_condition_convergence_test
 
-# Create a uniformly refined mesh with periodic boundaries
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 30_000) # set maximum capacity of tree data structure
+boundary_condition = BoundaryConditionDirichlet(initial_condition)
+boundary_conditions = Dict(:inside => boundary_condition,
+                           :outside => boundary_condition)
+
+# Note that the first argument refers to the level of refinement, unlike in for p4est
+mesh = Trixi.T8codeMeshCubedSphere(5, 3, 0.5, 0.5;
+                                   polydeg = 3, initial_refinement_level = 0)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_gauss)
+                                    boundary_conditions = boundary_conditions)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-# Create ODE problem with time span from 0.0 to 2.0
-tspan = (0.0, 2.0)
+# Create ODE problem with time span from 0.0 to 1.0
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
@@ -62,14 +42,11 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim)
 
-# The TimeSeriesCallback records the solution at the given points over time
-time_series = TimeSeriesCallback(semi, [(0.0, 0.0), (-1.0, 0.5)])
-
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 1.2)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, time_series,
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
                         stepsize_callback)
 
 ###############################################################################
