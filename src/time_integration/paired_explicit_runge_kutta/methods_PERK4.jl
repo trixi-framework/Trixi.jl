@@ -259,7 +259,7 @@ end
     end
 
     # Store K_{S-1} in `k1`:
-    integrator.k1[i] .= integrator.du[i]
+    integrator.k1 .= integrator.du
 
     integrator.f(integrator.du, integrator.u_tmp, p,
                  integrator.t + alg.c[alg.num_stages] * integrator.dt)
