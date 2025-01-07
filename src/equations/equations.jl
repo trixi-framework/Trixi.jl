@@ -88,7 +88,10 @@ end
 @inline Base.ndims(::AbstractEquations{NDIMS}) where {NDIMS} = NDIMS
 
 # Equations act like scalars in broadcasting.
-Base.broadcastable(equations::AbstractEquations) = Ref(equations)
+# The manual recommends `Ref`, but a single-argument tuple is morally equivalent.
+# For code that is allocation sensitive tuple is preferable, since `Ref` relies on the optimizer
+# to prove it non-escaping which is more precarious than just using an immutable tuple.
+Base.broadcastable(equations::AbstractEquations) = (equations,)
 
 """
     flux(u, orientation_or_normal, equations)
