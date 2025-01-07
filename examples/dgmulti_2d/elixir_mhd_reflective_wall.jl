@@ -65,7 +65,7 @@ function boundary_condition_velocity_slip_wall(u_inner, normal_direction::Abstra
                                  v3, p, B1, B2, B3, psi), equations)
     flux = surface_flux_function(u_inner, u_mirror, normal, equations) * norm_
     noncons = nonconservative_flux_function(u_inner, u_mirror, normal, equations) * norm_
-    return flux + 0.5f0 * noncons
+    return flux, noncons
 end
 
 boundary_conditions = (; x_neg = boundary_condition_velocity_slip_wall,

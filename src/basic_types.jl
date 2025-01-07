@@ -82,8 +82,8 @@ end
                                                 equations)
     surface_flux_function, nonconservative_flux_function = surface_flux_functions
     return surface_flux_function(u_inner, u_inner, orientation_or_normal_direction,
-                                 equations) +
-           0.5f0 * nonconservative_flux_function(u_inner, u_inner,
+                                 equations),
+           nonconservative_flux_function(u_inner, u_inner,
                                          orientation_or_normal_direction, equations)
 end
 
@@ -100,9 +100,9 @@ end
                                                 equations)
     surface_flux_function, nonconservative_flux_function = surface_flux_functions
 
-    return surface_flux_function(u_inner, u_inner, outward_direction, equations) +
-           0.5f0 *
-           nonconservative_flux_function(u_inner, u_inner, outward_direction, equations)
+    return surface_flux_function(u_inner, u_inner, outward_direction, equations),
+           nonconservative_flux_function(u_inner, u_inner, outward_direction,
+                                         equations)
 end
 
 # This version can be called by parabolic solvers

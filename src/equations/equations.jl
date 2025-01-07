@@ -210,7 +210,7 @@ end
                                                 equations)
     end
 
-    return flux + 0.5f0 * noncons
+    return flux, noncons
 end
 
 # Dirichlet-type boundary condition for use with UnstructuredMesh2D
@@ -245,7 +245,7 @@ end
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
     noncons = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
                                             equations)
-    return flux + 0.5f0 * noncons
+    return flux, noncons
 end
 
 # operator types used for dispatch on parabolic boundary fluxes

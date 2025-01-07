@@ -185,7 +185,7 @@ For details see Section 9.2.5 of the book:
                                                 equations)
     end
 
-    return flux + 0.5f0 * noncons
+    return flux, noncons
 end
 
 # Calculate 1D flux for a single point

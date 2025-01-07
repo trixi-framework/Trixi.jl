@@ -777,13 +777,15 @@ function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:A
                 u_inner = u_rr
             end
             x = get_node_coords(node_coordinates, equations, dg, i, boundary)
-            flux = boundary_condition(u_inner, orientations[boundary], direction, x, t,
-                                      surface_integral.surface_flux,
-                                      equations)
+            flux, noncons_flux = boundary_condition(u_inner, orientations[boundary],
+                                                    direction, x, t,
+                                                    surface_integral.surface_flux,
+                                                    equations)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
-                surface_flux_values[v, i, direction, neighbor] = flux[v]
+                surface_flux_values[v, i, direction, neighbor] = flux[v] +
+                                                                 0.5f0 * noncons_flux[v]
             end
         end
     end

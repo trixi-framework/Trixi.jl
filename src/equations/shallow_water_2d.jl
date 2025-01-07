@@ -201,7 +201,7 @@ For details see Section 9.2.5 of the book:
     noncons = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
                                             equations)
 
-    return flux + 0.5f0 * noncons
+    return flux, noncons
 end
 
 """
@@ -234,7 +234,7 @@ Should be used together with [`TreeMesh`](@ref).
                                                 equations)
     end
 
-    return flux + 0.5f0 * noncons
+    return flux, noncons
 end
 
 # Calculate 1D flux for a single point
