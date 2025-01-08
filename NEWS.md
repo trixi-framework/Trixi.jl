@@ -4,6 +4,14 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.10 from v0.9.x
+
+#### Changed
+
+- The `PairedExplicitRK2` constructor with second argument `base_path_monomial_coeffs::AbstractString` requires 
+  now `dt_opt`, `bS`, `cS` to be given as keyword arguments ([#2184]).
+  Previously, those where standard function parameters, in the same order as listed above.
+
 ## Changes in the v0.9 lifecycle
 
 #### Added
@@ -15,6 +23,10 @@ for human readability.
   enabling calculations with higher than double (`Float64`) precision ([#2128])
 - New time integrator `PairedExplicitRK4`, implementing the fourth-order paired explicit Runge-Kutta
   method with [Convex.jl](https://github.com/jump-dev/Convex.jl), [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
+
+#### Changed
+
+- The required Julia version is updated to v1.10.
 
 ## Changes when updating to v0.9 from v0.8.x
 

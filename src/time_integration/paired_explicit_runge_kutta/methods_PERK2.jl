@@ -55,7 +55,9 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
                                                           dteps,
                                                           eig_vals; verbose)
 
-    if num_stages != consistency_order
+    if coeffs_max > 0
+        monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
+                                              num_stages)
         num_monomial_coeffs = length(monomial_coeffs)
         @assert num_monomial_coeffs == num_coeffs_max
         A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
@@ -80,18 +82,20 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
     a_matrix = zeros(2, num_coeffs_max)
     a_matrix[1, :] = c[3:end]
 
-    path_monomial_coeffs = joinpath(base_path_monomial_coeffs,
-                                    "gamma_" * string(num_stages) * ".txt")
+    if coeffs_max > 0
+        path_monomial_coeffs = joinpath(base_path_monomial_coeffs,
+                                        "gamma_" * string(num_stages) * ".txt")
 
-    @assert isfile(path_monomial_coeffs) "Couldn't find file"
-    monomial_coeffs = readdlm(path_monomial_coeffs, Float64)
-    num_monomial_coeffs = size(monomial_coeffs, 1)
+        @assert isfile(path_monomial_coeffs) "Couldn't find file"
+        monomial_coeffs = readdlm(path_monomial_coeffs, Float64)
+        num_monomial_coeffs = size(monomial_coeffs, 1)
 
-    @assert num_monomial_coeffs == num_coeffs_max
-    A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
+        @assert num_monomial_coeffs == coeffs_max
+        A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
 
-    a_matrix[1, :] -= A
-    a_matrix[2, :] = A
+        a_matrix[1, :] -= A
+        a_matrix[2, :] = A
+    end
 
     return a_matrix, c
 end
