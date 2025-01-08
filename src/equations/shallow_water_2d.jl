@@ -201,7 +201,7 @@ For details see Section 9.2.5 of the book:
     noncons = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
                                             equations)
 
-    return flux, noncons
+    return flux, noncons_flux
 end
 
 """
