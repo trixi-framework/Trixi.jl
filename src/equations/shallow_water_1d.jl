@@ -175,14 +175,14 @@ For details see Section 9.2.5 of the book:
         flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal,
                                      equations)
         noncons_flux = nonconservative_flux_function(u_inner, u_boundary,
-                                                orientation_or_normal,
-                                                equations)
+                                                     orientation_or_normal,
+                                                     equations)
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal,
                                      equations)
         noncons_flux = nonconservative_flux_function(u_boundary, u_inner,
-                                                orientation_or_normal,
-                                                equations)
+                                                     orientation_or_normal,
+                                                     equations)
     end
 
     return flux, noncons_flux

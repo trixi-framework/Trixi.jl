@@ -364,16 +364,16 @@ end
     # Call pointwise numerical flux function for the conservative part
     # in the normal direction on the boundary
     flux, noncons_flux = boundary_condition(u_inner, normal_direction, x, t,
-                                         surface_integral.surface_flux, equations)
+                                            surface_integral.surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v] +
+        surface_flux_values[v, node_index, direction_index, element_index] = flux[v] +
                                                                              0.5f0 *
-                                                                             noncons_[v]
+                                                                             noncons_flux[v]
     end
 end
 
