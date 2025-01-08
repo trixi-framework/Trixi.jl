@@ -240,9 +240,9 @@ end
 
     # Calculate boundary flux
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
-    noncons = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
+    noncons_flux = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
                                             equations)
-    return flux, noncons
+    return flux, noncons_flux
 end
 
 # operator types used for dispatch on parabolic boundary fluxes
