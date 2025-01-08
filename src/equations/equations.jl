@@ -88,12 +88,9 @@ end
 @inline Base.ndims(::AbstractEquations{NDIMS}) where {NDIMS} = NDIMS
 
 # Equations act like scalars in broadcasting.
-# Using `Ref(equations)` would be more convenient in some circumstances.
-# However, this does not work with Julia v1.9.3 correctly due to a (performance)
-# bug in Julia, see
-# - https://github.com/trixi-framework/Trixi.jl/pull/1618
-# - https://github.com/JuliaLang/julia/issues/51118
-# Thus, we use the workaround below.
+# The manual recommends `Ref`, but a single-argument tuple is morally equivalent.
+# For code that is allocation sensitive tuple is preferable, since `Ref` relies on the optimizer
+# to prove it non-escaping which is more precarious than just using an immutable tuple.
 Base.broadcastable(equations::AbstractEquations) = (equations,)
 
 """
