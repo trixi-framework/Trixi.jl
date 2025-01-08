@@ -2275,7 +2275,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                     direction,
                                                                     x, t,
                                                                     surface_flux_function,
-                                                                    equations)) == RealT
+                                                                    equations)) ==
+                      Tuple{RealT, RealT}
                 @test eltype(@inferred Trixi.calc_wavespeed_roe(u_ll, u_rr, direction,
                                                                 equations)) ==
                       RealT
@@ -2361,7 +2362,8 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                 normal_direction,
                                                                 x, t,
                                                                 surface_flux_function,
-                                                                equations)) == RealT
+                                                                equations)) ==
+                  Tuple{RealT, RealT}
 
             @test eltype(@inferred velocity(u, normal_direction, equations)) == RealT
             @test eltype(@inferred flux(u, normal_direction, equations)) == RealT
@@ -2403,7 +2405,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                                                         direction, x, t,
                                                                         surface_flux_function,
                                                                         equations)) ==
-                          RealT
+                          Tuple{RealT, RealT}
                 end
 
                 @test eltype(@inferred velocity(u, orientation, equations)) == RealT
