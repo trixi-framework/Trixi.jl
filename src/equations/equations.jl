@@ -207,7 +207,7 @@ end
                                                 equations)
     end
 
-    return flux, noncons
+    return flux, noncons_flux
 end
 
 # Dirichlet-type boundary condition for use with UnstructuredMesh2D
