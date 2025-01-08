@@ -56,8 +56,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
         num_monomial_coeffs = length(monomial_coeffs)
         @assert num_monomial_coeffs == coeffs_max
         A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
-        a_matrix[:, 1] -= A
-        a_matrix[:, 2] = A
+        a_matrix[1, :] -= A
+        a_matrix[2, :] = A
     end
 
     return a_matrix, c, dt_opt
@@ -92,8 +92,8 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages,
         @assert num_monomial_coeffs == coeffs_max
         A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
 
-        a_matrix[:, 1] -= A
-        a_matrix[:, 2] = A
+        a_matrix[1, :] -= A
+        a_matrix[2, :] = A
     end
 
     return a_matrix, c
