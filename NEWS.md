@@ -15,6 +15,10 @@ for human readability.
   enabling calculations with higher than double (`Float64`) precision ([#2128])
 - In 2D, quadratic elements, i.e., 8-node (quadratic) quadrilaterals are now supported in standard Abaqus `inp` format ([#2217])
 
+#### Changed
+
+- The required Julia version is updated to v1.10.
+
 ## Changes when updating to v0.9 from v0.8.x
 
 #### Added
