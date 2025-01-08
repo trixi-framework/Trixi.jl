@@ -226,7 +226,7 @@ Should be used together with [`TreeMesh`](@ref).
     # Calculate boundary flux
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-        noncons = nonconservative_flux_function(u_inner, u_boundary, orientation,
+        noncons_flux = nonconservative_flux_function(u_inner, u_boundary, orientation,
                                                 equations)
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
