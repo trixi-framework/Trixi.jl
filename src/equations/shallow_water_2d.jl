@@ -234,7 +234,7 @@ Should be used together with [`TreeMesh`](@ref).
                                                 equations)
     end
 
-    return flux, noncons
+    return flux, noncons_flux
 end
 
 # Calculate 1D flux for a single point
