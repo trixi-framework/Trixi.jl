@@ -202,7 +202,7 @@ end
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal,
                                      equations)
-        noncons = nonconservative_flux_function(u_boundary, u_inner,
+        noncons_flux = nonconservative_flux_function(u_boundary, u_inner,
                                                 orientation_or_normal,
                                                 equations)
     end
