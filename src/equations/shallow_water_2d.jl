@@ -198,7 +198,7 @@ For details see Section 9.2.5 of the book:
 
     # calculate the boundary flux
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
-    noncons = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
+    noncons_flux = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
                                             equations)
 
     return flux, noncons_flux
