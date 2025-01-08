@@ -363,7 +363,7 @@ end
 
     # Call pointwise numerical flux function for the conservative part
     # in the normal direction on the boundary
-    flux_, noncons_ = boundary_condition(u_inner, normal_direction, x, t,
+    flux, noncons_flux = boundary_condition(u_inner, normal_direction, x, t,
                                          surface_integral.surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation
