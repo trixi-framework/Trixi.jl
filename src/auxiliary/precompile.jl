@@ -329,8 +329,10 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{typeof(Trixi.gauss_nodes_weights), Int})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_upper), Int})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_forward_lower), Int})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int, Val{:gauss}})
-    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int, Val{:gauss}})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int,
+                                  Val{:gauss}})
+    @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int,
+                                  Val{:gauss}})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_upper), Int,
                                   Val{:gauss_lobatto}})
     @assert Base.precompile(Tuple{typeof(Trixi.calc_reverse_lower), Int,
@@ -598,17 +600,15 @@ function _precompile_manual_()
     return nothing
 end
 
-# Explicit precompilation running code only on Julia v1.9 and newer
+# Explicit precompilation including running code
 using PrecompileTools: @setup_workload, @compile_workload
 
-@static if VERSION >= v"1.9.0-beta4"
-    @setup_workload begin
-        # Setup code can go here
+@setup_workload begin
+    # Setup code can go here
 
-        @compile_workload begin
-            # Everything inside this block will run at precompile time, saving the
-            # binary code to a cache in newer versions of Julia.
-            DGSEM(3)
-        end
+    @compile_workload begin
+        # Everything inside this block will run at precompile time, saving the
+        # binary code to a cache in newer versions of Julia.
+        DGSEM(3)
     end
 end

@@ -2,13 +2,8 @@
 module TrixiNLsolveExt
 
 # Required for finding coefficients in Butcher tableau in the third order of 
-# P-ERK scheme integrators
-if isdefined(Base, :get_extension)
-    using NLsolve: nlsolve
-else
-    # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-    using ..NLsolve: nlsolve
-end
+# PERK scheme integrators
+using NLsolve: nlsolve
 
 # We use a random initialization of the nonlinear solver.
 # To make the tests reproducible, we need to seed the RNG

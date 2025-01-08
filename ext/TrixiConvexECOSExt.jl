@@ -1,15 +1,9 @@
 # Package extension for adding Convex-based features to Trixi.jl
 module TrixiConvexECOSExt
 
-# Required for coefficient optimization in P-ERK scheme integrators
-if isdefined(Base, :get_extension)
-    using Convex: MOI, solve!, Variable, minimize, evaluate
-    using ECOS: Optimizer
-else
-    # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-    using ..Convex: MOI, solve!, Variable, minimize, evaluate
-    using ..ECOS: Optimizer
-end
+# Required for coefficient optimization in PERK scheme integrators
+using Convex: MOI, solve!, Variable, minimize, evaluate
+using ECOS: Optimizer
 
 # Use other necessary libraries
 using LinearAlgebra: eigvals

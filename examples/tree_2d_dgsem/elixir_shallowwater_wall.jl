@@ -11,13 +11,13 @@ equations = ShallowWaterEquations2D(gravity_constant = 9.81, H0 = 3.25)
 function initial_condition_perturbation(x, t, equations::ShallowWaterEquations2D)
     # Set the background values
     H = equations.H0
-    v1 = 0.0
-    v2 = 0.0
+    v1 = 0
+    v2 = 0
 
     # Bottom topography
-    b = 1.5 * exp(-0.5 * ((x[1])^2 + (x[2])^2))
+    b = 1.5f0 * exp(-0.5f0 * ((x[1])^2 + (x[2])^2))
     # Waterheight perturbation
-    H = H + 0.5 * exp(-10.0 * ((x[1])^2 + (x[2])^2))
+    H = H + 0.5f0 * exp(-10 * ((x[1])^2 + (x[2])^2))
 
     return prim2cons(SVector(H, v1, v2, b), equations)
 end

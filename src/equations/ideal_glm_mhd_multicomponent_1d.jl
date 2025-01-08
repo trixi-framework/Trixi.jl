@@ -41,11 +41,11 @@ function IdealGlmMhdMulticomponentEquations1D(; gammas, gas_constants)
     _gas_constants = promote(gas_constants...)
     RealT = promote_type(eltype(_gammas), eltype(_gas_constants))
 
-    NVARS = length(_gammas) + 7
-    NCOMP = length(_gammas)
-
     __gammas = SVector(map(RealT, _gammas))
     __gas_constants = SVector(map(RealT, _gas_constants))
+
+    NVARS = length(_gammas) + 7
+    NCOMP = length(_gammas)
 
     return IdealGlmMhdMulticomponentEquations1D{NVARS, NCOMP, RealT}(__gammas,
                                                                      __gas_constants)
