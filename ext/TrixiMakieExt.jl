@@ -2,12 +2,7 @@
 module TrixiMakieExt
 
 # Required for visualization code
-if isdefined(Base, :get_extension)
-    using Makie: Makie, GeometryBasics
-else
-    # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-    using ..Makie: Makie, GeometryBasics
-end
+using Makie: Makie, GeometryBasics
 
 # Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
 using Trixi
