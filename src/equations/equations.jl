@@ -88,12 +88,9 @@ end
 @inline Base.ndims(::AbstractEquations{NDIMS}) where {NDIMS} = NDIMS
 
 # Equations act like scalars in broadcasting.
-# Using `Ref(equations)` would be more convenient in some circumstances.
-# However, this does not work with Julia v1.9.3 correctly due to a (performance)
-# bug in Julia, see
-# - https://github.com/trixi-framework/Trixi.jl/pull/1618
-# - https://github.com/JuliaLang/julia/issues/51118
-# Thus, we use the workaround below.
+# The manual recommends `Ref`, but a single-argument tuple is morally equivalent.
+# For code that is allocation sensitive tuple is preferable, since `Ref` relies on the optimizer
+# to prove it non-escaping which is more precarious than just using an immutable tuple.
 Base.broadcastable(equations::AbstractEquations) = (equations,)
 
 """
@@ -539,6 +536,12 @@ abstract type AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS, NCOMP} <:
 include("ideal_glm_mhd_multicomponent_1d.jl")
 include("ideal_glm_mhd_multicomponent_2d.jl")
 
+# IdealMhdMultiIonEquations
+abstract type AbstractIdealGlmMhdMultiIonEquations{NDIMS, NVARS, NCOMP} <:
+              AbstractEquations{NDIMS, NVARS} end
+include("ideal_glm_mhd_multiion.jl")
+include("ideal_glm_mhd_multiion_2d.jl")
+
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS,
                                                                           NCOMP}) where {
@@ -556,6 +559,27 @@ for the components in `AbstractIdealGlmMhdMulticomponentEquations`.
 In particular, not the components themselves are returned.
 """
 @inline function eachcomponent(equations::AbstractIdealGlmMhdMulticomponentEquations)
+    Base.OneTo(ncomponents(equations))
+end
+
+# Retrieve number of components from equation instance for the multi-ion case
+@inline function ncomponents(::AbstractIdealGlmMhdMultiIonEquations{NDIMS, NVARS,
+                                                                    NCOMP}) where {
+                                                                                   NDIMS,
+                                                                                   NVARS,
+                                                                                   NCOMP
+                                                                                   }
+    NCOMP
+end
+
+"""
+    eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)
+
+Return an iterator over the indices that specify the location in relevant data structures
+for the components in `AbstractIdealGlmMhdMultiIonEquations`. 
+In particular, not the components themselves are returned.
+"""
+@inline function eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)
     Base.OneTo(ncomponents(equations))
 end
 

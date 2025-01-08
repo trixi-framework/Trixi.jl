@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations2D(; gravity, H0 = 0)
+    ShallowWaterEquations2D(; gravity_constant, H0 = 0)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math

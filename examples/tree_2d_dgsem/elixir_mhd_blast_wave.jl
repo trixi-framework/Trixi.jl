@@ -18,23 +18,24 @@ An MHD blast wave taken from
 function initial_condition_blast_wave(x, t, equations::IdealGlmMhdEquations2D)
     # setup taken from Derigs et al. DMV article (2018)
     # domain must be [-0.5, 0.5] x [-0.5, 0.5], γ = 1.4
+    RealT = eltype(x)
     r = sqrt(x[1]^2 + x[2]^2)
-    f = (0.1 - r) / 0.01
-    if r <= 0.09
-        p = 1000.0
-    elseif r >= 0.1
-        p = 0.1
+    f = (convert(RealT, 0.1) - r) / convert(RealT, 0.01)
+    if r <= RealT(0.09)
+        p = convert(RealT, 1000)
+    elseif r >= RealT(0.1)
+        p = convert(RealT, 0.1)
     else
-        p = 0.1 + 999.9 * f
+        p = convert(RealT, 0.1) + convert(RealT, 999.9) * f
     end
-    rho = 1.0
-    v1 = 0.0
-    v2 = 0.0
-    v3 = 0.0
-    B1 = 100.0 / sqrt(4.0 * pi)
-    B2 = 0.0
-    B3 = 0.0
-    psi = 0.0
+    rho = 1
+    v1 = 0
+    v2 = 0
+    v3 = 0
+    B1 = 100 / sqrt(4 * convert(RealT, pi))
+    B2 = 0
+    B3 = 0
+    psi = 0
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
 end
 initial_condition = initial_condition_blast_wave
