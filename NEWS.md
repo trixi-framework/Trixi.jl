@@ -14,6 +14,10 @@ for human readability.
 - `LobattoLegendreBasis` and related datastructures made fully floating-type general,
   enabling calculations with higher than double (`Float64`) precision ([#2128])
 
+#### Changed
+
+- The required Julia version is updated to v1.10.
+
 ## Changes when updating to v0.9 from v0.8.x
 
 #### Added
