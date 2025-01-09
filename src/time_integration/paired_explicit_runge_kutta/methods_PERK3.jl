@@ -185,7 +185,7 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
     du::uType
     u_tmp::uType
     t::RealT
-    tdir::RealT # DIRection of time integration, i.e, if one marches forward or backward in time
+    tdir::RealT # DIRection of time integration, i.e., if one marches forward or backward in time
     dt::RealT # current time step
     dtcache::RealT # manually set time step
     iter::Int # current number of time steps (iteration)
