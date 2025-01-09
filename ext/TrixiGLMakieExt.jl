@@ -27,27 +27,26 @@ function makieLayoutHelper(n)
     end
 end
 
-function Trixi.show_plot_makie(ndims, visualization_callback, plot_data, variable_names;
+function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names;
 show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
-time = nothing, timestep = nothing, figure = nothing, axis = [])
-    if figure === nothing
+time = nothing, timestep = nothing)
+ndims = (visualization_callback.plot_data_creator == PlotData2D) ? 2 : 3
+    if visualization_callback.figure === nothing
         @warn "Creating new figure"
         visualization_callback.figure = GLMakie.Figure()
-        figure = visualization_callback.figure
         for v in 1:size(variable_names)[1]
-            push!(axis, (ndims == 2) ? GLMakie.Axis(figure[makieLayoutHelper(v)...], title = variable_names[v]) : 
-            GLMakie.Axis3(figure[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v]))
+            push!(visualization_callback.axis, (ndims == 2) ? GLMakie.Axis(visualization_callback.figure[makieLayoutHelper(v)...], title = variable_names[v]) : 
+            GLMakie.Axis3(visualization_callback.figure[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v]))
         end
-        visualization_callback.axis = axis
-        GLMakie.display(figure)
+        GLMakie.display(visualization_callback.figure)
     else
         if ndims == 2
             for v in 1:size(variable_names)[1]
-                GLMakie.heatmap!(axis[v], plot_data.x, plot_data.y, plot_data.data[v])
+                GLMakie.heatmap!(visualization_callback.axis[v], plot_data.x, plot_data.y, plot_data.data[v])
             end
         else
             for v in 1:size(variable_names)[1]
-                GLMakie.volume!(axis[v], plot_data.data[v])
+                GLMakie.volume!(visualization_callback.axis[v], plot_data.data[v])
             end
         end
     end
