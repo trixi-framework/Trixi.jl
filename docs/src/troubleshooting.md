@@ -157,8 +157,7 @@ Julia compiles code to get good (C/Fortran-like) performance. At the same time,
 Julia provides a dynamic environment and usually compiles code just before using
 it. Over time, Julia has improved its caching infrastructure, allowing to store
 and reuse more results from (pre-)compilation. This often results in an
-increased time to install/update packages, in particular when updating
-to Julia v1.8 or v1.9 from older versions.
+increased time to install/update packages.
 
 Some packages used together with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
 provide options to configure the amount of precompilation. For example,
