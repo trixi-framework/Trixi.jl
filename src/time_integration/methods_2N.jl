@@ -57,6 +57,8 @@ the low-storage explicit Runge-Kutta method of
   Third-order 2N-storage Runge-Kutta schemes with error control
   URL: https://ntrs.nasa.gov/citations/19940028444
   File: https://ntrs.nasa.gov/api/citations/19940028444/downloads/19940028444.pdf
+
+using the same interface as OrdinaryDiffEq.jl.
 """
 struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
     a::SVector{4, Float64}
