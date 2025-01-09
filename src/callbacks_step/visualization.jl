@@ -176,7 +176,7 @@ end
 """
     show_plot(visualization_callback, plot_data, variable_names;
               show_mesh=true, plot_arguments=Dict{Symbol,Any}(),
-              time=nothing, timestep=nothing, figure = nothing, axis = nothing)
+              time=nothing, timestep=nothing)
 
 Visualize the plot data object provided in `plot_data` and display result, plotting only the
 variables in `variable_names` and, optionally, the mesh (if `show_mesh` is `true`).  Additionally,
