@@ -20,7 +20,7 @@ The classical isentropic vortex test case as presented in Section 5.1 of
 """
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
     # Evaluate error after full domain traversion
-    if t == t_end
+    if t == t_end()
         t = 0
     end
 
@@ -60,8 +60,8 @@ initial_condition = initial_condition_isentropic_vortex
 edge_length = 20.0
 
 N_passes = 1
-t_end = edge_length * N_passes
-tspan = (0.0, t_end)
+t_end() = edge_length * N_passes
+tspan = (0.0, t_end())
 
 coordinates_min = (-edge_length / 2, -edge_length / 2)
 coordinates_max = (edge_length / 2, edge_length / 2)
