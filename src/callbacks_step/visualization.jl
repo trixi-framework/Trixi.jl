@@ -244,7 +244,7 @@ The `timestep` is used in the filename. `time` is currently unused by this funct
 
 See also: [`VisualizationCallback`](@ref), [`show_plot`](@ref)
 """
-function save_plot(plot_data, variable_names;
+function save_plot(visualization_callback, plot_data, variable_names;
                    show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
                    time = nothing, timestep = nothing)
     # Gather subplots
