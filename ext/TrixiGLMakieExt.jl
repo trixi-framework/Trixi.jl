@@ -44,7 +44,6 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
     for v in 1:size(variable_names)[1]
         GLMakie.heatmap!(axis[v], plot_data.x, plot_data.y, plot_data.data[v])
     end
-    sleep(1)
 
     # TODO: handle `show_mesh`
 end
