@@ -106,7 +106,7 @@ ode_algorithm = Trixi.PairedExplicitRK4(num_stages, path_coeff_file)
 # run the simulation
 
 sol = Trixi.solve(ode, ode_algorithm,
-                  dt = 42.0, # Not used
+                  dt = 42.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep = false, callback = callbacks);
 
 summary_callback()
