@@ -19,7 +19,7 @@ volume_flux = flux_ec
 surface_flux = flux_lax_friedrichs
 
 volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-                                                 volume_flux_dg = surface_flux,
+                                                 volume_flux_dg = volume_flux,
                                                  volume_flux_fv = surface_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
