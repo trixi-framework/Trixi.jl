@@ -42,14 +42,13 @@ function IdealGlmMhdMulticomponentEquations2D(; gammas, gas_constants)
     _gammas = promote(gammas...)
     _gas_constants = promote(gas_constants...)
     RealT = promote_type(eltype(_gammas), eltype(_gas_constants))
-
-    NVARS = length(_gammas) + 8
-    NCOMP = length(_gammas)
-
     __gammas = SVector(map(RealT, _gammas))
     __gas_constants = SVector(map(RealT, _gas_constants))
 
     c_h = convert(RealT, NaN)
+
+    NVARS = length(_gammas) + 8
+    NCOMP = length(_gammas)
 
     return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
                                                                      __gas_constants,
@@ -61,14 +60,13 @@ function IdealGlmMhdMulticomponentEquations2D(gammas, gas_constants, cv, cp, c_h
     _gammas = promote(gammas...)
     _gas_constants = promote(gas_constants...)
     RealT = promote_type(eltype(_gammas), eltype(_gas_constants))
-
-    NVARS = length(_gammas) + 8
-    NCOMP = length(_gammas)
-
     __gammas = SVector(map(RealT, _gammas))
     __gas_constants = SVector(map(RealT, _gas_constants))
 
     c_h = convert(RealT, c_h)
+
+    NVARS = length(_gammas) + 8
+    NCOMP = length(_gammas)
 
     return IdealGlmMhdMulticomponentEquations2D{NVARS, NCOMP, RealT}(__gammas,
                                                                      __gas_constants,
@@ -100,6 +98,10 @@ end
 function default_analysis_integrals(::IdealGlmMhdMulticomponentEquations2D)
     (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
+
+# Helper function to extract the magnetic field vector from the conservative variables
+magnetic_field(u, equations::IdealGlmMhdMulticomponentEquations2D) = SVector(u[5], u[6],
+                                                                             u[7])
 
 """
     initial_condition_convergence_test(x, t, equations::IdealGlmMhdMulticomponentEquations2D)
