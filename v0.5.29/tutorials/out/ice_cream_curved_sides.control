@@ -1,0 +1,65 @@
+\begin{CONTROL_INPUT}
+    \begin{RUN_PARAMETERS}
+        mesh file name   = ice_cream_curved_sides.mesh
+        plot file name   = ice_cream_curved_sides.tec
+        stats file name  = none
+        mesh file format = ISM-v2
+        polynomial order = 4
+        plot file format = skeleton
+    \end{RUN_PARAMETERS}
+
+    \begin{BACKGROUND_GRID}
+        background grid size = [1.0, 1.0, 0.0]
+    \end{BACKGROUND_GRID}
+
+    \begin{SPRING_SMOOTHER}
+        smoothing            = ON
+        smoothing type       = LinearAndCrossBarSpring
+        number of iterations = 25
+    \end{SPRING_SMOOTHER}
+
+\end{CONTROL_INPUT}
+
+\begin{MODEL}
+
+    \begin{OUTER_BOUNDARY}
+        \begin{PARAMETRIC_EQUATION_CURVE}
+            name = OuterCircle
+            xEqn = x(t) = 8.0*sin(2.0*pi*t)
+            yEqn = y(t) = 8.0*cos(2.0*pi*t)
+            zEqn = z(t) = 0.0
+        \end{PARAMETRIC_EQUATION_CURVE}
+
+    \end{OUTER_BOUNDARY}
+
+    \begin{INNER_BOUNDARIES}
+
+        \begin{CHAIN}
+            name = IceCreamCone
+            \begin{END_POINTS_LINE}
+                name = LeftSlant
+                xStart = [-2.0, 1.0, 0.0]
+                xEnd   = [ 0.0, -3.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{END_POINTS_LINE}
+                name = RightSlant
+                xStart = [ 0.0, -3.0, 0.0]
+                xEnd   = [ 2.0, 1.0, 0.0]
+            \end{END_POINTS_LINE}
+
+            \begin{CIRCULAR_ARC}
+                name        = IceCream
+                units       = degrees
+                center      = [ 0.0, 1.0, 0.0]
+                radius      = 2.0
+                start angle = 0.0
+                end angle   = 180.0
+            \end{CIRCULAR_ARC}
+        \end{CHAIN}
+
+    \end{INNER_BOUNDARIES}
+
+\end{MODEL}
+\end{FILE}
+
