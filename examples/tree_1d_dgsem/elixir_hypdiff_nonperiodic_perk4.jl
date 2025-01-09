@@ -1,5 +1,6 @@
 
-using OrdinaryDiffEq # Required for `CallbackSet`
+# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
+using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 # Convex and ECOS are imported because they are used for finding the optimal time step and optimal 

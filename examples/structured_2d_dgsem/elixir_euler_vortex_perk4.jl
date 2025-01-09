@@ -1,5 +1,6 @@
 
-using OrdinaryDiffEq # Required for `CallbackSet`
+# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
+using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 # Ratio of specific heats
@@ -21,7 +22,7 @@ The classical isentropic vortex test case as presented in Section 5.1 of
 function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
     # Evaluate error after full domain traversion
     if t == t_end()
-        t = 0
+        t = zero(t)
     end
 
     # Initial center of the vortex

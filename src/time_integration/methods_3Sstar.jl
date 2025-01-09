@@ -156,7 +156,7 @@ mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
     iter::Int # current number of time step (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    f::F # `rhs` of the semidiscretization
+    f::F # `rhs!` of the semidiscretization
     alg::Alg
     opts::SimpleIntegrator3SstarOptions
     finalstep::Bool # added for convenience
