@@ -1558,11 +1558,11 @@
     # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
     #       thus be changed in future releases.
     function calc_vertices3D(coordinates, levels, length_level_0)
-        ndim = size(coordinates, 1)
+        ndim = 3
     
         # Initialize output arrays
         n_elements = length(levels)
-        n_points_per_element = 2^ndim + 2
+        n_points_per_element = 36
         x = Vector{Float64}(undef, n_points_per_element * n_elements)
         y = Vector{Float64}(undef, n_points_per_element * n_elements)
         z = Vector{Float64}(undef, n_points_per_element * n_elements)
@@ -1571,38 +1571,150 @@
         for element_id in 1:n_elements
             length = length_level_0 / 2^levels[element_id]
             index = n_points_per_element * (element_id - 1)
+
+            #front four edges of cube
             x[index + 1] = coordinates[1, element_id] - 1 / 2 * length
-            x[index + 2] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 2] = coordinates[1, element_id] - 1 / 2 * length
             x[index + 3] = coordinates[1, element_id] + 1 / 2 * length
-            x[index + 4] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 4] = coordinates[1, element_id] + 1 / 2 * length
             x[index + 5] = coordinates[1, element_id] - 1 / 2 * length
-            x[index + 6] = coordinates[1, element_id] + 1 / 2 * length
-            x[index + 7] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 6] = NaN
+
+            #back four edges of cube
+            x[index + 7] = coordinates[1, element_id] - 1 / 2 * length
             x[index + 8] = coordinates[1, element_id] - 1 / 2 * length
-            x[index + 9] = coordinates[1, element_id] - 1 / 2 * length
-            x[index + 10] = NaN
+            x[index + 9] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 10] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 11] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 12] = NaN
+
+            #top four edges of cube
+            x[index + 13] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 14] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 15] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 16] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 17] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 18] = NaN
+
+            #bottom four edges of cube
+            x[index + 19] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 20] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 21] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 22] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 23] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 24] = NaN
+
+            #left four edges of cube
+            x[index + 25] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 26] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 27] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 28] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 29] = coordinates[1, element_id] - 1 / 2 * length
+            x[index + 30] = NaN
+
+            #right four edges of cube
+            x[index + 31] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 32] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 33] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 34] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 35] = coordinates[1, element_id] + 1 / 2 * length
+            x[index + 36] = NaN
     
+            #front four edges of cube
             y[index + 1] = coordinates[2, element_id] - 1 / 2 * length
             y[index + 2] = coordinates[2, element_id] - 1 / 2 * length
-            y[index + 3] = coordinates[2, element_id] + 1 / 2 * length
-            y[index + 4] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 3] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 4] = coordinates[2, element_id] - 1 / 2 * length
             y[index + 5] = coordinates[2, element_id] - 1 / 2 * length
-            y[index + 6] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 6] = NaN
+
+            #back four edges of cube
             y[index + 7] = coordinates[2, element_id] + 1 / 2 * length
             y[index + 8] = coordinates[2, element_id] + 1 / 2 * length
-            y[index + 9] = coordinates[2, element_id] - 1 / 2 * length
-            y[index + 10] = NaN
+            y[index + 9] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 10] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 11] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 12] = NaN
+
+            #top four edges of cube
+            y[index + 13] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 14] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 15] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 16] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 17] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 18] = NaN
+
+            #bottom four edges of cube
+            y[index + 19] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 20] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 21] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 22] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 23] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 24] = NaN
+
+            #left four edges of cube
+            y[index + 25] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 26] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 27] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 28] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 29] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 30] = NaN
+
+            #right four edges of cube
+            y[index + 31] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 32] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 33] = coordinates[2, element_id] + 1 / 2 * length
+            y[index + 34] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 35] = coordinates[2, element_id] - 1 / 2 * length
+            y[index + 36] = NaN
     
+            #front four edges of cube
             z[index + 1] = coordinates[3, element_id] - 1 / 2 * length
-            z[index + 2] = coordinates[3, element_id] - 1 / 2 * length
-            z[index + 3] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 2] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 3] = coordinates[3, element_id] + 1 / 2 * length
             z[index + 4] = coordinates[3, element_id] - 1 / 2 * length
-            z[index + 5] = coordinates[3, element_id] + 1 / 2 * length
-            z[index + 6] = coordinates[3, element_id] + 1 / 2 * length
-            z[index + 7] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 5] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 6] = NaN
+
+            #back four edges of cube
+            z[index + 7] = coordinates[3, element_id] - 1 / 2 * length
             z[index + 8] = coordinates[3, element_id] + 1 / 2 * length
-            z[index + 9] = coordinates[3, element_id] - 1 / 2 * length
-            z[index + 10] = NaN
+            z[index + 9] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 10] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 11] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 12] = NaN
+
+            #top four edges of cube
+            z[index + 13] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 14] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 15] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 16] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 17] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 18] = NaN
+
+            #bottom four edges of cube
+            z[index + 19] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 20] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 21] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 22] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 23] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 24] = NaN
+
+            #left four edges of cube
+            z[index + 25] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 26] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 27] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 28] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 29] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 30] = NaN
+
+            #right four edges of cube
+            z[index + 31] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 32] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 33] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 34] = coordinates[3, element_id] + 1 / 2 * length
+            z[index + 35] = coordinates[3, element_id] - 1 / 2 * length
+            z[index + 36] = NaN
         end
     
         return x, y, z

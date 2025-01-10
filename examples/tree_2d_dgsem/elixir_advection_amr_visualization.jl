@@ -25,7 +25,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-5.0, -5.0)
 coordinates_max = (5.0, 5.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 3,
+                initial_refinement_level = 4,
                 n_cells_max = 30_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -33,7 +33,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 20.0)
+tspan = (0.0, 100.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -51,12 +51,12 @@ save_solution = SaveSolutionCallback(interval = 100,
 
 # Enable in-situ visualization with a new plot generated every 20 time steps
 # and additional plotting options passed as keyword arguments
-visualization = VisualizationCallback(interval = 20, clims = (0, 1), plot_creator = Trixi.show_plot_makie)
+visualization = VisualizationCallback(interval = 20, clims = (0, 1), plot_creator = Trixi.show_plot_makie, show_mesh = true)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
-                                      base_level = 3,
-                                      med_level = 4, med_threshold = 0.1,
-                                      max_level = 5, max_threshold = 0.6)
+                                      base_level = 4,
+                                      med_level = 5, med_threshold = 0.1,
+                                      max_level = 6, max_threshold = 0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,

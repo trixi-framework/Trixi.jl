@@ -87,7 +87,7 @@ keyword arguments are collected and passed as additional arguments to the plotti
 function VisualizationCallback(; interval = 0,
                                solution_variables = cons2prim,
                                variable_names = [],
-                               show_mesh = false,
+                               show_mesh = true,
                                plot_data_creator = PlotData2D,
                                plot_creator = show_plot,
                                plot_arguments...)

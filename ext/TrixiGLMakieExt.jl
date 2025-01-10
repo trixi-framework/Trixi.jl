@@ -31,26 +31,52 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
 show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
 time = nothing, timestep = nothing)
 ndims = (visualization_callback.plot_data_creator == PlotData2D) ? 2 : 3
+one_if_show_mesh = show_mesh ? 1 : 0
     if visualization_callback.figure === nothing
         @warn "Creating new figure"
-        visualization_callback.figure = GLMakie.Figure()
-        for v in 1:size(variable_names)[1]
-            push!(visualization_callback.axis, (ndims == 2) ? GLMakie.Axis(visualization_callback.figure[makieLayoutHelper(v)...], title = variable_names[v]) : 
-            GLMakie.Axis3(visualization_callback.figure[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v]))
+        visualization_callback.figure = Figure()
+        if show_mesh 
+            if ndims == 2
+                push!(visualization_callback.axis, Axis(visualization_callback.figure[makieLayoutHelper(1)...], title = "mesh"))
+            else
+                push!(visualization_callback.axis, Axis3(visualization_callback.figure[makieLayoutHelper(1)...], aspect=:equal, title = "mesh"))
+                lines!(visualization_callback.axis[1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y, plot_data.mesh_vertices_z, color=:black)
+            end
         end
-        GLMakie.display(visualization_callback.figure)
+        for v in 1:size(variable_names)[1]
+            push!(visualization_callback.axis, (ndims == 2) ? Axis(visualization_callback.figure[makieLayoutHelper(v + one_if_show_mesh)...], title = variable_names[v]) : 
+            Axis3(visualization_callback.figure[makieLayoutHelper(v + one_if_show_mesh)...], aspect=:equal, title = variable_names[v]))
+        end
+        display(visualization_callback.figure)
     else
         if ndims == 2
             for v in 1:size(variable_names)[1]
-                GLMakie.heatmap!(visualization_callback.axis[v], plot_data.x, plot_data.y, plot_data.data[v])
+                empty!(visualization_callback.axis[v + one_if_show_mesh])
+                heatmap!(visualization_callback.axis[v + one_if_show_mesh], plot_data.x, plot_data.y, plot_data.data[v], transparent = true)
+                # if show_mesh
+                #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
+                # end
             end
         else
             for v in 1:size(variable_names)[1]
-                GLMakie.volume!(visualization_callback.axis[v], plot_data.data[v])
+                empty!(visualization_callback.axis[v + one_if_show_mesh])
+                volume!(visualization_callback.axis[v + one_if_show_mesh], plot_data.x, plot_data.y, plot_data.z, plot_data.data[v], transparent = true)
+                # if show_mesh 
+                #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
+                # end
             end
         end
     end
 
+    if show_mesh 
+        if ndims == 2
+            empty!(visualization_callback.axis[1])
+            lines!(visualization_callback.axis[1], plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
+        else
+            empty!(visualization_callback.axis[1])
+            lines!(visualization_callback.axis[1], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
+        end
+    end
 # TODO: show_mesh
 end
 

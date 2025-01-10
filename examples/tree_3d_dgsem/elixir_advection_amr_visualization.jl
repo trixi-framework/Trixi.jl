@@ -7,7 +7,7 @@ using GLMakie
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advection_velocity = (0.2, -0.7, 0.5)
+advection_velocity = (20, -7, 5)
 equations = LinearScalarAdvectionEquation3D(advection_velocity)
 
 initial_condition = initial_condition_gauss
@@ -16,7 +16,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 coordinates_min = (-5.0, -5.0, -5.0)
 coordinates_max = (5.0, 5.0, 5.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 2,
                 n_cells_max = 30_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -44,9 +44,9 @@ save_solution = SaveSolutionCallback(interval = 100,
 visualization = VisualizationCallback(interval = 20, clims = (0, 1), plot_data_creator = Trixi.PlotData3D, plot_creator = Trixi.show_plot_makie)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
-                                      base_level = 4,
-                                      med_level = 5, med_threshold = 0.1,
-                                      max_level = 6, max_threshold = 0.6)
+                                      base_level = 2,
+                                      med_level = 3, med_threshold = 0.1,
+                                      max_level = 4, max_threshold = 0.6)
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 5,
                            adapt_initial_condition = true,
