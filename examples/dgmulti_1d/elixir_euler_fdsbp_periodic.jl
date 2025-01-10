@@ -1,5 +1,6 @@
 
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEq
+using Trixi
 
 dg = DGMulti(element_type = Line(),
              approximation_type = periodic_derivative_operator(derivative_order = 1,

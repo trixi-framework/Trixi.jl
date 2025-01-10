@@ -1,5 +1,6 @@
 
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEq
+using Trixi
 
 surface_flux = FluxLaxFriedrichs()
 volume_flux = flux_ranocha
