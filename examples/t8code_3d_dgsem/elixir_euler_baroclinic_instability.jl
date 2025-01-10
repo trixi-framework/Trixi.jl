@@ -1,4 +1,3 @@
-
 # An idealized baroclinic instability test case
 # For optimal results consider increasing the resolution to 16x16x8 trees per cube face.
 #

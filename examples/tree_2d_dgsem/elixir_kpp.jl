@@ -1,4 +1,3 @@
-
 using Trixi
 using OrdinaryDiffEq
 using LinearAlgebra

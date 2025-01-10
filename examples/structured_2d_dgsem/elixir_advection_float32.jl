@@ -1,4 +1,3 @@
-
 # Similar to structured_2d_dgsem/elixir_advection_basic.jl
 # but using Float32 instead of the default Float64
 

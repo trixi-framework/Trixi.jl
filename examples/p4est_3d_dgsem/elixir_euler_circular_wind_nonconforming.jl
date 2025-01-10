@@ -1,4 +1,3 @@
-
 # A manufactured solution of a circular wind with constant angular velocity
 # on a planetary-sized non-conforming mesh
 #

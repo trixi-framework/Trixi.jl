@@ -1,4 +1,3 @@
-
 # This elixir transforms the setup of elixir_advection_basic to a parallelogram.
 # The nodal values of the initial condition and the exact solution are the same as
 # in elixir_advection_basic. 

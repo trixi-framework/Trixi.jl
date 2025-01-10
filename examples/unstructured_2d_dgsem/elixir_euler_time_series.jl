@@ -1,4 +1,3 @@
-
 # An elixir that has an alternative convergence test that uses
 # the `TimeSeriesCallback` on several gauge points. Many of the
 # gauge points are selected as "stress tests" for the element

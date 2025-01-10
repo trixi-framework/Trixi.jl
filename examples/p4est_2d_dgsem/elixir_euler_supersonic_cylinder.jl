@@ -1,4 +1,3 @@
-
 # Channel flow around a cylinder at Mach 3
 #
 # Boundary conditions are supersonic Mach 3 inflow at the left portion of the domain

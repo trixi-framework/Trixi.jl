@@ -1,4 +1,3 @@
-
 # !!! warning "Experimental implementation (upwind SBP)"
 #     This is an experimental feature and may change in future releases.
 # Similar to unstructured_2d_fdsbp/elixir_euler_free_stream_upwind.jl
