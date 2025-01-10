@@ -1,3 +1,4 @@
+
 # Channel flow around a cylinder at Mach 3
 #
 # Boundary conditions are supersonic Mach 3 inflow at the left portion of the domain
@@ -13,7 +14,8 @@
 #
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
 
-using OrdinaryDiffEq
+# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
+using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################

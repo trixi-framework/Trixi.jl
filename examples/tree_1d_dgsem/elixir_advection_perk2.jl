@@ -3,7 +3,8 @@
 # monomial coefficients in the stability polynomial of PERK time integrators.
 using Convex, ECOS
 
-using OrdinaryDiffEq
+# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
+using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################

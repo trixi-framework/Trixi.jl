@@ -1,3 +1,4 @@
+
 using Trixi, OrdinaryDiffEq
 
 surface_flux = FluxLaxFriedrichs()
