@@ -27,8 +27,8 @@ end
 
 @trixi_testset "elixir_hypdiff_nonperiodic_perk4.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic_perk4.jl"),
-                        l2=[1.3655114989569954e-7, 1.020034502220849e-6],
-                        linf=[7.173289721662535e-7, 4.507115265006689e-6],
+                        l2=[1.3655114994521285e-7, 1.0200345014751413e-6],
+                        linf=[7.173289867656862e-7, 4.507115296537023e-6],
                         atol=2.5e-13)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

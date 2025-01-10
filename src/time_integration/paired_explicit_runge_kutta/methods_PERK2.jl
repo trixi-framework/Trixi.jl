@@ -42,13 +42,12 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     a_matrix = zeros(2, num_coeffs_max)
     a_matrix[1, :] = c[3:end]
 
-    consistency_order = 2
-
     dtmax = tspan[2] - tspan[1]
     dteps = 1e-9 # Hyperparameter of the optimization, might be too large for systems requiring very small timesteps
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
 
+    consistency_order = 2
     monomial_coeffs, dt_opt = bisect_stability_polynomial(consistency_order,
                                                           num_eig_vals, num_stages,
                                                           dtmax,

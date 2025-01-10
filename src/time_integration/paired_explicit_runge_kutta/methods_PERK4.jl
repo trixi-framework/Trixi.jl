@@ -33,17 +33,18 @@ function compute_PairedExplicitRK4_butcher_tableau(num_stages, tspan,
     num_coeffs_max = num_stages - 5
     a_matrix = zeros(2, num_coeffs_max)
 
-    # Calculate coefficients of the stability polynomial in monomial form
     dtmax = tspan[2] - tspan[1]
     dteps = 1.0f-9
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
 
-    monomial_coeffs, dt_opt = bisect_stability_polynomial_PERK4(num_eig_vals,
-                                                                num_stages,
-                                                                dtmax, dteps,
-                                                                eig_vals, cS3;
-                                                                verbose)
+    consistency_order = 4
+    monomial_coeffs, dt_opt = bisect_stability_polynomial(consistency_order,
+                                                          num_eig_vals,
+                                                          num_stages,
+                                                          dtmax, dteps,
+                                                          eig_vals;
+                                                          verbose, cS3)
 
     if num_stages > 5
         a_unknown = copy(monomial_coeffs)

@@ -26,4 +26,3 @@ end
 # extension or by the Convex and ECOS-specific code loaded by Requires.jl
 function undo_normalization! end
 function bisect_stability_polynomial end
-function bisect_stability_polynomial_PERK4 end
