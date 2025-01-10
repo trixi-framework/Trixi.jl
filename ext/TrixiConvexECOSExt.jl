@@ -9,7 +9,7 @@ using ECOS: Optimizer
 using LinearAlgebra: eigvals
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, undo_normalization!, bisect_stability_polynomial, @muladd
+using Trixi: Trixi, bisect_stability_polynomial, @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -20,8 +20,8 @@ using Trixi: Trixi, undo_normalization!, bisect_stability_polynomial, @muladd
 
 # Undo normalization of stability polynomial coefficients by index factorial
 # relative to consistency order.
-function Trixi.undo_normalization!(gamma_opt, num_stage_evals,
-                                   num_reduced_coeffs, fac_offset)
+function undo_normalization!(gamma_opt, num_stage_evals,
+                             num_reduced_coeffs, fac_offset)
     for k in 1:(num_stage_evals - num_reduced_coeffs)
         gamma_opt[k] /= factorial(k + fac_offset)
     end
