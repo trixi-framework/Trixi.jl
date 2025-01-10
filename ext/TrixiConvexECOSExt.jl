@@ -31,13 +31,11 @@ end
 # order, including contributions from free coefficients for higher orders, and
 # return the maximum absolute value
 function stability_polynomials!(pnoms, num_stage_evals,
-                                num_eig_vals,
                                 normalized_powered_eigvals_scaled,
                                 gamma, consistency_order)
     # Initialize with zero'th order (z^0) coefficient
-    for i in 1:num_eig_vals
-        pnoms[i] = 1.0
-    end
+    pnoms .= 1
+
     # First `consistency_order` terms of the exponential
     for k in 1:consistency_order
         pnoms += view(normalized_powered_eigvals_scaled, :, k)
@@ -59,7 +57,6 @@ end
 
 # Specialized form of the stability polynomials for fourth-order PERK schemes.
 function stability_polynomials_PERK4!(pnoms, num_stage_evals,
-                                      num_eig_vals,
                                       normalized_powered_eigvals_scaled,
                                       gamma, cS3)
     # Constants arising from the particular form of Butcher tableau chosen for the 4th order PERK methods
@@ -68,9 +65,8 @@ function stability_polynomials_PERK4!(pnoms, num_stage_evals,
     k2 = 0.03726406530405851 / cS3
 
     # Initialize with zero'th order (z^0) coefficient
-    for i in 1:num_eig_vals
-        pnoms[i] = 1.0
-    end
+    pnoms .= 1
+
     # First `consistency_order` = 4 terms of the exponential
     for k in 1:4
         pnoms += view(normalized_powered_eigvals_scaled, :, k)
@@ -97,13 +93,10 @@ function stability_polynomials_PERK4!(pnoms, num_stage_evals,
 end
 
 @inline function normalize_power_eigvals!(normalized_powered_eigvals,
-                                          num_eig_vals, eig_vals,
+                                          eig_vals,
                                           num_stage_evals)
     for j in 1:num_stage_evals
-        fac_j = factorial(j)
-        for i in 1:num_eig_vals
-            normalized_powered_eigvals[i, j] = eig_vals[i]^j / fac_j
-        end
+        @views normalized_powered_eigvals[:, j] = eig_vals[:] .^ j ./ factorial(j)
     end
 end
 
@@ -147,7 +140,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
 
     normalized_powered_eigvals = zeros(Complex{Float64}, num_eig_vals, num_stage_evals)
     normalize_power_eigvals!(normalized_powered_eigvals,
-                             num_eig_vals, eig_vals,
+                             eig_vals,
                              num_stage_evals)
 
     normalized_powered_eigvals_scaled = similar(normalized_powered_eigvals)
@@ -172,13 +165,11 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
             if consistency_order == 4
                 problem = minimize(stability_polynomials_PERK4!(pnoms,
                                                                 num_stage_evals,
-                                                                num_eig_vals,
                                                                 normalized_powered_eigvals_scaled,
                                                                 gamma, kwargs[:cS3]))
             else # p = 2, 3
                 problem = minimize(stability_polynomials!(pnoms,
                                                           num_stage_evals,
-                                                          num_eig_vals,
                                                           normalized_powered_eigvals_scaled,
                                                           gamma, consistency_order))
             end
@@ -202,13 +193,11 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
             if consistency_order == 4
                 abs_p = stability_polynomials_PERK4!(pnoms,
                                                      num_stage_evals,
-                                                     num_eig_vals,
                                                      normalized_powered_eigvals_scaled,
                                                      gamma, kwargs[:cS3])
             else
                 abs_p = stability_polynomials!(pnoms,
                                                num_stage_evals,
-                                               num_eig_vals,
                                                normalized_powered_eigvals_scaled,
                                                gamma, consistency_order)
             end
