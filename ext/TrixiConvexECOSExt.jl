@@ -86,7 +86,7 @@ function stability_polynomials_PERK4!(pnoms, num_stage_evals,
         pnoms += (k2 * view(normalized_powered_eigvals_scaled, :, k + 4) *
                   gamma[k] +
                   k1 * view(normalized_powered_eigvals_scaled, :, k + 5) *
-                  gamma[k] * (k + 5)) # Undo normalization of the second summand
+                  gamma[k] * (k + 5)) # Ensure same normalization of both summands
     end
 
     # For optimization only the maximum is relevant
@@ -135,16 +135,16 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
 
     if consistency_order == 4
         # Fourth-order scheme has one additional fixed coefficient
-        num_reduced_unkown = 5
+        num_reduced_unknown = 5
     else # p = 2, 3
-        num_reduced_unkown = consistency_order
+        num_reduced_unknown = consistency_order
     end
 
     # Construct stability polynomial for each eigenvalue
     pnoms = ones(Complex{Float64}, num_eig_vals, 1)
 
     # Init datastructure for monomial coefficients
-    gamma = Variable(num_stage_evals - num_reduced_unkown)
+    gamma = Variable(num_stage_evals - num_reduced_unknown)
 
     normalized_powered_eigvals = zeros(Complex{Float64}, num_eig_vals, num_stage_evals)
     normalize_power_eigvals!(normalized_powered_eigvals,
@@ -168,7 +168,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         end
 
         # Check if there are variables to optimize
-        if num_stage_evals - num_reduced_unkown > 0
+        if num_stage_evals - num_reduced_unknown > 0
             # Use last optimal values for gamma in (potentially) next iteration
             if consistency_order == 4
                 problem = minimize(stability_polynomials_PERK4!(pnoms,
@@ -238,7 +238,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
     end
 
     undo_normalization!(gamma_opt, num_stage_evals,
-                        num_reduced_unkown, consistency_order)
+                        num_reduced_unknown, consistency_order)
 
     return gamma_opt, dt
 end
