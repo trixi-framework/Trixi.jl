@@ -1,6 +1,5 @@
 
-using OrdinaryDiffEq
-using Trixi
+using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(polydeg = 3, element_type = Tet(),
              surface_integral = SurfaceIntegralWeakForm(flux_hll),

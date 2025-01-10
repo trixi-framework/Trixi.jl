@@ -1,6 +1,5 @@
 
-using OrdinaryDiffEq
-using Trixi
+using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(polydeg = 4, element_type = Quad(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
