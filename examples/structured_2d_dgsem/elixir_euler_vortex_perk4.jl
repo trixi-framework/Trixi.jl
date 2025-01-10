@@ -25,17 +25,18 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
         t = zero(t)
     end
 
+    RealT = eltype(x)
     # Initial center of the vortex
-    inicenter = SVector(0.0, 0.0)
+    inicenter = SVector(0, 0)
     # Strength of the vortex
-    S = 13.5
+    S = convert(RealT, 13.5)
     # Radius of vortex
-    R = 1.5
+    R = convert(RealT, 1.5)
     # Free-stream Mach 
-    M = 0.4
+    M = convert(RealT, 0.4)
     # Base flow
-    v1 = 1.0
-    v2 = 1.0
+    v1 = 1
+    v2 = 1
     vel = SVector(v1, v2)
 
     center = inicenter + vel * t # Advection of center
@@ -45,9 +46,10 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 
     f = (1 - r2) / (2 * R^2)
 
-    rho = (1 - (S * M / pi)^2 * (gamma - 1) * exp(2 * f) / 8)^(1 / (gamma - 1))
+    rho = (1 - (S * M / convert(RealT, pi))^2 * (gamma - 1) * exp(2 * f) / 8)^(1 /
+                                                                               (gamma - 1))
 
-    du = S / (2 * π * R) * exp(f) # Vel. perturbation
+    du = S / (2 * convert(RealT, pi) * R) * exp(f) # Vel. perturbation
     vel = vel + du * center
     v1, v2 = vel
 
