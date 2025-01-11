@@ -139,7 +139,7 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t,
         # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
         # For formula of potential energy see
         # "Galactic Dynamics" by Binney and Tremaine, 2nd ed., equation (2.18)
-        return 0.5 * (u_euler_local[1] - 1.5e7) * u_gravity_local[1]
+        return 0.5f0 * (u_euler_local[1] - 1.5f7) * u_gravity_local[1]
     end
     return e_potential
 end
