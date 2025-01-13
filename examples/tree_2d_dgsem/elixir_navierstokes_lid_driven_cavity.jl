@@ -24,18 +24,21 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000) # set maximum capacity of tree data structure
 
 function initial_condition_cavity(x, t, equations::CompressibleEulerEquations2D)
-    Ma = 0.1
-    rho = 1.0
-    u, v = 0.0, 0.0
-    p = 1.0 / (Ma^2 * equations.gamma)
+    RealT = eltype(x)
+    Ma = convert(RealT, 0.1)
+    rho = 1
+    u, v = 0, 0
+    p = 1 / (Ma^2 * equations.gamma)
     return prim2cons(SVector(rho, u, v, p), equations)
 end
 initial_condition = initial_condition_cavity
 
 # BC types
-velocity_bc_lid = NoSlip((x, t, equations) -> SVector(1.0, 0.0))
-velocity_bc_cavity = NoSlip((x, t, equations) -> SVector(0.0, 0.0))
-heat_bc = Adiabatic((x, t, equations) -> 0.0)
+velocity_bc_lid = NoSlip((x, t, equations_parabolic) -> SVector(one(eltype(x)),
+                                                                zero(eltype(x))))
+velocity_bc_cavity = NoSlip((x, t, equations_parabolic) -> SVector(zero(eltype(x)),
+                                                                   zero(eltype(x))))
+heat_bc = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
 boundary_condition_lid = BoundaryConditionNavierStokesWall(velocity_bc_lid, heat_bc)
 boundary_condition_cavity = BoundaryConditionNavierStokesWall(velocity_bc_cavity, heat_bc)
 

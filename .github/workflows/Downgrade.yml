@@ -27,16 +27,16 @@ jobs:
   downgrade_test:
     if: "!contains(github.event.head_commit.message, 'skip ci')"
     # We could also include the Julia version as in
-    # name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    # name: ${{ matrix.trixi_test }} - ${{ matrix.os }} - Julia ${{ matrix.version }} - ${{ matrix.arch }}
     # to be more specific. However, that requires us updating the required CI tests whenever we update Julia.
-    name: Downgrade ${{ matrix.trixi_test }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    name: Downgrade ${{ matrix.trixi_test }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         version:
-          - '1.9'
-          # - '~1.9.0-0' # including development versions
+          - '1.10'
+          # - '~1.10.0-0' # including development versions
           # - 'nightly'
         os:
           - ubuntu-latest
@@ -72,15 +72,15 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-downgrade-compat@v1
         with:
-          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DiffEqBase,DelimitedFiles
+          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DiffEqBase,DelimitedFiles,Test,Downloads,Random
           projects: ., test
       - uses: julia-actions/julia-buildpkg@v1
         env:
-          PYTHON: ""
+          PYTHON: ''
       - name: Run tests without coverage
         uses: julia-actions/julia-runtest@v1
         with:
           coverage: false
         env:
-          PYTHON: ""
+          PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}

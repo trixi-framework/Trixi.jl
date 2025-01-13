@@ -24,9 +24,10 @@ end
 
 """
     StructuredMesh(cells_per_dimension, mapping;
-                   RealT=Float64,
-                   unsaved_changes=true, 
-                   mapping_as_string=mapping2string(mapping, length(cells_per_dimension), RealT=RealT))
+                   RealT = Float64,
+                   periodicity = true,
+                   unsaved_changes = true, 
+                   mapping_as_string = mapping2string(mapping, length(cells_per_dimension), RealT=RealT))
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -46,8 +47,10 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
                                The code string must define the mapping function with the name `mapping`.
                                This will be changed in the future, see [https://github.com/trixi-framework/Trixi.jl/issues/541](https://github.com/trixi-framework/Trixi.jl/issues/541).
 """
-function StructuredMesh(cells_per_dimension, mapping; RealT = Float64,
-                        periodicity = true, unsaved_changes = true,
+function StructuredMesh(cells_per_dimension, mapping;
+                        RealT = Float64,
+                        periodicity = true,
+                        unsaved_changes = true,
                         mapping_as_string = mapping2string(mapping,
                                                            length(cells_per_dimension),
                                                            RealT))
@@ -71,7 +74,9 @@ function StructuredMesh(cells_per_dimension, mapping; RealT = Float64,
 end
 
 """
-    StructuredMesh(cells_per_dimension, faces; RealT=Float64, unsaved_changes=true, faces_as_string=faces2string(faces))
+    StructuredMesh(cells_per_dimension, faces; 
+                   RealT = Float64,
+                   periodicity = true)
 
 Create a StructuredMesh of the given size and shape that uses `RealT` as coordinate type.
 
@@ -89,7 +94,8 @@ Create a StructuredMesh of the given size and shape that uses `RealT` as coordin
 - `periodicity`: either a `Bool` deciding if all of the boundaries are periodic or an `NTuple{NDIMS, Bool}` deciding for
                  each dimension if the boundaries in this dimension are periodic.
 """
-function StructuredMesh(cells_per_dimension, faces::Tuple; RealT = Float64,
+function StructuredMesh(cells_per_dimension, faces::Tuple;
+                        RealT = Float64,
                         periodicity = true)
     NDIMS = length(cells_per_dimension)
 
@@ -118,7 +124,8 @@ function StructuredMesh(cells_per_dimension, faces::Tuple; RealT = Float64,
 end
 
 """
-    StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max; periodicity=true)
+    StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
+                   periodicity = true)
 
 Create a StructuredMesh that represents a uncurved structured mesh with a rectangular domain.
 

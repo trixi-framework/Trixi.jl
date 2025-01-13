@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -13,15 +12,16 @@ prandtl_number() = 0.72
 # 1991, McGraw-Hill, ISBN, 0-07-069712-4
 # Pages 28 and 29.
 @inline function mu(u, equations)
-    T_ref = 291.15
+    RealT = eltype(u)
+    T_ref = convert(RealT, 291.15)
 
-    R_specific_air = 287.052874
+    R_specific_air = convert(RealT, 287.052874)
     T = R_specific_air * Trixi.temperature(u, equations)
 
-    C_air = 120.0
-    mu_ref_air = 1.827e-5
+    C_air = 120
+    mu_ref_air = convert(RealT, 1.827e-5)
 
-    return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5
+    return mu_ref_air * (T_ref + C_air) / (T + C_air) * (T / T_ref)^1.5f0
 end
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -39,14 +39,15 @@ This forms the basis behind the 3D case found for instance in
 """
 function initial_condition_taylor_green_vortex(x, t,
                                                equations::CompressibleEulerEquations2D)
-    A = 1.0 # magnitude of speed
-    Ms = 0.1 # maximum Mach number
+    RealT = eltype(x)
+    A = 1 # magnitude of speed
+    Ms = convert(RealT, 0.1) # maximum Mach number
 
-    rho = 1.0
+    rho = 1
     v1 = A * sin(x[1]) * cos(x[2])
     v2 = -A * cos(x[1]) * sin(x[2])
     p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
-    p = p + 1.0 / 4.0 * A^2 * rho * (cos(2 * x[1]) + cos(2 * x[2]))
+    p = p + 0.25f0 * A^2 * rho * (cos(2 * x[1]) + cos(2 * x[2]))
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
