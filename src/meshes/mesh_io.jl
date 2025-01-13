@@ -383,7 +383,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
                                   periodicity = periodicity_,
                                   unsaved_changes = false)
         mesh.current_filename = mesh_file
-    elseif mesh_type == "P4estMesh" || mesh_type == "P4estMeshView"
+    elseif mesh_type == "P4estMesh"
         p4est_filename, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
             return read(attributes(file)["p4est_file"]),
@@ -402,6 +402,28 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
 
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
                                 nodes, boundary_names, mesh_file, false, true)
+    elseif mesh_type == "P4estMeshView"
+        println(mesh_file)
+        p4est_filename, cell_ids, tree_node_coordinates,
+        nodes, boundary_names_ = h5open(mesh_file, "r") do file
+            return read(attributes(file)["p4est_file"]),
+                   read(attributes(file)["cell_ids"]),
+                   read(file["tree_node_coordinates"]),
+                   read(file["nodes"]),
+                   read(file["boundary_names"])
+        end
+
+        boundary_names = boundary_names_ .|> Symbol
+
+        p4est_file = joinpath(dirname(mesh_file), p4est_filename)
+        # Prevent Julia crashes when `p4est` can't find the file
+        @assert isfile(p4est_file)
+
+        p4est = load_p4est(p4est_file, Val(ndims))
+
+        parent_mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
+                                       nodes, boundary_names, mesh_file, false, true)
+        mesh = P4estMeshView(parent_mesh, cell_ids)
 
     elseif mesh_type == "T8codeMesh"
         ndims, ntrees, nelements, tree_node_coordinates,
