@@ -1,28 +1,34 @@
+
 using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
-equations = CompressibleEulerEquations1D(1.4)
 
-initial_condition = initial_condition_weak_blast_wave
+equations = CompressibleEulerEquations2D(1.4)
 
-volume_flux = flux_ranocha
-solver = DGSEM(polydeg = 3, surface_flux = flux_ranocha,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+# Test free stream preservation with constant initial condition
+initial_condition = initial_condition_constant
 
-coordinates_min = (-2.0,)
-coordinates_max = (2.0,)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
-                n_cells_max = 10_000)
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+###############################################################################
+
+# Hybrid mesh composed of a second-order and first-order quadrilateral element
+mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/84d876776e379322c38e9c0bfcadee8e/raw/0068805b853a8faa0fe229280d353016359d8a7d/hybrid_quadmesh.inp",
+                           joinpath(@__DIR__, "hybrid_quadmesh.inp"))
+
+# Refine the given mesh twice
+mesh = P4estMesh{2}(mesh_file, initial_refinement_level = 2)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions =
+                                    Dict(:all => BoundaryConditionDirichlet(initial_condition)))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.4)
+tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
@@ -37,7 +43,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.8)
+stepsize_callback = StepsizeCallback(cfl = 2.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
