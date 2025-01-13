@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -99,8 +98,8 @@ volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
                                                  volume_flux_fv = surface_flux)
 solver_euler = DGSEM(basis, surface_flux, volume_integral)
 
-coordinates_min = (-4, -4)
-coordinates_max = (4, 4)
+coordinates_min = (-4.0, -4.0)
+coordinates_max = (4.0, 4.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 2,
                 n_cells_max = 100_000,
@@ -183,7 +182,7 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 ###############################################################################
 # ODE solvers, callbacks etc.
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 

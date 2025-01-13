@@ -11,10 +11,10 @@
 A struct containing everything needed to describe a spatial semidiscretization
 of a hyperbolic conservation law.
 """
-struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
-                                    BoundaryConditions,
-                                    SourceTerms, Solver, Cache} <:
-       AbstractSemidiscretization
+mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
+                                            BoundaryConditions,
+                                            SourceTerms, Solver, Cache} <:
+               AbstractSemidiscretization
     mesh::Mesh
     equations::Equations
 
@@ -222,7 +222,8 @@ end
 
 # No actions needed for periodic boundary conditions
 function check_periodicity_mesh_boundary_conditions(mesh::Union{TreeMesh,
-                                                                StructuredMesh},
+                                                                StructuredMesh,
+                                                                StructuredMeshView},
                                                     boundary_conditions::BoundaryConditionPeriodic)
 end
 
@@ -409,14 +410,14 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolic)
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
-    @unpack mesh, equations, initial_condition, boundary_conditions, source_terms, solver, cache = semi
+    @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
 
     # TODO: Taal decide, do we need to pass the mesh?
     time_start = time_ns()
-    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations, initial_condition,
+    @trixi_timeit timer() "rhs!" rhs!(du, u, t, mesh, equations,
                                       boundary_conditions, source_terms, solver, cache)
     runtime = time_ns() - time_start
     put!(semi.performance_counter, runtime)

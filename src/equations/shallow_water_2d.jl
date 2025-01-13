@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations2D(; gravity, H0 = 0)
+    ShallowWaterEquations2D(; gravity_constant, H0 = 0)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math
@@ -267,8 +267,7 @@ end
     flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation::Integer,
                                           equations::ShallowWaterEquations2D)
     flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                          normal_direction_ll     ::AbstractVector,
-                                          normal_direction_average::AbstractVector,
+                                          normal_direction::AbstractVector,
                                           equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point volume flux discretizing the nonconservative (source) term
@@ -283,7 +282,7 @@ Further details are available in the papers:
   shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
   [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 - Patrick Ersing, Andrew R. Winters (2023)
-  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on 
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on
   curvilinear meshes
   [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
 """
@@ -303,8 +302,7 @@ Further details are available in the papers:
 end
 
 @inline function flux_nonconservative_wintermeyer_etal(u_ll, u_rr,
-                                                       normal_direction_ll::AbstractVector,
-                                                       normal_direction_average::AbstractVector,
+                                                       normal_direction::AbstractVector,
                                                        equations::ShallowWaterEquations2D)
     # Pull the necessary left and right state information
     h_ll = waterheight(u_ll, equations)
@@ -312,8 +310,8 @@ end
 
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
     return SVector(0,
-                   normal_direction_average[1] * equations.gravity * h_ll * b_jump,
-                   normal_direction_average[2] * equations.gravity * h_ll * b_jump,
+                   normal_direction[1] * equations.gravity * h_ll * b_jump,
+                   normal_direction[2] * equations.gravity * h_ll * b_jump,
                    0)
 end
 
@@ -321,8 +319,7 @@ end
     flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation::Integer,
                                         equations::ShallowWaterEquations2D)
     flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                        normal_direction_ll     ::AbstractVector,
-                                        normal_direction_average::AbstractVector,
+                                        normal_direction::AbstractVector,
                                         equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
@@ -332,7 +329,7 @@ This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces 
 conservation and well-balancedness.
 
 Further details for the original finite volume formulation are available in
-- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 and for curvilinear 2D case in the paper:
@@ -365,8 +362,7 @@ and for curvilinear 2D case in the paper:
 end
 
 @inline function flux_nonconservative_fjordholm_etal(u_ll, u_rr,
-                                                     normal_direction_ll::AbstractVector,
-                                                     normal_direction_average::AbstractVector,
+                                                     normal_direction::AbstractVector,
                                                      equations::ShallowWaterEquations2D)
     # Pull the necessary left and right state information
     h_ll, _, _, b_ll = u_ll
@@ -376,8 +372,8 @@ end
     b_jump = b_rr - b_ll
 
     # Bottom gradient nonconservative term: (0, g h b_x, g h b_y, 0)
-    f2 = normal_direction_average[1] * equations.gravity * h_average * b_jump
-    f3 = normal_direction_average[2] * equations.gravity * h_average * b_jump
+    f2 = normal_direction[1] * equations.gravity * h_average * b_jump
+    f3 = normal_direction[2] * equations.gravity * h_average * b_jump
 
     # First and last equations do not have a nonconservative flux
     f1 = f4 = 0
@@ -424,8 +420,7 @@ end
     flux_nonconservative_audusse_etal(u_ll, u_rr, orientation::Integer,
                                       equations::ShallowWaterEquations2D)
     flux_nonconservative_audusse_etal(u_ll, u_rr,
-                                      normal_direction_ll     ::AbstractVector,
-                                      normal_direction_average::AbstractVector,
+                                      normal_direction::AbstractVector,
                                       equations::ShallowWaterEquations2D)
 
 Non-symmetric two-point surface flux that discretizes the nonconservative (source) term.
@@ -467,8 +462,7 @@ Further details for the hydrostatic reconstruction and its motivation can be fou
 end
 
 @inline function flux_nonconservative_audusse_etal(u_ll, u_rr,
-                                                   normal_direction_ll::AbstractVector,
-                                                   normal_direction_average::AbstractVector,
+                                                   normal_direction::AbstractVector,
                                                    equations::ShallowWaterEquations2D)
     # Pull the water height and bottom topography on the left
     h_ll, _, _, b_ll = u_ll
@@ -479,8 +473,8 @@ end
     # Copy the reconstructed water height for easier to read code
     h_ll_star = u_ll_star[1]
 
-    f2 = normal_direction_average[1] * equations.gravity * (h_ll^2 - h_ll_star^2)
-    f3 = normal_direction_average[2] * equations.gravity * (h_ll^2 - h_ll_star^2)
+    f2 = normal_direction[1] * equations.gravity * (h_ll^2 - h_ll_star^2)
+    f3 = normal_direction[2] * equations.gravity * (h_ll^2 - h_ll_star^2)
 
     # First and last equations do not have a nonconservative flux
     f1 = f4 = 0
@@ -497,7 +491,7 @@ is nonzero this should only be used as a surface flux otherwise the scheme will 
 For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
 
 Details are available in Eq. (4.1) in the paper:
-- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 """
@@ -840,6 +834,12 @@ end
     return SVector(v1, v2)
 end
 
+@inline function velocity(u, orientation::Int, equations::ShallowWaterEquations2D)
+    h = u[1]
+    v = u[orientation + 1] / h
+    return v
+end
+
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::ShallowWaterEquations2D)
     h, _, _, b = u
@@ -903,11 +903,11 @@ end
                        equations::ShallowWaterEquations2D)
 
 Calculate Roe-averaged velocity `v_roe` and wavespeed `c_roe = sqrt{g * h_roe}` depending on direction.
-See for instance equation (62) in 
+See for instance equation (62) in
 - Paul A. Ullrich, Christiane Jablonowski, and Bram van Leer (2010)
   High-order finite-volume methods for the shallow-water equations on the sphere
   [DOI: 10.1016/j.jcp.2010.04.044](https://doi.org/10.1016/j.jcp.2010.04.044)
-Or [this slides](https://faculty.washington.edu/rjl/classes/am574w2011/slides/am574lecture20nup3.pdf), 
+Or [this slides](https://faculty.washington.edu/rjl/classes/am574w2011/slides/am574lecture20nup3.pdf),
 slides 8 and 9.
 """
 @inline function calc_wavespeed_roe(u_ll, u_rr, orientation::Integer,

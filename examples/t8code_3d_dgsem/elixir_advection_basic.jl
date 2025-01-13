@@ -40,11 +40,19 @@ summary_callback = SummaryCallback()
 # The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
 analysis_callback = AnalysisCallback(semi, interval = 100)
 
+# The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
+save_restart = SaveRestartCallback(interval = 100,
+                                   save_final_restart = true)
+
+# The SaveSolutionCallback allows to save the solution to a file in regular intervals
+save_solution = SaveSolutionCallback(interval = 100,
+                                     solution_variables = cons2prim)
+
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 1.2)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback,
+callbacks = CallbackSet(summary_callback, analysis_callback, save_restart, save_solution,
                         stepsize_callback)
 
 ###############################################################################
@@ -57,7 +65,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
 
 # Print the timer summary
 summary_callback()
-
-# Finalize `T8codeMesh` to make sure MPI related objects in t8code are
-# released before `MPI` finalizes.
-!isinteractive() && finalize(mesh)

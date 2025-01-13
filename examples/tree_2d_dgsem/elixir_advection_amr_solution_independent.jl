@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -19,16 +18,17 @@ end
 function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any, 4},
                                                    mesh, equations, dg, cache;
                                                    t, kwargs...)
+    RealT = eltype(u)
     mesh = indicator.cache.mesh
     alpha = indicator.cache.alpha
     resize!(alpha, nelements(dg, cache))
 
     #Predict the theoretical center.
-    advection_velocity = (0.2, -0.7)
+    advection_velocity = (convert(RealT, 0.2), convert(RealT, -0.7))
     center = t .* advection_velocity
 
     inner_distance = 1
-    outer_distance = 1.85
+    outer_distance = convert(RealT, 1.85)
 
     #Iterate over all elements
     for element in eachindex(alpha)
@@ -38,16 +38,16 @@ function (indicator::IndicatorSolutionIndependent)(u::AbstractArray{<:Any, 4},
 
         #The geometric shape of the amr should be preserved when the base_level is increased.
         #This is done by looking at the original coordinates of each cell.
-        cell_coordinates = original_coordinates(coordinates, 5 / 8)
+        cell_coordinates = original_coordinates(coordinates, 0.625f0)
         cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
         if cell_distance < (inner_distance + outer_distance) / 2
-            cell_coordinates = original_coordinates(coordinates, 5 / 16)
+            cell_coordinates = original_coordinates(coordinates, 0.3125f0)
             cell_distance = periodic_distance_2d(cell_coordinates, center, 10)
         end
 
         #Set alpha according to cells position inside the circles.
         target_level = (cell_distance < inner_distance) + (cell_distance < outer_distance)
-        alpha[element] = target_level / 2
+        alpha[element] = convert(RealT, target_level) / 2
     end
     return alpha
 end

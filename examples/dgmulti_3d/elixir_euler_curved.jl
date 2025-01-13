@@ -1,4 +1,3 @@
-
 using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = SBP(),

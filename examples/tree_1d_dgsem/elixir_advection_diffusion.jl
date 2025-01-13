@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -13,8 +12,8 @@ equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = -pi # minimum coordinate
-coordinates_max = pi # maximum coordinate
+coordinates_min = -convert(Float64, pi) # minimum coordinate
+coordinates_max = convert(Float64, pi) # maximum coordinate
 
 # Create a uniformly refined mesh with periodic boundaries
 mesh = TreeMesh(coordinates_min, coordinates_max,
@@ -22,10 +21,12 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
-function x_trans_periodic(x, domain_length = SVector(2 * pi), center = SVector(0.0))
+function x_trans_periodic(x, domain_length = SVector(oftype(x[1], 2 * pi)),
+                          center = SVector(oftype(x[1], 0)))
     x_normalized = x .- center
     x_shifted = x_normalized .% domain_length
-    x_offset = ((x_shifted .< -0.5 * domain_length) - (x_shifted .> 0.5 * domain_length)) .*
+    x_offset = ((x_shifted .< -0.5f0 * domain_length) -
+                (x_shifted .> 0.5f0 * domain_length)) .*
                domain_length
     return center + x_shifted + x_offset
 end
@@ -37,11 +38,9 @@ function initial_condition_diffusive_convergence_test(x, t,
     x_trans = x_trans_periodic(x - equation.advection_velocity * t)
 
     nu = diffusivity()
-    c = 0.0
-    A = 1.0
-    L = 2
-    f = 1 / L
-    omega = 1.0
+    c = 0
+    A = 1
+    omega = 1
     scalar = c + A * sin(omega * sum(x_trans)) * exp(-nu * omega^2 * t)
     return SVector(scalar)
 end
@@ -63,7 +62,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span from 0.0 to 1.0
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -75,8 +74,12 @@ analysis_callback = AnalysisCallback(semi, interval = 100)
 # The AliveCallback prints short status information in regular intervals
 alive_callback = AliveCallback(analysis_interval = 100)
 
+# The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
+save_restart = SaveRestartCallback(interval = 100,
+                                   save_final_restart = true)
+
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_restart)
 
 ###############################################################################
 # run the simulation

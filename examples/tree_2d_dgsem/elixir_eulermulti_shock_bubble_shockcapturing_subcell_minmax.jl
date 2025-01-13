@@ -1,4 +1,5 @@
-using OrdinaryDiffEq
+# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
+using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -22,46 +23,47 @@ function initial_condition_shock_bubble(x, t,
     # bubble test case, see Gouasmi et al. https://arxiv.org/pdf/1904.00972
     # other reference: https://www.researchgate.net/profile/Pep_Mulet/publication/222675930_A_flux-split_algorithm_applied_to_conservative_models_for_multicomponent_compressible_flows/links/568da54508aeaa1481ae7af0.pdf
     # typical domain is rectangular, we change it to a square, as Trixi can only do squares
+    RealT = eltype(x)
     @unpack gas_constants = equations
 
     # Positivity Preserving Parameter, can be set to zero if scheme is positivity preserving
-    delta = 0.03
+    delta = convert(RealT, 0.03)
 
     # Region I
     rho1_1 = delta
-    rho2_1 = 1.225 * gas_constants[1] / gas_constants[2] - delta
-    v1_1 = zero(delta)
-    v2_1 = zero(delta)
+    rho2_1 = RealT(1.225) * gas_constants[1] / gas_constants[2] - delta
+    v1_1 = zero(RealT)
+    v2_1 = zero(RealT)
     p_1 = 101325
 
     # Region II
-    rho1_2 = 1.225 - delta
+    rho1_2 = RealT(1.225) - delta
     rho2_2 = delta
-    v1_2 = zero(delta)
-    v2_2 = zero(delta)
+    v1_2 = zero(RealT)
+    v2_2 = zero(RealT)
     p_2 = 101325
 
     # Region III
-    rho1_3 = 1.6861 - delta
+    rho1_3 = RealT(1.6861) - delta
     rho2_3 = delta
-    v1_3 = -113.5243
-    v2_3 = zero(delta)
+    v1_3 = -RealT(113.5243)
+    v2_3 = zero(RealT)
     p_3 = 159060
 
     # Set up Region I & II:
-    inicenter = SVector(zero(delta), zero(delta))
+    inicenter = SVector(0, 0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
 
-    if (x[1] > 0.50)
+    if (x[1] > 0.5f0)
         # Set up Region III
         rho1 = rho1_3
         rho2 = rho2_3
         v1 = v1_3
         v2 = v2_3
         p = p_3
-    elseif (r < 0.25)
+    elseif (r < 0.25f0)
         # Set up Region I
         rho1 = rho1_1
         rho2 = rho2_1
@@ -121,7 +123,7 @@ save_solution = SaveSolutionCallback(interval = 600,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
+stepsize_callback = StepsizeCallback(cfl = 0.4)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

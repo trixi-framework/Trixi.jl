@@ -1,5 +1,5 @@
-
-using OrdinaryDiffEq
+# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
+using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -21,13 +21,13 @@ function initial_condition_kelvin_helmholtz_instability(x, t,
     # change discontinuity to tanh
     # typical resolution 128^2, 256^2
     # domain size is [-1,+1]^2
+    RealT = eltype(x)
     slope = 15
-    amplitude = 0.02
-    B = tanh(slope * x[2] + 7.5) - tanh(slope * x[2] - 7.5)
-    rho = 0.5 + 0.75 * B
-    v1 = 0.5 * (B - 1)
-    v2 = 0.1 * sin(2 * pi * x[1])
-    p = 1.0
+    B = tanh(slope * x[2] + 7.5f0) - tanh(slope * x[2] - 7.5f0)
+    rho = 0.5f0 + 0.75f0 * B
+    v1 = 0.5f0 * (B - 1)
+    v2 = convert(RealT, 0.1) * sinpi(2 * x[1])
+    p = 1
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 initial_condition = initial_condition_kelvin_helmholtz_instability

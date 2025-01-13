@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -18,20 +17,21 @@ A multicomponent two interacting blast wave test taken from
 """
 function initial_condition_two_interacting_blast_waves(x, t,
                                                        equations::CompressibleEulerMulticomponentEquations1D)
-    rho1 = 0.5 * x[1]^2
-    rho2 = 0.5 * (sin(20 * x[1]))^2
+    RealT = eltype(x)
+    rho1 = 0.5f0 * x[1]^2
+    rho2 = 0.5f0 * (sin(20 * x[1]))^2
     rho3 = 1 - rho1 - rho2
 
     prim_rho = SVector{3, real(equations)}(rho1, rho2, rho3)
 
-    v1 = 0.0
+    v1 = 0
 
-    if x[1] <= 0.1
-        p = 1000
-    elseif x[1] < 0.9
-        p = 0.01
+    if x[1] <= RealT(0.1)
+        p = convert(RealT, 1000)
+    elseif x[1] < RealT(0.9)
+        p = convert(RealT, 0.01)
     else
-        p = 100
+        p = convert(RealT, 100)
     end
 
     prim_other = SVector{2, real(equations)}(v1, p)

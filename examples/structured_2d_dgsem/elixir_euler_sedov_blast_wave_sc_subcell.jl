@@ -1,4 +1,5 @@
-using OrdinaryDiffEq
+# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
+using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -51,7 +52,9 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
                                 local_twosided_variables_cons = ["rho"],
                                 local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal,
                                                                        min)],
-                                max_iterations_newton = 40, # Default value of 10 iterations is too low to fulfill bounds.
+                                # Default parameters are not sufficient to fulfill bounds properly.
+                                max_iterations_newton = 40,
+                                newton_tolerances = (1.0e-13, 1.0e-15),
                                 positivity_variables_cons = [],
                                 positivity_variables_nonlinear = [])
 # Variables for global limiting (`positivity_variables_cons` and
@@ -96,7 +99,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.7)
+stepsize_callback = StepsizeCallback(cfl = 0.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,

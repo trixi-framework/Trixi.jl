@@ -9,7 +9,8 @@
     GlmSpeedCallback(; glm_scale=0.5, cfl, semi_indices=())
 
 Update the divergence cleaning wave speed `c_h` according to the time step
-computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations.
+computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations, the multi-component
+GLM-MHD equations, and the multi-ion GLM-MHD equations.
 The `cfl` number should be set to the same value as for the time step size calculation. The
 `glm_scale` ensures that the GLM wave speed is lower than the fastest physical waves in the MHD
 solution and should thus be set to a value within the interval [0,1]. Note that `glm_scale = 0`
@@ -48,7 +49,7 @@ function Base.show(io::IO, ::MIME"text/plain",
         setup = [
             "GLM wave speed scaling" => glm_speed_callback.glm_scale,
             "Expected CFL number" => glm_speed_callback.cfl,
-            "Selected semidiscretizations" => glm_speed_callback.semi_indices,
+            "Selected semidiscretizations" => glm_speed_callback.semi_indices
         ]
         summary_box(io, "GlmSpeedCallback", setup)
     end
@@ -83,7 +84,10 @@ function update_cleaning_speed!(semi, glm_speed_callback, dt)
     c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
 
     # c_h is proportional to its own time step divided by the complete MHD time step
-    equations.c_h = glm_scale * c_h_deltat / dt
+    # We use @reset here since the equations are immutable (to work on GPUs etc.).
+    # Thus, we need to modify the equations field of the semidiscretization.
+    @reset equations.c_h = glm_scale * c_h_deltat / dt
+    semi.equations = equations
 
     return semi
 end

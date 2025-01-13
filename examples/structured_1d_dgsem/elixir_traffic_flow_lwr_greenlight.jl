@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -8,8 +7,8 @@ equations = TrafficFlowLWREquations1D()
 
 solver = DGSEM(polydeg = 3, surface_flux = FluxHLL(min_max_speed_davis))
 
-coordinates_min = (-1.0,) # minimum coordinate
-coordinates_max = (1.0,) # maximum coordinate
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max = 1.0 # maximum coordinate
 cells_per_dimension = (64,)
 
 mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
@@ -19,7 +18,8 @@ mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
 # Green light that at x = 0 which switches at t = 0 from red to green.
 # To the left there are cars bumper to bumper, to the right there are no cars.
 function initial_condition_greenlight(x, t, equation::TrafficFlowLWREquations1D)
-    scalar = x[1] < 0.0 ? 1.0 : 0.0
+    RealT = eltype(x)
+    scalar = x[1] < 0 ? one(RealT) : zero(RealT)
 
     return SVector(scalar)
 end
@@ -29,7 +29,8 @@ end
 
 # Assume that there are always cars waiting at the left 
 function inflow(x, t, equations::TrafficFlowLWREquations1D)
-    return initial_condition_greenlight(coordinates_min, t, equations)
+    # -1.0 = coordinates_min
+    return initial_condition_greenlight(-1.0, t, equations)
 end
 boundary_condition_inflow = BoundaryConditionDirichlet(inflow)
 

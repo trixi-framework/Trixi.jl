@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -18,14 +17,15 @@ MHD extension of the Sod shock tube. Taken from Section V of the article
 """
 function initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
     # domain must be set to [0, 1], γ = 2, final time = 0.12
-    rho = x[1] < 0.5 ? 1.0 : 0.125
-    v1 = 0.0
-    v2 = 0.0
-    v3 = 0.0
-    p = x[1] < 0.5 ? 1.0 : 0.1
-    B1 = 0.75
-    B2 = x[1] < 0.5 ? 1.0 : -1.0
-    B3 = 0.0
+    RealT = eltype(x)
+    rho = x[1] < 0.5f0 ? 1.0f0 : 0.125f0
+    v1 = 0
+    v2 = 0
+    v3 = 0
+    p = x[1] < 0.5f0 ? one(RealT) : RealT(0.1)
+    B1 = 0.75f0
+    B2 = x[1] < 0.5f0 ? 1 : -1
+    B3 = 0
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
 initial_condition = initial_condition_briowu_shock_tube

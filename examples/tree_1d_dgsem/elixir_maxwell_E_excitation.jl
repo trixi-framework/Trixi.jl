@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -20,9 +19,10 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # Excite the electric field which causes a standing wave.
 # The solution is an undamped exchange between electric and magnetic energy.
 function initial_condition_E_excitation(x, t, equations::MaxwellEquations1D)
+    RealT = eltype(x)
     c = equations.speed_of_light
-    E = -c * sin(2 * pi * x[1])
-    B = 0.0
+    E = -c * sinpi(2 * x[1])
+    B = 0
 
     return SVector(E, B)
 end
@@ -35,7 +35,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 # As the wave speed is equal to the speed of light which is on the order of 3 * 10^8
 # we consider only a small time horizon.
-ode = semidiscretize(semi, (0.0, 1e-7));
+ode = semidiscretize(semi, (0.0, 1e-7))
 
 summary_callback = SummaryCallback()
 

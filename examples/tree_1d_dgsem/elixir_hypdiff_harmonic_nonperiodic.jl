@@ -1,5 +1,5 @@
-
-using OrdinaryDiffEq
+# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
+using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -19,12 +19,13 @@ A non-priodic harmonic function used in combination with
 function initial_condition_harmonic_nonperiodic(x, t,
                                                 equations::HyperbolicDiffusionEquations1D)
     # elliptic equation: -νΔϕ = f
-    if t == 0.0
-        phi = 5.0
-        q1 = 0.0
+    RealT = eltype(x)
+    if t == 0
+        phi = convert(RealT, 5)
+        q1 = zero(RealT)
     else
         A = 3
-        B = exp(1)
+        B = exp(one(RealT))
         phi = A + B * x[1]
         q1 = B
     end
@@ -51,7 +52,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 30.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 

@@ -41,9 +41,6 @@ boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initia
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -0.5)
-coordinates_max = (0.0, 0.5)
-
 # This maps the domain [-1, 1]^2 to [-1, 0] x [-0.5, 0.5] while also 
 # introducing a curved warping to interior nodes. 
 function mapping(xi, eta)
@@ -68,7 +65,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 # Create ODE problem with time span `tspan`
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers

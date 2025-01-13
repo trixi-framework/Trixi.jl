@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -45,7 +44,7 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 ###############################################################################
 # ODE solvers, callbacks etc.
 tspan = (0.0, 0.5)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 

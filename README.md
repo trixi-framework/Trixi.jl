@@ -19,28 +19,6 @@
   <img width="300px" src="https://trixi-framework.github.io/assets/logo.png">
 </p>
 
-***
-**Trixi.jl at JuliaCon 2024**<br/>
-At this year's JuliaCon in Eindhoven, Netherlands, we will be present with several contributions
-from the Trixi Framework ecosystem:
-
-* [**Julia for Particle-Based Multiphysics with TrixiParticles.jl**](https://pretalx.com/juliacon2024/talk/TPFF8L/),<br/>
-  [*Erik Faulhaber*](https://github.com/efaulhaber/), [*Niklas Neher*](https://github.com/lasnikas/),
-  10th July 2024, 11:00–11:30, Function (4.1)
-* [**Towards Aerodynamic Simulations in Julia with Trixi.jl**](https://pretalx.com/juliacon2024/talk/XH8KBG/),<br/>
-  [*Daniel Doehring*](https://github.com/danieldoehring/),
-  10th July 2024, 15:30–16:00, While Loop (4.2)
-* [**libtrixi: serving legacy codes in earth system modeling with fresh Julia CFD**](https://pretalx.com/juliacon2024/talk/SXC7LA/),<br/>
-  [*Benedict Geihe*](https://github.com/benegee/),
-  12th July 2024, 14:00–17:00, Function (4.1)
-
-The last talk is part of the 
-[Julia for High-Performance Computing](https://juliacon.org/2024/minisymposia/hpc/)
-minisymposium, which this year is hosted by our own [*Hendrik Ranocha*](https://github.com/ranocha/).
-
-We are looking forward to seeing you there ♥️
-***
-
 **Trixi.jl** is a numerical simulation framework for conservation
 laws written in [Julia](https://julialang.org). A key objective for the
 framework is to be useful to both scientists and students. Therefore, next to
@@ -55,11 +33,15 @@ installation and postprocessing procedures. Its features include:
   * Hierarchical quadtree/octree grid with adaptive mesh refinement
   * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 * High-order accuracy in space and time
+  * Arbitrary floating-point precision
 * Discontinuous Galerkin methods
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
-  * Positivity-preserving limiting
   * [Finite difference summation by parts (SBP) methods](https://github.com/ranocha/SummationByPartsOperators.jl)
+* Advanced limiting strategies
+  * Positivity-preserving limiting
+  * Subcell invariant domain-preserving (IDP) limiting
+  * Entropy-bounded limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
@@ -72,6 +54,7 @@ installation and postprocessing procedures. Its features include:
   * Compressible Navier-Stokes equations
   * Magnetohydrodynamics (MHD) equations
   * Multi-component compressible Euler and MHD equations
+  * Multi-ion compressible MHD equations
   * Linearized Euler and acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
@@ -90,7 +73,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi.jl works
-with Julia v1.8 and newer. We recommend using the latest stable release of Julia.
+with Julia v1.10 and newer. We recommend using the latest stable release of Julia.
 
 ### For users
 Trixi.jl and its related tools are registered Julia packages. Hence, you
@@ -279,6 +262,25 @@ To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
 
+## Participating research groups
+Participating research groups in alphabetical order:
+
+[Applied and Computational Mathematics, RWTH Aachen University :de:](https://www.acom.rwth-aachen.de)
+
+[Applied Mathematics, Department of Mathematics, University of Hamburg :de:](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
+
+[Division of Applied Mathematics, Department of Mathematics, Linköping University :sweden:](https://liu.se/en/employee/andwi94)
+
+[Computational and Applied Mathematics, Rice University :us:](https://jlchan.github.io/)
+
+[High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) :de:](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
+
+[High-Performance Scientific Computing, University of Augsburg :de:](https://hpsc.math.uni-augsburg.de)
+
+[Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz :de:](https://ranocha.de)
+
+[Numerical Simulation, Department of Mathematics and Computer Science, University of Cologne :de:](https://www.mi.uni-koeln.de/NumSim/)
+
 
 ## Acknowledgments
 <p align="center" style="font-size:0;"><!--
@@ -297,7 +299,7 @@ Forschungsgemeinschaft](https://www.dfg.de/) (DFG, German Research Foundation)
 through the following grants:
 * Excellence Strategy EXC 2044-390685587, Mathematics Münster: Dynamics-Geometry-Structure.
 * Research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
-  Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
+  Interface Coupling of Heterogeneous Models ([SNuBIC](https://www.snubic.io))" (project number 463312734).
 * Individual grant no. 528753982.
 
 This project has benefited from funding from the [European Research Council](https://erc.europa.eu)

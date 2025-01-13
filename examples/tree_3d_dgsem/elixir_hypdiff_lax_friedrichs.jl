@@ -1,5 +1,5 @@
-
-using OrdinaryDiffEq
+# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
+using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -59,7 +59,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 2.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 

@@ -450,7 +450,7 @@ end
 function rhs!(du, u, t,
               mesh::Union{ParallelTreeMesh{2}, ParallelP4estMesh{2},
                           ParallelT8codeMesh{2}}, equations,
-              initial_condition, boundary_conditions, source_terms::Source,
+              boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
     # Start to receive MPI data
     @trixi_timeit timer() "start MPI receive" start_mpi_receive!(cache.mpi_cache)
@@ -463,7 +463,7 @@ function rhs!(du, u, t,
     # Prolong solution to MPI mortars
     @trixi_timeit timer() "prolong2mpimortars" begin
         prolong2mpimortars!(cache, u, mesh, equations,
-                            dg.mortar, dg.surface_integral, dg)
+                            dg.mortar, dg)
     end
 
     # Start to send MPI data
@@ -510,7 +510,7 @@ function rhs!(du, u, t,
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u, mesh, equations,
-                         dg.mortar, dg.surface_integral, dg)
+                         dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
@@ -597,7 +597,7 @@ end
 
 function prolong2mpimortars!(cache, u,
                              mesh::ParallelTreeMesh{2}, equations,
-                             mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                             mortar_l2::LobattoLegendreMortarL2,
                              dg::DGSEM)
     @unpack mpi_mortars = cache
 
@@ -769,23 +769,31 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                                surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mpi_mortars
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded, fstar_secondary_upper_threaded, fstar_secondary_lower_threaded = cache
 
     @threaded for mortar in eachmpimortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_upper = fstar_upper_threaded[Threads.threadid()]
-        fstar_lower = fstar_lower_threaded[Threads.threadid()]
+        fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+        fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
+        fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
-        # Calculate fluxes
+        # Because `nonconservative_terms` is `False` the primary and secondary fluxes
+        # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
-        calc_fstar!(fstar_upper, equations, surface_flux, dg, u_upper, mortar,
+        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
                     orientation)
-        calc_fstar!(fstar_lower, equations, surface_flux, dg, u_lower, mortar,
+        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
+                    orientation)
+        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
+                    orientation)
+        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
                     orientation)
 
         mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations, mortar_l2, dg, cache,
-                                       mortar, fstar_upper, fstar_lower)
+                                       mortar, fstar_primary_upper, fstar_primary_lower,
+                                       fstar_secondary_upper, fstar_secondary_lower)
     end
 
     return nothing
@@ -795,7 +803,10 @@ end
                                                 mesh::ParallelTreeMesh{2}, equations,
                                                 mortar_l2::LobattoLegendreMortarL2,
                                                 dg::DGSEM, cache,
-                                                mortar, fstar_upper, fstar_lower)
+                                                mortar, fstar_primary_upper,
+                                                fstar_primary_lower,
+                                                fstar_secondary_upper,
+                                                fstar_secondary_lower)
     local_neighbor_ids = cache.mpi_mortars.local_neighbor_ids[mortar]
     local_neighbor_positions = cache.mpi_mortars.local_neighbor_positions[mortar]
 
@@ -821,9 +832,9 @@ end
             end
 
             if position == 1
-                surface_flux_values[:, :, direction, element] .= fstar_lower
+                surface_flux_values[:, :, direction, element] .= fstar_primary_lower
             elseif position == 2
-                surface_flux_values[:, :, direction, element] .= fstar_upper
+                surface_flux_values[:, :, direction, element] .= fstar_primary_upper
             end
         else # position == 3 -> current element is large
             # Project small fluxes to large element
@@ -846,8 +857,8 @@ end
             end
 
             multiply_dimensionwise!(view(surface_flux_values, :, :, direction, element),
-                                    mortar_l2.reverse_upper, fstar_upper,
-                                    mortar_l2.reverse_lower, fstar_lower)
+                                    mortar_l2.reverse_upper, fstar_secondary_upper,
+                                    mortar_l2.reverse_lower, fstar_secondary_lower)
         end
     end
 

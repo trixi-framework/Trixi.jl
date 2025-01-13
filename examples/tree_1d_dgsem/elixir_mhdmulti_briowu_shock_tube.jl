@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -19,28 +18,27 @@ MHD extension of the Sod shock tube. Taken from Section V of the article
 function initial_condition_briowu_shock_tube(x, t,
                                              equations::IdealGlmMhdMulticomponentEquations1D)
     # domain must be set to [0, 1], γ = 2, final time = 0.12
-    if x[1] < 0.5
-        rho = 1.0
-        prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
-                                                                    (1 -
-                                                                     2^ncomponents(equations)) *
-                                                                    rho
+    RealT = eltype(x)
+    if x[1] < 0.5f0
+        rho = one(RealT)
+        prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
+                                                                    rho / (1 -
+                                                                     2^ncomponents(equations))
                                                                     for i in eachcomponent(equations))
     else
-        rho = 0.125
-        prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) /
-                                                                    (1 -
-                                                                     2^ncomponents(equations)) *
-                                                                    rho
+        rho = RealT(0.125)
+        prim_rho = SVector{ncomponents(equations), real(equations)}(2^(i - 1) * (1 - 2) *
+                                                                    rho / (1 -
+                                                                     2^ncomponents(equations))
                                                                     for i in eachcomponent(equations))
     end
-    v1 = 0.0
-    v2 = 0.0
-    v3 = 0.0
-    p = x[1] < 0.5 ? 1.0 : 0.1
-    B1 = 0.75
-    B2 = x[1] < 0.5 ? 1.0 : -1.0
-    B3 = 0.0
+    v1 = 0
+    v2 = 0
+    v3 = 0
+    p = x[1] < 0.5f0 ? one(RealT) : RealT(0.1)
+    B1 = 0.75f0
+    B2 = x[1] < 0.5f0 ? 1 : -1
+    B3 = 0
 
     prim_other = SVector(v1, v2, v3, p, B1, B2, B3)
     return prim2cons(vcat(prim_other, prim_rho), equations)

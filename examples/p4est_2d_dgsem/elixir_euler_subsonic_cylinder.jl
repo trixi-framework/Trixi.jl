@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -89,11 +88,11 @@ rho_inf = 1.4
 u_inf = 0.38
 l_inf = 1.0 # Diameter of circle
 
-drag_coefficient = AnalysisSurfaceIntegral(semi, (:x_neg,),
+drag_coefficient = AnalysisSurfaceIntegral((:x_neg,),
                                            DragCoefficientPressure(aoa, rho_inf, u_inf,
                                                                    l_inf))
 
-lift_coefficient = AnalysisSurfaceIntegral(semi, (:x_neg,),
+lift_coefficient = AnalysisSurfaceIntegral((:x_neg,),
                                            LiftCoefficientPressure(aoa, rho_inf, u_inf,
                                                                    l_inf))
 

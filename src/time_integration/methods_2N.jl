@@ -14,7 +14,10 @@ abstract type SimpleAlgorithm2N end
 The following structures and methods provide a minimal implementation of
 the low-storage explicit Runge-Kutta method of
 
-    Carpenter, Kennedy (1994) Fourth order 2N storage RK schemes, Solution 3
+- Carpenter, Kennedy (1994) 
+  Fourth-order 2N-storage Runge-Kutta schemes (Solution 3)
+  URL: https://ntrs.nasa.gov/citations/19940028444
+  File: https://ntrs.nasa.gov/api/citations/19940028444/downloads/19940028444.pdf
 
 using the same interface as OrdinaryDiffEq.jl.
 """
@@ -24,15 +27,18 @@ struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
     c::SVector{5, Float64}
 
     function CarpenterKennedy2N54()
-        a = SVector(0.0, 567301805773.0 / 1357537059087.0,
+        a = SVector(0.0,
+                    567301805773.0 / 1357537059087.0,
                     2404267990393.0 / 2016746695238.0,
-                    3550918686646.0 / 2091501179385.0, 1275806237668.0 / 842570457699.0)
+                    3550918686646.0 / 2091501179385.0,
+                    1275806237668.0 / 842570457699.0)
         b = SVector(1432997174477.0 / 9575080441755.0,
                     5161836677717.0 / 13612068292357.0,
                     1720146321549.0 / 2090206949498.0,
                     3134564353537.0 / 4481467310338.0,
                     2277821191437.0 / 14882151754819.0)
-        c = SVector(0.0, 1432997174477.0 / 9575080441755.0,
+        c = SVector(0.0,
+                    1432997174477.0 / 9575080441755.0,
                     2526269341429.0 / 6820363962896.0,
                     2006345519317.0 / 3224310063776.0,
                     2802321613138.0 / 2924317926251.0)
@@ -42,9 +48,15 @@ struct CarpenterKennedy2N54 <: SimpleAlgorithm2N
 end
 
 """
-      CarpenterKennedy2N43()
+    CarpenterKennedy2N43()
 
-Carpenter, Kennedy (1994) Third order 2N storage RK schemes with error control
+The following structures and methods provide a minimal implementation of
+the low-storage explicit Runge-Kutta method of
+
+- Carpenter, Kennedy (1994) 
+  Third-order 2N-storage Runge-Kutta schemes with error control
+  URL: https://ntrs.nasa.gov/citations/19940028444
+  File: https://ntrs.nasa.gov/api/citations/19940028444/downloads/19940028444.pdf
 """
 struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
     a::SVector{4, Float64}
@@ -189,13 +201,15 @@ function step!(integrator::SimpleIntegrator2N)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    # handle callbacks
-    if callbacks isa CallbackSet
-        foreach(callbacks.discrete_callbacks) do cb
-            if cb.condition(integrator.u, integrator.t, integrator)
-                cb.affect!(integrator)
+    @trixi_timeit timer() "Step-Callbacks" begin
+        # handle callbacks
+        if callbacks isa CallbackSet
+            foreach(callbacks.discrete_callbacks) do cb
+                if cb.condition(integrator.u, integrator.t, integrator)
+                    cb.affect!(integrator)
+                end
+                return nothing
             end
-            return nothing
         end
     end
 
