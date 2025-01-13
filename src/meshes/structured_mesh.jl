@@ -142,10 +142,7 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
     mapping_as_string = """
-        coordinates_min = $coordinates_min
-        coordinates_max = $coordinates_max
-        mapping = coordinates2mapping(coordinates_min, coordinates_max)
-        """
+        coordinates_min = $coordinates_min;coordinates_max = $coordinates_max;mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
                           mapping_as_string = mapping_as_string)
