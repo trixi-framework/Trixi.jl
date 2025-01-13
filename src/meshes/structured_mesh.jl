@@ -138,7 +138,7 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
     ndims = length(cells_per_dimension)
-    mapping_as_string = join(["[$(coordinates_min[i]),$(coordinates_max[i])]"
+    mapping_as_string = join(["[$(coordinates_min[i]), $(coordinates_max[i])]"
                               for i in 1:ndims], "x") *
                         """;mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
