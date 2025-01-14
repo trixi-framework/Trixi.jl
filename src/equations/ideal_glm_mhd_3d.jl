@@ -672,6 +672,57 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::IdealGlmMhdEquations3D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+
+    # Calculate the left/right velocities and fast magnetoacoustic wave speeds
+    if orientation == 1
+        v_ll = rho_v1_ll / rho_ll
+        v_rr = rho_v1_rr / rho_rr
+    elseif orientation == 2
+        v_ll = rho_v2_ll / rho_ll
+        v_rr = rho_v2_rr / rho_rr
+    else # orientation == 3
+        v_ll = rho_v3_ll / rho_ll
+        v_rr = rho_v3_rr / rho_rr
+    end
+    cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+    return max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
+end
+
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::IdealGlmMhdEquations3D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, _ = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, _ = u_rr
+
+    # Calculate normal velocities and fast magnetoacoustic wave speeds
+    # left
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_ll = (v1_ll * normal_direction[1]
+            + v2_ll * normal_direction[2]
+            + v3_ll * normal_direction[3])
+    cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
+    # right
+    v1_rr = rho_v1_rr / rho_rr
+    v2_rr = rho_v2_rr / rho_rr
+    v3_rr = rho_v3_rr / rho_rr
+    v_rr = (v1_rr * normal_direction[1]
+            + v2_rr * normal_direction[2]
+            + v3_rr * normal_direction[3])
+    cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
+
+    # wave speeds already scaled by norm(normal_direction) in [`calc_fast_wavespeed`](@ref)
+    return max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
+end
+
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::IdealGlmMhdEquations3D)

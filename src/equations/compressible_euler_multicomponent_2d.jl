@@ -567,6 +567,36 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::CompressibleEulerMulticomponentEquations2D)
+    rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_v2_rr, rho_e_rr = u_rr
+
+    # Get the density and gas gamma
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+    gamma_ll = totalgamma(u_ll, equations)
+    gamma_rr = totalgamma(u_rr, equations)
+
+    # Get the velocities based on direction
+    if orientation == 1
+        v_ll = rho_v1_ll / rho_ll
+        v_rr = rho_v1_rr / rho_rr
+    else # orientation == 2
+        v_ll = rho_v2_ll / rho_ll
+        v_rr = rho_v2_rr / rho_rr
+    end
+
+    # Compute the sound speeds on the left and right
+    p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * (rho_v1_ll^2 + rho_v2_ll^2) / rho_ll)
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * (rho_v1_rr^2 + rho_v2_rr^2) / rho_rr)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    λ_max = max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
+end
+
 @inline function max_abs_speeds(u,
                                 equations::CompressibleEulerMulticomponentEquations2D)
     rho_v1, rho_v2, rho_e = u

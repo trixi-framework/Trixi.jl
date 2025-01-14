@@ -140,6 +140,7 @@ end
                                      equation::LinearScalarAdvectionEquation1D)
     λ_max = abs(equation.advection_velocity[orientation])
 end
+@inline max_abs_speed = max_abs_speed_naive
 
 """
     flux_godunov(u_ll, u_rr, orientation, 

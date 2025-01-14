@@ -343,6 +343,47 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::PolytropicEulerEquations2D)
+    rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
+
+    # Get the velocity value in the appropriate direction
+    if orientation == 1
+        v_ll = v1_ll
+        v_rr = v1_rr
+    else # orientation == 2
+        v_ll = v2_ll
+        v_rr = v2_rr
+    end
+    # Calculate sound speeds (we have p = kappa * rho^gamma)
+    c_ll = sqrt(equations.gamma * equations.kappa * rho_ll^(equations.gamma - 1))
+    c_rr = sqrt(equations.gamma * equations.kappa * rho_rr^(equations.gamma - 1))
+
+    λ_max = max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
+end
+
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::PolytropicEulerEquations2D)
+    rho_ll, v1_ll, v2_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr = cons2prim(u_rr, equations)
+
+    # Calculate normal velocities and sound speed (we have p = kappa * rho^gamma)
+    # left
+    v_ll = (v1_ll * normal_direction[1] +
+            v2_ll * normal_direction[2])
+    c_ll = sqrt(equations.gamma * equations.kappa * rho_ll^(equations.gamma - 1))
+    # right
+    v_rr = (v1_rr * normal_direction[1] +
+            v2_rr * normal_direction[2])
+    c_rr = sqrt(equations.gamma * equations.kappa * rho_rr^(equations.gamma - 1))
+
+    norm_ = norm(normal_direction)
+    return max(abs(v_ll) + c_ll * norm_, abs(v_rr) + c_rr * norm_)
+end
+
 # Convert conservative variables to primitive
 @inline function cons2prim(u, equations::PolytropicEulerEquations2D)
     rho, rho_v1, rho_v2 = u

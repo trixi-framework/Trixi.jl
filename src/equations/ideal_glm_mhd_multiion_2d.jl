@@ -796,6 +796,37 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::IdealGlmMhdMultiIonEquations2D)
+    # Calculate fast magnetoacoustic wave speeds
+    # left
+    cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    # right
+    cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+    # Calculate velocities
+    v_ll = zero(eltype(u_ll))
+    v_rr = zero(eltype(u_rr))
+    if orientation == 1
+        for k in eachcomponent(equations)
+            rho, rho_v1, _ = get_component(k, u_ll, equations)
+            v_ll = max(v_ll, abs(rho_v1 / rho))
+            rho, rho_v1, _ = get_component(k, u_rr, equations)
+            v_rr = max(v_rr, abs(rho_v1 / rho))
+        end
+    else #if orientation == 2
+        for k in eachcomponent(equations)
+            rho, rho_v1, rho_v2, _ = get_component(k, u_ll, equations)
+            v_ll = max(v_ll, abs(rho_v2 / rho))
+            rho, rho_v1, rho_v2, _ = get_component(k, u_rr, equations)
+            v_rr = max(v_rr, abs(rho_v2 / rho))
+        end
+    end
+
+    λ_max = max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
+end
+
 @inline function max_abs_speeds(u, equations::IdealGlmMhdMultiIonEquations2D)
     v1 = zero(real(equations))
     v2 = zero(real(equations))

@@ -389,6 +389,27 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::IdealGlmMhdMulticomponentEquations1D)
+    rho_v1_ll, _ = u_ll
+    rho_v1_rr, _ = u_rr
+
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+
+    # Calculate velocities (ignore orientation since it is always "1" in 1D)
+    # and fast magnetoacoustic wave speeds
+    # left
+    v_ll = rho_v1_ll / rho_ll
+    cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    # right
+    v_rr = rho_v1_rr / rho_rr
+    cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+    λ_max = max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
+end
+
 @inline function max_abs_speeds(u, equations::IdealGlmMhdMulticomponentEquations1D)
     rho_v1, _ = u
 

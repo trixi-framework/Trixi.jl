@@ -120,6 +120,7 @@ end
     @unpack v_mean_global, c_mean_global = equations
     return abs(v_mean_global) + c_mean_global
 end
+@inline max_abs_speed = max_abs_speed_naive
 
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,

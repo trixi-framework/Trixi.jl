@@ -408,6 +408,29 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::CompressibleEulerMulticomponentEquations1D)
+    rho_v1_ll, rho_e_ll = u_ll
+    rho_v1_rr, rho_e_rr = u_rr
+
+    # Calculate primitive variables and speed of sound
+    rho_ll = density(u_ll, equations)
+    rho_rr = density(u_rr, equations)
+    gamma_ll = totalgamma(u_ll, equations)
+    gamma_rr = totalgamma(u_rr, equations)
+
+    v_ll = rho_v1_ll / rho_ll
+    v_rr = rho_v1_rr / rho_rr
+
+    p_ll = (gamma_ll - 1) * (rho_e_ll - 0.5f0 * rho_ll * v_ll^2)
+    p_rr = (gamma_rr - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_rr^2)
+    c_ll = sqrt(gamma_ll * p_ll / rho_ll)
+    c_rr = sqrt(gamma_rr * p_rr / rho_rr)
+
+    λ_max = max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
+end
+
 @inline function max_abs_speeds(u,
                                 equations::CompressibleEulerMulticomponentEquations1D)
     rho_v1, rho_e = u

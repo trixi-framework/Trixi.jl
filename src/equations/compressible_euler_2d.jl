@@ -1433,6 +1433,50 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::CompressibleEulerEquations2D)
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    # Get the velocity value in the appropriate direction
+    if orientation == 1
+        v_ll = v1_ll
+        v_rr = v1_rr
+    else # orientation == 2
+        v_ll = v2_ll
+        v_rr = v2_rr
+    end
+    # Calculate sound speeds
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    λ_max = max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
+end
+
+# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::CompressibleEulerEquations2D)
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    # Calculate normal velocities and sound speed
+    # left
+    v_ll = (v1_ll * normal_direction[1]
+            +
+            v2_ll * normal_direction[2])
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    # right
+    v_rr = (v1_rr * normal_direction[1]
+            +
+            v2_rr * normal_direction[2])
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    norm_ = norm(normal_direction)
+    return max(abs(v_ll) + c_ll * norm_,
+               abs(v_rr) + c_rr * norm_)
+end
+
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations2D)
