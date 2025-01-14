@@ -67,7 +67,6 @@ function StructuredMesh(cells_per_dimension, mapping;
         # Default case if periodicity is an iterable
         periodicity = Tuple(periodicity)
     end
-
     return StructuredMesh{NDIMS, RealT}(Tuple(cells_per_dimension), mapping,
                                         mapping_as_string, periodicity, "",
                                         unsaved_changes)
@@ -355,7 +354,11 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
                        string(real(mesh)) * "}")
         summary_line(io, "size", size(mesh))
         # Print code lines of mapping_as_string
-        mapping_lines = split(mesh.mapping_as_string, ";")
+        if occursin("\n", mesh.mapping_as_string)
+            mapping_lines = replace(mesh.mapping_as_string, '\n' => ';')
+        end
+
+        mapping_lines = split(mapping_lines, ";")
 
         if occursin("coordinates", mesh.mapping_as_string)
             summary_line(io, "mapping", "linear")
