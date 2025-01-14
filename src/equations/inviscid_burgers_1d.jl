@@ -83,7 +83,7 @@ end
 
     λ_max = max(abs(u_L), abs(u_R))
 end
-@inline max_abs_speed = max_abs_speed_naive
+
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,

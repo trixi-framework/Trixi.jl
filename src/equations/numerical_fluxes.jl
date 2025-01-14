@@ -180,7 +180,7 @@ function Base.show(io::IO, d::DissipationLocalLaxFriedrichs)
 end
 
 """
-    max_abs_speed_naive(u_ll, u_rr, orientation::Integer,   equations)
+    max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations)
     max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
 Simple and fast estimate of the maximal wave speed of the Riemann problem with left and right states
@@ -196,6 +196,20 @@ function max_abs_speed_naive end
                                      equations::AbstractEquations{1})
     return abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)
 end
+
+"""
+    max_abs_speed(u_ll, u_rr, orientation::Integer, equations)
+    max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector, equations)
+
+Simple and fast estimate of the maximal wave speed of the Riemann problem with left and right states
+`u_ll, u_rr`, based only on the local wave speeds associated to `u_ll` and `u_rr`.
+Less diffusive, i.e., overestimating than [`max_abs_speed_naive`](@ref).
+
+For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
+`abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
+"""
+function max_abs_speed end
+@inline max_abs_speed = max_abs_speed_naive
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
                                                            DissipationLocalLaxFriedrichs{MaxAbsSpeed}}

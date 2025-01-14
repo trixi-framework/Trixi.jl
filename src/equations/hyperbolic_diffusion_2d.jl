@@ -173,7 +173,7 @@ end
                                      equations::HyperbolicDiffusionEquations2D)
     sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
 end
-@inline max_abs_speed = max_abs_speed_naive
+
 
 """
     flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 

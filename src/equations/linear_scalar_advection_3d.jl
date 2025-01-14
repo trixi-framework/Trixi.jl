@@ -157,7 +157,7 @@ end
     a = dot(equation.advection_velocity, normal_direction) # velocity in normal direction
     return abs(a)
 end
-@inline max_abs_speed = max_abs_speed_naive
+
 
 """
     flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 

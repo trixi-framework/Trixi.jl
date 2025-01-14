@@ -168,7 +168,7 @@ end
                     normal_direction[2] * v_mean_global[2]
     return abs(v_mean_normal) + c_mean_global * norm(normal_direction)
 end
-@inline max_abs_speed = max_abs_speed_naive
+
 
 @doc raw"""
     flux_godunov(u_ll, u_rr, orientation_or_normal_direction,

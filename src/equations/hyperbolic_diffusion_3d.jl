@@ -187,7 +187,7 @@ end
                                      equations::HyperbolicDiffusionEquations3D)
     λ_max = sqrt(equations.nu * equations.inv_Tr)
 end
-@inline max_abs_speed = max_abs_speed_naive
+
 
 """
     flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
