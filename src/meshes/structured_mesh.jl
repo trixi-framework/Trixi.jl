@@ -137,10 +137,8 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
     RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
-    ndims = length(cells_per_dimension)
-    mapping_as_string = join(["[$(coordinates_min[i]), $(coordinates_max[i])]"
-                              for i in 1:ndims], "x") *
-                        """;mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
+
+    mapping_as_string = """coordinates_min = $coordinates_min;coordinates_max = $coordinates_max;mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
                           mapping_as_string = mapping_as_string)
@@ -361,8 +359,12 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
 
         if occursin("coordinates", mesh.mapping_as_string)
             summary_line(io, "mapping", "linear")
-
-            summary_line(increment_indent(io), "domain", strip(mapping_lines[1]))
+            coordinates_min = eval(Meta.parse(split(mapping_lines[1], "= ")[2]))
+            coordinates_max = eval(Meta.parse(split(mapping_lines[2], "= ")[2]))
+            dims = length(coordinates_max)
+            summary_line(increment_indent(io), "domain",
+                         join(["[$(coordinates_min[i]), $(coordinates_max[i])]"
+                               for i in 1:dims], "x"))
         else
             summary_line(io, "mapping", "")
             for i in eachindex(mapping_lines)
