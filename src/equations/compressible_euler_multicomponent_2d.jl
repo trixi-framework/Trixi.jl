@@ -567,7 +567,7 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
-# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::CompressibleEulerMulticomponentEquations2D)
     rho_v1_ll, rho_v2_ll, rho_e_ll = u_ll

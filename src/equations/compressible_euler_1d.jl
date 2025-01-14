@@ -720,7 +720,7 @@ end
     return λ_min, λ_max
 end
 
-# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::CompressibleEulerEquations1D)
     rho_ll, rho_v1_ll, rho_e_ll = u_ll

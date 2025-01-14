@@ -780,7 +780,7 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
-# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::IdealGlmMhdEquations2D)
     rho_ll, rho_v1_ll, rho_v2_ll, _ = u_ll
@@ -800,7 +800,7 @@ end
     return max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
 end
 
-# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
                                equations::IdealGlmMhdEquations2D)
     # return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)

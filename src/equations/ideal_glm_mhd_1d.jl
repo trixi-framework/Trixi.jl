@@ -426,7 +426,7 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
-# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::IdealGlmMhdEquations1D)
     rho_ll, rho_v1_ll, _ = u_ll

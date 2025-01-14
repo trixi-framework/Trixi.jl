@@ -659,7 +659,7 @@ end
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
 end
 
-# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::ShallowWaterEquations2D)
     # Get the velocity quantities in the appropriate direction
@@ -680,7 +680,7 @@ end
     return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
 end
 
-# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
                                equations::ShallowWaterEquations2D)
     # Extract and compute the velocities in the normal direction

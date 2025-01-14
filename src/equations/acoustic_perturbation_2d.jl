@@ -298,7 +298,7 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
 end
 
-# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
                                equations::AcousticPerturbationEquations2D)
     # Calculate v = v_prime + v_mean
@@ -359,7 +359,7 @@ end
             max(c_mean_ll, c_mean_rr) * norm(normal_direction)
 end
 
-# Less "cautios", i.e., less overestimating λ_max compared to `max_abs_speed_naive`
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
                                equations::AcousticPerturbationEquations2D)
     # Calculate v = v_prime + v_mean
