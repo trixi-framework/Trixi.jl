@@ -172,7 +172,6 @@ end
     λ_max = sqrt(equations.nu * equations.inv_Tr)
 end
 
-
 @inline have_constant_speed(::HyperbolicDiffusionEquations1D) = True()
 
 @inline function max_abs_speeds(eq::HyperbolicDiffusionEquations1D)

@@ -84,7 +84,6 @@ end
     λ_max = max(abs(u_L), abs(u_R))
 end
 
-
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::InviscidBurgersEquation1D)

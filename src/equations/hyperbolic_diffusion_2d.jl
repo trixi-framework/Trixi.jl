@@ -174,7 +174,6 @@ end
     sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
 end
 
-
 """
     flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
                  equations::HyperbolicDiffusionEquations2D)

@@ -169,7 +169,6 @@ end
     return abs(v_mean_normal) + c_mean_global * norm(normal_direction)
 end
 
-
 @doc raw"""
     flux_godunov(u_ll, u_rr, orientation_or_normal_direction,
                  equations::LinearizedEulerEquations2D)

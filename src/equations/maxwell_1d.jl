@@ -79,7 +79,6 @@ end
     λ_max = equations.speed_of_light
 end
 
-
 @inline have_constant_speed(::MaxwellEquations1D) = True()
 
 @inline function max_abs_speeds(equations::MaxwellEquations1D)

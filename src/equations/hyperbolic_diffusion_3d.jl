@@ -188,7 +188,6 @@ end
     λ_max = sqrt(equations.nu * equations.inv_Tr)
 end
 
-
 """
     flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
                  equations::HyperbolicDiffusionEquations3D)

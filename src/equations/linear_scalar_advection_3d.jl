@@ -158,7 +158,6 @@ end
     return abs(a)
 end
 
-
 """
     flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
                  equations::LinearScalarAdvectionEquation3D)
