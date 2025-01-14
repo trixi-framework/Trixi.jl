@@ -208,11 +208,11 @@ Less diffusive, i.e., overestimating than [`max_abs_speed_naive`](@ref).
 For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
 """
-@inline function max_abs_speed_naive(u_ll, u_rr,
-                                             orientation_or_normal_direction,
-                                             equations::AbstractEquations)
+@inline function max_abs_speed(u_ll, u_rr,
+                               orientation_or_normal_direction,
+                               equations::AbstractEquations)
     # Use naive version as "backup" if no specialized version for the equations at hand is available                                             
-    max_abs_speed_naive(u_ll, u_rr, 1, equations)
+    max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
