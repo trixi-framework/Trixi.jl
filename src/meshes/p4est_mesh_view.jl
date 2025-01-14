@@ -129,8 +129,7 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
         attributes(file)["p4est_file"] = p4est_filename
         attributes(file)["cell_ids"] = mesh.cell_ids
 
-        file["tree_node_coordinates"] = mesh.parent.tree_node_coordinates[..,
-                                                                          mesh.cell_ids]
+        file["tree_node_coordinates"] = mesh.parent.tree_node_coordinates
         file["nodes"] = Vector(mesh.parent.nodes) # the mesh uses `SVector`s for the nodes
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
@@ -161,12 +160,14 @@ function calc_node_coordinates!(node_coordinates,
 
     trees = unsafe_wrap_sc(p4est_tree_t, mesh.parent.p4est.trees)
 
-    for tree in eachindex(trees)
-        offset = trees[tree].quadrants_offset
+    for tree_view in eachindex(mesh.cell_ids)
+        tree = mesh.cell_ids[tree_view]
+        offset = trees[tree_view].quadrants_offset
         quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree].quadrants)
 
         for i in eachindex(quadrants)
             element = offset + i
+
             quad = quadrants[i]
 
             quad_length = p4est_quadrant_len(quad.level) / p4est_root_len
