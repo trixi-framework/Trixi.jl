@@ -1695,9 +1695,8 @@ end
         end
     end
 
-    gammas = [1.4, 5 / 3, 7 / 5]
     @timed_testset "CompressibleEulerEquations1D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = CompressibleEulerEquations1D(gamma)
 
             p_rho_ratio = 42.0
@@ -1715,7 +1714,7 @@ end
     end
 
     @timed_testset "CompressibleEulerEquations2D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = CompressibleEulerEquations2D(gamma)
 
             p_rho_ratio = 27.0
@@ -1748,7 +1747,7 @@ end
     end
 
     @timed_testset "CompressibleEulerEquations3D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = CompressibleEulerEquations3D(gamma)
 
             p_rho_ratio = 11.0
@@ -1785,7 +1784,7 @@ end
     end
 
     @timed_testset "CompressibleEulerMulticomponentEquations1D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = CompressibleEulerMulticomponentEquations1D(gammas = (gamma,
                                                                              gamma),
                                                                    gas_constants = (0.5,
@@ -1809,7 +1808,7 @@ end
     end
 
     @timed_testset "CompressibleEulerMulticomponentEquations2D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = CompressibleEulerMulticomponentEquations2D(gammas = (gamma,
                                                                              gamma),
                                                                    gas_constants = (0.5,
@@ -1836,7 +1835,7 @@ end
     end
 
     @timed_testset "CompressibleEulerEquationsQuasi1D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = CompressibleEulerEquationsQuasi1D(gamma)
 
             p_rho_ratio = 11.0
@@ -1857,7 +1856,7 @@ end
     end
 
     @timed_testset "IdealGlmMhdEquations1D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = IdealGlmMhdEquations1D(gamma)
 
             rho = 42.0
@@ -1881,7 +1880,7 @@ end
     end
 
     @timed_testset "IdealGlmMhdEquations2D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = IdealGlmMhdEquations2D(gamma)
 
             rho = 42.0
@@ -1918,7 +1917,7 @@ end
     end
 
     @timed_testset "IdealGlmMhdEquations3D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = IdealGlmMhdEquations3D(gamma)
 
             rho = 42.0
@@ -1956,7 +1955,7 @@ end
     end
 
     @timed_testset "IdealGlmMhdMulticomponentEquations1D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = IdealGlmMhdMulticomponentEquations1D(gammas = (gamma,
                                                                        gamma),
                                                              gas_constants = (0.5,
@@ -1983,7 +1982,7 @@ end
     end
 
     @timed_testset "IdealGlmMhdMulticomponentEquations2D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = IdealGlmMhdMulticomponentEquations2D(gammas = (gamma,
                                                                        gamma),
                                                              gas_constants = (0.5,
@@ -2047,7 +2046,7 @@ end
     end
 
     @timed_testset "PolytropicEulerEquations2D" begin
-        for gamma in gammas
+        for gamma in [1.4, 5 / 3, 7 / 5]
             equations = PolytropicEulerEquations2D(gamma, gamma * 0.72)
 
             rho_ll_rr = SVector(2.0, 2.0)
