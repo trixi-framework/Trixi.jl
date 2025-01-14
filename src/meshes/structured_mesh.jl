@@ -356,6 +356,8 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
         # Print code lines of mapping_as_string
         if occursin("\n", mesh.mapping_as_string)
             mapping_lines = replace(mesh.mapping_as_string, '\n' => ';')
+        else
+            mapping_lines = mesh.mapping_as_string
         end
 
         mapping_lines = split(mapping_lines, ";")
