@@ -209,6 +209,7 @@ For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_na
 `abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
 """
 function max_abs_speed end
+# Use naive version as "backup" if no specialized version for the equations at hand is available
 @inline max_abs_speed = max_abs_speed_naive
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
