@@ -50,37 +50,33 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_tree_1d.jl")
         include("test_tree_2d_part1.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part2"
         include("test_tree_2d_part2.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part3"
         include("test_tree_2d_part3.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part4"
         include("test_tree_3d_part1.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part5"
         include("test_tree_3d_part2.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "tree_part6"
         include("test_tree_3d_part3.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "structured"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "structured_part1"
         include("test_structured_1d.jl")
-        include("test_structured_2d.jl")
         include("test_structured_3d.jl")
+    end
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "structured_part2"
+        include("test_structured_2d.jl")
     end
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "p4est_part1"
         include("test_p4est_2d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "p4est_part2"
         include("test_p4est_3d.jl")
     end
@@ -88,7 +84,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "t8code_part1"
         include("test_t8code_2d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "t8code_part2"
         include("test_t8code_3d.jl")
     end
@@ -101,7 +96,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_dgmulti_1d.jl")
         include("test_dgmulti_3d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "dgmulti_part2"
         include("test_dgmulti_2d.jl")
     end
@@ -109,11 +103,9 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part1"
         include("test_parabolic_1d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part2"
         include("test_parabolic_2d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part3"
         include("test_parabolic_3d.jl")
     end
@@ -123,7 +115,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_type.jl")
         include("test_visualization.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "misc_part2"
         include("test_special_elixirs.jl")
         include("test_aqua.jl")
@@ -132,7 +123,6 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part1"
         include("test_performance_specializations_2d.jl")
     end
-
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "performance_specializations_part2"
         include("test_performance_specializations_3d.jl")
     end
