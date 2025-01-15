@@ -13,6 +13,7 @@ for human readability.
   and [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) ([#2008])
 - `LobattoLegendreBasis` and related datastructures made fully floating-type general,
   enabling calculations with higher than double (`Float64`) precision ([#2128])
+- In 2D, quadratic elements, i.e., 8-node (quadratic) quadrilaterals are now supported in standard Abaqus `inp` format ([#2217])
 
 #### Changed
 

@@ -183,7 +183,8 @@ function calc_node_coordinates!(node_coordinates,
 
             multiply_dimensionwise!(view(node_coordinates, :, :, :, element),
                                     matrix1, matrix2,
-                                    view(mesh.parent.tree_node_coordinates, :, :, :, tree),
+                                    view(mesh.parent.tree_node_coordinates, :, :, :,
+                                         tree),
                                     tmp1)
         end
     end
