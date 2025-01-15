@@ -133,7 +133,8 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
         file["nodes"] = Vector(mesh.parent.nodes) # the mesh uses `SVector`s for the nodes
         # to increase the runtime performance
         # but HDF5 can only handle plain arrays
-        file["boundary_names"] = mesh.parent.boundary_names[.., mesh.cell_ids] .|> String
+        file["boundary_names"] = mesh.parent.boundary_names[.., mesh.cell_ids] .|>
+                                 String
     end
 
     return filename
