@@ -53,8 +53,10 @@ jobs:
           # - p4est_part1
           # - p4est_part2
           # - t8code_part1
+          # - t8code_part2
           # - unstructured
-          # - dgmulti
+          # - dgmulti_part1
+          # - dgmulti_part2
           # - parabolic_part1
           # - parabolic_part2
           # - parabolic_part3

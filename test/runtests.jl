@@ -97,10 +97,13 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_unstructured_2d.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "dgmulti"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "dgmulti_part1"
         include("test_dgmulti_1d.jl")
-        include("test_dgmulti_2d.jl")
         include("test_dgmulti_3d.jl")
+    end
+
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "dgmulti_part2"
+        include("test_dgmulti_2d.jl")
     end
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part1"
