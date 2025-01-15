@@ -27,19 +27,27 @@ function undo_normalization!(gamma_opt, num_stage_evals,
     end
 end
 
+@inline function polynomial_exponential_terms!(pnoms, normalized_powered_eigvals_scaled,
+                                               consistency_order)
+    # Initialize with zero'th order (z^0) coefficient
+    pnoms .= 1
+
+    # First `consistency_order` terms of the exponential
+    for k in 1:consistency_order
+        pnoms .+= view(normalized_powered_eigvals_scaled, :, k)
+    end
+
+    return nothing
+end
+
 # Compute stability polynomials for paired explicit Runge-Kutta up to specified consistency
 # order, including contributions from free coefficients for higher orders, and
 # return the maximum absolute value
 function stability_polynomials!(pnoms, num_stage_evals,
                                 normalized_powered_eigvals_scaled,
                                 gamma, consistency_order)
-    # Initialize with zero'th order (z^0) coefficient
-    pnoms .= 1
-
-    # First `consistency_order` terms of the exponential
-    for k in 1:consistency_order
-        pnoms += view(normalized_powered_eigvals_scaled, :, k)
-    end
+    polynomial_exponential_terms!(pnoms, normalized_powered_eigvals_scaled,
+                                  consistency_order)
 
     # Contribution from free coefficients
     for k in (consistency_order + 1):num_stage_evals
@@ -64,13 +72,7 @@ function stability_polynomials_PERK4!(pnoms, num_stage_evals,
     k1 = 0.001055026310046423 / cS3
     k2 = 0.03726406530405851 / cS3
 
-    # Initialize with zero'th order (z^0) coefficient
-    pnoms .= 1
-
-    # First `consistency_order` = 4 terms of the exponential
-    for k in 1:4
-        pnoms += view(normalized_powered_eigvals_scaled, :, k)
-    end
+    polynomial_exponential_terms!(pnoms, normalized_powered_eigvals_scaled, 4)
 
     # "Fixed" term due to choice of the PERK4 Butcher tableau
     # Required to un-do the normalization of the eigenvalues here
@@ -216,13 +218,13 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
 
     if num_stage_evals - num_reduced_unknown > 0
         gamma_opt = evaluate(gamma)
+
+        # Catch case with only one optimization variable
+        if isa(gamma_opt, Number)
+            gamma_opt = [gamma_opt]
+        end
     else
         gamma_opt = nothing # If there is no variable to optimize, return gamma_opt as nothing.
-    end
-
-    # Catch case with only one optimization variable
-    if isa(gamma_opt, Number)
-        gamma_opt = [gamma_opt]
     end
 
     undo_normalization!(gamma_opt, num_stage_evals,
