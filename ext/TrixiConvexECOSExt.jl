@@ -214,7 +214,7 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         println("Concluded stability polynomial optimization \n")
     end
 
-    if num_stage_evals - consistency_order > 0
+    if num_stage_evals - num_reduced_unknown > 0
         gamma_opt = evaluate(gamma)
     else
         gamma_opt = nothing # If there is no variable to optimize, return gamma_opt as nothing.
