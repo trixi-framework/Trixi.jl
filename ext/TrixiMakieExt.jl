@@ -340,7 +340,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
 
     pd = pds.plot_data
     solution_z = vec(StructArrays.component(pd.data, pds.variable_id))
-    Makie.mesh!(myplot, plotting_mesh, color = solution_z, shading = NoShading,
+    Makie.mesh!(myplot, plotting_mesh, color = solution_z, shading = Makie.NoShading,
                 colormap = myplot[:colormap])
     myplot.colorrange = extrema(solution_z)
 
