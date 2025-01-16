@@ -6,15 +6,15 @@
 #! format: noindent
 
 mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataCreator,
-                                     PlotCreator}
+                                     PlotCreator, Figure, Axis}
     interval::Int
     solution_variables::SolutionVariables
     variable_names::VariableNames
     show_mesh::Bool
     plot_data_creator::PlotDataCreator
     plot_creator::PlotCreator
-    figure::Any
-    axis::Any
+    figure::Figure
+    axis::Axis
     plot_arguments::Dict{Symbol, Any}
 end
 
