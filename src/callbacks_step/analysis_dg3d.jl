@@ -218,7 +218,7 @@ function integrate_via_indices(func::Func, u,
     integral = zero(func(u, 1, 1, 1, 1, equations, dg, args...))
 
     # Use quadrature to numerically integrate over entire domain
-    for element in eachelement(dg, cache)
+    @batch reduction=(+, integral) for element in eachelement(dg, cache)
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             integral += volume_jacobian_ * weights[i] * weights[j] * weights[k] *
@@ -246,7 +246,8 @@ function integrate_via_indices(func::Func, u,
     total_volume = zero(real(mesh))
 
     # Use quadrature to numerically integrate over entire domain
-    for element in eachelement(dg, cache)
+    @batch reduction=((+, integral), (+, total_volume)) for element in eachelement(dg,
+                                                                                   cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             volume_jacobian = abs(inv(cache.elements.inverse_jacobian[i, j, k, element]))
             integral += volume_jacobian * weights[i] * weights[j] * weights[k] *
@@ -315,9 +316,13 @@ function analyze(::Val{:l2_divb}, du, u, t,
                                                          dg, cache, derivative_matrix
         divb = zero(eltype(u))
         for l in eachnode(dg)
-            B_ljk = magnetic_field(u[:, l, j, k, element], equations)
-            B_ilk = magnetic_field(u[:, i, l, k, element], equations)
-            B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+            u_ljk = get_node_vars(u, equations, dg, l, j, k, element)
+            u_ilk = get_node_vars(u, equations, dg, i, l, k, element)
+            u_ijl = get_node_vars(u, equations, dg, i, j, l, element)
+
+            B_ljk = magnetic_field(u_ljk, equations)
+            B_ilk = magnetic_field(u_ilk, equations)
+            B_ijl = magnetic_field(u_ijl, equations)
 
             divb += (derivative_matrix[i, l] * B_ljk[1] +
                      derivative_matrix[j, l] * B_ilk[2] +
@@ -346,9 +351,13 @@ function analyze(::Val{:l2_divb}, du, u, t,
                                                     element)
         # Compute the transformed divergence
         for l in eachnode(dg)
-            B_ljk = magnetic_field(u[:, l, j, k, element], equations)
-            B_ilk = magnetic_field(u[:, i, l, k, element], equations)
-            B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+            u_ljk = get_node_vars(u, equations, dg, l, j, k, element)
+            u_ilk = get_node_vars(u, equations, dg, i, l, k, element)
+            u_ijl = get_node_vars(u, equations, dg, i, j, l, element)
+
+            B_ljk = magnetic_field(u_ljk, equations)
+            B_ilk = magnetic_field(u_ilk, equations)
+            B_ijl = magnetic_field(u_ijl, equations)
 
             divb += (derivative_matrix[i, l] *
                      (Ja11 * B_ljk[1] + Ja12 * B_ljk[2] + Ja13 * B_ljk[3]) +
@@ -369,13 +378,17 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
     # integrate over all elements to get the divergence-free condition errors
     linf_divb = zero(eltype(u))
-    for element in eachelement(dg, cache)
+    @batch reduction=(max, linf_divb) for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             for l in eachnode(dg)
-                B_ljk = magnetic_field(u[:, l, j, k, element], equations)
-                B_ilk = magnetic_field(u[:, i, l, k, element], equations)
-                B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+                u_ljk = get_node_vars(u, equations, dg, l, j, k, element)
+                u_ilk = get_node_vars(u, equations, dg, i, l, k, element)
+                u_ijl = get_node_vars(u, equations, dg, i, j, l, element)
+
+                B_ljk = magnetic_field(u_ljk, equations)
+                B_ilk = magnetic_field(u_ilk, equations)
+                B_ijl = magnetic_field(u_ijl, equations)
 
                 divb += (derivative_matrix[i, l] * B_ljk[1] +
                          derivative_matrix[j, l] * B_ilk[2] +
@@ -403,7 +416,7 @@ function analyze(::Val{:linf_divb}, du, u, t,
 
     # integrate over all elements to get the divergence-free condition errors
     linf_divb = zero(eltype(u))
-    for element in eachelement(dg, cache)
+    @batch reduction=(max, linf_divb) for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             divb = zero(eltype(u))
             # Get the contravariant vectors Ja^1, Ja^2, and Ja^3
@@ -415,9 +428,13 @@ function analyze(::Val{:linf_divb}, du, u, t,
                                                         k, element)
             # Compute the transformed divergence
             for l in eachnode(dg)
-                B_ljk = magnetic_field(u[:, l, j, k, element], equations)
-                B_ilk = magnetic_field(u[:, i, l, k, element], equations)
-                B_ijl = magnetic_field(u[:, i, j, l, element], equations)
+                u_ljk = get_node_vars(u, equations, dg, l, j, k, element)
+                u_ilk = get_node_vars(u, equations, dg, i, l, k, element)
+                u_ijl = get_node_vars(u, equations, dg, i, j, l, element)
+
+                B_ljk = magnetic_field(u_ljk, equations)
+                B_ilk = magnetic_field(u_ilk, equations)
+                B_ijl = magnetic_field(u_ijl, equations)
 
                 divb += (derivative_matrix[i, l] * (Ja11 * B_ljk[1] +
                           Ja12 * B_ljk[2] + Ja13 * B_ljk[3]) +

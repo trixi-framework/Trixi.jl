@@ -82,11 +82,7 @@ jobs:
           - mpi
           - threaded
         include:
-          - version: '1.8'
-            os: ubuntu-latest
-            arch: x64
-            trixi_test: threaded_legacy
-          - version: '1.9'
+          - version: '1.11'
             os: ubuntu-latest
             arch: x64
             trixi_test: threaded_legacy
