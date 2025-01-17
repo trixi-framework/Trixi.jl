@@ -40,7 +40,7 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     nodes, weights = gauss_lobatto_nodes_weights(nnodes_, RealT)
     inverse_weights = inv.(weights)
 
-    _, inverse_vandermonde_legendre = vandermonde_legendre(nodes_, RealT)
+    _, inverse_vandermonde_legendre = vandermonde_legendre(nodes, RealT)
 
     boundary_interpolation = zeros(RealT, nnodes_, 2)
     boundary_interpolation[:, 1] = calc_lhat(-one(RealT), nodes, weights)
