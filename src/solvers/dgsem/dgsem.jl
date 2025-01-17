@@ -22,7 +22,7 @@ Create a discontinuous Galerkin spectral element method (DGSEM) using a
 """
 const DGSEM = DG{Basis} where {Basis <: LobattoLegendreBasis}
 
-# This public API is no longer documented, and we recommend avoiding its direct use.
+# This API is no longer documented, and we recommend avoiding its public use.
 function DGSEM(basis::LobattoLegendreBasis,
                surface_flux = flux_central,
                volume_integral = VolumeIntegralWeakForm(),
@@ -32,7 +32,7 @@ function DGSEM(basis::LobattoLegendreBasis,
               typeof(volume_integral)}(basis, mortar, surface_integral, volume_integral)
 end
 
-# This public API is no longer documented, and we recommend avoiding its direct use.
+# This API is no longer documented, and we recommend avoiding its public use.
 function DGSEM(basis::LobattoLegendreBasis,
                surface_integral::AbstractSurfaceIntegral,
                volume_integral = VolumeIntegralWeakForm(),
@@ -41,7 +41,7 @@ function DGSEM(basis::LobattoLegendreBasis,
               typeof(volume_integral)}(basis, mortar, surface_integral, volume_integral)
 end
 
-# This public API is no longer documented, and we recommend avoiding its direct use.
+# This API is no longer documented, and we recommend avoiding its public use.
 function DGSEM(RealT, polydeg::Integer,
                surface_flux = flux_central,
                volume_integral = VolumeIntegralWeakForm(),
@@ -51,6 +51,7 @@ function DGSEM(RealT, polydeg::Integer,
     return DGSEM(basis, surface_flux, volume_integral, mortar)
 end
 
+# This API is no longer documented, and we recommend avoiding its public use.
 function DGSEM(polydeg, surface_flux = flux_central,
                volume_integral = VolumeIntegralWeakForm())
     DGSEM(Float64, polydeg, surface_flux, volume_integral)
