@@ -58,7 +58,10 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
 
-    # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
+    # We keep the matrices above stored using the standard `Matrix` type 
+    # since this is usually as fast as `SMatrix`
+    # (when using `let` in the volume integral/`@threaded`)
+    # and reduces latency
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
