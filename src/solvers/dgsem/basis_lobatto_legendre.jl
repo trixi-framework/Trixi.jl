@@ -57,8 +57,6 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
     weights = SVector{nnodes_, RealT}(weights_)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
-    # inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre_)
-    # boundary_interpolation = convert.(RealT, boundary_interpolation_)
 
     # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
     # derivative_matrix = Matrix{RealT}(derivative_matrix_)
