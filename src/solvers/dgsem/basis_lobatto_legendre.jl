@@ -59,10 +59,6 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
 
 
     # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
-    # derivative_matrix = Matrix{RealT}(derivative_matrix_)
-    # derivative_split = Matrix{RealT}(derivative_split_)
-    # derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
-    # derivative_dhat = Matrix{RealT}(derivative_dhat_)
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
