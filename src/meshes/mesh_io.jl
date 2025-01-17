@@ -403,7 +403,6 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
                                 nodes, boundary_names, mesh_file, false, true)
     elseif mesh_type == "P4estMeshView"
-        println(mesh_file)
         p4est_filename, cell_ids, tree_node_coordinates,
         nodes, boundary_names_ = h5open(mesh_file, "r") do file
             return read(attributes(file)["p4est_file"]),
