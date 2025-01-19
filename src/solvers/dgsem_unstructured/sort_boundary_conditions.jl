@@ -114,14 +114,5 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     return boundary_types_container
 end
 
-function Adapt.adapt_structure(to, bcs::UnstructuredSortedBoundaryTypes)
-    boundary_indices = Adapt.adapt_structure(to, bcs.boundary_indices)
-    n_boundary_types = length(bcs.boundary_condition_types)
-    return UnstructuredSortedBoundaryTypes{n_boundary_types,
-                                           typeof(bcs.boundary_condition_types),
-                                           eltype(boundary_indices)}(bcs.boundary_condition_types,
-                                                                     boundary_indices,
-                                                                     bcs.boundary_dictionary,
-                                                                     bcs.boundary_symbol_indices)
-end
+Adapt.@adapt_structure(UnstructuredSortedBoundaryTypes)
 end # @muladd
