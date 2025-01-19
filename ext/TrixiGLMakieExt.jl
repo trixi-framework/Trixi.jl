@@ -37,21 +37,23 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
                              title = variable_names[v])
                 for v in 1:nvars]
         if show_mesh
-            push!(axes, GLMakie.Axis(fig[makieLayoutHelper(nvars + 1)...],
-                                     aspect = DataAspect(),title = "mesh"))
+            push!(axes,
+                  GLMakie.Axis(fig[makieLayoutHelper(nvars + 1)...],
+                               aspect = DataAspect(), title = "mesh"))
         end
-        visualization_callback.figure_axes = FigureAndAxes(fig,axes)
+        visualization_callback.figure_axes = FigureAndAxes(fig, axes)
         GLMakie.display(visualization_callback.figure_axes.fig)
     end
 
     @unpack axes = visualization_callback.figure_axes
     for v in 1:nvars
-        GLMakie.heatmap!(axes[v], plot_data.x, plot_data.y, permutedims(plot_data.data[v]))
+        GLMakie.heatmap!(axes[v], plot_data.x, plot_data.y,
+                         permutedims(plot_data.data[v]))
     end
     if show_mesh
-        empty!(axes[nvars+1])
-        lines!(axes[nvars+1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y,
-               color=:black)
+        empty!(axes[nvars + 1])
+        lines!(axes[nvars + 1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y,
+               color = :black)
     end
 end
 end # @muladd

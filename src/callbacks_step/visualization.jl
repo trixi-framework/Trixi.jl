@@ -6,7 +6,7 @@
 #! format: noindent
 
 # convenience struct for editing plots after they're created.
-struct FigureAndAxes{Figure,Axes}
+struct FigureAndAxes{Figure, Axes}
     fig::Figure
     axes::Axes
 end
@@ -106,7 +106,7 @@ function VisualizationCallback(; interval = 0,
                                                    solution_variables, variable_names,
                                                    show_mesh,
                                                    plot_data_creator, plot_creator,
-                                                   FigureAndAxes(nothing,[]),
+                                                   FigureAndAxes(nothing, []),
                                                    Dict{Symbol, Any}(plot_arguments))
 
     # Warn users if they create a visualization callback without having loaded a plotting
