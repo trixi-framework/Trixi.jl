@@ -146,6 +146,7 @@ end
 function KernelAbstractions.get_backend(elements::P4estElementContainer)
     return KernelAbstractions.get_backend(elements.node_coordinates)
 end
+# Adapt.@adapt_structure(P4estElementContainer)
 function Adapt.adapt_structure(to,
                                elements::P4estElementContainer{NDIMS, RealT, uEltype}) where {
                                                                                               NDIMS,
@@ -158,7 +159,7 @@ function Adapt.adapt_structure(to,
     _contravariant_vectors = Adapt.adapt_structure(to, elements._contravariant_vectors)
     _inverse_jacobian = Adapt.adapt_structure(to, elements._inverse_jacobian)
     _surface_flux_values = Adapt.adapt_structure(to, elements._surface_flux_values)
-    
+
     # Wrap arrays again
     node_coordinates = unsafe_wrap_or_alloc(to, _node_coordinates,
                                             size(elements.node_coordinates))
@@ -298,6 +299,7 @@ end
 function KernelAbstractions.get_backend(interfaces::P4estInterfaceContainer)
     return KernelAbstractions.get_backend(interfaces.u)
 end
+# Adapt.@adapt_structure(P4estInterfaceContainer)
 function Adapt.adapt_structure(to, interfaces::P4estInterfaceContainer)
     # Adapt underlying storage
     _u = Adapt.adapt_structure(to, interfaces._u)
@@ -305,8 +307,10 @@ function Adapt.adapt_structure(to, interfaces::P4estInterfaceContainer)
     _node_indices = Adapt.adapt_structure(to, interfaces._node_indices)
     # Wrap arrays again
     u = unsafe_wrap_or_alloc(to, _u, size(interfaces.u))
-    neighbor_ids = unsafe_wrap_or_alloc(to, _neighbor_ids, size(interfaces.neighbor_ids))
-    node_indices = unsafe_wrap_or_alloc(to, _node_indices, size(interfaces.node_indices))
+    neighbor_ids = unsafe_wrap_or_alloc(to, _neighbor_ids,
+                                        size(interfaces.neighbor_ids))
+    node_indices = unsafe_wrap_or_alloc(to, _node_indices,
+                                        size(interfaces.node_indices))
 
     NDIMS = ndims(interfaces)
     new_type_params = (NDIMS,
@@ -449,7 +453,7 @@ function Adapt.adapt_structure(to, boundaries::P4estBoundaryContainer)
     neighbor_ids = Adapt.adapt_structure(to, boundaries.neighbor_ids)
     node_indices = Adapt.adapt_structure(to, boundaries.node_indices)
     name = boundaries.name
-    
+
     NDIMS = ndims(boundaries)
     return P4estBoundaryContainer{NDIMS, eltype(boundaries), NDIMS + 1, typeof(u),
                                   typeof(neighbor_ids), typeof(node_indices),
@@ -583,6 +587,7 @@ end
 function KernelAbstractions.get_backend(mortars::P4estMortarContainer)
     return KernelAbstractions.get_backend(mortars.u)
 end
+# Adapt.@adapt_structure P4estMortarContainer
 function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
     # Adapt underlying storage
     _u = Adapt.adapt_structure(to, mortars._u)
@@ -593,7 +598,6 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
     u = unsafe_wrap_or_alloc(to, _u, size(mortars.u))
     neighbor_ids = unsafe_wrap_or_alloc(to, _neighbor_ids, size(mortars.neighbor_ids))
     node_indices = unsafe_wrap_or_alloc(to, _node_indices, size(mortars.node_indices))
-
 
     NDIMS = ndims(mortars)
     new_type_params = (NDIMS,

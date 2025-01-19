@@ -5,7 +5,8 @@
 @muladd begin
 #! format: noindent
 
-mutable struct P4estMPICache{BufferType <: DenseVector, VecInt <: DenseVector{<:Integer}}
+mutable struct P4estMPICache{BufferType <: DenseVector,
+                             VecInt <: DenseVector{<:Integer}}
     mpi_neighbor_ranks::Vector{Int}
     mpi_neighbor_interfaces::VecOfArrays{VecInt}
     mpi_neighbor_mortars::VecOfArrays{VecInt}
@@ -46,27 +47,7 @@ end
 
 @inline Base.eltype(::P4estMPICache{BufferType}) where {BufferType} = eltype(BufferType)
 
-function Adapt.adapt_structure(to, mpi_cache::P4estMPICache)
-    mpi_neighbor_ranks = mpi_cache.mpi_neighbor_ranks
-    mpi_neighbor_interfaces = Adapt.adapt_structure(to, mpi_cache.mpi_neighbor_interfaces)
-    mpi_neighbor_mortars = Adapt.adapt_structure(to, mpi_cache.mpi_neighbor_mortars)
-    mpi_send_buffers = Adapt.adapt_structure(to, mpi_cache.mpi_send_buffers)
-    mpi_recv_buffers = Adapt.adapt_structure(to, mpi_cache.mpi_recv_buffers)
-    mpi_send_requests = mpi_cache.mpi_send_requests
-    mpi_recv_requests = mpi_cache.mpi_recv_requests
-    n_elements_by_rank = mpi_cache.n_elements_by_rank
-    n_elements_global = mpi_cache.n_elements_global
-    first_element_global_id = mpi_cache.first_element_global_id
-
-    @assert eltype(mpi_send_buffers) == eltype(mpi_recv_buffers)
-    BufferType = eltype(mpi_send_buffers)
-    VecInt = eltype(mpi_neighbor_interfaces)
-    return P4estMPICache{BufferType, VecInt}(mpi_neighbor_ranks, mpi_neighbor_interfaces,
-                                             mpi_neighbor_mortars, mpi_send_buffers,
-                                             mpi_recv_buffers, mpi_send_requests,
-                                             mpi_recv_requests, n_elements_by_rank,
-                                             n_elements_global, first_element_global_id)
-end
+Adapt.@adapt_structure(P4estMPICache)
 
 ##
 # Note that the code in `start_mpi_send`/`finish_mpi_receive!` is sensitive to inference on (at least) Julia 1.10.

@@ -94,6 +94,7 @@ end
 function KernelAbstractions.get_backend(mpi_interfaces::P4estMPIInterfaceContainer)
     return KernelAbstractions.get_backend(mpi_interfaces.u)
 end
+# Adapt.@adapt_structure(P4estMPIInterfaceContainer)
 function Adapt.adapt_structure(to, mpi_interfaces::P4estMPIInterfaceContainer)
     # Adapt Vectors and underlying storage
     _u = Adapt.adapt_structure(to, mpi_interfaces._u)
@@ -201,7 +202,7 @@ function init_mpi_mortars(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh}, eq
 
     mpi_mortars = P4estMPIMortarContainer{NDIMS, uEltype, RealT, NDIMS + 1, NDIMS + 2,
                                           NDIMS + 3, typeof(u),
-                                          typeof(_u), 
+                                          typeof(_u),
                                           Array, false}(u, local_neighbor_ids,
                                                         local_neighbor_positions,
                                                         node_indices, normal_directions,
