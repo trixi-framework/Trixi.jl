@@ -447,6 +447,7 @@ end
 function KernelAbstractions.get_backend(boundaries::P4estBoundaryContainer)
     return KernelAbstractions.get_backend(boundaries.u)
 end
+#Adapt.@adapt_structure(P4estBoundaryContainer)
 function Adapt.adapt_structure(to, boundaries::P4estBoundaryContainer)
     _u = Adapt.adapt_structure(to, boundaries._u)
     u = unsafe_wrap_or_alloc(to, _u, size(boundaries.u))

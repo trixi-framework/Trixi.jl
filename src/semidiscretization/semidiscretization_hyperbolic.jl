@@ -37,12 +37,15 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
                                                  source_terms::SourceTerms,
                                                  solver::Solver,
                                                  cache::Cache,
-                                                 performance_counter::PerformanceCounter) where {Mesh, Equations,
-                                                                      InitialCondition,
-                                                                      BoundaryConditions,
-                                                                      SourceTerms,
-                                                                      Solver,
-                                                                      Cache}
+                                                 performance_counter::PerformanceCounter) where {
+                                                                                                 Mesh,
+                                                                                                 Equations,
+                                                                                                 InitialCondition,
+                                                                                                 BoundaryConditions,
+                                                                                                 SourceTerms,
+                                                                                                 Solver,
+                                                                                                 Cache
+                                                                                                 }
         new(mesh, equations, initial_condition, boundary_conditions, source_terms,
             solver, cache, performance_counter)
     end
@@ -83,7 +86,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                                                 initial_condition,
                                                                 _boundary_conditions,
                                                                 source_terms, solver,
-                                                                cache, performance_counter)
+                                                                cache,
+                                                                performance_counter)
 end
 
 # Create a new semidiscretization but change some parameters compared to the input.
@@ -105,29 +109,7 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
                                  source_terms, boundary_conditions, uEltype)
 end
 
-function Adapt.adapt_structure(to, semi::SemidiscretizationHyperbolic)
-    if !(typeof(semi.mesh) <: P4estMesh)
-        error("Adapt.adapt is only supported for semidiscretizations based on P4estMesh")
-    end
-
-    mesh = semi.mesh
-    equations = Adapt.adapt_structure(to, semi.equations)
-    initial_condition = Adapt.adapt_structure(to, semi.initial_condition)
-    boundary_conditions = Adapt.adapt_structure(to, semi.boundary_conditions)
-    source_terms = Adapt.adapt_structure(to, semi.source_terms)
-    solver = Adapt.adapt_structure(to, semi.solver)
-    cache = Adapt.adapt_structure(to, semi.cache)
-    performance_counter = semi.performance_counter
-
-    SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
-                                 typeof(initial_condition),
-                                 typeof(boundary_conditions), typeof(source_terms),
-                                 typeof(solver), typeof(cache)}(mesh, equations,
-                                                                initial_condition,
-                                                                boundary_conditions,
-                                                                source_terms, solver,
-                                                                cache, performance_counter)
-end
+Adapt.@adapt_structure(SemidiscretizationHyperbolic)
 
 # general fallback
 function digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
