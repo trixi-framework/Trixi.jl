@@ -5,7 +5,7 @@ module TrixiGLMakieExt
 using GLMakie
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, @unpack, @muladd
+using Trixi: Trixi, @unpack, @muladd, FigureAndAxes
 
 @muladd begin
 #! format: noindent
@@ -29,23 +29,30 @@ end
 function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names;
                                show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
                                time = nothing, timestep = nothing)
-    if visualization_callback.figure === nothing
+    nvars = size(variable_names)[1]
+    if visualization_callback.figure_axes.fig === nothing
         @info "Creating new GLMakie figure"
-        visualization_callback.figure = GLMakie.Figure()
-        for v in 1:size(variable_names)[1]
-            push!(visualization_callback.axis,
-                  GLMakie.Axis(visualization_callback.figure[makieLayoutHelper(v)...],
-                               title = variable_names[v]))
+        fig = GLMakie.Figure()
+        axes = [GLMakie.Axis(fig[makieLayoutHelper(v)...], aspect = DataAspect(),
+                             title = variable_names[v])
+                for v in 1:nvars]
+        if show_mesh
+            push!(axes, GLMakie.Axis(fig[makieLayoutHelper(nvars + 1)...],
+                                     aspect = DataAspect(),title = "mesh"))
         end
-        GLMakie.display(visualization_callback.figure)
+        visualization_callback.figure_axes = FigureAndAxes(fig,axes)
+        GLMakie.display(visualization_callback.figure_axes.fig)
     end
 
-    @unpack axis = visualization_callback
-    for v in 1:size(variable_names)[1]
-        GLMakie.heatmap!(axis[v], plot_data.x, plot_data.y, plot_data.data[v])
+    @unpack axes = visualization_callback.figure_axes
+    for v in 1:nvars
+        GLMakie.heatmap!(axes[v], plot_data.x, plot_data.y, permutedims(plot_data.data[v]))
     end
-
-    # TODO: handle `show_mesh`
+    if show_mesh
+        empty!(axes[nvars+1])
+        lines!(axes[nvars+1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y,
+               color=:black)
+    end
 end
 end # @muladd
 end # module TrixiGLMakieExt

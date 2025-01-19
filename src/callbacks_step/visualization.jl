@@ -5,16 +5,21 @@
 @muladd begin
 #! format: noindent
 
+# convenience struct for editing plots after they're created.
+struct FigureAndAxes{Figure,Axes}
+    fig::Figure
+    axes::Axes
+end
+
 mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataCreator,
-                                     PlotCreator, Figure, Axis}
+                                     PlotCreator}
     interval::Int
     solution_variables::SolutionVariables
     variable_names::VariableNames
     show_mesh::Bool
     plot_data_creator::PlotDataCreator
     plot_creator::PlotCreator
-    figure::Figure
-    axis::Axis
+    figure_axes::FigureAndAxes
     plot_arguments::Dict{Symbol, Any}
 end
 
@@ -101,7 +106,7 @@ function VisualizationCallback(; interval = 0,
                                                    solution_variables, variable_names,
                                                    show_mesh,
                                                    plot_data_creator, plot_creator,
-                                                   nothing, [],
+                                                   FigureAndAxes(nothing,[]),
                                                    Dict{Symbol, Any}(plot_arguments))
 
     # Warn users if they create a visualization callback without having loaded a plotting
@@ -267,7 +272,7 @@ function save_plot(visualization_callback, plot_data, variable_names;
     Plots.savefig(filename)
 end
 
-# Add definitions of Makie plot functions here such that hey can be exported from Trixi.jl
+# Add definitions of Makie plot functions here such that they can be exported from Trixi.jl
 # and extended in the TrixiGLMakieExt extension
 function show_plot_makie end
 end # @muladd

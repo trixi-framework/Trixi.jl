@@ -9,7 +9,7 @@ using Trixi
 
 # Use additional symbols that are not exported
 using Trixi: PlotData2DTriangulated, TrixiODESolution, PlotDataSeries, ScalarData, @muladd,
-             wrap_array_native, mesh_equations_solver_cache
+             wrap_array_native, mesh_equations_solver_cache, FigureAndAxes
 
 # Import functions such that they can be extended with new methods
 import Trixi: iplot, iplot!
@@ -135,12 +135,6 @@ end
 
 # We set the Makie default colormap to match Plots.jl, which uses `:inferno` by default.
 default_Makie_colormap() = :inferno
-
-# convenience struct for editing Makie plots after they're created.
-struct FigureAndAxes{Axes}
-    fig::Makie.Figure
-    axes::Axes
-end
 
 # for "quiet" return arguments to Makie.plot(::TrixiODESolution) and
 # Makie.plot(::PlotData2DTriangulated)
