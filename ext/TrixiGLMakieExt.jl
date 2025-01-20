@@ -12,11 +12,11 @@ using Trixi: Trixi, @unpack, @muladd, FigureAndAxes
 
 # converts a single int into a tuple of ints, to get a square arrangement
 # example: f(1) = (1,1) f(2) = (2,1) f(3) = (2,2) f(4) = (1,2)
-function makieLayoutHelper(n)
+function makie_layout_helper(n)
     if n == 1
         return (1, 1)
     end
-    t = makieLayoutHelper(n - 1)
+    t = makie_layout_helper(n - 1)
     if t[1] == 1
         return (t[2] + 1, 1)
     elseif t[1] > t[2]
@@ -33,12 +33,12 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
     if visualization_callback.figure_axes.fig === nothing
         @info "Creating new GLMakie figure"
         fig = GLMakie.Figure()
-        axes = [GLMakie.Axis(fig[makieLayoutHelper(v)...], aspect = DataAspect(),
+        axes = [GLMakie.Axis(fig[makie_layout_helper(v)...], aspect = DataAspect(),
                              title = variable_names[v])
                 for v in 1:nvars]
         if show_mesh
             push!(axes,
-                  GLMakie.Axis(fig[makieLayoutHelper(nvars + 1)...],
+                  GLMakie.Axis(fig[makie_layout_helper(nvars + 1)...],
                                aspect = DataAspect(), title = "mesh"))
         end
         visualization_callback.figure_axes = FigureAndAxes(fig, axes)
