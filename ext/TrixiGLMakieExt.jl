@@ -52,7 +52,7 @@ one_if_show_mesh = show_mesh ? 1 : 0
             push!(visualization_callback.axis, (ndims == 2) ? Axis(visualization_callback.figure[makieLayoutHelper(v + one_if_show_mesh)...], title = variable_names[v]) : 
             Axis3(visualization_callback.figure[makieLayoutHelper(v + one_if_show_mesh)...], aspect=:equal, title = variable_names[v]))
         end
-        Colorbar(visualization_callback.figure[makieLayoutHelper(size(variable_names)[1] + 2)...], colorrange = limits)
+        visualization_callback.colorbar = Colorbar(visualization_callback.figure[makieLayoutHelper(size(variable_names)[1] + 2)...], colorrange = limits)
         display(visualization_callback.figure)
     else
         if ndims == 2
@@ -73,6 +73,8 @@ one_if_show_mesh = show_mesh ? 1 : 0
             end
         end
     end
+
+    visualization_callback.colorbar.colorrange = limits
 
     if show_mesh 
         if ndims == 2

@@ -15,6 +15,7 @@ mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataC
     plot_creator::PlotCreator
     figure::Any
     axis::Any
+    colorbar::Any
     plot_arguments::Dict{Symbol, Any}
 end
 
@@ -101,7 +102,7 @@ function VisualizationCallback(; interval = 0,
                                                    solution_variables, variable_names,
                                                    show_mesh,
                                                    plot_data_creator, plot_creator,
-                                                   nothing, [],
+                                                   nothing, [], nothing,
                                                    Dict{Symbol, Any}(plot_arguments))
 
     # Warn users if they create a visualization callback without having loaded a plotting
