@@ -34,7 +34,7 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     # negative adjoint wrt the SBP dot product
 end
 
-function LobattoLegendreBasis(polydeg::Integer, RealT = Float64)
+function LobattoLegendreBasis(RealT, polydeg::Integer)
     nnodes_ = polydeg + 1
 
     nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
