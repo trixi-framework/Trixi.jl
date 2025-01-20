@@ -48,7 +48,7 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
     @unpack axes = visualization_callback.figure_axes
     for v in 1:nvars
         GLMakie.heatmap!(axes[v], plot_data.x, plot_data.y,
-                         permutedims(plot_data.data[v]))
+                         permutedims(plot_data.data[v]); plot_arguments...)
     end
     if show_mesh
         empty!(axes[nvars + 1])
