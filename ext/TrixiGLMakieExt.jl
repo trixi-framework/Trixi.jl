@@ -2,7 +2,7 @@
 module TrixiGLMakieExt
 
 # Required for visualization code
-using GLMakie
+using GLMakie: Figure, Axis, display, heatmap!
 
 # Use functions that are to be extended and additional symbols that are not exported
 using Trixi: Trixi, @unpack, @muladd, FigureAndAxes
