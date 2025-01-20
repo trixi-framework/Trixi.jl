@@ -423,7 +423,8 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         unsaved_changes = false
         p4est_partition_allow_for_coarsening = true
         parent_mesh = P4estMesh{ndims}(p4est, tree_node_coordinates,
-                                       nodes, boundary_names, mesh_file, unsaved_changes,
+                                       nodes, boundary_names, mesh_file,
+                                       unsaved_changes,
                                        p4est_partition_allow_for_coarsening)
 
         mesh = P4estMeshView(parent_mesh, cell_ids)
