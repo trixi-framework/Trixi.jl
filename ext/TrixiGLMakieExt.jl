@@ -31,6 +31,11 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
 show_mesh = true, plot_arguments = Dict{Symbol, Any}(),
 time = nothing, timestep = nothing)
 ndims = (visualization_callback.plot_data_creator == PlotData2D) ? 2 : 3
+maxes = [maximum(plot_data.data[v]) for v in 1:size(variable_names)[1]]
+mins = [minimum(plot_data.data[v]) for v in 1:size(variable_names)[1]]
+max = maximum(maxes)
+min = minimum(mins)
+limits = (min, max)
 one_if_show_mesh = show_mesh ? 1 : 0
     if visualization_callback.figure === nothing
         @warn "Creating new figure"
@@ -47,12 +52,13 @@ one_if_show_mesh = show_mesh ? 1 : 0
             push!(visualization_callback.axis, (ndims == 2) ? Axis(visualization_callback.figure[makieLayoutHelper(v + one_if_show_mesh)...], title = variable_names[v]) : 
             Axis3(visualization_callback.figure[makieLayoutHelper(v + one_if_show_mesh)...], aspect=:equal, title = variable_names[v]))
         end
+        Colorbar(visualization_callback.figure[makieLayoutHelper(size(variable_names)[1] + 2)...], colorrange = limits)
         display(visualization_callback.figure)
     else
         if ndims == 2
             for v in 1:size(variable_names)[1]
                 empty!(visualization_callback.axis[v + one_if_show_mesh])
-                heatmap!(visualization_callback.axis[v + one_if_show_mesh], plot_data.x, plot_data.y, plot_data.data[v], transparent = true)
+                heatmap!(visualization_callback.axis[v + one_if_show_mesh], plot_data.x, plot_data.y, plot_data.data[v], transparent = true, colorrange = limits)
                 # if show_mesh
                 #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
                 # end
@@ -60,7 +66,7 @@ one_if_show_mesh = show_mesh ? 1 : 0
         else
             for v in 1:size(variable_names)[1]
                 empty!(visualization_callback.axis[v + one_if_show_mesh])
-                volume!(visualization_callback.axis[v + one_if_show_mesh], plot_data.x, plot_data.y, plot_data.z, plot_data.data[v], transparent = true)
+                volume!(visualization_callback.axis[v + one_if_show_mesh], plot_data.x, plot_data.y, plot_data.z, plot_data.data[v], transparent = true, colorrange = limits)
                 # if show_mesh 
                 #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
                 # end
