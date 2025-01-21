@@ -431,7 +431,7 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
         @info "Creating new Makie figure"
         fig = Makie.Figure()
         axes = [Makie.Axis(fig[makie_layout_helper(v)...], aspect = Makie.DataAspect(),
-                             title = variable_names[v])
+                           title = variable_names[v])
                 for v in 1:nvars]
         if show_mesh
             push!(axes,
@@ -449,10 +449,10 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
     end
     if show_mesh
         empty!(axes[nvars + 1])
-        Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y,
+        Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_x,
+                     plot_data.mesh_vertices_y,
                      color = :black)
     end
 end
-
 end # @muladd
 end
