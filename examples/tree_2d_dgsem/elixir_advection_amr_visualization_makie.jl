@@ -49,9 +49,10 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim)
 
 # Enable in-situ visualization with a new plot generated every 100 time steps.
-# plot_creator is set to show_plot_makie in order to use the GLMakie backend.
-# Additional keyword arguments, such as colorrange, are passed to the respective plotting
-# command.
+# plot_creator is set to show_plot_makie in order to use Makie. The specific backend is set
+# via `using GLMakie` (see above).
+# Additional keyword arguments, such as colorrange, will get passed to the respective
+# plotting command.
 visualization = VisualizationCallback(interval = 100,
                                       plot_creator = Trixi.show_plot_makie,
                                       colorrange = (0.0, 1.0))

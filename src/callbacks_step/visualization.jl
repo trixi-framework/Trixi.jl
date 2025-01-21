@@ -123,8 +123,8 @@ function VisualizationCallback(; interval = 0,
     # In the future, we should update/remove this warning if other plotting packages are
     # starting to be used.
     if !(:Plots in names(@__MODULE__, all = true)) &&
-       Base.get_extension(Trixi, :TrixiGLMakieExt) === nothing
-        @warn "Neither `Plots` nor `GLMakie` loaded but required by `VisualizationCallback` to visualize results"
+       Base.get_extension(Trixi, :TrixiMakieExt) === nothing
+        @warn "Neither `Plots` nor `Makie loaded but required by `VisualizationCallback` to visualize results"
     end
 
     DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
@@ -273,6 +273,6 @@ function save_plot(visualization_callback, plot_data, variable_names;
 end
 
 # Add definitions of Makie plot functions here such that they can be exported from Trixi.jl
-# and extended in the TrixiGLMakieExt extension
+# and extended in the TrixiMakieExt extension
 function show_plot_makie end
 end # @muladd

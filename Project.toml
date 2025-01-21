@@ -55,13 +55,11 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 [weakdeps]
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
-GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 
 [extensions]
 TrixiConvexECOSExt = ["Convex", "ECOS"]
-TrixiGLMakieExt = "GLMakie"
 TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
 
@@ -79,7 +77,6 @@ ECOS = "1.1.2"
 EllipsisNotation = "1.0"
 FillArrays = "0.13.2, 1"
 ForwardDiff = "0.10.24"
-GLMakie = "0.9"
 HDF5 = "0.16.10, 0.17"
 IfElse = "0.1"
 LinearAlgebra = "1"
@@ -123,6 +120,5 @@ julia = "1.10"
 [extras]
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
-GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
