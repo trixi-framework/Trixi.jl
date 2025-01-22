@@ -24,13 +24,14 @@ c() = v_in() / Ma()
 p_over_rho() = c()^2 / gamma()
 rho_in() = p_in() / p_over_rho()
 
+# Equations for this configuration
 equations = CompressibleEulerEquations2D(gamma())
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
+# Freestream configuration
 @inline function initial_condition(x, t, equations::CompressibleEulerEquations2D)
-    # set the freestream flow parameters
     rho = rho_in()
     v1 = v_in()
     v2 = 0.0
