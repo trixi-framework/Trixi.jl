@@ -253,14 +253,12 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis;
     nnodes_ = analysis_polydeg + 1
 
     nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
-    vandermonde_ = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
+    vandermonde = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
 
-    # type conversions to get the requested real type and enable possible
-    # optimizations of runtime performance and latency
+    # Type conversions to enable possible optimizations of runtime performance 
+    # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
-
-    vandermonde = Matrix{RealT}(vandermonde_)
 
     return LobattoLegendreAnalyzer{RealT, nnodes_, typeof(nodes), typeof(vandermonde)}(nodes,
                                                                                        weights,
