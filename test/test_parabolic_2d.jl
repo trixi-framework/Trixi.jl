@@ -811,6 +811,23 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_navierstokes_vortex_street.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_vortex_street.jl"),
+                        l2=[0.005069706928574108, 0.011627798047777405, 0.009242702790766983, 0.02646416294015243],
+                        linf=[0.21307118247870704, 0.5365731661670426, 0.29315320855786453, 0.9453411793625751],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
