@@ -41,7 +41,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
     return prim2cons(prim, equations)
 end
 
-# Mesh which is refined around the cylinder and the wake region
+# Mesh which is refined around the cylinder and in the wake region
 mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/7312faba9a50ef506b13f01716b4ec26/raw/8e68f9006e634905544207ca322bc0a03a9313ad/cylinder_vortex_street.inp",
                            joinpath(@__DIR__, "cylinder_vortex_street.inp"))
 mesh = P4estMesh{2}(mesh_file)
@@ -59,18 +59,18 @@ boundary_conditions = Dict(:Bottom => bc_freestream,
 velocity_bc_free = NoSlip((x, t, equations) -> SVector(v_in(), 0))
 # Use adiabatic also on the boundaries to "copy" temperature from the domain
 heat_bc_free = Adiabatic((x, t, equations) -> 0)
-boundary_condition_free = BoundaryConditionNavierStokesWall(velocity_bc_free, heat_bc_free)
+bc_freestream_parabolic = BoundaryConditionNavierStokesWall(velocity_bc_free, heat_bc_free)
 
 velocity_bc_cylinder = NoSlip((x, t, equations) -> SVector(0, 0))
 heat_bc_cylinder = Adiabatic((x, t, equations) -> 0)
-boundary_condition_cylinder = BoundaryConditionNavierStokesWall(velocity_bc_cylinder,
-                                                                heat_bc_cylinder)
+bc_cylinder_parabolic = BoundaryConditionNavierStokesWall(velocity_bc_cylinder,
+                                                          heat_bc_cylinder)
 
-boundary_conditions_para = Dict(:Bottom => boundary_condition_free,
-                                :Circle => boundary_condition_cylinder,
-                                :Top => boundary_condition_free,
-                                :Right => boundary_condition_free,
-                                :Left => boundary_condition_free)
+boundary_conditions_para = Dict(:Bottom => bc_freestream_parabolic,
+                                :Circle => bc_cylinder_parabolic,
+                                :Top => bc_freestream_parabolic,
+                                :Right => bc_freestream_parabolic,
+                                :Left => bc_freestream_parabolic)
 # Standard DGSEM sufficient here
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
