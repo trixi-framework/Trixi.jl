@@ -531,9 +531,9 @@ end
     end
 end
 
-@trixi_testset "P4estMesh3D: elixir_navierstokes_viscous_shock_shock_dirichlet.jl" begin
+@trixi_testset "P4estMesh3D: elixir_navierstokes_viscous_shock_dirichlet_bc.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
-                                 "elixir_navierstokes_viscous_shock_shock_dirichlet.jl"),
+                                 "elixir_navierstokes_viscous_shock_dirichlet_bc.jl"),
                         l2=[
                             0.0002576235461250765,
                             0.0001433693418567713,
