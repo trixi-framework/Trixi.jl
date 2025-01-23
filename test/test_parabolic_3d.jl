@@ -530,6 +530,33 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "P4estMesh3D: elixir_navierstokes_viscous_shock_shock_dirichlet.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+                                 "elixir_navierstokes_viscous_shock_shock_dirichlet.jl"),
+                        l2=[
+                            0.0002576235461250765,
+                            0.0001433693418567713,
+                            1.5583069105517042e-16,
+                            1.257551423107977e-16,
+                            0.00017369872990116004
+                        ],
+                        linf=[
+                            0.0016731930282756213,
+                            0.0010638586882356638,
+                            2.738015991633e-15,
+                            3.281831854493919e-15,
+                            0.0011495231318404686
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
