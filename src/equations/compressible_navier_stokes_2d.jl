@@ -437,8 +437,7 @@ end
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
 end
 
-# Dirichlet Boundary Condition for P4est mesh
-
+# Dirichlet Boundary Condition for e.g. P4est mesh
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
                                                                   u_inner,
                                                                   normal::AbstractVector,

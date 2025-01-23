@@ -472,4 +472,28 @@ end
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4],
                    flux_inner[5])
 end
+
+# Dirichlet Boundary Condition for e.g. P4est mesh
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Gradient,
+                                                                  equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+    # BCs are usually specified as conservative variables so we convert them to primitive variables
+    #  because the gradients are assumed to be with respect to the primitive variables
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    return cons2prim(u_boundary, equations)
+end
+
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Divergence,
+                                                                  equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+    # for Dirichlet boundary conditions, we do not impose any conditions on the viscous fluxes
+    return flux_inner
+end
 end # @muladd
