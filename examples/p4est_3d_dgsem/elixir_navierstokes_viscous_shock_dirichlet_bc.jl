@@ -27,35 +27,31 @@ using Trixi
 #   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 
 ### Fixed parameters ###
-
-# Special value for which nonlinear solver can be omitted
-# Corresponds essentially to fixing the Mach number
-alpha = 0.5
 # We want kappa = cp * mu = mu_bar to ensure constant enthalpy
 prandtl_number() = 3 / 4
 
 ### Free choices: ###
-gamma() = 5 / 3
+const gamma = 5 / 3
 
 # In Margolin et al., the Navier-Stokes equations are given for an 
 # isotropic stress tensor τ, i.e., ∇ ⋅ τ = μ Δu 
-mu_isotropic() = 0.15
-mu_bar() = mu_isotropic() / (gamma() - 1) # Re-scaled viscosity
+const mu_isotropic = 0.15
+const mu_bar = mu_isotropic / (gamma - 1) # Re-scaled viscosity
 
-rho_0() = 1
-v() = 1 # Shock speed
+const rho_0 = 1
+const v = 1 # Shock speed
 
-domain_length = 4.0
+const domain_length = 4.0
 
 ### Derived quantities ###
 
-Ma() = 2 / sqrt(3 - gamma()) # Mach number for alpha = 0.5
-c_0() = v() / Ma() # Speed of sound ahead of the shock
+const Ma = 2 / sqrt(3 - gamma) # Mach number for alpha = 0.5 (see Margolin et al.)
+const c_0 = v / Ma # Speed of sound ahead of the shock
 
 # From constant enthalpy condition
-p_0() = c_0()^2 * rho_0() / gamma()
+const p_0 = c_0^2 * rho_0 / gamma
 
-l() = mu_bar() / (rho_0() * v()) * 2 * gamma() / (gamma() + 1) # Appropriate length scale
+const l = mu_bar / (rho_0 * v) * 2 * gamma / (gamma + 1) # Appropriate length scale
 
 """
     initial_condition_viscous_shock(x, t, equations)
@@ -68,16 +64,16 @@ The version implemented here is described in
   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 """
 function initial_condition_viscous_shock(x, t, equations)
-    y = x[1] - v() * t # Translated coordinate
+    y = x[1] - v * t # Translated coordinate
 
     # Coordinate transformation. See eq. (33) in Margolin et al. (2017)
-    chi = 2 * exp(y / (2 * l()))
+    chi = 2 * exp(y / (2 * l))
 
     w = 1 + 1 / (2 * chi^2) * (1 - sqrt(1 + 2 * chi^2))
 
-    rho = rho_0() / w
-    u = v() * (1 - w)
-    p = p_0() * 1 / w * (1 + (gamma() - 1) / 2 * Ma()^2 * (1 - w^2))
+    rho = rho_0 / w
+    u = v * (1 - w)
+    p = p_0 * 1 / w * (1 + (gamma - 1) / 2 * Ma^2 * (1 - w^2))
 
     return prim2cons(SVector(rho, u, 0, 0, p), equations)
 end
@@ -86,12 +82,12 @@ initial_condition = initial_condition_viscous_shock
 ###############################################################################
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
-equations = CompressibleEulerEquations3D(gamma())
+equations = CompressibleEulerEquations3D(gamma)
 
 # Trixi implements the stress tensor in deviatoric form, thus we need to 
 # convert the "isotropic viscosity" to the "deviatoric viscosity"
-mu_deviatoric() = mu_bar() * 3 / 4
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu_deviatoric(),
+const mu_deviatoric = mu_bar * 3 / 4
+equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu_deviatoric,
                                                           Prandtl = prandtl_number(),
                                                           gradient_variables = GradientVariablesPrimitive())
 
