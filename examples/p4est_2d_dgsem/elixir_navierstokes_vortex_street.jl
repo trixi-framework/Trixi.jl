@@ -42,7 +42,7 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
 end
 
 # Mesh which is refined around the cylinder and in the wake region
-mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/7312faba9a50ef506b13f01716b4ec26/raw/8e68f9006e634905544207ca322bc0a03a9313ad/cylinder_vortex_street.inp",
+mesh_file = Trixi.download("https://gist.githubusercontent.com/DanielDoehring/7312faba9a50ef506b13f01716b4ec26/raw/f08b4610491637d80947f1f2df483c81bd2cb071/cylinder_vortex_street.inp",
                            joinpath(@__DIR__, "cylinder_vortex_street.inp"))
 mesh = P4estMesh{2}(mesh_file)
 
@@ -105,7 +105,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-time_int_tol = 1e-6
+time_int_tol = 1e-7
 sol = solve(ode,
             # Moderate number of threads (e.g. 4) advisable to speed things up
             RDPK3SpFSAL49(thread = OrdinaryDiffEq.True());
