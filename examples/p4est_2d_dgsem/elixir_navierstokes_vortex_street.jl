@@ -57,7 +57,7 @@ boundary_conditions = Dict(:Circle => boundary_condition_slip_wall, # top half o
                            :Top => bc_freestream,
                            :Top_R => bc_freestream, # aka bottom
                            :Right => bc_freestream,
-                           :Right_R => bc_freestream, 
+                           :Right_R => bc_freestream,
                            :Left => bc_freestream,
                            :Left_R => bc_freestream)
 
