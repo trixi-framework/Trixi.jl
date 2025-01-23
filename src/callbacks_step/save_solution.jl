@@ -21,12 +21,14 @@ at a single point to a set of solution variables. The first parameter passed
 to `solution_variables` will be the set of conservative variables
 and the second parameter is the equation struct.
 """
-mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
+mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType,
+                                    ReferenceSolutionType}
     interval_or_dt::IntervalType
     save_initial_solution::Bool
     save_final_solution::Bool
     output_directory::String
     solution_variables::SolutionVariablesType
+    reference_solution::ReferenceSolutionType
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
@@ -96,7 +98,8 @@ function SaveSolutionCallback(; interval::Integer = 0,
                               save_initial_solution = true,
                               save_final_solution = true,
                               output_directory = "out",
-                              solution_variables = cons2prim)
+                              solution_variables = cons2prim,
+                              reference_solution = nothing)
     if !isnothing(dt) && interval > 0
         throw(ArgumentError("You can either set the number of steps between output (using `interval`) or the time between outputs (using `dt`) but not both simultaneously"))
     end
@@ -110,7 +113,8 @@ function SaveSolutionCallback(; interval::Integer = 0,
 
     solution_callback = SaveSolutionCallback(interval_or_dt,
                                              save_initial_solution, save_final_solution,
-                                             output_directory, solution_variables)
+                                             output_directory, solution_variables,
+                                             reference_solution)
 
     # Expected most frequent behavior comes first
     if isnothing(dt)
@@ -241,6 +245,40 @@ end
                        solution_callback,
                        element_variables,
                        node_variables; system = system)
+end
+
+# Convenience function to convert variables
+function convert_variables(u, equations, solution_variables)
+    if solution_variables === cons2cons
+        data = u
+        n_vars = nvariables(equations)
+    else
+        # Reinterpret the solution array as an array of conservative variables,
+        # compute the solution variables via broadcasting, and reinterpret the
+        # result as a plain array of floating point numbers
+        data = Array(reinterpret(eltype(u),
+                                 solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                                         eltype(u)}, u),
+                                                     Ref(equations))))
+
+        # Find out variable count by looking at output from `solution_variables` function
+        n_vars = size(data, 1)
+    end
+
+    return data, n_vars
+end
+
+# Compute a reference state to be subtracted from the solution at each write to file
+function compute_reference_state(func, semi, solution_variables)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+
+    reference_state = compute_coefficients(func, 0.0, semi)
+    reference_state_wrapped = copy(Trixi.wrap_array_native(reference_state,
+                                                           mesh, equations, solver,
+                                                           cache))
+
+    data, _ = convert_variables(reference_state_wrapped, equations, solution_variables)
+    return data
 end
 
 # TODO: Taal refactor, move save_mesh_file?
