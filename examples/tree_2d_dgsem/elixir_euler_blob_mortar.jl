@@ -16,7 +16,7 @@ The blob test case taken from
 """
 function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
     # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
-    # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
+    # other reference: https://doi.org/10.1111/j.1365-2966.2007.12183.x
     # change discontinuity to tanh
     # typical domain is rectangular, we change it to a square
     # resolution 128^2, 256^2
