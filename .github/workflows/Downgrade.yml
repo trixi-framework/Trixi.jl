@@ -49,12 +49,18 @@ jobs:
           # - tree_part4
           # - tree_part5
           # - tree_part6
-          # - structured
+          # - structured_part1
+          # - structured_part2
           # - p4est_part1
           # - p4est_part2
           # - t8code_part1
-          # - unstructured_dgmulti
-          # - parabolic
+          # - t8code_part2
+          # - unstructured
+          # - dgmulti_part1
+          # - dgmulti_part2
+          # - parabolic_part1
+          # - parabolic_part2
+          # - parabolic_part3
           # - paper_self_gravitating_gas_dynamics
           # - misc_part1
           # - misc_part2
