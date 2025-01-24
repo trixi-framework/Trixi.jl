@@ -105,27 +105,32 @@ end
     PairedExplicitRK4(num_stages, tspan, eig_vals::Vector{ComplexF64};
                       verbose = false, cS3 = 1.0f0)
 
-    Parameters:
-    - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.
-    - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
-      the Butcher tableau of the Runge Kutta method.
-      The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
-    - `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
-       In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
-    - `tspan`: Time span of the simulation.
-    - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
-    - `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the `ODEProblem` after the
-      equation has been semidiscretized.
-    - `cS3` (`Float64`, optional): Value of $c_{S-3}$ in the Butcher tableau, where
-      $S$ is the number of stages. Default is `1.0f0`.
-
 The following structures and methods provide an implementation of
 the fourth-order paired explicit Runge-Kutta (P-ERK) method
 optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
 The method has been proposed in 
+
 - D. Doehring, L. Christmann, M. Schlottke-Lakemper, G. J. Gassner and M. Torrilhon (2024).
   Fourth-Order Paired-Explicit Runge-Kutta Methods
   [DOI:10.48550/arXiv.2408.05470](https://doi.org/10.48550/arXiv.2408.05470)
+
+# Arguments
+- `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (P-ERK) method.
+- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
+    the Butcher tableau of the Runge Kutta method.
+    The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+    In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
+- `tspan`: Time span of the simulation.
+- `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
+- `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the `ODEProblem` after the
+    equation has been semidiscretized.
+- `cS3` (`Float64`, optional): Value of $c_{S-3}$ in the Butcher tableau, where
+    $S$ is the number of stages. Default is `1.0f0`.
+
+!!! note
+    To use this integrator, the user must import the `Convex` and `ECOS` packages
+    unless the coefficients are provided in a "a_<num_stages>.txt" file.    
 """
 struct PairedExplicitRK4 <: AbstractPairedExplicitRKSingle
     num_stages::Int # S

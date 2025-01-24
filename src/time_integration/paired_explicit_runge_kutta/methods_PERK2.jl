@@ -104,33 +104,36 @@ end
                       verbose = false, bS = 1.0, cS = 0.5)
     PairedExplicitRK2(num_stages, tspan, eig_vals::Vector{ComplexF64};
                       verbose = false, bS = 1.0, cS = 0.5)
-    Parameters:
-    - `num_stages` (`Int`): Number of stages in the PERK method.
-    - `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
-      monomial coefficients of the stability polynomial of PERK method.
-      The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
-    - `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
-       In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
-    - `tspan`: Time span of the simulation.
-    - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
-    - `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
-      equation has been semidiscretized.
-    - `verbose` (`Bool`, optional): Verbosity flag, default is false.
-    - `bS` (`Float64`, optional): Value of $b_S$ in the Butcher tableau, where
-      $S$ is the number of stages. Default is `1.0`.
-    - `cS` (`Float64`, optional): Value of $c_S$ in the Butcher tableau, where
-      $S$ is the number of stages. Default is `0.5`.
 
 The following structures and methods provide a minimal implementation of
 the second-order paired explicit Runge-Kutta (PERK) method
 optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
+The original paper is
 
 - Brian Vermeire (2019).
   Paired explicit Runge-Kutta schemes for stiff systems of equations
   [DOI: 10.1016/j.jcp.2019.05.014](https://doi.org/10.1016/j.jcp.2019.05.014)
 
-Note: To use this integrator, the user must import the `Convex` and `ECOS` packages
-unless the coefficients are provided in a "gamma_<num_stages>.txt" file.
+# Arguments
+- `num_stages` (`Int`): Number of stages in the PERK method.
+- `base_path_monomial_coeffs` (`AbstractString`): Path to a file containing 
+    monomial coefficients of the stability polynomial of PERK method.
+    The coefficients should be stored in a text file at `joinpath(base_path_monomial_coeffs, "gamma_$(num_stages).txt")` and separated by line breaks.
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+    In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
+- `tspan`: Time span of the simulation.
+- `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
+- `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
+    equation has been semidiscretized.
+- `verbose` (`Bool`, optional): Verbosity flag, default is false.
+- `bS` (`Float64`, optional): Value of $b_S$ in the Butcher tableau, where
+    $S$ is the number of stages. Default is `1.0`.
+- `cS` (`Float64`, optional): Value of $c_S$ in the Butcher tableau, where
+    $S$ is the number of stages. Default is `0.5`.
+
+!!! note
+    To use this integrator, the user must import the `Convex` and `ECOS` packages
+    unless the coefficients are provided in a "gamma_<num_stages>.txt" file.
 """
 struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     num_stages::Int

@@ -102,35 +102,38 @@ end
     PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
                       verbose = false, cS2 = 1.0f0)
 
-    Parameters:
-    - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (PERK) method.
-    - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
-      the Butcher tableau of the Runge Kutta method.
-      The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
-    - `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
-       In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
-    - `tspan`: Time span of the simulation.
-    - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
-    - `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
-      equation has been semidiscretized.
-    - `verbose` (`Bool`, optional): Verbosity flag, default is false.
-    - `cS2` (`Float64`, optional): Value of $c_{S-2}$ in the Butcher tableau, where
-      $S$ is the number of stages. Default is `1.0f0`.
-
 The following structures and methods provide an implementation of
 the third-order paired explicit Runge-Kutta (PERK) method
 optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
 The original paper is
-- Nasab, Vermeire (2022)
-Third-order Paired Explicit Runge-Kutta schemes for stiff systems of equations
-[DOI: 10.1016/j.jcp.2022.111470](https://doi.org/10.1016/j.jcp.2022.111470)
-While the changes to SSPRK33 base-scheme are described in 
-- Doehring, Schlottke-Lakemper, Gassner, Torrilhon (2024)
-Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
-[DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)
 
-Note: To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages
-unless the A-matrix coefficients are provided in a "a_<num_stages>.txt" file.
+- Nasab, Vermeire (2022)
+  Third-order Paired Explicit Runge-Kutta schemes for stiff systems of equations
+  [DOI: 10.1016/j.jcp.2022.111470](https://doi.org/10.1016/j.jcp.2022.111470)
+
+  While the changes to SSPRK33 base-scheme are described in 
+- Doehring, Schlottke-Lakemper, Gassner, Torrilhon (2024)
+  Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
+  [DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)                      
+
+# Arguments
+- `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (PERK) method.
+- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
+    the Butcher tableau of the Runge Kutta method.
+    The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+    In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
+- `tspan`: Time span of the simulation.
+- `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
+- `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
+    equation has been semidiscretized.
+- `verbose` (`Bool`, optional): Verbosity flag, default is false.
+- `cS2` (`Float64`, optional): Value of $c_{S-2}$ in the Butcher tableau, where
+    $S$ is the number of stages. Default is `1.0f0`.
+
+!!! note
+    To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages
+    unless the A-matrix coefficients are provided in a "a_<num_stages>.txt" file.
 """
 struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
     num_stages::Int # S
