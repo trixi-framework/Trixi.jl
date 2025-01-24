@@ -122,6 +122,8 @@ In particular, not the nodes themselves are returned.
 
 @inline get_nodes(basis::LobattoLegendreBasis) = basis.nodes
 
+Adapt.@adapt_structure(LobattoLegendreBasis)
+
 """
     integrate(f, u, basis::LobattoLegendreBasis)
 
@@ -204,6 +206,8 @@ end
 end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
+
+Adapt.@adapt_structure(LobattoLegendreMortarL2)
 
 # TODO: We can create EC mortars along the lines of the following implementation.
 # abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
