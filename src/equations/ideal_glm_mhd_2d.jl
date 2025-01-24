@@ -472,6 +472,143 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
     return f
 end
 
+@inline function flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
+                                                             normal_direction_ll::AbstractVector,
+                                                             normal_direction_average::AbstractVector,
+                                                             equations::IdealGlmMhdEquations2D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Note that `v_dot_n_ll` uses the `normal_direction_ll` (contravariant vector
+    # at the same node location) while `B_dot_n_rr` uses the averaged normal
+    # direction. The reason for this is that `v_dot_n_ll` depends only on the left
+    # state and multiplies some gradient while `B_dot_n_rr` is used to compute
+    # the divergence of B.
+    B1_avg = (B1_ll + B1_rr) #* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+    B2_avg = (B2_ll + B2_rr) #* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+    psi_avg = (psi_ll + psi_rr) #* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+    v_dot_n_ll = v1_ll * normal_direction_ll[1] + v2_ll * normal_direction_ll[2]
+    B_dot_n_avg = B1_avg * normal_direction_average[1] +
+                  B2_avg * normal_direction_average[2]
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    f = SVector(0,
+                B1_ll * B_dot_n_avg,
+                B2_ll * B_dot_n_avg,
+                B3_ll * B_dot_n_avg,
+                v_dot_B_ll * B_dot_n_avg + v_dot_n_ll * psi_ll * psi_avg,
+                v1_ll * B_dot_n_avg,
+                v2_ll * B_dot_n_avg,
+                v3_ll * B_dot_n_avg,
+                v_dot_n_ll * psi_avg)
+
+    return f
+end
+
+@inline function flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
+                                                             normal_direction_ll::AbstractVector,
+                                                             equations::IdealGlmMhdEquations2D,
+                                                             nonconservative_type::NonConservativeLocal,
+                                                             nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Note that `v_dot_n_ll` uses the `normal_direction_ll` (contravariant vector
+    # at the same node location) while `B_dot_n_rr` uses the averaged normal
+    # direction. The reason for this is that `v_dot_n_ll` depends only on the left
+    # state and multiplies some gradient while `B_dot_n_rr` is used to compute
+    # the divergence of B.
+    if nonconservative_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        f = SVector(0,
+                    B1_ll,
+                    B2_ll,
+                    B3_ll,
+                    v_dot_B_ll,
+                    v1_ll,
+                    v2_ll,
+                    v3_ll,
+                    0)
+    else #nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        v_dot_n_ll = v1_ll * normal_direction_ll[1] + v2_ll * normal_direction_ll[2]
+        f = SVector(0,
+                    0,
+                    0,
+                    0,
+                    v_dot_n_ll * psi_ll,
+                    0,
+                    0,
+                    0,
+                    v_dot_n_ll)
+    end
+
+    return f
+end
+
+@inline function flux_nonconservative_powell_local_symmetric(u_ll, u_rr,
+                                                             normal_direction_ll::AbstractVector,
+                                                             normal_direction_average::AbstractVector,
+                                                             equations::IdealGlmMhdEquations2D,
+                                                             nonconservative_type::NonConservativeSymmetric,
+                                                             nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Note that `v_dot_n_ll` uses the `normal_direction_ll` (contravariant vector
+    # at the same node location) while `B_dot_n_rr` uses the averaged normal
+    # direction. The reason for this is that `v_dot_n_ll` depends only on the left
+    # state and multiplies some gradient while `B_dot_n_rr` is used to compute
+    # the divergence of B.
+    if nonconservative_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        B1_avg = (B1_ll + B1_rr) #* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+        B2_avg = (B2_ll + B2_rr) #* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+        B_dot_n_avg = B1_avg * normal_direction_average[1] +
+                      B2_avg * normal_direction_average[2]
+
+        f = SVector(0,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    B_dot_n_avg,
+                    0)
+    else #nonconservative_term == 2
+        psi_avg = (psi_ll + psi_rr) #* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        f = SVector(0,
+                    0,
+                    0,
+                    0,
+                    psi_avg,
+                    0,
+                    0,
+                    0,
+                    psi_avg)
+    end
+
+    return f
+end
+
 """
     flux_derigs_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdEquations2D)
 
