@@ -164,6 +164,7 @@ For details see Section 9.2.5 of the book:
                                               equations::ShallowWaterEquations1D)
 
     # The boundary conditions for the non-conservative term are identically 0 here.
+    # Bottom topography is assumed to be continuous at the boundary.
     surface_flux_function, nonconservative_flux_function = surface_flux_functions
     # create the "external" boundary solution state
     u_boundary = SVector(u_inner[1],
