@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>20 Differentiable programming · Trixi.jl</title><meta name="title" content="20 Differentiable programming · Trixi.jl"/><meta property="og:title" content="20 Differentiable programming · Trixi.jl"/><meta property="twitter:title" content="20 Differentiable programming · Trixi.jl"/><meta name="description" content="Documentation for Trixi.jl."/><meta property="og:description" content="Documentation for Trixi.jl."/><meta property="twitter:description" content="Documentation for Trixi.jl."/><meta property="og:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/differentiable_programming/"/><meta property="twitter:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/differentiable_programming/"/><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/differentiable_programming/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Trixi.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../overview/">Overview</a></li><li><a class="tocitem" href="../../visualization/">Visualization</a></li><li><a class="tocitem" href="../../restart/">Restart simulation</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../introduction/">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox"/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">1 First steps in Trixi.jl</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../first_steps/getting_started/">1.1 Getting started</a></li><li><a class="tocitem" href="../first_steps/create_first_setup/">1.2 Create your first setup</a></li><li><a class="tocitem" href="../first_steps/changing_trixi/">1.3 Changing Trixi.jl itself</a></li></ul></li><li><a class="tocitem" href="../behind_the_scenes_simulation_setup/">2 Behind the scenes of a simulation setup</a></li><li><a class="tocitem" href="../scalar_linear_advection_1d/">3 Introduction to DG methods</a></li><li><a class="tocitem" href="../DGSEM_FluxDiff/">4 DGSEM with flux differencing</a></li><li><a class="tocitem" href="../shock_capturing/">5 Shock capturing with flux differencing and stage limiter</a></li><li><a class="tocitem" href="../subcell_shock_capturing/">6 Subcell limiting with the IDP Limiter</a></li><li><a class="tocitem" href="../non_periodic_boundaries/">7 Non-periodic boundaries</a></li><li><a class="tocitem" href="../DGMulti_1/">8 DG schemes via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../upwind_fdsbp/">10 Upwind FD SBP schemes</a></li><li><a class="tocitem" href="../adding_new_scalar_equations/">11 Adding a new scalar conservation law</a></li><li><a class="tocitem" href="../adding_nonconservative_equation/">12 Adding a non-conservative equation</a></li><li><a class="tocitem" href="../parabolic_terms/">13 Parabolic terms</a></li><li><a class="tocitem" href="../adding_new_parabolic_terms/">14 Adding new parabolic terms</a></li><li><a class="tocitem" href="../adaptive_mesh_refinement/">15 Adaptive mesh refinement</a></li><li><a class="tocitem" href="../structured_mesh_mapping/">16 Structured mesh with curvilinear mapping</a></li><li><a class="tocitem" href="../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl</a></li><li><a class="tocitem" href="../p4est_from_gmsh/">18 P4est mesh from gmsh</a></li><li><a class="tocitem" href="../time_stepping/">19 Explicit time stepping</a></li><li class="is-active"><a class="tocitem" href>20 Differentiable programming</a><ul class="internal"><li><a class="tocitem" href="#Forward-mode-automatic-differentiation"><span>Forward mode automatic differentiation</span></a></li><li><a class="tocitem" href="#Differentiating-through-a-complete-simulation"><span>Differentiating through a complete simulation</span></a></li><li><a class="tocitem" href="#Propagating-errors-using-Measurements.jl"><span>Propagating errors using Measurements.jl</span></a></li><li><a class="tocitem" href="#Finite-difference-approximations"><span>Finite difference approximations</span></a></li><li><a class="tocitem" href="#Linear-systems"><span>Linear systems</span></a></li><li><a class="tocitem" href="#Package-versions"><span>Package versions</span></a></li></ul></li><li><a class="tocitem" href="../custom_semidiscretization/">21 Custom semidiscretizations</a></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox"/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li><li><a class="tocitem" href="../../meshes/p4est_mesh/">P4est-based mesh</a></li><li><a class="tocitem" href="../../meshes/dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../../multi-physics_coupling/">Coupling</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../development/">Development</a></li><li><a class="tocitem" href="../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../testing/">Testing</a></li><li><a class="tocitem" href="../../performance/">Performance</a></li><li><a class="tocitem" href="../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../reference-trixibase/">TrixiBase.jl</a></li><li><a class="tocitem" href="../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../changelog/">Changelog</a></li><li><a class="tocitem" href="../../authors/">Authors</a></li><li><a class="tocitem" href="../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../code_of_conduct/">Code of Conduct</a></li><li><a class="tocitem" href="../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>20 Differentiable programming</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>20 Differentiable programming</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl/blob/main/docs/literate/src/files/differentiable_programming.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="differentiable_programming"><a class="docs-heading-anchor" href="#differentiable_programming">20: Differentiable programming</a><a id="differentiable_programming-1"></a><a class="docs-heading-anchor-permalink" href="#differentiable_programming" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=tutorials/notebooks/differentiable_programming.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/tutorials/notebooks/differentiable_programming.ipynb"><img src="https://img.shields.io/badge/render-nbviewer-f37726" alt/></a> <a href="https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/tutorials/notebooks/differentiable_programming.ipynb"><img src="https://img.shields.io/badge/raw-notebook-4cc61e" alt/></a></p><p><a href="https://sinews.siam.org/Details-Page/scientific-machine-learning-how-julia-employs-differentiable-programming-to-do-it-best">Julia and its ecosystem provide some tools for differentiable programming</a>. Trixi.jl is designed to be flexible, extendable, and composable with Julia&#39;s growing ecosystem for scientific computing and machine learning. Thus, the ultimate goal is to have fast implementations that allow automatic differentiation (AD) without too much hassle for users. If some parts do not meet these requirements, please feel free to open an issue or propose a fix in a PR.</p><p>In the following, we will walk through some examples demonstrating how to differentiate through Trixi.jl.</p><h2 id="Forward-mode-automatic-differentiation"><a class="docs-heading-anchor" href="#Forward-mode-automatic-differentiation">Forward mode automatic differentiation</a><a id="Forward-mode-automatic-differentiation-1"></a><a class="docs-heading-anchor-permalink" href="#Forward-mode-automatic-differentiation" title="Permalink"></a></h2><p>Trixi.jl integrates well with <a href="https://github.com/JuliaDiff/ForwardDiff.jl">ForwardDiff.jl</a> for forward mode AD.</p><h3 id="Computing-the-Jacobian"><a class="docs-heading-anchor" href="#Computing-the-Jacobian">Computing the Jacobian</a><a id="Computing-the-Jacobian-1"></a><a class="docs-heading-anchor-permalink" href="#Computing-the-Jacobian" title="Permalink"></a></h3><p>The high-level interface to compute the Jacobian this way is <a href="../../reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}"><code>jacobian_ad_forward</code></a>. First, we load the required packages and compute the Jacobian of a semidiscretization of the compressible Euler equations, a system of nonlinear conservation laws.</p><pre><code class="language-julia hljs">using Trixi, LinearAlgebra, Plots
+
+equations = CompressibleEulerEquations2D(1.4)
+
+solver = DGSEM(3, flux_central)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+
+J = jacobian_ad_forward(semi);
+size(J)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(1024, 1024)</code></pre><p>Next, we compute the eigenvalues of the Jacobian.</p><pre><code class="language-julia hljs">λ = eigvals(J)
+scatter(real.(λ), imag.(λ), label = &quot;central flux&quot;)</code></pre><img src="c2320318.svg" alt="Example block output"/><p>As you can see here, the maximal real part is close to zero.</p><pre><code class="language-julia hljs">relative_maximum = maximum(real, λ) / maximum(abs, λ)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6.194398065604959e-10</code></pre><p>Interestingly, if we add dissipation by switching to the <code>flux_lax_friedrichs</code> at the interfaces, the maximal real part of the eigenvalues increases.</p><pre><code class="language-julia hljs">solver = DGSEM(3, flux_lax_friedrichs)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+
+J = jacobian_ad_forward(semi)
+λ = eigvals(J)
+
+scatter!(real.(λ), imag.(λ), label = &quot;Lax-Friedrichs flux&quot;)</code></pre><img src="c9bb2cc3.svg" alt="Example block output"/><p>Although the maximal real part is still somewhat small, it&#39;s larger than for the purely central discretization.</p><pre><code class="language-julia hljs">relative_maximum = maximum(real, λ) / maximum(abs, λ)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2.0781520236011672e-5</code></pre><p>However, we should be careful when using this analysis, since the eigenvectors are not necessarily well-conditioned.</p><pre><code class="language-julia hljs">λ, V = eigen(J)
+condition_number = cond(V)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.640847152061315e6</code></pre><p>In one space dimension, the situation is a bit different.</p><pre><code class="language-julia hljs">equations = CompressibleEulerEquations1D(1.4)
+
+solver = DGSEM(3, flux_central)
+mesh = TreeMesh((-1.0,), (1.0,), initial_refinement_level = 6, n_cells_max = 10^5)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+
+J = jacobian_ad_forward(semi)
+
+λ = eigvals(J)
+
+scatter(real.(λ), imag.(λ), label = &quot;central flux&quot;)</code></pre><img src="0535196b.svg" alt="Example block output"/><p>Here, the maximal real part is basically zero to machine accuracy.</p><pre><code class="language-julia hljs">relative_maximum = maximum(real, λ) / maximum(abs, λ)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5.515633800528863e-16</code></pre><p>Moreover, the eigenvectors are not as ill-conditioned as in 2D.</p><pre><code class="language-julia hljs">λ, V = eigen(J)
+condition_number = cond(V)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">645.2799066408426</code></pre><p>If we add dissipation, the maximal real part is still approximately zero.</p><pre><code class="language-julia hljs">solver = DGSEM(3, flux_lax_friedrichs)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+
+J = jacobian_ad_forward(semi)
+λ = eigvals(J)
+
+scatter!(real.(λ), imag.(λ), label = &quot;Lax-Friedrichs flux&quot;)</code></pre><img src="4a76b4a7.svg" alt="Example block output"/><p>As you can see from the plot generated above, the maximal real part is still basically zero to machine precision.</p><pre><code class="language-julia hljs">relative_maximum = maximum(real, λ) / maximum(abs, λ)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5.118955954677317e-17</code></pre><p>Let&#39;s check the condition number of the eigenvectors.</p><pre><code class="language-julia hljs">λ, V = eigen(J)
+
+condition_number = cond(V)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">94602.12866772134</code></pre><p>Note that the condition number of the eigenvector matrix increases but is still smaller than for the example in 2D.</p><h3 id="Computing-other-derivatives"><a class="docs-heading-anchor" href="#Computing-other-derivatives">Computing other derivatives</a><a id="Computing-other-derivatives-1"></a><a class="docs-heading-anchor-permalink" href="#Computing-other-derivatives" title="Permalink"></a></h3><p>It is also possible to compute derivatives of other dependencies using AD in Trixi.jl. For example, you can compute the gradient of an entropy-dissipative semidiscretization with respect to the ideal gas constant of the compressible Euler equations as described in the following. This example is also available as the elixir <a href="https://github.com/trixi-framework/Trixi.jl/blob/main/examples/special_elixirs/elixir_euler_ad.jl"><code>examples/special_elixirs/elixir_euler_ad.jl</code></a></p><p>First, we create a semidiscretization of the compressible Euler equations.</p><pre><code class="language-julia hljs">using Trixi, LinearAlgebra, ForwardDiff
+
+equations = CompressibleEulerEquations2D(1.4)
+
+&quot;&quot;&quot;
+    initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
+
+The classical isentropic vortex test case of
+- Chi-Wang Shu (1997)
+  Essentially Non-Oscillatory and Weighted Essentially Non-Oscillatory
+  Schemes for Hyperbolic Conservation Laws
+  [NASA/CR-97-206253](https://ntrs.nasa.gov/citations/19980007543)
+&quot;&quot;&quot;
+function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerEquations2D)
+    inicenter = SVector(0.0, 0.0) # initial center of the vortex
+    iniamplitude = 5.0            # size and strength of the vortex
+
+    rho = 1.0  # base flow
+    v1 = 1.0
+    v2 = 1.0
+    vel = SVector(v1, v2)
+    p = 25.0
+
+    rt = p / rho                      # ideal gas equation
+    t_loc = 0.0
+
+    cent = inicenter + vel * t_loc      # shift advection of center to handle periodic BC, but only for v1 = v2 = 1.0
+    cent = x - cent                   # distance to center point
+    cent = SVector(-cent[2], cent[1])
+
+    r2 = cent[1]^2 + cent[2]^2
+    du = iniamplitude / (2 * π) * exp(0.5 * (1 - r2)) # vel. perturbation
+    dtemp = -(equations.gamma - 1) / (2 * equations.gamma * rt) * du^2 # isentropic
+
+    rho = rho * (1 + dtemp)^(1 / (equations.gamma - 1))
+    vel = vel + du * cent
+    v1, v2 = vel
+    p = p * (1 + dtemp)^(equations.gamma / (equations.gamma - 1))
+
+    prim = SVector(rho, v1, v2, p)
+    return prim2cons(prim, equations)
+end
+
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5)
+
+solver = DGSEM(3, flux_lax_friedrichs, VolumeIntegralFluxDifferencing(flux_ranocha))
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_isentropic_vortex,
+                                    solver)
+
+u0_ode = Trixi.compute_coefficients(0.0, semi)
+size(u0_ode)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(1024,)</code></pre><p>Next, we compute the Jacobian using <code>ForwardDiff.jacobian</code>.</p><pre><code class="language-julia hljs">J = ForwardDiff.jacobian((du_ode, γ) -&gt; begin
+                             equations_inner = CompressibleEulerEquations2D(first(γ))
+                             semi_inner = Trixi.remake(semi, equations = equations_inner,
+                                                       uEltype = eltype(γ))
+                             Trixi.rhs!(du_ode, u0_ode, semi_inner, 0.0)
+                         end, similar(u0_ode), [1.4]); # γ needs to be an `AbstractArray`
+
+round.(extrema(J), sigdigits = 2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(-220.0, 220.0)</code></pre><p>Note that we create a semidiscretization <code>semi</code> at first to determine the state <code>u0_ode</code> around which we want to perform the linearization. Next, we wrap the RHS evaluation inside a closure and pass that to <code>ForwardDiff.jacobian</code>. There, we need to make sure that the internal caches are able to store dual numbers from ForwardDiff.jl by setting <code>uEltype</code> appropriately. A similar approach is used by <a href="../../reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}"><code>jacobian_ad_forward</code></a>.</p><p>Note that the ideal gas constant does not influence the semidiscrete rate of change of the density, as demonstrated by</p><pre><code class="language-julia hljs">norm(J[1:4:end])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.0</code></pre><p>Here, we used some knowledge about the internal memory layout of Trixi.jl, an array of structs with the conserved variables as fastest-varying index in memory.</p><h2 id="Differentiating-through-a-complete-simulation"><a class="docs-heading-anchor" href="#Differentiating-through-a-complete-simulation">Differentiating through a complete simulation</a><a id="Differentiating-through-a-complete-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Differentiating-through-a-complete-simulation" title="Permalink"></a></h2><p>It is also possible to differentiate through a complete simulation. As an example, let&#39;s differentiate the total energy of a simulation using the linear scalar advection equation with respect to the wave number (frequency) of the initial data.</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq, ForwardDiff, Plots
+
+function energy_at_final_time(k) # k is the wave number of the initial condition
+    equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
+                    n_cells_max = 10^4)
+    solver = DGSEM(3, flux_lax_friedrichs)
+    initial_condition = (x, t, equation) -&gt; begin
+        x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
+        return SVector(sinpi(k * sum(x_trans)))
+    end
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                        uEltype = typeof(k))
+    ode = semidiscretize(semi, (0.0, 1.0))
+    sol = solve(ode, BS3(), save_everystep = false)
+    Trixi.integrate(energy_total, sol.u[end], semi)
+end
+
+k_values = range(0.9, 1.1, length = 101)
+
+plot(k_values, energy_at_final_time.(k_values), label = &quot;Energy&quot;)</code></pre><img src="4ff9a422.svg" alt="Example block output"/><p>You see a plot of a curve that resembles a parabola with local maximum around <code>k = 1.0</code>. Why&#39;s that? Well, the domain is fixed but the wave number changes. Thus, if the wave number is not chosen as an integer, the initial condition will not be a smooth periodic function in the given domain. Hence, the dissipative surface flux (<code>flux_lax_friedrichs</code> in this example) will introduce more dissipation. In particular, it will introduce more dissipation for &quot;less smooth&quot; initial data, corresponding to wave numbers <code>k</code> further away from integers.</p><p>We can compute the discrete derivative of the energy at the final time with respect to the wave number <code>k</code> as follows.</p><pre><code class="language-julia hljs">round(ForwardDiff.derivative(energy_at_final_time, 1.0), sigdigits = 2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.4e-5</code></pre><p>This is rather small and we can treat it as zero in comparison to the value of this derivative at other wave numbers <code>k</code>.</p><pre><code class="language-julia hljs">dk_values = ForwardDiff.derivative.((energy_at_final_time,), k_values);
+
+plot(k_values, dk_values, label = &quot;Derivative&quot;)</code></pre><img src="1b574271.svg" alt="Example block output"/><p>If you remember basic calculus, a sufficient condition for a local maximum is that the first derivative vanishes and the second derivative is negative. We can also check this discretely.</p><pre><code class="language-julia hljs">second_derivative = round(ForwardDiff.derivative(k -&gt; Trixi.ForwardDiff.derivative(energy_at_final_time,
+                                                                                   k), 1.0),
+                          sigdigits = 2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">-0.9</code></pre><p>Having seen this application, let&#39;s break down what happens step by step.</p><pre><code class="language-julia hljs">function energy_at_final_time(k) # k is the wave number of the initial condition
+    equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+    mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3,
+                    n_cells_max = 10^4)
+    solver = DGSEM(3, flux_lax_friedrichs)
+    initial_condition = (x, t, equation) -&gt; begin
+        x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
+        return SVector(sinpi(k * sum(x_trans)))
+    end
+    semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                        uEltype = typeof(k))
+    ode = semidiscretize(semi, (0.0, 1.0))
+    sol = solve(ode, BS3(), save_everystep = false)
+    Trixi.integrate(energy_total, sol.u[end], semi)
+end
+
+k = 1.0
+round(ForwardDiff.derivative(energy_at_final_time, k), sigdigits = 2)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.4e-5</code></pre><p>When calling <code>ForwardDiff.derivative(energy_at_final_time, k)</code> with <code>k=1.0</code>, ForwardDiff.jl will basically use the chain rule and known derivatives of existing basic functions to calculate the derivative of the energy at the final time with respect to the wave number <code>k</code> at <code>k0 = 1.0</code>. To do this, ForwardDiff.jl uses dual numbers, which basically store the result and its derivative w.r.t. a specified parameter at the same time. Thus, we need to make sure that we can treat these <code>ForwardDiff.Dual</code> numbers everywhere during the computation. Fortunately, generic Julia code usually supports these operations. The most basic problem for a developer is to ensure that all types are generic enough, in particular the ones of internal caches.</p><p>The first step in this example creates some basic ingredients of our simulation.</p><pre><code class="language-julia hljs">equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 3, n_cells_max = 10^4)
+solver = DGSEM(3, flux_lax_friedrichs);</code></pre><p>These do not have internal caches storing intermediate values of the numerical solution, so we do not need to adapt them. In fact, we could also define them outside of <code>energy_at_final_time</code> (but would need to take care of globals or wrap everything in another function).</p><p>Next, we define the initial condition</p><pre><code class="language-julia hljs">initial_condition = (x, t, equation) -&gt; begin
+    x_trans = Trixi.x_trans_periodic_2d(x - equation.advection_velocity * t)
+    return SVector(sinpi(k * sum(x_trans)))
+end;</code></pre><p>as a closure capturing the wave number <code>k</code> passed to <code>energy_at_final_time</code>. If you call <code>energy_at_final_time(1.0)</code>, <code>k</code> will be a <code>Float64</code>. Thus, the return values of <code>initial_condition</code> will be <code>SVector</code>s of <code>Float64</code>s. When calculating the <code>ForwardDiff.derivative</code>, <code>k</code> will be a <code>ForwardDiff.Dual</code> number. Hence, the <code>initial_condition</code> will return <code>SVector</code>s of <code>ForwardDiff.Dual</code> numbers.</p><p>The semidiscretization <code>semi</code> uses some internal caches to avoid repeated allocations and speed up the computations, e.g. for numerical fluxes at interfaces. Thus, we need to tell Trixi.jl to allow <code>ForwardDiff.Dual</code> numbers in these caches. That&#39;s what the keyword argument <code>uEltype=typeof(k)</code> in</p><pre><code class="language-julia hljs">semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    uEltype = typeof(k));</code></pre><p>does. This is basically the only part where you need to modify your standard Trixi.jl code to enable automatic differentiation. From there on, the remaining steps</p><pre><code class="language-julia hljs">ode = semidiscretize(semi, (0.0, 1.0))
+sol = solve(ode, BS3(), save_everystep = false)
+round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.24986</code></pre><p>do not need any modifications since they are sufficiently generic (and enough effort has been spend to allow general types inside these calls).</p><h2 id="Propagating-errors-using-Measurements.jl"><a class="docs-heading-anchor" href="#Propagating-errors-using-Measurements.jl">Propagating errors using Measurements.jl</a><a id="Propagating-errors-using-Measurements.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Propagating-errors-using-Measurements.jl" title="Permalink"></a></h2><p><a href="https://xkcd.com/2110/"><img src="https://imgs.xkcd.com/comics/error_bars.png" alt="Error bars by Randall Munroe"/></a> &quot;Error bars&quot; by Randall Munroe, linked from https://xkcd.com/2110</p><p>Similar to AD, Trixi.jl also allows propagating uncertainties using linear error propagation theory via <a href="https://github.com/JuliaPhysics/Measurements.jl">Measurements.jl</a>. As an example, let&#39;s create a system representing the linear advection equation in 1D with an uncertain velocity. Then, we create a semidiscretization using a sine wave as initial condition, solve the ODE, and plot the resulting uncertainties in the primitive variables.</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
+
+equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
+
+mesh = TreeMesh((-1.0,), (1.0,), n_cells_max = 10^5, initial_refinement_level = 5)
+
+solver = DGSEM(3)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+                                    solver, uEltype = Measurement{Float64})
+
+ode = semidiscretize(semi, (0.0, 1.5))
+
+sol = solve(ode, BS3(), save_everystep = false);
+
+plot(sol)</code></pre><img src="5f91943a.svg" alt="Example block output"/><p>You should see a plot where small error bars are shown around the extrema and larger error bars are shown in the remaining parts. This result is in accordance with expectations. Indeed, the uncertain propagation speed will affect the extrema less since the local variation of the solution is relatively small there. In contrast, the local variation of the solution is large around the turning points of the sine wave, so the uncertainties will be relatively large there.</p><p>All this is possible due to allowing generic types and having good abstractions in Julia that allow packages to work together seamlessly.</p><h2 id="Finite-difference-approximations"><a class="docs-heading-anchor" href="#Finite-difference-approximations">Finite difference approximations</a><a id="Finite-difference-approximations-1"></a><a class="docs-heading-anchor-permalink" href="#Finite-difference-approximations" title="Permalink"></a></h2><p>Trixi.jl provides the convenience function <a href="../../reference-trixi/#Trixi.jacobian_fd-Tuple{Trixi.AbstractSemidiscretization}"><code>jacobian_fd</code></a> to approximate the Jacobian via central finite differences.</p><pre><code class="language-julia hljs">using Trixi, LinearAlgebra
+
+equations = CompressibleEulerEquations2D(1.4)
+
+solver = DGSEM(3, flux_central)
+
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_density_wave, solver)
+
+J_fd = jacobian_fd(semi)
+
+J_ad = jacobian_ad_forward(semi)
+
+relative_difference = norm(J_fd - J_ad) / size(J_fd, 1)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5.750018477545784e-7</code></pre><p>This discrepancy is of the expected order of magnitude for central finite difference approximations.</p><h2 id="Linear-systems"><a class="docs-heading-anchor" href="#Linear-systems">Linear systems</a><a id="Linear-systems-1"></a><a class="docs-heading-anchor-permalink" href="#Linear-systems" title="Permalink"></a></h2><p>When a linear PDE is discretized using a linear scheme such as a standard DG method, the resulting semidiscretization yields an affine ODE of the form</p><p class="math-container">\[\partial_t u(t) = A u(t) + b,\]</p><p>where <code>A</code> is a linear operator (&quot;matrix&quot;) and <code>b</code> is a vector. Trixi.jl allows you to obtain this linear structure in a matrix-free way by using <a href="../../reference-trixi/#Trixi.linear_structure-Tuple{Trixi.AbstractSemidiscretization}"><code>linear_structure</code></a>. The resulting operator <code>A</code> can be used in multiplication, e.g. <code>mul!</code> from LinearAlgebra, converted to a sparse matrix using <code>sparse</code> from SparseArrays, or converted to a dense matrix using <code>Matrix</code> for detailed eigenvalue analyses. For example,</p><pre><code class="language-julia hljs">using Trixi, LinearAlgebra, Plots
+
+equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
+
+solver = DGSEM(3, flux_lax_friedrichs)
+
+mesh = TreeMesh((-1.0, -1.0), (1.0, 1.0), initial_refinement_level = 2, n_cells_max = 10^5)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergence_test,
+                                    solver)
+
+A, b = linear_structure(semi)
+
+size(A), size(b)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">((256, 256), (256,))</code></pre><p>Next, we compute the eigenvalues of the linear operator.</p><pre><code class="language-julia hljs">λ = eigvals(Matrix(A))
+
+scatter(real.(λ), imag.(λ))</code></pre><img src="db9cb27c.svg" alt="Example block output"/><p>As you can see here, the maximal real part is close to machine precision.</p><pre><code class="language-julia hljs">λ = eigvals(Matrix(A))
+relative_maximum = maximum(real, λ) / maximum(abs, λ)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">-3.739241340386926e-16</code></pre><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEq&quot;, &quot;Plots&quot;, &quot;ForwardDiff&quot;],
+           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.7
+Commit 4976d05258e (2024-11-26 15:57 UTC)
+Build Info:
+  Official https://julialang.org/ release
+Platform Info:
+  OS: Linux (x86_64-linux-gnu)
+  CPU: 4 × AMD EPYC 7763 64-Core Processor
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-15.0.7 (ORCJIT, znver3)
+Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)
+Environment:
+  JULIA_PKG_SERVER_REGISTRY_PREFERENCE = eager
+<span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
+  <span class="sgr90">[f6369f11] </span>ForwardDiff v0.10.38
+<span class="sgr32">⌃</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
+  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.9.14 `~/work/Trixi.jl/Trixi.jl`
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../time_stepping/">« 19 Explicit time stepping</a><a class="docs-footer-nextpage" href="../custom_semidiscretization/">21 Custom semidiscretizations »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Wednesday 15 January 2025 08:26">Wednesday 15 January 2025</span>. Using Julia version 1.10.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
