@@ -481,6 +481,12 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
     return unstructured_data
 end
 
+function get_unstructured_data(func::Function, solution_variables, mesh, equations, solver, cache)
+    original_nodes = cache.elements.node_coordinates
+    u = only.(func.(SVector.(original_nodes), equations))
+    return get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
+end
+
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
 #

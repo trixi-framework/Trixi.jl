@@ -189,6 +189,19 @@ RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:TreeMesh}
     end
 end
 
+# Also allow plotting a function with signature `func(x, equations)`, e.g., for initial conditions.
+RecipesBase.@recipe function f(func::Function, semi::SemidiscretizationHyperbolic{<:TreeMesh};
+                               solution_variables = nothing,
+                               nvisnodes = nothing, slice = :xy,
+                               point = (0.0, 0.0, 0.0), curve = nothing)
+    # Create a PlotData1D or PlotData2D object depending on the dimension.
+    if ndims(semi) == 1
+        return PlotData1D(func, semi; solution_variables, nvisnodes, slice, point, curve)
+    else
+        throw(ArgumentError("Plotting of functions is only supported in 1D."))
+    end
+end
+
 # Series recipe for PlotData2DTriangulated
 RecipesBase.@recipe function f(pds::PlotDataSeries{<:PlotData2DTriangulated})
     pd = pds.plot_data
