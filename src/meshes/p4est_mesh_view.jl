@@ -21,7 +21,7 @@ end
 """
     P4estMeshView(parent; cell_ids)
 
-Create a P4estMeshView on a P4estMesh parent.
+Create a `P4estMeshView` on a [`P4estMesh`](@ref) parent.
 
 # Arguments
 - `parent`: the parent P4estMesh.
