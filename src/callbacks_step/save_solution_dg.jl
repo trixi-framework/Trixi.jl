@@ -8,7 +8,7 @@
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{SerialTreeMesh, StructuredMesh,
                                         StructuredMeshView,
-                                        UnstructuredMesh2D, 
+                                        UnstructuredMesh2D,
                                         SerialP4estMesh, P4estMeshView,
                                         SerialT8codeMesh},
                             equations, dg::DG, cache,
