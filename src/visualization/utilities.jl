@@ -481,6 +481,27 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
     return unstructured_data
 end
 
+function get_unstructured_data(func::Function, solution_variables, mesh, equations,
+                               solver, cache)
+    original_nodes = cache.elements.node_coordinates
+    # raw_data has size (1, nnodes, nelements), where each component has length n_vars
+    raw_data = func.(SVector.(original_nodes), equations)
+    nvars = only(size(raw_data[1, 1, 1]))
+    # need to translate raw_data to the correct shape (nvars, nnodes, nelements)
+    # TODO: probably there is a smarter way to do this than looping over everything
+    u = Array{eltype(eltype(raw_data))}(undef, nvars, size(raw_data, 2),
+                                        size(raw_data, 3))
+    for j in 1:size(raw_data, 2)
+        for k in 1:size(raw_data, 3)
+            u_local = raw_data[1, j, k]
+            for i in 1:nvars
+                u[i, j, k] = u_local[i]
+            end
+        end
+    end
+    return get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
+end
+
 # Convert cell-centered values to node-centered values by averaging over all
 # four neighbors and making use of the periodicity of the solution
 #

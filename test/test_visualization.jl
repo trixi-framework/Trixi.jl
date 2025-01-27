@@ -188,6 +188,11 @@ end
         @test_nowarn_mod Plots.plot(pd)
         @test_nowarn_mod Plots.plot(pd["p"])
         @test_nowarn_mod Plots.plot(getmesh(pd))
+        initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
+                                                                  equations)
+        @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+        @test_nowarn_mod Plots.plot(initial_condition_t_end, semi,
+                                    solution_variables = cons2cons)
     end
 
     # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
