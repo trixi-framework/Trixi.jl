@@ -61,7 +61,9 @@ end
 function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Int[])
     @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
-    glm_speed_callback = GlmSpeedCallback{typeof(glm_scale), typeof(cfl)}(glm_scale, cfl, semi_indices)
+    glm_speed_callback = GlmSpeedCallback{typeof(glm_scale), typeof(cfl)}(glm_scale,
+                                                                          cfl,
+                                                                          semi_indices)
 
     DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
                      save_positions = (false, false),
@@ -98,7 +100,12 @@ end
 
 # This method is called as callback after the StepsizeCallback during the time integration.
 # Case for constant cfl number.
-@inline function (glm_speed_callback::GlmSpeedCallback{RealT, CflType})(integrator) where {RealT, CflType <: Real}
+@inline function (glm_speed_callback::GlmSpeedCallback{RealT, CflType})(integrator) where {
+                                                                                           RealT <:
+                                                                                           Real,
+                                                                                           CflType <:
+                                                                                           Real
+                                                                                           }
     dt = get_proposed_dt(integrator)
     semi = integrator.p
 
