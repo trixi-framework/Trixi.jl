@@ -96,10 +96,8 @@ function (cb::DiscreteCallback{Condition, Affect!})(ode::ODEProblem) where {Cond
     u_ode = ode.u0
     t = first(ode.tspan)
     semi = ode.p
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    dt = calculate_dt(u, t, cfl_number, semi)
+    dt = calculate_dt(u_ode, t, cfl_number, semi)
 end
 
 # General case for a single (i.e., non-coupled) semidiscretization
