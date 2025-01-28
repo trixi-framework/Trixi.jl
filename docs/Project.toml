@@ -16,7 +16,7 @@ Trixi2Vtk = "bc1476a1-1ca6-4cc3-950b-c312b255ff95"
 TrixiBase = "9a0f1c46-06d5-4909-a5a3-ce25d3fa3284"
 
 [compat]
-CairoMakie = "0.6, 0.7, 0.8, 0.9, 0.10, 0.11, 0.13"
+CairoMakie = "0.12, 0.13"
 Changelog = "1.1"
 Convex = "0.16"
 Documenter = "1"
