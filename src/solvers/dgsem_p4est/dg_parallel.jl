@@ -46,9 +46,9 @@ end
 @inline Base.eltype(::P4estMPICache{uEltype}) where {uEltype} = uEltype
 
 ##
-# Note the code in `start_mpi_send`/`finish_mpi_receive!` is sensitive to inference on (at least) 1.10
-# Julia's inference is bi-stable, it can sometimes depend what code has been looked at already, and
-# the presence of a inference result in the cache can have an impact on the inference of code.
+# Note that the code in `start_mpi_send`/`finish_mpi_receive!` is sensitive to inference on (at least) Julia 1.10.
+# Julia's inference is bi-stable, it can sometimes depend on what code has been looked at already, and
+# the presence of an inference result in the cache can have an impact on the inference of code.
 # In this case the `send_buffer[first:last] .= vec(cache.mpi_mortars.u[2, :, :, ..,mortar])`,
 # can fail to be inferred due to heuristics if this function is not in the cache...
 precompile(Base.reindex,
