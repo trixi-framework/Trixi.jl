@@ -31,10 +31,7 @@ GC.enable(false)
 
 element_class = :hex
 mesh = T8codeMesh(trees_per_dimension, element_class;
-                  # mapping = Trixi.trixi_t8_mapping_c(mapping),
-                  # Plan is to use either
                   coordinates_max = coordinates_max, coordinates_min = coordinates_min,
-                  # or at least
                   # mapping = mapping,
                   initial_refinement_level = 5)
 

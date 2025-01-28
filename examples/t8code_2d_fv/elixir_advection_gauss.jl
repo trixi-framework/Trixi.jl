@@ -33,8 +33,8 @@ save_solution = SaveSolutionCallback(interval = 10,
 
 stepsize_callback = StepsizeCallback(cfl = 0.5)
 
-callbacks = CallbackSet(summary_callback, save_solution, analysis_callback, alive_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        save_solution, stepsize_callback)
 
 ###############################################################################
 # run the simulation

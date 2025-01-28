@@ -43,30 +43,34 @@ Base.summary(io::IO, solver::FV) = print(io, "FV(order=$(solver.order))")
 
 @inline Base.real(solver::FV{RealT}) where {RealT} = RealT
 
-@inline ndofs(mesh, solver::FV, cache) = ncells(mesh)
+@inline ndofs(mesh, solver::FV, cache) = ndofs(solver, cache)
+@inline ndofs(solver::FV, cache) = nelements(solver, cache)
 
-@inline nelements(mesh::T8codeMesh, solver::FV, cache) = ncells(mesh)
+@inline nelements(mesh::T8codeMesh, solver::FV, cache) = nelements(solver, cache)
+@inline nelements(solver::FV, cache) = nelements(cache.elements)
 @inline function ndofsglobal(mesh, solver::FV, cache)
     nelementsglobal(mesh, solver, cache)
 end
 
-@inline function eachelement(mesh, solver::FV, cache)
-    Base.OneTo(nelements(mesh, solver, cache))
+@inline function eachelement(solver::FV, cache)
+    Base.OneTo(nelements(solver, cache))
 end
 
 @inline eachinterface(solver::FV, cache) = Base.OneTo(ninterfaces(solver, cache))
 @inline eachboundary(solver::FV, cache) = Base.OneTo(nboundaries(solver, cache))
+@inline eachmortar(solver::FV, cache) = Base.OneTo(nmortars(solver, cache))
 
 @inline function nelementsglobal(mesh, solver::FV, cache)
     if mpi_isparallel()
         Int(t8_forest_get_global_num_elements(mesh.forest))
     else
-        nelements(mesh, solver, cache)
+        nelements(solver, cache)
     end
 end
 
 @inline ninterfaces(solver::FV, cache) = ninterfaces(cache.interfaces)
 @inline nboundaries(solver::FV, cache) = nboundaries(cache.boundaries)
+@inline nmortars(solver::FV, cache) = nmortars(cache.mortars)
 
 @inline function get_node_coords(x, equations, solver::FV, indices...)
     SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
@@ -98,7 +102,7 @@ function allocate_coefficients(mesh::T8codeMesh, equations, solver::FV, cache)
     # We must allocate a `Vector` in order to be able to `resize!` it (AMR).
     # cf. wrap_array
     zeros(eltype(cache.elements),
-          nvariables(equations) * nelements(mesh, solver, cache))
+          nvariables(equations) * nelements(solver, cache))
 end
 
 # General fallback
@@ -114,15 +118,15 @@ end
                                    solver::FV, cache)
     @boundscheck begin
         @assert length(u_ode) ==
-                nvariables(equations) * nelements(mesh, solver, cache)
+                nvariables(equations) * nelements(solver, cache)
     end
     unsafe_wrap(Array{eltype(u_ode), 2}, pointer(u_ode),
-                (nvariables(equations), nelements(mesh, solver, cache)))
+                (nvariables(equations), nelements(solver, cache)))
 end
 
 function compute_coefficients!(u, func, t, mesh::T8codeMesh,
                                equations, solver::FV, cache)
-    for element in eachelement(mesh, solver, cache)
+    for element in eachelement(solver, cache)
         x_node = get_node_coords(cache.elements.midpoint, equations, solver, element)
         u_node = func(x_node, t, equations)
         set_node_vars!(u, u_node, equations, solver, element)
@@ -139,9 +143,9 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
     elements = init_elements(mesh, equations, solver, uEltype)
     interfaces = init_interfaces(mesh, equations, solver, uEltype)
     boundaries = init_boundaries(mesh, equations, solver, uEltype)
-    # mortars = init_mortars(mesh, equations, solver, uEltype)
+    mortars = init_mortars(mesh, equations, solver, uEltype)
 
-    fill_mesh_info_fv!(mesh, interfaces, boundaries,
+    fill_mesh_info_fv!(mesh, interfaces, boundaries, mortars,
                        mesh.boundary_names)
 
     # Data structure for exchange between MPI ranks.
@@ -150,11 +154,11 @@ function create_cache(mesh::T8codeMesh, equations::AbstractEquations, solver::FV
 
     # Initialize reconstruction stencil
     if !solver.extended_reconstruction_stencil
-        init_reconstruction_stencil!(elements, interfaces, boundaries,
+        init_reconstruction_stencil!(elements, interfaces, boundaries, mortars,
                                      communication_data, mesh, equations, solver)
     end
 
-    cache = (; elements, interfaces, boundaries, communication_data)
+    cache = (; elements, interfaces, boundaries, mortars, communication_data)
 
     return cache
 end
@@ -199,8 +203,19 @@ function rhs!(du, u, t, mesh::T8codeMesh, equations,
                             equations, solver)
     end
 
+    # Prolong solution to mortars
+    @trixi_timeit timer() "prolong2mortars" begin
+        prolong2mortars!(cache, mesh, equations, solver)
+    end
+
+    # Calculate mortar fluxes
+    @trixi_timeit timer() "mortar flux" begin
+        calc_mortar_flux!(du, mesh, have_nonconservative_terms(equations),
+                          equations, solver, cache)
+    end
+
     @trixi_timeit timer() "volume" begin
-        for element in eachelement(mesh, solver, cache)
+        for element in eachelement(solver, cache)
             volume = cache.elements.volume[element]
             for v in eachvariable(equations)
                 du[v, element] = (1 / volume) * du[v, element]
@@ -247,7 +262,7 @@ function calc_gradient_reconstruction!(u, mesh::T8codeMesh{2}, equations, solver
     r = 4
     epsilon = 1.0e-13
 
-    for element in eachelement(mesh, solver, cache)
+    for element in eachelement(solver, cache)
         # The actual number of used stencils is `n_stencil_neighbors + 1`, since the full stencil is additionally used once.
         if solver.extended_reconstruction_stencil
             # Number of faces = Number of corners
@@ -434,7 +449,7 @@ function calc_gradient_reconstruction!(u, mesh::T8codeMesh{3}, equations, solver
     r = 4
     epsilon = 1.0e-13
 
-    for element in eachelement(mesh, solver, cache)
+    for element in eachelement(solver, cache)
         # The actual number of used stencils is `n_stencil_neighbors + 1`, since the full stencil is additionally used once.
         if solver.extended_reconstruction_stencil
             # Number of faces = Number of corners
@@ -818,6 +833,93 @@ function calc_boundary_flux!(du, cache, t, boundary_condition::BC, boundary_inde
     return nothing
 end
 
+function prolong2mortars!(cache, mesh::T8codeMesh, equations, solver::FV)
+    (; mortars, communication_data) = cache
+    (; solution_data, domain_data, gradient_data) = communication_data
+
+    for mortar in eachmortar(solver, cache)
+        element_large = mortars.neighbor_ids[end, mortar]
+        if solver.order == 1
+            n_positions = mortars.n_local_elements_small[mortar]
+            for position in 1:n_positions
+                element_small = mortars.neighbor_ids[position, mortar]
+                for v in eachvariable(equations)
+                    mortars.u[2, v, position, mortar] = solution_data[element_large].u[v]
+                    mortars.u[1, v, position, mortar] = solution_data[element_small].u[v]
+                end
+            end
+        elseif solver.order == 2
+            face_element_large = mortars.faces[end, mortar]
+            # TODO: Using this face midpoint for the reconstruction doesn't make sense.
+            # The alternative to use the small element's face midpoint isn't possible for periodic meshes.
+            face_midpoint_element_large = domain_data[element_large].face_midpoints[face_element_large]
+            midpoint_element_large = domain_data[element_large].midpoint
+
+            n_positions = mortars.n_local_elements_small[mortar]
+            for position in 1:n_positions
+                element_small = mortars.neighbor_ids[position, mortar]
+                face_element_small = mortars.faces[position, mortar]
+                face_midpoint_element_small = domain_data[element_small].face_midpoints[face_element_small]
+                midpoint_element_small = domain_data[element_small].midpoint
+
+                vector_element_large = face_midpoint_element_large .-
+                                       midpoint_element_large
+                vector_element_small = face_midpoint_element_small .-
+                                       midpoint_element_small
+                for v in eachvariable(equations)
+                    gradient_v_element_large = gradient_data[element_large].reconstruction_gradient_limited[v]
+                    gradient_v_element_small = gradient_data[element_small].reconstruction_gradient_limited[v]
+                    mortars.u[2, v, position, mortar] = solution_data[element_large].u[v] +
+                                                        dot(gradient_v_element_large,
+                                                            vector_element_large)
+                    mortars.u[1, v, position, mortar] = solution_data[element_small].u[v] +
+                                                        dot(gradient_v_element_small,
+                                                            vector_element_small)
+                end
+            end
+        else
+            error("Order $(solver.order) is not supported.")
+        end
+    end
+
+    return nothing
+end
+
+function calc_mortar_flux!(du, mesh::T8codeMesh, nonconservative_terms::False,
+                           equations, solver::FV, cache)
+    (; surface_flux) = solver
+    (; mortars, communication_data) = cache
+    (; domain_data) = communication_data
+
+    for mortar in eachmortar(solver, cache)
+        element_large = mortars.neighbor_ids[end, mortar]
+        face_large = mortars.faces[end, mortar]
+
+        normal = domain_data[element_large].face_normals[face_large]
+        n_positions = mortars.n_local_elements_small[mortar]
+        for position in 1:n_positions
+            element_small = mortars.neighbor_ids[position, mortar]
+            face_small = mortars.faces[position, mortar]
+
+            u_small, u_large = get_surface_node_vars(mortars.u, equations, solver,
+                                                     position, mortar)
+            flux = surface_flux(u_large, u_small, normal, equations)
+            for v in eachvariable(equations)
+                face_area = domain_data[element_small].face_areas[face_small]
+                flux_ = face_area * flux[v]
+                if !is_ghost_cell(element_large, mesh)
+                    du[v, element_large] -= flux_
+                end
+                if !is_ghost_cell(element_small, mesh)
+                    du[v, element_small] += flux_
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
 function calc_sources!(du, u, t, source_terms::Nothing, mesh::T8codeMesh,
                        equations::AbstractEquations, solver::FV, cache)
     return nothing
@@ -825,7 +927,7 @@ end
 
 function calc_sources!(du, u, t, source_terms, mesh::T8codeMesh,
                        equations::AbstractEquations, solver::FV, cache)
-    @threaded for element in eachelement(mesh, solver, cache)
+    @threaded for element in eachelement(solver, cache)
         u_local = get_node_vars(u, equations, solver, element)
         x_local = get_node_coords(cache.elements.midpoint, equations, solver, element)
         du_local = source_terms(u_local, x_local, t, equations)
@@ -851,6 +953,9 @@ end
 function SolutionAnalyzer(solver::FV; kwargs...)
 end
 
+# For FV, there is no projection needed.
+AdaptorAMR(mesh, solver::FV) = nothing
+
 function create_cache_analysis(analyzer, mesh,
                                equations, solver::FV, cache,
                                RealT, uEltype)
@@ -864,6 +969,10 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh}, solver::FV; kwargs...)
     T8codeMesh(cmesh; polydeg = 0, kwargs...)
 end
 
+include("indicators.jl")
+
 # Container data structures
 include("containers.jl")
+include("containers_2d.jl")
+include("containers_3d.jl")
 end # @muladd

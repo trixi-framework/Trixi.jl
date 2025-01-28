@@ -5,8 +5,6 @@ using Trixi
 
 include("test_trixi.jl")
 
-# I added this temporary test file for constantly testing while developing.
-# The tests have to be adapted at the end.
 EXAMPLES_DIR = joinpath(examples_dir(), "t8code_2d_fv")
 
 # Start with a clean environment: remove Trixi.jl output directory if it exists
@@ -14,35 +12,8 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 mkdir(outdir)
 
-# The are some reasons why the FV tests fail on the CI runs:
-# - T8code.jl is no dependency of the Trixi test environment. So `using T8code` within the `advection_basic` elixir throws an error.
-#   (But: When removing this line, e.g. code like `trixi_t8_mapping_c` (with unknown types) or unknown eclasses fails)
-# - `load_tree_data = @t8_load_tree_data(t8_geom_load_tree_data_vertices)` is required.
-#    Sadly, the macro is not yet in the latest T8code.jl release (but for instance in `jmark/bumb-t8code-3.0.0` or `bennibolm/t8-trixi-fv-scheme`).
-
 @testset "T8codeMesh2D" begin
 #! format: noindent
-
-# @trixi_testset "test check_for_negative_volumes" begin
-#     # This test actually checks if a "negative volume" error is thrown.
-#     # Since t8code currently applies a correction on-the-fly this test
-#     # is kinda broken. The correction feature in t8code, however, is planned
-#     # to be removed in near to midterm future. Thus, this test is kept. It will
-#     # fail once the internal correction is removed and can then be restored
-#     # to its original form.
-
-#     # @test_throws "Discovered negative volumes" begin
-#     @test begin
-#         # Unstructured mesh with six cells which have left-handed node ordering.
-#         mesh_file = Trixi.download("https://gist.githubusercontent.com/jmark/bfe0d45f8e369298d6cc637733819013/raw/cecf86edecc736e8b3e06e354c494b2052d41f7a/rectangle_with_negative_volumes.msh",
-#                                    joinpath(EXAMPLES_DIR,
-#                                             "rectangle_with_negative_volumes.msh"))
-
-#         # This call should throw a warning about negative volumes detected.
-#         mesh = T8codeMesh(mesh_file, 2)
-#         true
-#     end
-# end
 
 @trixi_testset "elixir_advection_basic.jl" begin
     @trixi_testset "first-order FV" begin
@@ -109,6 +80,53 @@ end
                                      "elixir_advection_gauss.jl"),
                             l2=[0.5899012906928289],
                             linf=[0.8970164922705812])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+end
+
+@trixi_testset "elixir_advection_amr.jl" begin
+    @trixi_testset "first-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_amr.jl"),
+                            order=1,
+                            l2=[0.0449818455360287],
+                            linf=[0.12473470922146587])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+    @trixi_testset "second-order FV" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_amr.jl"),
+                            l2=[0.02512215868291359],
+                            linf=[0.1037808063352261])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+    @trixi_testset "second-order FV, extended reconstruction stencil" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                     "elixir_advection_amr.jl"),
+                            extended_reconstruction_stencil=true,
+                            l2=[0.03730016705453325],
+                            linf=[0.1183222809678668])
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let

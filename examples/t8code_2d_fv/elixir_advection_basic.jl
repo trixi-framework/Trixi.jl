@@ -58,10 +58,7 @@ GC.enable(false)
 
 element_class = :quad
 mesh = T8codeMesh(trees_per_dimension, element_class,
-                  # mapping = Trixi.trixi_t8_mapping_c(mapping_coordinates),
-                  # Plan is to use either
                   coordinates_max = coordinates_max, coordinates_min = coordinates_min,
-                  # or at least
                   # mapping = mapping_coordinates,
                   initial_refinement_level = 6)
 

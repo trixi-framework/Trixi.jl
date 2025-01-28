@@ -5,6 +5,44 @@
 @muladd begin
 #! format: noindent
 
+function reinitialize_containers!(mesh::T8codeMesh, equations, solver::FV, cache)
+    # Re-initialize elements container.
+    @unpack elements = cache
+    resize!(elements, ncells(mesh))
+    init_elements!(elements, mesh, equations, solver)
+
+    count_required_surfaces!(mesh)
+    # Resize interfaces container.
+    @unpack interfaces = cache
+    resize!(interfaces, mesh.ninterfaces + mesh.nmpiinterfaces)
+
+    # Resize mortars container.
+    @unpack mortars = cache
+    resize!(mortars, mesh.nmortars + mesh.nmpimortars)
+
+    # Resize boundaries container.
+    @unpack boundaries = cache
+    resize!(boundaries, mesh.nboundaries)
+
+    fill_mesh_info_fv!(mesh, interfaces, boundaries, mortars,
+                       mesh.boundary_names)
+
+    (; solution_data, domain_data, gradient_data) = cache.communication_data
+    num_ghost_elements = t8_forest_get_num_ghosts(mesh.forest)
+    resize!(solution_data, ncells(mesh) + num_ghost_elements)
+    resize!(domain_data, ncells(mesh) + num_ghost_elements)
+    resize!(gradient_data, ncells(mesh) + num_ghost_elements)
+    exchange_domain_data!(cache.communication_data, elements, mesh, equations, solver)
+
+    # Reinitialize reconstruction stencil
+    if !solver.extended_reconstruction_stencil
+        init_reconstruction_stencil!(elements, interfaces, boundaries, mortars,
+                                     cache.communication_data, mesh, equations, solver)
+    end
+
+    return nothing
+end
+
 # Container data structure (structure-of-arrays style) for DG elements
 mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
     level::Vector{Cint}     # [element]
@@ -17,9 +55,9 @@ mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
     face_areas::Matrix{RealT}       # [face, element]
     face_normals::Array{RealT, 3}   # [dimension, face, element]
 
-    reconstruction_stencil::Vector{Vector{Int}}             # Reconstruction stencil vector with neighbors per [element]
-    reconstruction_distance::Vector{Vector{Vector{RealT}}}  # Reconstruction stencil vector with distances per [element]
-    reconstruction_corner_elements::Array{Vector{Int}, 2}   # Reconstruction stencil array with neighbor elements at corner per [corner, element]
+    reconstruction_stencil::Vector{Vector{Int}}                     # Reconstruction stencil vector with neighbors per [element]
+    reconstruction_distance::Vector{Vector{SVector{NDIMS, RealT}}}  # Reconstruction stencil vector with distances per [element]
+    reconstruction_corner_elements::Array{Vector{Int}, 2}           # Reconstruction stencil array with neighbor elements at corner per [corner, element]
     reconstruction_gradient::Array{RealT, 4}            # [dimension, variable, slope_stencils, element], slope_stencil: i = use all neighbors exclusive i, n_neighbors = use all neighbors
     reconstruction_gradient_limited::Array{RealT, 3}    # [dimension, variable, element]
 
@@ -34,6 +72,7 @@ mutable struct T8codeFVElementContainer{NDIMS, RealT <: Real, uEltype <: Real}
 end
 
 @inline Base.ndims(::T8codeFVElementContainer{NDIMS}) where {NDIMS} = NDIMS
+@inline nelements(elements::T8codeFVElementContainer) = length(elements.num_faces)
 @inline function Base.eltype(::T8codeFVElementContainer{NDIMS, RealT, uEltype}) where {
                                                                                        NDIMS,
                                                                                        RealT,
@@ -58,11 +97,11 @@ function Base.resize!(elements::T8codeFVElementContainer, capacity)
     resize!(elements.num_faces, capacity)
 
     resize!(_midpoint, n_dims * capacity)
-    elements.midpoint = unsafe_wrap(Array, pointer(_midpoint), (ndims, capacity))
+    elements.midpoint = unsafe_wrap(Array, pointer(_midpoint), (n_dims, capacity))
 
     resize!(_face_midpoints, n_dims * max_number_faces * capacity)
     elements.face_midpoints = unsafe_wrap(Array, pointer(_face_midpoints),
-                                          (ndims, max_number_faces, capacity))
+                                          (n_dims, max_number_faces, capacity))
 
     resize!(_face_areas, max_number_faces * capacity)
     elements.face_areas = unsafe_wrap(Array, pointer(_face_areas),
@@ -70,7 +109,7 @@ function Base.resize!(elements::T8codeFVElementContainer, capacity)
 
     resize!(_face_normals, n_dims * max_number_faces * capacity)
     elements.face_normals = unsafe_wrap(Array, pointer(_face_normals),
-                                        (ndims, max_number_faces, capacity))
+                                        (n_dims, max_number_faces, capacity))
 
     resize!(elements.reconstruction_stencil, capacity)
     resize!(elements.reconstruction_distance, capacity)
@@ -80,17 +119,20 @@ function Base.resize!(elements::T8codeFVElementContainer, capacity)
                                                           pointer(_reconstruction_corner_elements),
                                                           (max_number_faces, capacity))
 
+    max_neighbors_per_face = 2^(n_dims - 1)
     resize!(_reconstruction_gradient,
-            n_dims * n_variables * (max_number_faces + 1) * capacity)
+            n_dims * n_variables * (max_neighbors_per_face * max_number_faces + 1) *
+            capacity)
     elements.reconstruction_gradient = unsafe_wrap(Array,
                                                    pointer(_reconstruction_gradient),
-                                                   (ndims, n_variables,
-                                                    (max_number_faces + 1), capacity))
+                                                   (n_dims, n_variables,
+                                                    max_neighbors_per_face *
+                                                    max_number_faces + 1, capacity))
 
     resize!(_reconstruction_gradient_limited, n_dims * n_variables * capacity)
     elements.reconstruction_gradient_limited = unsafe_wrap(Array,
                                                            pointer(_reconstruction_gradient_limited),
-                                                           (ndims, n_variables,
+                                                           (n_dims, n_variables,
                                                             capacity))
 
     return nothing
@@ -129,7 +171,7 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
                                (NDIMS, max_number_faces, nelements))
 
     reconstruction_stencil = Vector{Vector{Int}}(undef, nelements)
-    reconstruction_distance = Vector{Vector{Array{RealT, NDIMS}}}(undef, nelements)
+    reconstruction_distance = Vector{Vector{SVector{NDIMS, RealT}}}(undef, nelements)
 
     _reconstruction_corner_elements = Vector{Vector{Int}}(undef,
                                                           max_number_faces * nelements)
@@ -167,12 +209,12 @@ function init_elements(mesh::T8codeMesh{NDIMS, RealT},
                                                                _reconstruction_gradient,
                                                                _reconstruction_gradient_limited)
 
-    init_elements!(elements, mesh, solver)
+    init_elements!(elements, mesh, equations, solver)
 
     return elements
 end
 
-function init_elements!(elements, mesh::T8codeMesh, solver::FV)
+function init_elements!(elements, mesh::T8codeMesh, equations, solver::FV)
     (; forest) = mesh
 
     n_dims = ndims(mesh)
@@ -242,13 +284,14 @@ function init_elements!(elements, mesh::T8codeMesh, solver::FV)
 
     # Init stencil for reconstruction
     if solver.extended_reconstruction_stencil
-        init_extended_reconstruction_stencil!(corners, elements, solver)
+        init_extended_reconstruction_stencil!(corners, elements, equations, solver)
     end
 
     return nothing
 end
 
-@inline function init_extended_reconstruction_stencil!(corners, elements, solver::FV)
+@inline function init_extended_reconstruction_stencil!(corners, elements, equations,
+                                                       solver::FV)
     if solver.order != 2
         return nothing
     end
@@ -257,10 +300,10 @@ end
 
     # Create empty vectors for every element
     for element in eachindex(volume)
-        reconstruction_stencil[element] = []
-        reconstruction_distance[element] = []
+        reconstruction_stencil[element] = Int[]
+        reconstruction_distance[element] = SVector{eltype(reconstruction_distance)}[]
         for corner in 1:num_faces[element]
-            reconstruction_corner_elements[corner, element] = []
+            reconstruction_corner_elements[corner, element] = Int[]
         end
     end
 
@@ -270,16 +313,20 @@ end
         for possible_stencil_neighbor in (element + 1):length(volume)
             # loop over all corners of `element`
             for corner in 1:num_faces[element]
-                corner_coords = view(corners, :, corner, element)
+                corner_coords = get_node_coords(corners, equations, solver, corner,
+                                                element)
                 # loop over all corners of `possible_stencil_neighbor`
                 for possible_corner in 1:num_faces[possible_stencil_neighbor]
-                    possible_corner_coords = view(corners, :, possible_corner,
-                                                  possible_stencil_neighbor)
+                    possible_corner_coords = get_node_coords(corners, equations, solver,
+                                                             possible_corner,
+                                                             possible_stencil_neighbor)
                     if corner_coords == possible_corner_coords
                         neighbor = possible_stencil_neighbor
 
-                        midpoint_element = view(elements.midpoint, :, element)
-                        midpoint_neighbor = view(elements.midpoint, :, neighbor)
+                        midpoint_element = get_node_coords(elements.midpoint, equations,
+                                                           solver, element)
+                        midpoint_neighbor = get_node_coords(elements.midpoint,
+                                                            equations, solver, neighbor)
 
                         distance = midpoint_neighbor .- midpoint_element
                         append!(reconstruction_stencil[element], neighbor)
@@ -325,22 +372,22 @@ end
     return nothing
 end
 
-function init_reconstruction_stencil!(elements, interfaces, boundaries,
+function init_reconstruction_stencil!(elements, interfaces, boundaries, mortars,
                                       communication_data,
                                       mesh, equations, solver::FV)
-    if solver.order != 2
+    if solver.order != 2 # type instability?
         return nothing
     end
     (; reconstruction_stencil, reconstruction_distance) = elements
-    (; neighbor_ids, faces) = interfaces
     (; domain_data) = communication_data
 
     # Create empty vectors for every element
     for element in eachindex(reconstruction_stencil)
-        reconstruction_stencil[element] = []
-        reconstruction_distance[element] = []
+        reconstruction_stencil[element] = Int[]
+        reconstruction_distance[element] = SVector{eltype(reconstruction_distance)}[]
     end
 
+    (; neighbor_ids, faces) = interfaces
     for interface in axes(neighbor_ids, 2)
         element1 = neighbor_ids[1, interface]
         element2 = neighbor_ids[2, interface]
@@ -362,9 +409,54 @@ function init_reconstruction_stencil!(elements, interfaces, boundaries,
         append!(reconstruction_stencil[element1], element2)
         push!(reconstruction_distance[element1], distance)
         # only if element2 is local element
-        if element2 <= ncells(mesh)
+        if !is_ghost_cell(element2, mesh)
             append!(reconstruction_stencil[element2], element1)
             push!(reconstruction_distance[element2], -distance)
+        end
+    end
+
+    (; neighbor_ids, faces, n_local_elements_small) = mortars
+    for mortar in axes(neighbor_ids, 2)
+        element_large = neighbor_ids[end, mortar]
+        face_element_large = faces[end, mortar]
+
+        midpoint_element_large = domain_data[element_large].midpoint
+
+        n_positions = n_local_elements_small[mortar]
+        for position in 1:n_positions
+            element_small = neighbor_ids[position, mortar]
+            face_element_small = faces[position, mortar]
+            midpoint_element_small = domain_data[element_small].midpoint
+            face_midpoint_element_small = domain_data[element_small].face_midpoints[face_element_small]
+
+            # TODO: The face midpoint of the large element is not the correct here.
+            face_midpoint_element_large = domain_data[element_large].face_midpoints[face_element_large]
+
+            # TODO: How to handle periodic boundaries?
+            # Hacky solution to figure out if mortar is at periodic boundary
+            distance_face_large2face_small = sqrt(sum(abs.(face_midpoint_element_large .-
+                                                           face_midpoint_element_small) .^
+                                                      2))
+            distance_face_large2mid_large = sqrt(sum(abs.(face_midpoint_element_large .-
+                                                          midpoint_element_small) .^ 2))
+            # Not at periodic boundary
+            if distance_face_large2face_small < distance_face_large2mid_large
+                distance = midpoint_element_small .- midpoint_element_large
+            else # At periodic boundary
+                # TODO: See above
+                distance = (face_midpoint_element_large .- midpoint_element_large) .+
+                           (midpoint_element_small .- face_midpoint_element_small)
+            end
+
+            # Add info only if element is local element
+            if !is_ghost_cell(element_large, mesh)
+                append!(reconstruction_stencil[element_large], element_small)
+                push!(reconstruction_distance[element_large], distance)
+            end
+            if !is_ghost_cell(element_small, mesh)
+                append!(reconstruction_stencil[element_small], element_large)
+                push!(reconstruction_distance[element_small], -distance)
+            end
         end
     end
 
@@ -483,6 +575,77 @@ function init_boundaries(mesh::T8codeMesh, equations, solver::FV, uEltype)
     return boundaries
 end
 
+mutable struct T8codeFVMortarContainer{NDIMS, uEltype <: Real} <: AbstractContainer
+    u::Array{uEltype, 4}                # [small/large side, variable, position, mortar]
+    neighbor_ids::Matrix{Int}           # [position, mortar]
+    faces::Matrix{Int}                  # [position, mortar]
+    n_local_elements_small::Vector{Int} # [mortar]
+
+    # internal `resize!`able storage
+    _u::Vector{uEltype}
+    _neighbor_ids::Vector{Int}
+    _faces::Vector{Int}
+end
+
+@inline nmortars(mortars::T8codeFVMortarContainer) = size(mortars.neighbor_ids, 2)
+@inline Base.ndims(::T8codeFVMortarContainer{NDIMS}) where {NDIMS} = NDIMS
+
+# See explanation of Base.resize! for the element container
+function Base.resize!(mortars::T8codeFVMortarContainer, capacity)
+    @unpack _u, _neighbor_ids, _faces = mortars
+
+    n_dims = ndims(mortars)
+    n_variables = size(mortars.u, 2)
+
+    resize!(_u, 2 * n_variables * 2^(n_dims - 1) * capacity)
+    mortars.u = unsafe_wrap(Array, pointer(_u),
+                            (2, n_variables, 2^(n_dims - 1), capacity))
+
+    resize!(_neighbor_ids, (2^(n_dims - 1) + 1) * capacity)
+    mortars.neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+                                       (2^(n_dims - 1) + 1, capacity))
+
+    resize!(_faces, (2^(n_dims - 1) + 1) * capacity)
+    mortars.faces = unsafe_wrap(Array, pointer(_faces),
+                                (2^(n_dims - 1) + 1, capacity))
+
+    resize!(mortars.n_local_elements_small, capacity)
+
+    return nothing
+end
+
+# Create mortar container and initialize mortar data.
+function init_mortars(mesh::T8codeMesh, equations, solver::FV, uEltype)
+    NDIMS = ndims(mesh)
+
+    # Initialize container
+    n_mortars = count_required_surfaces(mesh).mortars
+    if mpi_parallel(mesh) == true
+        n_mortars += count_required_surfaces(mesh).mpi_mortars
+    end
+
+    _u = Vector{uEltype}(undef,
+                         2 * nvariables(equations) * 2^(NDIMS - 1) * n_mortars)
+    u = unsafe_wrap(Array, pointer(_u),
+                    (2, nvariables(equations), 2^(NDIMS - 1), n_mortars))
+
+    _neighbor_ids = Vector{Int}(undef, (2^(NDIMS - 1) + 1) * n_mortars)
+    neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
+                               (2^(NDIMS - 1) + 1, n_mortars))
+
+    _faces = Vector{NTuple{NDIMS, Symbol}}(undef, (2^(NDIMS - 1) + 1) * n_mortars)
+    faces = unsafe_wrap(Array, pointer(_faces),
+                        (2^(NDIMS - 1) + 1, n_mortars))
+
+    n_local_elements_small = Vector{Int}(undef, n_mortars)
+
+    mortars = T8codeFVMortarContainer{NDIMS, uEltype}(u, neighbor_ids, faces,
+                                                      _u, _neighbor_ids, _faces,
+                                                      n_local_elements_small)
+
+    return mortars
+end
+
 function init_communication_data!(mesh::T8codeMesh, equations)
     (; forest) = mesh
     # Check that the forest is a committed.
@@ -541,7 +704,7 @@ end
 
 function exchange_solution_data!(u, mesh, equations, solver, cache)
     (; solution_data) = cache.communication_data
-    for element in eachelement(mesh, solver, cache)
+    for element in eachelement(solver, cache)
         solution_data[element] = T8codeSolutionContainer(Tuple(get_node_vars(u,
                                                                              equations,
                                                                              solver,
@@ -564,7 +727,7 @@ end
 function exchange_gradient_data!(reconstruction_gradient_limited,
                                  mesh, equations, solver, cache)
     (; gradient_data) = cache.communication_data
-    for element in eachelement(mesh, solver, cache)
+    for element in eachelement(solver, cache)
         gradient_data[element] = T8codeGradientContainer(ntuple(v -> get_node_coords(reconstruction_gradient_limited,
                                                                                      equations,
                                                                                      solver,
@@ -579,33 +742,41 @@ end
 
 struct T8codeReconstructionContainer{NDIMS, NFACES}
     midpoint::SVector{NDIMS, Cdouble}
-    face_midpoints::NTuple{NFACES, SVector{NDIMS, Cdouble}}
+    face_midpoints::SVector{NFACES, SVector{NDIMS, Cdouble}}
+    face_areas::SVector{NFACES, Cdouble}
+    face_normals::SVector{NFACES, SVector{NDIMS, Cdouble}}
 
-    function T8codeReconstructionContainer(midpoint, face_midpoints)
-        new{length(midpoint), length(face_midpoints)}(midpoint, face_midpoints)
+    function T8codeReconstructionContainer(midpoint, face_midpoints, face_areas,
+                                           face_normals)
+        new{length(midpoint), length(face_midpoints)}(midpoint, face_midpoints,
+                                                      face_areas, face_normals)
     end
 end
 
 function exchange_domain_data!(communication_data, elements, mesh, equations, solver)
     (; domain_data) = communication_data
-    (; midpoint, face_midpoints, num_faces) = elements
+    (; midpoint, face_midpoints, face_areas, face_normals, num_faces) = elements
+
+    n_dims = ndims(equations)
+    vec_zero = SVector{n_dims}(zeros(eltype(midpoint), n_dims))
+    face_midpoints_ = Vector{typeof(vec_zero)}(undef, mesh.max_number_faces)
+    face_normals_ = Vector{typeof(vec_zero)}(undef, mesh.max_number_faces)
+    face_areas_ = zeros(eltype(face_areas), mesh.max_number_faces)
     for element in 1:ncells(mesh)
-        face_midpoints_tuple = []
-        for face in 1:(num_faces[element])
-            push!(face_midpoints_tuple,
-                  get_node_coords(face_midpoints, equations, solver, face, element))
+        for face in 1:num_faces[element]
+            face_midpoints_[face] = get_node_coords(face_midpoints, equations, solver,
+                                                    face, element)
+            face_normals_[face] = get_node_coords(face_normals, equations, solver,
+                                                  face, element)
+            face_areas_[face] = face_areas[face, element]
         end
-        for i in (num_faces[element] + 1):(mesh.max_number_faces)
-            push!(face_midpoints_tuple,
-                  SVector{ndims(equations)}(zeros(eltype(midpoint), ndims(equations))))
-        end
-        face_midpoints_tuple_ = NTuple{mesh.max_number_faces,
-                                       eltype(face_midpoints_tuple)}(face_midpoints_tuple)
         domain_data[element] = T8codeReconstructionContainer(get_node_coords(midpoint,
                                                                              equations,
                                                                              solver,
                                                                              element),
-                                                             face_midpoints_tuple_)
+                                                             face_midpoints_,
+                                                             face_areas_,
+                                                             face_normals_)
     end
     exchange_ghost_data(mesh, domain_data)
 
