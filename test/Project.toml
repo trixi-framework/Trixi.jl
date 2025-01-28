@@ -22,7 +22,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 Aqua = "0.8"
-CairoMakie = "0.12"
+CairoMakie = "0.12, 0.13"
 Convex = "0.16"
 DelimitedFiles = "1"
 DoubleFloats = "1.4.0"
