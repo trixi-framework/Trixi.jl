@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -17,23 +16,24 @@ The blob test case taken from
 """
 function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
     # blob test case, see Agertz et al. https://arxiv.org/pdf/astro-ph/0610051.pdf
-    # other reference: https://arxiv.org/pdf/astro-ph/0610051.pdf
+    # other reference: https://doi.org/10.1111/j.1365-2966.2007.12183.x
     # change discontinuity to tanh
     # typical domain is rectangular, we change it to a square
     # resolution 128^2, 256^2
     # domain size is [-20.0,20.0]^2
     # gamma = 5/3 for this test case
-    R = 1.0 # radius of the blob
+    RealT = eltype(x)
+    R = 1 # radius of the blob
     # background density
-    dens0 = 1.0
-    Chi = 10.0 # density contrast
+    dens0 = 1
+    Chi = convert(RealT, 10) # density contrast
     # reference time of characteristic growth of KH instability equal to 1.0
-    tau_kh = 1.0
-    tau_cr = tau_kh / 1.6 # crushing time
+    tau_kh = 1
+    tau_cr = tau_kh / convert(RealT, 1.6) # crushing time
     # determine background velocity
     velx0 = 2 * R * sqrt(Chi) / tau_cr
-    vely0 = 0.0
-    Ma0 = 2.7 # background flow Mach number Ma=v/c
+    vely0 = 0
+    Ma0 = convert(RealT, 2.7) # background flow Mach number Ma=v/c
     c = velx0 / Ma0 # sound speed
     # use perfect gas assumption to compute background pressure via the sound speed c^2 = gamma * pressure/density
     p0 = c * c * dens0 / equations.gamma
@@ -45,9 +45,10 @@ function initial_condition_blob(x, t, equations::CompressibleEulerEquations2D)
     slope = 2
     # density blob
     dens = dens0 +
-           (Chi - 1) * 0.5 * (1 + (tanh(slope * (r + R)) - (tanh(slope * (r - R)) + 1)))
+           (Chi - 1) * 0.5f0 * (1 + (tanh(slope * (r + R)) - (tanh(slope * (r - R)) + 1)))
     # velocity blob is zero
-    velx = velx0 - velx0 * 0.5 * (1 + (tanh(slope * (r + R)) - (tanh(slope * (r - R)) + 1)))
+    velx = velx0 -
+           velx0 * 0.5f0 * (1 + (tanh(slope * (r + R)) - (tanh(slope * (r - R)) + 1)))
     return prim2cons(SVector(dens, velx, vely0, p0), equations)
 end
 initial_condition = initial_condition_blob
