@@ -130,12 +130,12 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_navierstokes_convergence_walls.jl"),
                         l2=[
-                            0.00047023310868269237,
-                            0.00032181736027057234,
-                            0.0014966266486095025
+                            0.0004702331100298379,
+                            0.0003218173539588441,
+                            0.001496626616191212
                         ],
                         linf=[
-                            0.002996375101363302,
+                            0.0029963751636357117,
                             0.0028639041695096433,
                             0.012691132694550689
                         ])
@@ -157,14 +157,14 @@ end
                                                                                 Prandtl = prandtl_number(),
                                                                                 gradient_variables = GradientVariablesEntropy()),
                         l2=[
-                            0.0004608500483647771,
-                            0.00032431091222851285,
-                            0.0015159733360626845
+                            0.00046085004909354776,
+                            0.0003243109084492897,
+                            0.0015159733164383632
                         ],
                         linf=[
-                            0.002754803146635787,
-                            0.0028567713744625124,
-                            0.012941793784197131
+                            0.0027548031865172184,
+                            0.0028567713569609024,
+                            0.012941793735691931
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -218,6 +218,29 @@ end
                             0.00011850494672183132,
                             0.00018987676556476442,
                             0.0009597461727750556
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh1D: elixir_navierstokes_viscous_shock.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        l2=[
+                            0.00025762354103445303,
+                            0.0001433692781569829,
+                            0.00017369861968287976
+                        ],
+                        linf=[
+                            0.0016731940030498826,
+                            0.0010638575921477766,
+                            0.0011495207677434394
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

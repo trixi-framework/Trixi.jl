@@ -173,7 +173,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 tspan = (0.0, 0.4)
 ode = semidiscretize(semi, tspan);
 
-# To analyse the entropy conservation of the approximation, we will use the analysis calllback
+# To analyse the entropy conservation of the approximation, we will use the analysis callback
 # implemented in Trixi. It provides some information about the approximation including the entropy change.
 analysis_callback = AnalysisCallback(semi, interval = 100);
 

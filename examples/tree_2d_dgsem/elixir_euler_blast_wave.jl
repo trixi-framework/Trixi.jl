@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -18,7 +17,8 @@ A medium blast wave taken from
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
     # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
     # Set up polar coordinates
-    inicenter = SVector(0.0, 0.0)
+    RealT = eltype(x)
+    inicenter = SVector(0, 0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
@@ -26,10 +26,10 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
     sin_phi, cos_phi = sincos(phi)
 
     # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-    p = r > 0.5 ? 1.0E-3 : 1.245
+    rho = r > 0.5f0 ? one(RealT) : RealT(1.1691)
+    v1 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * cos_phi
+    v2 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * sin_phi
+    p = r > 0.5f0 ? RealT(1.0E-3) : RealT(1.245)
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
