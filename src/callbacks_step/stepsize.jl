@@ -11,7 +11,7 @@
 Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself.
 
-The supplied keyword must be either a `Real` number or
+The supplied keyword argument `cfl` must be either a `Real` number or
 a function of time `t` returning a `Real` number.
 """
 mutable struct StepsizeCallback{CflType}
