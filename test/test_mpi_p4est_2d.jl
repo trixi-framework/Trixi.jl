@@ -81,8 +81,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
                                      "elixir_advection_amr_solution_independent.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[4.949660644033807e-5],
-                            linf=[0.0004867846262313763],
-                            coverage_override=(maxiters = 6,))
+                            linf=[0.0004867846262313763],)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -98,8 +97,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_unstructured_flag.jl"),
                             l2=[0.0012808538770535593],
-                            linf=[0.01752690016659812],
-                            coverage_override=(maxiters = 6,))
+                            linf=[0.01752690016659812],)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -114,10 +112,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
     @trixi_testset "elixir_advection_restart.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                             l2=[4.507575525876275e-6],
-                            linf=[6.21489667023134e-5],
-                            # With the default `maxiters = 1` in coverage tests,
-                            # there would be no time steps after the restart.
-                            coverage_override=(maxiters = 100_000,))
+                            linf=[6.21489667023134e-5],)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
