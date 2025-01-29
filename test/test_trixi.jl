@@ -35,11 +35,6 @@ macro test_trixi_include(elixir, args...)
     local atol = get_kwarg(args, :atol, atol_default)
     local rtol = get_kwarg(args, :rtol, rtol_default)
     local skip_coverage = get_kwarg(args, :skip_coverage, false)
-    local coverage_override = expr_to_named_tuple(get_kwarg(args, :coverage_override, :()))
-    if !(:maxiters in keys(coverage_override))
-        # maxiters in coverage_override defaults to 1
-        coverage_override = (; coverage_override..., maxiters = 1)
-    end
 
     local cmd = string(Base.julia_cmd())
     local coverage = occursin("--code-coverage", cmd) &&
@@ -48,16 +43,9 @@ macro test_trixi_include(elixir, args...)
     local kwargs = Pair{Symbol, Any}[]
     for arg in args
         if (arg.head == :(=) &&
-            !(arg.args[1] in (:l2, :linf, :RealT, :atol, :rtol, :coverage_override,
-                              :skip_coverage))
-            && !(coverage && arg.args[1] in keys(coverage_override)))
+            !(arg.args[1] in (:l2, :linf, :RealT, :atol, :rtol,
+                              :skip_coverage)))
             push!(kwargs, Pair(arg.args...))
-        end
-    end
-
-    if coverage
-        for key in keys(coverage_override)
-            push!(kwargs, Pair(key, coverage_override[key]))
         end
     end
 

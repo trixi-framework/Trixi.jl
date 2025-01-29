@@ -25,10 +25,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_3d_dgsem")
                             0.032179231640894645,
                             0.032179231640895534,
                             0.0655408023333299
-                        ],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time series to check against.
-                        coverage_override=(maxiters = 20,))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -188,9 +185,7 @@ end
                             0.07390396464027305,
                             0.11085594696041134
                         ],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(maxiters = 6, initial_refinement_level = 0,
-                                           base_level = 0, med_level = 0, max_level = 1))
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -273,8 +268,7 @@ end
                             0.2749304638368023,
                             1.4053942765487641
                         ],
-                        maxiters=10,
-                        coverage_override=(maxiters = 2,))
+                        maxiters=10,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -462,10 +456,7 @@ end
                             10.319859082570487,
                             195.1066220797401
                         ],
-                        tspan=(0.0, 0.2),
-                        # Let this test run longer to cover some lines in the positivity preserving limiter
-                        # and some AMR lines
-                        coverage_override=(maxiters = 10^5,))
+                        tspan=(0.0, 0.2),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -493,9 +484,7 @@ end
                             2.397746252817731
                         ],
                         maxiters=5, max_level=6,
-                        surface_flux=FluxHLL(min_max_speed_naive),
-                        coverage_override=(maxiters = 2, initial_refinement_level = 1,
-                                           base_level = 1, max_level = 3))
+                        surface_flux=FluxHLL(min_max_speed_naive),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -62,9 +62,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[9.773852895157622e-6],
-                        linf=[0.0005853874124926162],
-                        coverage_override=(maxiters = 6, initial_refinement_level = 1,
-                                           base_level = 1, med_level = 2, max_level = 3))
+                        linf=[0.0005853874124926162],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -80,9 +78,7 @@ end
                                  "elixir_advection_amr_unstructured_curved.jl"),
                         l2=[1.6163120948209677e-5],
                         linf=[0.0010572201890564834],
-                        tspan=(0.0, 1.0),
-                        coverage_override=(maxiters = 6, initial_refinement_level = 0,
-                                           base_level = 0, med_level = 1, max_level = 2))
+                        tspan=(0.0, 1.0),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -110,10 +106,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[0.002590388934758452],
-                        linf=[0.01840757696885409],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        linf=[0.01840757696885409],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -330,8 +323,7 @@ end
                             0.45574161423218573,
                             0.8099577682187109
                         ],
-                        tspan=(0.0, 0.2),
-                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                        tspan=(0.0, 0.2),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -359,8 +351,7 @@ end
                             0.7999141641954051
                         ],
                         tspan=(0.0, 0.2),
-                        volume_flux=flux_chandrashekar,
-                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                        volume_flux=flux_chandrashekar,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -387,8 +378,7 @@ end
                             3.21754792e-01,
                             4.76151527e+00
                         ],
-                        tspan=(0.0, 0.3),
-                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                        tspan=(0.0, 0.3),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -445,8 +435,7 @@ end
                             0.00016833038543762058
                         ],
                         # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                        abstol=1.0e-11, reltol=1.0e-11,
-                        coverage_override=(trees_per_cube_face = (1, 1), polydeg = 3)) # Prevent long compile time in CI
+                        abstol=1.0e-11, reltol=1.0e-11,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -474,8 +463,7 @@ end
                             0.0005129931254772464,
                             0.7942778058932163
                         ],
-                        tspan=(0.0, 2e2),
-                        coverage_override=(trees_per_cube_face = (1, 1), polydeg = 3)) # Prevent long compile time in CI
+                        tspan=(0.0, 2e2),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -505,8 +493,7 @@ end
                         ],
                         tspan=(0.0, 1e2),
                         # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                        abstol=1.0e-9, reltol=1.0e-9,
-                        coverage_override=(trees_per_cube_face = (1, 1), polydeg = 3)) # Prevent long compile time in CI
+                        abstol=1.0e-9, reltol=1.0e-9,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -569,8 +556,7 @@ end
                             0.005104176909383168,
                             9.738081186490818e-6
                         ],
-                        tspan=(0.0, 0.25),
-                        coverage_override=(trees_per_dimension = (1, 1, 1),))
+                        tspan=(0.0, 0.25),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -605,9 +591,7 @@ end
                             0.16808957604979002,
                             0.0005083795485317637
                         ],
-                        tspan=(0.0, 0.04),
-                        coverage_override=(maxiters = 6, initial_refinement_level = 1,
-                                           base_level = 1, max_level = 2))
+                        tspan=(0.0, 0.04),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -642,9 +626,7 @@ end
                             0.18947822281424997,
                             0.0005083794158781671
                         ],
-                        tspan=(0.0, 0.04),
-                        coverage_override=(maxiters = 6, initial_refinement_level = 1,
-                                           base_level = 1, max_level = 2))
+                        tspan=(0.0, 0.04),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -693,8 +675,7 @@ end
                             0.5647252867336123,
                             3.6462732329242566
                         ],
-                        tspan=(0.0, 0.025),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 0.025),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

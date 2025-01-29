@@ -314,9 +314,7 @@ end
                             1.5486788679247812,
                             2.4656795949035857
                         ],
-                        tspan=(0.0, 0.5),
-                        # Let this test run longer to cover some lines in flux_hllc
-                        coverage_override=(maxiters = 10^5, tspan = (0.0, 0.1)))
+                        tspan=(0.0, 0.5),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -341,8 +339,7 @@ end
                             1.7967508302506658,
                             3.040149575567518
                         ],
-                        tspan=(0.0, 1.0),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 1.0),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -369,8 +366,7 @@ end
                             2.4216027326405487
                         ],
                         tspan=(0.0, 0.5),
-                        initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,))
+                        initial_refinement_level=5,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -399,8 +395,7 @@ end
                             1.2916089289001427,
                             6.474699399394252
                         ],
-                        tspan=(0.0, 1.0),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 1.0),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -429,7 +424,6 @@ end
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
-                        coverage_override=(maxiters = 6,),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] ==
@@ -501,8 +495,7 @@ end
                             1.2910938760258899,
                             6.473385481404865
                         ],
-                        tspan=(0.0, 1.0),
-                        coverage_override=(maxiters = 3,))
+                        tspan=(0.0, 1.0),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -552,9 +545,7 @@ end
                             6.863554388300223,
                             303.58813147491134
                         ],
-                        tspan=(0.0, 0.12),
-                        # Let this test run longer to cover the ControllerThreeLevelCombined lines
-                        coverage_override=(maxiters = 10^5,))
+                        tspan=(0.0, 0.12),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -632,8 +623,7 @@ end
                             0.12321616095649354,
                             0.269046666668995
                         ],
-                        tspan=(0.0, 0.2),
-                        coverage_override=(maxiters = 2,))
+                        tspan=(0.0, 0.2),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -661,7 +651,6 @@ end
                             0.7300051017382696
                         ],
                         tspan=(0.0, 2.0),
-                        coverage_override=(maxiters = 7,),
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
@@ -720,8 +709,7 @@ end
                             0.0003528986458217968,
                             22.435474993016918
                         ],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(maxiters = 2,))
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -748,8 +736,7 @@ end
                             47.284459667934684
                         ],
                         tspan=(0.0, 1.0),
-                        dt=2.5e-2, adaptive=false,
-                        coverage_override=(maxiters = 10^3,))
+                        dt=2.5e-2, adaptive=false,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -774,8 +761,7 @@ end
                             8.031723414357423,
                             1.1918867260293828e6
                         ],
-                        tspan=(0.0, 1.0e-7),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 1.0e-7),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -922,9 +908,7 @@ end
                             0.03857193149447702,
                             0.031090457959835893,
                             0.12125130332971423
-                        ],
-                        # Let this test run longer to cover some lines in the AMR indicator
-                        coverage_override=(maxiters = 10^5, tspan = (0.0, 10.5)))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
