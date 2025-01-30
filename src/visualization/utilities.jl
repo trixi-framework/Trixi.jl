@@ -481,7 +481,7 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
     return unstructured_data
 end
 
-# This function is only for plotting 1D functions
+# This method is only for plotting 1D functions
 function get_unstructured_data(func::Function, solution_variables, mesh, equations,
                                solver, cache)
     original_nodes = cache.elements.node_coordinates
