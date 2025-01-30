@@ -28,11 +28,11 @@ callbacks = CallbackSet(analysis_callback, alive_callback);</code></pre><p>Run t
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       1.29300000e-06 s
+ #timesteps:                  0                run time:       1.22200000e-06 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:       1156.381 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:       1186.575 MiB
  #elements:               16384
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -41,18 +41,18 @@ callbacks = CallbackSet(analysis_callback, alive_callback);</code></pre><p>Run t
  ∑∂S/∂U ⋅ Uₜ :  -8.96621432e-17
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 8.7782e-03 │ sim. time: 6.2446e-02 (15.612%)  │ run time: 1.0049e+00 s
-#timesteps:     20 │ Δt: 1.2426e-02 │ sim. time: 1.7307e-01 (43.267%)  │ run time: 1.1499e+00 s
-#timesteps:     30 │ Δt: 1.3710e-02 │ sim. time: 3.0622e-01 (76.554%)  │ run time: 1.2960e+00 s
+#timesteps:     10 │ Δt: 8.7782e-03 │ sim. time: 6.2446e-02 (15.612%)  │ run time: 9.9417e-01 s
+#timesteps:     20 │ Δt: 1.2426e-02 │ sim. time: 1.7307e-01 (43.267%)  │ run time: 1.1384e+00 s
+#timesteps:     30 │ Δt: 1.3710e-02 │ sim. time: 3.0622e-01 (76.554%)  │ run time: 1.2863e+00 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 37                run time:       1.45718748e+00 s
- Δt:             9.57329122e-03                └── GC time:    5.49725060e-02 s (3.773%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  9.09732719e-08 s
-                                               PID:            2.53980483e-07 s
- #DOFs per field:         16384                alloc&#39;d memory:        813.055 MiB
+ #timesteps:                 37                run time:       1.39045578e+00 s
+ Δt:             9.57329122e-03                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  9.14622343e-08 s
+                                               PID:            2.52005527e-07 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1232.874 MiB
  #elements:               16384
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -65,8 +65,8 @@ callbacks = CallbackSet(analysis_callback, alive_callback);</code></pre><p>Run t
 Trixi.jl simulation finished.  Final time: 0.4  Time steps: 37 (accepted), 37 (total)
 ────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre><pre><code class="language-julia hljs">using Plots
 pd = PlotData2D(sol)
-plot(pd)</code></pre><img src="0dbb70ea.svg" alt="Example block output"/><pre><code class="language-julia hljs">plot(pd[&quot;rho&quot;])
-plot!(getmesh(pd))</code></pre><img src="289db476.svg" alt="Example block output"/><p>This simulation is not as fast as the equivalent with <code>TreeMesh</code> since no special optimizations for quads (for instance tensor product structure) have been implemented. Figure 4 in <a href="https://arxiv.org/abs/2112.10517">&quot;Efficient implementation of modern entropy stable and kinetic energy preserving discontinuous Galerkin methods for conservation laws&quot;</a> (2021) provides a nice runtime comparison between the different mesh types. On the other hand, the functions are more general and thus we have more option we can choose from.</p><h2 id="Simulation-with-Gauss-nodes"><a class="docs-heading-anchor" href="#Simulation-with-Gauss-nodes">Simulation with Gauss nodes</a><a id="Simulation-with-Gauss-nodes-1"></a><a class="docs-heading-anchor-permalink" href="#Simulation-with-Gauss-nodes" title="Permalink"></a></h2><p>For instance, we can change the approximation type of our simulation.</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq
+plot(pd)</code></pre><img src="4000650f.svg" alt="Example block output"/><pre><code class="language-julia hljs">plot(pd[&quot;rho&quot;])
+plot!(getmesh(pd))</code></pre><img src="e8aaf40d.svg" alt="Example block output"/><p>This simulation is not as fast as the equivalent with <code>TreeMesh</code> since no special optimizations for quads (for instance tensor product structure) have been implemented. Figure 4 in <a href="https://arxiv.org/abs/2112.10517">&quot;Efficient implementation of modern entropy stable and kinetic energy preserving discontinuous Galerkin methods for conservation laws&quot;</a> (2021) provides a nice runtime comparison between the different mesh types. On the other hand, the functions are more general and thus we have more option we can choose from.</p><h2 id="Simulation-with-Gauss-nodes"><a class="docs-heading-anchor" href="#Simulation-with-Gauss-nodes">Simulation with Gauss nodes</a><a id="Simulation-with-Gauss-nodes-1"></a><a class="docs-heading-anchor-permalink" href="#Simulation-with-Gauss-nodes" title="Permalink"></a></h2><p>For instance, we can change the approximation type of our simulation.</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_weak_blast_wave</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">initial_condition_weak_blast_wave (generic function with 14 methods)</code></pre><p>We now use Gauss nodes instead of Gauss-Lobatto nodes which can be done for the element types <code>Quad()</code> and <code>Hex()</code>. Therefore, we set <code>approximation_type=GaussSBP()</code>. Alternatively, we can use a modal approach using the approximation type <code>Polynomial()</code>.</p><pre><code class="language-julia hljs">dg = DGMulti(polydeg = 3,
              element_type = Quad(),
@@ -95,11 +95,11 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       9.32000000e-07 s
+ #timesteps:                  0                run time:       1.10200000e-06 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:       1355.978 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:       1530.768 MiB
  #elements:               16384
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -108,19 +108,19 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
  ∑∂S/∂U ⋅ Uₜ :  -1.01164379e-01
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 5.0548e-03 │ sim. time: 3.3436e-02 (8.359%)   │ run time: 4.8527e-01 s
-#timesteps:     20 │ Δt: 8.8313e-03 │ sim. time: 1.0601e-01 (26.503%)  │ run time: 9.5485e-01 s
-#timesteps:     30 │ Δt: 1.0521e-02 │ sim. time: 2.0438e-01 (51.094%)  │ run time: 1.4271e+00 s
-#timesteps:     40 │ Δt: 1.1006e-02 │ sim. time: 3.1245e-01 (78.113%)  │ run time: 1.9006e+00 s
+#timesteps:     10 │ Δt: 5.0548e-03 │ sim. time: 3.3436e-02 (8.359%)   │ run time: 4.7727e-01 s
+#timesteps:     20 │ Δt: 8.8313e-03 │ sim. time: 1.0601e-01 (26.503%)  │ run time: 9.4085e-01 s
+#timesteps:     30 │ Δt: 1.0521e-02 │ sim. time: 2.0438e-01 (51.094%)  │ run time: 1.4057e+00 s
+#timesteps:     40 │ Δt: 1.1006e-02 │ sim. time: 3.1245e-01 (78.113%)  │ run time: 1.8730e+00 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 48                run time:       2.28644136e+00 s
+ #timesteps:                 48                run time:       2.25382231e+00 s
  Δt:             1.00192333e-02                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  3.05810726e-07 s
-                                               PID:            3.19830843e-07 s
- #DOFs per field:         16384                alloc&#39;d memory:       1363.488 MiB
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  3.01333912e-07 s
+                                               PID:            3.15271385e-07 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1538.278 MiB
  #elements:               16384
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -133,7 +133,7 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
 Trixi.jl simulation finished.  Final time: 0.4  Time steps: 48 (accepted), 48 (total)
 ────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre><pre><code class="language-julia hljs">using Plots
 pd = PlotData2D(sol)
-plot(pd)</code></pre><img src="2671cbaf.svg" alt="Example block output"/><h2 id="Simulation-with-triangular-elements"><a class="docs-heading-anchor" href="#Simulation-with-triangular-elements">Simulation with triangular elements</a><a id="Simulation-with-triangular-elements-1"></a><a class="docs-heading-anchor-permalink" href="#Simulation-with-triangular-elements" title="Permalink"></a></h2><p>Also, we can set another element type. We want to use triangles now.</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq
+plot(pd)</code></pre><img src="eb0343ab.svg" alt="Example block output"/><h2 id="Simulation-with-triangular-elements"><a class="docs-heading-anchor" href="#Simulation-with-triangular-elements">Simulation with triangular elements</a><a id="Simulation-with-triangular-elements-1"></a><a class="docs-heading-anchor-permalink" href="#Simulation-with-triangular-elements" title="Permalink"></a></h2><p>Also, we can set another element type. We want to use triangles now.</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_weak_blast_wave</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">initial_condition_weak_blast_wave (generic function with 14 methods)</code></pre><p>Since there is no direct equivalent to Gauss-Lobatto nodes on triangles, the approximation type <code>SBP()</code> now uses Gauss-Lobatto nodes on faces and special nodes in the interior of the triangular. More details can be found in the documentation of <a href="https://jlchan.github.io/StartUpDG.jl/dev/RefElemData/#RefElemData-based-on-SBP-finite-differences">StartUpDG.jl</a>.</p><pre><code class="language-julia hljs">dg = DGMulti(polydeg = 3,
              element_type = Tri(),
@@ -162,11 +162,11 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       1.41300000e-06 s
+ #timesteps:                  0                run time:       1.68300000e-06 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         30720                alloc&#39;d memory:       1183.191 MiB
+ #DOFs per field:         30720                alloc&#39;d memory:        961.834 MiB
  #elements:               30720
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -175,19 +175,19 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
  ∑∂S/∂U ⋅ Uₜ :  -7.93719284e-03
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 6.6587e-03 │ sim. time: 4.5551e-02 (11.388%)  │ run time: 1.6090e+00 s
-#timesteps:     20 │ Δt: 1.0494e-02 │ sim. time: 1.3622e-01 (34.054%)  │ run time: 2.3696e+00 s
-#timesteps:     30 │ Δt: 1.2082e-02 │ sim. time: 2.5106e-01 (62.764%)  │ run time: 3.1428e+00 s
-#timesteps:     40 │ Δt: 1.2625e-02 │ sim. time: 3.7504e-01 (93.761%)  │ run time: 3.9239e+00 s
+#timesteps:     10 │ Δt: 6.6587e-03 │ sim. time: 4.5551e-02 (11.388%)  │ run time: 1.6291e+00 s
+#timesteps:     20 │ Δt: 1.0494e-02 │ sim. time: 1.3622e-01 (34.054%)  │ run time: 2.3883e+00 s
+#timesteps:     30 │ Δt: 1.2082e-02 │ sim. time: 2.5106e-01 (62.764%)  │ run time: 3.1598e+00 s
+#timesteps:     40 │ Δt: 1.2625e-02 │ sim. time: 3.7504e-01 (93.761%)  │ run time: 3.9392e+00 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 42                run time:       4.09166353e+00 s
+ #timesteps:                 42                run time:       4.10701775e+00 s
  Δt:             1.22969880e-02                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  2.70372848e-07 s
-                                               PID:            3.48694299e-07 s
- #DOFs per field:         30720                alloc&#39;d memory:       1232.472 MiB
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  2.69619840e-07 s
+                                               PID:            3.49939670e-07 s
+ #DOFs per field:         30720                alloc&#39;d memory:       1011.117 MiB
  #elements:               30720
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -200,8 +200,8 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
 Trixi.jl simulation finished.  Final time: 0.4  Time steps: 42 (accepted), 42 (total)
 ────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre><pre><code class="language-julia hljs">using Plots
 pd = PlotData2D(sol)
-plot(pd)</code></pre><img src="16a67ed1.svg" alt="Example block output"/><pre><code class="language-julia hljs">plot(pd[&quot;rho&quot;])
-plot!(getmesh(pd))</code></pre><img src="f35cd721.svg" alt="Example block output"/><h2 id="Triangular-meshes-on-non-Cartesian-domains"><a class="docs-heading-anchor" href="#Triangular-meshes-on-non-Cartesian-domains">Triangular meshes on non-Cartesian domains</a><a id="Triangular-meshes-on-non-Cartesian-domains-1"></a><a class="docs-heading-anchor-permalink" href="#Triangular-meshes-on-non-Cartesian-domains" title="Permalink"></a></h2><p>To use triangular meshes on a non-Cartesian domain, Trixi.jl uses the package <a href="https://github.com/jlchan/StartUpDG.jl">StartUpDG.jl</a>. The following example is based on <a href="https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_triangulate_pkg_mesh.jl"><code>elixir_euler_triangulate_pkg_mesh.jl</code></a> and uses a pre-defined mesh from StartUpDG.jl.</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq</code></pre><p>We want to simulate the smooth initial condition <a href="../../reference-trixi/#Trixi.initial_condition_convergence_test-Tuple{Any, Any, AcousticPerturbationEquations2D}"><code>initial_condition_convergence_test</code></a> with source terms <a href="../../reference-trixi/#Trixi.source_terms_convergence_test-Tuple{Any, Any, Any, AcousticPerturbationEquations2D}"><code>source_terms_convergence_test</code></a> for the 2D compressible Euler equations.</p><pre><code class="language-julia hljs">equations = CompressibleEulerEquations2D(1.4)
+plot(pd)</code></pre><img src="23ce8b34.svg" alt="Example block output"/><pre><code class="language-julia hljs">plot(pd[&quot;rho&quot;])
+plot!(getmesh(pd))</code></pre><img src="80090535.svg" alt="Example block output"/><h2 id="Triangular-meshes-on-non-Cartesian-domains"><a class="docs-heading-anchor" href="#Triangular-meshes-on-non-Cartesian-domains">Triangular meshes on non-Cartesian domains</a><a id="Triangular-meshes-on-non-Cartesian-domains-1"></a><a class="docs-heading-anchor-permalink" href="#Triangular-meshes-on-non-Cartesian-domains" title="Permalink"></a></h2><p>To use triangular meshes on a non-Cartesian domain, Trixi.jl uses the package <a href="https://github.com/jlchan/StartUpDG.jl">StartUpDG.jl</a>. The following example is based on <a href="https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_triangulate_pkg_mesh.jl"><code>elixir_euler_triangulate_pkg_mesh.jl</code></a> and uses a pre-defined mesh from StartUpDG.jl.</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq</code></pre><p>We want to simulate the smooth initial condition <a href="../../reference-trixi/#Trixi.initial_condition_convergence_test-Tuple{Any, Any, AcousticPerturbationEquations2D}"><code>initial_condition_convergence_test</code></a> with source terms <a href="../../reference-trixi/#Trixi.source_terms_convergence_test-Tuple{Any, Any, Any, AcousticPerturbationEquations2D}"><code>source_terms_convergence_test</code></a> for the 2D compressible Euler equations.</p><pre><code class="language-julia hljs">equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_convergence_test
 source_terms = source_terms_convergence_test</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">source_terms_convergence_test (generic function with 13 methods)</code></pre><p>We create the solver <code>DGMulti</code> with triangular elements (<code>Tri()</code>) as before.</p><pre><code class="language-julia hljs">dg = DGMulti(polydeg = 3, element_type = Tri(),
              approximation_type = Polynomial(),
@@ -242,11 +242,11 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       8.92000000e-07 s
+ #timesteps:                  0                run time:       1.29300000e-06 s
  Δt:             1.49245207e-03                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:          5980                alloc&#39;d memory:       1263.509 MiB
+ #DOFs per field:          5980                alloc&#39;d memory:        964.032 MiB
  #elements:                5980
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -255,12 +255,12 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
  ∑∂S/∂U ⋅ Uₜ :  -1.23444983e-02
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     20 │ Δt: 1.4925e-03 │ sim. time: 2.9849e-02 (14.925%)  │ run time: 5.8394e-01 s
-#timesteps:     40 │ Δt: 1.4925e-03 │ sim. time: 5.9698e-02 (29.849%)  │ run time: 1.1563e+00 s
-#timesteps:     60 │ Δt: 1.4925e-03 │ sim. time: 8.9547e-02 (44.774%)  │ run time: 1.7272e+00 s
-#timesteps:     80 │ Δt: 1.4925e-03 │ sim. time: 1.1940e-01 (59.698%)  │ run time: 2.2987e+00 s
-#timesteps:    100 │ Δt: 1.4925e-03 │ sim. time: 1.4925e-01 (74.623%)  │ run time: 2.8701e+00 s
-#timesteps:    120 │ Δt: 1.4925e-03 │ sim. time: 1.7909e-01 (89.547%)  │ run time: 3.4424e+00 s
+#timesteps:     20 │ Δt: 1.4925e-03 │ sim. time: 2.9849e-02 (14.925%)  │ run time: 5.5123e-01 s
+#timesteps:     40 │ Δt: 1.4925e-03 │ sim. time: 5.9698e-02 (29.849%)  │ run time: 1.1066e+00 s
+#timesteps:     60 │ Δt: 1.4925e-03 │ sim. time: 8.9547e-02 (44.774%)  │ run time: 1.6447e+00 s
+#timesteps:     80 │ Δt: 1.4925e-03 │ sim. time: 1.1940e-01 (59.698%)  │ run time: 2.1834e+00 s
+#timesteps:    100 │ Δt: 1.4925e-03 │ sim. time: 1.4925e-01 (74.623%)  │ run time: 2.7217e+00 s
+#timesteps:    120 │ Δt: 1.4925e-03 │ sim. time: 1.7909e-01 (89.547%)  │ run time: 3.2611e+00 s
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 Trixi.jl simulation finished.  Final time: 0.2  Time steps: 135 (accepted), 135 (total)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -269,11 +269,11 @@ Trixi.jl simulation finished.  Final time: 0.2  Time steps: 135 (accepted), 135 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                135                run time:       3.87156027e+00 s
+ #timesteps:                135                run time:       3.66806980e+00 s
  Δt:             1.14223386e-05                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      2.00000000e-01 (100.000%)     time/DOF/rhs!:  9.47684249e-07 s
-                                               PID:            9.56121951e-07 s
- #DOFs per field:          5980                alloc&#39;d memory:       1270.819 MiB
+ sim. time:      2.00000000e-01 (100.000%)     time/DOF/rhs!:  8.97446948e-07 s
+                                               PID:            9.05758512e-07 s
+ #DOFs per field:          5980                alloc&#39;d memory:        971.341 MiB
  #elements:                5980
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -283,7 +283,7 @@ Trixi.jl simulation finished.  Final time: 0.2  Time steps: 135 (accepted), 135 
 ────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre><pre><code class="language-julia hljs">using Plots
 pd = PlotData2D(sol)
 plot(pd[&quot;rho&quot;])
-plot!(getmesh(pd))</code></pre><img src="1e762bf0.svg" alt="Example block output"/><p>For more information, please have a look in the <a href="https://jlchan.github.io/StartUpDG.jl/stable/">StartUpDG.jl documentation</a>.</p><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+plot!(getmesh(pd))</code></pre><img src="a70d6c9c.svg" alt="Example block output"/><p>For more information, please have a look in the <a href="https://jlchan.github.io/StartUpDG.jl/stable/">StartUpDG.jl documentation</a>.</p><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
 versioninfo()
 
 using Pkg
@@ -306,4 +306,4 @@ Environment:
   <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
   <span class="sgr90">[472ebc20] </span>StartUpDG v1.1.5
   <span class="sgr90">[a7f1ee26] </span>Trixi v0.9.16-DEV `~/work/Trixi.jl/Trixi.jl`
-<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../non_periodic_boundaries/">« 7 Non-periodic boundaries</a><a class="docs-footer-nextpage" href="../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 28 January 2025 12:58">Tuesday 28 January 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../non_periodic_boundaries/">« 7 Non-periodic boundaries</a><a class="docs-footer-nextpage" href="../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Thursday 30 January 2025 15:20">Thursday 30 January 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
