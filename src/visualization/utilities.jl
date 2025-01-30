@@ -484,21 +484,11 @@ end
 function get_unstructured_data(func::Function, solution_variables, mesh, equations,
                                solver, cache)
     original_nodes = cache.elements.node_coordinates
-    # raw_data has size (1, nnodes, nelements), where each component has length n_vars
-    raw_data = func.(SVector.(original_nodes), equations)
-    nvars = only(size(raw_data[1, 1, 1]))
-    # need to translate raw_data to the correct shape (nvars, nnodes, nelements)
-    # TODO: probably there is a smarter way to do this than looping over everything
-    u = Array{eltype(eltype(raw_data))}(undef, nvars, size(raw_data, 2),
-                                        size(raw_data, 3))
-    for j in 1:size(raw_data, 2)
-        for k in 1:size(raw_data, 3)
-            u_local = raw_data[1, j, k]
-            for i in 1:nvars
-                u[i, j, k] = u_local[i]
-            end
-        end
-    end
+    # original_nodes has size (1, nnodes, nelements)
+    # we want u to have size (nvars, nnodes, nelements)
+    # func.(original_nodes, equations) has size (1, nnodes, nelements), where each component has length n_vars
+    # Therefore, we drop the first (singleton) dimension and then stack the components
+    u = stack(func.(SVector.(dropdims(original_nodes; dims = 1)), equations))
     return get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
 end
 
