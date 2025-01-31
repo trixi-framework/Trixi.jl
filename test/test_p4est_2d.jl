@@ -137,6 +137,14 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+
+    # Ensure we cover the calculation of the node coordinates
+    node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
+                                           ntuple(_ -> length(parent_mesh.nodes),
+                                                      2)...,
+                                           length(mesh.cell_ids))
+    result = Trixi.calc_node_coordinates!(node_coordinates, mesh, parent_mesh.nodes)
+    @test parent_mesh.tree_node_coordinates == result
 end
 
 @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
