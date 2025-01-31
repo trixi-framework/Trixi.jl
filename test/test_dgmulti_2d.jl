@@ -274,16 +274,16 @@ end
                         volume_integral=VolumeIntegralWeakForm(),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         l2=[
-                            7.906577233455084e-6,
-                            8.733496764560955e-6,
-                            8.733496764569368e-6,
-                            2.9118523221923932e-5
+                            7.906577233375323e-6,
+                            8.733496764424436e-6,
+                            8.73349676452721e-6,
+                            2.9118523221773692e-5
                         ],
                         linf=[
-                            3.29875525286738e-5,
-                            4.032296588629691e-5,
-                            4.032296651601541e-5,
-                            0.00012013778890995752
+                            3.298755253133834e-5,
+                            4.032296586720108e-5,
+                            4.032296650580136e-5,
+                            0.00012013778892150384
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -500,16 +500,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
-                            0.05685148333985476,
-                            0.04308122135907089,
-                            0.043081221359070915,
-                            0.21098131003847664
+                            0.05685180852320552,
+                            0.04308097439005265,
+                            0.04308097439005263,
+                            0.21098250258804
                         ],
                         linf=[
-                            0.2360672306096051,
-                            0.16684417686971842,
-                            0.1668441768697189,
-                            0.8572572782118661
+                            0.2360805191601203,
+                            0.16684117462697776,
+                            0.16684117462697767,
+                            0.8573034682049414
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
@@ -526,16 +526,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_curved.jl"),
                         cells_per_dimension=4, tspan=(0.0, 0.1),
                         l2=[
-                            0.05565849298766252,
-                            0.042322816017256494,
-                            0.042322816017256466,
-                            0.2064212098324083
+                            0.055659339125865195,
+                            0.042323245380073364,
+                            0.042323245380073315,
+                            0.20642426004746467
                         ],
                         linf=[
-                            0.23633287875008924,
-                            0.16930148707515683,
-                            0.16930148707515688,
-                            0.8587706761131937
+                            0.23633597150568753,
+                            0.16929779869845438,
+                            0.16929779869845438,
+                            0.8587814448153765
                         ])
     # Ensure that we do not have excessive memory allocations 
     # (e.g., from type instabilities) 
