@@ -9,7 +9,7 @@
 include("polynomial_optimizer.jl")
 
 # Abstract base type for both single/standalone and multi-level 
-# PERK (Paired-Explicit Runge-Kutta) time integration schemes
+# PERK (Paired Explicit Runge-Kutta) time integration schemes
 abstract type AbstractPairedExplicitRK end
 # Abstract base type for single/standalone PERK time integration schemes
 abstract type AbstractPairedExplicitRKSingle <: AbstractPairedExplicitRK end
@@ -166,7 +166,7 @@ function set_proposed_dt!(integrator::AbstractPairedExplicitRKIntegrator, dt)
 end
 
 function get_proposed_dt(integrator::AbstractPairedExplicitRKIntegrator)
-    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
+    return integrator.dt
 end
 
 # stop the time integration
@@ -206,5 +206,8 @@ function solve_a_butcher_coeffs_unknown! end
 
 # Basic implementation of the second-order paired explicit Runge-Kutta (PERK) method
 include("methods_PERK2.jl")
+# Slightly customized implementation of the third-order PERK method
 include("methods_PERK3.jl")
+# Basic implementation of the fourth-order PERK method
+include("methods_PERK4.jl")
 end # @muladd
