@@ -45,6 +45,16 @@ end
 
 @inline Base.eltype(::P4estMPICache{uEltype}) where {uEltype} = uEltype
 
+##
+# Note that the code in `start_mpi_send`/`finish_mpi_receive!` is sensitive to inference on (at least) Julia 1.10.
+# Julia's inference is bi-stable, it can sometimes depend on what code has been looked at already, and
+# the presence of an inference result in the cache can have an impact on the inference of code.
+# In this case the `send_buffer[first:last] .= vec(cache.mpi_mortars.u[2, :, :, ..,mortar])`,
+# can fail to be inferred due to heuristics if this function is not in the cache...
+precompile(Base.reindex,
+           (Tuple{Base.Slice{Base.OneTo{Int64}}, Int64, Base.Slice{Base.OneTo{Int64}},
+                  Base.Slice{Base.OneTo{Int64}}, Int64}, Tuple{Int64, Int64, Int64}))
+
 function start_mpi_send!(mpi_cache::P4estMPICache, mesh, equations, dg, cache)
     data_size = nvariables(equations) * nnodes(dg)^(ndims(mesh) - 1)
     n_small_elements = 2^(ndims(mesh) - 1)
