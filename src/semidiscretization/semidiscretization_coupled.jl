@@ -370,7 +370,7 @@ function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
 end
 
 function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
-                                glm_speed_callback, dt)
+                                glm_speed_callback, dt, t)
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
     if length(semi_indices) == 0
@@ -385,12 +385,18 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
         end
     end
 
+    if cfl isa Real # Case for constant CFL
+        cfl_number = cfl
+    else # Variable CFL
+        cfl_number = cfl(t)
+    end
+
     for semi_index in semi_indices
         semi = semi_coupled.semis[semi_index]
         mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number, mesh, equations, solver, cache)
 
         # c_h is proportional to its own time step divided by the complete MHD time step
         # We use @reset here since the equations are immutable (to work on GPUs etc.).
