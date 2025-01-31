@@ -140,9 +140,9 @@ end
 
     # Ensure we cover the calculation of the node coordinates
     node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
-                                           ntuple(_ -> length(parent_mesh.nodes),
-                                                      2)...,
-                                           length(mesh.cell_ids))
+                                                                 ntuple(_ -> length(parent_mesh.nodes),
+                                                                        2)...,
+                                                                 length(mesh.cell_ids))
     result = Trixi.calc_node_coordinates!(node_coordinates, mesh, parent_mesh.nodes)
     @test parent_mesh.tree_node_coordinates == result
 end
