@@ -214,11 +214,11 @@ u0: 4096-element Vector{Float64}:
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       9.21000000e-07 s
+ #timesteps:                  0                run time:       1.01200000e-06 s
  Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:          4096                alloc&#39;d memory:       1028.827 MiB
+ #DOFs per field:          4096                alloc&#39;d memory:       1152.624 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -227,16 +227,16 @@ u0: 4096-element Vector{Float64}:
  ∑∂S/∂U ⋅ Uₜ :   4.42993996e-17
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 3.1250e-02 │ sim. time: 3.1250e-01 (31.250%)  │ run time: 5.9396e-01 s
+#timesteps:     10 │ Δt: 3.1250e-02 │ sim. time: 3.1250e-01 (31.250%)  │ run time: 5.2430e-01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 20                run time:       6.06462130e-01 s
+ #timesteps:                 20                run time:       5.36098246e-01 s
  Δt:             3.12500000e-02                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      6.25000000e-01 (62.500%)      time/DOF/rhs!:  3.78627850e-08 s
-                                               PID:            2.46378410e-06 s
- #DOFs per field:          4096                alloc&#39;d memory:       1037.503 MiB
+ sim. time:      6.25000000e-01 (62.500%)      time/DOF/rhs!:  3.84467133e-08 s
+                                               PID:            2.17769244e-06 s
+ #DOFs per field:          4096                alloc&#39;d memory:       1161.300 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -245,17 +245,17 @@ u0: 4096-element Vector{Float64}:
  ∑∂S/∂U ⋅ Uₜ :  -3.74390676e-02
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     20 │ Δt: 3.1250e-02 │ sim. time: 6.2500e-01 (62.500%)  │ run time: 5.9960e-01 s
-#timesteps:     30 │ Δt: 3.1250e-02 │ sim. time: 9.3750e-01 (93.750%)  │ run time: 6.0499e-01 s
+#timesteps:     20 │ Δt: 3.1250e-02 │ sim. time: 6.2500e-01 (62.500%)  │ run time: 5.2994e-01 s
+#timesteps:     30 │ Δt: 3.1250e-02 │ sim. time: 9.3750e-01 (93.750%)  │ run time: 5.3528e-01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 32                run time:       6.13755282e-01 s
+ #timesteps:                 32                run time:       5.43278924e-01 s
  Δt:             3.12500000e-02                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  3.72583734e-08 s
-                                               PID:            4.32090793e-08 s
- #DOFs per field:          4096                alloc&#39;d memory:       1041.744 MiB
+ sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  3.80937302e-08 s
+                                               PID:            4.29349637e-08 s
+ #DOFs per field:          4096                alloc&#39;d memory:       1165.541 MiB
  #elements:                 256
 
  Variable:       scalar
@@ -269,52 +269,52 @@ Trixi.jl simulation finished.  Final time: 1.0  Time steps: 32 (accepted), 32 (t
 ────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre><p>Finally, we print the timer summary.</p><pre><code class="language-julia hljs">summary_callback()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr1">────────────────────────────────────────────────────────────────────────────────────</span>
 <span class="sgr1">             Trixi.jl             </span>         Time                    Allocations
                                   ───────────────────────   ────────────────────────
-        Tot / % measured:              623ms /  89.7%           18.9MiB /  84.0%
+        Tot / % measured:              552ms /  89.7%           18.9MiB /  84.0%
 
 Section                   ncalls     time    %tot     avg     alloc    %tot      avg
 ────────────────────────────────────────────────────────────────────────────────────
-I/O                            6    542ms   96.9%  90.3ms   4.59MiB   28.9%   783KiB
-  ~I/O~                        6    451ms   80.7%  75.2ms   4.20MiB   26.4%   716KiB
-  save solution                3   90.7ms   16.2%  30.2ms    400KiB    2.5%   133KiB
-  get element variables        3    832ns    0.0%   277ns     0.00B    0.0%    0.00B
-  save mesh                    3    811ns    0.0%   270ns     0.00B    0.0%    0.00B
-  get node variables           3    311ns    0.0%   104ns     0.00B    0.0%    0.00B
-rhs!                          96   14.8ms    2.6%   154μs   9.33KiB    0.1%     100B
-  source terms                96   8.88ms    1.6%  92.5μs     0.00B    0.0%    0.00B
-  volume integral             96   3.83ms    0.7%  39.9μs     0.00B    0.0%    0.00B
-  interface flux              96   1.11ms    0.2%  11.6μs     0.00B    0.0%    0.00B
-  surface integral            96    385μs    0.1%  4.01μs     0.00B    0.0%    0.00B
-  prolong2interfaces          96    323μs    0.1%  3.36μs     0.00B    0.0%    0.00B
-  ~rhs!~                      96    100μs    0.0%  1.04μs   9.33KiB    0.1%     100B
-  Jacobian                    96   53.0μs    0.0%   552ns     0.00B    0.0%    0.00B
-  reset ∂u/∂t                 96   50.5μs    0.0%   526ns     0.00B    0.0%    0.00B
-  prolong2boundaries          96   5.49μs    0.0%  57.2ns     0.00B    0.0%    0.00B
-  prolong2mortars             96   4.81μs    0.0%  50.1ns     0.00B    0.0%    0.00B
-  mortar flux                 96   4.11μs    0.0%  42.8ns     0.00B    0.0%    0.00B
-  boundary flux               96   2.98μs    0.0%  31.0ns     0.00B    0.0%    0.00B
-analyze solution               3   2.76ms    0.5%   920μs   11.3MiB   71.0%  3.76MiB
-calculate dt                  33   5.40μs    0.0%   164ns     0.00B    0.0%    0.00B
-<span class="sgr1">────────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or efficiency of your setup.</p><h2 id="Visualize-the-solution"><a class="docs-heading-anchor" href="#Visualize-the-solution">Visualize the solution</a><a id="Visualize-the-solution-1"></a><a class="docs-heading-anchor-permalink" href="#Visualize-the-solution" title="Permalink"></a></h2><p>In the previous part of the tutorial, we calculated the final solution of the given problem, now we want to visualize it. A more detailed explanation of visualization methods can be found in the section <a href="../../../visualization/#visualization">Visualization</a>.</p><h3 id="Using-Plots.jl"><a class="docs-heading-anchor" href="#Using-Plots.jl">Using Plots.jl</a><a id="Using-Plots.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Using-Plots.jl" title="Permalink"></a></h3><p>The first option is to use the <a href="https://github.com/JuliaPlots/Plots.jl">Plots.jl</a> package directly after calculations, when the solution is saved in the <code>sol</code> variable.</p><pre><code class="language-julia hljs">using Plots</code></pre><p>As was shown in the <a href="../getting_started/#getting_started">Getting started</a> section, you can plot all variables from the system of equations by executing the following.</p><pre><code class="language-julia hljs">plot(sol)</code></pre><p>Alternatively, you can configure the plot more precisely. Trixi.jl provides a special data type, <a href="../../../reference-trixi/#Trixi.PlotData2D-Tuple{Any, Any}"><code>PlotData2D</code></a>, to extract the visualization data from the solution.</p><pre><code class="language-julia hljs">pd = PlotData2D(sol);</code></pre><p>You can plot specific variables from the system of equations by referring to their names. To obtain the names of all variables, execute the following.</p><pre><code class="language-julia hljs">@show pd.variable_names;</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">pd.variable_names = [&quot;scalar&quot;]</code></pre><p>Plot the variable named &quot;scalar&quot; (which is the name of the variable for the linear advection equation in Trixi.jl).</p><pre><code class="language-julia hljs">plot(pd[&quot;scalar&quot;])</code></pre><img src="627772ee.svg" alt="Example block output"/><p>Mesh extraction is possible using the <a href="../../../reference-trixi/#Trixi.getmesh-Tuple{Trixi.AbstractPlotData}"><code>getmesh</code></a> function. Plots.jl has the <code>plot!</code> function that allows you to modify an already built graph.</p><pre><code class="language-julia hljs">plot!(getmesh(pd))</code></pre><img src="d943c1f8.svg" alt="Example block output"/><h3 id="Using-Trixi2Vtk.jl"><a class="docs-heading-anchor" href="#Using-Trixi2Vtk.jl">Using Trixi2Vtk.jl</a><a id="Using-Trixi2Vtk.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Using-Trixi2Vtk.jl" title="Permalink"></a></h3><p>Another way to visualize a solution is to extract it from a saved HDF5 file. After we used the <code>solve</code> function with <a href="../../../reference-trixi/#Trixi.SaveSolutionCallback"><code>SaveSolutionCallback</code></a> there is a file with the final solution. It is located in the <code>out</code> folder and is named as follows: <code>solution_index.h5</code>. The <code>index</code> is the final time step of the solution that is padded to 6 digits with zeros from the beginning. With <a href="../../../visualization/#Trixi2Vtk">Trixi2Vtk</a> you can convert the HDF5 output file generated by Trixi.jl into a VTK/VTU files. VTK/VTU are specialized formats designed to store structured data required for visualization purposes. This can be used in visualization tools such as <a href="https://www.paraview.org">ParaView</a> or <a href="https://visit.llnl.gov">VisIt</a> to plot the solution.</p><p>If you haven&#39;t added Trixi2Vtk.jl to your project yet, you can add it as follows.</p><pre><code class="language-julia hljs">import Pkg
+I/O                            6    477ms   96.4%  79.6ms   4.59MiB   28.9%   783KiB
+  ~I/O~                        6    396ms   79.9%  65.9ms   4.20MiB   26.4%   716KiB
+  save solution                3   81.7ms   16.5%  27.2ms    400KiB    2.5%   133KiB
+  get element variables        3    751ns    0.0%   250ns     0.00B    0.0%    0.00B
+  save mesh                    3    502ns    0.0%   167ns     0.00B    0.0%    0.00B
+  get node variables           3    172ns    0.0%  57.3ns     0.00B    0.0%    0.00B
+rhs!                          96   15.0ms    3.0%   157μs   9.33KiB    0.1%     100B
+  source terms                96   9.12ms    1.8%  95.0μs     0.00B    0.0%    0.00B
+  volume integral             96   3.87ms    0.8%  40.3μs     0.00B    0.0%    0.00B
+  interface flux              96   1.11ms    0.2%  11.5μs     0.00B    0.0%    0.00B
+  surface integral            96    388μs    0.1%  4.04μs     0.00B    0.0%    0.00B
+  prolong2interfaces          96    317μs    0.1%  3.30μs     0.00B    0.0%    0.00B
+  ~rhs!~                      96   99.0μs    0.0%  1.03μs   9.33KiB    0.1%     100B
+  Jacobian                    96   57.5μs    0.0%   599ns     0.00B    0.0%    0.00B
+  reset ∂u/∂t                 96   48.7μs    0.0%   507ns     0.00B    0.0%    0.00B
+  prolong2mortars             96   5.55μs    0.0%  57.8ns     0.00B    0.0%    0.00B
+  prolong2boundaries          96   5.23μs    0.0%  54.4ns     0.00B    0.0%    0.00B
+  mortar flux                 96   4.19μs    0.0%  43.6ns     0.00B    0.0%    0.00B
+  boundary flux               96   2.96μs    0.0%  30.8ns     0.00B    0.0%    0.00B
+analyze solution               3   2.60ms    0.5%   868μs   11.3MiB   71.0%  3.76MiB
+calculate dt                  33   4.57μs    0.0%   138ns     0.00B    0.0%    0.00B
+<span class="sgr1">────────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or efficiency of your setup.</p><h2 id="Visualize-the-solution"><a class="docs-heading-anchor" href="#Visualize-the-solution">Visualize the solution</a><a id="Visualize-the-solution-1"></a><a class="docs-heading-anchor-permalink" href="#Visualize-the-solution" title="Permalink"></a></h2><p>In the previous part of the tutorial, we calculated the final solution of the given problem, now we want to visualize it. A more detailed explanation of visualization methods can be found in the section <a href="../../../visualization/#visualization">Visualization</a>.</p><h3 id="Using-Plots.jl"><a class="docs-heading-anchor" href="#Using-Plots.jl">Using Plots.jl</a><a id="Using-Plots.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Using-Plots.jl" title="Permalink"></a></h3><p>The first option is to use the <a href="https://github.com/JuliaPlots/Plots.jl">Plots.jl</a> package directly after calculations, when the solution is saved in the <code>sol</code> variable.</p><pre><code class="language-julia hljs">using Plots</code></pre><p>As was shown in the <a href="../getting_started/#getting_started">Getting started</a> section, you can plot all variables from the system of equations by executing the following.</p><pre><code class="language-julia hljs">plot(sol)</code></pre><p>Alternatively, you can configure the plot more precisely. Trixi.jl provides a special data type, <a href="../../../reference-trixi/#Trixi.PlotData2D-Tuple{Any, Any}"><code>PlotData2D</code></a>, to extract the visualization data from the solution.</p><pre><code class="language-julia hljs">pd = PlotData2D(sol);</code></pre><p>You can plot specific variables from the system of equations by referring to their names. To obtain the names of all variables, execute the following.</p><pre><code class="language-julia hljs">@show pd.variable_names;</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">pd.variable_names = [&quot;scalar&quot;]</code></pre><p>Plot the variable named &quot;scalar&quot; (which is the name of the variable for the linear advection equation in Trixi.jl).</p><pre><code class="language-julia hljs">plot(pd[&quot;scalar&quot;])</code></pre><img src="a80315b0.svg" alt="Example block output"/><p>Mesh extraction is possible using the <a href="../../../reference-trixi/#Trixi.getmesh-Tuple{Trixi.AbstractPlotData}"><code>getmesh</code></a> function. Plots.jl has the <code>plot!</code> function that allows you to modify an already built graph.</p><pre><code class="language-julia hljs">plot!(getmesh(pd))</code></pre><img src="2c197e37.svg" alt="Example block output"/><h3 id="Using-Trixi2Vtk.jl"><a class="docs-heading-anchor" href="#Using-Trixi2Vtk.jl">Using Trixi2Vtk.jl</a><a id="Using-Trixi2Vtk.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Using-Trixi2Vtk.jl" title="Permalink"></a></h3><p>Another way to visualize a solution is to extract it from a saved HDF5 file. After we used the <code>solve</code> function with <a href="../../../reference-trixi/#Trixi.SaveSolutionCallback"><code>SaveSolutionCallback</code></a> there is a file with the final solution. It is located in the <code>out</code> folder and is named as follows: <code>solution_index.h5</code>. The <code>index</code> is the final time step of the solution that is padded to 6 digits with zeros from the beginning. With <a href="../../../visualization/#Trixi2Vtk">Trixi2Vtk</a> you can convert the HDF5 output file generated by Trixi.jl into a VTK/VTU files. VTK/VTU are specialized formats designed to store structured data required for visualization purposes. This can be used in visualization tools such as <a href="https://www.paraview.org">ParaView</a> or <a href="https://visit.llnl.gov">VisIt</a> to plot the solution.</p><p>If you haven&#39;t added Trixi2Vtk.jl to your project yet, you can add it as follows.</p><pre><code class="language-julia hljs">import Pkg
 Pkg.add([&quot;Trixi2Vtk&quot;])</code></pre><p>Now we load the Trixi2Vtk.jl package and convert the file <code>out/solution_000000032.h5</code> with the final solution using the <a href="../../../reference-trixi2vtk/#Trixi2Vtk.trixi2vtk-Tuple{Vararg{AbstractString}}"><code>trixi2vtk</code></a> function saving the resulting file in the <code>out</code> folder.</p><pre><code class="language-julia hljs">using Trixi2Vtk
 trixi2vtk(joinpath(&quot;out&quot;, &quot;solution_000000032.h5&quot;), output_directory = &quot;out&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr1">──────────────────────────────────────────────────────────────────────────────────────────</span>
 <span class="sgr1">                                        </span>         Time                    Allocations
                                         ───────────────────────   ────────────────────────
-           Tot / % measured:                 2.75s /  68.4%            118MiB /  69.1%
+           Tot / % measured:                 2.32s /  64.0%            114MiB /  68.0%
 
 Section                         ncalls     time    %tot     avg     alloc    %tot      avg
 ──────────────────────────────────────────────────────────────────────────────────────────
-read mesh                            1    705ms   37.5%   705ms   28.8MiB   35.4%  28.8MiB
-interpolate data                     1    606ms   32.2%   606ms   14.0MiB   17.2%  14.0MiB
-add data to VTK file                 1    301ms   16.0%   301ms   9.45MiB   11.6%  9.45MiB
-  scalar                             1    125ms    6.6%   125ms   5.86MiB    7.2%  5.86MiB
-  add data to VTK file               1    534μs    0.0%   534μs    118KiB    0.1%   118KiB
-    cell_ids                         1    280μs    0.0%   280μs   35.6KiB    0.0%  35.6KiB
-    element_ids                      1    209μs    0.0%   209μs   37.8KiB    0.0%  37.8KiB
-    levels                           1   33.6μs    0.0%  33.6μs   37.8KiB    0.0%  37.8KiB
-read data                            1    130ms    6.9%   130ms   5.64MiB    6.9%  5.64MiB
-save VTK file                        2   72.3ms    3.8%  36.2ms   2.35MiB    2.9%  1.18MiB
-build VTK grid (node data)           1   58.4ms    3.1%  58.4ms   15.7MiB   19.3%  15.7MiB
-prepare VTK cells (node data)        1   7.09ms    0.4%  7.09ms   5.04MiB    6.2%  5.04MiB
-build VTK grid (cell data)           1    924μs    0.0%   924μs    353KiB    0.4%   353KiB
-prepare VTK cells (cell data)        1    101μs    0.0%   101μs    100KiB    0.1%   100KiB
-<span class="sgr1">──────────────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>Now two files <code>solution_000000032.vtu</code> and <code>solution_000000032_celldata.vtu</code> have been generated in the <code>out</code> folder. The first one contains all the information for visualizing the solution, the second one contains all the cell-based or discretization-based information.</p><p>Now let&#39;s visualize the solution from the generated files in ParaView. Follow this short instruction to get the visualization.</p><ul><li>Download, install and open <a href="https://www.paraview.org/download/">ParaView</a>.</li><li>Press <code>Ctrl+O</code> and select the generated files <code>solution_000000032.vtu</code> and <code>solution_000000032_celldata.vtu</code> from the <code>out</code> folder.</li><li>In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near <code>solution_000000032.vtu</code>.</li><li>In the lower-left corner in the Properties window, change the Coloring from Solid Color to scalar. This already generates the visualization of the final solution.</li><li>Now let&#39;s add the mesh to the visualization. In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near <code>solution_000000032_celldata.vtu</code>.</li><li>In the lower-left corner in the Properties window, change the Representation from Surface to Wireframe. Then a white grid should appear on the visualization.</li></ul><p>Now, if you followed the instructions exactly, you should get a similar image as shown in the section <a href="#Using-Plots.jl">Using Plots.jl</a>:</p><p><img src="https://github.com/trixi-framework/Trixi.jl/assets/119304909/0c29139b-6c5d-4d5c-86e1-f4ebc95aca7e" alt="paraview_trixi2vtk_example"/></p><p>After completing this tutorial you are able to set up your own simulations with Trixi.jl. If you have an interest in contributing to Trixi.jl as a developer, refer to the third part of the introduction titled <a href="../changing_trixi/#changing_trixi">Changing Trixi.jl itself</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../getting_started/">« 1.1 Getting started</a><a class="docs-footer-nextpage" href="../changing_trixi/">1.3 Changing Trixi.jl itself »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Friday 31 January 2025 16:43">Friday 31 January 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+read mesh                            1    635ms   42.8%   635ms   28.8MiB   37.3%  28.8MiB
+interpolate data                     1    314ms   21.2%   314ms   9.85MiB   12.8%  9.85MiB
+add data to VTK file                 1    280ms   18.8%   280ms   9.45MiB   12.2%  9.45MiB
+  scalar                             1    117ms    7.9%   117ms   5.86MiB    7.6%  5.86MiB
+  add data to VTK file               1    498μs    0.0%   498μs    118KiB    0.1%   118KiB
+    cell_ids                         1    257μs    0.0%   257μs   35.6KiB    0.0%  35.6KiB
+    element_ids                      1    195μs    0.0%   195μs   37.8KiB    0.0%  37.8KiB
+    levels                           1   35.6μs    0.0%  35.6μs   37.8KiB    0.0%  37.8KiB
+read data                            1    120ms    8.1%   120ms   5.64MiB    7.3%  5.64MiB
+save VTK file                        2   67.1ms    4.5%  33.5ms   2.35MiB    3.0%  1.18MiB
+build VTK grid (node data)           1   60.2ms    4.1%  60.2ms   15.7MiB   20.3%  15.7MiB
+prepare VTK cells (node data)        1   7.73ms    0.5%  7.73ms   5.04MiB    6.5%  5.04MiB
+build VTK grid (cell data)           1    906μs    0.1%   906μs    353KiB    0.4%   353KiB
+prepare VTK cells (cell data)        1    118μs    0.0%   118μs    100KiB    0.1%   100KiB
+<span class="sgr1">──────────────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>Now two files <code>solution_000000032.vtu</code> and <code>solution_000000032_celldata.vtu</code> have been generated in the <code>out</code> folder. The first one contains all the information for visualizing the solution, the second one contains all the cell-based or discretization-based information.</p><p>Now let&#39;s visualize the solution from the generated files in ParaView. Follow this short instruction to get the visualization.</p><ul><li>Download, install and open <a href="https://www.paraview.org/download/">ParaView</a>.</li><li>Press <code>Ctrl+O</code> and select the generated files <code>solution_000000032.vtu</code> and <code>solution_000000032_celldata.vtu</code> from the <code>out</code> folder.</li><li>In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near <code>solution_000000032.vtu</code>.</li><li>In the lower-left corner in the Properties window, change the Coloring from Solid Color to scalar. This already generates the visualization of the final solution.</li><li>Now let&#39;s add the mesh to the visualization. In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near <code>solution_000000032_celldata.vtu</code>.</li><li>In the lower-left corner in the Properties window, change the Representation from Surface to Wireframe. Then a white grid should appear on the visualization.</li></ul><p>Now, if you followed the instructions exactly, you should get a similar image as shown in the section <a href="#Using-Plots.jl">Using Plots.jl</a>:</p><p><img src="https://github.com/trixi-framework/Trixi.jl/assets/119304909/0c29139b-6c5d-4d5c-86e1-f4ebc95aca7e" alt="paraview_trixi2vtk_example"/></p><p>After completing this tutorial you are able to set up your own simulations with Trixi.jl. If you have an interest in contributing to Trixi.jl as a developer, refer to the third part of the introduction titled <a href="../changing_trixi/#changing_trixi">Changing Trixi.jl itself</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../getting_started/">« 1.1 Getting started</a><a class="docs-footer-nextpage" href="../changing_trixi/">1.3 Changing Trixi.jl itself »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Friday 31 January 2025 17:14">Friday 31 January 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
