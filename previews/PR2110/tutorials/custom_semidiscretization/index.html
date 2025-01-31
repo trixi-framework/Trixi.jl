@@ -52,11 +52,11 @@ ode = semidiscretize(semi, tspan)
 
 sol = solve(ode, RDPK3SpFSAL49(); ode_default_options()...)
 
-plot(sol; label = &quot;numerical sol.&quot;, legend = :topright)</code></pre><img src="e422e2ad.svg" alt="Example block output"/><p>We can also plot the analytical solution for comparison. Since Trixi.jl uses <code>SVector</code>s for the variables, we take their <code>first</code> (and only) component to get the scalar value for manual plotting.</p><pre><code class="language-julia hljs">let
+plot(sol; label = &quot;numerical sol.&quot;, legend = :topright)</code></pre><img src="5833743d.svg" alt="Example block output"/><p>We can also plot the analytical solution for comparison. Since Trixi.jl uses <code>SVector</code>s for the variables, we take their <code>first</code> (and only) component to get the scalar value for manual plotting.</p><pre><code class="language-julia hljs">let
     x = range(-1.0, 1.0; length = 200)
     plot!(x, first.(initial_condition.(x, sol.t[end], equations)),
           label = &quot;analytical sol.&quot;, linestyle = :dash, legend = :topright)
-end</code></pre><img src="e828651c.svg" alt="Example block output"/><p>We can also add the initial condition to the plot.</p><pre><code class="language-julia hljs">plot!(sol.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="c4612c4e.svg" alt="Example block output"/><p>You can of course also use some <a href="https://trixi-framework.github.io/Trixi.jl/stable/callbacks/">callbacks</a> provided by Trixi.jl as usual.</p><pre><code class="language-julia hljs">summary_callback = SummaryCallback()
+end</code></pre><img src="49143c58.svg" alt="Example block output"/><p>We can also add the initial condition to the plot.</p><pre><code class="language-julia hljs">plot!(sol.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="44853219.svg" alt="Example block output"/><p>You can of course also use some <a href="https://trixi-framework.github.io/Trixi.jl/stable/callbacks/">callbacks</a> provided by Trixi.jl as usual.</p><pre><code class="language-julia hljs">summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi; interval = analysis_interval)
 alive_callback = AliveCallback(; analysis_interval)
@@ -152,11 +152,11 @@ summary_callback()</code></pre><pre class="documenter-example-output"><code clas
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation1D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       6.71000000e-07 s
+ #timesteps:                  0                run time:       7.21000000e-07 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  3.60559979e-08 s
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  3.50096868e-08 s
                                                PID:                   Inf s
- #DOFs per field:            64                alloc&#39;d memory:       1178.327 MiB
+ #DOFs per field:            64                alloc&#39;d memory:        883.814 MiB
  #elements:                  16
 
  Variable:       scalar
@@ -165,19 +165,19 @@ summary_callback()</code></pre><pre class="documenter-example-output"><code clas
  ∑∂S/∂U ⋅ Uₜ :  -5.00000000e-01
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 9.9686e-02 │ sim. time: 3.4078e-01 (11.359%)  │ run time: 2.3718e-04 s
-#timesteps:     20 │ Δt: 8.5503e-02 │ sim. time: 1.2059e+00 (40.198%)  │ run time: 5.1555e-04 s
-#timesteps:     30 │ Δt: 6.9722e-02 │ sim. time: 1.9558e+00 (65.192%)  │ run time: 7.5370e-04 s
-#timesteps:     40 │ Δt: 6.8292e-02 │ sim. time: 2.6511e+00 (88.370%)  │ run time: 1.0004e-03 s
+#timesteps:     10 │ Δt: 9.9686e-02 │ sim. time: 3.4078e-01 (11.359%)  │ run time: 2.3279e-04 s
+#timesteps:     20 │ Δt: 8.5503e-02 │ sim. time: 1.2059e+00 (40.198%)  │ run time: 5.0548e-04 s
+#timesteps:     30 │ Δt: 6.9722e-02 │ sim. time: 1.9558e+00 (65.192%)  │ run time: 7.5254e-04 s
+#timesteps:     40 │ Δt: 6.8292e-02 │ sim. time: 2.6511e+00 (88.370%)  │ run time: 9.9019e-04 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation1D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 45                run time:       1.58061600e-03 s
+ #timesteps:                 45                run time:       1.57155200e-03 s
  Δt:             7.36971224e-02                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      3.00000000e+00 (100.000%)     time/DOF/rhs!:  3.52067135e-08 s
-                                               PID:            4.23751499e-08 s
- #DOFs per field:            64                alloc&#39;d memory:       1182.862 MiB
+ sim. time:      3.00000000e+00 (100.000%)     time/DOF/rhs!:  3.48685706e-08 s
+                                               PID:            4.20373576e-08 s
+ #DOFs per field:            64                alloc&#39;d memory:        888.349 MiB
  #elements:                  16
 
  Variable:       scalar
@@ -193,22 +193,22 @@ Trixi.jl simulation finished.  Final time: 3.0  Time steps: 45 (accepted), 46 (t
 <span class="sgr1">─────────────────────────────────────────────────────────────────────────────────</span>
 <span class="sgr1">           Trixi.jl            </span>         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:           2.63ms /  66.5%           9.67MiB /  77.3%
+       Tot / % measured:           2.60ms /  66.5%           9.67MiB /  77.3%
 
 Section                ncalls     time    %tot     avg     alloc    %tot      avg
 ─────────────────────────────────────────────────────────────────────────────────
-rhs!                      417    900μs   51.4%  2.16μs   6.61KiB    0.1%    16.2B
-  source terms            417    360μs   20.6%   864ns     0.00B    0.0%    0.00B
-  ~rhs!~                  417    289μs   16.5%   693ns   6.61KiB    0.1%    16.2B
-  volume integral         417    105μs    6.0%   251ns     0.00B    0.0%    0.00B
-  interface flux          417   41.0μs    2.3%  98.3ns     0.00B    0.0%    0.00B
-  prolong2interfaces      417   22.4μs    1.3%  53.6ns     0.00B    0.0%    0.00B
-  surface integral        417   22.1μs    1.3%  53.0ns     0.00B    0.0%    0.00B
-  Jacobian                417   18.1μs    1.0%  43.4ns     0.00B    0.0%    0.00B
-  reset ∂u/∂t             417   14.8μs    0.8%  35.6ns     0.00B    0.0%    0.00B
-  prolong2boundaries      417   14.1μs    0.8%  33.8ns     0.00B    0.0%    0.00B
-  boundary flux           417   12.8μs    0.7%  30.7ns     0.00B    0.0%    0.00B
-analyze solution            2    852μs   48.6%   426μs   7.46MiB   99.9%  3.73MiB
+rhs!                      417    892μs   51.5%  2.14μs   6.61KiB    0.1%    16.2B
+  source terms            417    369μs   21.3%   884ns     0.00B    0.0%    0.00B
+  ~rhs!~                  417    276μs   15.9%   662ns   6.61KiB    0.1%    16.2B
+  volume integral         417    100μs    5.8%   239ns     0.00B    0.0%    0.00B
+  interface flux          417   39.6μs    2.3%  94.9ns     0.00B    0.0%    0.00B
+  prolong2interfaces      417   24.3μs    1.4%  58.3ns     0.00B    0.0%    0.00B
+  surface integral        417   22.4μs    1.3%  53.8ns     0.00B    0.0%    0.00B
+  Jacobian                417   19.5μs    1.1%  46.7ns     0.00B    0.0%    0.00B
+  reset ∂u/∂t             417   14.9μs    0.9%  35.6ns     0.00B    0.0%    0.00B
+  prolong2boundaries      417   14.0μs    0.8%  33.6ns     0.00B    0.0%    0.00B
+  boundary flux           417   12.9μs    0.7%  30.9ns     0.00B    0.0%    0.00B
+analyze solution            2    839μs   48.5%   420μs   7.46MiB   99.9%  3.73MiB
 <span class="sgr1">─────────────────────────────────────────────────────────────────────────────────</span></code></pre><h2 id="Using-a-custom-ODE-right-hand-side-function"><a class="docs-heading-anchor" href="#Using-a-custom-ODE-right-hand-side-function">Using a custom ODE right-hand side function</a><a id="Using-a-custom-ODE-right-hand-side-function-1"></a><a class="docs-heading-anchor-permalink" href="#Using-a-custom-ODE-right-hand-side-function" title="Permalink"></a></h2><p>Next, we will solve the same problem but use our own ODE RHS function. To demonstrate this, we will artificially create a global variable containing the current time of the simulation.</p><pre><code class="language-julia hljs">const GLOBAL_TIME = Ref(0.0)
 
 function source_terms_custom(u, x, t, equations)
@@ -230,7 +230,7 @@ let
     plot!(x, first.(initial_condition.(x, sol_source_custom.t[end], equations)),
           label = &quot;analytical sol.&quot;, linestyle = :dash, legend = :topleft)
 end
-plot!(sol_source_custom.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="423297c2.svg" alt="Example block output"/><p>This also works with callbacks as usual.</p><pre><code class="language-julia hljs">summary_callback = SummaryCallback()
+plot!(sol_source_custom.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="3cac0863.svg" alt="Example block output"/><p>This also works with callbacks as usual.</p><pre><code class="language-julia hljs">summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi; interval = analysis_interval)
 alive_callback = AliveCallback(; analysis_interval)
@@ -326,11 +326,11 @@ summary_callback()</code></pre><pre class="documenter-example-output"><code clas
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation1D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       9.52000000e-07 s
+ #timesteps:                  0                run time:       6.61000000e-07 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  3.52484772e-08 s
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  3.77937301e-08 s
                                                PID:                   Inf s
- #DOFs per field:            64                alloc&#39;d memory:        806.736 MiB
+ #DOFs per field:            64                alloc&#39;d memory:       1165.661 MiB
  #elements:                  16
 
  Variable:       scalar
@@ -339,19 +339,19 @@ summary_callback()</code></pre><pre class="documenter-example-output"><code clas
  ∑∂S/∂U ⋅ Uₜ :  -5.00000000e-01
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 9.9686e-02 │ sim. time: 3.4078e-01 (11.359%)  │ run time: 2.3759e-04 s
-#timesteps:     20 │ Δt: 8.5503e-02 │ sim. time: 1.2059e+00 (40.198%)  │ run time: 5.3692e-04 s
-#timesteps:     30 │ Δt: 6.9722e-02 │ sim. time: 1.9558e+00 (65.192%)  │ run time: 7.7532e-04 s
-#timesteps:     40 │ Δt: 6.8292e-02 │ sim. time: 2.6511e+00 (88.370%)  │ run time: 1.0248e-03 s
+#timesteps:     10 │ Δt: 9.9686e-02 │ sim. time: 3.4078e-01 (11.359%)  │ run time: 2.3285e-04 s
+#timesteps:     20 │ Δt: 8.5503e-02 │ sim. time: 1.2059e+00 (40.198%)  │ run time: 5.0533e-04 s
+#timesteps:     30 │ Δt: 6.9722e-02 │ sim. time: 1.9558e+00 (65.192%)  │ run time: 7.3811e-04 s
+#timesteps:     40 │ Δt: 6.8292e-02 │ sim. time: 2.6511e+00 (88.370%)  │ run time: 9.8046e-04 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation1D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 45                run time:       1.65409300e-03 s
+ #timesteps:                 45                run time:       1.51227800e-03 s
  Δt:             7.36971224e-02                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      3.00000000e+00 (100.000%)     time/DOF/rhs!:  3.55453424e-08 s
-                                               PID:            4.34739209e-08 s
- #DOFs per field:            64                alloc&#39;d memory:        811.271 MiB
+ sim. time:      3.00000000e+00 (100.000%)     time/DOF/rhs!:  3.49397802e-08 s
+                                               PID:            4.15885791e-08 s
+ #DOFs per field:            64                alloc&#39;d memory:       1170.196 MiB
  #elements:                  16
 
  Variable:       scalar
@@ -367,22 +367,22 @@ Trixi.jl simulation finished.  Final time: 3.0  Time steps: 45 (accepted), 46 (t
 <span class="sgr1">─────────────────────────────────────────────────────────────────────────────────</span>
 <span class="sgr1">           Trixi.jl            </span>         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:           2.74ms /  66.3%           9.67MiB /  77.3%
+       Tot / % measured:           3.26ms /  55.6%           9.67MiB /  77.3%
 
 Section                ncalls     time    %tot     avg     alloc    %tot      avg
 ─────────────────────────────────────────────────────────────────────────────────
-analyze solution            2    910μs   50.0%   455μs   7.46MiB   99.9%  3.73MiB
-rhs!                      417    909μs   50.0%  2.18μs   6.61KiB    0.1%    16.2B
-  source terms            417    362μs   19.9%   869ns     0.00B    0.0%    0.00B
-  ~rhs!~                  417    297μs   16.3%   711ns   6.61KiB    0.1%    16.2B
-  volume integral         417    105μs    5.8%   252ns     0.00B    0.0%    0.00B
-  interface flux          417   40.8μs    2.2%  97.8ns     0.00B    0.0%    0.00B
-  surface integral        417   22.2μs    1.2%  53.2ns     0.00B    0.0%    0.00B
-  prolong2interfaces      417   21.8μs    1.2%  52.2ns     0.00B    0.0%    0.00B
-  Jacobian                417   18.1μs    1.0%  43.4ns     0.00B    0.0%    0.00B
-  reset ∂u/∂t             417   14.9μs    0.8%  35.7ns     0.00B    0.0%    0.00B
-  prolong2boundaries      417   13.9μs    0.8%  33.3ns     0.00B    0.0%    0.00B
-  boundary flux           417   12.9μs    0.7%  31.0ns     0.00B    0.0%    0.00B
+analyze solution            2    920μs   50.8%   460μs   7.46MiB   99.9%  3.73MiB
+rhs!                      417    892μs   49.2%  2.14μs   6.61KiB    0.1%    16.2B
+  source terms            417    356μs   19.7%   855ns     0.00B    0.0%    0.00B
+  ~rhs!~                  417    277μs   15.3%   663ns   6.61KiB    0.1%    16.2B
+  volume integral         417    101μs    5.6%   242ns     0.00B    0.0%    0.00B
+  interface flux          417   39.6μs    2.2%  95.1ns     0.00B    0.0%    0.00B
+  reset ∂u/∂t             417   26.0μs    1.4%  62.4ns     0.00B    0.0%    0.00B
+  prolong2interfaces      417   24.9μs    1.4%  59.8ns     0.00B    0.0%    0.00B
+  surface integral        417   22.5μs    1.2%  54.0ns     0.00B    0.0%    0.00B
+  Jacobian                417   19.0μs    1.0%  45.5ns     0.00B    0.0%    0.00B
+  prolong2boundaries      417   13.8μs    0.8%  33.1ns     0.00B    0.0%    0.00B
+  boundary flux           417   12.8μs    0.7%  30.8ns     0.00B    0.0%    0.00B
 <span class="sgr1">─────────────────────────────────────────────────────────────────────────────────</span></code></pre><h2 id="Setting-up-a-custom-semidiscretization"><a class="docs-heading-anchor" href="#Setting-up-a-custom-semidiscretization">Setting up a custom semidiscretization</a><a id="Setting-up-a-custom-semidiscretization-1"></a><a class="docs-heading-anchor-permalink" href="#Setting-up-a-custom-semidiscretization" title="Permalink"></a></h2><p>Using a global constant is of course not really nice from a software engineering point of view. Thus, it can often be useful to collect additional data in the parameters of the <code>ODEProblem</code>. Thus, it is time to create our own semidiscretization. Here, we create a small wrapper of a standard semidiscretization of Trixi.jl and the current global time of the simulation.</p><pre><code class="language-julia hljs">struct CustomSemidiscretization{Semi, T} &lt;: Trixi.AbstractSemidiscretization
     semi::Semi
     t::T
@@ -417,7 +417,7 @@ let
     plot!(x, first.(initial_condition.(x, sol_semi_custom.t[end], equations)),
           label = &quot;analytical sol.&quot;, linestyle = :dash, legend = :topleft)
 end
-plot!(sol_semi_custom.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="015c5d70.svg" alt="Example block output"/><p>This also works with many callbacks as usual. However, the <a href="../../reference-trixi/#Trixi.AnalysisCallback"><code>AnalysisCallback</code></a> requires some special handling since it makes use of a performance counter contained in the standard semidiscretizations of Trixi.jl to report some <a href="../../performance/#performance-metrics">performance metrics</a>. Here, we forward all accesses to the performance counter to the wrapped semidiscretization.</p><pre><code class="language-julia hljs">function Base.getproperty(semi::CustomSemidiscretization, s::Symbol)
+plot!(sol_semi_custom.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="d8078728.svg" alt="Example block output"/><p>This also works with many callbacks as usual. However, the <a href="../../reference-trixi/#Trixi.AnalysisCallback"><code>AnalysisCallback</code></a> requires some special handling since it makes use of a performance counter contained in the standard semidiscretizations of Trixi.jl to report some <a href="../../performance/#performance-metrics">performance metrics</a>. Here, we forward all accesses to the performance counter to the wrapped semidiscretization.</p><pre><code class="language-julia hljs">function Base.getproperty(semi::CustomSemidiscretization, s::Symbol)
     if s === :performance_counter
         wrapped_semi = getfield(semi, :semi)
         wrapped_semi.performance_counter
@@ -516,11 +516,11 @@ Main.CustomSemidiscretization{SemidiscretizationHyperbolic{TreeMesh{1, Trixi.Ser
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation1D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       7.52000000e-07 s
+ #timesteps:                  0                run time:       7.51000000e-07 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  3.50576668e-08 s
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:  3.49624934e-08 s
                                                PID:                   Inf s
- #DOFs per field:            64                alloc&#39;d memory:       1147.523 MiB
+ #DOFs per field:            64                alloc&#39;d memory:       1041.987 MiB
  #elements:                  16
 
  Variable:       scalar
@@ -529,19 +529,19 @@ Main.CustomSemidiscretization{SemidiscretizationHyperbolic{TreeMesh{1, Trixi.Ser
  ∑∂S/∂U ⋅ Uₜ :  -5.00000000e-01
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 9.9686e-02 │ sim. time: 3.4078e-01 (11.359%)  │ run time: 2.4229e-04 s
-#timesteps:     20 │ Δt: 8.5503e-02 │ sim. time: 1.2059e+00 (40.198%)  │ run time: 6.1209e-04 s
-#timesteps:     30 │ Δt: 6.9722e-02 │ sim. time: 1.9558e+00 (65.192%)  │ run time: 9.3855e-04 s
-#timesteps:     40 │ Δt: 6.8292e-02 │ sim. time: 2.6511e+00 (88.370%)  │ run time: 1.2545e-03 s
+#timesteps:     10 │ Δt: 9.9686e-02 │ sim. time: 3.4078e-01 (11.359%)  │ run time: 2.4297e-04 s
+#timesteps:     20 │ Δt: 8.5503e-02 │ sim. time: 1.2059e+00 (40.198%)  │ run time: 5.3061e-04 s
+#timesteps:     30 │ Δt: 6.9722e-02 │ sim. time: 1.9558e+00 (65.192%)  │ run time: 7.9107e-04 s
+#timesteps:     40 │ Δt: 6.8292e-02 │ sim. time: 2.6511e+00 (88.370%)  │ run time: 1.0339e-03 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;LinearScalarAdvectionEquation1D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 45                run time:       7.12146400e-03 s
+ #timesteps:                 45                run time:       5.11376900e-03 s
  Δt:             7.36971224e-02                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      3.00000000e+00 (100.000%)     time/DOF/rhs!:  3.56822294e-08 s
-                                               PID:            5.55550809e-08 s
- #DOFs per field:            64                alloc&#39;d memory:       1152.295 MiB
+ sim. time:      3.00000000e+00 (100.000%)     time/DOF/rhs!:  3.57970245e-08 s
+                                               PID:            4.36773456e-08 s
+ #DOFs per field:            64                alloc&#39;d memory:       1046.759 MiB
  #elements:                  16
 
  Variable:       scalar
@@ -557,21 +557,21 @@ Trixi.jl simulation finished.  Final time: 3.0  Time steps: 45 (accepted), 46 (t
 <span class="sgr1">─────────────────────────────────────────────────────────────────────────────────</span>
 <span class="sgr1">           Trixi.jl            </span>         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:           10.1ms /  82.0%           9.91MiB /  77.6%
+       Tot / % measured:           6.14ms /  85.4%           9.91MiB /  77.6%
 
 Section                ncalls     time    %tot     avg     alloc    %tot      avg
 ─────────────────────────────────────────────────────────────────────────────────
-analyze solution            2   7.41ms   89.1%  3.71ms   7.68MiB   99.9%  3.84MiB
-rhs!                      417    910μs   10.9%  2.18μs   6.61KiB    0.1%    16.2B
-  source terms            417    378μs    4.5%   906ns     0.00B    0.0%    0.00B
-  ~rhs!~                  417    280μs    3.4%   670ns   6.61KiB    0.1%    16.2B
-  volume integral         417    105μs    1.3%   252ns     0.00B    0.0%    0.00B
-  interface flux          417   41.0μs    0.5%  98.2ns     0.00B    0.0%    0.00B
-  prolong2interfaces      417   24.2μs    0.3%  58.0ns     0.00B    0.0%    0.00B
-  surface integral        417   22.1μs    0.3%  52.9ns     0.00B    0.0%    0.00B
-  Jacobian                417   18.4μs    0.2%  44.2ns     0.00B    0.0%    0.00B
-  reset ∂u/∂t             417   14.7μs    0.2%  35.3ns     0.00B    0.0%    0.00B
-  prolong2boundaries      417   14.1μs    0.2%  33.7ns     0.00B    0.0%    0.00B
+analyze solution            2   4.33ms   82.5%  2.16ms   7.68MiB   99.9%  3.84MiB
+rhs!                      417    915μs   17.5%  2.19μs   6.61KiB    0.1%    16.2B
+  source terms            417    357μs    6.8%   857ns     0.00B    0.0%    0.00B
+  ~rhs!~                  417    284μs    5.4%   680ns   6.61KiB    0.1%    16.2B
+  volume integral         417    112μs    2.1%   269ns     0.00B    0.0%    0.00B
+  interface flux          417   39.7μs    0.8%  95.3ns     0.00B    0.0%    0.00B
+  Jacobian                417   33.6μs    0.6%  80.5ns     0.00B    0.0%    0.00B
+  prolong2interfaces      417   24.4μs    0.5%  58.6ns     0.00B    0.0%    0.00B
+  surface integral        417   22.4μs    0.4%  53.8ns     0.00B    0.0%    0.00B
+  reset ∂u/∂t             417   14.9μs    0.3%  35.7ns     0.00B    0.0%    0.00B
+  prolong2boundaries      417   13.8μs    0.3%  33.1ns     0.00B    0.0%    0.00B
   boundary flux           417   12.8μs    0.2%  30.7ns     0.00B    0.0%    0.00B
 <span class="sgr1">─────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>For even more advanced usage of custom semidiscretizations, you may look at the source code of the ones contained in Trixi.jl, e.g.,</p><ul><li><a href="../../reference-trixi/#Trixi.SemidiscretizationHyperbolicParabolic"><code>SemidiscretizationHyperbolicParabolic</code></a></li><li><a href="../../reference-trixi/#Trixi.SemidiscretizationEulerGravity"><code>SemidiscretizationEulerGravity</code></a></li><li><a href="../../reference-trixi/#Trixi.SemidiscretizationEulerAcoustics"><code>SemidiscretizationEulerAcoustics</code></a></li><li><a href="../../reference-trixi/#Trixi.SemidiscretizationCoupled"><code>SemidiscretizationCoupled</code></a></li></ul><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
 versioninfo()
@@ -594,5 +594,5 @@ Environment:
 <span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
 <span class="sgr32">⌃</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
   <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
-  <span class="sgr90">[a7f1ee26] </span>Trixi v0.9.15-DEV `~/work/Trixi.jl/Trixi.jl`
-<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../differentiable_programming/">« 20 Differentiable programming</a><a class="docs-footer-nextpage" href="../../meshes/tree_mesh/">Tree mesh »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Monday 27 January 2025 17:58">Monday 27 January 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.9.16-DEV `~/work/Trixi.jl/Trixi.jl`
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../differentiable_programming/">« 20 Differentiable programming</a><a class="docs-footer-nextpage" href="../../meshes/tree_mesh/">Tree mesh »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Friday 31 January 2025 09:34">Friday 31 January 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
