@@ -59,8 +59,7 @@ end
                             6.314906965187994e-5,
                             6.31490696496595e-5,
                             6.314906965032563e-5
-                        ],
-                        coverage_override=(maxiters = 10^5,))
+                        ],)
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         errors = analysis_callback(sol)
@@ -96,8 +95,7 @@ end
                         linf=[
                             6.627000273318195e-5,
                             6.62700027264096e-5
-                        ],
-                        coverage_override=(maxiters = 10^5,))
+                        ],)
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         # Ensure that we do not have excessive memory allocations
@@ -278,10 +276,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.219208035582454e-6],
-                        linf=[3.438434404412494e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        linf=[3.438434404412494e-5],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -298,10 +293,7 @@ end
                         linf=[0.0015194252169410394],
                         rtol=5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
                         elixir_file="elixir_advection_waving_flag.jl",
-                        restart_file="restart_000000021.h5",
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        restart_file="restart_000000021.h5",)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -317,10 +309,7 @@ end
                         l2=[7.841217436552029e-15],
                         linf=[1.0857981180834031e-13],
                         elixir_file="elixir_advection_free_stream.jl",
-                        restart_file="restart_000000036.h5",
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        restart_file="restart_000000036.h5",)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -893,8 +882,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
                         linf=[1.0771947577311836, 1.9143913544309838, 2.149549109115789],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                        tspan=(0.0, 0.1),) # Prevent long compile time in CI
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -922,8 +910,7 @@ end
                             0.8344372248051408,
                             0.8344372248051408
                         ],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                        tspan=(0.0, 0.1),) # Prevent long compile time in CI
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -1077,8 +1064,7 @@ end
                             0.06180314632253597, 9.487023254761695e-7,
                             0.04370156101034084, 0.04370147392153745,
                             0.06180318786081015, 3.430672973680963e-8
-                        ],
-                        coverage_override=(maxiters = 10^5,))
+                        ],)
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         errors = analysis_callback(sol)

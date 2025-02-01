@@ -110,8 +110,7 @@ end
                             0.9541678878162702,
                             5.773159728050814e-15, 1.4595119339458051, 0.0,
                             0.18201910908829552,
-                            0.36403821817659104],
-                        coverage_override=(maxiters = 6,))
+                            0.36403821817659104],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
