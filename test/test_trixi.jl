@@ -34,29 +34,12 @@ macro test_trixi_include(elixir, args...)
     end
     local atol = get_kwarg(args, :atol, atol_default)
     local rtol = get_kwarg(args, :rtol, rtol_default)
-    local skip_coverage = get_kwarg(args, :skip_coverage, false)
-
-    local cmd = string(Base.julia_cmd())
-    local coverage = occursin("--code-coverage", cmd) &&
-                     !occursin("--code-coverage=none", cmd)
 
     local kwargs = Pair{Symbol, Any}[]
     for arg in args
         if (arg.head == :(=) &&
-            !(arg.args[1] in (:l2, :linf, :RealT, :atol, :rtol,
-                              :skip_coverage)))
+            !(arg.args[1] in (:l2, :linf, :RealT, :atol, :rtol,)))
             push!(kwargs, Pair(arg.args...))
-        end
-    end
-
-    if coverage && skip_coverage
-        return quote
-            if Trixi.mpi_isroot()
-                println("═"^100)
-                println("Skipping coverage test of ", $elixir)
-                println("═"^100)
-                println("\n\n")
-            end
         end
     end
 
@@ -78,7 +61,7 @@ macro test_trixi_include(elixir, args...)
         @test_nowarn_mod trixi_include(@__MODULE__, $elixir; $kwargs...) additional_ignore_content
 
         # if present, compare l2 and linf errors against reference values
-        if !$coverage && (!isnothing($l2) || !isnothing($linf))
+        if !isnothing($l2) || !isnothing($linf)
             l2_measured, linf_measured = analysis_callback(sol)
 
             if Trixi.mpi_isroot() && !isnothing($l2)

@@ -196,7 +196,7 @@ end
                             0.19313636558790004,
                             0.707563913727584
                         ],
-                        tspan=(0.0, 0.25),) # Prevent long compile time in CI
+                        tspan=(0.0, 0.25),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

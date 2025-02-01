@@ -645,8 +645,8 @@ end
                         save_errors=true)
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] == "# iter, simu_time, rho_min, pressure_min"
-    # Run without (with) coverage takes 745 (7) time steps
-    @test startswith(lines[end], "7")
+    # Run takes 745 time steps
+    @test startswith(lines[end], "745")
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
