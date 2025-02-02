@@ -119,7 +119,6 @@ end
                             6.627000273318195e-5,
                             6.62700027264096e-5
                         ],
-                        coverage_override=(maxiters = 10^5,),
                         stepsize_callback=StepsizeCallback(cfl = x -> 1.6))
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
