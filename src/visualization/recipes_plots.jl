@@ -171,6 +171,17 @@ RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
     end
 end
 
+# Also allow plotting a function with signature `func(x, equations)`, e.g., for initial conditions.
+# We need this recipe in addition to the one above to avoid method ambiguities.
+RecipesBase.@recipe function f(func::Function, semi::AbstractSemidiscretization;
+                               solution_variables = nothing)
+    if ndims(semi) == 1
+        return PlotData1D(func, semi; solution_variables = solution_variables)
+    else
+        throw(ArgumentError("Plotting of functions is only supported in 1D."))
+    end
+end
+
 # Recipe specifically for TreeMesh-type solutions
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.

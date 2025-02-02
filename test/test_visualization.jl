@@ -225,6 +225,10 @@ end
                                    tspan = (0.0, 0.0),
                                    approximation_type = Polynomial())
     @test PlotData1D(sol) isa PlotData1D
+    initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi,
+                                solution_variables = cons2cons)
 
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "dgmulti_1d",
@@ -232,6 +236,26 @@ end
                                    tspan = (0.0, 0.0),
                                    approximation_type = SBP())
     @test PlotData1D(sol) isa PlotData1D
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi,
+                                solution_variables = cons2cons)
+end
+
+@timed_testset "1D plot recipes (StructuredMesh)" begin
+    @test_nowarn_mod trixi_include(@__MODULE__,
+                                   joinpath(examples_dir(), "structured_1d_dgsem",
+                                            "elixir_euler_source_terms.jl"),
+                                   tspan = (0.0, 0.0))
+
+    pd = PlotData1D(sol)
+    initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
+    @test_nowarn_mod Plots.plot(sol)
+    @test_nowarn_mod Plots.plot(pd)
+    @test_nowarn_mod Plots.plot(pd["p"])
+    @test_nowarn_mod Plots.plot(sol.u[end], semi)
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi,
+                                solution_variables = cons2cons)
 end
 
 @timed_testset "plot time series" begin

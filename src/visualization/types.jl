@@ -652,6 +652,14 @@ function PlotData1D(u, mesh, equations, solver, cache;
                       orientation_x)
 end
 
+function PlotData1D(func::Function, mesh, equations, dg::DGMulti{1}, cache;
+                    solution_variables = nothing)
+    x = mesh.md.x
+    u = func.(x, equations)
+
+    return PlotData1D(u, mesh, equations, dg, cache; solution_variables = solution_variables)
+end
+
 # Specializes the `PlotData1D` constructor for one-dimensional `DGMulti` solvers.
 function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
                     solution_variables = nothing)
