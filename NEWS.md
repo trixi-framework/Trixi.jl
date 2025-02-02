@@ -14,6 +14,11 @@ for human readability.
 - `LobattoLegendreBasis` and related datastructures made fully floating-type general,
   enabling calculations with higher than double (`Float64`) precision ([#2128])
 - In 2D, quadratic elements, i.e., 8-node (quadratic) quadrilaterals are now supported in standard Abaqus `inp` format ([#2217])
+- The `cfl` value supplied in the `StepsizeCallback` and `GlmStepsizeCallback` can now be a function of simulation 
+  time `t` to enable e.g. a ramp-up of the CFL value.
+  This is useful for simulations that are initialized with an "unphysical" initial condition, but do not permit the usage of
+  adaptive, error-based timestepping.
+  Examples for this are simulations involving the MHD equations which require in general the `GlmStepsizeCallback` ([#2248])
 
 #### Changed
 
