@@ -389,7 +389,7 @@ end
 
 @inline function coordinate_min_max_check(coordinates_min, coordinates_max)
     for dim in eachindex(coordinates_min)
-        @assert coordinates_min[dim]<coordinates_max[dim] "coordinates_min[$dim] must be smaller than coordinates_min[$dim]!"
+        @assert coordinates_min[dim]<coordinates_max[dim] "coordinates_min[$dim] must be smaller than coordinates_max[$dim]!"
     end
 end
 
