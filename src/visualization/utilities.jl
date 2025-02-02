@@ -482,8 +482,8 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
 end
 
 # This method is only for plotting 1D functions
-function get_unstructured_data(func::Function, solution_variables, mesh, equations,
-                               solver, cache)
+function get_unstructured_data(func::Function, solution_variables,
+                               mesh::AbstractMesh{1}, equations, solver, cache)
     original_nodes = cache.elements.node_coordinates
     # original_nodes has size (1, nnodes, nelements)
     # we want u to have size (nvars, nnodes, nelements)
