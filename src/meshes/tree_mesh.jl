@@ -134,9 +134,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         end
     end
 
-    for dim in eachindex(coordinates_min)
-        @assert coordinates_max[dim] > coordinates_min[dim] "coordinates_max[$dim] must be greater than coordinates_min[$dim] for each dimension"
-    end
+    coordinate_min_max_check(coordinates_min, coordinates_max)
 
     # TreeMesh requires equal domain lengths in all dimensions
     domain_center = @. convert(RealT, (coordinates_min + coordinates_max) / 2)

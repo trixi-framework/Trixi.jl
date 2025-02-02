@@ -427,9 +427,7 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                     periodicity = true)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
-    for dim in eachindex(coordinates_min)
-        @assert coordinates_max[dim] > coordinates_min[dim] "coordinates_max[$dim] must be greater than coordinates_min[$dim] for each dimension"
-    end
+    coordinate_min_max_check(coordinates_min, coordinates_max)
 
     @assert count(i -> i !== nothing,
                   (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"

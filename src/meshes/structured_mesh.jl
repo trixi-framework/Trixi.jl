@@ -140,9 +140,7 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                         periodicity = true)
     RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
 
-    for dim in eachindex(coordinates_min)
-        @assert coordinates_max[dim] > coordinates_min[dim] "coordinates_max[$dim] must be greater than coordinates_min[$dim] for each dimension"
-    end
+    coordinate_min_max_check(coordinates_min, coordinates_max)
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
     mapping_as_string = """

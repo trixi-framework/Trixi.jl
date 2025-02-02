@@ -387,13 +387,17 @@ function refine!(t::AbstractTree, cell_ids,
     return refined_original_cells
 end
 
+@inline function coordinate_min_max_check(coordinates_min, coordinates_max)
+    for dim in eachindex(coordinates_min)
+        @assert coordinates_min[dim]<coordinates_max[dim] "coordinates_min[$dim] must be smaller than coordinates_min[$dim]!"
+    end
+end
+
 # Refine all leaf cells with coordinates in a given rectangular box
 function refine_box!(t::AbstractTree{NDIMS},
                      coordinates_min,
                      coordinates_max) where {NDIMS}
-    for dim in 1:NDIMS
-        @assert coordinates_min[dim]<coordinates_max[dim] "Minimum coordinates are not minimum."
-    end
+    coordinate_min_max_check(coordinates_min, coordinates_max)
 
     # Find all leaf cells within box
     cells = filter_leaf_cells(t) do cell_id
