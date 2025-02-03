@@ -12,8 +12,8 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIM
                                      ArrayNDIMSP3 <: DenseArray{RealT, NDIMSP3},
                                      VectorRealT <: DenseVector{RealT},
                                      VectoruEltype <: DenseVector{uEltype},
-                                     ArrayType, Bool} <:
-               AbstractContainer
+                                     ArrayType} <:
+               AbstractHeterogeneousContainer{ArrayType}
     # Physical coordinates at each node
     node_coordinates::ArrayNDIMSP2   # [orientation, node_i, node_j, node_k, element]
     # Jacobian matrix of the transformation
@@ -202,8 +202,8 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}},
-                                       ArrayType, Bool} <:
-               AbstractContainer
+                                       ArrayType} <:
+               AbstractHeterogeneousContainer{ArrayType}
     u::uArray       # [primary/secondary, variable, i, j, interface]
     neighbor_ids::IdsMatrix                   # [primary/secondary, interface]
     node_indices::IndicesMatrix # [primary/secondary, interface]
@@ -321,9 +321,8 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       IdsVector <: DenseVector{Int},
                                       IndicesVector <:
                                       DenseVector{NTuple{NDIMS, Symbol}},
-                                      uVector <: DenseVector{uEltype}, ArrayType,
-                                      Bool} <:
-               AbstractContainer
+                                      uVector <: DenseVector{uEltype}, ArrayType} <:
+               AbstractHeterogeneousContainer{ArrayType}
     u::uArray       # [variables, i, j, boundary]
     neighbor_ids::IdsVector                 # [boundary]
     node_indices::IndicesVector # [boundary]
@@ -484,8 +483,8 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                     IdsVector <: DenseVector{Int},
                                     IndicesVector <:
                                     DenseVector{NTuple{NDIMS, Symbol}},
-                                    ArrayType, Bool} <:
-               AbstractContainer
+                                    ArrayType} <:
+               AbstractHeterogeneousContainer{ArrayType}
     u::uArray # [small/large side, variable, position, i, j, mortar]
     neighbor_ids::IdsMatrix # [position, mortar]
     node_indices::IndicesMatrix # [small/large, mortar]
