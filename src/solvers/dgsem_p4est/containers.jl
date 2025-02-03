@@ -547,7 +547,7 @@ function init_mortars(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elem
                                (2^(NDIMS - 1) + 1, n_mortars))
 
     _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
-    node_indices = unsafe_wrap(Array, pointer(node_indices), (2, n_mortars))
+    node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
 
     mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3, typeof(u),
                                    typeof(neighbor_ids), typeof(node_indices),
