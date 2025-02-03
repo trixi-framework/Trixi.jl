@@ -138,7 +138,8 @@ end
                             0.0029963751636357117,
                             0.0028639041695096433,
                             0.012691132694550689
-                        ])
+                        ],
+                        atol=1e-11)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
