@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh}, output_directory,
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, T8codeMesh, DGMultiMesh}, output_directory,
                         timestep = 0)
     save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
 end
@@ -310,6 +310,79 @@ function save_mesh_file(mesh::T8codeMesh, output_directory, timestep,
     return filename
 end
 
+@inline get_VXYZ(md::StartUpDG.MeshData) = get_VXYZ(md.mesh_type)
+@inline get_VXYZ(mesh_type::StartUpDG.VertexMappedMesh) = mesh_type.VXYZ
+@inline get_VXYZ(mesh_type::StartUpDG.CurvedMesh) = get_VXYZ(mesh_type.original_mesh_type)
+
+@inline get_EToV(md::StartUpDG.MeshData) = get_EToV(md.mesh_type)
+@inline get_EToV(mesh_type::StartUpDG.VertexMappedMesh) = mesh_type.EToV
+@inline get_EToV(mesh_type::StartUpDG.CurvedMesh) = get_EToV(mesh_type.original_mesh_type)
+
+function save_mesh_file(mesh::DGMultiMesh, output_directory, timestep,
+                        mpi_parallel::False)
+
+    # Create output directory (if it does not exist).
+    mkpath(output_directory)
+
+    # Determine file name based on existence of meaningful time step.
+    if timestep > 0
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+    else
+        filename = joinpath(output_directory, "mesh.h5")
+    end
+
+    # Open file (clobber existing content)
+    h5open(filename, "w") do file
+      # Add context information as attributes
+      attributes(file)["mesh_type"] = get_name(mesh)
+      attributes(file)["ndims"] = ndims(mesh)
+      attributes(file)["nelements"] = ncells(mesh)
+      if length(mesh.rd.N) > 1
+        for i = 1:length(mesh.rd.N)
+          attributes(file)["polydeg_$i"] = mesh.rd.N[i]
+        end
+      else
+        attributes(file)["polydeg"] = mesh.rd.N
+      end
+      attributes(file)["element_type"] = mesh.rd.element_type |> typeof |> nameof |> string
+
+      ## TODO: Is this useful to reconstruct `RefElemData` from this?
+      ## # Store quad rule.
+      ## for idim = 1:ndims(mesh)
+      ##   # ASCII: Char(114) => 'r'
+      ##   file[(113 + idim |> Char |> string) * "q"] = mesh.rd.rstq[idim]
+      ## end
+      ## file["wq"] = mesh.rd.wq
+
+      # Mesh-coordinates per element.
+      for idim = 1:ndims(mesh)
+        # ASCII: Char(120) => 'x'
+        file[119 + idim |> Char |> string] = mesh.md.xyz[idim]
+      end
+
+      # Transfer vectors of vectors to a matrix (2D array) and store into h5 file.
+      for idim = 1:ndims(mesh)
+        let vectors = get_VXYZ(mesh.md)[idim]
+          matrix = zeros(length(vectors[1]), length(vectors))
+          for ielem = 1:length(vectors)
+            @views matrix[:,ielem] .= vectors[ielem]
+          end
+          # ASCII: Char(58) => 'X'
+          # Vertex-coordinates per element.
+          file["V" * (87 + idim |> Char |> string)] = matrix
+        end
+      end
+
+      # Mapping element corners to vertices `VXYZ`.
+      file["EToV"] = get_EToV(mesh.md)
+
+      # TODO: Save boundaries.
+      # file["boundary_names"] = mesh.boundary_faces .|> String
+    end
+
+    return filename
+end
+
 """
     load_mesh(restart_file::AbstractString; n_cells_max)
 
@@ -426,6 +499,72 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         mesh = T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates,
                           nodes, boundary_names, treeIDs, neighIDs, faces,
                           duals, orientations, levels, num_elements_per_tree)
+
+    elseif mesh_type == "DGMultiMesh"
+        ndims, nelements, etype_str, EToV = h5open(mesh_file, "r") do file
+            return read(attributes(file)["ndims"]),
+                   read(attributes(file)["nelements"]),
+                   read(attributes(file)["element_type"]),
+                   read(file["EToV"])
+        end
+
+        df = h5open(mesh_file, "r")
+
+        if haskey(Trixi.attributes(df),"polydeg") 
+          polydeg = read(attributes(df)["polydeg"])
+        else
+          polydeg = tuple()
+          for i = 1:99
+            if haskey(Trixi.attributes(df),"polydeg_$i")
+              polydeg = tuple(polydeg..., read(attributes(df)["polydeg_$i"]))
+            else
+              break
+            end
+          end
+        end
+
+        close(df)
+
+        ## TODO: Is this useful to reconstruct `RefElemData`?
+        ## # Load quadrature rule.
+        ## rstq = h5open(mesh_file, "r") do file
+        ##   # ASCII: Char(114) => 'r'
+        ##   return tuple([read(file[(113 + i |> Char |> string) * "q"]) for i = 1:ndims]...)
+        ## end
+        ## rstwq = h5open(mesh_file, "r") do file
+        ##   # ASCII: Char(114) => 'r'
+        ##   return tuple(rstq..., read(file["wq"]))
+        ## end
+
+        # Load RefElemData.
+        etype = get_element_type_from_string(etype_str)()
+
+        # TODO: Make the following more general. But how? @jchan
+        if etype isa StartUpDG.Wedge
+          factor_a = RefElemData(StartUpDG.Tri(), Polynomial(), polydeg[1])
+          factor_b = RefElemData(StartUpDG.Line(), Polynomial(), polydeg[2])
+
+          tensor = StartUpDG.TensorProductWedge(factor_a, factor_b)
+          rd = RefElemData(etype, tensor)
+        else
+          rd = RefElemData(etype, Polynomial(), polydeg)
+        end
+
+        # Load physical nodes.
+        xyz = h5open(mesh_file, "r") do file
+          # ASCII: Char(120) => 'x'
+          return tuple([read(file[119 + i |> Char |> string]) for i = 1:ndims]...)
+        end
+
+        # Load element vertices.
+        vxyz = h5open(mesh_file, "r") do file
+          # ASCII: Char(58) => 'X'
+          return tuple([read(file["V" * (87 + i |> Char |> string)]) for i = 1:ndims]...)
+        end
+
+        # Load MeshData and store original physical nodes.
+        md = MeshData(rd, MeshData(vxyz..., EToV, rd), xyz...)
+        mesh = DGMultiMesh(md, rd, [])
     else
         error("Unknown mesh type!")
     end
