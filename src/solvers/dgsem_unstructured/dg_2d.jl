@@ -439,12 +439,10 @@ end
     # get the external solution values from the prescribed external state
     x = get_node_coords(node_coordinates, equations, dg, node_index, boundary_index)
 
-    # Call pointwise numerical flux function for the conservative part
+    # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
     flux, noncons_flux = boundary_condition(u_inner, outward_direction, x, t,
                                             surface_integral.surface_flux, equations)
-
-    # Compute pointwise nonconservative numerical flux at the boundary.
 
     for v in eachvariable(equations)
         # Note the factor 0.5 necessary for the nonconservative fluxes based on

@@ -71,7 +71,7 @@ struct BoundaryConditionDoNothing end
                                                 orientation_or_normal_direction,
                                                 direction::Integer, x, t, surface_flux,
                                                 equations)
-    return surface_flux(u_inner, u_inner, orientation_or_normal_direction, equations)
+    return flux(u_inner, orientation_or_normal_direction, equations)
 end
 
 # This version can be called by hyperbolic solvers on logically Cartesian meshes
@@ -81,8 +81,8 @@ end
                                                 surface_flux_functions::Tuple,
                                                 equations)
     surface_flux_function, nonconservative_flux_function = surface_flux_functions
-    return surface_flux_function(u_inner, u_inner, orientation_or_normal_direction,
-                                 equations),
+    return surface_flux_function(u_inner, u_inner, 
+                                 orientation_or_normal_direction, equations),
            nonconservative_flux_function(u_inner, u_inner,
                                          orientation_or_normal_direction, equations)
 end
@@ -91,7 +91,7 @@ end
 @inline function (::BoundaryConditionDoNothing)(u_inner,
                                                 outward_direction::AbstractVector,
                                                 x, t, surface_flux, equations)
-    return surface_flux(u_inner, u_inner, outward_direction, equations)
+    return flux(u_inner, outward_direction, equations)
 end
 
 @inline function (::BoundaryConditionDoNothing)(u_inner,

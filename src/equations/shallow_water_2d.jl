@@ -215,6 +215,7 @@ Should be used together with [`TreeMesh`](@ref).
                                               surface_flux_functions,
                                               equations::ShallowWaterEquations2D)
     # The boundary conditions for the non-conservative term are identically 0 here.
+    # Bottom topography is assumed to be continuous at the boundary.
     surface_flux_function, nonconservative_flux_function = surface_flux_functions
     ## get the appropriate normal vector from the orientation
     if orientation == 1

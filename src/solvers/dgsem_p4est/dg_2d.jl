@@ -361,7 +361,7 @@ end
     x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
                         element_index)
 
-    # Call pointwise numerical flux function for the conservative part
+    # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
     flux, noncons_flux = boundary_condition(u_inner, normal_direction, x, t,
                                             surface_integral.surface_flux, equations)
