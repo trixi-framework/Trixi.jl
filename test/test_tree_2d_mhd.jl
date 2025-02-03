@@ -167,7 +167,8 @@ end
                                      0.09208107,
                                      0.09208131,
                                      0.14795369,
-                                     2.2078211f-6])
+                                     2.2078211f-6],
+                        RealT=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
