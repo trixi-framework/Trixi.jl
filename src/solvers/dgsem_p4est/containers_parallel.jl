@@ -12,7 +12,7 @@ mutable struct P4estMPIInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                           DenseVector{NTuple{NDIMS, Symbol}},
                                           uVector <: DenseVector{uEltype},
                                           ArrayType, Bool} <:
-               AbstractHeterogeneousContainer{ArrayType, Bool}
+               AbstractContainer
     u::uArray                   # [primary/secondary, variable, i, j, interface]
     local_neighbor_ids::VecInt  # [interface]
     node_indices::IndicesVector # [interface]
@@ -90,11 +90,7 @@ function init_mpi_interfaces!(mpi_interfaces, mesh::ParallelP4estMesh)
     return mpi_interfaces
 end
 
-# Required methods due to <: AbstractHeterogeneousContainer
-function KernelAbstractions.get_backend(mpi_interfaces::P4estMPIInterfaceContainer)
-    return KernelAbstractions.get_backend(mpi_interfaces.u)
-end
-# Adapt.@adapt_structure(P4estMPIInterfaceContainer)
+# Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, mpi_interfaces::P4estMPIInterfaceContainer)
     # Adapt Vectors and underlying storage
     _u = Adapt.adapt_structure(to, mpi_interfaces._u)
@@ -125,7 +121,7 @@ mutable struct P4estMPIMortarContainer{NDIMS, uEltype <: Real, RealT <: Real, ND
                                        uArray <: DenseArray{uEltype, NDIMSP3},
                                        uVector <: DenseVector{uEltype},
                                        ArrayType, Bool} <:
-               AbstractHeterogeneousContainer{ArrayType, Bool}
+               AbstractContainer
     u::uArray                                      # [small/large side, variable, position, i, j, mortar]
     local_neighbor_ids::Vector{Vector{Int}}        # [mortar][ids]
     local_neighbor_positions::Vector{Vector{Int}}  # [mortar][positions]
@@ -223,10 +219,6 @@ function init_mpi_mortars!(mpi_mortars, mesh::ParallelP4estMesh, basis, elements
     return mpi_mortars
 end
 
-# Required methods due to <: AbstractHeterogeneousContainer
-function KernelAbstractions.get_backend(mpi_mortars::P4estMPIMortarContainer)
-    return KernelAbstractions.get_backend(mpi_mortars.u)
-end
 function Adapt.adapt_structure(to, mpi_mortars::P4estMPIMortarContainer)
     # TODO: Vector of Vector type data structure does not work on GPUs,
     # must be redesigned. This skeleton implementation here just exists just

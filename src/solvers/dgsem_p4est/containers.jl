@@ -13,7 +13,7 @@ mutable struct P4estElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIM
                                      VectorRealT <: DenseVector{RealT},
                                      VectoruEltype <: DenseVector{uEltype},
                                      ArrayType, Bool} <:
-               AbstractHeterogeneousContainer{ArrayType, Bool}
+               AbstractContainer
     # Physical coordinates at each node
     node_coordinates::ArrayNDIMSP2   # [orientation, node_i, node_j, node_k, element]
     # Jacobian matrix of the transformation
@@ -142,11 +142,7 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
     return elements
 end
 
-# Required methods due to <: AbstractHeterogeneousContainer
-function KernelAbstractions.get_backend(elements::P4estElementContainer)
-    return KernelAbstractions.get_backend(elements.node_coordinates)
-end
-# Adapt.@adapt_structure(P4estElementContainer)
+# Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to,
                                elements::P4estElementContainer{NDIMS, RealT, uEltype}) where {
                                                                                               NDIMS,
@@ -207,7 +203,7 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                        IndicesVector <:
                                        DenseVector{NTuple{NDIMS, Symbol}},
                                        ArrayType, Bool} <:
-               AbstractHeterogeneousContainer{ArrayType, Bool}
+               AbstractContainer
     u::uArray       # [primary/secondary, variable, i, j, interface]
     neighbor_ids::IdsMatrix                   # [primary/secondary, interface]
     node_indices::IndicesMatrix # [primary/secondary, interface]
@@ -295,11 +291,7 @@ function init_interfaces!(interfaces, mesh::P4estMesh)
     return interfaces
 end
 
-# Required methods due to <: AbstractHeterogeneousContainer
-function KernelAbstractions.get_backend(interfaces::P4estInterfaceContainer)
-    return KernelAbstractions.get_backend(interfaces.u)
-end
-# Adapt.@adapt_structure(P4estInterfaceContainer)
+# Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, interfaces::P4estInterfaceContainer)
     # Adapt underlying storage
     _u = Adapt.adapt_structure(to, interfaces._u)
@@ -331,7 +323,7 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       DenseVector{NTuple{NDIMS, Symbol}},
                                       uVector <: DenseVector{uEltype}, ArrayType,
                                       Bool} <:
-               AbstractHeterogeneousContainer{ArrayType, Bool}
+               AbstractContainer
     u::uArray       # [variables, i, j, boundary]
     neighbor_ids::IdsVector                 # [boundary]
     node_indices::IndicesVector # [boundary]
@@ -443,11 +435,7 @@ function init_boundaries_iter_face_inner(info_pw, boundaries, boundary_id, mesh)
     return nothing
 end
 
-# Required methods due to <: AbstractHeterogeneousContainer
-function KernelAbstractions.get_backend(boundaries::P4estBoundaryContainer)
-    return KernelAbstractions.get_backend(boundaries.u)
-end
-#Adapt.@adapt_structure(P4estBoundaryContainer)
+# Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, boundaries::P4estBoundaryContainer)
     _u = Adapt.adapt_structure(to, boundaries._u)
     u = unsafe_wrap_or_alloc(to, _u, size(boundaries.u))
@@ -497,7 +485,7 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                     IndicesVector <:
                                     DenseVector{NTuple{NDIMS, Symbol}},
                                     ArrayType, Bool} <:
-               AbstractHeterogeneousContainer{ArrayType, Bool}
+               AbstractContainer
     u::uArray # [small/large side, variable, position, i, j, mortar]
     neighbor_ids::IdsMatrix # [position, mortar]
     node_indices::IndicesMatrix # [small/large, mortar]
@@ -584,11 +572,7 @@ function init_mortars!(mortars, mesh::P4estMesh)
     return mortars
 end
 
-# Required methods due to <: AbstractHeterogeneousContainer
-function KernelAbstractions.get_backend(mortars::P4estMortarContainer)
-    return KernelAbstractions.get_backend(mortars.u)
-end
-# Adapt.@adapt_structure P4estMortarContainer
+# Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
     # Adapt underlying storage
     _u = Adapt.adapt_structure(to, mortars._u)

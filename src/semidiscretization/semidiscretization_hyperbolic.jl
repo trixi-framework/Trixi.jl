@@ -109,7 +109,8 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
                                  source_terms, boundary_conditions, uEltype)
 end
 
-Adapt.@adapt_structure(SemidiscretizationHyperbolic)
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(SemidiscretizationHyperbolic)
 
 # general fallback
 function digest_boundary_conditions(boundary_conditions, mesh, solver, cache)

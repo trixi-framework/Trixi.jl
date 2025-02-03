@@ -47,7 +47,8 @@ end
 
 @inline Base.eltype(::P4estMPICache{BufferType}) where {BufferType} = eltype(BufferType)
 
-Adapt.@adapt_structure(P4estMPICache)
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(P4estMPICache)
 
 ##
 # Note that the code in `start_mpi_send`/`finish_mpi_receive!` is sensitive to inference on (at least) Julia 1.10.
