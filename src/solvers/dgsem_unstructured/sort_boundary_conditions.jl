@@ -114,5 +114,6 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
     return boundary_types_container
 end
 
-Adapt.@adapt_structure(UnstructuredSortedBoundaryTypes)
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(UnstructuredSortedBoundaryTypes)
 end # @muladd
