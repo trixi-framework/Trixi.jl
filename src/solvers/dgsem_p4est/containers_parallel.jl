@@ -73,11 +73,11 @@ function init_mpi_interfaces(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh},
     mpi_interfaces = P4estMPIInterfaceContainer{NDIMS, uEltype, NDIMS + 2,
                                                 typeof(u), typeof(local_neighbor_ids),
                                                 typeof(node_indices), typeof(_u),
-                                                Array, false}(u,
-                                                              local_neighbor_ids,
-                                                              node_indices,
-                                                              local_sides,
-                                                              _u)
+                                                Array}(u,
+                                                       local_neighbor_ids,
+                                                       node_indices,
+                                                       local_sides,
+                                                       _u)
 
     init_mpi_interfaces!(mpi_interfaces, mesh)
 
@@ -199,11 +199,11 @@ function init_mpi_mortars(mesh::Union{ParallelP4estMesh, ParallelT8codeMesh}, eq
     mpi_mortars = P4estMPIMortarContainer{NDIMS, uEltype, RealT, NDIMS + 1, NDIMS + 2,
                                           NDIMS + 3, typeof(u),
                                           typeof(_u),
-                                          Array, false}(u, local_neighbor_ids,
-                                                        local_neighbor_positions,
-                                                        node_indices, normal_directions,
-                                                        _u, _node_indices,
-                                                        _normal_directions)
+                                          Array}(u, local_neighbor_ids,
+                                                 local_neighbor_positions,
+                                                 node_indices, normal_directions,
+                                                 _u, _node_indices,
+                                                 _normal_directions)
 
     if n_mpi_mortars > 0
         init_mpi_mortars!(mpi_mortars, mesh, basis, elements)
