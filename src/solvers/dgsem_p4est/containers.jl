@@ -201,11 +201,11 @@ mutable struct P4estInterfaceContainer{NDIMS, uEltype <: Real, NDIMSP2,
                                        uArray <: DenseArray{uEltype, NDIMSP2},
                                        IdsMatrix <: DenseMatrix{Int},
                                        IndicesMatrix <:
-                                       DenseMatrix{NTuple{NDIMS, IndexInfo}},
+                                       DenseMatrix{NTuple{NDIMS, Symbol}},
                                        uVector <: DenseVector{uEltype},
                                        IdsVector <: DenseVector{Int},
                                        IndicesVector <:
-                                       DenseVector{NTuple{NDIMS, IndexInfo}},
+                                       DenseVector{NTuple{NDIMS, Symbol}},
                                        ArrayType, Bool} <:
                AbstractHeterogeneousContainer{ArrayType, Bool}
     u::uArray       # [primary/secondary, variable, i, j, interface]
@@ -270,7 +270,7 @@ function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
     _neighbor_ids = Vector{Int}(undef, 2 * n_interfaces)
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids), (2, n_interfaces))
 
-    _node_indices = Vector{NTuple{NDIMS, IndexInfo}}(undef, 2 * n_interfaces)
+    _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_interfaces)
     node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_interfaces))
 
     interfaces = P4estInterfaceContainer{NDIMS, uEltype, NDIMS + 2,
@@ -328,7 +328,7 @@ mutable struct P4estBoundaryContainer{NDIMS, uEltype <: Real, NDIMSP1,
                                       uArray <: DenseArray{uEltype, NDIMSP1},
                                       IdsVector <: DenseVector{Int},
                                       IndicesVector <:
-                                      DenseVector{NTuple{NDIMS, IndexInfo}},
+                                      DenseVector{NTuple{NDIMS, Symbol}},
                                       uVector <: DenseVector{uEltype}, ArrayType,
                                       Bool} <:
                AbstractHeterogeneousContainer{ArrayType, Bool}
@@ -389,7 +389,7 @@ function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
                      n_boundaries))
 
     neighbor_ids = Vector{Int}(undef, n_boundaries)
-    node_indices = Vector{NTuple{NDIMS, IndexInfo}}(undef, n_boundaries)
+    node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, n_boundaries)
     names = Vector{Symbol}(undef, n_boundaries)
 
     boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS + 1, typeof(u),
@@ -491,11 +491,11 @@ mutable struct P4estMortarContainer{NDIMS, uEltype <: Real, NDIMSP1, NDIMSP3,
                                     uArray <: DenseArray{uEltype, NDIMSP3},
                                     IdsMatrix <: DenseMatrix{Int},
                                     IndicesMatrix <:
-                                    DenseMatrix{NTuple{NDIMS, IndexInfo}},
+                                    DenseMatrix{NTuple{NDIMS, Symbol}},
                                     uVector <: DenseVector{uEltype},
                                     IdsVector <: DenseVector{Int},
                                     IndicesVector <:
-                                    DenseVector{NTuple{NDIMS, IndexInfo}},
+                                    DenseVector{NTuple{NDIMS, Symbol}},
                                     ArrayType, Bool} <:
                AbstractHeterogeneousContainer{ArrayType, Bool}
     u::uArray # [small/large side, variable, position, i, j, mortar]
@@ -558,8 +558,8 @@ function init_mortars(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elem
     neighbor_ids = unsafe_wrap(Array, pointer(_neighbor_ids),
                                (2^(NDIMS - 1) + 1, n_mortars))
 
-    _node_indices = Vector{NTuple{NDIMS, IndexInfo}}(undef, 2 * n_mortars)
-    node_indices = unsafe_wrap(Array, pointer(_node_indices), (2, n_mortars))
+    _node_indices = Vector{NTuple{NDIMS, Symbol}}(undef, 2 * n_mortars)
+    node_indices = unsafe_wrap(Array, pointer(node_indices), (2, n_mortars))
 
     mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3, typeof(u),
                                    typeof(neighbor_ids), typeof(node_indices),

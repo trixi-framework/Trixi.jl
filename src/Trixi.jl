@@ -44,7 +44,7 @@ import SciMLBase: get_du, get_tmp_cache, u_modified!,
 
 using DelimitedFiles: readdlm
 using Downloads: Downloads
-import Adapt
+using Adapt: Adapt
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
 using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
