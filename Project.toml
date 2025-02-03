@@ -64,7 +64,7 @@ TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
 
 [compat]
-Adapt = "3.7, 4.0"
+Adapt = "4"
 Accessors = "0.1.36"
 CodeTracking = "1.0.5"
 ConstructionBase = "1.5"
