@@ -54,11 +54,12 @@ const SerialDGMultiMesh{NDIMS} = DGMultiMesh{NDIMS}
 @inline mpi_parallel(mesh::SerialDGMultiMesh) = False()
 
 # enable use of @set and setproperties(...) for DGMultiMesh
-function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) where {T1,
+function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4, T5}}) where {T1,
                                                                                     T2,
                                                                                     T3,
-                                                                                    T4}
-    DGMultiMesh{T1, T2, T3, T4}
+                                                                                    T4,
+                                                                                    T5}
+    DGMultiMesh{T1, T2, T3, T4, T5}
 end
 
 function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
