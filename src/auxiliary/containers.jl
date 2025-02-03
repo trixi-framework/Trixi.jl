@@ -314,4 +314,36 @@ end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
     raw_copy!(c, c, from, from, destination)
 end
+
+# Containers that support multiple storage backends
+# should be subtypes of this type. 
+#
+# The first type parameter must be `Array` by default and if 
+# `Adapt.adapt_structure(to, container)` is called then this must be
+# `typeof(to)`. This is used in downstream code, e.g. for calling
+# `wrap_array` with an appropriate type after `resize!`ing.
+abstract type AbstractHeterogeneousContainer{T} <: AbstractContainer end
+array_type(::AbstractHeterogeneousContainer{T}) where {T} = T
+
+# Subtypes must implement a method for these functions
+function Adapt.adapt_structure(to, ::AbstractHeterogeneousContainer)
+    error("required method not implemented")
+end
+
+# For some storage backends like CUDA.jl, empty arrays do seem to simply be
+# null pointers which can cause `unsafe_wrap` to fail when calling
+# Adapt.adapt (ArgumentError, see
+# https://github.com/JuliaGPU/CUDA.jl/blob/v5.4.2/src/array.jl#L212-L229).
+# To circumvent this, on length zero arrays this allocates
+# a separate empty array instead of wrapping.
+# However, since zero length arrays are not used in calculations,
+# it should be okay if the underlying storage vectors and wrapped arrays
+# are not the same as long as they are properly wrapped when `resize!`d etc.
+function unsafe_wrap_or_alloc(to, vec, size)
+    if length(vec) == 0
+        return similar(vec, size)
+    else
+        return unsafe_wrap(to, pointer(vec), size)
+    end
+end
 end # @muladd
