@@ -444,8 +444,6 @@ end
     flux, noncons_flux = boundary_condition(u_inner, outward_direction, x, t,
                                             surface_integral.surface_flux, equations)
 
-    # Compute pointwise nonconservative numerical flux at the boundary.
-
     for v in eachvariable(equations)
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
