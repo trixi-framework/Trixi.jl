@@ -91,7 +91,7 @@ end
 @inline function (::BoundaryConditionDoNothing)(u_inner,
                                                 outward_direction::AbstractVector,
                                                 x, t, surface_flux, equations)
-    return surface_flux(u_inner, u_inner, outward_direction, equations)
+    return flux(u_inner, outward_direction, equations)
 end
 
 @inline function (::BoundaryConditionDoNothing)(u_inner,
