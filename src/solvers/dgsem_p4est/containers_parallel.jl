@@ -222,7 +222,7 @@ end
 function Adapt.adapt_structure(to, mpi_mortars::P4estMPIMortarContainer)
     # TODO: Vector of Vector type data structure does not work on GPUs,
     # must be redesigned. This skeleton implementation here just exists just
-    # for compatability with the rest of the KA.jl solver code
+    # for compatibility with the rest of the KA.jl solver code
 
     _u = Adapt.adapt_structure(to, mpi_mortars._u)
     _node_indices = mpi_mortars._node_indices
