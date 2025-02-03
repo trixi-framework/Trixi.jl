@@ -134,7 +134,7 @@ function TreeMesh(coordinates_min::NTuple{NDIMS, Real},
         end
     end
 
-    coordinate_min_max_check(coordinates_min, coordinates_max)
+    coordinates_min_max_check(coordinates_min, coordinates_max)
 
     # TreeMesh requires equal domain lengths in all dimensions
     domain_center = @. convert(RealT, (coordinates_min + coordinates_max) / 2)

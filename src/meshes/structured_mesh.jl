@@ -140,7 +140,7 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
                         periodicity = true)
     RealT = promote_type(eltype(coordinates_min), eltype(coordinates_max))
 
-    coordinate_min_max_check(coordinates_min, coordinates_max)
+    coordinates_min_max_check(coordinates_min, coordinates_max)
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
     mapping_as_string = """
