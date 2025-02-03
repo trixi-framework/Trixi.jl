@@ -127,16 +127,16 @@ function init_elements(mesh::Union{P4estMesh{NDIMS, NDIMS, RealT},
     elements = P4estElementContainer{NDIMS, RealT, uEltype, NDIMS + 1, NDIMS + 2,
                                      NDIMS + 3, Array{RealT, NDIMS + 1},
                                      Array{RealT, NDIMS + 2}, Array{RealT, NDIMS + 3},
-                                     Vector{RealT}, Vector{uEltype}, Array, false}(node_coordinates,
-                                                                                   jacobian_matrix,
-                                                                                   contravariant_vectors,
-                                                                                   inverse_jacobian,
-                                                                                   surface_flux_values,
-                                                                                   _node_coordinates,
-                                                                                   _jacobian_matrix,
-                                                                                   _contravariant_vectors,
-                                                                                   _inverse_jacobian,
-                                                                                   _surface_flux_values)
+                                     Vector{RealT}, Vector{uEltype}, Array}(node_coordinates,
+                                                                            jacobian_matrix,
+                                                                            contravariant_vectors,
+                                                                            inverse_jacobian,
+                                                                            surface_flux_values,
+                                                                            _node_coordinates,
+                                                                            _jacobian_matrix,
+                                                                            _contravariant_vectors,
+                                                                            _inverse_jacobian,
+                                                                            _surface_flux_values)
 
     init_elements!(elements, mesh, basis)
     return elements
@@ -273,12 +273,12 @@ function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
                                          typeof(u), typeof(neighbor_ids),
                                          typeof(node_indices), typeof(_u),
                                          typeof(_neighbor_ids), typeof(_node_indices),
-                                         Array, false}(u,
-                                                       neighbor_ids,
-                                                       node_indices,
-                                                       _u,
-                                                       _neighbor_ids,
-                                                       _node_indices)
+                                         Array}(u,
+                                                neighbor_ids,
+                                                node_indices,
+                                                _u,
+                                                _neighbor_ids,
+                                                _node_indices)
 
     init_interfaces!(interfaces, mesh)
 
@@ -385,9 +385,9 @@ function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, e
 
     boundaries = P4estBoundaryContainer{NDIMS, uEltype, NDIMS + 1, typeof(u),
                                         typeof(neighbor_ids), typeof(node_indices),
-                                        typeof(_u), Array, false}(u, neighbor_ids,
-                                                                  node_indices, names,
-                                                                  _u)
+                                        typeof(_u), Array}(u, neighbor_ids,
+                                                           node_indices, names,
+                                                           _u)
 
     if n_boundaries > 0
         init_boundaries!(boundaries, mesh)
@@ -551,12 +551,12 @@ function init_mortars(mesh::Union{P4estMesh, T8codeMesh}, equations, basis, elem
     mortars = P4estMortarContainer{NDIMS, uEltype, NDIMS + 1, NDIMS + 3, typeof(u),
                                    typeof(neighbor_ids), typeof(node_indices),
                                    typeof(_u), typeof(_neighbor_ids),
-                                   typeof(_node_indices), Array, false}(u,
-                                                                        neighbor_ids,
-                                                                        node_indices,
-                                                                        _u,
-                                                                        _neighbor_ids,
-                                                                        _node_indices)
+                                   typeof(_node_indices), Array}(u,
+                                                                 neighbor_ids,
+                                                                 node_indices,
+                                                                 _u,
+                                                                 _neighbor_ids,
+                                                                 _node_indices)
 
     if n_mortars > 0
         init_mortars!(mortars, mesh)
