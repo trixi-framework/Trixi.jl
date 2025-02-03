@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -137,7 +136,9 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t,
         u_gravity_local = Trixi.get_node_vars(u_gravity, equations_gravity, dg, i, j,
                                               element)
         # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
-        return (u_euler_local[1] - 1.5e7) * u_gravity_local[1]
+        # For formula of potential energy see
+        # "Galactic Dynamics" by Binney and Tremaine, 2nd ed., equation (2.18)
+        return 0.5f0 * (u_euler_local[1] - 1.5f7) * u_gravity_local[1]
     end
     return e_potential
 end

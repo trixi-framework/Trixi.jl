@@ -1115,7 +1115,7 @@ end
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
     #               mortar_l2.reverse_upper, fstar_upper[v, :])
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
-    #               mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
+    #               mortar_l2.reverse_lower, fstar_lower[v, :], true, true)
     # end
     # The code above could be replaced by the following code. However, the relative efficiency
     # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.

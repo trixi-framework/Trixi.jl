@@ -170,6 +170,32 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_hybrid_mesh.jl"),
+                        l2=[
+                            1.0174922714929637e-15,
+                            5.053352600778435e-15,
+                            7.358169131303026e-15,
+                            5.999843977180112e-15
+                        ],
+                        linf=[
+                            4.440892098500626e-15,
+                            2.6117996654306808e-14,
+                            4.246603069191224e-14,
+                            5.861977570020827e-14
+                        ],
+                        atol=2.0e-12,)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_shockcapturing_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_shockcapturing_ec.jl"),
                         l2=[
@@ -629,6 +655,41 @@ end
                             19.63022306543678, 1.3952679820406384, 1.8716515525771589,
                             0.0,
                             0.0017266639582675424],
+                        tspan=(0.0, 0.02))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_mhd_rotor_cfl_ramp.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor_cfl_ramp.jl"),
+                        l2=[
+                            0.45519051169507474,
+                            0.8917985468745363,
+                            0.8324681609772325,
+                            0.0,
+                            0.9801426190285389,
+                            0.10476233464125001,
+                            0.15551270692826116,
+                            0.0,
+                            2.0201603821472296e-5
+                        ],
+                        linf=[
+                            10.196786739705292,
+                            18.267539012179128,
+                            10.046104290498878,
+                            0.0,
+                            19.668302849210974,
+                            1.395022093528294,
+                            1.8717844606331189,
+                            0.0,
+                            0.001651262488701531
+                        ],
                         tspan=(0.0, 0.02))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
