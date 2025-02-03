@@ -71,7 +71,7 @@ struct BoundaryConditionDoNothing end
                                                 orientation_or_normal_direction,
                                                 direction::Integer, x, t, surface_flux,
                                                 equations)
-    return surface_flux(u_inner, u_inner, orientation_or_normal_direction, equations)
+    return flux(u_inner, orientation_or_normal_direction, equations)
 end
 
 # This version can be called by hyperbolic solvers on logically Cartesian meshes
