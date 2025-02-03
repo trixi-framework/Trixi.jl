@@ -81,7 +81,7 @@ end
                                                 surface_flux_functions::Tuple,
                                                 equations)
     surface_flux_function, nonconservative_flux_function = surface_flux_functions
-    return surface_flux_function(u_inner, u_inner, 
+    return surface_flux_function(u_inner, u_inner,
                                  orientation_or_normal_direction, equations),
            nonconservative_flux_function(u_inner, u_inner,
                                          orientation_or_normal_direction, equations)
