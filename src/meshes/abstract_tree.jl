@@ -393,6 +393,8 @@ end
     end
 end
 
+# For the p4est and the t8code mesh we allow `coordinates_min` and `coordinates_max` to be `nothing`
+coordinate_min_max_check(::Nothing, ::Nothing) = nothing
 # Refine all leaf cells with coordinates in a given rectangular box
 function refine_box!(t::AbstractTree{NDIMS},
                      coordinates_min,
