@@ -11,8 +11,11 @@
 Update the divergence cleaning wave speed `c_h` according to the time step
 computed in [`StepsizeCallback`](@ref) for the ideal GLM-MHD equations, the multi-component
 GLM-MHD equations, and the multi-ion GLM-MHD equations.
-The `cfl` number should be set to the same value as for the time step size calculation. The
-`glm_scale` ensures that the GLM wave speed is lower than the fastest physical waves in the MHD
+The `cfl` number should be set to the same value as for the time step size calculation. 
+As for standard [`StepsizeCallback`](@ref) `cfl` can be either set to a `Real` number or
+a function of time `t` returning a `Real` number.
+
+The `glm_scale` ensures that the GLM wave speed is lower than the fastest physical waves in the MHD
 solution and should thus be set to a value within the interval [0,1]. Note that `glm_scale = 0`
 deactivates the divergence cleaning.
 
@@ -22,9 +25,9 @@ semidiscretization, the divergence cleaning should be applied. See also
 Note: `SemidiscretizationCoupled` and all related features are considered experimental and
 may change at any time.
 """
-struct GlmSpeedCallback{RealT <: Real}
+struct GlmSpeedCallback{RealT <: Real, CflType}
     glm_scale::RealT
-    cfl::RealT
+    cfl::CflType
     semi_indices::Vector{Int}
 end
 
@@ -58,7 +61,9 @@ end
 function GlmSpeedCallback(; glm_scale = 0.5, cfl, semi_indices = Int[])
     @assert 0<=glm_scale<=1 "glm_scale must be between 0 and 1"
 
-    glm_speed_callback = GlmSpeedCallback(glm_scale, cfl, semi_indices)
+    glm_speed_callback = GlmSpeedCallback{typeof(glm_scale), typeof(cfl)}(glm_scale,
+                                                                          cfl,
+                                                                          semi_indices)
 
     DiscreteCallback(glm_speed_callback, glm_speed_callback, # the first one is the condition, the second the affect!
                      save_positions = (false, false),
@@ -75,13 +80,17 @@ function (glm_speed_callback::GlmSpeedCallback)(u, t, integrator)
     return true
 end
 
-function update_cleaning_speed!(semi, glm_speed_callback, dt)
+function update_cleaning_speed!(semi, glm_speed_callback, dt, t)
     @unpack glm_scale, cfl = glm_speed_callback
 
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
     # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-    c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
+    if cfl isa Real # Case for constant CFL
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
+    else # Variable CFL
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl(t), mesh, equations, solver, cache)
+    end
 
     # c_h is proportional to its own time step divided by the complete MHD time step
     # We use @reset here since the equations are immutable (to work on GPUs etc.).
@@ -99,7 +108,7 @@ end
 
     # Call the appropriate update function (this indirection allows to specialize on,
     # e.g., the semidiscretization type)
-    update_cleaning_speed!(semi, glm_speed_callback, dt)
+    update_cleaning_speed!(semi, glm_speed_callback, dt, integrator.t)
 
     # avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
