@@ -30,7 +30,9 @@ summary_callback = SummaryCallback()
 alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
-callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, save_solution)
 
 ###############################################################################
 # run the simulation
