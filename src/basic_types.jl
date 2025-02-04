@@ -94,6 +94,7 @@ end
     return flux(u_inner, outward_direction, equations)
 end
 
+# Version for equations involving nonconservative fluxes
 @inline function (::BoundaryConditionDoNothing)(u_inner,
                                                 outward_direction::AbstractVector,
                                                 x, t, surface_flux_functions::Tuple,
