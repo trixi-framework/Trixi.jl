@@ -70,6 +70,8 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     not part of this meshview, i.e. mesh.cell_ids.
     """
 
+    # For the p4est mesh view, the neighbor ids change.
+    # Here we make sure that they get updated correctly.
     mask = BitArray(undef, size(interfaces_parent.neighbor_ids)[2])
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
         mask[interface] = (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
