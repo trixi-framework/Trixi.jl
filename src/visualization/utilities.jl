@@ -387,6 +387,10 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
     return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y
 end
 
+# For finite difference methods (FDSBP), we do not want to reinterpolate the data, but use the same
+# nodes as input nodes. For DG methods, we usually want to reinterpolate the data on an equidistant grid.
+default_reinterpolate(solver) = solver isa FDSBP ? false : true
+
 # Extract data from a 1D DG solution and prepare it for visualization as a line plot.
 # This returns a tuple with
 # - x coordinates

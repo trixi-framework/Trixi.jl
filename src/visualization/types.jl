@@ -517,8 +517,8 @@ end
 """
     PlotData1D(u, semi [or mesh, equations, solver, cache];
                solution_variables=nothing, nvisnodes=nothing,
-               reinterpolate=true, slice=:x, point=(0.0, 0.0, 0.0),
-               curve=nothing)
+               reinterpolate=default_reinterpolate(solver),
+               slice=:x, point=(0.0, 0.0, 0.0), curve=nothing)
 
 Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
 `u` with `Plots.jl`. All relevant geometrical information is extracted from the semidiscretization
@@ -530,7 +530,8 @@ function to `solution_variables`.
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
 exactly the number of nodes as in the DG elements are used. The solution is interpolated to these
 nodes for plotting. If `reinterpolate` is `false`, the solution is not interpolated to the `visnodes`,
-i.e., the solution is plotted at the DG nodes. In this case `nvisnodes` is ignored.
+i.e., the solution is plotted at the DG nodes. In this case `nvisnodes` is ignored. By default,
+`reinterpolate` is set to `false` for `FDSBP` approximations and to `true` otherwise.
 
 When visualizing data from a two-dimensional simulation, a 1D slice is extracted for plotting.
 `slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
@@ -553,8 +554,8 @@ end
 
 function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,
-                    reinterpolate = true, slice = :x, point = (0.0, 0.0, 0.0),
-                    curve = nothing)
+                    reinterpolate = default_reinterpolate(solver),
+                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
     variable_names = SVector(varnames(solution_variables_, equations))
 
@@ -623,8 +624,8 @@ end
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,
-                    reinterpolate = true, slice = :x, point = (0.0, 0.0, 0.0),
-                    curve = nothing)
+                    reinterpolate = default_reinterpolate(solver),
+                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
     variable_names = SVector(varnames(solution_variables_, equations))
     original_nodes = cache.elements.node_coordinates
