@@ -530,7 +530,7 @@ function to `solution_variables`.
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
 exactly the number of nodes as in the DG elements are used. The solution is interpolated to these
 nodes for plotting. If `reinterpolate` is `false`, the solution is not interpolated to the `visnodes`,
-i.e. the solution is plotted at the DG nodes. In this case `nvisnodes` is ignored.
+i.e., the solution is plotted at the DG nodes. In this case `nvisnodes` is ignored.
 
 When visualizing data from a two-dimensional simulation, a 1D slice is extracted for plotting.
 `slice` specifies the axis along which the slice is extracted and may be `:x`, or `:y`.
