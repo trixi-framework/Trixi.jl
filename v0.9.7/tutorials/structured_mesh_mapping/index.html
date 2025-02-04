@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>16 Structured mesh with curvilinear mapping · Trixi.jl</title><meta name="title" content="16 Structured mesh with curvilinear mapping · Trixi.jl"/><meta property="og:title" content="16 Structured mesh with curvilinear mapping · Trixi.jl"/><meta property="twitter:title" content="16 Structured mesh with curvilinear mapping · Trixi.jl"/><meta name="description" content="Documentation for Trixi.jl."/><meta property="og:description" content="Documentation for Trixi.jl."/><meta property="twitter:description" content="Documentation for Trixi.jl."/><meta property="og:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/structured_mesh_mapping/"/><meta property="twitter:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/structured_mesh_mapping/"/><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/structured_mesh_mapping/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Trixi.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../overview/">Overview</a></li><li><a class="tocitem" href="../../visualization/">Visualization</a></li><li><a class="tocitem" href="../../restart/">Restart simulation</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../introduction/">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox"/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">1 First steps in Trixi.jl</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../first_steps/getting_started/">1.1 Getting started</a></li><li><a class="tocitem" href="../first_steps/create_first_setup/">1.2 Create your first setup</a></li><li><a class="tocitem" href="../first_steps/changing_trixi/">1.3 Changing Trixi.jl itself</a></li></ul></li><li><a class="tocitem" href="../behind_the_scenes_simulation_setup/">2 Behind the scenes of a simulation setup</a></li><li><a class="tocitem" href="../scalar_linear_advection_1d/">3 Introduction to DG methods</a></li><li><a class="tocitem" href="../DGSEM_FluxDiff/">4 DGSEM with flux differencing</a></li><li><a class="tocitem" href="../shock_capturing/">5 Shock capturing with flux differencing and stage limiter</a></li><li><a class="tocitem" href="../subcell_shock_capturing/">6 Subcell limiting with the IDP Limiter</a></li><li><a class="tocitem" href="../non_periodic_boundaries/">7 Non-periodic boundaries</a></li><li><a class="tocitem" href="../DGMulti_1/">8 DG schemes via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../upwind_fdsbp/">10 Upwind FD SBP schemes</a></li><li><a class="tocitem" href="../adding_new_scalar_equations/">11 Adding a new scalar conservation law</a></li><li><a class="tocitem" href="../adding_nonconservative_equation/">12 Adding a non-conservative equation</a></li><li><a class="tocitem" href="../parabolic_terms/">13 Parabolic terms</a></li><li><a class="tocitem" href="../adding_new_parabolic_terms/">14 Adding new parabolic terms</a></li><li><a class="tocitem" href="../adaptive_mesh_refinement/">15 Adaptive mesh refinement</a></li><li class="is-active"><a class="tocitem" href>16 Structured mesh with curvilinear mapping</a><ul class="internal"><li class="toplevel"><a class="tocitem" href="#Creating-a-curved-mesh"><span>Creating a curved mesh</span></a></li><li><a class="tocitem" href="#Mesh-defined-by-domain-boundary-curves"><span>Mesh defined by domain boundary curves</span></a></li><li><a class="tocitem" href="#Mesh-directly-defined-by-the-transformation-mapping"><span>Mesh directly defined by the transformation mapping</span></a></li><li><a class="tocitem" href="#Package-versions"><span>Package versions</span></a></li></ul></li><li><a class="tocitem" href="../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl</a></li><li><a class="tocitem" href="../p4est_from_gmsh/">18 P4est mesh from gmsh</a></li><li><a class="tocitem" href="../time_stepping/">19 Explicit time stepping</a></li><li><a class="tocitem" href="../differentiable_programming/">20 Differentiable programming</a></li><li><a class="tocitem" href="../custom_semidiscretization/">21 Custom semidiscretizations</a></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox"/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li><li><a class="tocitem" href="../../meshes/p4est_mesh/">P4est-based mesh</a></li><li><a class="tocitem" href="../../meshes/dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../../multi-physics_coupling/">Coupling</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../development/">Development</a></li><li><a class="tocitem" href="../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../testing/">Testing</a></li><li><a class="tocitem" href="../../performance/">Performance</a></li><li><a class="tocitem" href="../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../reference-trixibase/">TrixiBase.jl</a></li><li><a class="tocitem" href="../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../changelog/">Changelog</a></li><li><a class="tocitem" href="../../authors/">Authors</a></li><li><a class="tocitem" href="../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../code_of_conduct/">Code of Conduct</a></li><li><a class="tocitem" href="../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>16 Structured mesh with curvilinear mapping</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>16 Structured mesh with curvilinear mapping</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl/blob/main/docs/literate/src/files/structured_mesh_mapping.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="structured_mesh_mapping"><a class="docs-heading-anchor" href="#structured_mesh_mapping">16: Structured mesh with curvilinear mapping</a><a id="structured_mesh_mapping-1"></a><a class="docs-heading-anchor-permalink" href="#structured_mesh_mapping" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=tutorials/notebooks/structured_mesh_mapping.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/tutorials/notebooks/structured_mesh_mapping.ipynb"><img src="https://img.shields.io/badge/render-nbviewer-f37726" alt/></a> <a href="https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/tutorials/notebooks/structured_mesh_mapping.ipynb"><img src="https://img.shields.io/badge/raw-notebook-4cc61e" alt/></a></p><p>Here, we want to introduce another mesh type of <a href="https://github.com/trixi-framework/Trixi.jl">Trixi.jl</a>. More precisely, this tutorial is about the curved mesh type <a href="../../reference-trixi/#Trixi.StructuredMesh"><code>StructuredMesh</code></a> supporting curved meshes.</p><h1 id="Creating-a-curved-mesh"><a class="docs-heading-anchor" href="#Creating-a-curved-mesh">Creating a curved mesh</a><a id="Creating-a-curved-mesh-1"></a><a class="docs-heading-anchor-permalink" href="#Creating-a-curved-mesh" title="Permalink"></a></h1><p>There are two basic options to define a curved <a href="../../reference-trixi/#Trixi.StructuredMesh"><code>StructuredMesh</code></a> in Trixi.jl. You can implement curves for the domain boundaries, or alternatively, set up directly the complete transformation mapping. We now present one short example each.</p><h2 id="Mesh-defined-by-domain-boundary-curves"><a class="docs-heading-anchor" href="#Mesh-defined-by-domain-boundary-curves">Mesh defined by domain boundary curves</a><a id="Mesh-defined-by-domain-boundary-curves-1"></a><a class="docs-heading-anchor-permalink" href="#Mesh-defined-by-domain-boundary-curves" title="Permalink"></a></h2><p>Both examples are based on a semdiscretization of the 2D compressible Euler equations.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq
+using Trixi
+
+equations = CompressibleEulerEquations2D(1.4)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CompressibleEulerEquations2D                                                                     │
+│ ════════════════════════════                                                                     │
+│ #variables: ………………………………………………… 4                                                                │
+│ │ variable 1: …………………………………………… rho                                                              │
+│ │ variable 2: …………………………………………… rho_v1                                                           │
+│ │ variable 3: …………………………………………… rho_v2                                                           │
+│ │ variable 4: …………………………………………… rho_e                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>We start with a pressure perturbation at <code>(xs, 0.0)</code> as initial condition.</p><pre><code class="language-julia hljs">function initial_condition_pressure_perturbation(x, t,
+                                                 equations::CompressibleEulerEquations2D)
+    xs = 1.5 # location of the initial disturbance on the x axis
+    w = 1 / 8 # half width
+    p = exp(-log(2) * ((x[1] - xs)^2 + x[2]^2) / w^2) + 1.0
+    v1 = 0.0
+    v2 = 0.0
+    rho = 1.0
+
+    return prim2cons(SVector(rho, v1, v2, p), equations)
+end
+initial_condition = initial_condition_pressure_perturbation</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">initial_condition_pressure_perturbation (generic function with 1 method)</code></pre><p>Initialize every boundary as a <a href="../../reference-trixi/#Trixi.boundary_condition_slip_wall-Tuple{Any, AbstractVector, Any, Any, Any, AcousticPerturbationEquations2D}"><code>boundary_condition_slip_wall</code></a>.</p><pre><code class="language-julia hljs">boundary_conditions = boundary_condition_slip_wall</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">boundary_condition_slip_wall (generic function with 11 methods)</code></pre><p>The approximation setup is an entropy-stable split-form DG method with <code>polydeg=4</code>. We are using the two fluxes <a href="../../reference-trixi/#Trixi.flux_ranocha-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_ranocha</code></a> and <a href="../../reference-trixi/#Trixi.flux_lax_friedrichs"><code>flux_lax_friedrichs</code></a>.</p><pre><code class="language-julia hljs">solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs,
+               volume_integral = VolumeIntegralFluxDifferencing(flux_ranocha))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DG{Float64}                                                                                      │
+│ ═══════════                                                                                      │
+│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=4)                         │
+│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=4)                      │
+│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
+│ │ surface flux: ……………………………………… FluxLaxFriedrichs(max_abs_speed_naive)                           │
+│ volume integral: …………………………………… VolumeIntegralFluxDifferencing                                   │
+│ │ volume flux: ………………………………………… flux_ranocha                                                     │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>We want to define a circular cylinder as physical domain. It contains an inner semicircle with radius <code>r0</code> and an outer semicircle of radius <code>r1</code>.</p><p><img src="https://user-images.githubusercontent.com/74359358/159492083-1709510f-8ba4-4416-9fb1-e2ed2a11c62c.png" alt/></p><p>The domain boundary curves with curve parameter in <span>$[-1,1]$</span> are sorted as shown in the sketch. They always are orientated from negative to positive coordinate, such that the corners have to fit like this <span>$f_1(+1) = f_4(-1)$</span>, <span>$f_3(+1) = f_2(-1)$</span>, etc.</p><p>In our case we can define the domain boundary curves as follows:</p><pre><code class="language-julia hljs">r0 = 0.5 # inner radius
+r1 = 5.0 # outer radius
+f1(xi) = SVector(r0 + 0.5 * (r1 - r0) * (xi + 1), 0.0) # right line
+f2(xi) = SVector(-r0 - 0.5 * (r1 - r0) * (xi + 1), 0.0) # left line
+f3(eta) = SVector(r0 * cos(0.5 * pi * (eta + 1)), r0 * sin(0.5 * pi * (eta + 1))) # inner circle
+f4(eta) = SVector(r1 * cos(0.5 * pi * (eta + 1)), r1 * sin(0.5 * pi * (eta + 1))) # outer circle</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">f4 (generic function with 1 method)</code></pre><p>We create a curved mesh with 16 x 16 elements. The defined domain boundary curves are passed as a tuple.</p><pre><code class="language-julia hljs">cells_per_dimension = (16, 16)
+mesh = StructuredMesh(cells_per_dimension, (f1, f2, f3, f4), periodicity = false)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ StructuredMesh{2, Float64}                                                                       │
+│ ══════════════════════════                                                                       │
+│ size: ………………………………………………………………… (16, 16)                                                         │
+│ mapping: …………………………………………………………                                                                  │
+│ │ line 1: ……………………………………………………… nothing
+nothing
+nothing
+nothing
+…ng = transfinite_mapping(faces) │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>Then, we define the simulation with endtime <code>T=3</code> with <code>semi</code>, <code>ode</code> and <code>callbacks</code>.</p><pre><code class="language-julia hljs">semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+                                    boundary_conditions = boundary_conditions)
+
+tspan = (0.0, 3.0)
+ode = semidiscretize(semi, tspan)
+
+analysis_interval = 100
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
+stepsize_callback = StepsizeCallback(cfl = 0.9)
+
+callbacks = CallbackSet(analysis_callback,
+                        alive_callback,
+                        stepsize_callback);</code></pre><p>Running the simulation</p><pre><code class="language-julia hljs">sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);
+
+using Plots
+plot(sol)</code></pre><img src="e577514c.svg" alt="Example block output"/><pre><code class="language-julia hljs">pd = PlotData2D(sol)
+plot(pd[&quot;p&quot;])
+plot!(getmesh(pd))</code></pre><img src="92b08d33.svg" alt="Example block output"/><h2 id="Mesh-directly-defined-by-the-transformation-mapping"><a class="docs-heading-anchor" href="#Mesh-directly-defined-by-the-transformation-mapping">Mesh directly defined by the transformation mapping</a><a id="Mesh-directly-defined-by-the-transformation-mapping-1"></a><a class="docs-heading-anchor-permalink" href="#Mesh-directly-defined-by-the-transformation-mapping" title="Permalink"></a></h2><p>As mentioned before, you can also define the domain for a <code>StructuredMesh</code> by directly setting up a transformation mapping. Here, we want to present a nice mapping, which is often used to test free-stream preservation. Exact free-stream preservation is a crucial property of any numerical method on curvilinear grids. The mapping is a reduced 2D version of the mapping described in <a href="https://arxiv.org/abs/2012.12040">Rueda-Ramírez et al. (2021), p.18</a>.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq
+using Trixi
+
+equations = CompressibleEulerEquations2D(1.4)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CompressibleEulerEquations2D                                                                     │
+│ ════════════════════════════                                                                     │
+│ #variables: ………………………………………………… 4                                                                │
+│ │ variable 1: …………………………………………… rho                                                              │
+│ │ variable 2: …………………………………………… rho_v1                                                           │
+│ │ variable 3: …………………………………………… rho_v2                                                           │
+│ │ variable 4: …………………………………………… rho_e                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>As mentioned, this mapping is used for testing free-stream preservation. So, we use a constant initial condition.</p><pre><code class="language-julia hljs">initial_condition = initial_condition_constant
+
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DG{Float64}                                                                                      │
+│ ═══════════                                                                                      │
+│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
+│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
+│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
+│ │ surface flux: ……………………………………… FluxLaxFriedrichs(max_abs_speed_naive)                           │
+│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>We define the transformation mapping with variables in <span>$[-1, 1]$</span> as described in Rueda-Ramírez et al. (2021), p.18 (reduced to 2D):</p><pre><code class="language-julia hljs">function mapping(xi_, eta_)
+    # Transform input variables between -1 and 1 onto [0,3]
+    xi = 1.5 * xi_ + 1.5
+    eta = 1.5 * eta_ + 1.5
+
+    y = eta + 3 / 8 * (cos(1.5 * pi * (2 * xi - 3) / 3) *
+                       cos(0.5 * pi * (2 * eta - 3) / 3))
+
+    x = xi + 3 / 8 * (cos(0.5 * pi * (2 * xi - 3) / 3) *
+                      cos(2 * pi * (2 * y - 3) / 3))
+
+    return SVector(x, y)
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">mapping (generic function with 1 method)</code></pre><p>Instead of a tuple of boundary functions, the <code>mesh</code> now has the mapping as its parameter.</p><pre><code class="language-julia hljs">cells_per_dimension = (16, 16)
+mesh = StructuredMesh(cells_per_dimension, mapping)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan)
+
+analysis_callback = AnalysisCallback(semi, interval = 250)
+
+stepsize_callback = StepsizeCallback(cfl = 0.8)
+
+callbacks = CallbackSet(analysis_callback,
+                        stepsize_callback)
+
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                  0                run time:       7.41000000e-07 s
+ Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
+                                               PID:                   Inf s
+ #DOFs per field:          4096                alloc&#39;d memory:       1036.977 MiB
+ #elements:                 256
+
+ Variable:       rho              rho_v1           rho_v2           rho_e
+ L2 error:       7.14879109e-17   1.26068516e-17   2.52137032e-17   1.28610275e-15
+ Linf error:     2.22044605e-16   2.77555756e-17   5.55111512e-17   3.55271368e-15
+ ∑∂S/∂U ⋅ Uₜ :   6.39244457e-17
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                250                run time:       2.02787936e-01 s
+ Δt:             2.33008558e-03                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      5.82521395e-01 (58.252%)      time/DOF/rhs!:  3.51154686e-08 s
+                                               PID:            3.91927737e-08 s
+ #DOFs per field:          4096                alloc&#39;d memory:       1041.610 MiB
+ #elements:                 256
+
+ Variable:       rho              rho_v1           rho_v2           rho_e
+ L2 error:       2.46914189e-15   1.94336947e-14   2.20134956e-14   1.45208464e-14
+ Linf error:     2.16493490e-14   2.07611706e-13   2.74003042e-13   2.25597319e-13
+ ∑∂S/∂U ⋅ Uₜ :  -1.05103567e-17
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                430                run time:       3.49603058e-01 s
+ Δt:             3.93286656e-04                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  3.51144245e-08 s
+                                               PID:            3.92440093e-08 s
+ #DOFs per field:          4096                alloc&#39;d memory:       1046.314 MiB
+ #elements:                 256
+
+ Variable:       rho              rho_v1           rho_v2           rho_e
+ L2 error:       3.23698099e-15   2.13754276e-14   2.82614161e-14   1.56475906e-14
+ Linf error:     2.34257058e-14   2.27595720e-13   3.36758399e-13   2.32702746e-13
+ ∑∂S/∂U ⋅ Uₜ :   5.15813726e-17
+────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre><p>Now, we want to verify the free-stream preservation property and plot the mesh. For the verification, we calculate the absolute difference of the first conservation variable density <code>u[1]</code> and <code>1.0</code>. To plot this error and the mesh, we are using the visualization feature <code>ScalarPlotData2D</code>, explained in <a href="../../visualization/#visualization">visualization</a>.</p><pre><code class="language-julia hljs">error_density = let u = Trixi.wrap_array(sol.u[end], semi)
+    abs.(u[1, :, :, :] .- 1.0) # density, x, y, elements
+end
+pd = ScalarPlotData2D(error_density, semi)
+
+using Plots
+plot(pd, title = &quot;Error in density&quot;)
+plot!(getmesh(pd))</code></pre><img src="043d4bcb.svg" alt="Example block output"/><p>We observe that the errors in the variable <code>density</code> are at the level of machine accuracy. Moreover, the plot shows the mesh structure resulting from our transformation mapping.</p><p>Of course, you can also use other mappings as for instance shifts by <span>$(x, y)$</span></p><pre><code class="language-julia hljs">mapping(xi, eta) = SVector(xi + x, eta + y)</code></pre><p>or rotations with a rotation matrix <span>$T$</span></p><pre><code class="language-julia hljs">mapping(xi, eta) = T * SVector(xi, eta).</code></pre><p>For more curved mesh mappings, please have a look at some <a href="https://github.com/trixi-framework/Trixi.jl/tree/main/examples">elixirs for <code>StructuredMesh</code></a>. For another curved mesh type, there is a <a href="../hohqmesh_tutorial/#hohqmesh_tutorial">tutorial</a> about Trixi.jl&#39;s unstructured mesh type [<code>UnstructuredMesh2D</code>] and its use of the <a href="https://github.com/trixi-framework/HOHQMesh">High-Order Hex-Quad Mesh (HOHQMesh) generator</a>, created and developed by David Kopriva.</p><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEq&quot;, &quot;Plots&quot;],
+           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.6
+Commit 67dffc4a8ae (2024-10-28 12:23 UTC)
+Build Info:
+  Official https://julialang.org/ release
+Platform Info:
+  OS: Linux (x86_64-linux-gnu)
+  CPU: 4 × AMD EPYC 7763 64-Core Processor
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-15.0.7 (ORCJIT, znver3)
+Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)
+Environment:
+  JULIA_PKG_SERVER_REGISTRY_PREFERENCE = eager
+<span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
+<span class="sgr32">⌃</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
+  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.9.7 `~/work/Trixi.jl/Trixi.jl`
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adaptive_mesh_refinement/">« 15 Adaptive mesh refinement</a><a class="docs-footer-nextpage" href="../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Thursday 21 November 2024 13:46">Thursday 21 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
