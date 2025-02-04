@@ -387,6 +387,10 @@ function get_data_2d(center_level_0, length_level_0, leaf_cells, coordinates, le
     return xs, ys, node_centered_data, mesh_vertices_x, mesh_vertices_y
 end
 
+# For finite difference methods (FDSBP), we do not want to reinterpolate the data, but use the same
+# nodes as input nodes. For DG methods, we usually want to reinterpolate the data on an equidistant grid.
+default_reinterpolate(solver) = solver isa FDSBP ? false : true
+
 # Extract data from a 1D DG solution and prepare it for visualization as a line plot.
 # This returns a tuple with
 # - x coordinates
@@ -394,18 +398,26 @@ end
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
 #       thus be changed in future releases.
-function get_data_1d(original_nodes, unstructured_data, nvisnodes)
+function get_data_1d(original_nodes, unstructured_data, nvisnodes, reinterpolate)
     # Get the dimensions of u; where n_vars is the number of variables, n_nodes the number of nodal values per element and n_elements the total number of elements.
     n_nodes, n_elements, n_vars = size(unstructured_data)
 
-    # Set the amount of nodes visualized according to nvisnodes.
-    if nvisnodes === nothing
-        max_nvisnodes = 2 * n_nodes
-    elseif nvisnodes == 0
+    # If `reinterpolate` is `false`, we use the same output nodes as input nodes, such that the Vandermonde matrix below is the identity matrix.
+    # If `reinterpolate` is `true`, the output nodes are equidistantly spaced.
+    if reinterpolate == false
         max_nvisnodes = n_nodes
+        nodes_out, _ = gauss_lobatto_nodes_weights(max_nvisnodes)
     else
-        @assert nvisnodes>=2 "nvisnodes must be zero or >= 2"
-        max_nvisnodes = nvisnodes
+        # Set the amount of nodes visualized according to nvisnodes.
+        if nvisnodes === nothing
+            max_nvisnodes = 2 * n_nodes
+        elseif nvisnodes == 0
+            max_nvisnodes = n_nodes
+        else
+            @assert nvisnodes>=2 "nvisnodes must be zero or >= 2"
+            max_nvisnodes = nvisnodes
+        end
+        nodes_out = collect(range(-1, 1, length = max_nvisnodes))
     end
 
     interpolated_nodes = Array{eltype(original_nodes), 2}(undef, max_nvisnodes,
@@ -421,7 +433,6 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes)
     end
 
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
-    nodes_out = collect(range(-1, 1, length = max_nvisnodes))
 
     # Calculate vandermonde matrix for interpolation.
     vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
@@ -659,8 +670,8 @@ function unstructured_3d_to_2d(unstructured_data, coordinates, levels,
 end
 
 # Convert 2d unstructured data to 1d slice and interpolate them.
-function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, slice,
-                               point)
+function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes,
+                               reinterpolate, slice, point)
     if slice === :x
         slice_dimension = 2
         other_dimension = 1
@@ -733,7 +744,7 @@ function unstructured_2d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
     end
 
     return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id),
-                       new_unstructured_data[:, 1:new_id, :], nvisnodes)
+                       new_unstructured_data[:, 1:new_id, :], nvisnodes, reinterpolate)
 end
 
 # Calculate the arc length of a curve given by ndims x npoints point coordinates (piece-wise linear approximation)
@@ -1069,8 +1080,8 @@ function get_value_at_point(point, nodes, data)
 end
 
 # Convert 3d unstructured data to 1d slice and interpolate them.
-function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, slice,
-                               point)
+function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes,
+                               reinterpolate, slice, point)
     if slice === :x
         slice_dimension = 1
         other_dimensions = [2, 3]
@@ -1162,7 +1173,7 @@ function unstructured_3d_to_1d(original_nodes, unstructured_data, nvisnodes, sli
     end
 
     return get_data_1d(reshape(new_nodes[:, 1:new_id], 1, n_nodes_in, new_id),
-                       new_unstructured_data[:, 1:new_id, :], nvisnodes)
+                       new_unstructured_data[:, 1:new_id, :], nvisnodes, reinterpolate)
 end
 
 # Interpolate unstructured DG data to structured data (cell-centered)
