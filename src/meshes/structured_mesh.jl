@@ -67,7 +67,6 @@ function StructuredMesh(cells_per_dimension, mapping;
         # Default case if periodicity is an iterable
         periodicity = Tuple(periodicity)
     end
-
     return StructuredMesh{NDIMS, RealT}(Tuple(cells_per_dimension), mapping,
                                         mapping_as_string, periodicity, "",
                                         unsaved_changes)
@@ -106,17 +105,13 @@ function StructuredMesh(cells_per_dimension, faces::Tuple;
 
     # Collect definitions of face functions in one string (separated by semicolons)
     face2substring(face) = code_string(face, ntuple(_ -> RealT, NDIMS - 1))
-    join_newline(strings) = join(strings, "\n")
+    join_newline(strings) = join(strings, ";")
 
     faces_definition = faces .|> face2substring .|> string |> join_newline
 
     # Include faces definition in `mapping_as_string` to allow for evaluation
     # without knowing the face functions
-    mapping_as_string = """
-        $faces_definition
-        faces = $(string(faces))
-        mapping = transfinite_mapping(faces)
-        """
+    mapping_as_string = """$faces_definition;faces = $(string(faces));mapping = transfinite_mapping(faces)"""
 
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
@@ -143,11 +138,8 @@ function StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max;
     coordinates_min_max_check(coordinates_min, coordinates_max)
 
     mapping = coordinates2mapping(coordinates_min, coordinates_max)
-    mapping_as_string = """
-        coordinates_min = $coordinates_min
-        coordinates_max = $coordinates_max
-        mapping = coordinates2mapping(coordinates_min, coordinates_max)
-        """
+
+    mapping_as_string = """coordinates_min = $coordinates_min;coordinates_max = $coordinates_max;mapping = coordinates2mapping(coordinates_min, coordinates_max)"""
     return StructuredMesh(cells_per_dimension, mapping; RealT = RealT,
                           periodicity = periodicity,
                           mapping_as_string = mapping_as_string)
@@ -363,12 +355,31 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::StructuredMesh)
                        "StructuredMesh{" * string(ndims(mesh)) * ", " *
                        string(real(mesh)) * "}")
         summary_line(io, "size", size(mesh))
-
-        summary_line(io, "mapping", "")
         # Print code lines of mapping_as_string
-        mapping_lines = split(mesh.mapping_as_string, ";")
-        for i in eachindex(mapping_lines)
-            summary_line(increment_indent(io), "line $i", strip(mapping_lines[i]))
+        if occursin("\n", mesh.mapping_as_string)
+            mapping_lines = replace(mesh.mapping_as_string, '\n' => ';')
+        else
+            mapping_lines = mesh.mapping_as_string
+        end
+
+        mapping_lines = split(mapping_lines, ";")
+
+        if occursin("coordinates", mesh.mapping_as_string)
+            summary_line(io, "mapping", "linear")
+            coordinates_min = eval(Meta.parse(split(mapping_lines[1], "= ")[2]))
+            coordinates_max = eval(Meta.parse(split(mapping_lines[2], "= ")[2]))
+            dims = length(coordinates_max)
+            summary_line(increment_indent(io), "domain",
+                         join(["[$(coordinates_min[i]), $(coordinates_max[i])]"
+                               for i in 1:dims], "x"))
+        elseif occursin("mapping", mesh.mapping_as_string)
+            summary_line(io, "mapping", "custom mapping")
+        else
+            # At the moment this is not being used
+            summary_line(io, "mapping", "")
+            for i in eachindex(mapping_lines)
+                summary_line(increment_indent(io), "line $i", strip(mapping_lines[i]))
+            end
         end
         summary_footer(io)
     end
