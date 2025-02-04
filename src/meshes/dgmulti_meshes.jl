@@ -12,17 +12,27 @@
 dispatchable type. This is intended to store geometric data and connectivities for any type of
 mesh (Cartesian, affine, curved, structured/unstructured).
 """
-mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, RefElemDataT <: RefElemData, BoundaryFaceT}
-    md :: MeshDataT
-    rd :: RefElemDataT
+mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS},
+                           RefElemDataT <: RefElemData, BoundaryFaceT}
+    md::MeshDataT
+    rd::RefElemDataT
 
     boundary_faces::BoundaryFaceT
 
-    current_filename  :: String
-    unsaved_changes   :: Bool
+    current_filename :: String
+    unsaved_changes  :: Bool
 
-    function DGMultiMesh{NDIMS, MeshType, MeshDataT, RefElemDataT, BoundaryFaceT}(md, rd, bd) where {NDIMS, MeshType, MeshDataT, RefElemDataT, BoundaryFaceT}
-      return new{NDIMS, MeshType, MeshDataT, RefElemDataT, BoundaryFaceT}(md, rd, bd, "", true)
+    function DGMultiMesh{NDIMS, MeshType, MeshDataT, RefElemDataT, BoundaryFaceT}(md,
+                                                                                  rd,
+                                                                                  bd) where {
+                                                                                             NDIMS,
+                                                                                             MeshType,
+                                                                                             MeshDataT,
+                                                                                             RefElemDataT,
+                                                                                             BoundaryFaceT
+                                                                                             }
+        return new{NDIMS, MeshType, MeshDataT, RefElemDataT, BoundaryFaceT}(md, rd, bd,
+                                                                            "", true)
     end
 end
 
@@ -32,35 +42,37 @@ end
 get_name(mesh::DGMultiMesh) = mesh |> typeof |> nameof |> string
 
 function get_element_type_from_string(input::String)
-  str = lowercase(input)
-  if startswith(str, "line")
-    return Line
-  elseif startswith(str, "tri")
-    return Tri
-  elseif startswith(str, "tet")
-    return Tet
-  elseif startswith(str, "quad")
-    return Quad
-  elseif startswith(str, "hex")
-    return Hex
-  elseif startswith(str, "wedge")
-    return Wedge
-  elseif startswith(str, "pyr")
-    return Pyr
-  else
-    @error "Unknown element type: $input"
-  end
+    str = lowercase(input)
+    if startswith(str, "line")
+        return Line
+    elseif startswith(str, "tri")
+        return Tri
+    elseif startswith(str, "tet")
+        return Tet
+    elseif startswith(str, "quad")
+        return Quad
+    elseif startswith(str, "hex")
+        return Hex
+    elseif startswith(str, "wedge")
+        return Wedge
+    elseif startswith(str, "pyr")
+        return Pyr
+    else
+        @error "Unknown element type: $input"
+    end
 end
 
 const SerialDGMultiMesh{NDIMS} = DGMultiMesh{NDIMS}
 @inline mpi_parallel(mesh::SerialDGMultiMesh) = False()
 
 # enable use of @set and setproperties(...) for DGMultiMesh
-function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4, T5}}) where {T1,
-                                                                                    T2,
-                                                                                    T3,
-                                                                                    T4,
-                                                                                    T5}
+function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4, T5}}) where {
+                                                                                        T1,
+                                                                                        T2,
+                                                                                        T3,
+                                                                                        T4,
+                                                                                        T5
+                                                                                        }
     DGMultiMesh{T1, T2, T3, T4, T5}
 end
 
@@ -86,8 +98,9 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-function DGMultiMesh(md::MeshData{NDIMS}, rd::RefElemData, boundary_names=[]) where {NDIMS}
-    return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(rd), typeof(boundary_names)}(md, rd, boundary_names)
+function DGMultiMesh(md::MeshData{NDIMS}, rd::RefElemData,
+                     boundary_names = []) where {NDIMS}
+    return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(rd),
+                       typeof(boundary_names)}(md, rd, boundary_names)
 end
-
 end # @muladd

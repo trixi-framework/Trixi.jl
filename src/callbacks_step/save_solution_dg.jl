@@ -130,7 +130,8 @@ function save_solution_file(u, time, dt, timestep,
             attributes(file)["polydeg"] = mesh.rd.N
         end
 
-        attributes(file)["element_type"] = mesh.rd.element_type |> typeof |> nameof |> string
+        attributes(file)["element_type"] = mesh.rd.element_type |> typeof |> nameof |>
+                                           string
         attributes(file)["n_vars"] = n_vars
         attributes(file)["n_elements"] = nelements(dg, cache)
         attributes(file)["dof_per_elem"] = length(mesh.rd.r)
@@ -144,10 +145,10 @@ function save_solution_file(u, time, dt, timestep,
         for v in 1:n_vars
             temp = zeros(size(u))
             n_nodes, n_elems = size(u)
-            for i_elem = 1:n_elems
-              for i_node = 1:n_nodes
-                temp[i_node,i_elem] = data[i_node,i_elem][v]
-              end
+            for i_elem in 1:n_elems
+                for i_node in 1:n_nodes
+                    temp[i_node, i_elem] = data[i_node, i_elem][v]
+                end
             end
 
             file["variables_$v"] = temp
