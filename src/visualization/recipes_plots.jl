@@ -177,7 +177,8 @@ end
 RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:TreeMesh};
                                solution_variables = nothing,
                                grid_lines = true, max_supported_level = 11,
-                               nvisnodes = nothing, reinterpolate = default_reinterpolate(semi.solver),
+                               nvisnodes = nothing,
+                               reinterpolate = default_reinterpolate(semi.solver),
                                slice = :xy, point = (0.0, 0.0, 0.0), curve = nothing)
     # Create a PlotData1D or PlotData2D object depending on the dimension.
     if ndims(semi) == 1
