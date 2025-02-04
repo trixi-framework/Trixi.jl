@@ -366,7 +366,7 @@ end
                             2.4216027326405487
                         ],
                         tspan=(0.0, 0.5),
-                        initial_refinement_level=5,)
+                        initial_refinement_level=4,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
