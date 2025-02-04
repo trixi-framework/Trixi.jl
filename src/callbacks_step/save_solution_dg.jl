@@ -123,14 +123,14 @@ function save_solution_file(u, time, dt, timestep,
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["equations"] = get_name(equations)
 
-        if length(mesh.rd.N) > 1
-          for i = 1:length(mesh.rd.N)
-            attributes(file)["polydeg_$i"] = mesh.rd.N[i]
-          end
+        if mesh.rd.element_type isa Wedge
+            attributes(file)["polydeg_tri"] = mesh.rd.N[2]
+            attributes(file)["polydeg_line"] = mesh.rd.N[1]
         else
-          attributes(file)["polydeg"] = mesh.rd.N
+            attributes(file)["polydeg"] = mesh.rd.N
         end
 
+        attributes(file)["element_type"] = mesh.rd.element_type |> typeof |> nameof |> string
         attributes(file)["n_vars"] = n_vars
         attributes(file)["n_elements"] = nelements(dg, cache)
         attributes(file)["dof_per_elem"] = length(mesh.rd.r)

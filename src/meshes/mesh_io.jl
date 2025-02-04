@@ -313,10 +313,12 @@ end
 @inline get_VXYZ(md::StartUpDG.MeshData) = get_VXYZ(md.mesh_type)
 @inline get_VXYZ(mesh_type::StartUpDG.VertexMappedMesh) = mesh_type.VXYZ
 @inline get_VXYZ(mesh_type::StartUpDG.CurvedMesh) = get_VXYZ(mesh_type.original_mesh_type)
+@inline get_VXYZ(mesh_type::StartUpDG.HOHQMeshType) = mesh_type.hmd.VXYZ
 
 @inline get_EToV(md::StartUpDG.MeshData) = get_EToV(md.mesh_type)
 @inline get_EToV(mesh_type::StartUpDG.VertexMappedMesh) = mesh_type.EToV
 @inline get_EToV(mesh_type::StartUpDG.CurvedMesh) = get_EToV(mesh_type.original_mesh_type)
+@inline get_EToV(mesh_type::StartUpDG.HOHQMeshType) = mesh_type.hmd.EToV
 
 function save_mesh_file(mesh::DGMultiMesh, output_directory, timestep,
                         mpi_parallel::False)
@@ -337,13 +339,14 @@ function save_mesh_file(mesh::DGMultiMesh, output_directory, timestep,
       attributes(file)["mesh_type"] = get_name(mesh)
       attributes(file)["ndims"] = ndims(mesh)
       attributes(file)["nelements"] = ncells(mesh)
-      if length(mesh.rd.N) > 1
-        for i = 1:length(mesh.rd.N)
-          attributes(file)["polydeg_$i"] = mesh.rd.N[i]
-        end
+
+      if mesh.rd.element_type isa Wedge
+          attributes(file)["polydeg_tri"] = mesh.rd.N[2]
+          attributes(file)["polydeg_line"] = mesh.rd.N[1]
       else
-        attributes(file)["polydeg"] = mesh.rd.N
+          attributes(file)["polydeg"] = mesh.rd.N
       end
+
       attributes(file)["element_type"] = mesh.rd.element_type |> typeof |> nameof |> string
 
       ## TODO: Is this useful to reconstruct `RefElemData` from this?
@@ -361,16 +364,14 @@ function save_mesh_file(mesh::DGMultiMesh, output_directory, timestep,
       end
 
       # Transfer vectors of vectors to a matrix (2D array) and store into h5 file.
-      for idim = 1:ndims(mesh)
-        let vectors = get_VXYZ(mesh.md)[idim]
-          matrix = zeros(length(vectors[1]), length(vectors))
-          for ielem = 1:length(vectors)
-            @views matrix[:,ielem] .= vectors[ielem]
-          end
-          # ASCII: Char(58) => 'X'
-          # Vertex-coordinates per element.
-          file["V" * (87 + idim |> Char |> string)] = matrix
+      for (idim, vectors) in enumerate(get_VXYZ(mesh.md))
+        matrix = zeros(length(vectors[1]), length(vectors))
+        for ielem = 1:length(vectors)
+          @views matrix[:,ielem] .= vectors[ielem]
         end
+        # ASCII: Char(58) => 'X'
+        # Vertex-coordinates per element.
+        file["V" * (87 + idim |> Char |> string)] = matrix
       end
 
       # Mapping element corners to vertices `VXYZ`.
@@ -508,22 +509,17 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
                    read(file["EToV"])
         end
 
-        df = h5open(mesh_file, "r")
+        # Load RefElemData.
+        etype = get_element_type_from_string(etype_str)()
 
-        if haskey(Trixi.attributes(df),"polydeg") 
-          polydeg = read(attributes(df)["polydeg"])
-        else
-          polydeg = tuple()
-          for i = 1:99
-            if haskey(Trixi.attributes(df),"polydeg_$i")
-              polydeg = tuple(polydeg..., read(attributes(df)["polydeg_$i"]))
-            else
-              break
-            end
+        polydeg = h5open(mesh_file, "r") do file
+          if etype isa Wedge
+              return tuple(read(attributes(file)["polydeg_tri"]),
+                           read(attributes(file)["polydeg_line"]))
+          else
+              return read(attributes(file)["polydeg"])
           end
         end
-
-        close(df)
 
         ## TODO: Is this useful to reconstruct `RefElemData`?
         ## # Load quadrature rule.
@@ -535,9 +531,6 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         ##   # ASCII: Char(114) => 'r'
         ##   return tuple(rstq..., read(file["wq"]))
         ## end
-
-        # Load RefElemData.
-        etype = get_element_type_from_string(etype_str)()
 
         # TODO: Make the following more general. But how? @jchan
         if etype isa StartUpDG.Wedge
@@ -562,8 +555,13 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
           return tuple([read(file["V" * (87 + i |> Char |> string)]) for i = 1:ndims]...)
         end
 
-        # Load MeshData and store original physical nodes.
-        md = MeshData(rd, MeshData(vxyz..., EToV, rd), xyz...)
+        if ndims == 1
+          md = MeshData(vxyz[1][1,:], EToV, rd)
+        else
+          # Load MeshData and restore original physical nodes.
+          md = MeshData(rd, MeshData(vxyz, EToV, rd), xyz...)
+       end
+
         mesh = DGMultiMesh(md, rd, [])
     else
         error("Unknown mesh type!")

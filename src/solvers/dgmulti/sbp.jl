@@ -135,7 +135,7 @@ function DGMultiMesh(dg::DGMultiPeriodicFDSBP{NDIMS};
                   periodicity)
 
     boundary_faces = []
-    return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(boundary_faces)}(md,
+    return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(dg.basis), typeof(boundary_faces)}(md, dg.basis,
                                                                                    boundary_faces)
 end
 

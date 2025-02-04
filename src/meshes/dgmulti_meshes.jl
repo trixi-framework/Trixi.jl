@@ -12,9 +12,9 @@
 dispatchable type. This is intended to store geometric data and connectivities for any type of
 mesh (Cartesian, affine, curved, structured/unstructured).
 """
-mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, RefElemDataT <: RefElemData, BoundaryFaceT} <: AbstractMesh{NDIMS}
-    md::MeshDataT
-    rd::RefElemDataT
+mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, RefElemDataT <: RefElemData, BoundaryFaceT}
+    md :: MeshDataT
+    rd :: RefElemDataT
 
     boundary_faces::BoundaryFaceT
 
@@ -28,6 +28,8 @@ end
 
 @inline Base.ndims(::DGMultiMesh{NDIMS}) where {NDIMS} = NDIMS
 @inline ncells(mesh::DGMultiMesh) = Int(mesh.md.num_elements)
+
+get_name(mesh::DGMultiMesh) = mesh |> typeof |> nameof |> string
 
 function get_element_type_from_string(input::String)
   str = lowercase(input)
