@@ -206,7 +206,6 @@ RecipesBase.@recipe function f(func::Function,
                                solution_variables = nothing,
                                nvisnodes = nothing, slice = :xy,
                                point = (0.0, 0.0, 0.0), curve = nothing)
-    # Create a PlotData1D or PlotData2D object depending on the dimension.
     if ndims(semi) == 1
         return PlotData1D(func, semi; solution_variables, nvisnodes, slice, point,
                           curve)
