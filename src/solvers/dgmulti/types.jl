@@ -147,8 +147,8 @@ end
 
 function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS},
                      boundary_faces) where {NDIMS}
-    return DGMultiMesh{NDIMS, typeof(geometric_term_type), typeof(md),
-                       typeof(boundary_faces)}(md, boundary_faces)
+    return DGMultiMesh{NDIMS, typeof(geometric_term_type), typeof(md), typeof(dg.basis),
+                       typeof(boundary_faces)}(md, dg.basis, boundary_faces)
 end
 
 # Mesh types used internally for trait dispatch

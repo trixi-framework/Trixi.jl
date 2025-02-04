@@ -33,11 +33,14 @@ analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
+save_solution = SaveSolutionCallback(interval = analysis_interval,
+                                     solution_variables = cons2prim)
 stepsize_callback = StepsizeCallback(cfl = 0.8)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
+                        save_solution,
                         stepsize_callback)
 
 ###############################################################################
