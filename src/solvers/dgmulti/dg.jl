@@ -42,6 +42,8 @@ end
     end
 end
 
+@inline nelements(dg::DGMulti, cache) = size(cache.u_values)[end]
+
 """
     eachdim(mesh)
 

@@ -91,6 +91,97 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 function save_solution_file(u, time, dt, timestep,
+                            mesh::SerialDGMultiMesh,
+                            equations, dg::DG, cache,
+                            solution_callback,
+                            element_variables = Dict{Symbol, Any}(),
+                            node_variables = Dict{Symbol, Any}();
+                            system = "")
+    @unpack output_directory, solution_variables = solution_callback
+
+    # Filename based on current time step.
+    if isempty(system)
+        filename = joinpath(output_directory, @sprintf("solution_%09d.h5", timestep))
+    else
+        filename = joinpath(output_directory,
+                            @sprintf("solution_%s_%09d.h5", system, timestep))
+    end
+
+    # Convert to different set of variables if requested.
+    if solution_variables === cons2cons
+        data = u
+        n_vars = nvariables(equations)
+    else
+        data = solution_variables.(u, equations)
+        # Find out variable count by looking at output from `solution_variables` function.
+        n_vars = length(data[1])
+    end
+
+    # Open file (clobber existing content).
+    h5open(filename, "w") do file
+        # Add context information as attributes.
+        attributes(file)["ndims"] = ndims(mesh)
+        attributes(file)["equations"] = get_name(equations)
+
+        if length(mesh.rd.N) > 1
+          for i = 1:length(mesh.rd.N)
+            attributes(file)["polydeg_$i"] = mesh.rd.N[i]
+          end
+        else
+          attributes(file)["polydeg"] = mesh.rd.N
+        end
+
+        attributes(file)["n_vars"] = n_vars
+        attributes(file)["n_elements"] = nelements(dg, cache)
+        attributes(file)["dof_per_elem"] = length(mesh.rd.r)
+        attributes(file)["mesh_type"] = get_name(mesh)
+        attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+        attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar.
+        attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar.
+        attributes(file)["timestep"] = timestep
+
+        # Store each variable of the solution data.
+        for v in 1:n_vars
+            temp = zeros(size(u))
+            n_nodes, n_elems = size(u)
+            for i_elem = 1:n_elems
+              for i_node = 1:n_nodes
+                temp[i_node,i_elem] = data[i_node,i_elem][v]
+              end
+            end
+
+            file["variables_$v"] = temp
+
+            # Add variable name as attribute.
+            var = file["variables_$v"]
+            attributes(var)["name"] = varnames(solution_variables, equations)[v]
+        end
+
+        # Store element variables.
+        for (v, (key, element_variable)) in enumerate(element_variables)
+            # Add to file.
+            file["element_variables_$v"] = element_variable
+
+            # Add variable name as attribute.
+            var = file["element_variables_$v"]
+            attributes(var)["name"] = string(key)
+        end
+
+        # Store node variables.
+        for (v, (key, node_variable)) in enumerate(node_variables)
+            # Add to file
+            file["node_variables_$v"] = node_variable
+
+            # Add variable name as attribute.
+            var = file["node_variables_$v"]
+            attributes(var)["name"] = string(key)
+        end
+    end
+
+    return filename
+end
+
+function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                         ParallelT8codeMesh}, equations,
                             dg::DG, cache,
