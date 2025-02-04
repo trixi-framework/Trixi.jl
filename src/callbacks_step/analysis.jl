@@ -684,6 +684,7 @@ include("analysis_surface_integral_2d.jl")
 include("analysis_dg2d_parallel.jl")
 include("analysis_dg3d.jl")
 include("analysis_dg3d_parallel.jl")
+include("analysis_fv.jl")
 
 # This version of `analyze` is used for [`AnalysisSurfaceIntegral`](@ref) which requires
 # `semi` to be passed along to retrieve the current boundary indices, which are non-static 
