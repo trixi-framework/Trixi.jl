@@ -17,6 +17,9 @@ Base.size(v::VecOfArrays) = Base.size(v.arrays)
 Base.length(v::VecOfArrays) = Base.length(v.arrays)
 Base.eltype(v::VecOfArrays{T}) where {T} = T
 function Adapt.adapt_structure(to, v::VecOfArrays)
-    return [Adapt.adapt(to, arr) for arr in v.arrays] |> VecOfArrays
+    return VecOfArrays([Adapt.adapt(to, arr) for arr in v.arrays])
+end
+function Base.convert(::Type{<:VecOfArrays}, v::Vector{<:AbstractArray})
+    VecOfArrays(v)
 end
 end # @muladd
