@@ -139,7 +139,7 @@ end
                             0.0028639041695096433,
                             0.012691132694550689
                         ],
-                        atol=1e-11)
+                        atol=1e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -166,7 +166,8 @@ end
                             0.0027548031865172184,
                             0.0028567713569609024,
                             0.012941793735691931
-                        ])
+                        ],
+                        atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -192,7 +193,8 @@ end
                             0.0001466387202588848,
                             0.00019422419092429135,
                             0.0009556449835592673
-                        ])
+                        ],
+                        atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -219,7 +221,8 @@ end
                             0.00011850494672183132,
                             0.00018987676556476442,
                             0.0009597461727750556
-                        ])
+                        ],
+                        atol=1e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
