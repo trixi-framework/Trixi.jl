@@ -401,7 +401,7 @@ default_reinterpolate(solver) = solver isa FDSBP ? false : true
 # - nodal 1D data
 #
 # Note: This is a low-level function that is not considered as part of Trixi's interface and may
-#       thus be changed in future releases.
+# thus be changed in future releases.
 function get_data_1d(original_nodes, unstructured_data, nvisnodes, reinterpolate)
     # Get the dimensions of u; where n_vars is the number of variables, n_nodes the number of nodal values per element and n_elements the total number of elements.
     n_nodes, n_elements, n_vars = size(unstructured_data)
