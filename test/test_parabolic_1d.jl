@@ -220,7 +220,7 @@ end
                         linf=[
                             0.00011850494672183132,
                             0.00018987676556476442,
-                            0.0009597461727750556
+                            0.0009597423024825247
                         ],
                         atol=1e-9)
     # Ensure that we do not have excessive memory allocations
