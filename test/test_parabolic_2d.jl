@@ -52,7 +52,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     t = 0.0
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
-    Trixi.calc_gradient!(gradients, ode.u0, t, mesh, equations_parabolic,
+    Trixi.calc_gradient!(gradients, Base.parent(ode.u0), t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, cache, cache_parabolic)
     @unpack x, y, xq, yq = mesh.md
     @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
