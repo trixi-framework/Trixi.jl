@@ -63,8 +63,7 @@ end
                                  "elixir_advection_amr_solution_independent.jl"),
                         # Expected errors are exactly the same as with StructuredMesh!
                         l2=[4.949660644033807e-5],
-                        linf=[0.0004867846262313763],
-                        coverage_override=(maxiters = 6,))
+                        linf=[0.0004867846262313763],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -79,8 +78,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
                         l2=[0.0012808538770535593],
-                        linf=[0.01752690016659812],
-                        coverage_override=(maxiters = 6,))
+                        linf=[0.01752690016659812],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -94,10 +92,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.507575525876275e-6],
-                        linf=[6.21489667023134e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 25,))
+                        linf=[6.21489667023134e-5],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -111,10 +106,7 @@ end
 @trixi_testset "elixir_advection_restart_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
                         l2=[2.869137983727866e-6],
-                        linf=[3.8353423270964804e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 25,))
+                        linf=[3.8353423270964804e-5],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -418,8 +410,7 @@ end
                             2.3258078438689673,
                             2.1577683028925416
                         ],
-                        tspan=(0.0, 0.3),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 0.3),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -470,17 +461,14 @@ end
                             17.750333649853616
                         ],
                         tspan=(0.0, 0.0001),
-                        rtol=1.0e-7,
-                        skip_coverage=true)
-    if @isdefined sol # Skipped in coverage run
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+                        rtol=1.0e-7,)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -498,17 +486,14 @@ end
                             24.241610279839758,
                             561.0630401858057
                         ],
-                        tspan=(0.0, 0.0001),
-                        skip_coverage=true)
-    if @isdefined sol # Skipped in coverage run
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+                        tspan=(0.0, 0.0001),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -526,17 +511,14 @@ end
                             6.857777546171545,
                             31.749285097390576
                         ],
-                        tspan=(0.0, 0.001),
-                        skip_coverage=true)
-    if @isdefined sol # Skipped in coverage run
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+                        tspan=(0.0, 0.001),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -555,7 +537,8 @@ end
                             6.265341002817672,
                             24.077904874883338
                         ],
-                        tspan=(0.0, 0.02))
+                        tspan=(0.0, 0.02),
+                        atol=1e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -801,10 +784,7 @@ end
                         base_level=0, med_level=1, max_level=1,
                         tspan=(0.0, 0.0001),
                         adapt_initial_condition=false,
-                        adapt_initial_condition_only_refine=false,
-                        # With the default `maxiters = 1` in coverage tests,
-                        # the values for `drag` and `lift` below would differ.
-                        coverage_override=(maxiters = 100_000,))
+                        adapt_initial_condition_only_refine=false,)
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -872,8 +852,7 @@ end
                             0.8266797080712205,
                             3.9792506230548317
                         ],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
