@@ -269,7 +269,7 @@ mkdir(outdir)
                                 0.45574161423218573,
                                 0.8099577682187109
                             ],
-                            tspan=(0.0, 0.2),) # Prevent long compile time in CI
+                            tspan=(0.0, 0.2),)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -298,7 +298,7 @@ mkdir(outdir)
                                 3.21754792e-01,
                                 4.76151527e+00
                             ],
-                            tspan=(0.0, 0.3),) # Prevent long compile time in CI
+                            tspan=(0.0, 0.3),)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let

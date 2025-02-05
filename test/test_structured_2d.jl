@@ -881,7 +881,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
                         linf=[1.0771947577311836, 1.9143913544309838, 2.149549109115789],
-                        tspan=(0.0, 0.1),) # Prevent long compile time in CI
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -909,7 +909,7 @@ end
                             0.8344372248051408,
                             0.8344372248051408
                         ],
-                        tspan=(0.0, 0.1),) # Prevent long compile time in CI
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
