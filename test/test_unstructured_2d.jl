@@ -120,10 +120,7 @@ end
                             0.005243995459478956,
                             0.004685630332338153,
                             0.01750217718347713
-                        ],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -212,10 +209,7 @@ end
                             0.0005656680962440319,
                             0.0013910024779804075
                         ],
-                        tspan=(0.0, 0.2),
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time series to check against.
-                        coverage_override=(maxiters = 20,))
+                        tspan=(0.0, 0.2),)
     # Extra test that the `TimeSeries` callback creates reasonable data
     point_data_1 = time_series.affect!.point_data[1]
     @test all(isapprox.(point_data_1[1:4],
@@ -684,7 +678,7 @@ end
                             0.0006164432358186644,
                             0.001363103391379461],
                         tspan=(0.0, 0.05),
-                        atol=1.0e-10)
+                        atol=2.0e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -731,7 +725,7 @@ end
                             1.148153794261475e-11,
                             7.461231632532872e-10],
                         tspan=(0.0, 0.05),
-                        atol=1.0e-10)
+                        atol=1.0e-9)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

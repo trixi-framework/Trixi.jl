@@ -117,8 +117,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
                         l2=[0.002019623611753929],
-                        linf=[0.03542375961299987],
-                        coverage_override=(maxiters = 6,))
+                        linf=[0.03542375961299987],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -135,8 +134,7 @@ end
                                  "elixir_advection_amr_solution_independent.jl"),
                         # Expected errors are exactly the same as with StructuredMesh!
                         l2=[4.949660644033807e-5],
-                        linf=[0.0004867846262313763],
-                        coverage_override=(maxiters = 6,))
+                        linf=[0.0004867846262313763],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -150,10 +148,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.507575525876275e-6],
-                        linf=[6.21489667023134e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        linf=[6.21489667023134e-5],)
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -169,10 +164,7 @@ end
     # This test is identical to the one in `test_p4est_2d.jl`.
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
                         l2=[2.869137983727866e-6],
-                        linf=[3.8353423270964804e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 25,))
+                        linf=[3.8353423270964804e-5],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -371,8 +363,7 @@ end
                             0.834485181423738,
                             3.923553028014343
                         ],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
