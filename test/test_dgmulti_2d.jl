@@ -31,14 +31,13 @@ isdir(outdir) && rm(outdir, recursive = true)
                             0.002062399194485476,
                             0.004897700392503701
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -60,14 +59,13 @@ end
                             0.013593978324845324,
                             0.03270995869587523
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -89,14 +87,13 @@ end
                             0.0013568139808290969,
                             0.0032249020004324613
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -118,14 +115,13 @@ end
                             0.01396529873508534,
                             0.04227683691807904
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -148,14 +144,13 @@ end
                             0.05321027922608157,
                             0.13392025411844033
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -179,14 +174,13 @@ end
                             0.012674028479251254,
                             0.02210545278615017
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -204,14 +198,13 @@ end
                             6.874041552329402e-5,
                             0.00019123932693609902
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -229,14 +222,13 @@ end
                             0.00010003768694910598,
                             0.0003642622844113319
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -257,14 +249,13 @@ end
                             3.679395547040443e-5
                         ],
                         rtol=2 * sqrt(eps()))
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -285,14 +276,13 @@ end
                             4.032296650580136e-5,
                             0.00012013778892150384
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -310,14 +300,13 @@ end
                             0.002872156984277563,
                             0.011125365075300486
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -332,14 +321,13 @@ end
                        4.128314378397532,
                        4.081366752807379
                    ], rtol = 0.05)
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -354,14 +342,13 @@ end
                             0.0015060064614331736, 0.0019371156800773726,
                             0.0019371156800769285, 0.004742431684202408
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -375,14 +362,13 @@ end
                             2.509979394305084e-5, 2.2683711321080935e-5,
                             2.6180377720841363e-5, 5.575278031910713e-5
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -403,14 +389,13 @@ end
                             0.1235468309508845,
                             0.26911424973147735
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -432,14 +417,13 @@ end
                             0.12344140473946856,
                             0.26978428189564774
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -459,14 +443,13 @@ end
                             0.04023354591166624,
                             0.08515791118082117
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -485,14 +468,13 @@ end
                             0.021957154972646383,
                             0.33773439650806303
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -511,14 +493,13 @@ end
                             0.16684117462697767,
                             0.8573034682049414
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -537,14 +518,13 @@ end
                             0.16929779869845438,
                             0.8587814448153765
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -572,14 +552,13 @@ end
                             0.0016243096040242655,
                             0.004447503691245913
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -609,14 +588,13 @@ end
                             0.003452046522624652,
                             0.007677153211004928
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -630,14 +608,13 @@ end
                             2.7000151703315822e-6, 3.988595025372632e-6,
                             3.9885950240403645e-6, 8.848583036513702e-6
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -657,14 +634,13 @@ end
                             3.988595024928543e-6,
                             8.84858303740188e-6
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -690,14 +666,13 @@ end
                             0.5244468027020814,
                             1.2210130256735705
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -724,14 +699,13 @@ end
                             5.067812786885284e-5,
                             9.887976803746312e-5
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -748,14 +722,13 @@ end
                             0.7450328339751362, 0.06357382685763713, 0.0635738268576378,
                             0.1058830287485999,
                             0.005740591170062146])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -772,14 +745,13 @@ end
                             0.6906308908961734, 0.05349939593012487,
                             0.05349939593013042, 0.08830587480616725,
                             0.0029551359803035027])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -849,14 +821,13 @@ end
                             0.0,
                             0.0002992621756946904
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -876,14 +847,13 @@ end
                             0.12088391569555768,
                             9.325873406851315e-15
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -903,14 +873,13 @@ end
                             0.567418412384793,
                             1.1102230246251565e-14
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -932,14 +901,13 @@ end
                             0.06345896594568323,
                             3.398993309877696e-5
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -963,14 +931,13 @@ end
                             0.010364657535841815,
                             2.042810365310288e-14
                         ])
-    # Ensure that we do not have excessive memory allocations 
-    # (e.g., from type instabilities) 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
     let
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 end
