@@ -52,7 +52,6 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # unpack VectorOfArray 
     u0 = Base.parent(ode.u0)
-    
     t = 0.0
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
     Trixi.calc_gradient!(gradients, u0, t, mesh, equations_parabolic,
