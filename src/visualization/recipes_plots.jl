@@ -171,6 +171,19 @@ RecipesBase.@recipe function f(u, semi::AbstractSemidiscretization;
     end
 end
 
+# Also allow plotting a function with signature `func(x, equations)`, e.g., for initial conditions.
+# We need this recipe in addition to the one above to avoid method ambiguities.
+RecipesBase.@recipe function f(func::Function, semi::AbstractSemidiscretization;
+                               solution_variables = nothing)
+    n_variables = length(func(0.0, semi.equations))
+    variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
+    if ndims(semi) == 1
+        return PlotData1D(func, semi; solution_variables = cons2cons, variable_names)
+    else
+        throw(ArgumentError("Plotting of functions is only supported in 1D."))
+    end
+end
+
 # Recipe specifically for TreeMesh-type solutions
 # Note: If you change the defaults values here, you need to also change them in the PlotData1D or PlotData2D
 #       constructor.
@@ -186,6 +199,22 @@ RecipesBase.@recipe function f(u, semi::SemidiscretizationHyperbolic{<:TreeMesh}
         return PlotData2D(u, semi;
                           solution_variables, grid_lines, max_supported_level,
                           nvisnodes, slice, point)
+    end
+end
+
+# Also allow plotting a function with signature `func(x, equations)`, e.g., for initial conditions.
+RecipesBase.@recipe function f(func::Function,
+                               semi::SemidiscretizationHyperbolic{<:TreeMesh};
+                               solution_variables = nothing,
+                               nvisnodes = nothing, slice = :xy,
+                               point = (0.0, 0.0, 0.0), curve = nothing)
+    n_variables = length(func(0.0, semi.equations))
+    variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
+    if ndims(semi) == 1
+        return PlotData1D(func, semi; solution_variables = cons2cons, nvisnodes, slice,
+                          point, curve, variable_names)
+    else
+        throw(ArgumentError("Plotting of functions is only supported in 1D."))
     end
 end
 

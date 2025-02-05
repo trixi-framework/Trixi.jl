@@ -256,6 +256,10 @@ function digest_solution_variables(equations, solution_variables::Nothing)
     end
 end
 
+digest_variable_names(solution_variables_, equations, variable_names) = variable_names
+digest_variable_names(solution_variables_, equations, ::Nothing) = SVector(varnames(solution_variables_,
+                                                                                    equations))
+
 """
     adapt_to_mesh_level!(u_ode, semi, level)
     adapt_to_mesh_level!(sol::Trixi.TrixiODESolution, level)
@@ -479,6 +483,18 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
     end
 
     return unstructured_data
+end
+
+# This method is only for plotting 1D functions
+function get_unstructured_data(func::Function, solution_variables,
+                               mesh::AbstractMesh{1}, equations, solver, cache)
+    original_nodes = cache.elements.node_coordinates
+    # original_nodes has size (1, nnodes, nelements)
+    # we want u to have size (nvars, nnodes, nelements)
+    # func.(original_nodes, equations) has size (1, nnodes, nelements), where each component has length n_vars
+    # Therefore, we drop the first (singleton) dimension and then stack the components
+    u = stack(func.(SVector.(dropdims(original_nodes; dims = 1)), equations))
+    return get_unstructured_data(u, solution_variables, mesh, equations, solver, cache)
 end
 
 # Convert cell-centered values to node-centered values by averaging over all
