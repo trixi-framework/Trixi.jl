@@ -650,6 +650,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
         x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve,
                                                                slice, point, nvisnodes)
     end
+
     return PlotData1D(x, data, variable_names, mesh_vertices_x,
                       orientation_x)
 end
