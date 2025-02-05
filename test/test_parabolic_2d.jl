@@ -50,23 +50,26 @@ isdir(outdir) && rm(outdir, recursive = true)
         fill!(gradients[dim], zero(eltype(gradients[dim])))
     end
 
+    # unpack VectorOfArray 
+    u0 = Base.parent(ode.u0)
+    
     t = 0.0
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
-    Trixi.calc_gradient!(gradients, Base.parent(ode.u0), t, mesh, equations_parabolic,
+    Trixi.calc_gradient!(gradients, u0, t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, cache, cache_parabolic)
     @unpack x, y, xq, yq = mesh.md
     @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
     @test getindex.(gradients[2], 1) ≈ xq .^ 2
 
     u_flux = similar.(gradients)
-    Trixi.calc_viscous_fluxes!(u_flux, Base.parent(ode.u0), gradients, mesh,
+    Trixi.calc_viscous_fluxes!(u_flux, u0, gradients, mesh,
                                equations_parabolic,
                                dg, cache, cache_parabolic)
     @test u_flux[1] ≈ gradients[1]
     @test u_flux[2] ≈ gradients[2]
 
-    du = similar(Base.parent(ode.u0))
-    Trixi.calc_divergence!(du, Base.parent(ode.u0), t, u_flux, mesh,
+    du = similar(u0)
+    Trixi.calc_divergence!(du, u0, t, u_flux, mesh,
                            equations_parabolic,
                            boundary_condition_periodic,
                            dg, semi.solver_parabolic, cache, cache_parabolic)
