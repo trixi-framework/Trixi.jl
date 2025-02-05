@@ -167,7 +167,8 @@ end
                                      0.09208107,
                                      0.09208131,
                                      0.14795369,
-                                     2.2078211f-6])
+                                     2.2078211f-6],
+                        RealT=Float32)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -346,10 +347,7 @@ end
                             0.0,
                             0.5285917066723818
                         ],
-                        tspan=(0.0, 0.003),
-                        # Calling the AnalysisCallback before iteration 9 causes the interpolation
-                        # of this IC to have negative density/pressure values, crashing the simulation.
-                        coverage_override=(maxiters = 9,))
+                        tspan=(0.0, 0.003),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

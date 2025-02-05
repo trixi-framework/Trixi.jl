@@ -357,7 +357,8 @@ end
                             2.220446049250313e-16,
                             8.881784197001252e-16
                         ],
-                        tspan=(0.0, 100.0))
+                        tspan=(0.0, 100.0),
+                        atol=1e-12)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
