@@ -402,11 +402,11 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes, reinterpolate
     # Get the dimensions of u; where n_vars is the number of variables, n_nodes the number of nodal values per element and n_elements the total number of elements.
     n_nodes, n_elements, n_vars = size(unstructured_data)
 
-    # If `reinterpolate` is `false`, we use the same output nodes as input nodes, such that the Vandermonde matrix below is the identity matrix.
+    # If `reinterpolate` is `false`, we do nothing.
     # If `reinterpolate` is `true`, the output nodes are equidistantly spaced.
     if reinterpolate == false
-        max_nvisnodes = n_nodes
-        nodes_out, _ = gauss_lobatto_nodes_weights(max_nvisnodes)
+        interpolated_nodes = original_nodes
+        interpolated_data = unstructured_data
     else
         # Set the amount of nodes visualized according to nvisnodes.
         if nvisnodes === nothing
@@ -417,35 +417,36 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes, reinterpolate
             @assert nvisnodes>=2 "nvisnodes must be zero or >= 2"
             max_nvisnodes = nvisnodes
         end
+
+        interpolated_nodes = Array{eltype(original_nodes), 2}(undef, max_nvisnodes,
+                                                              n_elements)
+        interpolated_data = Array{eltype(unstructured_data), 3}(undef, max_nvisnodes,
+                                                                n_elements, n_vars)
+
+        for j in 1:n_elements
+            # Interpolate on an equidistant grid.
+            interpolated_nodes[:, j] .= range(original_nodes[1, 1, j],
+                                              original_nodes[1, end, j],
+                                              length = max_nvisnodes)
+        end
+
+        nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
         nodes_out = collect(range(-1, 1, length = max_nvisnodes))
-    end
 
-    interpolated_nodes = Array{eltype(original_nodes), 2}(undef, max_nvisnodes,
-                                                          n_elements)
-    interpolated_data = Array{eltype(unstructured_data), 3}(undef, max_nvisnodes,
-                                                            n_elements, n_vars)
+        # Calculate vandermonde matrix for interpolation.
+        vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
 
-    for j in 1:n_elements
-        # Interpolate on an equidistant grid.
-        interpolated_nodes[:, j] .= range(original_nodes[1, 1, j],
-                                          original_nodes[1, end, j],
-                                          length = max_nvisnodes)
-    end
-
-    nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
-
-    # Calculate vandermonde matrix for interpolation.
-    vandermonde = polynomial_interpolation_matrix(nodes_in, nodes_out)
-
-    # Iterate over all variables.
-    for v in 1:n_vars
-        # Interpolate data for each element.
-        for element in 1:n_elements
-            multiply_scalar_dimensionwise!(@view(interpolated_data[:, element, v]),
-                                           vandermonde,
-                                           @view(unstructured_data[:, element, v]))
+        # Iterate over all variables.
+        for v in 1:n_vars
+            # Interpolate data for each element.
+            for element in 1:n_elements
+                multiply_scalar_dimensionwise!(@view(interpolated_data[:, element, v]),
+                                               vandermonde,
+                                               @view(unstructured_data[:, element, v]))
+            end
         end
     end
+
     # Return results after data is reshaped
     return vec(interpolated_nodes), reshape(interpolated_data, :, n_vars),
            vcat(original_nodes[1, 1, :], original_nodes[1, end, end])
