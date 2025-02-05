@@ -174,14 +174,11 @@ end
 # Also allow plotting a function with signature `func(x, equations)`, e.g., for initial conditions.
 # We need this recipe in addition to the one above to avoid method ambiguities.
 RecipesBase.@recipe function f(func::Function, semi::AbstractSemidiscretization;
-                               solution_variables = nothing,
-                               variable_names = nothing)
+                               solution_variables = nothing)
     n_variables = length(func(0.0, semi.equations))
-    if isnothing(variable_names)
-        variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
-    end
+    variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
     if ndims(semi) == 1
-        return PlotData1D(func, semi; solution_variables = cons2cons)
+        return PlotData1D(func, semi; solution_variables = cons2cons, variable_names)
     else
         throw(ArgumentError("Plotting of functions is only supported in 1D."))
     end
@@ -210,12 +207,9 @@ RecipesBase.@recipe function f(func::Function,
                                semi::SemidiscretizationHyperbolic{<:TreeMesh};
                                solution_variables = nothing,
                                nvisnodes = nothing, slice = :xy,
-                               point = (0.0, 0.0, 0.0), curve = nothing,
-                               variable_names = nothing)
+                               point = (0.0, 0.0, 0.0), curve = nothing)
     n_variables = length(func(0.0, semi.equations))
-    if isnothing(variable_names)
-        variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
-    end
+    variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
     # Create a PlotData1D or PlotData2D object depending on the dimension.
     if ndims(semi) == 1
         return PlotData1D(func, semi; solution_variables = cons2cons, nvisnodes, slice,
