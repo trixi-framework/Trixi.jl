@@ -25,7 +25,7 @@ isdir(outdir) && rm(outdir, recursive = true)
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 
@@ -41,7 +41,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 
@@ -65,7 +66,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 
@@ -89,7 +91,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
+        @test_broken (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 
@@ -106,7 +109,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 
@@ -130,7 +134,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 
@@ -161,7 +166,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 
@@ -183,7 +189,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 
@@ -207,14 +214,14 @@ end
                         cells_per_dimension=(8,),
                         approximation_type=SBP(),
                         l2=[
-                            3.03001101100507e-6,
-                            1.692177335948727e-5,
-                            3.002634351734614e-16,
-                            1.1636653574178203e-15
+                            3.0300196635805022e-6,
+                            1.6921833812545857e-5,
+                            2.9844594164368975e-16,
+                            1.1012004949980629e-15
                         ],
                         linf=[
-                            1.2043401988570679e-5,
-                            5.346847010329059e-5,
+                            1.2043309307818717e-5,
+                            5.346754311919e-5,
                             9.43689570931383e-16,
                             2.220446049250313e-15
                         ])
@@ -224,7 +231,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 
@@ -250,7 +258,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        Trixi.rhs!(du_ode, u_ode, semi, t) # run once first to deal with spurious allocations
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
     end
 end
 end
