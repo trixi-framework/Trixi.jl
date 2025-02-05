@@ -558,7 +558,8 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
                     slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
                     variable_names = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
-    variable_names_ = digest_variable_names(solution_variables_, equations, variable_names)
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
 
     original_nodes = cache.elements.node_coordinates
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
@@ -654,19 +655,20 @@ function PlotData1D(u, mesh, equations, solver, cache;
 end
 
 function PlotData1D(func::Function, mesh, equations, dg::DGMulti{1}, cache;
-                    solution_variables = nothing)
+                    solution_variables = nothing, variable_names = nothing)
     x = mesh.md.x
     u = func.(x, equations)
 
     return PlotData1D(u, mesh, equations, dg, cache;
-                      solution_variables = solution_variables)
+                      solution_variables, variable_names)
 end
 
 # Specializes the `PlotData1D` constructor for one-dimensional `DGMulti` solvers.
 function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
-                    solution_variables = nothing)
+                    solution_variables = nothing, variable_names = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
-    variable_names = SVector(varnames(solution_variables_, equations))
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
 
     orientation_x = 0 # Set 'orientation' to zero on default.
 
@@ -695,11 +697,16 @@ function PlotData1D(u, mesh, equations, dg::DGMulti{1}, cache;
         # Same as above - we create `data_plot` as array of size `num_plotting_points`
         # by "number of plotting variables".
         x_plot = vec(x)
-        data_plot = permutedims(reinterpret(reshape, eltype(eltype(data)), vec(data)),
-                                (2, 1))
+        data_ = reinterpret(reshape, eltype(eltype(data)), vec(data))
+        # If there is only one solution variable, we need to add a singleton dimension
+        if ndims(data_) == 1
+            data_plot = reshape(data_, :, 1)
+        else
+            data_plot = permutedims(data_, (2, 1))
+        end
     end
 
-    return PlotData1D(x_plot, data_plot, variable_names, mesh.md.VX, orientation_x)
+    return PlotData1D(x_plot, data_plot, variable_names_, mesh.md.VX, orientation_x)
 end
 
 """
