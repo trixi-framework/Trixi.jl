@@ -517,7 +517,7 @@ end
 """
     PlotData1D(u, semi [or mesh, equations, solver, cache];
                solution_variables=nothing, nvisnodes=nothing,
-               reinterpolate=default_reinterpolate(solver),
+               reinterpolate=Trixi.default_reinterpolate(solver),
                slice=:x, point=(0.0, 0.0, 0.0), curve=nothing)
 
 Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
