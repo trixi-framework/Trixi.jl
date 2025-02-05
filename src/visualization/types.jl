@@ -519,10 +519,15 @@ end
                solution_variables=nothing, nvisnodes=nothing)
 
 Create a new `PlotData1D` object that can be used for visualizing 1D DGSEM solution data array
-`u` with `Plots.jl`. `u` can also be a function with signature `u(x, equations)`. All relevant
-geometrical information is extracted from the semidiscretization `semi`. By default, the primitive
-variables (if existent) or the conservative variables (otherwise) from the solution are used for
-plotting. This can be changed by passing an appropriate conversion function to `solution_variables`.
+`u` with `Plots.jl`. All relevant geometrical information is extracted from the
+semidiscretization `semi`. By default, the primitive variables (if existent) 
+or the conservative variables (otherwise) from the solution are used for
+plotting. This can be changed by passing an appropriate conversion function to
+`solution_variables`, e.g., [`cons2cons`](@ref) or [`cons2prim`](@ref).
+
+Alternatively, you can also pass a function `u` with signature `u(x, equations)`. 
+In this case, the `solution_variables` are ignored. This is useful, e.g.,
+to visualize an analytical solution.
 
 `nvisnodes` specifies the number of visualization nodes to be used. If it is `nothing`,
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
