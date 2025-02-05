@@ -59,13 +59,15 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test getindex.(gradients[2], 1) ≈ xq .^ 2
 
     u_flux = similar.(gradients)
-    Trixi.calc_viscous_fluxes!(u_flux, Base.parent(ode.u0), gradients, mesh, equations_parabolic,
+    Trixi.calc_viscous_fluxes!(u_flux, Base.parent(ode.u0), gradients, mesh,
+                               equations_parabolic,
                                dg, cache, cache_parabolic)
     @test u_flux[1] ≈ gradients[1]
     @test u_flux[2] ≈ gradients[2]
 
     du = similar(Base.parent(ode.u0))
-    Trixi.calc_divergence!(du, Base.parent(ode.u0), t, u_flux, mesh, equations_parabolic,
+    Trixi.calc_divergence!(du, Base.parent(ode.u0), t, u_flux, mesh,
+                           equations_parabolic,
                            boundary_condition_periodic,
                            dg, semi.solver_parabolic, cache, cache_parabolic)
     @test getindex.(du, 1) ≈ 2 * y
