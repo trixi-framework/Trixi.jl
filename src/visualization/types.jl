@@ -624,9 +624,11 @@ end
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,
-                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing)
+                    slice = :x, point = (0.0, 0.0, 0.0), curve = nothing,
+                    variable_names = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
-    variable_names = SVector(varnames(solution_variables_, equations))
+    variable_names_ = digest_variable_names(solution_variables_, equations,
+                                            variable_names)
 
     original_nodes = cache.elements.node_coordinates
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
@@ -650,7 +652,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
                                                                slice, point, nvisnodes)
     end
 
-    return PlotData1D(x, data, variable_names, mesh_vertices_x,
+    return PlotData1D(x, data, variable_names_, mesh_vertices_x,
                       orientation_x)
 end
 
