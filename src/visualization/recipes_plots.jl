@@ -210,7 +210,6 @@ RecipesBase.@recipe function f(func::Function,
                                point = (0.0, 0.0, 0.0), curve = nothing)
     n_variables = length(func(0.0, semi.equations))
     variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
-    # Create a PlotData1D or PlotData2D object depending on the dimension.
     if ndims(semi) == 1
         return PlotData1D(func, semi; solution_variables = cons2cons, nvisnodes, slice,
                           point, curve, variable_names)
