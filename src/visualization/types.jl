@@ -530,7 +530,7 @@ function to `solution_variables`.
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
 exactly the number of nodes as in the DG elements are used. The solution is interpolated to these
 nodes for plotting. If `reinterpolate` is `false`, the solution is not interpolated to the `visnodes`,
-i.e., the solution is plotted at the DG nodes. In this case `nvisnodes` is ignored. By default,
+i.e., the solution is plotted at the solution nodes. In this case `nvisnodes` is ignored. By default,
 `reinterpolate` is set to `false` for `FDSBP` approximations and to `true` otherwise.
 
 When visualizing data from a two-dimensional simulation, a 1D slice is extracted for plotting.
@@ -628,6 +628,7 @@ function PlotData1D(u, mesh, equations, solver, cache;
                     slice = :x, point = (0.0, 0.0, 0.0), curve = nothing)
     solution_variables_ = digest_solution_variables(equations, solution_variables)
     variable_names = SVector(varnames(solution_variables_, equations))
+
     original_nodes = cache.elements.node_coordinates
     unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
                                               solver, cache)
@@ -649,7 +650,6 @@ function PlotData1D(u, mesh, equations, solver, cache;
         x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve,
                                                                slice, point, nvisnodes)
     end
-
     return PlotData1D(x, data, variable_names, mesh_vertices_x,
                       orientation_x)
 end
