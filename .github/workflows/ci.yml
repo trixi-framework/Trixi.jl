@@ -120,9 +120,11 @@ jobs:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
       - uses: julia-actions/julia-processcoverage@v1
+        if: ${{ !cancelled() }}
         with:
           directories: src,examples,ext
       - uses: codecov/codecov-action@v5
+        if: ${{ !cancelled() }}
         with:
           files: ./lcov.info
           flags: unittests
@@ -146,6 +148,7 @@ jobs:
       # - Download and merge individual coverage reports in another step
       # - Upload only the merged coverage report to Coveralls
       - shell: bash
+        if: ${{ !cancelled() }}
         run: |
           cp ./lcov.info ./lcov-${{ matrix.trixi_test }}-${{ matrix.os }}-${{ matrix.version }}-${{ matrix.arch }}.info
       - uses: actions/upload-artifact@v4
@@ -155,6 +158,7 @@ jobs:
 
   finish:
     needs: test
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       # The standard setup of Coveralls is just annoying for parallel builds, see, e.g.,
