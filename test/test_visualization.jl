@@ -191,8 +191,7 @@ end
         initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
                                                                   equations)
         @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
-        @test_nowarn_mod Plots.plot(initial_condition_t_end, semi,
-                                    solution_variables = cons2cons)
+        @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
     end
 
     # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
@@ -227,8 +226,7 @@ end
     @test PlotData1D(sol) isa PlotData1D
     initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
     @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
-    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi,
-                                solution_variables = cons2cons)
+    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "dgmulti_1d",
@@ -237,8 +235,7 @@ end
                                    approximation_type = SBP())
     @test PlotData1D(sol) isa PlotData1D
     @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
-    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi,
-                                solution_variables = cons2cons)
+    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 end
 
 @timed_testset "1D plot recipes (StructuredMesh)" begin
@@ -254,8 +251,7 @@ end
     @test_nowarn_mod Plots.plot(pd["p"])
     @test_nowarn_mod Plots.plot(sol.u[end], semi)
     @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
-    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi,
-                                solution_variables = cons2cons)
+    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 end
 
 @timed_testset "plot time series" begin

@@ -256,6 +256,10 @@ function digest_solution_variables(equations, solution_variables::Nothing)
     end
 end
 
+digest_variable_names(solution_variables_, equations, variable_names) = variable_names
+digest_variable_names(solution_variables_, equations, ::Nothing) = SVector(varnames(solution_variables_,
+                                                                                    equations))
+
 """
     adapt_to_mesh_level!(u_ode, semi, level)
     adapt_to_mesh_level!(sol::Trixi.TrixiODESolution, level)
