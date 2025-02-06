@@ -89,4 +89,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # ###############################################################################
 # # run the simulation
 
-sol = solve(ode, SSPRK43(), dt = 1.0, adaptive = false, callback = callbacks, save_everystep = false)
+sol = solve(ode, SSPRK43(), adaptive = false,
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            callback = callbacks, save_everystep = false)
