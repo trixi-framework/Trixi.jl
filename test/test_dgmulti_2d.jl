@@ -265,16 +265,16 @@ end
                         volume_integral=VolumeIntegralWeakForm(),
                         surface_integral=SurfaceIntegralWeakForm(FluxHLL(min_max_speed_naive)),
                         l2=[
-                            7.906577233375323e-6,
-                            8.733496764424436e-6,
-                            8.73349676452721e-6,
-                            2.9118523221773692e-5
+                            7.906577233358824e-6,
+                            8.733496764180975e-6,
+                            8.733496764698532e-6,
+                            2.911852322169076e-5
                         ],
                         linf=[
-                            3.298755253133834e-5,
-                            4.032296586720108e-5,
-                            4.032296650580136e-5,
-                            0.00012013778892150384
+                            3.298755256198049e-5,
+                            4.0322966492922774e-5,
+                            4.032296598488472e-5,
+                            0.00012013778942154829
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
