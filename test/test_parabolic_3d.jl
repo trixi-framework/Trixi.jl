@@ -29,20 +29,6 @@ isdir(outdir) && rm(outdir, recursive = true)
                             0.00353105737957371,
                             0.002628561802588858,
                             0.015587831432887
-                            #= FIXME: Values from above (PR) or values from below (main)?
-                                0.000553284711585015,
-                                0.0006592634909666629,
-                                0.0007776436127373607,
-                                0.0006592634909664286,
-                                0.0038073628897819524
-                            ],
-                            linf=[
-                                0.0017039861523628907,
-                                0.002628561703550747,
-                                0.0035310574250866367,
-                                0.002628561703585053,
-                                0.015587829540340437
-                            =#
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
