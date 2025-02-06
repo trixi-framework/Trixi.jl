@@ -524,9 +524,8 @@ function _precompile_manual_()
         summary_callback_type = DiscreteCallback{typeof(Trixi.summary_callback),
                                                  typeof(Trixi.summary_callback),
                                                  typeof(Trixi.initialize_summary_callback),
-                                                 typeof(SciMLBase.FINALIZE_DEFAULT),
                                                  Tuple{Bool, Bool},
-                                                 typeof(nothing)}
+                                                 typeof(SciMLBase.FINALIZE_DEFAULT)}
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, summary_callback_type})
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       summary_callback_type})
