@@ -185,6 +185,7 @@ end
         pd = PlotData1D(sol)
 
         @test_nowarn_mod Plots.plot(sol)
+        @test_nowarn_mod Plots.plot(sol, reinterpolate = false)
         @test_nowarn_mod Plots.plot(pd)
         @test_nowarn_mod Plots.plot(pd["p"])
         @test_nowarn_mod Plots.plot(getmesh(pd))
