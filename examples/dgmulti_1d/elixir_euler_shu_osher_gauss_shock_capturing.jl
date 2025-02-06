@@ -5,8 +5,8 @@ gamma_gas = 1.4
 equations = CompressibleEulerEquations1D(gamma_gas)
 
 ###############################################################################
-# setup the GSBP DG discretization that uses the Gauss operators from 
-# Chan, Del Rey Fernandez, Carpenter (2019). 
+# setup the GSBP DG discretization that uses the Gauss operators from
+# Chan, Del Rey Fernandez, Carpenter (2019).
 # [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
 # Shu-Osher initial condition for 1D compressible Euler equations
@@ -19,8 +19,7 @@ function initial_condition_shu_osher(x, t, equations::CompressibleEulerEquations
     v_left = 4 * sqrt(35) / 9
     p_left = 31 / 3
 
-    # Replaced v_right = 0 to v_right = 0.1 to avoid positivity issues.
-    v_right = 0.1
+    v_right = 0.0
     p_right = 1.0
 
     rho = ifelse(x[1] > x0, 1 + 1 / 5 * sin(5 * x[1]), rho_left)
@@ -82,7 +81,7 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
 
 # handles the re-calculation of the maximum Δt after each time step
-stepsize_callback = StepsizeCallback(cfl = 0.1)
+stepsize_callback = StepsizeCallback(cfl = 0.2)
 
 # collect all callbacks such that they can be passed to the ODE solver
 callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
@@ -90,4 +89,4 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # ###############################################################################
 # # run the simulation
 
-sol = solve(ode, SSPRK43(), adaptive = true, callback = callbacks, save_everystep = false)
+sol = solve(ode, SSPRK43(), dt = 1.0, adaptive = false, callback = callbacks, save_everystep = false)
