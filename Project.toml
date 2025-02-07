@@ -52,11 +52,13 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [weakdeps]
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
+DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 
 [extensions]
+TrixiDiffEqBaseExt = "DiffEqBase"
 TrixiConvexECOSExt = ["Convex", "ECOS"]
 TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
@@ -68,6 +70,7 @@ ConstructionBase = "1.5"
 Convex = "0.16"
 DataStructures = "0.18.15"
 DelimitedFiles = "1"
+DiffEqBase = "6.154"
 DiffEqCallbacks = "2.35, 4"
 Downloads = "1.6"
 ECOS = "1.1.2"
