@@ -31,5 +31,4 @@ include("methods_2N.jl")
 include("methods_3Sstar.jl")
 include("methods_SSP.jl")
 include("paired_explicit_runge_kutta/paired_explicit_runge_kutta.jl")
-
 end # @muladd
