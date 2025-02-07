@@ -647,15 +647,15 @@ end
 end
 
 @timed_testset "boundary_condition_do_nothing_non_conservative" begin
-    rho, v1, v2, v3, p, B1, B2, B3, psi = 1.0, 0.1, 0.2, 0.3, 2.0, 4.0, 5.5, 0.2, 0.1
+    rho, v1, v2, v3, p, B1, B2, B3, psi = 1.0, 0.1, 0.2, 0.3, 1.0, 0.0, 40.0 / sqrt(4.0 * pi), 0.0, 0.0
 
-    let equations = IdealGlmMhdEquations2D(1.4)
+    let equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
         u = prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
         x = SVector(1.0, 2.0)
         t = 0.5
         surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_powell)
 
-        outward_direction = SVector(0.2, -0.3)
+        outward_direction = SVector(0.2, 0.3)
         test_bc_out = boundary_condition_do_nothing(u, outward_direction, x, t,
                                                     surface_fluxes,
                                                     equations)
