@@ -15,6 +15,11 @@ for human readability.
   [RecursiveArrayTools.jl](https://github.com/SciML/RecursiveArrayTools.jl)
   for `DGMulti` solvers ([#2150]). You can use `Base.parent` to unwrap
   the original data.
+- The `AnalysisCallback` output generated with the `save_analysis = true` option now prints
+  floating point numbers in their respective (full) precision. 
+  Previously, only the first 8 digits were printed to file.
+  Furthermore, the names of the printed fields are now only separated by a single white space, 
+  in contrast to before where this were multiple, depending on the actual name of the printed data.
 
 #### Deprecated
 
