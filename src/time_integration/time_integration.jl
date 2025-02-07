@@ -13,7 +13,7 @@ struct TimeIntegratorSolution{tType, uType, P}
     prob::P
 end
 
-# Abstract supertype of Trixi.jl\s own time integrators for dispatch
+# Abstract supertype of Trixi.jl's own time integrators for dispatch
 abstract type AbstractTimeIntegrator end
 
 include("methods_2N.jl")
