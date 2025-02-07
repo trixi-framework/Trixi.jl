@@ -145,7 +145,8 @@ function SimpleIntegrator3SstarOptions(callback, tspan; maxiters = typemax(Int),
 end
 
 mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
-                                      SimpleIntegrator3SstarOptions} <: AbstractTimeIntegrator
+                                      SimpleIntegrator3SstarOptions} <:
+               AbstractTimeIntegrator
     u::uType #
     du::uType
     u_tmp1::uType
