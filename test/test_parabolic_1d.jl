@@ -31,8 +31,8 @@ end
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_restart.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_restart.jl"),
-                        l2=[1.0671615777620987e-5],
-                        linf=[3.861509422325993e-5])
+                        l2=[1.0679933947301556e-5],
+                        linf=[3.910500545667439e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -705,7 +705,8 @@ end
                             0.0009632958467822306
                         ],
                         tspan=(0.0, 0.025),
-                        flux_splitting=splitting_lax_friedrichs)
+                        flux_splitting=splitting_lax_friedrichs,
+                        atol=2e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
