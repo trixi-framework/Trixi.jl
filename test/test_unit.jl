@@ -657,7 +657,7 @@ end
 
         outward_direction = SVector(0.2, -0.3)
         test_bc_out = boundary_condition_do_nothing(u, outward_direction, x, t,
-                                                    surface_flux,
+                                                    surface_fluxes,
                                                     equations)
         @test surface_fluxes[1](u, outward_direction, equations) ≈ test_bc_[1]
         @test surface_fluxes[2](u, outward_direction, equations) ≈ test_bc_[2]
@@ -665,7 +665,7 @@ end
         orientation = 2
         direction = 4
         test_bc_or = boundary_condition_do_nothing(u, orientation, direction, x, t,
-                                                   surface_flux, equations)
+                                                   surface_fluxes, equations)
         @test surface_fluxes[1](u, orientation, equations) ≈ test_bc_or[1]
         @test surface_fluxes[2](u, orientation, equations) ≈ test_bc_or[2]
     end
