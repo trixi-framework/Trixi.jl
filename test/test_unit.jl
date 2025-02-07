@@ -646,6 +646,31 @@ end
     end
 end
 
+@timed_testset "boundary_condition_do_nothing_non_conservative" begin
+    rho, v1, v2, v3, p, B1, B2, B3, psi = 1.0, 0.1, 0.2, 0.3, 2.0, 4.0, 5.5, 0.2, 0.1
+
+    let equations = IdealGlmMhdEquations2D(1.4)
+        u = prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+        x = SVector(1.0, 2.0)
+        t = 0.5
+        surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_powell)
+
+        outward_direction = SVector(0.2, -0.3)
+        test_bc_out = boundary_condition_do_nothing(u, outward_direction, x, t,
+                                                    surface_flux,
+                                                    equations)
+        @test surface_fluxes[1](u, outward_direction, equations) ≈ test_bc_[1]
+        @test surface_fluxes[2](u, outward_direction, equations) ≈ test_bc_[2]
+
+        orientation = 2
+        direction = 4
+        test_bc_or = boundary_condition_do_nothing(u, orientation, direction, x, t,
+                                                   surface_flux, equations)
+        @test surface_fluxes[1](u, orientation, equations) ≈ test_bc_or[1]
+        @test surface_fluxes[2](u, orientation, equations) ≈ test_bc_or[2]
+    end
+end
+
 @timed_testset "TimeSeriesCallback" begin
     # Test the 2D TreeMesh version of the callback and some warnings
     @test_nowarn_mod trixi_include(@__MODULE__,
