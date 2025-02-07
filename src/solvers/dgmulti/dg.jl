@@ -481,35 +481,49 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
     @unpack xyzf, nxyzJ, Jf = md
     @unpack surface_flux = dg.surface_integral
 
-    # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
-    # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
-    num_faces = StartUpDG.num_faces(rd.element_type)
-    num_pts_per_face = rd.Nfq ÷ num_faces
-    num_faces_total = num_faces * md.num_elements
+    if mesh.boundary_faces_type == :faces
+      # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
+      # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
+      num_faces = StartUpDG.num_faces(rd.element_type)
+      num_pts_per_face = rd.Nfq ÷ num_faces
+      num_faces_total = num_faces * md.num_elements
 
-    # This function was originally defined as
-    # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
-    # This results in allocations due to https://github.com/JuliaLang/julia/issues/36313.
-    # To avoid allocations, we use Tim Holy's suggestion:
-    # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
-    reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
+      # This function was originally defined as
+      # `reshape_by_face(u) = reshape(view(u, :), num_pts_per_face, num_faces_total)`.
+      # This results in allocations due to https://github.com/JuliaLang/julia/issues/36313.
+      # To avoid allocations, we use Tim Holy's suggestion:
+      # https://github.com/JuliaLang/julia/issues/36313#issuecomment-782336300.
+      reshape_by_face(u) = Base.ReshapedArray(u, (num_pts_per_face, num_faces_total), ())
 
-    u_face_values = reshape_by_face(u_face_values)
-    flux_face_values = reshape_by_face(flux_face_values)
-    Jf = reshape_by_face(Jf)
-    nxyzJ, xyzf = reshape_by_face.(nxyzJ), reshape_by_face.(xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
+      u_face_values = reshape_by_face(u_face_values)
+      flux_face_values = reshape_by_face(flux_face_values)
+      Jf = reshape_by_face(Jf)
+      nxyzJ, xyzf = reshape_by_face.(nxyzJ), reshape_by_face.(xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
 
-    # loop through boundary faces, which correspond to columns of reshaped u_face_values, ...
-    for f in mesh.boundary_faces[boundary_key]
-        for i in Base.OneTo(num_pts_per_face)
-            face_normal = SVector{NDIMS}(getindex.(nxyzJ, i, f)) / Jf[i, f]
-            face_coordinates = SVector{NDIMS}(getindex.(xyzf, i, f))
-            flux_face_values[i, f] = boundary_condition(u_face_values[i, f],
-                                                        face_normal, face_coordinates,
-                                                        t,
-                                                        surface_flux, equations) *
-                                     Jf[i, f]
-        end
+      # loop through boundary faces, which correspond to columns of reshaped u_face_values, ...
+      for i in mesh.boundary_faces[boundary_key]
+          for i in Base.OneTo(num_pts_per_face)
+              face_normal = SVector{NDIMS}(getindex.(nxyzJ, i)) / Jf[i]
+              face_coordinates = SVector{NDIMS}(getindex.(xyzf, i))
+              flux_face_values[i] = boundary_condition(u_face_values[i],
+                                                          face_normal, face_coordinates,
+                                                          t,
+                                                          surface_flux, equations) *
+                                       Jf[i]
+          end
+      end
+    elseif mesh.boundary_faces_type == :nodes
+      for i in mesh.boundary_faces[boundary_key]
+          face_normal = SVector{NDIMS}(getindex.(nxyzJ, i)) / Jf[i]
+          face_coordinates = SVector{NDIMS}(getindex.(xyzf, i))
+          temp_f = boundary_condition(u_face_values[i],
+                                                      face_normal, face_coordinates,
+                                                      t,
+                                                      surface_flux, equations)
+          flux_face_values[i] = temp_f * Jf[i]
+      end
+    else
+      error("Unknown boundary_faces type.")
     end
 
     # Note: modifying the values of the reshaped array modifies the values of cache.flux_face_values.

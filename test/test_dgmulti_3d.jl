@@ -390,6 +390,35 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_advection_cubed_sphere.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cubed_sphere.jl"),
+                        l2=[0.0011486600431328412],
+                        linf=[0.010612428128618623])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_advection_prismed_sphere.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_prismed_sphere.jl"),
+                        l2=[2.865381030452241e-5],
+                        linf=[0.0001859769709027237])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
