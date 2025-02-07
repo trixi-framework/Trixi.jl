@@ -228,6 +228,7 @@ end
 end
 
 # Dirichlet-type boundary condition for equations with non-conservative terms for use with UnstructuredMesh2D
+# passing a tuple of surface flux functions for nonconservative terms
 # Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   normal_direction::AbstractVector,
