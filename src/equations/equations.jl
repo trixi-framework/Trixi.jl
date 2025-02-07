@@ -182,6 +182,7 @@ end
 end
 
 # Dirichlet-type boundary condition for use with TreeMesh or StructuredMesh
+# passing a tuple of surface flux functions for nonconservative terms
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
                                                                   orientation_or_normal,
                                                                   direction,
