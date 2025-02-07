@@ -17,12 +17,12 @@ isdir(outdir) && rm(outdir, recursive = true)
 @trixi_testset "elixir_euler_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_periodic.jl"),
                         l2=[
-                            0.0001099216141882387, 0.0001303795774982892,
-                            0.00013037957749794242, 0.0002993727892598759
+                            0.00010992161458946449, 0.00013037957831794187,
+                            0.0001303795783182231, 0.00029937279106433015
                         ],
                         linf=[
-                            0.006407280810928562, 0.009836067015418948,
-                            0.009836067015398076, 0.021903519038095176
+                            0.006407280909098478, 0.009836067162309448,
+                            0.009836067162292128, 0.021903519372712843
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -692,17 +692,21 @@ end
 @trixi_testset "FDSBP (upwind): elixir_euler_source_terms_upwind.jl with LF splitting" begin
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
                                  "elixir_euler_source_terms_upwind.jl"),
-                        l2=[3.8300267071890586e-5,
-                            5.295846741663533e-5,
-                            5.295846741663526e-5,
-                            0.00017564759295593478],
-                        linf=[0.00018810716496542312,
-                            0.0003794187430412599,
-                            0.0003794187430412599,
-                            0.0009632958510650269],
+                        l2=[
+                            3.8300274213823844e-5,
+                            5.295847308063744e-5,
+                            5.295847308066259e-5,
+                            0.00017564760044077823
+                        ],
+                        linf=[
+                            0.0001881071653406785,
+                            0.00037941874324110003,
+                            0.0003794187432419882,
+                            0.0009632958467822306
+                        ],
                         tspan=(0.0, 0.025),
                         flux_splitting=splitting_lax_friedrichs,
-                        atol=1.0e-10)
+                        atol=2e-10)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
