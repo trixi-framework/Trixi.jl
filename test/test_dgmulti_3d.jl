@@ -419,6 +419,37 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_baroclinic_instability.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_baroclinic_instability.jl"),
+                        l2=[
+                            1.922609436676713e-7,
+                            8.510564833848403e-5,
+                            0.0001101753651355995,
+                            9.775492232730066e-5,
+                            0.044297547090262346
+                        ],
+                        linf=[
+                            1.85020498180144e-5,
+                            0.01016720737571257,
+                            0.010778284009676758,
+                            0.009668154469787194,
+                            4.187203206616687
+                        ],
+                        tspan=(0.0, 1e2),
+                        # Decrease tolerance of adaptive time stepping to get similar results across different systems
+                        abstol=1.0e-9, reltol=1.0e-9,
+                        coverage_override=(trees_per_cube_face = (1, 1), polydeg = 3)) # Prevent long compile time in CI
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
