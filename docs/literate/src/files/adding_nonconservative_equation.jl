@@ -177,6 +177,9 @@ error_1 / error_2
 # As expected, the new error is roughly reduced by a factor of 16, corresponding
 # to an experimental order of convergence of 4 (for polynomials of degree 3).
 
+# For non-trivial boundary conditions involving non-conservative terms, 
+# please refer to the section on [Other available example elixirs with non-trivial BC](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/non_periodic_boundaries/#Other-available-example-elixirs-with-non-trivial-BC).
+
 # ## Summary of the code
 
 # Here is the complete code that we used (without the callbacks since these

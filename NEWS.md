@@ -23,6 +23,10 @@ for human readability.
   Previously, only the first 8 digits were printed to file.
   Furthermore, the names of the printed fields are now only separated by a single white space, 
   in contrast to before where this were multiple, depending on the actual name of the printed data.
+- The boundary conditions for non-conservative equations can now be defined separately from the conservative part.
+  The `surface_flux_functions` tuple is now passed directly to the boundary condition call,
+  returning a tuple with boundary condition values for both the conservative and non-conservative parts ([#2200]).
+
 
 #### Deprecated
 
