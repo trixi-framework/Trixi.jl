@@ -449,7 +449,6 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
-
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

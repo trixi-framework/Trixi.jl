@@ -240,20 +240,23 @@ inner_radius = 6.371229e6
 thickness = 30000.0
 initial_refinement_level = 0
 
-is_on_boundary = Dict(:all => (x,y,z) -> true)
+is_on_boundary = Dict(:all => (x, y, z) -> true)
 
 if element_type isa Hex
-  cmesh = Trixi.t8_cmesh_new_cubed_spherical_shell(
-    inner_radius, thickness, trees_per_cube_face..., Trixi.mpi_comm())
+    cmesh = Trixi.t8_cmesh_new_cubed_spherical_shell(inner_radius, thickness,
+                                                     trees_per_cube_face...,
+                                                     Trixi.mpi_comm())
 elseif element_type isa Wedge
-  cmesh = Trixi.t8_cmesh_new_prismed_spherical_shell_icosahedron(
-    inner_radius, thickness, trees_per_cube_face..., Trixi.mpi_comm())
+    cmesh = Trixi.t8_cmesh_new_prismed_spherical_shell_icosahedron(inner_radius, thickness,
+                                                                   trees_per_cube_face...,
+                                                                   Trixi.mpi_comm())
 else
-  error("Unknown element type: $element_type")
+    error("Unknown element type: $element_type")
 end
 
 mesh = DGMultiMesh(dg, cmesh;
-  initial_refinement_level = initial_refinement_level, is_on_boundary = is_on_boundary)
+                   initial_refinement_level = initial_refinement_level,
+                   is_on_boundary = is_on_boundary)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     source_terms = source_terms_baroclinic_instability,

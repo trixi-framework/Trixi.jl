@@ -15,7 +15,7 @@ boundary_conditions = (; :all => boundary_condition)
 ###############################################################################
 # Build DG solver.
 
-tensor_polydeg = (3,3)
+tensor_polydeg = (3, 3)
 
 dg = DGMulti(element_type = Wedge(),
              approximation_type = Polynomial(),
@@ -32,13 +32,15 @@ thickness = 0.5
 outer_radius = inner_radius + thickness
 initial_refinement_level = 0
 
-is_on_boundary = Dict(:all => (x,y,z) -> true)
+is_on_boundary = Dict(:all => (x, y, z) -> true)
 
-cmesh = Trixi.t8_cmesh_new_prismed_spherical_shell_icosahedron(
-  inner_radius, thickness, lat_lon_elements, layers, Trixi.mpi_comm())
+cmesh = Trixi.t8_cmesh_new_prismed_spherical_shell_icosahedron(inner_radius, thickness,
+                                                               lat_lon_elements, layers,
+                                                               Trixi.mpi_comm())
 
 mesh = DGMultiMesh(dg, cmesh;
-  initial_refinement_level = initial_refinement_level, is_on_boundary = is_on_boundary)
+                   initial_refinement_level = initial_refinement_level,
+                   is_on_boundary = is_on_boundary)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     boundary_conditions = boundary_conditions)

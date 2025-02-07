@@ -22,8 +22,8 @@ mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS},
     current_filename :: String
     unsaved_changes  :: Bool
 
-    boundary_faces_type :: Symbol # If `:nodes` `boundary_faces` consists of
-                                  # boundary nodes instead of just faces.
+    boundary_faces_type::Symbol # If `:nodes` `boundary_faces` consists of
+    # boundary nodes instead of just faces.
 
     function DGMultiMesh{NDIMS, MeshType, MeshDataT, RefElemDataT, BoundaryFaceT}(md,
                                                                                   rd,
@@ -35,7 +35,8 @@ mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS},
                                                                                              BoundaryFaceT
                                                                                              }
         return new{NDIMS, MeshType, MeshDataT, RefElemDataT, BoundaryFaceT}(md, rd, bd,
-                                                                            "", true, :faces)
+                                                                            "", true,
+                                                                            :faces)
     end
 end
 

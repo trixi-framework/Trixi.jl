@@ -11,7 +11,7 @@ initial_condition = initial_condition_convergence_test
 
 boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = (; :inside => boundary_condition,
-                         :outside => boundary_condition)
+                       :outside => boundary_condition)
 
 ###############################################################################
 # Build DG solver.
@@ -32,15 +32,17 @@ thickness = 0.5
 outer_radius = inner_radius + thickness
 initial_refinement_level = 0
 
-is_on_boundary = Dict(
-  :inside => (x,y,z; tol = 50*eps()) -> abs(sqrt(x^2 + y^2 + z^2) - inner_radius) < tol,
-  :outside => (x,y,z; tol = 50*eps()) -> abs(sqrt(x^2 + y^2 + z^2) - outer_radius) < tol)
+is_on_boundary = Dict(:inside => (x, y, z; tol = 50 * eps()) -> abs(sqrt(x^2 + y^2 + z^2) -
+                                                                    inner_radius) < tol,
+                      :outside => (x, y, z; tol = 50 * eps()) -> abs(sqrt(x^2 + y^2 + z^2) -
+                                                                     outer_radius) < tol)
 
-cmesh = Trixi.t8_cmesh_new_cubed_spherical_shell(
-  inner_radius, thickness, lat_lon_elements, layers, Trixi.mpi_comm())
+cmesh = Trixi.t8_cmesh_new_cubed_spherical_shell(inner_radius, thickness, lat_lon_elements,
+                                                 layers, Trixi.mpi_comm())
 
 mesh = DGMultiMesh(dg, cmesh;
-  initial_refinement_level = initial_refinement_level, is_on_boundary = is_on_boundary)
+                   initial_refinement_level = initial_refinement_level,
+                   is_on_boundary = is_on_boundary)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, dg,
                                     boundary_conditions = boundary_conditions)
