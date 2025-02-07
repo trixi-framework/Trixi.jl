@@ -1,4 +1,5 @@
 [deps]
+ADTypes = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
@@ -21,6 +22,7 @@ StableRNGs = "860ef19b-820b-49d6-a774-d7a799459cd3"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+ADTypes = "1.12"
 Aqua = "0.8"
 CairoMakie = "0.12, 0.13"
 Convex = "0.16"

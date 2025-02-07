@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEq, ADTypes
 using Trixi
 
 ###############################################################################
@@ -22,7 +22,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, KenCarp4(autodiff = false), abstol = time_abs_tol, reltol = time_int_tol,
+sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()), abstol = time_abs_tol, reltol = time_int_tol,
             save_everystep = false, callback = callbacks)
 
 # Print the timer summary
