@@ -63,8 +63,7 @@ end
                                  "elixir_advection_amr_solution_independent.jl"),
                         # Expected errors are exactly the same as with StructuredMesh!
                         l2=[4.949660644033807e-5],
-                        linf=[0.0004867846262313763],
-                        coverage_override=(maxiters = 6,))
+                        linf=[0.0004867846262313763],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -79,8 +78,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_advection_amr_unstructured_flag.jl"),
                         l2=[0.0012808538770535593],
-                        linf=[0.01752690016659812],
-                        coverage_override=(maxiters = 6,))
+                        linf=[0.01752690016659812],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -94,10 +92,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.507575525876275e-6],
-                        linf=[6.21489667023134e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 25,))
+                        linf=[6.21489667023134e-5],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -111,10 +106,7 @@ end
 @trixi_testset "elixir_advection_restart_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart_amr.jl"),
                         l2=[2.869137983727866e-6],
-                        linf=[3.8353423270964804e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 25,))
+                        linf=[3.8353423270964804e-5],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -159,6 +151,32 @@ end
                             1.4104095258528071e-14
                         ],
                         linf=[1.9539925233402755e-14, 2e-12, 4.8e-12, 4e-12],
+                        atol=2.0e-12,)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_free_stream_hybrid_mesh.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_free_stream_hybrid_mesh.jl"),
+                        l2=[
+                            1.0174922714929637e-15,
+                            5.053352600778435e-15,
+                            7.358169131303026e-15,
+                            5.999843977180112e-15
+                        ],
+                        linf=[
+                            4.440892098500626e-15,
+                            2.6117996654306808e-14,
+                            4.246603069191224e-14,
+                            5.861977570020827e-14
+                        ],
                         atol=2.0e-12,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -370,8 +388,7 @@ end
                             2.3258078438689673,
                             2.1577683028925416
                         ],
-                        tspan=(0.0, 0.3),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 0.3),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -422,17 +439,14 @@ end
                             17.750333649853616
                         ],
                         tspan=(0.0, 0.0001),
-                        rtol=1.0e-7,
-                        skip_coverage=true)
-    if @isdefined sol # Skipped in coverage run
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+                        rtol=1.0e-7,)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -450,17 +464,14 @@ end
                             24.241610279839758,
                             561.0630401858057
                         ],
-                        tspan=(0.0, 0.0001),
-                        skip_coverage=true)
-    if @isdefined sol # Skipped in coverage run
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+                        tspan=(0.0, 0.0001),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -478,17 +489,14 @@ end
                             6.857777546171545,
                             31.749285097390576
                         ],
-                        tspan=(0.0, 0.001),
-                        skip_coverage=true)
-    if @isdefined sol # Skipped in coverage run
-        # Ensure that we do not have excessive memory allocations
-        # (e.g., from type instabilities)
-        let
-            t = sol.t[end]
-            u_ode = sol.u[end]
-            du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-        end
+                        tspan=(0.0, 0.001),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
 
@@ -507,7 +515,8 @@ end
                             6.265341002817672,
                             24.077904874883338
                         ],
-                        tspan=(0.0, 0.02))
+                        tspan=(0.0, 0.02),
+                        atol=1e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -640,6 +649,41 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_rotor_cfl_ramp.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor_cfl_ramp.jl"),
+                        l2=[
+                            0.45519051169507474,
+                            0.8917985468745363,
+                            0.8324681609772325,
+                            0.0,
+                            0.9801426190285389,
+                            0.10476233464125001,
+                            0.15551270692826116,
+                            0.0,
+                            2.0201603821472296e-5
+                        ],
+                        linf=[
+                            10.196786739705292,
+                            18.267539012179128,
+                            10.046104290498878,
+                            0.0,
+                            19.668302849210974,
+                            1.395022093528294,
+                            1.8717844606331189,
+                            0.0,
+                            0.001651262488701531
+                        ],
+                        tspan=(0.0, 0.02))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_linearizedeuler_gaussian_source.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_linearizedeuler_gaussian_source.jl"),
@@ -718,10 +762,7 @@ end
                         base_level=0, med_level=1, max_level=1,
                         tspan=(0.0, 0.0001),
                         adapt_initial_condition=false,
-                        adapt_initial_condition_only_refine=false,
-                        # With the default `maxiters = 1` in coverage tests,
-                        # the values for `drag` and `lift` below would differ.
-                        coverage_override=(maxiters = 100_000,))
+                        adapt_initial_condition_only_refine=false,)
 
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -789,8 +830,7 @@ end
                             0.8266797080712205,
                             3.9792506230548317
                         ],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

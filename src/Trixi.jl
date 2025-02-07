@@ -50,7 +50,6 @@ using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
@@ -61,6 +60,7 @@ using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using T8code
 using RecipesBase: RecipesBase
+using RecursiveArrayTools: VectorOfArray
 using Requires: @require
 using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
@@ -262,7 +262,10 @@ export SemidiscretizationHyperbolicParabolic
 export SemidiscretizationEulerAcoustics
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
-       timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
+       timestep_gravity_erk51_3Sstar!,
+       timestep_gravity_erk52_3Sstar!,
+       timestep_gravity_erk53_3Sstar!,
+       timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SemidiscretizationCoupled
 

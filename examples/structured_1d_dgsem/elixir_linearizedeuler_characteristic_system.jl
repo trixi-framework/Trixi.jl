@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using LinearAlgebra: dot
 using Trixi
