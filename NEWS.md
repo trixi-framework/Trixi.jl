@@ -18,6 +18,11 @@ for human readability.
 - The `PairedExplicitRK2` constructor with second argument `base_path_monomial_coeffs::AbstractString` requires 
   now `dt_opt`, `bS`, `cS` to be given as keyword arguments ([#2184]).
   Previously, those where standard function parameters, in the same order as listed above.
+- The `AnalysisCallback` output generated with the `save_analysis = true` option now prints
+  floating point numbers in their respective (full) precision. 
+  Previously, only the first 8 digits were printed to file.
+  Furthermore, the names of the printed fields are now only separated by a single white space, 
+  in contrast to before where this were multiple, depending on the actual name of the printed data.
 
 #### Deprecated
 
