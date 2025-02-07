@@ -1,8 +1,8 @@
-# Convex and ECOS are imported because they are used for finding the optimal time step and optimal 
+# Convex and ECOS are imported because they are used for finding the optimal time step and optimal
 # monomial coefficients in the stability polynomial of PERK time integrators.
 using Convex, ECOS
 # We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
-using OrdinaryDiffEq: CallbackSet
+using OrdinaryDiffEqSSPRK: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -62,7 +62,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # Construct second order paired explicit Runge-Kutta method with 6 stages for given simulation setup.
-# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used 
+# Pass `tspan` to calculate maximum time step allowed for the bisection algorithm used
 # in calculating the polynomial coefficients in the ODE algorithm.
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 

@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using LinearAlgebra: dot
 using Trixi
 
@@ -27,7 +27,7 @@ lin_euler_eigvecs = [-rho_0/c_0 1 rho_0/c_0;
                      -rho_0*c_0 0 rho_0*c_0]
 lin_euler_eigvecs_inv = inv(lin_euler_eigvecs)
 
-# Trace back characteristics. 
+# Trace back characteristics.
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf, p.95
 function compute_char_initial_pos(x, t)
     return SVector(x[1], x[1], x[1]) .- t * lin_euler_eigvals

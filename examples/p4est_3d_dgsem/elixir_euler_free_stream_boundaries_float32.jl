@@ -1,7 +1,7 @@
 # Similar to p4est_3d_dgsem/elixir_euler_free_stream_boundaries.jl
 # but using Float32 instead of the default Float64
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################

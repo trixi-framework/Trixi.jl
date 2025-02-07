@@ -5,7 +5,7 @@
 # Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further)
 # and `check-bounds=no`, this elixirs takes about 20 minutes to run.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 using LinearAlgebra
 

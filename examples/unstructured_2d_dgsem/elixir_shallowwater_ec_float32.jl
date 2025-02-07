@@ -1,7 +1,7 @@
 # Similar to unstructured_2d_dgsem/elixir_shallowwater_ec_float32.jl
 # but using Float32 instead of the default Float64
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################

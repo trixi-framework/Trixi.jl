@@ -14,7 +14,7 @@
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
 
 # We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
-using OrdinaryDiffEq: CallbackSet
+using OrdinaryDiffEqSSPRK: CallbackSet
 using Trixi
 
 ###############################################################################

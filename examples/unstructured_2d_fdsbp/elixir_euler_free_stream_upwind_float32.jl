@@ -3,7 +3,7 @@
 # Similar to unstructured_2d_fdsbp/elixir_euler_free_stream_upwind.jl
 # but using Float32 instead of the default Float64
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################

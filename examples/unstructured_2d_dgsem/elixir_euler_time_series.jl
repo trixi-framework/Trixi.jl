@@ -4,7 +4,7 @@
 # identification, e.g., a gauge point that lies on an
 # element corner of a curvilinear mesh
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################

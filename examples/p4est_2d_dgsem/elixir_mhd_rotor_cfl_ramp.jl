@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -111,7 +111,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-# increase the CFL number linearly from cfl_0() at time 0 
+# increase the CFL number linearly from cfl_0() at time 0
 # to cfl_t_ramp() at time t = t_ramp(), keep it constant afterward
 cfl_0() = 0.5
 cfl_t_ramp() = 1.2

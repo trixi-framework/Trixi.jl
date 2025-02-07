@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -27,7 +27,7 @@ end
 ###############################################################################
 # Specify non-periodic boundary conditions
 
-# Assume that there are always cars waiting at the left 
+# Assume that there are always cars waiting at the left
 function inflow(x, t, equations::TrafficFlowLWREquations1D)
     # -1.0 = coordinates_min
     return initial_condition_greenlight(-1.0, t, equations)

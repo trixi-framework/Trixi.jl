@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -36,8 +36,8 @@ initial_condition = initial_condition_diffusive_convergence_test
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-# This maps the domain [-1, 1]^2 to [-pi, pi]^2 while also 
-# introducing a curved warping to interior nodes. 
+# This maps the domain [-1, 1]^2 to [-pi, pi]^2 while also
+# introducing a curved warping to interior nodes.
 function mapping(xi, eta)
     x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
     y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)

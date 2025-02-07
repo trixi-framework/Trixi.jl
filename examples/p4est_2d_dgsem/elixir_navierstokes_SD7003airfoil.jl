@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -109,8 +109,8 @@ lift_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
                                                                    f_U_inf(), f_linf()))
 
 # For long simulation run, use a large interval.
-# For measurements once the simulation has settled in, one should use a 
-# significantly smaller interval, e.g. 500 to record the drag/lift coefficients.                                                                   
+# For measurements once the simulation has settled in, one should use a
+# significantly smaller interval, e.g. 500 to record the drag/lift coefficients.
 analysis_interval = 10_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
