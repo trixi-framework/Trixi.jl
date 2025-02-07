@@ -58,8 +58,8 @@ Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 
 [extensions]
-TrixiDiffEqBaseExt = "DiffEqBase"
 TrixiConvexECOSExt = ["Convex", "ECOS"]
+TrixiDiffEqBaseExt = "DiffEqBase"
 TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
 
