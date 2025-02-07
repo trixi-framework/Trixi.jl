@@ -9,6 +9,7 @@ CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 DiffEqCallbacks = "459566f4-90b8-5000-8ac3-15dfb0a30def"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 EllipsisNotation = "da5c29d0-fa7d-589e-88eb-ea29b0a81949"
@@ -52,14 +53,12 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [weakdeps]
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
-DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 NLsolve = "2774e3e8-f4cf-5e23-947b-6d7e65073b56"
 
 [extensions]
 TrixiConvexECOSExt = ["Convex", "ECOS"]
-TrixiDiffEqBaseExt = "DiffEqBase"
 TrixiMakieExt = "Makie"
 TrixiNLsolveExt = "NLsolve"
 
