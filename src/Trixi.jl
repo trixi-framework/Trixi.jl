@@ -315,12 +315,6 @@ function __init__()
     end
 
     @static if !isdefined(Base, :get_extension)
-        @require GLMakie="e9467ef8-e4e7-5192-8a1a-b1aee30e663a" begin
-            include("../ext/TrixiGLMakieExt.jl")
-        end
-    end
-
-    @static if !isdefined(Base, :get_extension)
         @require Convex="f65535da-76fb-5f13-bab9-19810c17039a" begin
             @require ECOS="e2685f51-7e38-5353-a97d-a921fd2c8199" begin
                 include("../ext/TrixiConvexECOSExt.jl")

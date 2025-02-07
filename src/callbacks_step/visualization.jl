@@ -5,6 +5,13 @@
 @muladd begin
 #! format: noindent
 
+# convenience struct for editing plots after they're created.
+struct Figure_Axes_Colorbar{Figure, Axes, Colorbar}
+    fig::Figure
+    axes::Axes
+    colorbar::Colorbar
+end
+
 mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataCreator,
                                      PlotCreator}
     interval::Int
@@ -13,9 +20,7 @@ mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataC
     show_mesh::Bool
     plot_data_creator::PlotDataCreator
     plot_creator::PlotCreator
-    figure::Any
-    axis::Any
-    colorbar::Any
+    figure_axes_colorbar::Figure_Axes_Colorbar
     plot_arguments::Dict{Symbol, Any}
 end
 
@@ -102,7 +107,7 @@ function VisualizationCallback(; interval = 0,
                                                    solution_variables, variable_names,
                                                    show_mesh,
                                                    plot_data_creator, plot_creator,
-                                                   nothing, [], nothing,
+                                                   Figure_Axes_Colorbar(nothing, [], nothing),
                                                    Dict{Symbol, Any}(plot_arguments))
 
     # Warn users if they create a visualization callback without having loaded a plotting
@@ -119,8 +124,8 @@ function VisualizationCallback(; interval = 0,
     # In the future, we should update/remove this warning if other plotting packages are
     # starting to be used.
     if !(:Plots in names(@__MODULE__, all = true)) &&
-       Base.get_extension(Trixi, :TrixiGLMakieExt) === nothing
-        @warn "Neither `Plots` nor `GLMakie` loaded but required by `VisualizationCallback` to visualize results"
+       Base.get_extension(Trixi, :TrixiMakieExt) === nothing
+        @warn "Neither `Plots` nor `Makie` loaded but required by `VisualizationCallback` to visualize results"
     end
 
     DiscreteCallback(visualization_callback, visualization_callback, # the first one is the condition, the second the affect!
@@ -271,6 +276,6 @@ function save_plot(visualization_callback, plot_data, variable_names;
 end
 
 # Add definitions of Makie plot functions here such that they can be exported from Trixi.jl
-# and extended in the TrixiGLMakieExt extension
+# and extended in the TrixiMakieExt extension
 function show_plot_makie end
 end # @muladd
