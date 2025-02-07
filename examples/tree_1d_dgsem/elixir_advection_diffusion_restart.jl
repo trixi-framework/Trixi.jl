@@ -10,7 +10,7 @@ trixi_include(@__MODULE__, joinpath(@__DIR__, elixir_file))
 ###############################################################################
 # initialize the ODE
 
-restart_file = "restart_000000018.h5"
+restart_file = "restart_000000012.h5"
 restart_filename = joinpath("out", restart_file)
 tspan = (load_time(restart_filename), 2.0)
 
