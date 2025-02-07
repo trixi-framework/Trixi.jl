@@ -60,8 +60,8 @@ end
     # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
     callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                             amr_callback)
-    sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()), abstol = time_abs_tol,
-                reltol = time_int_tol,
+    sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()),
+                abstol = time_abs_tol, reltol = time_int_tol,
                 save_everystep = false, callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)
     @test l2_error ≈ [6.4878111416468355e-6]
