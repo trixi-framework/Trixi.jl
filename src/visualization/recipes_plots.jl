@@ -210,7 +210,6 @@ RecipesBase.@recipe function f(func::Function,
                                solution_variables = nothing,
                                nvisnodes = nothing, slice = :xy,
                                point = (0.0, 0.0, 0.0), curve = nothing)
-
     n_variables = length(func(SVector(0.0), semi.equations))
     variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
     if ndims(semi) == 1
