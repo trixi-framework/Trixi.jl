@@ -15,7 +15,7 @@ include("test_trixi.jl")
                   piracies = (treat_as_own = [Trixi.StartUpDG.RefElemData,
                                   Trixi.StartUpDG.MeshData],),
                   # exception necessary because StableRNGs.jl is only used in an extension
-                  stale_deps = (ignore = [StableRNGs]))
+                  stale_deps = (ignore = [:StableRNGs],))
     @test isnothing(check_no_implicit_imports(Trixi,
                                               skip = (Core, Base, Trixi.P4est, Trixi.T8code,
                                                       Trixi.EllipsisNotation)))

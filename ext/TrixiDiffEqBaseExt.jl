@@ -2,7 +2,7 @@
 module TrixiDiffEqBaseExt
 
 using Trixi: AbstractTimeIntegrator
-using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array, get_tstops_max
+using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 
 DiffEqBase.get_tstops(integrator::AbstractTimeIntegrator) = integrator.opts.tstops
 function DiffEqBase.get_tstops_array(integrator::AbstractTimeIntegrator)
