@@ -4,6 +4,23 @@ Trixi.jl follows the interpretation of [semantic versioning (semver)](https://ju
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+
+## Changes when updating to v0.10 from v0.9.x
+
+#### Added
+
+#### Changed
+
+- The numerical solution is wrapped in a `VectorOfArrays` from
+  [RecursiveArrayTools.jl](https://github.com/SciML/RecursiveArrayTools.jl)
+  for `DGMulti` solvers ([#2150]). You can use `Base.parent` to unwrap
+  the original data.
+
+#### Deprecated
+
+#### Removed
+
+
 ## Changes in the v0.9 lifecycle
 
 #### Added
@@ -23,6 +40,7 @@ for human readability.
 #### Changed
 
 - The required Julia version is updated to v1.10.
+
 
 ## Changes when updating to v0.9 from v0.8.x
 
