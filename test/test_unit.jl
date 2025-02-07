@@ -659,8 +659,8 @@ end
         test_bc_out = boundary_condition_do_nothing(u, outward_direction, x, t,
                                                     surface_fluxes,
                                                     equations)
-        @test surface_fluxes[1](u, outward_direction, equations) ≈ test_bc_[1]
-        @test surface_fluxes[2](u, outward_direction, equations) ≈ test_bc_[2]
+        @test surface_fluxes[1](u, outward_direction, equations) ≈ test_bc_out[1]
+        @test surface_fluxes[2](u, outward_direction, equations) ≈ test_bc_out[2]
 
         orientation = 2
         direction = 4
