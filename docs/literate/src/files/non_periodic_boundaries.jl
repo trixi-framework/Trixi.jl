@@ -158,6 +158,11 @@ end
 # ```
 # Source: [`Video`](https://www.youtube.com/watch?v=w0A9X38cSe4) on Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
 
+# Furthermore, Trixi.jl also handles equations that include non-conservative terms. 
+# For such equations, the tuple of conservative and non-conservative surfaces fluxes is passed to the boundary condition, 
+# which then returns a tuple containing the boundary condition values for both the conservative and non-conservative terms.
+# For instance, a 2D ideal compressible GLM-MHD setup with reflective walls can be found in the elixir ['elixir_mhd_reflective_wall.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_mhd_reflective_wall.jl).   
+
 # ## Package versions
 
 # These results were obtained using the following versions.

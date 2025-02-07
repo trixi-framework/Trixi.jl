@@ -13,7 +13,7 @@ Some common options for `solve` from [OrdinaryDiffEq.jl](https://github.com/SciM
 are the following. Further documentation can be found in the
 [SciML docs](https://diffeq.sciml.ai/v6.8/basics/common_solver_opts/).
 - If you use a fixed time step method like `CarpenterKennedy2N54`, you need to pass
-  a time step as `dt=...`. If you use a [`StepsizeCallback`](@ref), the value passed 
+  a time step as `dt=...`. If you use a [`StepsizeCallback`](@ref), the value passed
   as `dt=...` is irrelevant since it will be overwritten by the [`StepsizeCallback`](@ref).
   If you want to use an adaptive time step method such as `SSPRK43` or `RDPK3SpFSAL49`
   and still want to use CFL-based step size control via the [`StepsizeCallback`](@ref),
@@ -25,12 +25,12 @@ are the following. Further documentation can be found in the
 - SSP methods and many low-storage methods from OrdinaryDiffEq.jl support
   `stage_limiter!`s and `step_limiter!`s, e.g., [`PositivityPreservingLimiterZhangShu`](@ref) and [`EntropyBoundedLimiter`](@ref)
   from Trixi.jl.
-- If you start Julia with multiple threads and want to use them also in the time 
+- If you start Julia with multiple threads and want to use them also in the time
   integration method from OrdinaryDiffEq.jl, you need to pass the keyword argument
-  `thread=OrdinaryDiffEq.True()` to the algorithm, e.g., 
-  `RDPK3SpFSAL49(thread=OrdinaryDiffEq.True())` or 
+  `thread=OrdinaryDiffEq.True()` to the algorithm, e.g.,
+  `RDPK3SpFSAL49(thread=OrdinaryDiffEq.True())` or
   `CarpenterKennedy2N54(thread=OrdinaryDiffEq.True(), williamson_condition=false)`.
-  For more information on using thread-based parallelism in Trixi.jl, please refer to 
+  For more information on using thread-based parallelism in Trixi.jl, please refer to
   [Shared-memory parallelization with threads](@ref).
 - If you use error-based step size control (see also the section on
   [error-based adaptive step sizes](@ref adaptive_step_sizes)) together with MPI, you need to
@@ -50,7 +50,7 @@ are the following. Further documentation can be found in the
 ### Stabilized Explicit Runge-Kutta Methods
 
 Optimized explicit schemes aim to maximize the timestep $\Delta t$ for a given simulation setup.
-Formally, this boils down to an optimization problem of the form 
+Formally, this boils down to an optimization problem of the form
 ```math
 \underset{P_{p;S} \, \in \, \mathcal{P}_{p;S}}{\max} \Delta t \text{ such that } \big \vert P_{p;S}(\Delta t \lambda_m) \big \vert \leq 1, \quad  m = 1 , \dots , M \tag{1}
 ```
@@ -79,12 +79,12 @@ Nevertheless, due to their optimized stability properties and low-storage nature
 
 #### Tutorial: Using `PairedExplicitRK2`
 
-In this tutorial, we will demonstrate how you can use the second-order PERK time integrator. You need the packages `Convex.jl` and `ECOS.jl`, so be sure they are added to your environment.
+In this tutorial, we will demonstrate how you can use the second-order PERK time integrator. You need the packages `Convex.jl`, `ECOS.jl`, and `NLsolve.jl`, so be sure they are added to your environment.
 
 First, you need to load the necessary packages:
 
 ```@example PERK-example-1
-using Convex, ECOS
+using Convex, ECOS, NLsolve
 using OrdinaryDiffEq
 using Trixi
 ```
@@ -96,7 +96,7 @@ Then, define the ODE problem and the semidiscretization setup. For this example,
 cells_per_dimension = 100
 coordinates_min = 0.0
 coordinates_max = 1.0
-mesh = StructuredMesh(cells_per_dimension, 
+mesh = StructuredMesh(cells_per_dimension,
                       coordinates_min, coordinates_max)
 
 # Define the equation and initial condition
@@ -109,8 +109,8 @@ initial_condition = initial_condition_convergence_test
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
 # Define the semidiscretization
-semi = SemidiscretizationHyperbolic(mesh, 
-                                    equations, initial_condition, 
+semi = SemidiscretizationHyperbolic(mesh,
+                                    equations, initial_condition,
                                     solver)
 ```
 
@@ -125,14 +125,14 @@ analysis_callback = AnalysisCallback(semi, interval = 200)
 stepsize_callback = StepsizeCallback(cfl = 2.5)
 
 # Create a CallbackSet to collect all callbacks
-callbacks = CallbackSet(summary_callback, 
-                        alive_callback, 
-                        analysis_callback, 
+callbacks = CallbackSet(summary_callback,
+                        alive_callback,
+                        analysis_callback,
                         stepsize_callback)
 ```
 
-Now, we define the ODE problem by specifying the time span over which the ODE will be solved. 
-The `tspan` parameter is a tuple `(t_start, t_end)` that defines the start and end times for the simulation. 
+Now, we define the ODE problem by specifying the time span over which the ODE will be solved.
+The `tspan` parameter is a tuple `(t_start, t_end)` that defines the start and end times for the simulation.
 The `semidiscretize` function is used to create the ODE problem from the simulation setup.
 
 ```@example PERK-example-1
@@ -145,10 +145,10 @@ ode = semidiscretize(semi, tspan)
 
 Next, we will construct the time integrator. In order to do this, you need the following components:
 
-  - Number of stages: The number of stages $S$ in the Runge-Kutta method. 
+  - Number of stages: The number of stages $S$ in the Runge-Kutta method.
   In this example, we use `6` stages.
-  - Time span (`tspan`): A tuple `(t_start, t_end)` that defines the time span over which the ODE will be solved. 
-  This defines the bounds for the bisection routine for the optimal timestep $\Delta t$ used in calculating the polynomial coefficients at optimization stage. 
+  - Time span (`tspan`): A tuple `(t_start, t_end)` that defines the time span over which the ODE will be solved.
+  This defines the bounds for the bisection routine for the optimal timestep $\Delta t$ used in calculating the polynomial coefficients at optimization stage.
   This variable is already defined in step 5.
   - Semidiscretization (`semi`): The semidiscretization setup that includes the mesh, equations, initial condition, and solver. In this example, this variable is already defined in step 3.
   In the background, we compute from `semi` the Jacobian $J$ evaluated at the initial condition using [`jacobian_ad_forward`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
@@ -182,9 +182,9 @@ There are two additional constructors for the `PairedExplicitRK2` method besides
 
 In the previous tutorial the CFL number was set manually to $2.5$.
 To avoid the manual trial-and-error process behind this, instantiations of `AbstractPairedExplicitRK` methods can automatically compute the stable CFL number for a given simulation setup using the [`Trixi.calculate_cfl`](@ref) function.
-When constructing the time integrator from a semidiscretization `semi`, 
+When constructing the time integrator from a semidiscretization `semi`,
 ```@example PERK-example-1
-# Construct third-order paired-explicit Runge-Kutta method with 8 stages for given simulation setup.                               
+# Construct third-order paired-explicit Runge-Kutta method with 8 stages for given simulation setup.
 ode_algorithm = Trixi.PairedExplicitRK3(8, tspan, semi)
 ```
 the maximum timestep `dt` is stored by the `ode_algorithm`.

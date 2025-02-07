@@ -16,8 +16,8 @@ isdir(outdir) && rm(outdir, recursive = true)
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
-                        l2=[8.389498188525518e-06],
-                        linf=[2.847421658558336e-05])
+                        l2=[8.40483031802723e-6],
+                        linf=[2.8990878868540015e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -31,8 +31,8 @@ end
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_restart.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_restart.jl"),
-                        l2=[1.0671615777620987e-5],
-                        linf=[3.861509422325993e-5])
+                        l2=[1.0679933947301556e-5],
+                        linf=[3.910500545667439e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -60,12 +60,12 @@ end
     # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
     callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                             amr_callback)
-    sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()), abstol = time_abs_tol,
-                reltol = time_int_tol,
+    sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()),
+                abstol = time_abs_tol, reltol = time_int_tol,
                 save_everystep = false, callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)
-    @test l2_error ≈ [6.4878111416468355e-6]
-    @test linf_error ≈ [3.258075790424364e-5]
+    @test l2_error ≈ [6.487940740394583e-6]
+    @test linf_error ≈ [3.262867898701227e-5]
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

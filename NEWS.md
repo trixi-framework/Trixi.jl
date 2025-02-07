@@ -15,6 +15,18 @@ for human readability.
   [RecursiveArrayTools.jl](https://github.com/SciML/RecursiveArrayTools.jl)
   for `DGMulti` solvers ([#2150]). You can use `Base.parent` to unwrap
   the original data.
+- The `PairedExplicitRK2` constructor with second argument `base_path_monomial_coeffs::AbstractString` requires 
+  now `dt_opt`, `bS`, `cS` to be given as keyword arguments ([#2184]).
+  Previously, those where standard function parameters, in the same order as listed above.
+- The `AnalysisCallback` output generated with the `save_analysis = true` option now prints
+  floating point numbers in their respective (full) precision. 
+  Previously, only the first 8 digits were printed to file.
+  Furthermore, the names of the printed fields are now only separated by a single white space, 
+  in contrast to before where this were multiple, depending on the actual name of the printed data.
+- The boundary conditions for non-conservative equations can now be defined separately from the conservative part.
+  The `surface_flux_functions` tuple is now passed directly to the boundary condition call,
+  returning a tuple with boundary condition values for both the conservative and non-conservative parts ([#2200]).
+
 
 #### Deprecated
 
