@@ -14,7 +14,7 @@ abstract type SimpleAlgorithm2N end
 The following structures and methods provide a minimal implementation of
 the low-storage explicit Runge-Kutta method of
 
-- Carpenter, Kennedy (1994) 
+- Carpenter, Kennedy (1994)
   Fourth-order 2N-storage Runge-Kutta schemes (Solution 3)
   URL: https://ntrs.nasa.gov/citations/19940028444
   File: https://ntrs.nasa.gov/api/citations/19940028444/downloads/19940028444.pdf
@@ -53,7 +53,7 @@ end
 The following structures and methods provide a minimal implementation of
 the low-storage explicit Runge-Kutta method of
 
-- Carpenter, Kennedy (1994) 
+- Carpenter, Kennedy (1994)
   Third-order 2N-storage Runge-Kutta schemes with error control
   URL: https://ntrs.nasa.gov/citations/19940028444
   File: https://ntrs.nasa.gov/api/citations/19940028444/downloads/19940028444.pdf
@@ -91,7 +91,7 @@ end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.jl.
 mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
-                                  SimpleIntegrator2NOptions}
+                                  SimpleIntegrator2NOptions} <: AbstractTimeIntegrator
     u::uType #
     du::uType
     u_tmp::uType
@@ -232,7 +232,7 @@ function set_proposed_dt!(integrator::SimpleIntegrator2N, dt)
     integrator.dt = dt
 end
 
-# Required e.g. for `glm_speed_callback` 
+# Required e.g. for `glm_speed_callback`
 function get_proposed_dt(integrator::SimpleIntegrator2N)
     return integrator.dt
 end

@@ -45,6 +45,7 @@ using DelimitedFiles: readdlm
 using Downloads: Downloads
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
+using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
