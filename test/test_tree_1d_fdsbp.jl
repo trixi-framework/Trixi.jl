@@ -116,14 +116,14 @@ end
     @trixi_testset "elixir_euler_convergence.jl with splitting_vanleer_haenel" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                             l2=[
-                                3.413790589105506e-6,
-                                4.243957977156001e-6,
-                                8.667369423676437e-6
+                                3.4137906030996366e-6,
+                                4.24395804622208e-6,
+                                8.667369559486434e-6
                             ],
                             linf=[
-                                1.4228079689537765e-5,
-                                1.3249887941046978e-5,
-                                3.201552933251861e-5
+                                1.4228079725286946e-5,
+                                1.324988815953887e-5,
+                                3.20155297650615e-5
                             ],
                             tspan=(0.0, 0.5),
                             flux_splitting=splitting_vanleer_haenel)
@@ -141,14 +141,14 @@ end
     @trixi_testset "elixir_euler_convergence.jl with VolumeIntegralStrongForm" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_convergence.jl"),
                             l2=[
-                                8.6126767518378e-6,
-                                7.670897071480729e-6,
-                                1.4972772284191368e-5
+                                8.612676636826464e-6,
+                                7.670896994006107e-6,
+                                1.4972772137651304e-5
                             ],
                             linf=[
-                                6.707982777909294e-5,
-                                3.487256699541419e-5,
-                                0.00010170331350556339
+                                6.707982749043495e-5,
+                                3.48725672254524e-5,
+                                0.00010170331503767116
                             ],
                             tspan=(0.0, 0.5),
                             solver=DG(D_upw.central, nothing, SurfaceIntegralStrongForm(),
