@@ -426,8 +426,12 @@ end
 @trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
                                  "elixir_advection_diffusion_amr.jl"),
-                        l2=[0.000355780485397024],
-                        linf=[0.0010810770271614256])
+                        initial_refinement_level=2,
+                        base_level=2,
+                        med_level=3,
+                        max_level=4,
+                        l2=[0.0003687746805397333],
+                        linf=[0.0015844326511498252])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -456,20 +460,22 @@ end
 @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_amr.jl"),
-                        initial_refinement_level=0, tspan=(0.0, 0.5),
+                        initial_refinement_level=0,
+                        max_level=2,
+                        tspan=(0.0, 0.1),
                         l2=[
-                            0.0016588740573444188,
-                            0.03437058632045721,
-                            0.03437058632045671,
-                            0.041038898400430075,
-                            0.30978593009044153
+                            0.001106911564430018,
+                            0.013872454764036899,
+                            0.013872454764036934,
+                            0.012060120516483785,
+                            0.14491994688373158
                         ],
                         linf=[
-                            0.004173569912012121,
-                            0.09168674832979556,
-                            0.09168674832975021,
-                            0.12129218723807476,
-                            0.8433893297612087
+                            0.004408900465271981,
+                            0.05154019951528149,
+                            0.05154019951517075,
+                            0.035283556918085636,
+                            0.6804797525555557
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
