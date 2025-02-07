@@ -180,8 +180,10 @@ For details see Section 9.2.5 of the book:
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t,
-                                              surface_flux_function,
+                                              surface_flux_functions,
                                               equations::ShallowWaterEquations2D)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
     # normalize the outward pointing direction
     normal = normal_direction / norm(normal_direction)
 
@@ -196,8 +198,10 @@ For details see Section 9.2.5 of the book:
 
     # calculate the boundary flux
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+    noncons_flux = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
+                                                 equations)
 
-    return flux
+    return flux, noncons_flux
 end
 
 """
@@ -208,8 +212,11 @@ Should be used together with [`TreeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation,
                                               direction, x, t,
-                                              surface_flux_function,
+                                              surface_flux_functions,
                                               equations::ShallowWaterEquations2D)
+    # The boundary conditions for the non-conservative term are identically 0 here.
+    # Bottom topography is assumed to be continuous at the boundary.
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
     ## get the appropriate normal vector from the orientation
     if orientation == 1
         u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4])
@@ -220,11 +227,15 @@ Should be used together with [`TreeMesh`](@ref).
     # Calculate boundary flux
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+        noncons_flux = nonconservative_flux_function(u_inner, u_boundary, orientation,
+                                                     equations)
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+        noncons_flux = nonconservative_flux_function(u_boundary, u_inner, orientation,
+                                                     equations)
     end
 
-    return flux
+    return flux, noncons_flux
 end
 
 # Calculate 1D flux for a single point

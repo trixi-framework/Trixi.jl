@@ -176,7 +176,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{2, Interpolation},
                                                      x_in::AbstractVector)
-#! format: on                                                     
+#! format: on
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; nnodes_1d) = A
 
@@ -215,7 +215,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{3, Interpolation},
                                                      x::AbstractVector)
-#! format: on                                                     
+#! format: on
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; nnodes_1d) = A
 
@@ -268,7 +268,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
-#! format: on                                                     
+#! format: on
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; inv_volume_weights_1d, nnodes_1d) = A
 
@@ -322,7 +322,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{3, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
-#! format: on                                                                               
+#! format: on
     @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
     @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
 
