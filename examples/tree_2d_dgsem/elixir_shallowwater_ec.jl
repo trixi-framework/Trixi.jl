@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -50,7 +49,8 @@ ode = semidiscretize(semi, tspan)
 function initial_condition_ec_discontinuous_bottom(x, t, element_id,
                                                    equations::ShallowWaterEquations2D)
     # Set up polar coordinates
-    inicenter = SVector(0.7, 0.7)
+    RealT = eltype(x)
+    inicenter = SVector(RealT(0.7), RealT(0.7))
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
@@ -58,21 +58,21 @@ function initial_condition_ec_discontinuous_bottom(x, t, element_id,
     sin_phi, cos_phi = sincos(phi)
 
     # Set the background values
-    H = 4.25
-    v1 = 0.0
-    v2 = 0.0
-    b = 0.0
+    H = 4.25f0
+    v1 = zero(RealT)
+    v2 = zero(RealT)
+    b = zero(RealT)
 
     # setup the discontinuous water height and velocities
     if element_id == 10
-        H = 5.0
-        v1 = 0.1882 * cos_phi
-        v2 = 0.1882 * sin_phi
+        H = 5.0f0
+        v1 = RealT(0.1882) * cos_phi
+        v2 = RealT(0.1882) * sin_phi
     end
 
     # Setup a discontinuous bottom topography using the element id number
     if element_id == 7
-        b = 2.0 + 0.5 * sin(2.0 * pi * x[1]) + 0.5 * cos(2.0 * pi * x[2])
+        b = 2 + 0.5f0 * sinpi(2 * x[1]) + 0.5f0 * cospi(2 * x[2])
     end
 
     return prim2cons(SVector(H, v1, v2, b), equations)

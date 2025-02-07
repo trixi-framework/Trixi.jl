@@ -54,6 +54,7 @@ installation and postprocessing procedures. Its features include:
   * Compressible Navier-Stokes equations
   * Magnetohydrodynamics (MHD) equations
   * Multi-component compressible Euler and MHD equations
+  * Multi-ion compressible MHD equations
   * Linearized Euler and acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
@@ -72,7 +73,7 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi.jl works
-with Julia v1.8 and newer. We recommend using the latest stable release of Julia.
+with Julia v1.10 and newer. We recommend using the latest stable release of Julia.
 
 ### For users
 Trixi.jl and its related tools are registered Julia packages. Hence, you

@@ -315,7 +315,7 @@ end #hide #md
 # ```
 # which forces `gmsh` to generate quadrilateral elements instead of the default triangles.
 # This is strictly required to be able to use the mesh later with `p4est`, which supports only straight-sided quads,
-# i.e., `C2D4, CPS4, S4` in 2D and `C3D` in 3D.
+# i.e., `CPS4, S4, ...` in 2D and `C3D8` in 3D.
 # See for more details the (short) [documentation](https://p4est.github.io/p4est-howto.pdf) on the interaction of `p4est` with `.inp` files.
 # In principle, it should also be possible to use the `recombine` function of `gmsh` to convert the triangles to quads, 
 # but this is observed to be less robust than enforcing quads from the beginning.

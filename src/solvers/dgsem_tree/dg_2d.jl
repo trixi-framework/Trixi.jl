@@ -152,7 +152,7 @@ function rhs!(du, u, t,
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u, mesh, equations,
-                         dg.mortar, dg.surface_integral, dg)
+                         dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
@@ -798,7 +798,7 @@ end
 
 function prolong2mortars!(cache, u,
                           mesh::TreeMesh{2}, equations,
-                          mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                          mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM)
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -1118,7 +1118,7 @@ end
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
     #               mortar_l2.reverse_upper, fstar_upper[v, :])
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
-    #               mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
+    #               mortar_l2.reverse_lower, fstar_lower[v, :], true, true)
     # end
     # The code above could be replaced by the following code. However, the relative efficiency
     # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.

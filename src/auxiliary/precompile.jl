@@ -387,7 +387,8 @@ function _precompile_manual_()
     @assert Base.precompile(Tuple{DiscreteCallback{typeof(Trixi.summary_callback),
                                                    typeof(Trixi.summary_callback),
                                                    typeof(Trixi.initialize_summary_callback),
-                                                   typeof(SciMLBase.FINALIZE_DEFAULT)}})
+                                                   typeof(SciMLBase.FINALIZE_DEFAULT),
+                                                   typeof(nothing)}})
     @assert Base.precompile(Tuple{typeof(summary_box), Base.TTY, String,
                                   Vector{Pair{String, Any}}})
     # TODO: AMRCallback, ControllerThreeLevel, indicators
@@ -523,7 +524,8 @@ function _precompile_manual_()
         summary_callback_type = DiscreteCallback{typeof(Trixi.summary_callback),
                                                  typeof(Trixi.summary_callback),
                                                  typeof(Trixi.initialize_summary_callback),
-                                                 typeof(SciMLBase.FINALIZE_DEFAULT)}
+                                                 typeof(SciMLBase.FINALIZE_DEFAULT),
+                                                 typeof(nothing)}
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, summary_callback_type})
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       summary_callback_type})
@@ -533,14 +535,16 @@ function _precompile_manual_()
 
         alive_callback_type = DiscreteCallback{AliveCallback, AliveCallback,
                                                typeof(Trixi.initialize!),
-                                               typeof(SciMLBase.FINALIZE_DEFAULT)}
+                                               typeof(SciMLBase.FINALIZE_DEFAULT),
+                                               typeof(nothing)}
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, alive_callback_type})
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       alive_callback_type})
 
         restart_callback_type = DiscreteCallback{SaveRestartCallback, SaveRestartCallback,
                                                  typeof(Trixi.initialize!),
-                                                 typeof(SciMLBase.FINALIZE_DEFAULT)}
+                                                 typeof(SciMLBase.FINALIZE_DEFAULT),
+                                                 typeof(nothing)}
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, restart_callback_type})
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       restart_callback_type})
@@ -549,7 +553,8 @@ function _precompile_manual_()
             save_solution_callback_type = DiscreteCallback{SaveSolutionCallback{typeof(solution_variables)},
                                                            SaveSolutionCallback{typeof(solution_variables)},
                                                            typeof(Trixi.initialize!),
-                                                           typeof(SciMLBase.FINALIZE_DEFAULT)}
+                                                           typeof(SciMLBase.FINALIZE_DEFAULT),
+                                                           typeof(nothing)}
             @assert Base.precompile(Tuple{typeof(show), Base.TTY,
                                           save_solution_callback_type})
             @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY},
@@ -561,7 +566,8 @@ function _precompile_manual_()
         stepsize_callback_type = DiscreteCallback{StepsizeCallback{RealT},
                                                   StepsizeCallback{RealT},
                                                   typeof(Trixi.initialize!),
-                                                  typeof(SciMLBase.FINALIZE_DEFAULT)}
+                                                  typeof(SciMLBase.FINALIZE_DEFAULT),
+                                                  typeof(nothing)}
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, stepsize_callback_type})
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       stepsize_callback_type})
@@ -569,7 +575,8 @@ function _precompile_manual_()
         glm_speed_callback_type = DiscreteCallback{GlmSpeedCallback{RealT},
                                                    GlmSpeedCallback{RealT},
                                                    typeof(Trixi.initialize!),
-                                                   typeof(SciMLBase.FINALIZE_DEFAULT)}
+                                                   typeof(SciMLBase.FINALIZE_DEFAULT),
+                                                   typeof(nothing)}
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, glm_speed_callback_type})
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       glm_speed_callback_type})
@@ -577,7 +584,8 @@ function _precompile_manual_()
         lbm_collision_callback_type = DiscreteCallback{typeof(Trixi.lbm_collision_callback),
                                                        typeof(Trixi.lbm_collision_callback),
                                                        typeof(Trixi.initialize!),
-                                                       typeof(SciMLBase.FINALIZE_DEFAULT)}
+                                                       typeof(SciMLBase.FINALIZE_DEFAULT),
+                                                       typeof(nothing)}
         @assert Base.precompile(Tuple{typeof(show), Base.TTY, lbm_collision_callback_type})
         @assert Base.precompile(Tuple{typeof(show), IOContext{Base.TTY}, MIME"text/plain",
                                       lbm_collision_callback_type})
@@ -600,17 +608,15 @@ function _precompile_manual_()
     return nothing
 end
 
-# Explicit precompilation running code only on Julia v1.9 and newer
+# Explicit precompilation including running code
 using PrecompileTools: @setup_workload, @compile_workload
 
-@static if VERSION >= v"1.9.0-beta4"
-    @setup_workload begin
-        # Setup code can go here
+@setup_workload begin
+    # Setup code can go here
 
-        @compile_workload begin
-            # Everything inside this block will run at precompile time, saving the
-            # binary code to a cache in newer versions of Julia.
-            DGSEM(3)
-        end
+    @compile_workload begin
+        # Everything inside this block will run at precompile time, saving the
+        # binary code to a cache in newer versions of Julia.
+        DGSEM(3)
     end
 end

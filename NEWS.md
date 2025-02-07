@@ -3,16 +3,25 @@
 Trixi.jl follows the interpretation of [semantic versioning (semver)](https://julialang.github.io/Pkg.jl/dev/compatibility/#Version-specifier-format-1)
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
-
 ## Changes when updating to v0.10 from v0.9.x
+
+#### Added
 
 #### Changed
 
+- The numerical solution is wrapped in a `VectorOfArrays` from
+  [RecursiveArrayTools.jl](https://github.com/SciML/RecursiveArrayTools.jl)
+  for `DGMulti` solvers ([#2150]). You can use `Base.parent` to unwrap
+  the original data.
 - The `AnalysisCallback` output generated with the `save_analysis = true` option now prints
   floating point numbers in their respective (full) precision. 
   Previously, only the first 8 digits were printed to file.
   Furthermore, the names of the printed fields are now only separated by a single white space, 
   in contrast to before where this were multiple, depending on the actual name of the printed data.
+
+#### Deprecated
+
+#### Removed
 
 ## Changes in the v0.9 lifecycle
 
@@ -23,6 +32,17 @@ for human readability.
   and [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) ([#2008])
 - `LobattoLegendreBasis` and related datastructures made fully floating-type general,
   enabling calculations with higher than double (`Float64`) precision ([#2128])
+- In 2D, quadratic elements, i.e., 8-node (quadratic) quadrilaterals are now supported in standard Abaqus `inp` format ([#2217])
+- The `cfl` value supplied in the `StepsizeCallback` and `GlmStepsizeCallback` can now be a function of simulation 
+  time `t` to enable e.g. a ramp-up of the CFL value.
+  This is useful for simulations that are initialized with an "unphysical" initial condition, but do not permit the usage of
+  adaptive, error-based timestepping.
+  Examples for this are simulations involving the MHD equations which require in general the `GlmStepsizeCallback` ([#2248])
+
+#### Changed
+
+- The required Julia version is updated to v1.10.
+
 
 ## Changes when updating to v0.9 from v0.8.x
 

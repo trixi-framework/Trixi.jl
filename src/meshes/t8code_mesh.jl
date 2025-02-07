@@ -427,6 +427,8 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                     periodicity = true)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
+    coordinates_min_max_check(coordinates_min, coordinates_max)
+
     @assert count(i -> i !== nothing,
                   (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
 
@@ -598,7 +600,7 @@ struct AbaqusFile{NDIMS}
 end
 
 """
-    T8codeMesh(meshfile::String, NDIMS; kwargs...)
+    T8codeMesh(filepath::String, NDIMS; kwargs...)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
 mesh from either a Gmsh mesh file (`.msh`) or Abaqus mesh file  (`.inp`) which is determined
@@ -747,7 +749,6 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
     if header == " File created by HOHQMesh"
         # Mesh curvature and boundary naming is handled with additional information available in meshfile
         connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_hohqmesh_abaqus(meshfile.path,
-                                                                                                             initial_refinement_level,
                                                                                                              NDIMS,
                                                                                                              RealT)
         # Apply user defined mapping.
@@ -757,7 +758,6 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
         connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_standard_abaqus(meshfile.path,
                                                                                                              mapping,
                                                                                                              polydeg,
-                                                                                                             initial_refinement_level,
                                                                                                              NDIMS,
                                                                                                              RealT,
                                                                                                              boundary_symbols)
@@ -781,6 +781,52 @@ end
 
 function t8_cmesh_new_from_connectivity(connectivity::Ptr{p8est_connectivity}, comm)
     return t8_cmesh_new_from_p8est(connectivity, comm, 0)
+end
+
+"""
+T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
+                      polydeg, RealT=Float64, initial_refinement_level=0)
+
+Construct a cubed spherical shell of given inner radius and thickness as `T8codeMesh` with
+`6 * trees_per_face_dimension^2 * layers` trees. The mesh will have two boundaries,
+`:inside` and `:outside`.
+
+# Arguments
+- `lat_lon_levels_per_face_dimension::Integer`: number of trees per patch in longitudinal
+                                                and latitudinal direction given as level of
+                                                refinement.
+- `layers::Integer`: the number of trees in the third local dimension of each face, i.e.,
+                     the number of layers of the shell.
+- `inner_radius::Float64`: Radius of the inner side of the shell.
+- `thickness::Float64`: Thickness of the shell. The outer radius will be
+                        `inner_radius + thickness`.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the
+                                       simulation starts.
+"""
+function T8codeMeshCubedSphere(lat_lon_levels_per_face_dimension, layers, inner_radius,
+                               thickness;
+                               polydeg, RealT = Float64, initial_refinement_level = 0)
+    NDIMS = 3
+    cmesh = t8_cmesh_new_cubed_spherical_shell(inner_radius, thickness,
+                                               lat_lon_levels_per_face_dimension,
+                                               layers, mpi_comm())
+    do_face_ghost = mpi_isparallel()
+    scheme = t8_scheme_new_default_cxx()
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
+
+    num_trees = t8_cmesh_get_num_trees(cmesh)
+    boundary_names = fill(Symbol("---"), 2 * NDIMS, num_trees)
+    for itree in 1:num_trees
+        boundary_names[5, itree] = :inside
+        boundary_names[6, itree] = :outside
+    end
+
+    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg)
 end
 
 struct adapt_callback_passthrough
