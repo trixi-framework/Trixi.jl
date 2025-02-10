@@ -412,8 +412,10 @@ Given ε = 1.0e-4, we use the following algorithm.
         c3 = convert(RealT, -1 / 21) * (2 * gamma * (gamma - 2) - 9) * c2
         return 0.5f0 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
     else
-        return (gamma - 1) / gamma * (y^gamma - x^gamma) /
-               (y^(gamma - 1) - x^(gamma - 1))
+        yg = exp(gamma*log(y))
+        xg = exp(gamma*log(x))
+        return (gamma - 1) / gamma * (yg - xg) /
+               (yg/y - xg/x)
     end
 end
 end # @muladd
