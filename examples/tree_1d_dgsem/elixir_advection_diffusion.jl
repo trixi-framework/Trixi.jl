@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 using OrdinaryDiffEqSDIRK, ADTypes
-=======
-using OrdinaryDiffEq, ADTypes
->>>>>>> main
 using Trixi
 
 ###############################################################################
