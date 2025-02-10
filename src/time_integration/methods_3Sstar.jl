@@ -145,7 +145,8 @@ function SimpleIntegrator3SstarOptions(callback, tspan; maxiters = typemax(Int),
 end
 
 mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
-                                      SimpleIntegrator3SstarOptions}
+                                      SimpleIntegrator3SstarOptions} <:
+               AbstractTimeIntegrator
     u::uType #
     du::uType
     u_tmp1::uType
@@ -298,7 +299,7 @@ function set_proposed_dt!(integrator::SimpleIntegrator3Sstar, dt)
     integrator.dt = dt
 end
 
-# Required e.g. for `glm_speed_callback` 
+# Required e.g. for `glm_speed_callback`
 function get_proposed_dt(integrator::SimpleIntegrator3Sstar)
     return integrator.dt
 end
