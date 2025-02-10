@@ -278,4 +278,5 @@ end
 # Add definitions of Makie plot functions here such that they can be exported from Trixi.jl
 # and extended in the TrixiMakieExt extension
 function show_plot_makie end
+function show_plot_makie_slicing end
 end # @muladd
