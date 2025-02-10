@@ -650,26 +650,32 @@ end
     rho, v1, v2, v3, p, B1, B2, B3, psi = 1.0, 0.1, 0.2, 0.3, 1.0, 0.0,
                                           40.0 / sqrt(4.0 * pi), 0.0, 0.0
 
-    let equations = IdealGlmMhdEquations3D(1.4, initial_c_h = 1.0)
+    let equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
         u = prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
         x = SVector(1.0, 2.0)
         t = 0.5
         surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_powell)
 
         outward_direction = SVector(0.2, 0.3)
-        test_bc_out = boundary_condition_do_nothing(u, outward_direction, x, t,
-                                                    surface_fluxes,
-                                                    equations)
-        all(isapprox(x,y) for (x,y) in zip((surface_fluxes[1](u, u, outward_direction, equations), surface_fluxes[2](u, u, outward_direction, equations)), boundary_condition_do_nothing(u,outward_direction,x,t, surface_fluxes,equations)))                                            
-        @test surface_fluxes[1](u, u, outward_direction, equations) ≈ test_bc_out[1]
-        @test surface_fluxes[2](u, u, outward_direction, equations) ≈ test_bc_out[2]
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(ntuple(i -> surface_fluxes[i](u, u,
+                                                                  outward_direction,
+                                                                  equations), 2),
+                                    boundary_condition_do_nothing(u, outward_direction,
+                                                                  x, t, surface_fluxes,
+                                                                  equations)))
 
         orientation = 2
         direction = 4
-        test_bc_or = boundary_condition_do_nothing(u, orientation, direction, x, t,
-                                                   surface_fluxes, equations)
-        @test surface_fluxes[1](u, u, orientation, equations) ≈ test_bc_or[1]
-        @test surface_fluxes[2](u, u, orientation, equations) ≈ test_bc_or[2]
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(ntuple(i -> surface_fluxes[i](u, u, orientation,
+                                                                  equations), 2),
+                                    boundary_condition_do_nothing(u, orientation,
+                                                                  direction, x, t,
+                                                                  surface_fluxes,
+                                                                  equations)))
     end
 end
 
