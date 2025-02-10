@@ -650,7 +650,7 @@ end
     rho, v1, v2, v3, p, B1, B2, B3, psi = 1.0, 0.1, 0.2, 0.3, 1.0, 0.0,
                                           40.0 / sqrt(4.0 * pi), 0.0, 0.0
 
-    let equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
+    let equations = IdealGlmMhdEquations3D(1.4, initial_c_h = 1.0)
         u = prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
         x = SVector(1.0, 2.0)
         t = 0.5
@@ -660,6 +660,7 @@ end
         test_bc_out = boundary_condition_do_nothing(u, outward_direction, x, t,
                                                     surface_fluxes,
                                                     equations)
+        all(isapprox(x,y) for (x,y) in zip((surface_fluxes[1](u, u, outward_direction, equations), surface_fluxes[2](u, u, outward_direction, equations)), boundary_condition_do_nothing(u,outward_direction,x,t, surface_fluxes,equations)))                                            
         @test surface_fluxes[1](u, u, outward_direction, equations) ≈ test_bc_out[1]
         @test surface_fluxes[2](u, u, outward_direction, equations) ≈ test_bc_out[2]
 
