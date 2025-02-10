@@ -529,7 +529,8 @@ plotting. This can be changed by passing an appropriate conversion function to
 
 Alternatively, you can also pass a function `u` with signature `u(x, equations)`
 returning a vector. In this case, the `solution_variables` are ignored. This is useful,
-e.g., to visualize an analytical solution.
+e.g., to visualize an analytical solution. The spatial variable `x` is a vector with one
+element.
 
 `nvisnodes` specifies the number of visualization nodes to be used. If it is `nothing`,
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
@@ -634,6 +635,20 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
     return PlotData1D(x, data, variable_names_, mesh_vertices_x,
                       orientation_x)
 end
+
+# unwrap u if it is VectorOfArray
+PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = PlotData1D(parent(u),
+                                                                                             mesh,
+                                                                                             equations,
+                                                                                             dg,
+                                                                                             cache;
+                                                                                             kwargs...)
+PlotData2D(u::VectorOfArray, mesh, equations, dg::DGMulti{2}, cache; kwargs...) = PlotData2D(parent(u),
+                                                                                             mesh,
+                                                                                             equations,
+                                                                                             dg,
+                                                                                             cache;
+                                                                                             kwargs...)
 
 function PlotData1D(u, mesh, equations, solver, cache;
                     solution_variables = nothing, nvisnodes = nothing,

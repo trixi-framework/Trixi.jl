@@ -72,7 +72,7 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-downgrade-compat@v1
         with:
-          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DiffEqBase,DelimitedFiles,Test,Downloads,Random
+          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
           projects: ., test
       - uses: julia-actions/julia-buildpkg@v1
         env:
