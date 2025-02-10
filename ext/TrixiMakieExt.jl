@@ -428,68 +428,73 @@ function makieLayoutHelper(n)
     end
 end
 
-function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names;
+function Trixi.show_plot_makie(visualization_callback, plot_data::PlotData2DTriangulated, variable_names;
 show_mesh = true, plot_arguments = Dict{Symbol, Any}(), time = nothing, timestep = nothing)
-    nvars = size(variable_names)[1]
-    ndims = (visualization_callback.plot_data_creator == PlotData2D) ? 2 : 3
-    maxes = [maximum(plot_data.data[v]) for v in 1:nvars]
-    mins = [minimum(plot_data.data[v]) for v in 1:nvars]
-    max = maximum(maxes)
-    min = minimum(mins)
-    limits = (min, max)
-    if visualization_callback.figure_axes_colorbar.fig === nothing
-        @warn "Creating new figure"
-        fig = Makie.Figure()
-        axes = []
-        for v in 1:nvars
-            push!(axes, (ndims == 2) ? Makie.Axis(fig[makieLayoutHelper(v )...], aspect = Makie.DataAspect(), title = variable_names[v]) : 
-            Makie.Axis3(fig[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v]))
+    Makie.plot(plot_data, plot_mesh = show_mesh)
+end
+
+function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names;
+    show_mesh = true, plot_arguments = Dict{Symbol, Any}(), time = nothing, timestep = nothing)
+        nvars = size(variable_names)[1]
+        ndims = (visualization_callback.plot_data_creator == PlotData2D) ? 2 : 3
+        maxes = [maximum(plot_data.data[v]) for v in 1:nvars]
+        mins = [minimum(plot_data.data[v]) for v in 1:nvars]
+        max = maximum(maxes)
+        min = minimum(mins)
+        limits = (min, max)
+        if visualization_callback.figure_axes_colorbar.fig === nothing
+            @warn "Creating new figure"
+            fig = Makie.Figure()
+            axes = []
+            for v in 1:nvars
+                push!(axes, (ndims == 2) ? Makie.Axis(fig[makieLayoutHelper(v )...], aspect = Makie.DataAspect(), title = variable_names[v]) : 
+                Makie.Axis3(fig[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v]))
+            end
+            if show_mesh 
+                if ndims == 2
+                    push!(axes, Makie.Axis(fig[makieLayoutHelper(nvars + 1)...], aspect = Makie.DataAspect(), title = "mesh"))
+                else
+                    push!(axes, Makie.Axis3(fig[makieLayoutHelper(nvars + 1)...], aspect=:equal, title = "mesh"))
+                    Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y, plot_data.mesh_vertices_z, color=:black)
+                end
+            end
+            colorbar = Makie.Colorbar(fig[makieLayoutHelper(nvars + 2)...], colorrange = limits)
+            visualization_callback.figure_axes_colorbar = Figure_Axes_Colorbar(fig, axes, colorbar)
+            Makie.display(visualization_callback.figure_axes_colorbar.fig)
         end
-        if show_mesh 
-            if ndims == 2
-                push!(axes, Makie.Axis(fig[makieLayoutHelper(nvars + 1)...], aspect = Makie.DataAspect(), title = "mesh"))
-            else
-                push!(axes, Makie.Axis3(fig[makieLayoutHelper(nvars + 1)...], aspect=:equal, title = "mesh"))
-                Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y, plot_data.mesh_vertices_z, color=:black)
+    
+        @unpack axes, colorbar = visualization_callback.figure_axes_colorbar
+        if ndims == 2
+            for v in 1:nvars
+                Makie.empty!(axes[v])
+                Makie.heatmap!(axes[v], plot_data.x, plot_data.y, plot_data.data[v], transparent = true, colorrange = limits)
+                # if show_mesh
+                #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
+                # end
+            end
+        else
+            for v in 1:nvars
+                Makie.empty!(axes[v])
+                Makie.volume!(axes[v], plot_data.x, plot_data.y, plot_data.z, plot_data.data[v], transparent = true, colorrange = limits)
+                # if show_mesh 
+                #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
+                # end
             end
         end
-        colorbar = Makie.Colorbar(fig[makieLayoutHelper(nvars + 2)...], colorrange = limits)
-        visualization_callback.figure_axes_colorbar = Figure_Axes_Colorbar(fig, axes, colorbar)
-        Makie.display(visualization_callback.figure_axes_colorbar.fig)
-    end
-
-    @unpack axes, colorbar = visualization_callback.figure_axes_colorbar
-    if ndims == 2
-        for v in 1:nvars
-            Makie.empty!(axes[v])
-            Makie.heatmap!(axes[v], plot_data.x, plot_data.y, plot_data.data[v], transparent = true, colorrange = limits)
-            # if show_mesh
-            #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
-            # end
+    
+        colorbar.colorrange = limits
+    
+        if show_mesh 
+            if ndims == 2
+                Makie.empty!(axes[nvars + 1])
+                Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
+            else
+                Makie.empty!(axes[nvars + 1])
+                Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
+            end
         end
-    else
-        for v in 1:nvars
-            Makie.empty!(axes[v])
-            Makie.volume!(axes[v], plot_data.x, plot_data.y, plot_data.z, plot_data.data[v], transparent = true, colorrange = limits)
-            # if show_mesh 
-            #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
-            # end
-        end
+    # TODO: show_mesh
     end
-
-    colorbar.colorrange = limits
-
-    if show_mesh 
-        if ndims == 2
-            Makie.empty!(axes[nvars + 1])
-            Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
-        else
-            Makie.empty!(axes[nvars + 1])
-            Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
-        end
-    end
-# TODO: show_mesh
-end
 
 end # @muladd
 
