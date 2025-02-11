@@ -84,5 +84,3 @@ callbacks = CallbackSet(summary_callback,
 # set small tolerances for the free-stream preservation test
 sol = solve(ode, SSPRK43(), abstol = 1.0f-6, reltol = 1.0f-6,
             save_everystep = false, callback = callbacks)
-
-summary_callback() # print the timer summary

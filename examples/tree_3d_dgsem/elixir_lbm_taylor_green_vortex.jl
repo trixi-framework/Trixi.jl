@@ -74,4 +74,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks,
             save_start = false, alias = ODEAliasSpecifier(alias_u0 = true));
-summary_callback() # print the timer summary

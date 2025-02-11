@@ -76,4 +76,3 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, SSPRK43(); abstol = 1.0e-6, reltol = 1.0e-6, dt = 1e-3,
             ode_default_options()..., callback = callbacks)
-summary_callback()

@@ -83,5 +83,3 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, SSPRK43(), abstol = 1.0e-6, reltol = 1.0e-6,
             save_everystep = false, callback = callbacks)
-
-summary_callback() # print the timer summary

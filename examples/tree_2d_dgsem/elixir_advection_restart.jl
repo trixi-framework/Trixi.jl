@@ -43,5 +43,3 @@ load_timestep!(integrator, restart_filename)
 # run the simulation
 
 sol = solve!(integrator)
-
-summary_callback() # print the timer summary

@@ -79,6 +79,3 @@ sol = solve(ode, alg,
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             callback = callbacks;
             ode_default_options()...); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
-
-# Print the timer summary
-summary_callback()

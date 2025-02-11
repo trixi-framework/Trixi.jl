@@ -103,5 +103,3 @@ sol = solve(ode, SSPRK104(; thread = OrdinaryDiffEq.True());
             dt = 1.0, # overwritten by the `stepsize_callback`
             save_everystep = false,
             callback = callbacks);
-
-summary_callback() # print the timer summary

@@ -57,6 +57,3 @@ sol = solve(ode, DP8(),
             adaptive = false,
             dt = 42, # `dt` does not need to be in higher precision
             save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()

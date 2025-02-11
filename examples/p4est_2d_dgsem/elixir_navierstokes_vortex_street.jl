@@ -120,5 +120,3 @@ sol = solve(ode,
             RDPK3SpFSAL49(thread = OrdinaryDiffEq.True());
             abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-summary_callback() # print the timer summary

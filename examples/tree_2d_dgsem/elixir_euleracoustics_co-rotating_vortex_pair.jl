@@ -336,9 +336,6 @@ sol_averaging = solve(ode_averaging, CarpenterKennedy2N54(williamson_condition =
                       dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                       save_everystep = false, callback = callbacks_averaging);
 
-# Print the timer summary
-summary_callback()
-
 ###############################################################################
 # set up coupled semidiscretization
 
@@ -385,6 +382,3 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, sav
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()

@@ -89,5 +89,3 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-summary_callback() # print the timer summary

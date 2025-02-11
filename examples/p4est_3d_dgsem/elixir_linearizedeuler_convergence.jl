@@ -61,4 +61,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             save_everystep = false, callback = callbacks);
 
 # print the timer summary
-summary_callback() # print the timer summary

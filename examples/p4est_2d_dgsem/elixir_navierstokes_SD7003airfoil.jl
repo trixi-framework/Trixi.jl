@@ -147,5 +147,3 @@ sol = solve(ode,
             CarpenterKennedy2N54(williamson_condition = false,
                                  thread = OrdinaryDiffEq.True());
             dt = 1.0, save_everystep = false, callback = callbacks)
-
-summary_callback() # print the timer summary
