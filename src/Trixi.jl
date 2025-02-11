@@ -279,6 +279,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        AnalysisSurfaceIntegral, DragCoefficientPressure, LiftCoefficientPressure,
        DragCoefficientShearStress, LiftCoefficientShearStress
 
+export compute_reference_state
+
 export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
 
