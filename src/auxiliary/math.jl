@@ -413,11 +413,11 @@ Given ε = 1.0e-4, we use the following algorithm.
         return 0.5f0 * (x + y) * @evalpoly(f2, 1, c1, c2, c3)
     else
         if isinteger(gamma)
-        yg = y^(gamma-1)
-        xg = x^(gamma-1)    
+            yg = y^(gamma - 1)
+            xg = x^(gamma - 1)
         else
-        yg = exp((gamma-1) * log(y)) # equivalent to y^gamma but faster for non-integers
-        xg = exp((gamma-1) * log(x)) # equivalent to x^gamma but faster for non-integers
+            yg = exp((gamma - 1) * log(y)) # equivalent to y^gamma but faster for non-integers
+            xg = exp((gamma - 1) * log(x)) # equivalent to x^gamma but faster for non-integers
         end
         return (gamma - 1) / gamma * (yg * y - xg * x) /
                (yg - xg)
