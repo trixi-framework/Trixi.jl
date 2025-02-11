@@ -387,13 +387,20 @@ function refine!(t::AbstractTree, cell_ids,
     return refined_original_cells
 end
 
+@inline function coordinates_min_max_check(coordinates_min, coordinates_max)
+    for dim in eachindex(coordinates_min)
+        @assert coordinates_min[dim]<coordinates_max[dim] "coordinates_min[$dim] must be smaller than coordinates_max[$dim]!"
+    end
+end
+# For the p4est and the t8code mesh we allow `coordinates_min` and `coordinates_max` to be `nothing`.
+# This corresponds to meshes constructed from analytic mapping functions.
+coordinates_min_max_check(::Nothing, ::Nothing) = nothing
+
 # Refine all leaf cells with coordinates in a given rectangular box
 function refine_box!(t::AbstractTree{NDIMS},
                      coordinates_min,
                      coordinates_max) where {NDIMS}
-    for dim in 1:NDIMS
-        @assert coordinates_min[dim]<coordinates_max[dim] "Minimum coordinates are not minimum."
-    end
+    coordinates_min_max_check(coordinates_min, coordinates_max)
 
     # Find all leaf cells within box
     cells = filter_leaf_cells(t) do cell_id
