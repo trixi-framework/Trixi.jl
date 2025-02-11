@@ -497,25 +497,20 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
     end
 
 struct slicing_data
-    xy_slope::Float32
-    xz_slope::Float32
-    x_offset::Float32
-    y_offset::Float32
-    z_offset::Float32
+    x1::Float32
+    x2::Float32
+    x3::Float32
+    y1::Float32
+    y2::Float32
+    y3::Float32
+    z1::Float32
+    z2::Float32
+    z3::Float32
 end
 
-plane::slicing_data = slicing_data(0.25, 0.25, 0.0, 0.0, 0.0)
+plane::slicing_data = slicing_data(0,0,0,0,0,0,0,0,0)
 sg = nothing
 
-slice!(axis, xs, ys, zs, color, colorrange) = Makie.surface!(axis, xs, ys, zs, color = color, colorrange = colorrange)
-
-function plane_func(x, y, xy_slope, xz_slope, x_offset, y_offset, z_offset)
-    return (sin(xz_slope) * sin(xy_slope) * x -
-    sin(xz_slope) * cos(xy_slope) * y -
-    sin(xz_slope) * sin(xy_slope) * x_offset +
-    sin(xz_slope) * cos(xy_slope) * y_offset +
-    cos(xz_slope) * sin(xy_slope) * z_offset)/(cos(xz_slope) * sin(xy_slope))
-end
 
 function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variable_names;
     show_mesh = true, plot_arguments = Dict{Symbol, Any}(), time = nothing, timestep = nothing)
@@ -530,33 +525,44 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
             @warn "Creating new figure"
             fig = Makie.Figure()
             axes = []
+            grid1 = fig[1,1] = Makie.GridLayout()
             for v in 1:nvars
-                push!(axes, Makie.Axis3(fig[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v]))
+                push!(axes, Makie.Axis3(grid1[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v])) #axes[1:nvars]
+            end
+            grid2 = fig[1,2] = Makie.GridLayout()
+            for v in 1:nvars
+                push!(axes, Makie.Axis3(grid2[makieLayoutHelper(v)...], aspect=:equal, title = "slice " * variable_names[v])) #axes[nvars + 1 : 2 * nvars]
             end
             if show_mesh 
-                push!(axes, Makie.Axis3(fig[makieLayoutHelper(nvars + 1)...], aspect=:equal, title = "mesh"))
-                Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y, plot_data.mesh_vertices_z, color=:black)
+                push!(axes, Makie.Axis3(grid1[makieLayoutHelper(nvars + 1)...], aspect=:equal, title = "mesh")) #axes[2 * nvars + 1]
+                Makie.lines!(axes[2 * nvars + 1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y, plot_data.mesh_vertices_z, color=:black)
             end
-            push!(axes, nothing)
-            push!(axes, Makie.Axis3(fig[makieLayoutHelper(nvars + 3)...], aspect=:equal, title = "slice"))
-            colorbar = Makie.Colorbar(fig[makieLayoutHelper(nvars + 4)...], colorrange = limits)
+            colorbar = Makie.Colorbar(grid1[makieLayoutHelper(nvars + 2)...], colorrange = limits)
             visualization_callback.figure_axes_colorbar = Figure_Axes_Colorbar(fig, axes, colorbar)
-            global plane = slicing_data(0.25, 0.25, maximum([0.0, plot_data.x[1]]), maximum([0.0, plot_data.y[1]]), maximum([0.0, plot_data.z[1]]))
+            global plane = slicing_data(
+            plot_data.x[1], plot_data.x[1], plot_data.x[end],
+            plot_data.y[1], plot_data.y[end], plot_data.y[end],
+            plot_data.z[1], plot_data.z[end], plot_data.z[end])
             global sg = Makie.SliderGrid(
-            visualization_callback.figure_axes_colorbar.fig[makieLayoutHelper(nvars + 2)...],
-            (label = "xy-slope", range = 0:0.01:1, format = "{:.2f}", startvalue = plane.xy_slope),
-            (label = "xz-slope", range = 0:0.01:1, format = "{:.2f}", startvalue = plane.xz_slope),
-            (label = "x-offset", range = plot_data.x[1]:0.01*(plot_data.x[end] - plot_data.x[1]):plot_data.x[end], format = "{:.2f}", startvalue = plane.x_offset),
-            (label = "y-offset", range = plot_data.y[1]:0.01*(plot_data.y[end] - plot_data.y[1]):plot_data.y[end], format = "{:.2f}", startvalue = plane.y_offset),
-            (label = "z-offset", range = plot_data.z[1]:0.01*(plot_data.z[end] - plot_data.z[1]):plot_data.z[end], format = "{:.2f}", startvalue = plane.z_offset))
+            grid2[makieLayoutHelper(nvars + 1)...],
+            (label = "x1", range = plot_data.x[1]:0.01*(plot_data.x[end] - plot_data.x[1]):plot_data.x[end], format = "{:.2f}", startvalue = plane.x1),
+            (label = "x2", range = plot_data.x[1]:0.01*(plot_data.x[end] - plot_data.x[1]):plot_data.x[end], format = "{:.2f}", startvalue = plane.x2),
+            (label = "x3", range = plot_data.x[1]:0.01*(plot_data.x[end] - plot_data.x[1]):plot_data.x[end], format = "{:.2f}", startvalue = plane.x3),
+            (label = "y1", range = plot_data.y[1]:0.01*(plot_data.y[end] - plot_data.y[1]):plot_data.y[end], format = "{:.2f}", startvalue = plane.y1),
+            (label = "y2", range = plot_data.y[1]:0.01*(plot_data.y[end] - plot_data.y[1]):plot_data.y[end], format = "{:.2f}", startvalue = plane.y2),
+            (label = "y3", range = plot_data.y[1]:0.01*(plot_data.y[end] - plot_data.y[1]):plot_data.y[end], format = "{:.2f}", startvalue = plane.y3),
+            (label = "z1", range = plot_data.z[1]:0.01*(plot_data.z[end] - plot_data.z[1]):plot_data.z[end], format = "{:.2f}", startvalue = plane.z1),
+            (label = "z2", range = plot_data.z[1]:0.01*(plot_data.z[end] - plot_data.z[1]):plot_data.z[end], format = "{:.2f}", startvalue = plane.z2),
+            (label = "z3", range = plot_data.z[1]:0.01*(plot_data.z[end] - plot_data.z[1]):plot_data.z[end], format = "{:.2f}", startvalue = plane.z3),
+            tellheight = false,
+            tellwidth = false)
             Makie.display(visualization_callback.figure_axes_colorbar.fig)
-            global slice!
         end
     
         @unpack axes, colorbar = visualization_callback.figure_axes_colorbar
         for v in 1:nvars
             Makie.empty!(axes[v])
-            Makie.volume!(axes[v], plot_data.x, plot_data.y, plot_data.z, plot_data.data[v], transparent = true, colorrange = limits)
+            Makie.volume!(axes[v], (plot_data.x[1], plot_data.x[end]), (plot_data.y[1], plot_data.y[end]), (plot_data.z[1], plot_data.z[end]), plot_data.data[v], colorrange = limits, transparency = true)
             # if show_mesh 
             #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
             # end
@@ -565,27 +571,35 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
         colorbar.colorrange = limits
     
         if show_mesh
-            Makie.empty!(axes[nvars + 1])
-            Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
+            Makie.empty!(axes[2 * nvars + 1])
+            Makie.lines!(axes[2 * nvars + 1], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
         end
 
-        
-        xy_slope_ob = sg.sliders[1].value
-        xz_slope_ob = sg.sliders[2].value
-        x_offset_ob = sg.sliders[3].value
-        y_offset_ob = sg.sliders[4].value
-        z_offset_ob = sg.sliders[5].value
+        x1_ob = sg.sliders[1].value
+        x2_ob = sg.sliders[2].value
+        x3_ob = sg.sliders[3].value
+        y1_ob = sg.sliders[4].value
+        y2_ob = sg.sliders[5].value
+        y3_ob = sg.sliders[6].value
+        z1_ob = sg.sliders[7].value
+        z2_ob = sg.sliders[8].value
+        z3_ob = sg.sliders[9].value
 
-        plane_data = Makie.@lift([plane_func(x, y, $xy_slope_ob, $xz_slope_ob, $x_offset_ob, $y_offset_ob, $z_offset_ob) for x in plot_data.x for y in plot_data.y])
+        n1 = Makie.@lift(($y2_ob - $y1_ob) * ($z3_ob - $z1_ob) - ($y3_ob - $y1_ob) * ($z2_ob - $z1_ob))
+        n2 = Makie.@lift(($x3_ob - $x1_ob) * ($z2_ob - $z1_ob) - ($x2_ob - $x1_ob) * ($z3_ob - $z1_ob))
+        n3 = Makie.@lift(($x2_ob - $x1_ob) * ($y3_ob - $y1_ob) - ($x3_ob - $x1_ob) * ($y2_ob - $y1_ob))
+        d = Makie.@lift($x1_ob * $n1 + $y1_ob * $n2 + $z1_ob * $n3)
+        # plane_x = Makie.@lift([plot_data.x[i] for i in 1:size(plot_data.x)[1] for j in 1:size(plot_data.y)[1] for k in 1:size(plot_data.z)[1] if plot_data.x[i] * $n1 + plot_data.y[j] * $n2 + plot_data.z[k] * $n3 == $d])
+        # plane_y = Makie.@lift([plot_data.y[j] for i in 1:size(plot_data.x)[1] for j in 1:size(plot_data.y)[1] for k in 1:size(plot_data.z)[1] if plot_data.x[i] * $n1 + plot_data.y[j] * $n2 + plot_data.z[k] * $n3 == $d])
+        # plane_z = Makie.@lift([plot_data.z[k] for i in 1:size(plot_data.x)[1] for j in 1:size(plot_data.y)[1] for k in 1:size(plot_data.z)[1] if plot_data.x[i] * $n1 + plot_data.y[j] * $n2 + plot_data.z[k] * $n3 == $d])
+        plane_data = [Makie.@lift(reshape([plot_data.x[i] * $n1 + plot_data.y[j] * $n2 + plot_data.z[k] * $n3 == $d ? plot_data.data[v][i,j,k] : NaN32 for i in 1:size(plot_data.x)[1] for j in 1:size(plot_data.y)[1] for k in 1:size(plot_data.z)[1]], (size(plot_data.x)[1], size(plot_data.y)[1], size(plot_data.z)[1]))) for v in 1:nvars]
+        # plane_faces = [1,2,3]
         
-        Makie.empty!(axes[nvars + 3])
-        slice!(axes[nvars + 3], [x for x in plot_data.x for y in plot_data.y], [y for x in plot_data.x for y in plot_data.y], plane_data, plot_data.data[1], limits)
-
-        println()
-        println()
-        println("test")
-        println()
-        println()
+        for v in 1:nvars
+            Makie.empty!(axes[nvars + v])
+            Makie.volume!(axes[nvars + v], (plot_data.x[1], plot_data.x[end]), (plot_data.y[1], plot_data.y[end]), (plot_data.z[1], plot_data.z[end]), plane_data[v]; colorrange = limits, transparency = true, nan_color = :transparent)
+            # Makie.mesh!(axes[nvars + v], plane_x, plane_y, plane_z; color = plot_data.data[v], colorrange = limits, transparency = true)
+        end
 
         # on(sliderobservables) do slvalues
 

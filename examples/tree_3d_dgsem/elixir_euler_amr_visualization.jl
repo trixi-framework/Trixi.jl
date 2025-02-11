@@ -60,7 +60,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-visualization = VisualizationCallback(interval = 20, clims = (0, 1), plot_data_creator = Trixi.PlotData3D, plot_creator = Trixi.show_plot_makie)
+visualization = VisualizationCallback(interval = 20, clims = (0, 1), plot_data_creator = Trixi.PlotData3D, plot_creator = Trixi.show_plot_makie_slicing)
 
 amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = first),
                                       base_level = 1,
