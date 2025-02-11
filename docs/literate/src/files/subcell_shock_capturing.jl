@@ -217,7 +217,6 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),)
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
-summary_callback() # print the timer summary
 
 # ## Visualization
 # As for a standard simulation in Trixi.jl, it is possible to visualize the solution using the
