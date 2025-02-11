@@ -416,8 +416,8 @@ Given ε = 1.0e-4, we use the following algorithm.
             yg = y^(gamma - 1)
             xg = x^(gamma - 1)
         else
-            yg = exp((gamma - 1) * log(y)) # equivalent to y^gamma but faster for non-integers
-            xg = exp((gamma - 1) * log(x)) # equivalent to x^gamma but faster for non-integers
+            yg = exp((gamma - 1) * log(y)) # equivalent to y^(gamma - 1) but faster for non-integers
+            xg = exp((gamma - 1) * log(x)) # equivalent to x^(gamma - 1) but faster for non-integers
         end
         return (gamma - 1) / gamma * (yg * y - xg * x) /
                (yg - xg)
