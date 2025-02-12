@@ -166,7 +166,6 @@ function calc_node_coordinates!(node_coordinates,
                 # This cell is not part of the mesh view, thus skip it
                 continue
             end
-            
             mesh_view_cell_id += 1
 
             quad = quadrants[i]
