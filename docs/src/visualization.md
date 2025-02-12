@@ -174,7 +174,7 @@ julia> compute_vorticity(velocity, semi) =
          compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...);
 
 julia> function get_velocity(sol)
-         rho, rhou, rhov, E = StructArrays.components(sol.u[end])
+         rho, rhou, rhov, E = StructArrays.components(Base.parent(sol.u[end]))
          v1 = rhou ./ rho
          v2 = rhov ./ rho
          return v1, v2

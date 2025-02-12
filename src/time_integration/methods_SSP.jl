@@ -78,7 +78,7 @@ end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
 mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
-                                   SimpleIntegratorSSPOptions}
+                                   SimpleIntegratorSSPOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
     r0::uType

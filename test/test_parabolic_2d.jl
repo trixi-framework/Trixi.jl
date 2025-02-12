@@ -50,22 +50,26 @@ isdir(outdir) && rm(outdir, recursive = true)
         fill!(gradients[dim], zero(eltype(gradients[dim])))
     end
 
+    # unpack VectorOfArray 
+    u0 = Base.parent(ode.u0)
     t = 0.0
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
-    Trixi.calc_gradient!(gradients, ode.u0, t, mesh, equations_parabolic,
+    Trixi.calc_gradient!(gradients, u0, t, mesh, equations_parabolic,
                          boundary_condition_periodic, dg, cache, cache_parabolic)
     @unpack x, y, xq, yq = mesh.md
     @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
     @test getindex.(gradients[2], 1) ≈ xq .^ 2
 
     u_flux = similar.(gradients)
-    Trixi.calc_viscous_fluxes!(u_flux, ode.u0, gradients, mesh, equations_parabolic,
+    Trixi.calc_viscous_fluxes!(u_flux, u0, gradients, mesh,
+                               equations_parabolic,
                                dg, cache, cache_parabolic)
     @test u_flux[1] ≈ gradients[1]
     @test u_flux[2] ≈ gradients[2]
 
-    du = similar(ode.u0)
-    Trixi.calc_divergence!(du, ode.u0, t, u_flux, mesh, equations_parabolic,
+    du = similar(u0)
+    Trixi.calc_divergence!(du, u0, t, u_flux, mesh,
+                           equations_parabolic,
                            boundary_condition_periodic,
                            dg, semi.solver_parabolic, cache, cache_parabolic)
     @test getindex.(du, 1) ≈ 2 * y
@@ -124,16 +128,16 @@ end
                                  "elixir_navierstokes_convergence.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[
-                            0.0015355076812512347,
-                            0.0033843168272690953,
-                            0.0036531858107444093,
-                            0.009948436427520873
+                            0.0015355076237431118,
+                            0.003384316785885901,
+                            0.0036531858026850757,
+                            0.009948436101649498
                         ],
                         linf=[
-                            0.005522560467186466,
-                            0.013425258500736614,
-                            0.013962115643462503,
-                            0.0274831021205042
+                            0.005522560543588462,
+                            0.013425258431728926,
+                            0.013962115936715924,
+                            0.027483099961148838
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -150,16 +154,16 @@ end
                                  "elixir_navierstokes_convergence_curved.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[
-                            0.004255101916146402,
-                            0.011118488923215394,
-                            0.011281831283462784,
-                            0.035736564473886
+                            0.0042551020940351444,
+                            0.011118489080358264,
+                            0.011281831362358863,
+                            0.035736565778376306
                         ],
                         linf=[
-                            0.015071710669707805,
-                            0.04103132025860057,
-                            0.03990424085748012,
-                            0.13094017185987106
+                            0.015071709836357083,
+                            0.04103131887989486,
+                            0.03990424032494211,
+                            0.13094018584692968
                         ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -176,16 +180,16 @@ end
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.5),
                         l2=[
-                            0.00022156125227115747,
-                            0.028318325921401,
-                            0.009509168701070296,
-                            0.028267900513550506
+                            0.0002215612357465129,
+                            0.028318325887331217,
+                            0.009509168805093485,
+                            0.028267893004691534
                         ],
                         linf=[
-                            0.001562278941298234,
-                            0.14886653390744856,
-                            0.0716323565533752,
-                            0.19472785105241996
+                            0.0015622793960574644,
+                            0.1488665309341318,
+                            0.07163235778907852,
+                            0.19472797949052278
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -723,10 +727,7 @@ end
                             1.199362305026636,
                             0.9077214424040279,
                             5.666071182328691], tspan=(0.0, 0.001),
-                        initial_refinement_level=0,
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 10_000,))
+                        initial_refinement_level=0,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
