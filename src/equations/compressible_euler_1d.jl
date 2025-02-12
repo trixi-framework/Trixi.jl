@@ -822,13 +822,15 @@ end
 # The HLLC flux along a 1D "normal" can be evaluated by scaling the velocity/momentum by 
 # the normal for the 1D HLLC flux, then scaling the resulting momentum flux again. 
 # Moreover, the 2D HLLC flux reduces to this if the normal vector is [n, 0].
-function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector, equations::CompressibleEulerEquations1D)
+function flux_hllc(u_ll, u_rr, normal_direction::AbstractVector,
+                   equations::CompressibleEulerEquations1D)
     norm_ = abs(normal_direction[1])
-    normal_direction_unit = normal_direction[1] * inv(norm_) 
+    normal_direction_unit = normal_direction[1] * inv(norm_)
 
     # scale the momentum by the normal direction
-    f = flux_hllc(SVector(u_ll[1], normal_direction_unit * u_ll[2], u_ll[3]), 
-                  SVector(u_rr[1], normal_direction_unit * u_rr[2], u_rr[3]), 1, equations)
+    f = flux_hllc(SVector(u_ll[1], normal_direction_unit * u_ll[2], u_ll[3]),
+                  SVector(u_rr[1], normal_direction_unit * u_rr[2], u_rr[3]), 1,
+                  equations)
 
     # rescale the momentum flux by the normal direction and normalize
     return SVector(f[1], normal_direction_unit * f[2], f[3]) * norm_

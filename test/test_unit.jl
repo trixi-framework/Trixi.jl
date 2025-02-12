@@ -1231,7 +1231,7 @@ end
     normal_2d = SVector(normal_1d[1], 0.0)
     equations_1d = CompressibleEulerEquations1D(1.4)
     equations_2d = CompressibleEulerEquations2D(1.4)
-    flux_1d = flux_hllc(u_1d, u_1d, normal_1d, equations_1d)    
+    flux_1d = flux_hllc(u_1d, u_1d, normal_1d, equations_1d)
     flux_2d = flux_hllc(u_2d, u_2d, normal_2d, equations_2d)
     @test flux_1d ≈ flux(u_1d, normal_1d, equations_1d)
     @test flux_1d ≈ flux_2d[[1, 2, 4]]
@@ -1239,8 +1239,8 @@ end
     # test when u_ll is not the same as u_rr
     u_rr_1d = SVector(2.1, 0.3, 0.1)
     u_rr_2d = SVector(u_rr_1d[1], u_rr_1d[2], 0.0, u_rr_1d[3])
-    flux_1d = flux_hllc(u_1d, u_rr_1d, normal_1d, equations_1d)    
-    flux_2d = flux_hllc(u_2d, u_rr_2d, normal_2d, equations_2d)    
+    flux_1d = flux_hllc(u_1d, u_rr_1d, normal_1d, equations_1d)
+    flux_2d = flux_hllc(u_2d, u_rr_2d, normal_2d, equations_2d)
     @test flux_1d ≈ flux_2d[[1, 2, 4]]
 
     equations = CompressibleEulerEquations3D(1.4)
