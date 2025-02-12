@@ -8,7 +8,7 @@
 # Define all of the functions necessary for polynomial optimizations
 include("polynomial_optimizer.jl")
 
-# Abstract base type for both single/standalone and multi-level 
+# Abstract base type for both single/standalone and multi-level
 # PERK (Paired Explicit Runge-Kutta) time integration schemes
 abstract type AbstractPairedExplicitRK end
 # Abstract base type for single/standalone PERK time integration schemes
@@ -166,7 +166,7 @@ function set_proposed_dt!(integrator::AbstractPairedExplicitRKIntegrator, dt)
 end
 
 function get_proposed_dt(integrator::AbstractPairedExplicitRKIntegrator)
-    return integrator.dt
+    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
 end
 
 # stop the time integration
