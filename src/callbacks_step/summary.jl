@@ -21,13 +21,10 @@ function SummaryCallback(reset_threads = true)
                                     reset_threads)
     end
     # At the end of the simulation, the timer is printed
-    function finalize(cb, u, t, integrator)
-        finalize_summary_callback(cb, u, t, integrator)
-    end
     DiscreteCallback(summary_callback, summary_callback,
                      save_positions = (false, false),
                      initialize = initialize,
-                     finalize = finalize)
+                     finalize = finalize_summary_callback)
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:typeof(summary_callback)})
