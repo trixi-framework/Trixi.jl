@@ -23,7 +23,7 @@ parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         initial_refinement_level = 0)
 
 # Define the mesh view covering the whole parent mesh.
-cell_ids = Vector(1:ncells(parent_mesh))
+cell_ids = Vector(1:Trixi.ncells(parent_mesh))
 mesh = P4estMeshView(parent_mesh, cell_ids)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
