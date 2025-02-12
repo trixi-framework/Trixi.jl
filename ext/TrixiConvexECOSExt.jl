@@ -160,6 +160,8 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         gamma_opt = [gamma_opt]
     end
 
+    undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
+
     return gamma_opt, dt
 end
 end # @muladd
