@@ -155,13 +155,21 @@ function calc_node_coordinates!(node_coordinates,
 
     trees = unsafe_wrap_sc(p4est_tree_t, mesh.parent.p4est.trees)
 
-    for tree_view in eachindex(mesh.cell_ids)
-        tree = mesh.cell_ids[tree_view]
-        offset = trees[tree_view].quadrants_offset
-        quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree].quadrants)
+    mesh_view_cell_id = 0
+    for tree_id in eachindex(trees)
+        tree_offset = trees[tree_id].quadrants_offset
+        quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree_id].quadrants)
 
         for i in eachindex(quadrants)
-            element = offset + i
+            parent_cell_id = offset + i
+            if !(parent_cell_id in mesh.cell_ids)
+                # This cell is not part of the mesh view, thus skip it
+                continue
+            end
+            
+            mesh_view_cell_id += 1
+            ...
+            # `mesh_view_cell_id` is now what before was `element`
 
             quad = quadrants[i]
 
