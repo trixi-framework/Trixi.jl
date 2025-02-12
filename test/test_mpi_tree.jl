@@ -57,8 +57,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as in the serial test!
                             l2=[4.913300828257469e-5],
-                            linf=[0.00045263895394385967],
-                            coverage_override=(maxiters = 6,))
+                            linf=[0.00045263895394385967],)
     end
 
     @trixi_testset "elixir_advection_amr_nonperiodic.jl" begin
@@ -66,8 +65,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                                      "elixir_advection_amr_nonperiodic.jl"),
                             # Expected errors are exactly the same as in the serial test!
                             l2=[3.2207388565869075e-5],
-                            linf=[0.0007508059772436404],
-                            coverage_override=(maxiters = 6,))
+                            linf=[0.0007508059772436404],)
     end
 
     @trixi_testset "elixir_advection_restart_amr.jl" begin
@@ -88,8 +86,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_refine_twice.jl"),
                             l2=[0.00020547512522578292],
-                            linf=[0.007831753383083506],
-                            coverage_override=(maxiters = 6,))
+                            linf=[0.007831753383083506],)
         meshfiles = filter(file -> endswith(file, ".h5") && startswith(file, "mesh"),
                            readdir(outdir))
         @test length(meshfiles) > 1
@@ -99,8 +96,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         @test_trixi_include(joinpath(EXAMPLES_DIR,
                                      "elixir_advection_amr_coarsen_twice.jl"),
                             l2=[0.0014321062757891826],
-                            linf=[0.0253454486893413],
-                            coverage_override=(maxiters = 6,))
+                            linf=[0.0253454486893413],)
     end
 
     # Hyperbolic diffusion
@@ -205,10 +201,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                                     0.0002973166773747593,
                                     0.0002973166773760916,
                                     0.001154106793870291
-                                ],
-                                # Let this test run until the end to cover the time-dependent lines
-                                # of the indicator and the MPI-specific AMR code.
-                                coverage_override=(maxiters = 10^5,))
+                                ],)
         end
     end
 
@@ -323,8 +316,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                                 0.03857193149447702,
                                 0.031090457959835893,
                                 0.12125130332971423
-                            ],
-                            coverage_override=(maxiters = 6,))
+                            ],)
     end
 
     if !CI_ON_WINDOWS # see comment on `CI_ON_WINDOWS` in `test/test_mpi.jl`
