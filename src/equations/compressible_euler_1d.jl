@@ -816,6 +816,22 @@ function flux_hllc(u_ll, u_rr, orientation::Integer,
     return SVector(f1, f2, f3)
 end
 
+# While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that
+# the normal component is incorporated into the numerical flux. 
+#
+# The HLLC flux along a 1D "normal" can be evaluated by scaling the velocity/momentum by 
+# the normal for the 1D HLLC flux, then scaling the resulting momentum flux again. 
+# Moreover, the 2D HLLC flux reduces to this if the normal vector is [n, 0].
+function flux_hllc(u_ll, u_rr, n::AbstractVector, equations::CompressibleEulerEquations1D)
+
+    # scale the momentum by the normal direction
+    f = flux_hllc(SVector(u_ll[1], n[1] * u_ll[2], u_ll[3]), 
+                  SVector(u_rr[1], n[1] * u_rr[2], u_rr[3]), 1, equations)
+
+    # rescale the momentum flux by the normal direction                  
+    return SVector(f[1], n[1] * f[2], f[3])
+end
+
 """
     min_max_speed_einfeldt(u_ll, u_rr, orientation, equations::CompressibleEulerEquations1D)
 
