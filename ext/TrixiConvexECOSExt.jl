@@ -20,7 +20,7 @@ using Trixi: Trixi, bisect_stability_polynomial, @muladd
 
 # Undo normalization of stability polynomial coefficients by index factorial
 # relative to consistency order.
-function Trixi.undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
+function undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
     for k in (consistency_order + 1):num_stage_evals
         gamma_opt[k - consistency_order] = gamma_opt[k - consistency_order] /
                                            factorial(k)
