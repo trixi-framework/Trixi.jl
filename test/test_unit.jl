@@ -1227,7 +1227,7 @@ end
     # check consistency between 1D and 2D HLLC fluxes
     u_1d = SVector(1.1, -0.5, 5.5)
     u_2d = SVector(u_1d[1], u_1d[2], 0.0, u_1d[3])
-    normal_1d = SVector(-1.0)
+    normal_1d = SVector(-0.3)
     normal_2d = SVector(normal_1d[1], 0.0)
     equations_1d = CompressibleEulerEquations1D(1.4)
     equations_2d = CompressibleEulerEquations2D(1.4)
