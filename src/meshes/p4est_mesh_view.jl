@@ -42,7 +42,7 @@ function extract_p4est_mesh_view(elements_parent,
                                  boundaries_parent,
                                  mortars_parent,
                                  mesh)
-    elements = elements_parent
+    elements = deepcopy(elements_parent)
     elements.inverse_jacobian = elements_parent.inverse_jacobian[.., mesh.cell_ids]
     elements.jacobian_matrix = elements_parent.jacobian_matrix[.., mesh.cell_ids]
     elements.node_coordinates = elements_parent.node_coordinates[.., mesh.cell_ids]
@@ -71,7 +71,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
         mask[interface] = (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
                           (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
     end
-    interfaces = interfaces_parent
+    interfaces = deepcopy(interfaces_parent)
     interfaces.u = interfaces_parent.u[.., mask]
     interfaces.node_indices = interfaces_parent.node_indices[.., mask]
     neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
@@ -98,6 +98,7 @@ end
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMeshView and its node coordinates are reconstructured from
 # these attributes for plotting purposes
+# | Warning: This overwrites any existing mesh file, either for a mesh view or parent mesh.
 function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
                         mpi_parallel::False)
     # Create output directory (if it does not exist)
