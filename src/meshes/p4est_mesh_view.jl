@@ -41,8 +41,19 @@ function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
                                  boundaries_parent,
                                  mortars_parent,
-                                 mesh)
-    elements = deepcopy(elements_parent)
+                                 mesh,
+                                 equations,
+                                 dg,
+                                 ::Type{uEltype}) where {uEltype <: Real}
+    elements = init_elements(mesh.parent, equations, dg.basis, uEltype)
+    resize!(elements, length(mesh.cell_ids))
+
+#     elements._node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(dg.basis)^NDIMS * nelements(elements))
+#     elements.node_coordinates = unsafe_wrap(Array, pointer(elements_node_coordinates),
+#                                             (NDIMS, ntuple(_ -> nnodes(dg.basis), NDIMS)...,
+#                                              nelements(elements)))
+
+#     elements = deepcopy(elements_parent)
     elements.inverse_jacobian = elements_parent.inverse_jacobian[.., mesh.cell_ids]
     elements.jacobian_matrix = elements_parent.jacobian_matrix[.., mesh.cell_ids]
     elements.node_coordinates = elements_parent.node_coordinates[.., mesh.cell_ids]
@@ -50,11 +61,10 @@ function extract_p4est_mesh_view(elements_parent,
                                                                            mesh.cell_ids]
     elements.surface_flux_values = elements_parent.surface_flux_values[..,
                                                                        mesh.cell_ids]
-    elements._inverse_jacobian = vec(elements.inverse_jacobian)
-    elements._jacobian_matrix = vec(elements.jacobian_matrix)
-    elements._node_coordinates = vec(elements.node_coordinates)
-    elements._node_coordinates = vec(elements.node_coordinates)
-    elements._surface_flux_values = vec(elements.surface_flux_values)
+#     elements._inverse_jacobian = vec(elements.inverse_jacobian)
+#     elements._jacobian_matrix = vec(elements.jacobian_matrix)
+#     elements._node_coordinates = vec(elements.node_coordinates)
+#     elements._surface_flux_values = vec(elements.surface_flux_values)
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
     return elements, interfaces, boundaries_parent, mortars_parent
