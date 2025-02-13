@@ -467,7 +467,7 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
         if ndims == 2
             for v in 1:nvars
                 Makie.empty!(axes[v])
-                Makie.heatmap!(axes[v], plot_data.x, plot_data.y, plot_data.data[v], transparent = true, colorrange = limits)
+                Makie.heatmap!(axes[v], plot_data.x, plot_data.y, plot_data.data[v], transparency = true, colorrange = limits)
                 # if show_mesh
                 #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
                 # end
@@ -475,7 +475,7 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
         else
             for v in 1:nvars
                 Makie.empty!(axes[v])
-                Makie.volume!(axes[v], plot_data.x, plot_data.y, plot_data.z, plot_data.data[v], transparent = true, colorrange = limits)
+                Makie.volume!(axes[v], (plot_data.x[1], plot_data.x[end]), (plot_data.y[1], plot_data.y[end]), (plot_data.z[1], plot_data.z[end]), plot_data.data[v], transparency = true, colorrange = limits)
                 # if show_mesh 
                 #     lines!(visualization_callback.axis[v + one_if_show_mesh], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
                 # end
@@ -503,6 +503,10 @@ function project_to_unit_cube(p, x, y, z)
     return Makie.Point3f((p[1] - x[1])/(x[end] - x[1]), (p[2] - y[1])/(y[end] - y[1]), (p[3] - z[1])/(z[end] - z[1]))
 end
 
+function project_from_unit_cube(p, x, y, z)
+    return Makie.Point3f(p[1] * (x[end] - x[1]) + x[1], p[2] * (y[end] - y[1]) + y[1], p[3] * (z[end] - z[1]) + z[1])
+end
+
 function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variable_names; show_mesh = true, plot_arguments = Dict{Symbol, Any}(), time = nothing, timestep = nothing)
     nvars = size(variable_names)[1]
     maxes = [maximum(plot_data.data[v]) for v in 1:nvars]
@@ -528,18 +532,12 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
         visualization_callback.figure_axes_colorbar = Figure_Axes_Colorbar(fig, axes, colorbar)
         global sg = Makie.SliderGrid(
             grid2[2,1],
-            (label = "x1", range = plot_data.x[1]:0.01*(plot_data.x[end] - plot_data.x[1]):plot_data.x[end], format = "{:.2f}", startvalue = plot_data.x[1]),
-            (label = "x2", range = plot_data.x[1]:0.01*(plot_data.x[end] - plot_data.x[1]):plot_data.x[end], format = "{:.2f}", startvalue = plot_data.x[1]),
-            (label = "x3", range = plot_data.x[1]:0.01*(plot_data.x[end] - plot_data.x[1]):plot_data.x[end], format = "{:.2f}", startvalue = plot_data.x[end]),
-            (label = "x4", range = plot_data.x[1]:0.01*(plot_data.x[end] - plot_data.x[1]):plot_data.x[end], format = "{:.2f}", startvalue = plot_data.x[end]),
-            (label = "y1", range = plot_data.y[1]:0.01*(plot_data.y[end] - plot_data.y[1]):plot_data.y[end], format = "{:.2f}", startvalue = plot_data.y[1]),
-            (label = "y2", range = plot_data.y[1]:0.01*(plot_data.y[end] - plot_data.y[1]):plot_data.y[end], format = "{:.2f}", startvalue = plot_data.y[end]),
-            (label = "y3", range = plot_data.y[1]:0.01*(plot_data.y[end] - plot_data.y[1]):plot_data.y[end], format = "{:.2f}", startvalue = plot_data.y[end]),
-            (label = "y4", range = plot_data.y[1]:0.01*(plot_data.y[end] - plot_data.y[1]):plot_data.y[end], format = "{:.2f}", startvalue = plot_data.y[1]),
-            (label = "z1", range = plot_data.z[1]:0.01*(plot_data.z[end] - plot_data.z[1]):plot_data.z[end], format = "{:.2f}", startvalue = plot_data.z[1]),
-            (label = "z2", range = plot_data.z[1]:0.01*(plot_data.z[end] - plot_data.z[1]):plot_data.z[end], format = "{:.2f}", startvalue = plot_data.z[end]),
-            (label = "z3", range = plot_data.z[1]:0.01*(plot_data.z[end] - plot_data.z[1]):plot_data.z[end], format = "{:.2f}", startvalue = plot_data.z[end]),
-            (label = "z4", range = plot_data.z[1]:0.01*(plot_data.z[end] - plot_data.z[1]):plot_data.z[end], format = "{:.2f}", startvalue = plot_data.z[1]),
+            (label = "x0", range = 0:0.01:1, format = "{:.2f}", startvalue = 0.5),
+            (label = "y0", range = 0:0.01:1, format = "{:.2f}", startvalue = 0.5),
+            (label = "z0", range = 0:0.01:1, format = "{:.2f}", startvalue = 0.5),
+            (label = "nx", range = 0:0.01:1, format = "{:.2f}", startvalue = 0),
+            (label = "ny", range = 0:0.01:1, format = "{:.2f}", startvalue = 1),
+            (label = "nz", range = 0:0.01:1, format = "{:.2f}", startvalue = 0),
             tellheight = false,
             tellwidth = false)
             Makie.display(visualization_callback.figure_axes_colorbar.fig)
@@ -553,21 +551,120 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
         Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_z, plot_data.mesh_vertices_y, plot_data.mesh_vertices_x, color=:black)
     end
 
-    x1_ob, x2_ob, x3_ob, x4_ob, y1_ob, y2_ob, y3_ob, y4_ob, z1_ob, z2_ob, z3_ob, z4_ob = (sg.sliders[i].value for i in 1:12)
+    x0_ob, y0_ob, z0_ob, nx_ob, ny_ob, nz_ob = (sg.sliders[i].value for i in 1:6)
 
 
 
-    global positions = Makie.@lift([Makie.Point3f($x1_ob, $y1_ob, $z1_ob), Makie.Point3f($x2_ob, $y2_ob, $z2_ob), Makie.Point3f($x3_ob, $y3_ob, $z3_ob), Makie.Point3f($x4_ob, $y4_ob, $z4_ob)])
+    global positions = Makie.@lift begin 
+        # [Makie.Point3f($x1_ob, $y1_ob, $z1_ob), Makie.Point3f($x2_ob, $y2_ob, $z2_ob), Makie.Point3f($x3_ob, $y3_ob, $z3_ob), Makie.Point3f($x4_ob, $y4_ob, $z4_ob)]
+        if $nx_ob == 0 
+            if $ny_ob == 0
+                if $nz_ob == 0
+                    [Makie.Point3f($x0_ob, $y0_ob, $z0_ob), Makie.Point3f($x0_ob, $y0_ob, $z0_ob), Makie.Point3f($x0_ob, $y0_ob, $z0_ob), Makie.Point3f($x0_ob, $y0_ob, $z0_ob)]
+                else
+                    [Makie.Point3f(0, 0, $z0_ob), Makie.Point3f(0, 1, $z0_ob), Makie.Point3f(1, 1, $z0_ob), Makie.Point3f(1, 0, $z0_ob)]
+                end
+            elseif $nz_ob == 0
+                    [Makie.Point3f(0, $y0_ob, 0), Makie.Point3f(0, $y0_ob, 1), Makie.Point3f(1, $y0_ob, 1), Makie.Point3f(1, $y0_ob, 0)]
+            else
+                d = $ny_ob * $y0_ob + $nz_ob * $z0_ob
+                ret = []
+                if 0 <= d/$ny_ob <= 1
+                    push!(ret, Makie.Point3f(0, d/$ny_ob, 0))
+                    push!(ret, Makie.Point3f(1, d/$ny_ob, 0))
+                end
+                if 0 <= (d - $nz_ob)/$ny_ob <= 1
+                    push!(ret, Makie.Point3f(0, (d - $nz_ob)/$ny_ob, 1))
+                    push!(ret, Makie.Point3f(1, (d - $nz_ob)/$ny_ob, 1))
+                end
+                if 0 <= d/$nz_ob <= 1
+                    push!(ret, Makie.Point3f(0, 0, d/$nz_ob))
+                    push!(ret, Makie.Point3f(1, 0, d/$nz_ob))
+                end
+                if 0 <= (d - $ny_ob)/$nz_ob <= 1
+                    push!(ret, Makie.Point3f(0, 1, (d - $ny_ob)/$nz_ob))
+                    push!(ret, Makie.Point3f(1, 1, (d - $ny_ob)/$nz_ob))
+                end
+                ret
+            end
+        elseif $ny_ob == 0
+            if $nz_ob == 0
+                [Makie.Point3f($x0_ob, 0, 0), Makie.Point3f($x0_ob, 0, 1), Makie.Point3f($x0_ob, 1, 1), Makie.Point3f($x0_ob, 1, 0)]
+            else
+                d = $nx_ob * $x0_ob + $nz_ob * $z0_ob
+                ret = []
+                if 0 <= d/$nx_ob <= 1
+                    push!(ret, Makie.Point3f(d/$nx_ob, 0, 0))
+                    push!(ret, Makie.Point3f(d/$nx_ob, 1, 0))
+                end
+                if 0 <= (d - $nz_ob)/$nx_ob <= 1
+                    push!(ret, Makie.Point3f((d - $nz_ob)/$nx_ob, 0, 1))
+                    push!(ret, Makie.Point3f((d - $nz_ob)/$nx_ob, 1, 1))
+                end
+                if 0 <= d/$nz_ob <= 1
+                    push!(ret, Makie.Point3f(0, 0, d/$nz_ob))
+                    push!(ret, Makie.Point3f(0, 1, d/$nz_ob))
+                end
+                if 0 <= (d - $nx_ob)/$nz_ob <= 1
+                    push!(ret, Makie.Point3f(1, 0, (d - $nx_ob)/$nz_ob))
+                    push!(ret, Makie.Point3f(1, 1, (d - $nx_ob)/$nz_ob))
+                end
+                ret
+            end
+        elseif $nz_ob == 0
+            d = $nx_ob * $x0_ob + $ny_ob * $y0_ob
+            ret = []
+            if 0 <= d/$nx_ob <= 1
+                push!(ret, Makie.Point3f(d/$nx_ob, 0, 0))
+                push!(ret, Makie.Point3f(d/$nx_ob, 0, 1))
+            end
+            if 0 <= (d - $ny_ob)/$nx_ob <= 1
+                push!(ret, Makie.Point3f((d - $ny_ob)/$nx_ob, 1, 0))
+                push!(ret, Makie.Point3f((d - $ny_ob)/$nx_ob, 1, 1))
+            end
+            if 0 <= d/$ny_ob <= 1
+                push!(ret, Makie.Point3f(0, d/$ny_ob, 0))
+                push!(ret, Makie.Point3f(0, d/$ny_ob, 1))
+            end
+            if 0 <= (d - $nx_ob)/$ny_ob <= 1
+                push!(ret, Makie.Point3f(1, (d - $nx_ob)/$ny_ob, 0))
+                push!(ret, Makie.Point3f(1, (d - $nx_ob)/$ny_ob, 1))
+            end
+            ret
+        else
+            d = $nx_ob * $x0_ob + $ny_ob * $y0_ob + $nz_ob * $z0_ob
+            ret = []
+            0 <= d/$nx_ob <= 1 && push!(ret, Makie.Point3f(d/$nx_ob, 0, 0))
+            0 <= d/$ny_ob <= 1 && push!(ret, Makie.Point3f(0, d/$ny_ob, 0))
+            0 <= d/$nz_ob <= 1 && push!(ret, Makie.Point3f(0, 0, d/$nz_ob))
+            0 <= (d - $nz_ob)/$nx_ob <= 1 && push!(ret, Makie.Point3f((d - $nz_ob)/$nx_ob, 0, 1))
+            0 <= (d - $nz_ob)/$ny_ob <= 1 && push!(ret, Makie.Point3f(0, (d - $nz_ob)/$ny_ob, 1))
+            0 <= (d - $ny_ob)/$nz_ob <= 1 && push!(ret, Makie.Point3f(0, 1, (d - $ny_ob)/$nz_ob))
+            0 <= (d - $ny_ob - $nz_ob)/$nx_ob <= 1 && push!(ret, Makie.Point3f((d - $ny_ob - $nz_ob)/$nx_ob, 1, 1))
+            0 <= (d - $nx_ob - $nz_ob)/$ny_ob <= 1 && push!(ret, Makie.Point3f(1, (d - $nx_ob - $nz_ob)/$ny_ob, 1))
+            0 <= (d - $nx_ob - $ny_ob)/$nz_ob <= 1 && push!(ret, Makie.Point3f(1, 1, (d - $nx_ob - $ny_ob)/$nz_ob))
+            0 <= (d - $ny_ob)/$nx_ob <= 1 && push!(ret, Makie.Point3f((d - $ny_ob)/$nx_ob, 1, 0))
+            0 <= (d - $nx_ob)/$ny_ob <= 1 && push!(ret, Makie.Point3f(1, (d - $nx_ob)/$ny_ob, 0))
+            0 <= (d - $nx_ob)/$nz_ob <= 1 && push!(ret, Makie.Point3f(1, 0, (d - $nx_ob)/$nz_ob))
+            ret
+        end
+    end
 
-    triangles = Makie.GLTriangleFace[(1, 2, 3), (3, 4, 1)]
-    uv_mesh = map((p) -> GeometryBasics.Mesh(p, triangles; uv=Makie.Vec3f.(map((q) -> project_to_unit_cube(q, plot_data.x, plot_data.y, plot_data.z), p))), positions)
+    triangles = Makie.@lift(size($positions)[1] == 3 ? Makie.GLTriangleFace[(1,2,3)] : (size($positions)[1] == 4 ? Makie.GLTriangleFace[(i,j,k) for i in 1:4 for j in 1:4 for k in 1:4 if i != j && j != k && i != k] : (size($positions)[1] == 5 ? Makie.GLTriangleFace[(i,j,k) for i in 1:5 for j in 1:5 for k in 1:5 if i != j && j != k && i != k] : Makie.GLTriangleFace[(i,j,k) for i in 1:6 for j in 1:6 for k in 1:6 if i != j && j != k && i != k])))
+    uv_mesh = Makie.@lift(GeometryBasics.Mesh(map((p) -> project_from_unit_cube(p, plot_data.x, plot_data.y, plot_data.z), $positions), $triangles; uv=Makie.Vec3f.($positions)))
 
     
     for v in 1:nvars
         Makie.empty!(axes[v])
-        Makie.mesh!(axes[v], uv_mesh; color = plot_data.data[v], colorrange = limits, transparency = true, shading = Makie.NoShading)
+        Makie.mesh!(axes[v], uv_mesh[]; color = plot_data.data[v], colorrange = limits, transparency = true, shading = Makie.NoShading)
         Makie.wireframe!(axes[v], Makie.Rect3f(Makie.Vec3f(plot_data.x[1], plot_data.y[1], plot_data.z[1]), Makie.Vec3f(plot_data.x[end] - plot_data.x[1], plot_data.y[end] - plot_data.y[1], plot_data.z[end] - plot_data.z[1])), transparency=true, color=(:gray, 0.5))
+        Makie.on(uv_mesh) do value
+            Makie.empty!(axes[v])
+            Makie.mesh!(axes[v], value; color = plot_data.data[v], colorrange = limits, transparency = true, shading = Makie.NoShading)
+            Makie.wireframe!(axes[v], Makie.Rect3f(Makie.Vec3f(plot_data.x[1], plot_data.y[1], plot_data.z[1]), Makie.Vec3f(plot_data.x[end] - plot_data.x[1], plot_data.y[end] - plot_data.y[1], plot_data.z[end] - plot_data.z[1])), transparency=true, color=(:gray, 0.5))
+        end
     end
+
 
 end
 
