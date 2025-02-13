@@ -132,8 +132,11 @@ The original paper is
     $S$ is the number of stages. Default is `1.0f0`.
 
 !!! note
-    To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages
-    unless the A-matrix coefficients are provided in a "a_<num_stages>.txt" file.
+    To use this integrator, the user must import the 
+    [Convex.jl](https://github.com/jump-dev/Convex.jl), 
+    [ECOS.jl](https://github.com/jump-dev/ECOS.jl), and
+    [NLSolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) packages
+    unless the A-matrix coefficients are provided in a `a_<num_stages>.txt` file.
 """
 struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
     num_stages::Int # S
