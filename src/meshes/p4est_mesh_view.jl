@@ -61,10 +61,10 @@ function extract_p4est_mesh_view(elements_parent,
                                                                            mesh.cell_ids]
     elements.surface_flux_values = elements_parent.surface_flux_values[..,
                                                                        mesh.cell_ids]
-#     elements._inverse_jacobian = vec(elements.inverse_jacobian)
-#     elements._jacobian_matrix = vec(elements.jacobian_matrix)
-#     elements._node_coordinates = vec(elements.node_coordinates)
-#     elements._surface_flux_values = vec(elements.surface_flux_values)
+    #     elements._inverse_jacobian = vec(elements.inverse_jacobian)
+    #     elements._jacobian_matrix = vec(elements.jacobian_matrix)
+    #     elements._node_coordinates = vec(elements.node_coordinates)
+    #     elements._surface_flux_values = vec(elements.surface_flux_values)
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
     return elements, interfaces, boundaries_parent, mortars_parent
