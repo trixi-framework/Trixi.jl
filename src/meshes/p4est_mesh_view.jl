@@ -53,7 +53,7 @@ function extract_p4est_mesh_view(elements_parent,
     #                                             (NDIMS, ntuple(_ -> nnodes(dg.basis), NDIMS)...,
     #                                              nelements(elements)))
 
-#     elements = deepcopy(elements_parent)
+    #     elements = deepcopy(elements_parent)
     elements.inverse_jacobian = elements_parent.inverse_jacobian[.., mesh.cell_ids]
     elements.jacobian_matrix = elements_parent.jacobian_matrix[.., mesh.cell_ids]
     elements.node_coordinates = elements_parent.node_coordinates[.., mesh.cell_ids]
