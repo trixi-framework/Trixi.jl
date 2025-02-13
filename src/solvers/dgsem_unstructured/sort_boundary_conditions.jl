@@ -101,7 +101,7 @@ function initialize!(boundary_types_container::UnstructuredSortedBoundaryTypes{N
 
     # Check if all boundaries (determined from connectivity) are equipped with a boundary condition
     for (index, boundary_name) in enumerate(cache.boundaries.name)
-        if boundary_name ∉ keys(boundary_dictionary)
+        if !(boundary_name in keys(boundary_dictionary))
             neighbor_element = cache.boundaries.neighbor_ids[index]
             @warn "Boundary condition for boundary type $(repr(boundary_name)) of boundary $(index) (neighbor element $neighbor_element) not found in boundary dictionary!"
         end
