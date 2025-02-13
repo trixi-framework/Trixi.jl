@@ -48,10 +48,10 @@ function extract_p4est_mesh_view(elements_parent,
     elements = init_elements(mesh.parent, equations, dg.basis, uEltype)
     resize!(elements, length(mesh.cell_ids))
 
-#     elements._node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(dg.basis)^NDIMS * nelements(elements))
-#     elements.node_coordinates = unsafe_wrap(Array, pointer(elements_node_coordinates),
-#                                             (NDIMS, ntuple(_ -> nnodes(dg.basis), NDIMS)...,
-#                                              nelements(elements)))
+    #     elements._node_coordinates = Vector{RealT}(undef, NDIMS * nnodes(dg.basis)^NDIMS * nelements(elements))
+    #     elements.node_coordinates = unsafe_wrap(Array, pointer(elements_node_coordinates),
+    #                                             (NDIMS, ntuple(_ -> nnodes(dg.basis), NDIMS)...,
+    #                                              nelements(elements)))
 
 #     elements = deepcopy(elements_parent)
     elements.inverse_jacobian = elements_parent.inverse_jacobian[.., mesh.cell_ids]
