@@ -8,7 +8,7 @@
 """
     P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <: AbstractMesh{NDIMS}
 
-A view on a p4est mesh.
+A view on a [`P4estMesh`](@ref).
 """
 mutable struct P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT <: Real, Parent} <:
                AbstractMesh{NDIMS}
