@@ -6,11 +6,26 @@
 #! format: noindent
 
 # convenience struct for editing plots after they're created.
-struct Figure_Axes_Colorbar{Figure, Axes, Colorbar}
+mutable struct Makie_Step_independent{Figure, Axes, Colorbar, Positions, Slice_Slider_Grid, Cam_Slider_Grid, Triangles, UV_Mesh}
     fig::Figure
     axes::Axes
     colorbar::Colorbar
+    positions::Positions
+    slice_slider_grid::Slice_Slider_Grid
+    cam_slider_grid::Cam_Slider_Grid
+    triangles::Triangles
+    uv_mesh::UV_Mesh
+    update_plots_ob::Any
 end
+
+function Makie_Step_independent(fig, axes, colorbar; positions = nothing, slice_slider_grid = nothing, cam_slider_grid = nothing, triangles = nothing, uv_mesh = nothing, update_plots_ob = nothing)
+    return Makie_Step_independent(fig, axes, colorbar, positions, slice_slider_grid, cam_slider_grid, triangles, uv_mesh, update_plots_ob )
+end
+
+function Makie_Step_independent()
+    return Makie_Step_independent(nothing, [], nothing, nothing, nothing, nothing, nothing, nothing, nothing)
+end
+
 
 mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataCreator,
                                      PlotCreator}
@@ -20,7 +35,7 @@ mutable struct VisualizationCallback{SolutionVariables, VariableNames, PlotDataC
     show_mesh::Bool
     plot_data_creator::PlotDataCreator
     plot_creator::PlotCreator
-    figure_axes_colorbar::Figure_Axes_Colorbar
+    makie_step_independent::Makie_Step_independent
     plot_arguments::Dict{Symbol, Any}
 end
 
@@ -107,7 +122,7 @@ function VisualizationCallback(; interval = 0,
                                                    solution_variables, variable_names,
                                                    show_mesh,
                                                    plot_data_creator, plot_creator,
-                                                   Figure_Axes_Colorbar(nothing, [], nothing),
+                                                   Makie_Step_independent(),
                                                    Dict{Symbol, Any}(plot_arguments))
 
     # Warn users if they create a visualization callback without having loaded a plotting
