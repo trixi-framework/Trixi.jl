@@ -381,14 +381,6 @@ function coarsen_elements!(u::AbstractArray{<:Any, 5}, element_id,
     return nothing
 end
 
-# this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel},
-                      mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}},
-                      equations, dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
-end
-
 # Coarsen and refine elements in the DG solver based on a difference list.
 function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{3}, equations,
                 dg::DGSEM, cache, difference)

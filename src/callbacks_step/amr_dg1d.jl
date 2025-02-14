@@ -284,14 +284,11 @@ function coarsen_elements!(u::AbstractArray{<:Any, 3}, element_id,
     end
 end
 
-# this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel}, mesh::TreeMesh{1}, equations,
-                      dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
-end
-
-function create_cache(::Type{ControllerThreeLevelCombined}, mesh::TreeMesh,
+# Construct cache for ControllerThreeLevel and ControllerThreeLevelCombined.
+# This method is called when a controller is constructed
+function create_cache(::Union{Type{ControllerThreeLevel},
+                              Type{ControllerThreeLevelCombined}},
+                      mesh::Union{TreeMesh, P4estMesh, T8codeMesh},
                       equations, dg::DG, cache)
     controller_value = Vector{Int}(undef, nelements(dg, cache))
     return (; controller_value)

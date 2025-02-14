@@ -570,12 +570,4 @@ function adapt!(u_ode::AbstractVector, adaptor, mesh::T8codeMesh{2}, equations,
 
     return nothing
 end
-
-# this method is called when an `ControllerThreeLevel` is constructed
-function create_cache(::Type{ControllerThreeLevel},
-                      mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}}, equations,
-                      dg::DG, cache)
-    controller_value = Vector{Int}(undef, nelements(dg, cache))
-    return (; controller_value)
-end
 end # @muladd
