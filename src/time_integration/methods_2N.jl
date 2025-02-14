@@ -94,7 +94,7 @@ end
 # which are used in Trixi.jl.
 mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
                                   SimpleIntegrator2NOptions} <: AbstractTimeIntegrator
-    u::uType #
+    u::uType
     du::uType
     u_tmp::uType
     t::RealT
@@ -104,7 +104,7 @@ mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
     f::F # `rhs!` of the semidiscretization
-    alg::Alg
+    alg::Alg # SimpleAlgorithm2N
     opts::SimpleIntegrator2NOptions
     finalstep::Bool # added for convenience
 end
