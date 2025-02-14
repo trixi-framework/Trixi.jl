@@ -28,7 +28,7 @@ Create a `P4estMeshView` on a [`P4estMesh`](@ref) parent.
 - `cell_ids`: array of cell ids that are part of this view.
 """
 function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT},
-                       cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}
+                       cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}    
     return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids,
                                                                       parent.unsaved_changes,
                                                                       parent.current_filename)
@@ -52,7 +52,6 @@ function extract_p4est_mesh_view(elements_parent,
                                                                        mesh.cell_ids]
     elements._inverse_jacobian = vec(elements.inverse_jacobian)
     elements._jacobian_matrix = vec(elements.jacobian_matrix)
-    elements._node_coordinates = vec(elements.node_coordinates)
     elements._node_coordinates = vec(elements.node_coordinates)
     elements._surface_flux_values = vec(elements.surface_flux_values)
     interfaces = extract_interfaces(mesh, interfaces_parent)
@@ -90,6 +89,10 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     interfaces._u = vec(interfaces.u)
     interfaces._node_indices = vec(interfaces.node_indices)
     interfaces._neighbor_ids = vec(interfaces.neighbor_ids)
+
+    # Add boundaries between mesh views in the parent mesh.
+    @autoinfiltrate
+    # mesh.parent.boundary_names
 
     return interfaces
 end
