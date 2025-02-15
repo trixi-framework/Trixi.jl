@@ -62,7 +62,7 @@ end
                             amr_callback)
     sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()),
                 abstol = time_abs_tol, reltol = time_int_tol,
-                save_everystep = false, callback = callbacks)
+                ode_default_options()..., callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)
     @test l2_error ≈ [6.487940740394583e-6]
     @test linf_error ≈ [3.262867898701227e-5]

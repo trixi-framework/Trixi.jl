@@ -339,7 +339,7 @@ end
     # Use CarpenterKennedy2N54 since `RDPK3SpFSAL49` gives slightly different results on different machines
     sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
                 dt = 5e-3,
-                save_everystep = false, callback = callbacks)
+                ode_default_options()..., callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)
     @test l2_error ≈ [
         7.314319856736271e-5,
