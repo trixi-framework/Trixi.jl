@@ -183,7 +183,8 @@ analysis_callback = AnalysisCallback(semi, interval = 200, uEltype = real(dg))
 callbacks = CallbackSet(alive_callback, analysis_callback);
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 0.5 * estimate_dt(mesh, dg), ode_default_options()..., callback = callbacks);
+            dt = 0.5 * estimate_dt(mesh, dg), ode_default_options()...,
+            callback = callbacks);
 #-
 using Plots
 pd = PlotData2D(sol)
