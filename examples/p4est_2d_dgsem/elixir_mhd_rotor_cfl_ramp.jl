@@ -111,7 +111,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-# increase the CFL number linearly from cfl_0() at time 0 
+# increase the CFL number linearly from cfl_0() at time 0
 # to cfl_t_ramp() at time t = t_ramp(), keep it constant afterward
 cfl_0() = 0.5
 cfl_t_ramp() = 1.2
@@ -133,9 +133,9 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode;
+sol = solve(ode,
             CarpenterKennedy2N54(thread = OrdinaryDiffEq.True(),
-                                 williamson_condition = false),
+                                 williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 summary_callback() # print the timer summary
