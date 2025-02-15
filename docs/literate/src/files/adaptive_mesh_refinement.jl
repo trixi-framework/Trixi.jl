@@ -150,7 +150,7 @@ callbacks = CallbackSet(amr_callback, stepsize_callback);
 # Running the simulation.
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);
 
 # We plot the solution and add the refined mesh at the end of the simulation.
 using Plots

@@ -368,7 +368,7 @@ redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoyin
     ## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
     sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
                 dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                save_everystep = false, callback = callbacks)
+                ode_default_options()..., callback = callbacks)
     ## print the timer summary
     summary_callback()
 end #hide #md

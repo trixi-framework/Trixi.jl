@@ -106,7 +106,7 @@ callbacks = CallbackSet(analysis_callback,
 # Running the simulation
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);
 
 using Plots
 plot(sol)
@@ -167,7 +167,7 @@ callbacks = CallbackSet(analysis_callback,
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);
 
 # Now, we want to verify the free-stream preservation property and plot the mesh. For the verification,
 # we calculate the absolute difference of the first conservation variable density `u[1]` and `1.0`.
