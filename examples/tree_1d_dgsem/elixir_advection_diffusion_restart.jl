@@ -24,7 +24,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 
 sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()),
             abstol = time_abs_tol, reltol = time_int_tol,
-            save_everystep = false, callback = callbacks)
+            ode_default_options()..., callback = callbacks)
 
 # Print the timer summary
 summary_callback()

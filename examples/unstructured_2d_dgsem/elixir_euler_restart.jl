@@ -28,7 +28,7 @@ save_solution.condition.save_initial_solution = false
 
 integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks, maxiters = 100_000);
+                  ode_default_options()..., callback = callbacks, maxiters = 100_000);
 
 # Get the last time index and work with that.
 load_timestep!(integrator, restart_filename)

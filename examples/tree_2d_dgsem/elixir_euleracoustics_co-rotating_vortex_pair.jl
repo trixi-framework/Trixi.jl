@@ -334,7 +334,7 @@ callbacks_averaging = CallbackSet(summary_callback, alive_callback, averaging_ca
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 sol_averaging = solve(ode_averaging, CarpenterKennedy2N54(williamson_condition = false),
                       dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                      save_everystep = false, callback = callbacks_averaging);
+                      ode_default_options()..., callback = callbacks_averaging);
 
 # Print the timer summary
 summary_callback()
@@ -384,7 +384,7 @@ callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, sav
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);
 
 # Print the timer summary
 summary_callback()

@@ -65,7 +65,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 sol = Trixi.solve(ode, ode_algorithm,
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks);
+                  ode_default_options()..., callback = callbacks);
 
 # Print the timer summary
 summary_callback()

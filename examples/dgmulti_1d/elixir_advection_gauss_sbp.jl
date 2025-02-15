@@ -60,7 +60,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, save_everystep = false, callback = callbacks);
+            dt = 1.0, ode_default_options()..., callback = callbacks);
 
 # Print the timer summary
 summary_callback()
