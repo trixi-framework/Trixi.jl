@@ -47,7 +47,7 @@ amr_callback = AMRCallback(semi, amr_controller,
 
 callbacks_ext = CallbackSet(amr_callback, callbacks.discrete_callbacks...)
 
-integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
+integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false);
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks_ext, maxiters = 100_000);
 

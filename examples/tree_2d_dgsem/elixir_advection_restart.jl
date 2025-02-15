@@ -26,7 +26,7 @@ ode = semidiscretize(semi, tspan, restart_filename)
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
 save_solution.condition.save_initial_solution = false
 
-integrator = init(ode, alg,
+integrator = init(ode, alg;
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks;
                   ode_default_options()...); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
