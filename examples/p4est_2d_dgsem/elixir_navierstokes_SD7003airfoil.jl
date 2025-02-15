@@ -109,8 +109,8 @@ lift_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
                                                                    f_U_inf(), f_linf()))
 
 # For long simulation run, use a large interval.
-# For measurements once the simulation has settled in, one should use a 
-# significantly smaller interval, e.g. 500 to record the drag/lift coefficients.                                                                   
+# For measurements once the simulation has settled in, one should use a
+# significantly smaller interval, e.g. 500 to record the drag/lift coefficients.
 analysis_interval = 10_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -143,7 +143,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode;
+sol = solve(ode,
             CarpenterKennedy2N54(williamson_condition = false,
                                  thread = OrdinaryDiffEq.True());
             dt = 1.0, ode_default_options()..., callback = callbacks)

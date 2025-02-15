@@ -49,7 +49,7 @@ mesh = P4estMesh{2}(mesh_file)
 bc_freestream = BoundaryConditionDirichlet(initial_condition)
 
 # Boundary names follow from the mesh file.
-# Since this mesh is been generated using the symmetry feature of 
+# Since this mesh is been generated using the symmetry feature of
 # HOHQMesh.jl (https://trixi-framework.github.io/HOHQMesh.jl/stable/tutorials/symmetric_mesh/)
 # the mirrored boundaries are named with a "_R" suffix.
 boundary_conditions = Dict(:Circle => boundary_condition_slip_wall, # top half of the cylinder
@@ -61,7 +61,7 @@ boundary_conditions = Dict(:Circle => boundary_condition_slip_wall, # top half o
                            :Left => bc_freestream,
                            :Left_R => bc_freestream)
 
-# Parabolic boundary conditions                            
+# Parabolic boundary conditions
 velocity_bc_free = NoSlip((x, t, equations) -> SVector(v_in, 0))
 # Use adiabatic also on the boundaries to "copy" temperature from the domain
 heat_bc_free = Adiabatic((x, t, equations) -> 0)
@@ -115,7 +115,7 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 time_int_tol = 1e-7
-sol = solve(ode;
+sol = solve(ode,
             # Moderate number of threads (e.g. 4) advisable to speed things up
             RDPK3SpFSAL49(thread = OrdinaryDiffEq.True());
             abstol = time_int_tol, reltol = time_int_tol,
