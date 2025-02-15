@@ -44,7 +44,7 @@ analysis_callback = AnalysisCallback(semi, interval = 100, uEltype = real(dg))
 callbacks = CallbackSet(analysis_callback, alive_callback);
 
 # Run the simulation with the same time integration algorithm as before.
-sol = solve(ode, RDPK3SpFSAL49(), abstol = 1.0e-6, reltol = 1.0e-6,
+sol = solve(ode, RDPK3SpFSAL49(), abstol = 1.0e-6, reltol = 1.0e-6;
             callback = callbacks, ode_default_options()...);
 #-
 using Plots
@@ -182,7 +182,7 @@ alive_callback = AliveCallback(alive_interval = 20)
 analysis_callback = AnalysisCallback(semi, interval = 200, uEltype = real(dg))
 callbacks = CallbackSet(alive_callback, analysis_callback);
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 0.5 * estimate_dt(mesh, dg), ode_default_options()..., callback = callbacks);
 #-
 using Plots

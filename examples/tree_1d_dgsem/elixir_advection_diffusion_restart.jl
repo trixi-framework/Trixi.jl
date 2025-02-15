@@ -22,7 +22,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()),
+sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff());
             abstol = time_abs_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
 

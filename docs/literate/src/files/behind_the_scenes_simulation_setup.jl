@@ -214,7 +214,7 @@ ode = semidiscretize(semi, (0.0, 1.0));
 # the OrdinaryDiffEq.jl package can be utilized to compute an approximated solution using the
 # instructions contained in the `ODEProblem` object.
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01,
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false), dt = 0.01;
             ode_default_options()...);
 
 # Since the `solve` function and the ODE solver have no knowledge

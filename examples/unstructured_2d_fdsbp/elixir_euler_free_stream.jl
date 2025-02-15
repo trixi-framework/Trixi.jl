@@ -66,6 +66,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 # run the simulation
 
 # set small tolerances for the free-stream preservation test
-sol = solve(ode, SSPRK43(), abstol = 1.0e-12, reltol = 1.0e-12,
+sol = solve(ode, SSPRK43(), abstol = 1.0e-12, reltol = 1.0e-12;
             ode_default_options()..., callback = callbacks)
 summary_callback() # print the timer summary

@@ -88,7 +88,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # Run the simulation.
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 

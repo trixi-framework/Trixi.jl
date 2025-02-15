@@ -366,7 +366,7 @@ callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
 
 redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoying stuff we don't want to see here #hide #md
     ## Evolve ODE problem in time using `solve` from OrdinaryDiffEq
-    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
                 dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                 ode_default_options()..., callback = callbacks)
     ## print the timer summary

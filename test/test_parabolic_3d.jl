@@ -337,7 +337,7 @@ end
                                                                      enstrophy))
     callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
     # Use CarpenterKennedy2N54 since `RDPK3SpFSAL49` gives slightly different results on different machines
-    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
                 dt = 5e-3,
                 ode_default_options()..., callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)

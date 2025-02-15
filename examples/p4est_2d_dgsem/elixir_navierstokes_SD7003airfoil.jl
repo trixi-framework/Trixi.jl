@@ -143,7 +143,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode,
+sol = solve(ode;
             CarpenterKennedy2N54(williamson_condition = false,
                                  thread = OrdinaryDiffEq.True());
             dt = 1.0, ode_default_options()..., callback = callbacks)
