@@ -79,5 +79,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 # run the simulation
 
 sol = solve(ode, BS3(),
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);
 summary_callback() # print the timer summary
