@@ -2174,6 +2174,10 @@ end
 
 function balance!(mesh::P4estMesh{3}, init_fn = C_NULL)
     p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
+    # As in 2D p4est meshes, p8est_balance needs to be called twice sometimes for
+    # the mesh to be properly balanced. 
+    # See https://github.com/cburstedde/p4est/issues/112
+    p8est_balance(mesh.p4est, P8EST_CONNECT_FACE, init_fn)
 end
 
 function partition!(mesh::P4estMesh{2}; weight_fn = C_NULL)
