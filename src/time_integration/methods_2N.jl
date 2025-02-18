@@ -57,6 +57,8 @@ the low-storage explicit Runge-Kutta method of
   Third-order 2N-storage Runge-Kutta schemes with error control
   URL: https://ntrs.nasa.gov/citations/19940028444
   File: https://ntrs.nasa.gov/api/citations/19940028444/downloads/19940028444.pdf
+
+using the same interface as OrdinaryDiffEq.jl.
 """
 struct CarpenterKennedy2N43 <: SimpleAlgorithm2N
     a::SVector{4, Float64}
@@ -92,7 +94,7 @@ end
 # which are used in Trixi.jl.
 mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
                                   SimpleIntegrator2NOptions} <: AbstractTimeIntegrator
-    u::uType #
+    u::uType
     du::uType
     u_tmp::uType
     t::RealT
@@ -101,8 +103,8 @@ mutable struct SimpleIntegrator2N{RealT <: Real, uType, Params, Sol, F, Alg,
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    f::F
-    alg::Alg
+    f::F # `rhs!` of the semidiscretization
+    alg::Alg # SimpleAlgorithm2N
     opts::SimpleIntegrator2NOptions
     finalstep::Bool # added for convenience
 end
