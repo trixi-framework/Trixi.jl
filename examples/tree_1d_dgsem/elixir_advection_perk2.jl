@@ -66,9 +66,9 @@ callbacks = CallbackSet(summary_callback,
 # in calculating the polynomial coefficients in the ODE algorithm.
 ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 
-sol = Trixi.solve(ode, ode_algorithm,
+sol = Trixi.solve(ode, ode_algorithm;
                   dt = 1.0, # Manual time step value, will be overwritten by the stepsize_callback when it is specified.
-                  save_everystep = false, callback = callbacks);
+                  ode_default_options()..., callback = callbacks);
 
 # Print the timer summary
 summary_callback()

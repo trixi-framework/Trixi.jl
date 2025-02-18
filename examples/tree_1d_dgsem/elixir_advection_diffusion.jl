@@ -87,9 +87,9 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-10
 time_abs_tol = 1.0e-10
-sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()),
+sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff());
             abstol = time_abs_tol, reltol = time_int_tol,
-            save_everystep = false, callback = callbacks)
+            ode_default_options()..., callback = callbacks)
 
 # Print the timer summary
 summary_callback()
