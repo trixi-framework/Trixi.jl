@@ -339,7 +339,7 @@ end
 # which is optimized for discontinuous Galerkin methods and hyperbolic PDEs. We set some common
 # error tolerances `abstol=1.0e-6, reltol=1.0e-6` and pass `save_everystep=false` to avoid saving intermediate
 # solution vectors in memory.
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 tspan = (0.0, 2.0)
 ode = ODEProblem(rhs!, u0, tspan, x)
 
@@ -400,7 +400,8 @@ plot!(sol_trixi, label = "solution at t=$(tspan[2]) with Trixi.jl", legend = :to
 
 # ### Raw implementation
 ## basis: Legendre-Gauss-Lobatto
-using Trixi, LinearAlgebra, OrdinaryDiffEq, Plots
+using OrdinaryDiffEqLowStorageRK
+using Trixi, LinearAlgebra, Plots
 polydeg = 3 #= polynomial degree =#
 basis = LobattoLegendreBasis(polydeg)
 nodes = basis.nodes # Gauss-Lobatto nodes in [-1, 1]
