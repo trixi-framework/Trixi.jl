@@ -73,6 +73,7 @@
 # The procedure to enforce global bounds for a conservative variables is as follows:
 # If you want to guarantee non-negativity for the density of the compressible Euler equations,
 # you pass the specific quantity name of the conservative variable.
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
