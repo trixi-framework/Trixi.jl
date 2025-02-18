@@ -1,4 +1,5 @@
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using Trixi
 
 dg = DGMulti(element_type = Quad(),
              approximation_type = periodic_derivative_operator(derivative_order = 1,

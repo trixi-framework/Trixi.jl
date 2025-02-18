@@ -1,4 +1,5 @@
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using Trixi
 
 dg = DGMulti(polydeg = 3, element_type = Hex(), approximation_type = SBP(),
              surface_integral = SurfaceIntegralWeakForm(flux_hll),
