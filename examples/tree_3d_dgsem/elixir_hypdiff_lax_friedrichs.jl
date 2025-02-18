@@ -87,7 +87,7 @@ callbacks = CallbackSet(summary_callback, steady_state_callback,
 ###############################################################################
 # run the simulation
 
-sol = Trixi.solve(ode, Trixi.HypDiffN3Erk3Sstar52(),
+sol = Trixi.solve(ode, Trixi.HypDiffN3Erk3Sstar52();
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks);
+                  ode_default_options()..., callback = callbacks);
 summary_callback() # print the timer summary
