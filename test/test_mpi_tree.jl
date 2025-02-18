@@ -24,7 +24,7 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
     end
 
     @trixi_testset "elixir_advection_restart.jl" begin
-        using OrdinaryDiffEq: RDPK3SpFSAL49
+        using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49
         Trixi.mpi_isroot() && println("═"^100)
         Trixi.mpi_isroot() &&
             println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
