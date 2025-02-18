@@ -354,7 +354,7 @@ plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :top
 # Now, we implement the same example. But this time, we directly use the functionality that Trixi.jl
 # provides.
 
-using Trixi, OrdinaryDiffEq, Plots
+using Trixi, OrdinaryDiffEqLowStorageRK, Plots
 
 # First, define the equation with a advection_velocity of `1`.
 advection_velocity = 1.0
@@ -487,7 +487,7 @@ plot(vec(x), vec(sol.u[end]), label = "solution at t=$(tspan[2])", legend = :top
      lw = 3)
 
 # ### Alternative Implementation based on Trixi.jl
-using Trixi, OrdinaryDiffEq, Plots
+using Trixi, OrdinaryDiffEqLowStorageRK, Plots
 
 ## equation with a advection_velocity of `1`.
 advection_velocity = 1.0
@@ -528,5 +528,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

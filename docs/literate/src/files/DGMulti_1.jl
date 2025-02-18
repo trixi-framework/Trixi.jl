@@ -12,7 +12,8 @@
 # Here, we want to implement the equivalent example, only now using the `DGMulti` solver
 # instead of [`DGSEM`](@ref).
 
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
@@ -62,7 +63,8 @@ plot!(getmesh(pd))
 
 # ## Simulation with Gauss nodes
 # For instance, we can change the approximation type of our simulation.
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_weak_blast_wave
 
@@ -100,7 +102,8 @@ plot(pd)
 
 # ## Simulation with triangular elements
 # Also, we can set another element type. We want to use triangles now.
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 initial_condition = initial_condition_weak_blast_wave
 
@@ -144,7 +147,8 @@ plot!(getmesh(pd))
 # To use triangular meshes on a non-Cartesian domain, Trixi.jl uses the package [StartUpDG.jl](https://github.com/jlchan/StartUpDG.jl).
 # The following example is based on [`elixir_euler_triangulate_pkg_mesh.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_euler_triangulate_pkg_mesh.jl)
 # and uses a pre-defined mesh from StartUpDG.jl.
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 # We want to simulate the smooth initial condition [`initial_condition_convergence_test`](@ref)
 # with source terms [`source_terms_convergence_test`](@ref) for the 2D compressible Euler equations.
@@ -202,5 +206,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "StartUpDG", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "StartUpDG", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

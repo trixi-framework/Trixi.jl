@@ -20,7 +20,7 @@
 # The first step is to create and open a file with the .jl extension. You can do this with your
 # favorite text editor (if you do not have one, we recommend [VS Code](https://code.visualstudio.com/)).
 # In this file, you will create your setup. The file can then be executed in Julia using, for example, `trixi_include()`.
-# Alternatively, you can execute each line of the following code one by one in the 
+# Alternatively, you can execute each line of the following code one by one in the
 # Julia REPL. This will generate useful output for nearly every
 # command and improve your comprehension of the process.
 
@@ -28,7 +28,7 @@
 # and the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package.
 
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 
 # The next thing to do is to choose an equation that is suitable for your problem. To see all the
 # currently implemented equations, take a look at
@@ -118,7 +118,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     source_terms = source_term_exp_sinpi)
 
 # which leaves us with an ODE problem in time with a span from `0.0` to `1.0`.
-# This approach is commonly referred to as the method of lines. 
+# This approach is commonly referred to as the method of lines.
 
 tspan = (0.0, 1.0)
 ode = semidiscretize(semi, tspan)
@@ -165,7 +165,7 @@ save_solution = SaveSolutionCallback(interval = 20,
                                      save_initial_solution = true,
                                      save_final_solution = true)
 
-# Alternatively, we have the option to print solution files at fixed time intervals. 
+# Alternatively, we have the option to print solution files at fixed time intervals.
 # ```julua
 # save_solution = SaveSolutionCallback(dt = 0.1,
 #                                      save_initial_solution = true,
@@ -192,7 +192,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 # the ODE problem, the ODE solver and the callbacks to the `solve` function. Also, to use
 # `StepsizeCallback`, we must explicitly specify the initial trial time step `dt`, the selected
 # value is not important, because it will be overwritten by the `StepsizeCallback`. And there is no
-# need to save every step of the solution, as we are only interested the output provided by 
+# need to save every step of the solution, as we are only interested the output provided by
 # our callback [`SaveSolutionCallback`](@ref).
 
 sol = solve(ode, SSPRK33(); dt = 1.0, ode_default_options()..., callback = callbacks);
