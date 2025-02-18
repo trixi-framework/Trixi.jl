@@ -104,7 +104,7 @@
 # # Exemplary simulation
 # Here, we want to implement a simple AMR simulation of the 2D linear advection equation for a Gaussian pulse.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 advection_velocity = (0.2, -0.7)
@@ -206,5 +206,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

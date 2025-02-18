@@ -47,7 +47,8 @@
 # First, we discretize this equation using the standard functionality
 # of Trixi.jl.
 
-using Trixi, OrdinaryDiffEq, Plots
+using OrdinaryDiffEqLowStorageRK
+using Trixi, Plots
 
 # The linear scalar advection equation is already implemented in
 # Trixi.jl as [`LinearScalarAdvectionEquation1D`](@ref). We construct
@@ -315,5 +316,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

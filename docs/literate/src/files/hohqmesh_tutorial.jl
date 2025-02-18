@@ -298,7 +298,8 @@ output = generate_mesh(control_file);
 
 # The complete elixir file for this simulation example is given below.
 
-using OrdinaryDiffEq, Trixi
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 equations = CompressibleEulerEquations2D(1.4) # set gas gamma = 1.4
 
@@ -573,5 +574,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "Trixi2Vtk", "HOHQMesh"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots", "Trixi2Vtk", "HOHQMesh"],
            mode = PKGMODE_MANIFEST)

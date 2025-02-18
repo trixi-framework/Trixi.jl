@@ -33,7 +33,7 @@ Trixi.varnames(_, ::CubicEquation) = ("scalar",)
 # That's already enough to run a simple simulation with a standard DGSEM discretization
 # using the non-dissipative central flux at interfaces.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 
 ## Create a simulation setup
 equation = CubicEquation()
@@ -173,7 +173,7 @@ end # module
 ## Create a simulation setup
 import .CubicConservationLaw
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 using Plots
 
 equation = CubicConservationLaw.CubicEquation()
@@ -226,5 +226,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqSSPRK", "Plots"],
            mode = PKGMODE_MANIFEST)

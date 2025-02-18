@@ -16,7 +16,7 @@
 # state as arguments, and solves an approximate Riemann problem to introduce dissipation (and
 # hence stabilization) at the boundary. Hence, the performance of the Dirichlet BC depends on the
 # fidelity of the numerical surface flux.
-# An easy-to read introductory reference on this topic is the paper by 
+# An easy-to read introductory reference on this topic is the paper by
 # [Mengaldo et al.](https://doi.org/10.2514/6.2014-2923).
 
 # The passed boundary value function is called with the same arguments as an initial condition
@@ -31,7 +31,8 @@
 
 # Consider the one-dimensional linear advection equation with domain $\Omega=[0, 2]$ and a constant
 # zero initial condition.
-using OrdinaryDiffEq, Trixi
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 advection_velocity = 1.0
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
@@ -158,10 +159,10 @@ end
 # ```
 # Source: [`Video`](https://www.youtube.com/watch?v=w0A9X38cSe4) on Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
 
-# Furthermore, Trixi.jl also handles equations that include non-conservative terms. 
-# For such equations, the tuple of conservative and non-conservative surfaces fluxes is passed to the boundary condition, 
+# Furthermore, Trixi.jl also handles equations that include non-conservative terms.
+# For such equations, the tuple of conservative and non-conservative surfaces fluxes is passed to the boundary condition,
 # which then returns a tuple containing the boundary condition values for both the conservative and non-conservative terms.
-# For instance, a 2D ideal compressible GLM-MHD setup with reflective walls can be found in the elixir ['elixir_mhd_reflective_wall.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_mhd_reflective_wall.jl).   
+# For instance, a 2D ideal compressible GLM-MHD setup with reflective walls can be found in the elixir ['elixir_mhd_reflective_wall.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_mhd_reflective_wall.jl).
 
 # ## Package versions
 
@@ -171,5 +172,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)
