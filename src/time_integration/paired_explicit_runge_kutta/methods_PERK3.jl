@@ -6,7 +6,7 @@
 #! format: noindent
 
 # Initialize Butcher array abscissae c for PairedExplicitRK3 based on SSPRK33 base method
-function compute_c_coeffs(num_stages, cS2)
+function PERK3_compute_c_coeffs(num_stages, cS2)
     c = zeros(eltype(cS2), num_stages)
 
     # Last timesteps as for SSPRK33, see motivation in Section 3.3 of
@@ -28,18 +28,17 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
                                                    eig_vals::Vector{ComplexF64};
                                                    verbose = false, cS2)
     # Initialize array of c
-    c = compute_c_coeffs(num_stages, cS2)
+    c = PERK3_compute_c_coeffs(num_stages, cS2)
 
     # Initialize the array of our solution
     a_unknown = zeros(num_stages - 2)
 
-    # Calculate coefficients of the stability polynomial in monomial form
-    consistency_order = 3
     dtmax = tspan[2] - tspan[1]
     dteps = 1.0f-9
 
     num_eig_vals, eig_vals = filter_eig_vals(eig_vals; verbose)
 
+    consistency_order = 3
     monomial_coeffs, dt_opt = bisect_stability_polynomial(consistency_order,
                                                           num_eig_vals, num_stages,
                                                           dtmax, dteps,
@@ -49,9 +48,6 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages, tspan,
     if num_stages == consistency_order
         a_unknown = [0.25] # Use classic SSPRK33 (Shu-Osher) Butcher Tableau
     else
-        monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
-                                              num_stages)
-
         # Solve the nonlinear system of equations from monomial coefficient and
         # Butcher array abscissae c to find Butcher matrix A
         # This function is extended in TrixiNLsolveExt.jl
@@ -75,12 +71,12 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                    cS2)
 
     # Initialize array of c
-    c = compute_c_coeffs(num_stages, cS2)
+    c = PERK3_compute_c_coeffs(num_stages, cS2)
 
     # - 2 Since First entry of A is always zero (explicit method) and second is given by c_2 (consistency)
-    a_coeffs_max = num_stages - 2
+    num_a_coeffs_max = num_stages - 2
 
-    a_matrix = zeros(2, a_coeffs_max)
+    a_matrix = zeros(2, num_a_coeffs_max)
     a_matrix[1, :] = c[3:end]
 
     path_a_coeffs = joinpath(base_path_a_coeffs,
@@ -90,7 +86,7 @@ function compute_PairedExplicitRK3_butcher_tableau(num_stages,
     a_coeffs = readdlm(path_a_coeffs, Float64)
     num_a_coeffs = size(a_coeffs, 1)
 
-    @assert num_a_coeffs == a_coeffs_max
+    @assert num_a_coeffs == num_a_coeffs_max
     # Fill A-matrix in PERK style
     a_matrix[1, :] -= a_coeffs
     a_matrix[2, :] = a_coeffs
@@ -106,34 +102,41 @@ end
     PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
                       verbose = false, cS2 = 1.0f0)
 
-    Parameters:
-    - `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (PERK) method.
-    - `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
-      the Butcher tableau of the Runge Kutta method.
-      The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
-    - `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
-       In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
-    - `tspan`: Time span of the simulation.
-    - `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
-    -  `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
-      equation has been semidiscretized.
-    - `verbose` (`Bool`, optional): Verbosity flag, default is false.
-    - `cS2` (`Float64`, optional): Value of c in the Butcher tableau at c_{s-2}, when
-      s is the number of stages, default is 1.0f0.
-
 The following structures and methods provide an implementation of
 the third-order paired explicit Runge-Kutta (PERK) method
-optimized for a certain simulation setup (PDE, IC & BC, Riemann Solver, DG Solver).
+optimized for a certain simulation setup (PDE, IC & BCs, Riemann Solver, DG Solver).
 The original paper is
-- Nasab, Vermeire (2022)
-Third-order Paired Explicit Runge-Kutta schemes for stiff systems of equations
-[DOI: 10.1016/j.jcp.2022.111470](https://doi.org/10.1016/j.jcp.2022.111470)
-While the changes to SSPRK33 base-scheme are described in 
-- Doehring, Schlottke-Lakemper, Gassner, Torrilhon (2024)
-Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
-[DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)
 
-Note: To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages.
+- Nasab, Vermeire (2022)
+  Third-order Paired Explicit Runge-Kutta schemes for stiff systems of equations
+  [DOI: 10.1016/j.jcp.2022.111470](https://doi.org/10.1016/j.jcp.2022.111470)
+
+  While the changes to SSPRK33 base-scheme are described in 
+- Doehring, Schlottke-Lakemper, Gassner, Torrilhon (2024)
+  Multirate Time-Integration based on Dynamic ODE Partitioning through Adaptively Refined Meshes for Compressible Fluid Dynamics
+  [DOI: 10.1016/j.jcp.2024.113223](https://doi.org/10.1016/j.jcp.2024.113223)                      
+
+# Arguments
+- `num_stages` (`Int`): Number of stages in the paired explicit Runge-Kutta (PERK) method.
+- `base_path_a_coeffs` (`AbstractString`): Path to a file containing some coefficients in the A-matrix in 
+    the Butcher tableau of the Runge Kutta method.
+    The matrix should be stored in a text file at `joinpath(base_path_a_coeffs, "a_$(num_stages).txt")` and separated by line breaks.
+- `dt_opt` (`Float64`, optional): Optimal time step size for the simulation setup. Can be `nothing` if it is unknown. 
+    In this case the optimal CFL number cannot be computed and the [`StepsizeCallback`](@ref) cannot be used.
+- `tspan`: Time span of the simulation.
+- `semi` (`AbstractSemidiscretization`): Semidiscretization setup.
+- `eig_vals` (`Vector{ComplexF64}`): Eigenvalues of the Jacobian of the right-hand side (rhs) of the ODEProblem after the
+    equation has been semidiscretized.
+- `verbose` (`Bool`, optional): Verbosity flag, default is false.
+- `cS2` (`Float64`, optional): Value of $c_{S-2}$ in the Butcher tableau, where
+    $S$ is the number of stages. Default is `1.0f0`.
+
+!!! note
+    To use this integrator, the user must import the 
+    [Convex.jl](https://github.com/jump-dev/Convex.jl), 
+    [ECOS.jl](https://github.com/jump-dev/ECOS.jl), and
+    [NLSolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) packages
+    unless the A-matrix coefficients are provided in a `a_<num_stages>.txt` file.
 """
 struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
     num_stages::Int # S
@@ -148,6 +151,7 @@ end
 function PairedExplicitRK3(num_stages, base_path_a_coeffs::AbstractString,
                            dt_opt = nothing;
                            cS2 = 1.0f0)
+    @assert num_stages>=3 "PERK3 requires at least three stages"
     a_matrix, c = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                             base_path_a_coeffs;
                                                             cS2)
@@ -158,6 +162,7 @@ end
 # Constructor that computes Butcher matrix A coefficients from a semidiscretization
 function PairedExplicitRK3(num_stages, tspan, semi::AbstractSemidiscretization;
                            verbose = false, cS2 = 1.0f0)
+    @assert num_stages>=3 "PERK3 requires at least three stages"
     eig_vals = eigvals(jacobian_ad_forward(semi))
 
     return PairedExplicitRK3(num_stages, tspan, eig_vals; verbose, cS2)
@@ -166,6 +171,7 @@ end
 # Constructor that calculates the coefficients with polynomial optimizer from a list of eigenvalues
 function PairedExplicitRK3(num_stages, tspan, eig_vals::Vector{ComplexF64};
                            verbose = false, cS2 = 1.0f0)
+    @assert num_stages>=3 "PERK3 requires at least three stages"
     a_matrix, c, dt_opt = compute_PairedExplicitRK3_butcher_tableau(num_stages,
                                                                     tspan,
                                                                     eig_vals;
@@ -184,14 +190,14 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
     du::uType
     u_tmp::uType
     t::RealT
-    tdir::RealT
+    tdir::RealT # DIRection of time integration, i.e., if one marches forward or backward in time
     dt::RealT # current time step
     dtcache::RealT # manually set time step
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F
-    alg::Alg # This is our own class written above; Abbreviation for ALGorithm
+    f::F # `rhs!` of the semidiscretization
+    alg::Alg # PairedExplicitRK3
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
     dtchangeable::Bool
@@ -227,8 +233,7 @@ function init(ode::ODEProblem, alg::PairedExplicitRK3;
     # initialize callbacks
     if callback isa CallbackSet
         for cb in callback.continuous_callbacks
-            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-
-            Kutta methods."))
+            throw(ArgumentError("Continuous callbacks are unsupported with paired explicit Runge-Kutta methods."))
         end
         for cb in callback.discrete_callbacks
             cb.initialize(cb, integrator.u, integrator.t, integrator)
