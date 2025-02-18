@@ -85,7 +85,7 @@ First, you need to load the necessary packages:
 
 ```@example PERK-example-1
 using Convex, ECOS, NLsolve
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 ```
 
