@@ -50,13 +50,10 @@ function compute_PairedExplicitRK2_butcher_tableau(num_stages, eig_vals, tspan,
     consistency_order = 2
     monomial_coeffs, dt_opt = bisect_stability_polynomial(consistency_order,
                                                           num_eig_vals, num_stages,
-                                                          dtmax,
-                                                          dteps,
+                                                          dtmax, dteps,
                                                           eig_vals; verbose)
 
     if num_coeffs_max > 0
-        monomial_coeffs = undo_normalization!(monomial_coeffs, consistency_order,
-                                              num_stages)
         num_monomial_coeffs = length(monomial_coeffs)
         @assert num_monomial_coeffs == num_coeffs_max
         A = compute_a_coeffs(num_stages, stage_scaling_factors, monomial_coeffs)
@@ -134,8 +131,10 @@ The original paper is
     $S$ is the number of stages. Default is `0.5`.
 
 !!! note
-    To use this integrator, the user must import the `Convex` and `ECOS` packages
-    unless the coefficients are provided in a "gamma_<num_stages>.txt" file.
+    To use this integrator, the user must import the
+    [Convex.jl](https://github.com/jump-dev/Convex.jl) and 
+    [ECOS.jl](https://github.com/jump-dev/ECOS.jl) packages
+    unless the coefficients are provided in a `gamma_<num_stages>.txt` file.
 """
 struct PairedExplicitRK2 <: AbstractPairedExplicitRKSingle
     num_stages::Int
@@ -205,7 +204,7 @@ mutable struct PairedExplicitRK2Integrator{RealT <: Real, uType, Params, Sol, F,
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
     f::F # `rhs!` of the semidiscretization
-    alg::Alg # This is our own class written above; Abbreviation for ALGorithm
+    alg::Alg # PairedExplicitRK2
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
     dtchangeable::Bool

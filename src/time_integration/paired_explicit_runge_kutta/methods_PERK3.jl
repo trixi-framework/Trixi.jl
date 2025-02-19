@@ -132,8 +132,11 @@ The original paper is
     $S$ is the number of stages. Default is `1.0f0`.
 
 !!! note
-    To use this integrator, the user must import the `Convex`, `ECOS`, and `NLsolve` packages
-    unless the A-matrix coefficients are provided in a "a_<num_stages>.txt" file.
+    To use this integrator, the user must import the 
+    [Convex.jl](https://github.com/jump-dev/Convex.jl), 
+    [ECOS.jl](https://github.com/jump-dev/ECOS.jl), and
+    [NLSolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) packages
+    unless the A-matrix coefficients are provided in a `a_<num_stages>.txt` file.
 """
 struct PairedExplicitRK3 <: AbstractPairedExplicitRKSingle
     num_stages::Int # S
@@ -194,7 +197,7 @@ mutable struct PairedExplicitRK3Integrator{RealT <: Real, uType, Params, Sol, F,
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
     f::F # `rhs!` of the semidiscretization
-    alg::Alg # This is our own class written above; Abbreviation for ALGorithm
+    alg::Alg # PairedExplicitRK3
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
     dtchangeable::Bool
