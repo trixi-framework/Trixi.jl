@@ -255,6 +255,7 @@ function (analysis_callback::AnalysisCallback)(u_ode, du_ode, integrator, semi)
     ncalls_rhs_since_last_analysis = (ncalls(semi.performance_counter)
                                       -
                                       analysis_callback.ncalls_rhs_last_analysis)
+    # This assumes that the same number of threads is used on each MPI rank.
     performance_index = runtime_since_last_analysis * mpi_nranks() *
                         Threads.nthreads() /
                         (ndofsglobal(mesh, solver, cache)
