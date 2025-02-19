@@ -196,7 +196,7 @@ mutable struct PairedExplicitRK4Integrator{RealT <: Real, uType, Params, Sol, F,
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
     f::F # `rhs!` of the semidiscretization
-    alg::Alg # This is our own class written above; Abbreviation for ALGorithm
+    alg::Alg # PairedExplicitRK4
     opts::PairedExplicitRKOptions
     finalstep::Bool # added for convenience
     dtchangeable::Bool
