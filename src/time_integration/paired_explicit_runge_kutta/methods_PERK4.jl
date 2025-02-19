@@ -129,8 +129,10 @@ The method has been proposed in
     $S$ is the number of stages. Default is `1.0f0`.
 
 !!! note
-    To use this integrator, the user must import the `Convex` and `ECOS` packages
-    unless the coefficients are provided in a "a_<num_stages>.txt" file.    
+    To use this integrator, the user must import the
+    [Convex.jl](https://github.com/jump-dev/Convex.jl) and 
+    [ECOS.jl](https://github.com/jump-dev/ECOS.jl) packages
+    unless the coefficients are provided in a `a_<num_stages>.txt` file.   
 """
 struct PairedExplicitRK4 <: AbstractPairedExplicitRKSingle
     num_stages::Int # S
