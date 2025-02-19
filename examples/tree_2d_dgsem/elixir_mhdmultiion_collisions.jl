@@ -104,6 +104,7 @@ solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
+# We use a very coarse mesh because this is a 0-dimensional case
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 1,
                 n_cells_max = 1_000_000)
