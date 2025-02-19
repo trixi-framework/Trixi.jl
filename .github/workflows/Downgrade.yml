@@ -35,8 +35,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.9'
-          # - '~1.9.0-0' # including development versions
+          - '1.10'
+          # - '~1.10.0-0' # including development versions
           # - 'nightly'
         os:
           - ubuntu-latest
@@ -72,7 +72,7 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-downgrade-compat@v1
         with:
-          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DiffEqBase,DelimitedFiles
+          skip: LinearAlgebra,Printf,SparseArrays,UUIDs,DelimitedFiles,Test,Downloads,Random
           projects: ., test
       - uses: julia-actions/julia-buildpkg@v1
         env:

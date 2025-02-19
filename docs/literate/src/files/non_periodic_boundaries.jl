@@ -93,9 +93,9 @@ callbacks = CallbackSet(analysis_callback,
 visnodes = range(tspan[1], tspan[2], length = 300)
 
 # and run the simulation.
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, saveat = visnodes, callback = callbacks);
+            ode_default_options()..., saveat = visnodes, callback = callbacks);
 
 using Plots
 @gif for step in eachindex(sol.u)
@@ -157,6 +157,11 @@ end
 #   <style>.embed-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; } .embed-container iframe, .embed-container object, .embed-container embed { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }</style><div class='embed-container'><iframe src='https://www.youtube-nocookie.com/embed/w0A9X38cSe4' frameborder='0' allowfullscreen></iframe></div>
 # ```
 # Source: [`Video`](https://www.youtube.com/watch?v=w0A9X38cSe4) on Trixi.jl's YouTube channel [`Trixi Framework`](https://www.youtube.com/watch?v=WElqqdMhY4A)
+
+# Furthermore, Trixi.jl also handles equations that include non-conservative terms. 
+# For such equations, the tuple of conservative and non-conservative surfaces fluxes is passed to the boundary condition, 
+# which then returns a tuple containing the boundary condition values for both the conservative and non-conservative terms.
+# For instance, a 2D ideal compressible GLM-MHD setup with reflective walls can be found in the elixir ['elixir_mhd_reflective_wall.jl](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/dgmulti_2d/elixir_mhd_reflective_wall.jl).   
 
 # ## Package versions
 

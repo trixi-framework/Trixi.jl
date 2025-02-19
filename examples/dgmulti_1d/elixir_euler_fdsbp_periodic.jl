@@ -1,4 +1,3 @@
-
 using Trixi, OrdinaryDiffEq
 
 dg = DGMulti(element_type = Line(),
@@ -33,6 +32,8 @@ callbacks = CallbackSet(summary_callback, alive_callback, stepsize_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 0.5 * estimate_dt(mesh, dg), save_everystep = false, callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 0.5 * estimate_dt(mesh, dg),
+            ode_default_options()...,
+            callback = callbacks);
 summary_callback() # print the timer summary

@@ -1,4 +1,3 @@
-
 using OrdinaryDiffEq
 using Trixi
 
@@ -38,9 +37,9 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine = true)
 callbacks_ext = CallbackSet(amr_callback, callbacks.discrete_callbacks...)
 
-integrator = init(ode, alg,
+integrator = init(ode, alg;
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks_ext, maxiters = 100_000)
+                  ode_default_options()..., callback = callbacks_ext, maxiters = 100_000)
 
 # Load saved context for adaptive time integrator
 if integrator.opts.adaptive

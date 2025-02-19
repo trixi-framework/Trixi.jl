@@ -45,12 +45,12 @@ using DelimitedFiles: readdlm
 using Downloads: Downloads
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
+using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using IfElse: ifelse
 using LinearMaps: LinearMap
 using LoopVectorization: LoopVectorization, @turbo, indices
 using StaticArrayInterface: static_length # used by LoopVectorization
@@ -61,6 +61,7 @@ using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using T8code
 using RecipesBase: RecipesBase
+using RecursiveArrayTools: VectorOfArray
 using Requires: @require
 using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
@@ -262,7 +263,10 @@ export SemidiscretizationHyperbolicParabolic
 export SemidiscretizationEulerAcoustics
 
 export SemidiscretizationEulerGravity, ParametersEulerGravity,
-       timestep_gravity_erk52_3Sstar!, timestep_gravity_carpenter_kennedy_erk54_2N!
+       timestep_gravity_erk51_3Sstar!,
+       timestep_gravity_erk52_3Sstar!,
+       timestep_gravity_erk53_3Sstar!,
+       timestep_gravity_carpenter_kennedy_erk54_2N!
 
 export SemidiscretizationCoupled
 
@@ -310,49 +314,6 @@ function __init__()
     # Enable features that depend on the availability of the Plots package
     @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
         using .Plots: Plots
-    end
-
-    # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-    @static if !isdefined(Base, :get_extension)
-        @require Makie="ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a" begin
-            include("../ext/TrixiMakieExt.jl")
-        end
-    end
-
-    @static if !isdefined(Base, :get_extension)
-        @require Convex="f65535da-76fb-5f13-bab9-19810c17039a" begin
-            @require ECOS="e2685f51-7e38-5353-a97d-a921fd2c8199" begin
-                include("../ext/TrixiConvexECOSExt.jl")
-            end
-        end
-    end
-
-    @static if !isdefined(Base, :get_extension)
-        @require NLsolve="2774e3e8-f4cf-5e23-947b-6d7e65073b56" begin
-            include("../ext/TrixiNLsolveExt.jl")
-        end
-    end
-
-    # FIXME upstream. This is a hacky workaround for
-    #       https://github.com/trixi-framework/Trixi.jl/issues/628
-    #       https://github.com/trixi-framework/Trixi.jl/issues/1185
-    # The related upstream issues appear to be
-    #       https://github.com/JuliaLang/julia/issues/35800
-    #       https://github.com/JuliaLang/julia/issues/32552
-    #       https://github.com/JuliaLang/julia/issues/41740
-    # See also https://discourse.julialang.org/t/performance-depends-dramatically-on-compilation-order/58425
-    if VERSION < v"1.9.0"
-        let
-            for T in (Float32, Float64)
-                u_mortars_2d = zeros(T, 2, 2, 2, 2, 2)
-                u_view_2d = view(u_mortars_2d, 1, :, 1, :, 1)
-                LoopVectorization.axes(u_view_2d)
-
-                u_mortars_3d = zeros(T, 2, 2, 2, 2, 2, 2)
-                u_view_3d = view(u_mortars_3d, 1, :, 1, :, :, 1)
-                LoopVectorization.axes(u_view_3d)
-            end
-        end
     end
 end
 
