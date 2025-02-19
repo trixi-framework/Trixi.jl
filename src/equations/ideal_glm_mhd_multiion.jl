@@ -522,8 +522,9 @@ The additional coefficient ``\bar{\nu}^1_{kk'}`` is a non-dimensional drift corr
 
 References:
 - P. Rambo, J. Denavit, Interpenetration and ion separation in colliding plasmas, Physics of Plasmas 1 (1994) 4050–4060.
+  [DOI: 10.1063/1.870875](https://doi.org/10.1063/1.870875).
 - Schunk, R. W., Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry. 
-  Cambridge university press.
+  Cambridge university press. [DOI: 10.1017/CBO9780511635342](https://doi.org/10.1017/CBO9780511635342).
 """
 function source_terms_collision_ion_ion(u, x, t,
                                         equations::AbstractIdealGlmMhdMultiIonEquations)
@@ -612,8 +613,9 @@ which is scaled with the elementary charge (see [`IdealGlmMhdMultiIonEquations2D
 
 References:
 - P. Rambo, J. Denavit, Interpenetration and ion separation in colliding plasmas, Physics of Plasmas 1 (1994) 4050–4060.
+  [DOI: 10.1063/1.870875](https://doi.org/10.1063/1.870875).
 - Schunk, R. W., Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry. 
-  Cambridge university press.
+  Cambridge university press. [DOI: 10.1017/CBO9780511635342](https://doi.org/10.1017/CBO9780511635342).
 """
 function source_terms_collision_ion_electron(u, x, t,
                                              equations::AbstractIdealGlmMhdMultiIonEquations)
