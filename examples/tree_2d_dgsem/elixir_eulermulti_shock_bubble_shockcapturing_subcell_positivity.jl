@@ -1,5 +1,3 @@
-# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
-using OrdinaryDiffEqSSPRK: CallbackSet
 using Trixi
 
 ###############################################################################

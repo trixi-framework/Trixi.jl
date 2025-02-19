@@ -81,7 +81,6 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine = true)
 
 callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback, amr_callback)
-# callbacks = CallbackSet(summary_callback, alive_callback)
 
 ###############################################################################
 # run the simulation

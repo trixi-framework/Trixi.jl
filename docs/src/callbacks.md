@@ -129,7 +129,7 @@ Some callbacks provided by Trixi.jl implement specific features for certain equa
 Step callbacks are passed to the `solve` method from the ODE solver via the keyword argument
 `callback`. If you want to use a single callback `cb`, pass it as `callback=cb`. When using two or
 more callbacks, you need to turn them into a `CallbackSet` first by calling
-`callbacks = CallbackSet(cb1, cb2)` and passing it as `callback=callbacks`.
+`callbacks = CallbackSet(cb1, cb2)` and passing it as `callback = callbacks`.
 
 !!! note
     There are some restrictions regarding the order of callbacks in a `CallbackSet`.
