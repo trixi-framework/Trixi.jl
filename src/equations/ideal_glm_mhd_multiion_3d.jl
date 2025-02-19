@@ -244,9 +244,69 @@ end
     return SVector(f)
 end
 
+# Calculate 1D flux for a single point in the normal direction
+# Note, this directional vector is not normalized
+@inline function flux(u, normal_direction::AbstractVector,
+                      equations::IdealGlmMhdMultiIonEquations3D)
+    B1, B2, B3 = magnetic_field(u, equations)
+    psi = divergence_cleaning_field(u, equations)
+
+    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
+                                                                                         equations)
+
+    mag_en = 0.5f0 * (B1^2 + B2^2 + B3^2)
+    div_clean_energy = 0.5f0 * psi^2
+    B_normal = B1 * normal_direction[1] + B2 * normal_direction[2] +
+               B3 * normal_direction[3]
+
+    f = zero(MVector{nvariables(equations), eltype(u)})
+
+    f[1] = (equations.c_h * psi * normal_direction[1] +
+            (v2_plus * B1 - v1_plus * B2) * normal_direction[2] +
+            (v3_plus * B1 - v1_plus * B3) * normal_direction[3])
+    f[2] = ((v1_plus * B2 - v2_plus * B1) * normal_direction[1] +
+            equations.c_h * psi * normal_direction[2] +
+            (v3_plus * B2 - v2_plus * B3) * normal_direction[3])
+    f[3] = ((v1_plus * B3 - v3_plus * B1) * normal_direction[1] +
+            (v2_plus * B3 - v3_plus * B2) * normal_direction[2] +
+            equations.c_h * psi * normal_direction[3])
+
+    for k in eachcomponent(equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+        rho_inv = 1 / rho
+        v1 = rho_v1 * rho_inv
+        v2 = rho_v2 * rho_inv
+        v3 = rho_v3 * rho_inv
+        kin_en = 0.5f0 * rho * (v1^2 + v2^2 + v3^2)
+        v_normal = v1 * normal_direction[1] + v2 * normal_direction[2] +
+                   v3 * normal_direction[3]
+        rho_v_normal = rho * v_normal
+        vk_plus_normal = vk1_plus[k] * normal_direction[1] +
+                         vk2_plus[k] * normal_direction[2] +
+                         vk3_plus[k] * normal_direction[3]
+
+        gamma = equations.gammas[k]
+        p = (gamma - 1) * (rho_e - kin_en - mag_en - div_clean_energy)
+
+        f1 = rho_v_normal
+        f2 = rho_v_normal * v1 + p * normal_direction[1]
+        f3 = rho_v_normal * v2 + p * normal_direction[2]
+        f4 = rho_v_normal * v3 + p * normal_direction[3]
+        f5 = (kin_en + gamma * p / (gamma - 1)) * v_normal +
+             2 * mag_en * vk_plus_normal -
+             B_normal * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) +
+             equations.c_h * psi * B_normal
+
+        set_component!(f, k, f1, f2, f3, f4, f5, equations)
+    end
+    f[end] = equations.c_h * B_normal
+
+    return SVector(f)
+end
+
 """
     flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
-                                           orientation::Integer,
+                                           orientation_or_normal_direction,
                                            equations::IdealGlmMhdMultiIonEquations3D)
 
 Entropy-conserving non-conservative two-point "flux" as described in 
@@ -454,8 +514,122 @@ The term is composed of four individual non-conservative terms:
     return SVector(f)
 end
 
+@inline function flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
+                                                        normal_direction::AbstractVector,
+                                                        equations::IdealGlmMhdMultiIonEquations3D)
+    @unpack charge_to_mass = equations
+    # Unpack left and right states to get the magnetic field
+    B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
+    B1_rr, B2_rr, B3_rr = magnetic_field(u_rr, equations)
+    psi_ll = divergence_cleaning_field(u_ll, equations)
+    psi_rr = divergence_cleaning_field(u_rr, equations)
+    B_dot_n_ll = B1_ll * normal_direction[1] +
+                 B2_ll * normal_direction[2] +
+                 B3_ll * normal_direction[3]
+    B_dot_n_rr = B1_rr * normal_direction[1] +
+                 B2_rr * normal_direction[2] +
+                 B3_rr * normal_direction[3]
+    B_dot_n_avg = 0.5f0 * (B_dot_n_ll + B_dot_n_rr)
+
+    # Compute important averages
+    B1_avg = 0.5f0 * (B1_ll + B1_rr)
+    B2_avg = 0.5f0 * (B2_ll + B2_rr)
+    B3_avg = 0.5f0 * (B3_ll + B3_rr)
+    mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
+    mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
+    mag_norm_avg = 0.5f0 * (mag_norm_ll + mag_norm_rr)
+    psi_avg = 0.5f0 * (psi_ll + psi_rr)
+
+    # Mean electron pressure
+    pe_ll = equations.electron_pressure(u_ll, equations)
+    pe_rr = equations.electron_pressure(u_rr, equations)
+    pe_mean = 0.5f0 * (pe_ll + pe_rr)
+
+    # Compute charge ratio of u_ll
+    charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
+    total_electron_charge = zero(eltype(u_ll))
+    for k in eachcomponent(equations)
+        rho_k = u_ll[3 + (k - 1) * 5 + 1]
+        charge_ratio_ll[k] = rho_k * charge_to_mass[k]
+        total_electron_charge += charge_ratio_ll[k]
+    end
+    charge_ratio_ll ./= total_electron_charge
+
+    # Compute auxiliary variables
+    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll,
+                                                                                                           equations)
+    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr,
+                                                                                                           equations)
+    v_plus_dot_n_ll = (v1_plus_ll * normal_direction[1] +
+                       v2_plus_ll * normal_direction[2] +
+                       v3_plus_ll * normal_direction[3])
+    f = zero(MVector{nvariables(equations), eltype(u_ll)})
+
+    # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
+    # multiplied by 0.5 whenever it's used in the Trixi code)
+    f[1] = 2 * v1_plus_ll * B_dot_n_avg
+    f[2] = 2 * v2_plus_ll * B_dot_n_avg
+    f[3] = 2 * v3_plus_ll * B_dot_n_avg
+
+    for k in eachcomponent(equations)
+        # Compute term Lorentz term
+        f2 = charge_ratio_ll[k] *
+             ((0.5f0 * mag_norm_avg + pe_mean) * normal_direction[1] -
+              B_dot_n_avg * B1_avg)
+        f3 = charge_ratio_ll[k] *
+             ((0.5f0 * mag_norm_avg + pe_mean) * normal_direction[2] -
+              B_dot_n_avg * B2_avg)
+        f4 = charge_ratio_ll[k] *
+             ((0.5f0 * mag_norm_avg + pe_mean) * normal_direction[3] -
+              B_dot_n_avg * B3_avg)
+        f5 = (vk1_plus_ll[k] * normal_direction[1] +
+              vk2_plus_ll[k] * normal_direction[2] +
+              vk3_plus_ll[k] * normal_direction[3]) * pe_mean
+
+        # Compute multi-ion term (vanishes for NCOMP==1)
+        vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
+        vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
+        vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
+        vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
+        vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
+        vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
+        vk1_minus_avg = 0.5f0 * (vk1_minus_ll + vk1_minus_rr)
+        vk2_minus_avg = 0.5f0 * (vk2_minus_ll + vk2_minus_rr)
+        vk3_minus_avg = 0.5f0 * (vk3_minus_ll + vk3_minus_rr)
+        f5 += ((B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
+                B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) *
+               normal_direction[1] +
+               (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
+                B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) *
+               normal_direction[2] +
+               (B1_ll * (vk3_minus_avg * B1_avg - vk1_minus_avg * B3_avg) +
+                B2_ll * (vk3_minus_avg * B2_avg - vk2_minus_avg * B3_avg)) *
+               normal_direction[3])
+
+        # Compute Godunov-Powell term
+        f2 += charge_ratio_ll[k] * B1_ll * B_dot_n_avg
+        f3 += charge_ratio_ll[k] * B2_ll * B_dot_n_avg
+        f4 += charge_ratio_ll[k] * B3_ll * B_dot_n_avg
+        f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
+              B_dot_n_avg
+
+        # Compute GLM term for the energy
+        f5 += v_plus_dot_n_ll * psi_ll * psi_avg
+
+        # Add to the flux vector (multiply by 2 because the non-conservative flux is 
+        # multiplied by 0.5 whenever it's used in the Trixi code)
+        set_component!(f, k, 0, 2 * f2, 2 * f3, 2 * f4, 2 * f5,
+                       equations)
+    end
+    # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
+    # multiplied by 0.5 whenever it's used in the Trixi code)
+    f[end] = 2 * v_plus_dot_n_ll * psi_avg
+
+    return SVector(f)
+end
+
 """
-    flux_nonconservative_central(u_ll, u_rr, orientation::Integer,
+    flux_nonconservative_central(u_ll, u_rr, orientation_or_normal_direction,
                                  equations::IdealGlmMhdMultiIonEquations3D)
 
 Central non-conservative two-point "flux", where the symmetric parts are computed with standard averages.
@@ -643,7 +817,7 @@ The term is composed of four individual non-conservative terms:
 end
 
 """
-    flux_ruedaramirez_etal(u_ll, u_rr, orientation, equations::IdealGlmMhdMultiIonEquations3D)
+    flux_ruedaramirez_etal(u_ll, u_rr, orientation_or_normal_direction, equations::IdealGlmMhdMultiIonEquations3D)
 
 Entropy conserving two-point flux for the multi-ion GLM-MHD equations from
 - A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
@@ -1078,18 +1252,60 @@ end
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 2 * a_square * b1^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b1^2)))
         elseif orientation == 2
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 2 * a_square * b2^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b2^2)))
         else #if orientation == 3
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 2 * a_square * b3^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b3^2)))
         end
+    end
+
+    return c_f
+end
+
+@inline function calc_fast_wavespeed(cons, normal_direction::AbstractVector,
+                                     equations::IdealGlmMhdMultiIonEquations3D)
+    B1, B2, B3 = magnetic_field(cons, equations)
+    psi = divergence_cleaning_field(cons, equations)
+
+    norm_squared = (normal_direction[1] * normal_direction[1] +
+                    normal_direction[2] * normal_direction[2] +
+                    normal_direction[3] * normal_direction[3])
+
+    c_f = zero(real(equations))
+    for k in eachcomponent(equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, cons, equations)
+
+        rho_inv = 1 / rho
+        v1 = rho_v1 * rho_inv
+        v2 = rho_v2 * rho_inv
+        v3 = rho_v3 * rho_inv
+        gamma = equations.gammas[k]
+        p = (gamma - 1) *
+            (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+             0.5f0 * psi^2)
+        a_square = gamma * p * rho_inv
+        inv_sqrt_rho = 1 / sqrt(rho)
+
+        b1 = B1 * inv_sqrt_rho
+        b2 = B2 * inv_sqrt_rho
+        b3 = B3 * inv_sqrt_rho
+        b_square = b1^2 + b2^2 + b3^2
+        b_dot_n_squared = (b1 * normal_direction[1] +
+                           b2 * normal_direction[2] +
+                           b3 * normal_direction[3])^2 / norm_squared
+
+        c_f = max(c_f,
+                  sqrt((0.5f0 * (a_square + b_square) +
+                        0.5f0 *
+                        sqrt((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
+                       norm_squared))
     end
 
     return c_f
