@@ -93,9 +93,9 @@ callbacks = CallbackSet(analysis_callback,
 visnodes = range(tspan[1], tspan[2], length = 300)
 
 # and run the simulation.
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, saveat = visnodes, callback = callbacks);
+            ode_default_options()..., saveat = visnodes, callback = callbacks);
 
 using Plots
 @gif for step in eachindex(sol.u)
