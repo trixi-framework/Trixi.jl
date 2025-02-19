@@ -191,10 +191,10 @@ end
         v1 = rho_v1 / rho
         v2 = rho_v2 / rho
         v3 = rho_v3 / rho
-        v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
         p[k] = (gamma - 1) *
-               (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2))
+               (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) -
+                0.5f0 * (B1^2 + B2^2 + B3^2))
     end
     return SVector{ncomponents(equations), real(equations)}(p)
 end
