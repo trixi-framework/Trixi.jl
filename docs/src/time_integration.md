@@ -3,11 +3,14 @@
 ## Methods from OrdinaryDiffEq.jl
 
 Trixi.jl is compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/).
-In particular, [explicit Runge-Kutta methods](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Explicit-Runge-Kutta-Methods) from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+In particular, [explicit Runge-Kutta methods](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Explicit-Runge-Kutta-Methods)
+from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and its sub-packages
 are tested extensively.
 Interesting classes of time integration schemes are
 - [Explicit low-storage Runge-Kutta methods](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods)
+  provided by OrdinaryDiffEqLowStorageRK.jl
 - [Strong stability preserving (SSP) methods](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
+  provided by OrdinaryDiffEqSSPRK.jl
 
 Some common options for `solve` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 are the following. Further documentation can be found in the

@@ -1,8 +1,9 @@
 #src # Explicit time stepping
 
 # For the time integration, [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) uses the package
-# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) from the SciML ecosystem.
-# The interface to this package is the `solve(...)` function. It always requires an ODE problem and
+# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and its sub-packages
+# from the SciML ecosystem.
+# The interface to these packages is the `solve(...)` function. It always requires an ODE problem and
 # a time integration algorithm as input parameters.
 # ````julia
 # solve(ode, alg; kwargs...)
@@ -16,6 +17,8 @@
 # Particularly interesting for Trixi.jl are their
 # [strong stability preserving (SSP) methods](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
 # and [low-storage methods](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Low-Storage-Methods).
+# These methods are also available from the low-dependency sub-packages
+# OrdinaryDiffEqLowStorageRK.jl and OrdinaryDiffEqSSPRK.jl of OrdinaryDiffEq.jl.
 # There are some differences regarding the choice of the used time step.
 
 # # [Error-based adaptive step sizes](@id adaptive_step_sizes)

@@ -55,7 +55,7 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solv
 
 # Next, we create an `ODEProblem` from the SciML/DifferentialEquations ecosystem.
 # We can solve this ODE numerically using any time integration method,
-# e.g., `SSPRK43` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
+# e.g., `SSPRK43` from [OrdinaryDiffEqSSPRK.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 # Before, we set up a [callback](@ref callbacks-id) to summarize the simulation setup.
 
 ## Create ODE problem with given time span

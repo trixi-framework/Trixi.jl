@@ -164,28 +164,6 @@ provide options to configure the amount of precompilation. For example,
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) precompiles
 many ODE solvers for a good runtime experience of average users. Currently,
 [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) does not use all of
-the available solvers. Thus, you can save some time at every update by setting
-their [precompilation options](https://docs.sciml.ai/DiffEqDocs/stable/features/low_dep/).
-
-At the time of writing, this could look as follows. First, you need to activate
-the environment where you have installed
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl). Then, you need
-to execute the following Julia code.
-
-```julia
-using Preferences, UUIDs
-let uuid = UUID("1dea7af3-3e70-54e6-95c3-0bf5283fa5ed")
-  set_preferences!(uuid, "PrecompileAutoSpecialize" => false)
-  set_preferences!(uuid, "PrecompileAutoSwitch" => false)
-  set_preferences!(uuid, "PrecompileDefaultSpecialize" => true)
-  set_preferences!(uuid, "PrecompileFunctionWrapperSpecialize" => false)
-  set_preferences!(uuid, "PrecompileLowStorage" => true)
-  set_preferences!(uuid, "PrecompileNoSpecialize" => false)
-  set_preferences!(uuid, "PrecompileNonStiff" => true)
-  set_preferences!(uuid, "PrecompileStiff" => false)
-end
-```
-
-This disables precompilation of all implicit methods. This should usually not affect
-the runtime latency with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl)
-since most setups use explicit time integration methods.
+the available solvers. Thus, you can save some time at every update by just
+installing the required sub-packages, e.g.,
+OrdinaryDiffEqLowStorageRK.jl and OrdinaryDiffEqSSPRK.jl.

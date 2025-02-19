@@ -72,20 +72,22 @@ with Julia v1.10 and newer. We recommend using the latest stable release of Juli
 
 ### For users
 Trixi.jl and its related tools are registered Julia packages. Hence, you
-can install Trixi.jl, the visualization tool
-[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
+can install Trixi.jl, the visualization tools
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl), and
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+as well as the time integration sub-packages of
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
 by executing the following commands in the Julia REPL:
 ```julia
 julia> using Pkg
 
-julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
+julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEqLowStorageRK",
+                "OrdinaryDiffEqSSPRK", "Plots"])
 ```
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
 The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-provides time integration schemes used by Trixi.jl, while
+and its sub-packages provide time integration schemes used by Trixi.jl, while
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) can be used to directly
 visualize Trixi.jl's results from the REPL.
 
@@ -126,13 +128,13 @@ to share with others.
 
 Since the postprocessing tool Trixi2Vtk.jl typically does not need to be modified,
 it is recommended to install it as a normal package.  Likewise, you can install
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and
-[Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl) and
+sub-packages of [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 as ordinary packages. To achieve this, use the following REPL commands:
 ```julia
 julia> using Pkg
 
-julia> Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])
+julia> Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Trixi2Vtk", "Plots"])
 ```
 Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
 can be omitted.

@@ -62,8 +62,8 @@
 # happens inside Julia.
 # For a smooth workflow experience with Trixi.jl, you need to install
 # [Trixi.jl](https://github.com/trixi-framework/Trixi.jl),
-# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
-# [Plots.jl](https://github.com/JuliaPlots/Plots.jl).
+# [Plots.jl](https://github.com/JuliaPlots/Plots.jl), and sub-packages of
+# [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 
 # - Open a terminal and start Julia.
 # - Execute the following commands to install all mentioned packages. Please note that the
@@ -71,12 +71,12 @@
 #   some time depending on your machine.
 #   ```julia
 #   import Pkg
-#   Pkg.add(["OrdinaryDiffEq", "Plots", "Trixi"])
+#   Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Plots", "Trixi"])
 #   ```
 # - On Windows, the firewall may request permission to install packages.
 
-# Besides Trixi.jl you have now installed two additional
-# packages: [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) provides time
+# Besides Trixi.jl you have now installed additional packages:
+# sub-packages of [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) provides time
 # integration schemes used by Trixi.jl and [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 # can be used to directly visualize Trixi.jl results from the Julia REPL.
 

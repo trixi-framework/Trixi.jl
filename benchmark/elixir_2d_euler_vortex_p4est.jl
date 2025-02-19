@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowOrderRK
 using Trixi
 
 ###############################################################################

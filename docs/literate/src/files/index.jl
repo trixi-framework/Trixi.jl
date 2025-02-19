@@ -162,7 +162,8 @@
 #src Note to developers: Use "{ index }" (but without spaces, see next line) to enable automatic indexing
 # ### [{index} Explicit time stepping](@ref time_stepping)
 #-
-# This tutorial is about time integration using [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
+# This tutorial is about time integration using [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
+# and its sub-packages.
 # It explains how to use their algorithms and presents two types of time step choices - with error-based
 # and CFL-based adaptive step size control.
 
