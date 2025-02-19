@@ -25,7 +25,8 @@ the same time, the latter takes precedence.
 If you use time integration methods from
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 and want to use multiple threads therein, you need to set the keyword argument
-`thread=OrdinaryDiffEq.True()` of the algorithms, as described in the
+`thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`)
+of the algorithms, as described in the
 [section on time integration methods](@ref time-integration).
 
 !!! warning
@@ -78,7 +79,7 @@ To set the preferences for HDF5.jl, follow the instructions described
 In total, in your active Julia project you should have a `LocalPreferences.toml` file with sections
 `[MPIPreferences]`, `[T8code]` (only needed if `T8codeMesh` is used), `[P4est]` (only needed if
 `P4estMesh` is used), and `[HDF5]` as well as an entry `MPIPreferences` in your
-`Project.toml` to use a custom MPI installation. A `LocalPreferences.toml` file 
+`Project.toml` to use a custom MPI installation. A `LocalPreferences.toml` file
 created as described above might look something like the following:
 ```toml
 [HDF5]
