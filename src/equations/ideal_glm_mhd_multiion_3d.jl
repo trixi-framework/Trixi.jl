@@ -1078,17 +1078,17 @@ end
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 2 * a_square * b1^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b1^2)))
         elseif orientation == 2
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 2 * a_square * b2^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b2^2)))
         else #if orientation == 3
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 2 * a_square * b3^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b3^2)))
         end
     end
 
