@@ -1062,10 +1062,9 @@ end
         v1 = rho_v1 * rho_inv
         v2 = rho_v2 * rho_inv
         v3 = rho_v3 * rho_inv
-        v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
         p = (gamma - 1) *
-            (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+            (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) - 0.5f0 * (B1^2 + B2^2 + B3^2) -
              0.5f0 * psi^2)
         a_square = gamma * p * rho_inv
         inv_sqrt_rho = 1 / sqrt(rho)
