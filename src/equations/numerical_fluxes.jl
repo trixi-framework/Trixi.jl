@@ -278,6 +278,7 @@ For the derivation of the matrix dissipation operator, see:
   [DOI: 10.1016/j.jcp.2016.12.006](https://doi.org/10.1016/j.jcp.2016.12.006).
 """
 struct DissipationMatrixWintersEtal end
+@inline avg(u_ll, u_rr) = 0.5 * (u_ll + u_rr)
 
 """
     FluxHLL(min_max_speed=min_max_speed_davis)
