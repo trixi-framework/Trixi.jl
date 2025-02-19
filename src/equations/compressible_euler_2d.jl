@@ -1507,7 +1507,7 @@ end
     return λ_min, λ_max
 end
 
-@inline function (dissipation::MatrixDissipationWintersEtal)(u_ll, u_rr,
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
                                                              normal_direction::AbstractVector,
                                                              equations::CompressibleEulerEquations2D)
     (; gamma) = equations

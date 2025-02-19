@@ -708,7 +708,7 @@ end
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
-@inline function (dissipation::MatrixDissipationWintersEtal)(u_ll, u_rr,
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
                                                              normal_direction::AbstractVector,
                                                              equations::CompressibleEulerEquations1D)
     gamma = equations.gamma

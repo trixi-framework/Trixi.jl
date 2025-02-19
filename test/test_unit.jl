@@ -1637,7 +1637,7 @@ end
     end
 end
 
-@timed_testset "MatrixDissipationWintersEtal entropy dissipation and consistency tests" begin
+@timed_testset "DissipationMatrixWintersEtal entropy dissipation and consistency tests" begin
     equations = CompressibleEulerEquations1D(1.4)
 
     # test constant preservation and entropy dissipation vector
