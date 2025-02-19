@@ -26,7 +26,7 @@ for human readability.
 - The boundary conditions for non-conservative equations can now be defined separately from the conservative part.
   The `surface_flux_functions` tuple is now passed directly to the boundary condition call,
   returning a tuple with boundary condition values for both the conservative and non-conservative parts ([#2200]).
-
+- Added the three-dimensional multi-ion magneto-hydrodynamics (MHD) equations with a generalized Lagrange multipliers (GLM) divergence cleaning technique ([#2215]).
 
 #### Deprecated
 
