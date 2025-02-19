@@ -174,7 +174,7 @@ julia> compute_vorticity(velocity, semi) =
          compute_vorticity(velocity, Trixi.mesh_equations_solver_cache(semi)...);
 
 julia> function get_velocity(sol)
-         rho, rhou, rhov, E = StructArrays.components(sol.u[end])
+         rho, rhou, rhov, E = StructArrays.components(Base.parent(sol.u[end]))
          v1 = rhou ./ rho
          v2 = rhov ./ rho
          return v1, v2
@@ -276,12 +276,16 @@ Trixi.jl automatically creates a [`PlotData1D`](@ref) object and visualizes it a
 line plot:
 ![1d-plot](https://user-images.githubusercontent.com/3637659/119086020-1e3f4d80-ba05-11eb-873e-1b586a81e7fe.png)
 
-To customize your 1D plot, you can create a `PlotData1D` object manually as follows:
+To customize your 1D plot, you can create a [`PlotData1D`](@ref) object manually as follows:
 ```julia
 julia> pd = PlotData1D(sol)
 julia> pd = PlotData1D(u, semi)
+julia> pd = PlotData1D((x, equations) -> initial_condition(x, last(tspan), equations), semi)
 ```
-The behavior is analogous to the [`PlotData2D`](@ref) behavior.
+If you pass some data `u` and a semidiscretization `semi`, `u` can either be an array, e.g., obtained
+by `sol.u[end]` or a function taking a one-element `SVector` `x` representing the spatial variable and the `equations`.
+The latter option can be useful, e.g., for plotting an analytical solution.
+The behavior of a [`PlotData1D`](@ref) is analogous to the [`PlotData2D`](@ref) behavior.
 
 In a very similar fashion to [`PlotData2D`](@ref), you can customize your plot:
 * `plot(pd)` creates the same plot as in `plot(sol)`.
@@ -295,6 +299,7 @@ You can also customize the [`PlotData1D`](@ref) object itself by passing attribu
 to the [`PlotData1D`](@ref) constructor:
 * `solution_variables` specifies the variables to be plotted.
 * `nvisnodes` sets the amount of nodes per element which the solution then is interpolated on.
+* `reinterpolate` specifies whether or not the data should be reinterpolated to a homogeneous grid or not.
 
 
 ### Plotting a 2D or 3D solutions as a 1D plot

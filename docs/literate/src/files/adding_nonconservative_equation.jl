@@ -131,8 +131,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback)
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes
 ## the passed callbacks
-sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
-            save_everystep = false, callback = callbacks)
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+            ode_default_options()..., callback = callbacks)
 
 ## Print the timer summary
 summary_callback()
@@ -164,8 +164,8 @@ summary_callback = SummaryCallback()
 analysis_callback = AnalysisCallback(semi, interval = 50)
 callbacks = CallbackSet(summary_callback, analysis_callback);
 
-sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
-            save_everystep = false, callback = callbacks);
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+            ode_default_options()..., callback = callbacks);
 summary_callback()
 
 #nb #-
@@ -176,6 +176,9 @@ error_1 / error_2
 @test isapprox(error_1 / error_2, 15.916970234784808, rtol = 0.05) #src
 # As expected, the new error is roughly reduced by a factor of 16, corresponding
 # to an experimental order of convergence of 4 (for polynomials of degree 3).
+
+# For non-trivial boundary conditions involving non-conservative terms, 
+# please refer to the section on [Other available example elixirs with non-trivial BC](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/non_periodic_boundaries/#Other-available-example-elixirs-with-non-trivial-BC).
 
 # ## Summary of the code
 
@@ -280,8 +283,8 @@ callbacks = CallbackSet(summary_callback, analysis_callback);
 
 ## OrdinaryDiffEq's `solve` method evolves the solution in time and executes
 ## the passed callbacks
-sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
-            save_everystep = false);
+sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+            ode_default_options()...);
 
 ## Plot the numerical solution at the final time
 using Plots: plot

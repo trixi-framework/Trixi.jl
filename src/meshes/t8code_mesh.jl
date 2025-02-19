@@ -427,6 +427,8 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                     periodicity = true)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
+    coordinates_min_max_check(coordinates_min, coordinates_max)
+
     @assert count(i -> i !== nothing,
                   (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
 
@@ -747,7 +749,6 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
     if header == " File created by HOHQMesh"
         # Mesh curvature and boundary naming is handled with additional information available in meshfile
         connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_hohqmesh_abaqus(meshfile.path,
-                                                                                                             initial_refinement_level,
                                                                                                              NDIMS,
                                                                                                              RealT)
         # Apply user defined mapping.
@@ -757,7 +758,6 @@ function T8codeMesh(meshfile::AbaqusFile{NDIMS};
         connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_standard_abaqus(meshfile.path,
                                                                                                              mapping,
                                                                                                              polydeg,
-                                                                                                             initial_refinement_level,
                                                                                                              NDIMS,
                                                                                                              RealT,
                                                                                                              boundary_symbols)
