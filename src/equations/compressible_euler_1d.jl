@@ -708,6 +708,63 @@ end
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
+@inline function (dissipation::MatrixDissipationWintersEtal)(u_ll, u_rr,
+                                                             normal_direction::AbstractVector,
+                                                             equations::CompressibleEulerEquations1D)
+    gamma = equations.gamma
+
+    norm_ = norm(normal_direction)
+    unit_normal_direction = normal_direction / norm_
+
+    rho_ll, v1_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, p_rr = cons2prim(u_rr, equations)
+
+    b_ll = rho_ll / (2 * p_ll)
+    b_rr = rho_rr / (2 * p_rr)
+
+    rho_log = ln_mean(rho_ll, rho_rr)
+    b_log = ln_mean(b_ll, b_rr)
+    v1_avg = avg(v1_ll, v1_rr)
+    p_avg = avg(rho_ll, rho_rr) / (2 * avg(b_ll, b_rr))
+    v1_squared_bar = v1_ll * v1_rr
+    h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5 * v1_squared_bar
+    c_bar = sqrt(gamma * p_avg / rho_log)
+
+    v1_minus_c = v1_avg - c_bar * unit_normal_direction[1]
+    v1_plus_c = v1_avg + c_bar * unit_normal_direction[1]
+    v_avg_normal = v1_avg * unit_normal_direction[1]
+
+    entropy_vars_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
+
+    lambda_1 = abs(v_avg_normal - c_bar) * rho_log / (2 * gamma)
+    lambda_2 = abs(v_avg_normal) * rho_log * (gamma - 1) / gamma
+    lambda_3 = abs(v_avg_normal + c_bar) * rho_log / (2 * gamma)
+    lambda_4 = abs(v_avg_normal) * p_avg
+
+    entropy_var_rho_jump, entropy_var_rho_v1_jump, entropy_var_rho_e_jump = entropy_vars_jump
+
+    w1 = lambda_1 * (entropy_var_rho_jump + v1_minus_c * entropy_var_rho_v1_jump +
+          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+    w2 = lambda_2 * (entropy_var_rho_jump + v1_avg * entropy_var_rho_v1_jump +
+          v1_squared_bar / 2 * entropy_var_rho_e_jump)
+    w3 = lambda_3 * (entropy_var_rho_jump + v1_plus_c * entropy_var_rho_v1_jump +
+          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+
+    dissipation_rho = w1 + w2 + w3
+
+    dissipation_rho_v1 = (w1 * v1_minus_c +
+                          w2 * v1_avg +
+                          w3 * v1_plus_c)
+
+    dissipation_rhoe = (w1 * (h_bar - c_bar * v_avg_normal) +
+                        w2 * 0.5 * v1_squared_bar +
+                        w3 * (h_bar + c_bar * v_avg_normal) +
+                        lambda_4 *
+                        (entropy_var_rho_e_jump * (v1_avg * v1_avg - v_avg_normal^2)))
+
+    return -0.5 * SVector(dissipation_rho, dissipation_rho_v1, dissipation_rhoe) * norm_
+end
+
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::CompressibleEulerEquations1D)

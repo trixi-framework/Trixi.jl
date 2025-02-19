@@ -1507,6 +1507,95 @@ end
     return λ_min, λ_max
 end
 
+@inline function (dissipation::MatrixDissipationWintersEtal)(u_ll, u_rr,
+                                                             normal_direction::AbstractVector,
+                                                             equations::CompressibleEulerEquations2D)
+    (; gamma) = equations
+
+    norm_ = norm(normal_direction)
+    unit_normal_direction = normal_direction / norm_
+
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
+
+    b_ll = rho_ll / (2 * p_ll)
+    b_rr = rho_rr / (2 * p_rr)
+
+    rho_log = ln_mean(rho_ll, rho_rr)
+    b_log = ln_mean(b_ll, b_rr)
+    v1_avg = avg(v1_ll, v1_rr)
+    v2_avg = avg(v2_ll, v2_rr)
+    p_avg = avg(rho_ll, rho_rr) / (2 * avg(b_ll, b_rr))
+    v_squared_bar = v1_ll * v1_rr + v2_ll * v2_rr
+    h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5 * v_squared_bar
+    c_bar = sqrt(gamma * p_avg / rho_log)
+
+    v_avg_normal = dot(SVector(v1_avg, v2_avg), unit_normal_direction)
+
+    lambda_1 = abs(v_avg_normal - c_bar) * rho_log / (2 * gamma)
+    lambda_2 = abs(v_avg_normal) * rho_log * (gamma - 1) / gamma
+    lambda_3 = abs(v_avg_normal + c_bar) * rho_log / (2 * gamma)
+    lambda_4 = abs(v_avg_normal) * p_avg
+
+    v1_minus_c = v1_avg - c_bar * unit_normal_direction[1]
+    v2_minus_c = v2_avg - c_bar * unit_normal_direction[2]
+    v1_plus_c = v1_avg + c_bar * unit_normal_direction[1]
+    v2_plus_c = v2_avg + c_bar * unit_normal_direction[2]
+    v1_tangential = v1_avg - v_avg_normal * unit_normal_direction[1]
+    v2_tangential = v2_avg - v_avg_normal * unit_normal_direction[2]
+
+    entropy_vars_jump = cons2entropy(u_rr, equations) - cons2entropy(u_ll, equations)
+    entropy_var_rho_jump, entropy_var_rho_v1_jump,
+    entropy_var_rho_v2_jump, entropy_var_rho_e_jump = entropy_vars_jump
+
+    velocity_minus_c_dot_entropy_vars_jump = v1_minus_c * entropy_var_rho_v1_jump +
+                                             v2_minus_c * entropy_var_rho_v2_jump
+    velocity_plus_c_dot_entropy_vars_jump = v1_plus_c * entropy_var_rho_v1_jump +
+                                            v2_plus_c * entropy_var_rho_v2_jump
+    velocity_avg_dot_vjump = v1_avg * entropy_var_rho_v1_jump +
+                             v2_avg * entropy_var_rho_v2_jump
+    w1 = lambda_1 * (entropy_var_rho_jump + velocity_minus_c_dot_entropy_vars_jump +
+          (h_bar - c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+    w2 = lambda_2 * (entropy_var_rho_jump + velocity_avg_dot_vjump +
+          v_squared_bar / 2 * entropy_var_rho_e_jump)
+    w3 = lambda_3 * (entropy_var_rho_jump + velocity_plus_c_dot_entropy_vars_jump +
+          (h_bar + c_bar * v_avg_normal) * entropy_var_rho_e_jump)
+
+    entropy_var_v_normal_jump = dot(SVector(entropy_var_rho_v1_jump,
+                                            entropy_var_rho_v2_jump),
+                                    unit_normal_direction)
+
+    dissipation_rho = w1 + w2 + w3
+
+    dissipation_rho_v1 = (w1 * v1_minus_c +
+                          w2 * v1_avg +
+                          w3 * v1_plus_c +
+                          lambda_4 * (entropy_var_rho_v1_jump -
+                           unit_normal_direction[1] * entropy_var_v_normal_jump +
+                           entropy_var_rho_e_jump * v1_tangential))
+
+    dissipation_rho_v2 = (w1 * v2_minus_c +
+                          w2 * v2_avg +
+                          w3 * v2_plus_c +
+                          lambda_4 * (entropy_var_rho_v2_jump -
+                           unit_normal_direction[2] * entropy_var_v_normal_jump +
+                           entropy_var_rho_e_jump * v2_tangential))
+
+    v_tangential_dot_entropy_vars_jump = v1_tangential * entropy_var_rho_v1_jump +
+                                         v2_tangential * entropy_var_rho_v2_jump
+
+    dissipation_rhoe = (w1 * (h_bar - c_bar * v_avg_normal) +
+                        w2 * 0.5 * v_squared_bar +
+                        w3 * (h_bar + c_bar * v_avg_normal) +
+                        lambda_4 * (v_tangential_dot_entropy_vars_jump +
+                         entropy_var_rho_e_jump *
+                         (v1_avg^2 + v2_avg^2 - v_avg_normal^2)))
+
+    return -0.5 *
+           SVector(dissipation_rho, dissipation_rho_v1, dissipation_rho_v2,
+                   dissipation_rhoe) * norm_
+end
+
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
 # has been normalized prior to this rotation of the state vector
 @inline function rotate_to_x(u, normal_vector, equations::CompressibleEulerEquations2D)
