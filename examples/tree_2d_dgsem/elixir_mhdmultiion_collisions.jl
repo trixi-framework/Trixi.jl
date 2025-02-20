@@ -28,7 +28,7 @@ using Trixi
 # Return the electron pressure for a constant electron temperature Te = 1 keV
 function electron_pressure_constantTe(u, equations::IdealGlmMhdMultiIonEquations2D)
     @unpack charge_to_mass = equations
-    Te = 0.008029953773 # [nondimensional] = 1 [keV]
+    Te = electron_temperature_constantTe(u, equations)
     total_electron_charge = zero(eltype(u))
     for k in eachcomponent(equations)
         rho_k = u[3 + (k - 1) * 5 + 1]
