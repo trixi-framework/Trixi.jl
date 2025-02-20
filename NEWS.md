@@ -10,6 +10,8 @@ for human readability.
 
 #### Added
 
+- Added the three-dimensional multi-ion magneto-hydrodynamics (MHD) equations with a generalized Lagrange multipliers (GLM) divergence cleaning technique ([#2215]).
+
 #### Changed
 
 - The `CallbackSet` from the OrdinaryDiffEq.jl ecosystem is `export`ed from Trixi.jl ([@2266]).
@@ -25,8 +27,6 @@ for human readability.
 ## Changes when updating to v0.10 from v0.9.x
 
 #### Added
-
-- Added the three-dimensional multi-ion magneto-hydrodynamics (MHD) equations with a generalized Lagrange multipliers (GLM) divergence cleaning technique ([#2215]).
 
 #### Changed
 
