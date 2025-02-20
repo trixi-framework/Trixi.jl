@@ -155,7 +155,7 @@ julia> redirect_stdout(devnull) do
          # runs the elixir without any output from callbacks etc.
          trixi_include(@__MODULE__,
            joinpath(examples_dir(), "dgmulti_2d", "elixir_euler_brown_minion_vortex.jl"))
-       end
+       end;
 [ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
 
 julia> function compute_vorticity(velocity, mesh, equations::CompressibleEulerEquations2D,
@@ -214,7 +214,7 @@ julia> redirect_stdout(devnull) do
          # runs the elixir without any output from callbacks etc.
          trixi_include(@__MODULE__,
            joinpath(examples_dir(), "unstructured_2d_dgsem", "elixir_euler_wall_bc.jl"))
-       end
+       end;
 [ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.
 
 julia> x = view(semi.cache.elements.node_coordinates, 1, :, :, :); # extracts the node x coordinates

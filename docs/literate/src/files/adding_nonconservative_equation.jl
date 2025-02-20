@@ -134,9 +134,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback)
 sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
             ode_default_options()..., callback = callbacks)
 
-## Print the timer summary
-summary_callback()
-
 ## Plot the numerical solution at the final time
 using Plots: plot
 plot(sol)
@@ -166,7 +163,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback);
 
 sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
             ode_default_options()..., callback = callbacks);
-summary_callback()
 
 #nb #-
 error_2 = analysis_callback(sol).l2 |> first

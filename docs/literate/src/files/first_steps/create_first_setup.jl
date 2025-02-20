@@ -197,10 +197,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 
 sol = solve(ode, SSPRK33(); dt = 1.0, ode_default_options()..., callback = callbacks);
 
-# Finally, we print the timer summary.
-
-summary_callback()
-
 # Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or
 # efficiency of your setup.
 
