@@ -187,8 +187,7 @@ end
                             5.995204332975845e-15,
                             1.5122922036932964,
                             0.0
-                        ],
-                        coverage_override=(maxiters = 6,))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -311,8 +310,7 @@ end
                             2.83556069e+00,
                             0.00000000e+00
                         ],
-                        tspan=(0.0, 0.2),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 0.2),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -350,8 +348,7 @@ end
                         ],
                         initial_condition=initial_condition_shu_osher_shock_tube_flipped,
                         boundary_conditions=BoundaryConditionDirichlet(initial_condition_shu_osher_shock_tube_flipped),
-                        tspan=(0.0, 0.2),
-                        coverage_override=(maxiters = 6,))
+                        tspan=(0.0, 0.2),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -235,9 +235,6 @@ No-slip wall boundary condition using the bounce-back approach.
     return flux
 end
 
-# Pre-defined source terms should be implemented as
-# function source_terms_WHATEVER(u, x, t, equations::LatticeBoltzmannEquations2D)
-
 # Calculate 1D flux in for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations2D)
     if orientation == 1
@@ -248,11 +245,12 @@ end
     return v_alpha .* u
 end
 
-# Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
-# @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations::LatticeBoltzmannEquations2D)
-#   λ_max =
-# end
+"""
+    flux_godunov(u_ll, u_rr, orientation, 
+                 equations::LatticeBoltzmannEquations2D)
 
+Godunov (upwind) flux for the 2D Lattice-Boltzmann equations.
+"""
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer,
                               equations::LatticeBoltzmannEquations2D)
     if orientation == 1

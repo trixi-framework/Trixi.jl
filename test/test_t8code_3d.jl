@@ -78,9 +78,7 @@ mkdir(outdir)
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[1.1302812803902801e-5],
-                            linf=[0.0007889950196294793],
-                            coverage_override=(maxiters = 6, initial_refinement_level = 1,
-                                               base_level = 1, med_level = 2, max_level = 3))
+                            linf=[0.0007889950196294793],)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -98,9 +96,7 @@ mkdir(outdir)
                                      "elixir_advection_amr_unstructured_curved.jl"),
                             l2=[2.0535121347526814e-5],
                             linf=[0.0010586603797777504],
-                            tspan=(0.0, 1.0),
-                            coverage_override=(maxiters = 6, initial_refinement_level = 0,
-                                               base_level = 0, med_level = 1, max_level = 2))
+                            tspan=(0.0, 1.0),)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -131,10 +127,7 @@ mkdir(outdir)
     @trixi_testset "elixir_advection_restart.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                             l2=[0.002590388934758452],
-                            linf=[0.01840757696885409],
-                            # With the default `maxiters = 1` in coverage tests,
-                            # there would be no time steps after the restart.
-                            coverage_override=(maxiters = 100_000,))
+                            linf=[0.01840757696885409],)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -276,8 +269,7 @@ mkdir(outdir)
                                 0.45574161423218573,
                                 0.8099577682187109
                             ],
-                            tspan=(0.0, 0.2),
-                            coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                            tspan=(0.0, 0.2),)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -306,8 +298,7 @@ mkdir(outdir)
                                 3.21754792e-01,
                                 4.76151527e+00
                             ],
-                            tspan=(0.0, 0.3),
-                            coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                            tspan=(0.0, 0.3),)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -372,8 +363,7 @@ mkdir(outdir)
                             ],
                             tspan=(0.0, 1e2),
                             # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                            abstol=1.0e-9, reltol=1.0e-9,
-                            coverage_override=(trees_per_cube_face = (1, 1), polydeg = 3)) # Prevent long compile time in CI
+                            abstol=1.0e-9, reltol=1.0e-9,)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
@@ -400,8 +390,7 @@ mkdir(outdir)
                                 0.570663236219957,
                                 3.5496520808512027
                             ],
-                            tspan=(0.0, 0.025),
-                            coverage_override=(maxiters = 6,))
+                            tspan=(0.0, 0.025),)
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
         let
