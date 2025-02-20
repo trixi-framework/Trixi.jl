@@ -694,6 +694,9 @@ end
     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
+
+# Multi-ion MHD tests
+include("test_p4est_3d_mhdmultiion.jl")
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
