@@ -45,49 +45,38 @@ end
 # return the maximum absolute value
 function stability_polynomials!(pnoms, num_stage_evals,
                                 normalized_powered_eigvals_scaled,
-                                gamma, consistency_order)
+                                gamma, consistency_order,
+                                num_reduced_unknown; kwargs...)
     polynomial_exponential_terms!(pnoms, normalized_powered_eigvals_scaled,
                                   consistency_order)
+    if consistency_order == 4
+        cS3 = kwargs[:cS3]
+        # Constants arising from the particular form of Butcher tableau chosen for the 4th order PERK methods
+        # cS3 = c_{S-3}
+        k1 = 0.001055026310046423 / cS3
+        k2 = 0.03726406530405851 / cS3
 
-    # Contribution from free coefficients
-    for k in (consistency_order + 1):num_stage_evals
-        pnoms += gamma[k - consistency_order] *
-                 view(normalized_powered_eigvals_scaled, :, k)
-    end
+        # "Fixed" term due to choice of the PERK4 Butcher tableau
+        # Required to un-do the normalization of the eigenvalues here
+        pnoms += k1 * view(normalized_powered_eigvals_scaled, :, 5) * factorial(5)
 
-    # For optimization only the maximum is relevant
-    if consistency_order - num_stage_evals == 0
-        return maximum(abs.(pnoms)) # If there is no variable to optimize, we need to use the broadcast operator.
+        # Contribution from free coefficients
+        for k in 1:(num_stage_evals - 5)
+            pnoms += (k2 * view(normalized_powered_eigvals_scaled, :, k + 4) *
+                      gamma[k] +
+                      k1 * view(normalized_powered_eigvals_scaled, :, k + 5) *
+                      gamma[k] * (k + 5)) # Ensure same normalization of both summands
+        end
     else
-        return maximum(abs(pnoms))
-    end
-end
-
-# Specialized form of the stability polynomials for fourth-order PERK schemes.
-function stability_polynomials_PERK4!(pnoms, num_stage_evals,
-                                      normalized_powered_eigvals_scaled,
-                                      gamma, cS3)
-    # Constants arising from the particular form of Butcher tableau chosen for the 4th order PERK methods
-    # cS3 = c_{S-3}
-    k1 = 0.001055026310046423 / cS3
-    k2 = 0.03726406530405851 / cS3
-
-    polynomial_exponential_terms!(pnoms, normalized_powered_eigvals_scaled, 4)
-
-    # "Fixed" term due to choice of the PERK4 Butcher tableau
-    # Required to un-do the normalization of the eigenvalues here
-    pnoms += k1 * view(normalized_powered_eigvals_scaled, :, 5) * factorial(5)
-
-    # Contribution from free coefficients
-    for k in 1:(num_stage_evals - 5)
-        pnoms += (k2 * view(normalized_powered_eigvals_scaled, :, k + 4) *
-                  gamma[k] +
-                  k1 * view(normalized_powered_eigvals_scaled, :, k + 5) *
-                  gamma[k] * (k + 5)) # Ensure same normalization of both summands
+        # Contribution from free coefficients
+        for k in (consistency_order + 1):num_stage_evals
+            pnoms += gamma[k - consistency_order] *
+                     view(normalized_powered_eigvals_scaled, :, k)
+        end
     end
 
     # For optimization only the maximum is relevant
-    if num_stage_evals == 5
+    if num_stage_evals - num_reduced_unknown == 0
         return maximum(abs.(pnoms)) # If there is no variable to optimize, we need to use the broadcast operator.
     else
         return maximum(abs(pnoms))
@@ -164,17 +153,11 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         # Check if there are variables to optimize
         if num_stage_evals - num_reduced_unknown > 0
             # Use last optimal values for gamma in (potentially) next iteration
-            if consistency_order == 4
-                problem = minimize(stability_polynomials_PERK4!(pnoms,
-                                                                num_stage_evals,
-                                                                normalized_powered_eigvals_scaled,
-                                                                gamma, kwargs[:cS3]))
-            else # p = 2, 3
-                problem = minimize(stability_polynomials!(pnoms,
-                                                          num_stage_evals,
-                                                          normalized_powered_eigvals_scaled,
-                                                          gamma, consistency_order))
-            end
+            problem = minimize(stability_polynomials!(pnoms,
+                                                      num_stage_evals,
+                                                      normalized_powered_eigvals_scaled,
+                                                      gamma, consistency_order,
+                                                      num_reduced_unknown; kwargs...))
 
             solve!(problem,
                    # Parameters taken from default values for EiCOS
@@ -192,17 +175,11 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
 
             abs_p = problem.optval
         else
-            if consistency_order == 4
-                abs_p = stability_polynomials_PERK4!(pnoms,
-                                                     num_stage_evals,
-                                                     normalized_powered_eigvals_scaled,
-                                                     gamma, kwargs[:cS3])
-            else
-                abs_p = stability_polynomials!(pnoms,
-                                               num_stage_evals,
-                                               normalized_powered_eigvals_scaled,
-                                               gamma, consistency_order)
-            end
+            abs_p = stability_polynomials!(pnoms,
+                                           num_stage_evals,
+                                           normalized_powered_eigvals_scaled,
+                                           gamma, consistency_order,
+                                           num_reduced_unknown; kwargs...)
         end
 
         if abs_p < 1
