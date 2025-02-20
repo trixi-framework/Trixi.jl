@@ -59,4 +59,3 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, SSPRK43(); abstol = 1.0e-9, reltol = 1.0e-9,
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

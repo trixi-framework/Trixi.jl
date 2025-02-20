@@ -130,7 +130,6 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, RDPK3SpFSAL49();
             ode_default_options()..., callback = callbacks)
-summary_callback()
 
 # ## Using a custom ODE right-hand side function
 
@@ -183,7 +182,6 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode_source_custom, RDPK3SpFSAL49();
             ode_default_options()..., callback = callbacks)
-summary_callback()
 
 # ## Setting up a custom semidiscretization
 
@@ -299,7 +297,6 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode_semi_custom, RDPK3SpFSAL49();
             ode_default_options()..., callback = callbacks)
-summary_callback()
 
 # For even more advanced usage of custom semidiscretizations, you
 # may look at the source code of the ones contained in Trixi.jl, e.g.,
