@@ -19,8 +19,8 @@ end
 
 # Constant/non-optimized part of the Butcher matrix
 function PERK4_a_matrix_constant(cS3)
-    return [(0.479274057836310-(0.114851811257441 / cS3)) 0.1397682537005989 0.1830127018922191
-            0.114851811257441/cS3 0.648906880894214 0.028312163512968]
+    return SMatrix{2, 3}([0.479274057836310-(0.114851811257441 / cS3) 0.1397682537005989 0.1830127018922191;
+                          0.114851811257441/cS3 0.648906880894214 0.028312163512968])
 end
 
 # Compute the Butcher tableau for a paired explicit Runge-Kutta method order 4
@@ -141,7 +141,7 @@ struct PairedExplicitRK4 <: AbstractPairedExplicitRKSingle
     a_matrix::Union{Matrix{Float64}, Nothing}
     # This part of the Butcher array matrix A is constant for all PERK methods, i.e., 
     # regardless of the optimized coefficients.
-    a_matrix_constant::Matrix{Float64}
+    a_matrix_constant::SMatrix{2, 3, Float64}
     c::Vector{Float64}
 
     dt_opt::Union{Float64, Nothing}

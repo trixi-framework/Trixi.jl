@@ -1,5 +1,3 @@
-# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
-using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 # Ratio of specific heats
@@ -107,8 +105,6 @@ ode_algorithm = Trixi.PairedExplicitRK4(num_stages, path_coeff_file)
 ###############################################################################
 # run the simulation
 
-sol = Trixi.solve(ode, ode_algorithm,
+sol = Trixi.solve(ode, ode_algorithm;
                   dt = 42.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);
-
-summary_callback()

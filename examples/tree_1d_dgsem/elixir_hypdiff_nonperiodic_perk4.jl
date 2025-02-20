@@ -1,5 +1,3 @@
-# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
-using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 # Convex and ECOS are imported because they are used for finding the optimal time step and optimal 
@@ -59,7 +57,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = Trixi.solve(ode, ode_algorithm,
+sol = Trixi.solve(ode, ode_algorithm;
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary
