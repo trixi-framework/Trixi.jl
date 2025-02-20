@@ -132,7 +132,8 @@
 
 # Now, we can run a simulation using the described methods of shock capturing and positivity
 # preserving limiters. We want to give an example for the 2D compressible Euler equations.
-using OrdinaryDiffEq, Trixi
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
@@ -224,15 +225,15 @@ plot(sol)
 
 # As argued in the description of the positivity preserving limiter above it might sometimes be
 # necessary to apply advanced techniques to ensure a physically meaningful solution.
-# Apart from the positivity of pressure and density, the physical entropy of the system should increase 
-# over the course of a simulation, see e.g. [this](https://doi.org/10.1016/0168-9274(86)90029-2) paper by Tadmor where this property is 
+# Apart from the positivity of pressure and density, the physical entropy of the system should increase
+# over the course of a simulation, see e.g. [this](https://doi.org/10.1016/0168-9274(86)90029-2) paper by Tadmor where this property is
 # shown for the compressible Euler equations.
-# As this is not necessarily the case for the numerical approximation (especially for the high-order, non-diffusive DG discretizations), 
+# As this is not necessarily the case for the numerical approximation (especially for the high-order, non-diffusive DG discretizations),
 # Lv and Ihme devised an a-posteriori limiter in [this paper](https://doi.org/10.1016/j.jcp.2015.04.026) which can be applied after each Runge-Kutta stage.
-# This limiter enforces a non-decrease in the physical, thermodynamic entropy $S$ 
+# This limiter enforces a non-decrease in the physical, thermodynamic entropy $S$
 # by bounding the entropy decrease (entropy increase is always tolerated) $\Delta S$ in each grid cell.
-# 
-# This translates into a requirement that the entropy of the limited approximation $S\Big(\mathcal{L}\big[\boldsymbol u(\Delta t) \big] \Big)$ should be 
+#
+# This translates into a requirement that the entropy of the limited approximation $S\Big(\mathcal{L}\big[\boldsymbol u(\Delta t) \big] \Big)$ should be
 # greater or equal than the previous iterates' entropy $S\big(\boldsymbol u(0) \big)$, enforced at each quadrature point:
 # ```math
 # S\Big(\mathcal{L}\big[\boldsymbol u(\Delta t, \boldsymbol{x}_i) \big] \Big) \overset{!}{\geq} S\big(\boldsymbol u(0, \boldsymbol{x}_i) \big), \quad i = 1, \dots, (k+1)^d
@@ -246,12 +247,12 @@ plot(sol)
 # ```math
 # p(\boldsymbol{x}_i) - e^{ S\big(\boldsymbol u(0, \boldsymbol{x}_i) \big)} \cdot \rho(\boldsymbol{x}_i)^\gamma \overset{!}{\geq} 0, \quad i = 1, \dots, (k+1)^d \: .
 # ```
-# In a practical simulation, we might tolerate a maximum (exponentiated) entropy decrease per element, i.e., 
+# In a practical simulation, we might tolerate a maximum (exponentiated) entropy decrease per element, i.e.,
 # ```math
 # \Delta e^S \coloneqq \min_{i} \left\{ p(\boldsymbol{x}_i) - e^{ S\big(\boldsymbol u(0, \boldsymbol{x}_i) \big)} \cdot \rho(\boldsymbol{x}_i)^\gamma \right\} < c
 # ```
 # with hyper-parameter $c$ which is to be specified by the user.
-# The default value for the corresponding parameter $c=$ `exp_entropy_decrease_max` is set to $-10^{-13}$, i.e., slightly less than zero to 
+# The default value for the corresponding parameter $c=$ `exp_entropy_decrease_max` is set to $-10^{-13}$, i.e., slightly less than zero to
 # avoid spurious limiter actions for cells in which the entropy remains effectively constant.
 # Other values can be specified by setting the `exp_entropy_decrease_max` keyword in the constructor of the limiter:
 # ```julia
@@ -260,7 +261,7 @@ plot(sol)
 # Smaller values (larger in absolute value) for `exp_entropy_decrease_max` relax the entropy increase requirement and are thus less diffusive.
 # On the other hand, for larger values (smaller in absolute value) of `exp_entropy_decrease_max` the limiter acts more often and the solution becomes more diffusive.
 #
-# In particular, we compute again a limiting parameter $\vartheta \in [0, 1]$ which is then used to blend the 
+# In particular, we compute again a limiting parameter $\vartheta \in [0, 1]$ which is then used to blend the
 # unlimited nodal values $\boldsymbol u$ with the mean value $\boldsymbol u_{\text{mean}}$ of the element:
 # ```math
 # \mathcal{L} [\boldsymbol u](\vartheta) \coloneqq (1 - \vartheta) \boldsymbol u + \vartheta \cdot \boldsymbol u_{\text{mean}}
@@ -269,9 +270,9 @@ plot(sol)
 # Note that therein the limiting parameter is denoted by $\epsilon$, which is not to be confused with the threshold $\varepsilon$ of the Zhang-Shu limiter.
 
 # As for the positivity preserving limiter, the entropy bounded limiter may be applied after every Runge-Kutta stage.
-# Both fixed timestep methods such as [`CarpenterKennedy2N54`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/) and 
+# Both fixed timestep methods such as [`CarpenterKennedy2N54`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/) and
 # adaptive timestep methods such as [`SSPRK43`](https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/) are supported.
-# We would like to remark that of course every `stage_limiter!` can also be used as a `step_limiter!`, i.e., 
+# We would like to remark that of course every `stage_limiter!` can also be used as a `step_limiter!`, i.e.,
 # acting only after the full time step has been taken.
 
 # As an example, we consider a variant of the [1D medium blast wave example](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_1d_dgsem/elixir_euler_blast_wave.jl)
@@ -283,7 +284,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hllc)
 
 # The remaining setup is the same as in the standard example:
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -360,5 +361,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Plots"],
            mode = PKGMODE_MANIFEST)

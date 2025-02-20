@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using LinearAlgebra: dot
 using Trixi
 
@@ -93,13 +93,11 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-callbacks = CallbackSet(summary_callback,
-                        analysis_callback, alive_callback)
-
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation

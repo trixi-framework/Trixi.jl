@@ -5,7 +5,7 @@
 # Using 24 threads of an AMD Ryzen Threadripper 3990X (more threads don't speed it up further)
 # and `check-bounds=no`, this elixirs takes about 20 minutes to run.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 using LinearAlgebra
 
@@ -155,6 +155,6 @@ callbacks = CallbackSet(summary_callback,
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
-sol = solve(ode, RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()); abstol = 1.0e-6,
-            reltol = 1.0e-6,
+sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+            abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);

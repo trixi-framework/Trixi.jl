@@ -25,10 +25,10 @@
 # command and improve your comprehension of the process.
 
 # To be able to use functionalities of Trixi.jl, you always need to load Trixi.jl itself
-# and the [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package.
+# and the [OrdinaryDiffEqSSPRK.jl](https://github.com/SciML/OrdinaryDiffEq.jl) package.
 
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 
 # The next thing to do is to choose an equation that is suitable for your problem. To see all the
 # currently implemented equations, take a look at

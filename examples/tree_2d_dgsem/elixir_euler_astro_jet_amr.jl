@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -6,7 +6,7 @@ using Trixi
 gamma = 5 / 3
 equations = CompressibleEulerEquations2D(gamma)
 
-# Initial condition adopted from 
+# Initial condition adopted from
 # - Yong Liu, Jianfang Lu, and Chi-Wang Shu
 #   An oscillation free discontinuous Galerkin method for hyperbolic systems
 #   https://tinyurl.com/c76fjtx4

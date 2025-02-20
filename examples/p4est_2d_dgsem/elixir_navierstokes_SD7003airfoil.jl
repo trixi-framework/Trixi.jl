@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -145,5 +145,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode,
             CarpenterKennedy2N54(williamson_condition = false,
-                                 thread = OrdinaryDiffEq.True());
+                                 thread = Trixi.True());
             dt = 1.0, ode_default_options()..., callback = callbacks)

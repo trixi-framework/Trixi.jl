@@ -1,11 +1,11 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # define new structs inside a module to allow re-evaluating the file
 module TrixiExtensionExample
 
 using Trixi
-using OrdinaryDiffEq: DiscreteCallback, u_modified!
+using OrdinaryDiffEqSSPRK: DiscreteCallback, u_modified!
 
 # This is an example implementation for a simple stage callback (i.e., a callable
 # that is executed after each Runge-Kutta *stage*), which records some values

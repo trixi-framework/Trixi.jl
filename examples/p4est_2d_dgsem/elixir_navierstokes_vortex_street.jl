@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -117,6 +117,6 @@ callbacks = CallbackSet(summary_callback,
 time_int_tol = 1e-7
 sol = solve(ode,
             # Moderate number of threads (e.g. 4) advisable to speed things up
-            RDPK3SpFSAL49(thread = OrdinaryDiffEq.True());
+            RDPK3SpFSAL49(thread = Trixi.True());
             abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)

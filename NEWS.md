@@ -1,6 +1,7 @@
 # Changelog
 
-Trixi.jl follows the interpretation of [semantic versioning (semver)](https://julialang.github.io/Pkg.jl/dev/compatibility/#Version-specifier-format-1)
+Trixi.jl follows the interpretation of
+[semantic versioning (semver)](https://julialang.github.io/Pkg.jl/dev/compatibility/#Version-specifier-format-1)
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
@@ -12,6 +13,22 @@ for human readability.
 
 - The output of the `SummaryCallback` will automatically be printed after the simulation
   is finished. Therefore, manually calling `summary_callback()` is not necessary anymore ([#2275]).
+
+## Changes when updating to v0.11 from v0.10.x
+
+#### Added
+
+#### Changed
+
+- The `CallbackSet` from the OrdinaryDiffEq.jl ecosystem is `export`ed from Trixi.jl ([@2266]).
+- The examples switched from OrdinaryDiffEq.jl to its sub-packages such as
+  OrdinaryDiffEqLowStorageRK.jl and OrdinaryDiffEqSSPRK.jl ([@2266]). The installation
+  instructions for Trixi.jl have been updated accordingly.
+
+#### Deprecated
+
+#### Removed
+
 
 ## Changes when updating to v0.10 from v0.9.x
 
@@ -34,7 +51,6 @@ for human readability.
 - The boundary conditions for non-conservative equations can now be defined separately from the conservative part.
   The `surface_flux_functions` tuple is now passed directly to the boundary condition call,
   returning a tuple with boundary condition values for both the conservative and non-conservative parts ([#2200]).
-
 
 #### Deprecated
 

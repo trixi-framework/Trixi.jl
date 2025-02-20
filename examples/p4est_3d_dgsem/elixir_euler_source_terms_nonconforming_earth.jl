@@ -2,7 +2,7 @@
 # of the size of the Earth's atmosphere (using an atmospheric height of 30km).
 # The initial condition and source terms have also been rescaled to planetary size.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 using LinearAlgebra
 

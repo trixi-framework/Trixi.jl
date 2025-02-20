@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqFeagin
 using Trixi
 
 using Quadmath

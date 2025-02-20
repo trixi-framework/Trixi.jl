@@ -91,7 +91,7 @@ end
 
 ## Create a simulation setup
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqTsit5
 
 equation = NonconservativeLinearAdvectionEquation()
 
@@ -238,7 +238,7 @@ end # module
 ## Create a simulation setup
 import .NonconservativeLinearAdvection
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqTsit5
 
 equation = NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation()
 
@@ -294,5 +294,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqTsit5", "Plots"],
            mode = PKGMODE_MANIFEST)

@@ -4,7 +4,7 @@
 # However, on this non-rectangular mesh, the metric terms are non-trivial.
 # The same errors as with elixir_advection_basic are expected.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # initial_condition_convergence_test transformed to the parallelogram
