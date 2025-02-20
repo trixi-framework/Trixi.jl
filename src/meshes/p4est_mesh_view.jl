@@ -54,7 +54,7 @@ function extract_p4est_mesh_view(elements_parent,
     @views elements.contravariant_vectors .= elements_parent.contravariant_vectors[..,
                                                                                    mesh.cell_ids]
     @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
-                                                                       mesh.cell_ids]
+                                                                               mesh.cell_ids]
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
     return elements, interfaces, boundaries_parent, mortars_parent
