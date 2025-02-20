@@ -16,6 +16,10 @@ for human readability.
 - The examples switched from OrdinaryDiffEq.jl to its sub-packages such as
   OrdinaryDiffEqLowStorageRK.jl and OrdinaryDiffEqSSPRK.jl ([@2266]). The installation
   instructions for Trixi.jl have been updated accordingly.
+- The two performance numbers (local `time/DOF/rhs!` and performance index `PID`) 
+  are now computed taking into account the number of threads ([#2292]). This allows 
+  for a better comparison of shared memory (threads) and hybrid (MPI + threads) simulations 
+  with serial simulations.
 
 #### Deprecated
 
@@ -43,7 +47,6 @@ for human readability.
 - The boundary conditions for non-conservative equations can now be defined separately from the conservative part.
   The `surface_flux_functions` tuple is now passed directly to the boundary condition call,
   returning a tuple with boundary condition values for both the conservative and non-conservative parts ([#2200]).
-- The two performance numbers (local `time/DOF/rhs!` and performance index `PID`) are now computed taking into account the number of threads ([#2292]). This allows for a better comparison of shared memory (threads) and hybrid (MPI+threads) simulations with serial simulations.
 
 #### Deprecated
 
