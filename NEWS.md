@@ -24,6 +24,8 @@ for human readability.
 - The examples switched from OrdinaryDiffEq.jl to its sub-packages such as
   OrdinaryDiffEqLowStorageRK.jl and OrdinaryDiffEqSSPRK.jl ([@2266]). The installation
   instructions for Trixi.jl have been updated accordingly.
+- The output of the `SummaryCallback` will automatically be printed after the simulation
+  is finished. Therefore, manually calling `summary_callback()` is not necessary anymore ([#2275]).
 - The two performance numbers (local `time/DOF/rhs!` and performance index `PID`) 
   are now computed taking into account the number of threads ([#2292]). This allows 
   for a better comparison of shared memory (threads) and hybrid (MPI + threads) simulations 

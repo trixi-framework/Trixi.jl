@@ -67,6 +67,3 @@ ode_algorithm = Trixi.PairedExplicitRK2(6, tspan, semi)
 sol = Trixi.solve(ode, ode_algorithm;
                   dt = 1.0, # Manual time step value, will be overwritten by the stepsize_callback when it is specified.
                   ode_default_options()..., callback = callbacks);
-
-# Print the timer summary
-summary_callback()

@@ -155,4 +155,3 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 sol = solve(ode, SSPRK43(stage_limiter!);
             maxiters = 999999, ode_default_options()...,
             callback = callbacks);
-summary_callback() # print the timer summary

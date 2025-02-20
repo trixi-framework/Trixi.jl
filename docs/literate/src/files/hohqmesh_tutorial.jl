@@ -370,8 +370,6 @@ redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoyin
     sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
                 dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                 ode_default_options()..., callback = callbacks)
-    ## print the timer summary
-    summary_callback()
 end #hide #md
 
 # Visualization of the solution is carried out in a similar way as above. That is, one converts the `.h5`
