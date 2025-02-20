@@ -1668,12 +1668,10 @@ end
     u_rr = prim2cons(SVector(1.1, -0.2, 0, 2.0), equations)
     v_ll = cons2entropy(u_ll, equations)
     v_rr = cons2entropy(u_rr, equations)
-    @test dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 0.0), equations)[[
-                                                                                        1,
-                                                                                        2,
-                                                                                        4
-                                                                                    ]] ≈
-          dissipation_matrix_winters_etal(u_ll[[1, 2, 4]], u_rr[[1, 2, 4]],
+    normal = SVector(1.0, 0.0)
+    ids = [1, 2, 4] # indices of 1D variables/fluxes within the 2D solution
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, normal, equations)[ids] ≈
+          dissipation_matrix_winters_etal(u_ll[ids], u_rr[ids],
                                           SVector(1.0),
                                           CompressibleEulerEquations1D(1.4))
 
