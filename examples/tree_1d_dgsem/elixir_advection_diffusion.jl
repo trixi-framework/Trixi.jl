@@ -1,4 +1,4 @@
-using OrdinaryDiffEq, ADTypes
+using OrdinaryDiffEqSDIRK, ADTypes
 using Trixi
 
 ###############################################################################
@@ -90,6 +90,3 @@ time_abs_tol = 1.0e-10
 sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff());
             abstol = time_abs_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-# Print the timer summary
-summary_callback()

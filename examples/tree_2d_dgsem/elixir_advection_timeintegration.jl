@@ -1,5 +1,3 @@
-# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
-using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -62,4 +60,3 @@ ode_algorithm = Trixi.CarpenterKennedy2N54()
 sol = Trixi.solve(ode, ode_algorithm;
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

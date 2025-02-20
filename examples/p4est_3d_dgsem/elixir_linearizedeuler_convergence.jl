@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -14,7 +14,7 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 coordinates_min = (-1.0, -1.0, -1.0) # minimum coordinates (min(x), min(y), min(z))
 coordinates_max = (1.0, 1.0, 1.0) # maximum coordinates (max(x), max(y), max(z))
 
-# `initial_refinement_level` is provided here to allow for a 
+# `initial_refinement_level` is provided here to allow for a
 # convenient convergence test, see
 # https://trixi-framework.github.io/Trixi.jl/stable/#Performing-a-convergence-analysis
 trees_per_dimension = (4, 4, 4)
@@ -59,6 +59,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-# print the timer summary
-summary_callback() # print the timer summary
