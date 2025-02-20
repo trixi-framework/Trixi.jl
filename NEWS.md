@@ -5,14 +5,6 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
-## Changes when updating to v0.11 from v0.10.x
-
-#### Added
-
-#### Changed
-
-- The output of the `SummaryCallback` will automatically be printed after the simulation
-  is finished. Therefore, manually calling `summary_callback()` is not necessary anymore ([#2275]).
 
 ## Changes when updating to v0.11 from v0.10.x
 
@@ -24,6 +16,8 @@ for human readability.
 - The examples switched from OrdinaryDiffEq.jl to its sub-packages such as
   OrdinaryDiffEqLowStorageRK.jl and OrdinaryDiffEqSSPRK.jl ([@2266]). The installation
   instructions for Trixi.jl have been updated accordingly.
+- The output of the `SummaryCallback` will automatically be printed after the simulation
+  is finished. Therefore, manually calling `summary_callback()` is not necessary anymore ([#2275]).
 
 #### Deprecated
 
