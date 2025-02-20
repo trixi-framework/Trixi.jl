@@ -1,4 +1,4 @@
-# #src # Adding new parabolic terms.
+#src # Adding new parabolic terms.
 
 # This demo illustrates the steps involved in adding new parabolic terms for the scalar
 # advection equation. In particular, we will add an anisotropic diffusion. We begin by

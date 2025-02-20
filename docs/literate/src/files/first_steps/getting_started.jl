@@ -76,7 +76,7 @@
 # - On Windows, the firewall may request permission to install packages.
 
 # Besides Trixi.jl you have now installed additional packages:
-# sub-packages of [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) provides time
+# sub-packages of [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) provide time
 # integration schemes used by Trixi.jl and [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
 # can be used to directly visualize Trixi.jl results from the Julia REPL.
 
