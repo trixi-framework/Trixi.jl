@@ -1,5 +1,5 @@
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 
 gamma_gas = 1.4
 equations = CompressibleEulerEquations1D(gamma_gas)
@@ -89,6 +89,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # ###############################################################################
 # # run the simulation
 
-sol = solve(ode, SSPRK43(), adaptive = false,
+sol = solve(ode, SSPRK43(), adaptive = false;
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            callback = callbacks, save_everystep = false)
+            callback = callbacks, ode_default_options()...)

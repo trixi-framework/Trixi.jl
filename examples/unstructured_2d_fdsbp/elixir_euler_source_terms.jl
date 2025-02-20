@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -54,6 +54,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK43(), abstol = 1.0e-9, reltol = 1.0e-9,
-            save_everystep = false, callback = callbacks)
-summary_callback() # print the timer summary
+sol = solve(ode, SSPRK43(), abstol = 1.0e-9, reltol = 1.0e-9;
+            ode_default_options()..., callback = callbacks)
