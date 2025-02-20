@@ -6,6 +6,15 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes in the v0.11 lifecycle
+
+#### Added
+
+- New time integrator `PairedExplicitRK4`, implementing the fourth-order 
+  paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
+  and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
+
+
 ## Changes when updating to v0.11 from v0.10.x
 
 #### Added
@@ -70,8 +79,6 @@ for human readability.
   This is useful for simulations that are initialized with an "unphysical" initial condition, but do not permit the usage of
   adaptive, error-based timestepping.
   Examples for this are simulations involving the MHD equations which require in general the `GlmStepsizeCallback` ([#2248])
-- New time integrator `PairedExplicitRK4`, implementing the fourth-order paired explicit Runge-Kutta
-  method with [Convex.jl](https://github.com/jump-dev/Convex.jl), [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 
 #### Changed
 
