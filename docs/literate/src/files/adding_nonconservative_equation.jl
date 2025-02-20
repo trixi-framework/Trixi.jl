@@ -91,7 +91,7 @@ end
 
 ## Create a simulation setup
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqTsit5
 
 equation = NonconservativeLinearAdvectionEquation()
 
@@ -177,7 +177,7 @@ error_1 / error_2
 # As expected, the new error is roughly reduced by a factor of 16, corresponding
 # to an experimental order of convergence of 4 (for polynomials of degree 3).
 
-# For non-trivial boundary conditions involving non-conservative terms, 
+# For non-trivial boundary conditions involving non-conservative terms,
 # please refer to the section on [Other available example elixirs with non-trivial BC](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/non_periodic_boundaries/#Other-available-example-elixirs-with-non-trivial-BC).
 
 # ## Summary of the code
@@ -242,7 +242,7 @@ end # module
 ## Create a simulation setup
 import .NonconservativeLinearAdvection
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqTsit5
 
 equation = NonconservativeLinearAdvection.NonconservativeLinearAdvectionEquation()
 
@@ -298,5 +298,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqTsit5", "Plots"],
            mode = PKGMODE_MANIFEST)

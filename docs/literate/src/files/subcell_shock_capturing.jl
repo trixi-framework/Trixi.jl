@@ -124,7 +124,6 @@ local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]
 # Since the setup is mostly very similar to a pure DGSEM setup as in
 # `tree_2d_dgsem/elixir_euler_blast_wave.jl`, the equivalent parts are used without any explanation
 # here.
-using OrdinaryDiffEq
 using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)

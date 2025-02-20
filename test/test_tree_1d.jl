@@ -254,7 +254,7 @@ end
 
     # Create a simulation setup
     using Trixi
-    using OrdinaryDiffEq
+    using OrdinaryDiffEqTsit5
 
     equation = NonconservativeLinearAdvectionEquation()
 
