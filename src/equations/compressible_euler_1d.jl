@@ -762,7 +762,8 @@ end
                         lambda_4 *
                         (entropy_var_rho_e_jump * (v1_avg * v1_avg - v_avg_normal^2)))
 
-    return -0.5f0 * SVector(dissipation_rho, dissipation_rho_v1, dissipation_rhoe) * norm_
+    return -0.5f0 * SVector(dissipation_rho, dissipation_rho_v1, dissipation_rhoe) *
+           norm_
 end
 
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
