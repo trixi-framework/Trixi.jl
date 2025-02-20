@@ -624,7 +624,7 @@ function source_terms_collision_ion_electron(u, x, t,
 
     prim = cons2prim(u, equations)
     T_e = electron_temperature(u, equations)
-    T_e32 = T_e^(3 / 2)
+    T_e_power32 = T_e^(3 / 2)
 
     v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
                                                                                          equations)
@@ -641,7 +641,7 @@ function source_terms_collision_ion_electron(u, x, t,
         T_k = p_k / (rho_k * gas_constants[k])
 
         # Compute effective collision frequency
-        v_ke = ion_electron_collision_constants[k] * total_electron_charge / T_e32
+        v_ke = ion_electron_collision_constants[k] * total_electron_charge / T_e_power32
 
         S_q1 = rho_k * v_ke * (v1_plus - v1_k)
         S_q2 = rho_k * v_ke * (v2_plus - v2_k)
