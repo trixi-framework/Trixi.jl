@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqHighOrderRK
 using Trixi
 
 using DoubleFloats

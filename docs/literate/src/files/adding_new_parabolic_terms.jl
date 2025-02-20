@@ -4,7 +4,7 @@
 # advection equation. In particular, we will add an anisotropic diffusion. We begin by
 # defining the hyperbolic (advection) part of the advection-diffusion equation.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 advection_velocity = (1.0, 1.0)
@@ -182,5 +182,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

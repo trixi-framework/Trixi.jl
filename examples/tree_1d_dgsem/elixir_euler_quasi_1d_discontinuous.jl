@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -14,7 +14,7 @@ A discontinuous initial condition taken from
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
     High order entropy stable schemes for the quasi-one-dimensional
     shallow water and compressible Euler equations
-    [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)   
+    [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
 function initial_condition_discontinuity(x, t,
                                          equations::CompressibleEulerEquationsQuasi1D)
