@@ -1,4 +1,5 @@
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using Trixi
 
 dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(flux_hll),
@@ -42,4 +43,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 0.5 * estimate_dt(mesh, dg),
             ode_default_options()...,
             callback = callbacks);
-summary_callback() # print the timer summary

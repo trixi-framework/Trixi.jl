@@ -1,4 +1,5 @@
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using Trixi
 
 surface_flux = FluxLaxFriedrichs()
 volume_flux = flux_ranocha
@@ -35,5 +36,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 0.5 * estimate_dt(mesh, dg),
             ode_default_options()...,
             callback = callbacks);
-
-summary_callback() # print the timer summary

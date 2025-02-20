@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqHighOrderRK
 using Trixi
 
 using DoubleFloats
@@ -57,6 +57,3 @@ sol = solve(ode, DP8();
             adaptive = false,
             dt = 42, # `dt` does not need to be in higher precision
             ode_default_options()..., callback = callbacks);
-
-# Print the timer summary
-summary_callback()

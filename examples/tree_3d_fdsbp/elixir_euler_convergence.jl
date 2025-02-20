@@ -1,7 +1,7 @@
 # !!! warning "Experimental implementation (upwind SBP)"
 #     This is an experimental feature and may change in future releases.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -60,4 +60,3 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

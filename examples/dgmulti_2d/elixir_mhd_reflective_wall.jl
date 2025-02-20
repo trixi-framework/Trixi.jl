@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 using LinearAlgebra: norm, dot # for use in the MHD boundary condition
 
@@ -105,5 +105,3 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1e-5, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-summary_callback() # print the timer summary

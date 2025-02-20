@@ -1,11 +1,11 @@
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 
 equations = InviscidBurgersEquation1D()
 
 ###############################################################################
-# setup the GSBP DG discretization that uses the Gauss operators from 
-# Chan, Del Rey Fernandez, Carpenter (2019). 
+# setup the GSBP DG discretization that uses the Gauss operators from
+# Chan, Del Rey Fernandez, Carpenter (2019).
 # [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
 surface_flux = flux_lax_friedrichs

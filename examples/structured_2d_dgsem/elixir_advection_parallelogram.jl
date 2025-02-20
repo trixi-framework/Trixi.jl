@@ -1,10 +1,10 @@
 # This elixir transforms the setup of elixir_advection_basic to a parallelogram.
 # The nodal values of the initial condition and the exact solution are the same as
-# in elixir_advection_basic. 
+# in elixir_advection_basic.
 # However, on this non-rectangular mesh, the metric terms are non-trivial.
 # The same errors as with elixir_advection_basic are expected.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # initial_condition_convergence_test transformed to the parallelogram
@@ -85,6 +85,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-# Print the timer summary
-summary_callback()

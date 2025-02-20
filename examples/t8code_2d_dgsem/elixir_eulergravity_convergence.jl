@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 initial_condition = initial_condition_eoc_test_coupled_euler_gravity
@@ -79,5 +79,5 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary
+
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)
