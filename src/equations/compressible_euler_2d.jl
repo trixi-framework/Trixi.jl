@@ -1527,7 +1527,7 @@ end
     v2_avg = avg(v2_ll, v2_rr)
     p_avg = avg(rho_ll, rho_rr) / (2 * avg(b_ll, b_rr))
     v_squared_bar = v1_ll * v1_rr + v2_ll * v2_rr
-    h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5 * v_squared_bar
+    h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5f0 * v_squared_bar
     c_bar = sqrt(gamma * p_avg / rho_log)
 
     v_avg_normal = dot(SVector(v1_avg, v2_avg), unit_normal_direction)
@@ -1585,13 +1585,13 @@ end
                                          v2_tangential * entropy_var_rho_v2_jump
 
     dissipation_rhoe = (w1 * (h_bar - c_bar * v_avg_normal) +
-                        w2 * 0.5 * v_squared_bar +
+                        w2 * 0.5f0 * v_squared_bar +
                         w3 * (h_bar + c_bar * v_avg_normal) +
                         lambda_4 * (v_tangential_dot_entropy_vars_jump +
                          entropy_var_rho_e_jump *
                          (v1_avg^2 + v2_avg^2 - v_avg_normal^2)))
 
-    return -0.5 *
+    return -0.5f0 *
            SVector(dissipation_rho, dissipation_rho_v1, dissipation_rho_v2,
                    dissipation_rhoe) * norm_
 end

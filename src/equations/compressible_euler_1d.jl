@@ -727,7 +727,7 @@ end
     v1_avg = avg(v1_ll, v1_rr)
     p_avg = avg(rho_ll, rho_rr) / (2 * avg(b_ll, b_rr))
     v1_squared_bar = v1_ll * v1_rr
-    h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5 * v1_squared_bar
+    h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5f0 * v1_squared_bar
     c_bar = sqrt(gamma * p_avg / rho_log)
 
     v1_minus_c = v1_avg - c_bar * unit_normal_direction[1]
@@ -757,12 +757,12 @@ end
                           w3 * v1_plus_c)
 
     dissipation_rhoe = (w1 * (h_bar - c_bar * v_avg_normal) +
-                        w2 * 0.5 * v1_squared_bar +
+                        w2 * 0.5f0 * v1_squared_bar +
                         w3 * (h_bar + c_bar * v_avg_normal) +
                         lambda_4 *
                         (entropy_var_rho_e_jump * (v1_avg * v1_avg - v_avg_normal^2)))
 
-    return -0.5 * SVector(dissipation_rho, dissipation_rho_v1, dissipation_rhoe) * norm_
+    return -0.5f0 * SVector(dissipation_rho, dissipation_rho_v1, dissipation_rhoe) * norm_
 end
 
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
