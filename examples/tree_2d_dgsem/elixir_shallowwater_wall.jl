@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -6,7 +6,7 @@ using Trixi
 
 equations = ShallowWaterEquations2D(gravity_constant = 9.81, H0 = 3.25)
 
-# An initial condition with a bottom topography and a perturbation in the waterheight to test 
+# An initial condition with a bottom topography and a perturbation in the waterheight to test
 # boundary_condition_slip_wall
 function initial_condition_perturbation(x, t, equations::ShallowWaterEquations2D)
     # Set the background values
@@ -79,4 +79,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

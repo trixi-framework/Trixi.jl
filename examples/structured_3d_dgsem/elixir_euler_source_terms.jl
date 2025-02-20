@@ -1,7 +1,7 @@
 # The same setup as tree_3d_dgsem/elixir_euler_source_terms.jl
 # to verify the StructuredMesh implementation against TreeMesh
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -61,4 +61,3 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

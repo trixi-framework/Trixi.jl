@@ -12,7 +12,7 @@
 # ## Mesh defined by domain boundary curves
 # Both examples are based on a semdiscretization of the 2D compressible Euler equations.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -122,7 +122,7 @@ plot!(getmesh(pd))
 # method on curvilinear grids. The mapping is a reduced 2D version of the mapping described in
 # [Rueda-Ramírez et al. (2021), p.18](https://arxiv.org/abs/2012.12040).
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -209,5 +209,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

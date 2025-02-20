@@ -112,7 +112,7 @@
 
 # ## [Implementation in Trixi.jl](@id fluxDiffExample)
 # Now, we have a look at the implementation of DGSEM with flux differencing with [Trixi.jl](https://github.com/trixi-framework/Trixi.jl).
-using OrdinaryDiffEq, Trixi
+using OrdinaryDiffEqLowStorageRK, Trixi
 
 # We implement a simulation for the compressible Euler equations in 2D
 # ```math
@@ -189,7 +189,7 @@ plot(sol)
 
 # Now, we can use for instance the dissipative flux [`flux_lax_friedrichs`](@ref) as surface flux
 # to get an entropy stable method.
-using OrdinaryDiffEq, Trixi
+using OrdinaryDiffEqLowStorageRK, Trixi
 
 gamma = 1.4
 equations = CompressibleEulerEquations2D(gamma)
@@ -239,5 +239,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

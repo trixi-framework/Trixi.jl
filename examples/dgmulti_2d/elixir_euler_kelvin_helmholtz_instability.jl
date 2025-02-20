@@ -1,4 +1,5 @@
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using Trixi
 
 dg = DGMulti(polydeg = 3, element_type = Quad(), approximation_type = SBP(),
              surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
@@ -52,5 +53,3 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = estimate_dt(mesh, dg), ode_default_options()..., callback = callbacks);
-
-summary_callback() # print the timer summary
