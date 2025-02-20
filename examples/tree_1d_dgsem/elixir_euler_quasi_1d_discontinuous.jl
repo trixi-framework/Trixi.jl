@@ -14,7 +14,7 @@ A discontinuous initial condition taken from
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
     High order entropy stable schemes for the quasi-one-dimensional
     shallow water and compressible Euler equations
-    [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)   
+    [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
 function initial_condition_discontinuity(x, t,
                                          equations::CompressibleEulerEquationsQuasi1D)
@@ -80,6 +80,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);

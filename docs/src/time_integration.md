@@ -165,9 +165,9 @@ With everything set up, you can now use `Trixi.solve` to solve the ODE problem. 
 
 ```@example PERK-example-1
 # Solve the ODE problem using PERK2
-sol = Trixi.solve(ode, ode_algorithm,
+sol = Trixi.solve(ode, ode_algorithm;
                   dt = 1.0, # overwritten by `stepsize_callback`
-                  save_everystep = false, callback = callbacks)
+                  ode_default_options()..., callback = callbacks)
 ```
 
 ##### Advanced constructors:

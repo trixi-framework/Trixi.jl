@@ -82,5 +82,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # set small tolerances for the free-stream preservation test
-sol = solve(ode, SSPRK43(), abstol = 1.0f-6, reltol = 1.0f-6,
-            save_everystep = false, callback = callbacks)
+sol = solve(ode, SSPRK43(), abstol = 1.0f-6, reltol = 1.0f-6;
+            ode_default_options()..., callback = callbacks)

@@ -1,6 +1,6 @@
 # This elixir transforms the setup of elixir_advection_basic to a rotated square.
 # The nodal values of the initial condition and the exact solution are the same as
-# in elixir_advection_basic. 
+# in elixir_advection_basic.
 # However, on this rotated mesh, the metric terms are non-trivial.
 # The same errors as with elixir_advection_basic are expected (except for rounding errors).
 
@@ -110,6 +110,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);

@@ -195,7 +195,7 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
 # need to save every step of the solution, as we are only interested the output provided by
 # our callback [`SaveSolutionCallback`](@ref).
 
-sol = solve(ode, SSPRK33(); dt = 1.0, save_everystep = false, callback = callbacks);
+sol = solve(ode, SSPRK33(); dt = 1.0, ode_default_options()..., callback = callbacks);
 
 # Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or
 # efficiency of your setup.

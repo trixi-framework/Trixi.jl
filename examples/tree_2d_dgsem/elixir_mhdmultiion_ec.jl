@@ -12,7 +12,7 @@ initial_condition = initial_condition_weak_blast_wave
 volume_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
 surface_flux = (flux_ruedaramirez_etal, flux_nonconservative_ruedaramirez_etal)
 # For provably entropy-stable surface fluxes, use
-# surface_flux = (FluxPlusDissipation(flux_ruedaramirez_etal, DissipationLaxFriedrichsEntropyVariables()), 
+# surface_flux = (FluxPlusDissipation(flux_ruedaramirez_etal, DissipationLaxFriedrichsEntropyVariables()),
 #                 flux_nonconservative_ruedaramirez_etal)
 # For a standard local Lax-Friedrichs surface flux, use
 # surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)
@@ -61,6 +61,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);

@@ -27,7 +27,7 @@ lin_euler_eigvecs = [-rho_0/c_0 1 rho_0/c_0;
                      -rho_0*c_0 0 rho_0*c_0]
 lin_euler_eigvecs_inv = inv(lin_euler_eigvecs)
 
-# Trace back characteristics. 
+# Trace back characteristics.
 # See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf, p.95
 function compute_char_initial_pos(x, t)
     return SVector(x[1], x[1], x[1]) .- t * lin_euler_eigvals
@@ -104,6 +104,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);

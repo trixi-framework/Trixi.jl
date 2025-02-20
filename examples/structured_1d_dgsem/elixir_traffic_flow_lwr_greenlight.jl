@@ -27,7 +27,7 @@ end
 ###############################################################################
 # Specify non-periodic boundary conditions
 
-# Assume that there are always cars waiting at the left 
+# Assume that there are always cars waiting at the left
 function inflow(x, t, equations::TrafficFlowLWREquations1D)
     # -1.0 = coordinates_min
     return initial_condition_greenlight(-1.0, t, equations)
@@ -74,6 +74,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 42, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);

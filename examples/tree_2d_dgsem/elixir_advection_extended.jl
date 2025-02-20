@@ -75,7 +75,7 @@ callbacks = CallbackSet(summary_callback,
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 alg = CarpenterKennedy2N54(williamson_condition = false)
-sol = solve(ode, alg,
+sol = solve(ode, alg;
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            callback = callbacks;
-            ode_default_options()...); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
+            callback = callbacks,
+            ode_default_options()...);

@@ -39,9 +39,9 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition_only_refine = true)
 callbacks_ext = CallbackSet(amr_callback, callbacks.discrete_callbacks...)
 
-integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false),
+integrator = init(ode, CarpenterKennedy2N54(williamson_condition = false);
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  save_everystep = false, callback = callbacks_ext, maxiters = 100_000);
+                  ode_default_options()..., callback = callbacks_ext, maxiters = 100_000);
 
 # Get the last time index and work with that.
 load_timestep!(integrator, restart_filename)

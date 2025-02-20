@@ -46,6 +46,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, Euler(),
+sol = solve(ode, Euler();
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);

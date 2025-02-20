@@ -153,9 +153,9 @@ example_stage_callback! = TrixiExtensionExample.ExampleStageCallback()
 # run the simulation
 
 sol = solve(ode,
-            CarpenterKennedy2N54(example_stage_callback!, williamson_condition = false),
+            CarpenterKennedy2N54(example_stage_callback!, williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);
 
 # Check whether we recorded the same values.
 # Remember that CarpenterKennedy2N54 has five stages per step.

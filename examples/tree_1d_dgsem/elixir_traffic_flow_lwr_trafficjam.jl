@@ -16,7 +16,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000,
                 periodicity = false)
 
-# Example taken from http://www.clawpack.org/riemann_book/html/Traffic_flow.html#Example:-Traffic-jam                
+# Example taken from http://www.clawpack.org/riemann_book/html/Traffic_flow.html#Example:-Traffic-jam
 # Discontinuous initial condition (Riemann Problem) leading to a shock that moves to the left.
 # The shock corresponds to the traffic congestion.
 function initial_condition_traffic_jam(x, t, equation::TrafficFlowLWREquations1D)
@@ -73,8 +73,8 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-# Note: Be careful when increasing the polynomial degree and switching from first order finite volume 
+# Note: Be careful when increasing the polynomial degree and switching from first order finite volume
 # to some actual DG method - in that case, you should also exchange the ODE solver.
-sol = solve(ode, Euler(),
+sol = solve(ode, Euler();
             dt = 42, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);

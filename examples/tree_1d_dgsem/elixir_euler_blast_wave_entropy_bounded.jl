@@ -75,4 +75,5 @@ stage_limiter! = EntropyBoundedLimiter()
 
 sol = solve(ode, SSPRK33(stage_limiter!);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            ode_default_option()...,
             callback = callbacks);
