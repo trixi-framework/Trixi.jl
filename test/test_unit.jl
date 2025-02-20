@@ -1680,10 +1680,9 @@ end
     u_rr = prim2cons(SVector(100, -2, 4, 1.0), equations)
     v_ll = cons2entropy(u_ll, equations)
     v_rr = cons2entropy(u_rr, equations)
-    dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0), equations)
-    @test dot(v_ll - v_rr,
-              dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0), equations)) ≥
-          0
+    dissipation = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0),
+                                                  equations)
+    @test dot(v_ll - v_rr, dissipation) ≥ 0
 
     # test non-unit vector
     normal_direction = SVector(1.0, 2.0)
