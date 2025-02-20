@@ -3,7 +3,7 @@ module TestUnit
 using Test
 using Trixi
 
-using LinearAlgebra: norm
+using LinearAlgebra: norm, dot
 using DelimitedFiles: readdlm
 
 # Use Convex and ECOS to load the extension that extends functions for testing
