@@ -13,8 +13,6 @@
 #
 # Keywords: supersonic flow, shock capturing, AMR, unstructured curved mesh, positivity preservation, compressible Euler, 2D
 
-# We use time integration methods implemented in Trixi.jl, but we need the `CallbackSet`
-using OrdinaryDiffEq: CallbackSet
 using Trixi
 
 ###############################################################################
@@ -160,4 +158,3 @@ stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
-summary_callback() # print the timer summary

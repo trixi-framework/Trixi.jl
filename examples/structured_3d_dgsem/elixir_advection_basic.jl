@@ -1,7 +1,7 @@
 # The same setup as tree_3d_dgsem/elixir_advection_basic.jl
 # to verify the StructuredMesh implementation against TreeMesh
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -59,6 +59,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, save
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-# Print the timer summary
-summary_callback()

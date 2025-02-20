@@ -298,7 +298,8 @@ output = generate_mesh(control_file);
 
 # The complete elixir file for this simulation example is given below.
 
-using OrdinaryDiffEq, Trixi
+using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 equations = CompressibleEulerEquations2D(1.4) # set gas gamma = 1.4
 
@@ -369,8 +370,6 @@ redirect_stdio(stdout = devnull, stderr = devnull) do # code that prints annoyin
     sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
                 dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                 ode_default_options()..., callback = callbacks)
-    ## print the timer summary
-    summary_callback()
 end #hide #md
 
 # Visualization of the solution is carried out in a similar way as above. That is, one converts the `.h5`
@@ -573,5 +572,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "Trixi2Vtk", "HOHQMesh"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots", "Trixi2Vtk", "HOHQMesh"],
            mode = PKGMODE_MANIFEST)

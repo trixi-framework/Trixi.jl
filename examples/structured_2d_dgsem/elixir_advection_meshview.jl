@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -117,6 +117,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 5.0e-2, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-# Print the timer summary
-summary_callback()
