@@ -28,9 +28,9 @@ end
 # type parameters for `TensorProductFaceOperator`.
 abstract type AbstractGaussOperator end
 struct Interpolation <: AbstractGaussOperator end
-# - `Projection{ScaleByFaceWeights=Static.False()}` corresponds to the operator `projection_matrix_gauss_to_face = M \ Vf'`,
+# - `Projection{ScaleByFaceWeights = False()}` corresponds to the operator `projection_matrix_gauss_to_face = M \ Vf'`,
 #   which is used in `VolumeIntegralFluxDifferencing`.
-# - `Projection{ScaleByFaceWeights=Static.True()}` corresponds to the quadrature-based lifting
+# - `Projection{ScaleByFaceWeights = True()}` corresponds to the quadrature-based lifting
 #   operator `LIFT = M \ (Vf' * diagm(rd.wf))`, which is used in `SurfaceIntegralWeakForm`
 struct Projection{ScaleByFaceWeights} <: AbstractGaussOperator end
 
@@ -418,12 +418,12 @@ function create_cache(mesh::DGMultiMesh, equations,
 
     # specialized operators to perform tensor product interpolation to faces for Gauss nodes
     interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-    projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{Static.False()}(),
+    projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{False()}(),
                                                                      dg)
 
     # `LIFT` matrix for Gauss nodes - this is equivalent to `projection_matrix_gauss_to_face` scaled by `diagm(rd.wf)`,
     # where `rd.wf` are Gauss node face quadrature weights.
-    gauss_LIFT = TensorProductGaussFaceOperator(Projection{Static.True()}(), dg)
+    gauss_LIFT = TensorProductGaussFaceOperator(Projection{True()}(), dg)
 
     nvars = nvariables(equations)
     rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
