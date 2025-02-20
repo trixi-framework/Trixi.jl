@@ -8,7 +8,7 @@ using Trixi
 # test (fluids with different densities) described in:
 # - Ghosh, D., Chapman, T. D., Berger, R. L., Dimits, A., & Banks, J. W. (2019). A 
 #   multispecies, multifluid model for laser–induced counterstreaming plasma simulations. 
-#   Computers & Fluids, 186, 38-57.
+#   Computers & Fluids, 186, 38-57. [DOI: 10.1016/j.compfluid.2019.04.012](https://doi.org/10.1016/j.compfluid.2019.04.012).
 #
 # This is effectively a zero-dimensional case because the spatial gradients are zero, and we use it to test the
 # collision source terms.
