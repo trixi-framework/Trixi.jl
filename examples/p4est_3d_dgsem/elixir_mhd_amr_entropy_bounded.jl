@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -115,7 +115,7 @@ callbacks = CallbackSet(summary_callback,
                         stepsize_callback,
                         glm_speed_callback)
 
-# Stage limiter required for this high CFL                        
+# Stage limiter required for this high CFL
 stage_limiter! = EntropyBoundedLimiter(exp_entropy_decrease_max = -5e-3)
 
 ###############################################################################

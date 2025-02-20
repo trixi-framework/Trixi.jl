@@ -1,10 +1,10 @@
 # This elixir transforms the setup of elixir_advection_basic to a parallelogram.
 # The nodal values of the initial condition and the exact solution are the same as
-# in elixir_advection_basic. 
+# in elixir_advection_basic.
 # However, on this non-rectangular mesh, the metric terms are non-trivial.
 # The same errors as with elixir_advection_basic are expected.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # initial_condition_convergence_test transformed to the parallelogram

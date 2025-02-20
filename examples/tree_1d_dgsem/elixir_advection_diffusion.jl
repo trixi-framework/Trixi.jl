@@ -1,4 +1,4 @@
-using OrdinaryDiffEq, ADTypes
+using OrdinaryDiffEqSDIRK, ADTypes
 using Trixi
 
 ###############################################################################

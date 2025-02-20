@@ -1,7 +1,7 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
-# This is the classic 1D viscous shock wave problem with analytical solution 
+# This is the classic 1D viscous shock wave problem with analytical solution
 # for a special value of the Prandtl number.
 # The original references are:
 #
@@ -16,13 +16,13 @@ using Trixi
 #   https://ntrs.nasa.gov/api/citations/19930090863/downloads/19930090863.pdf
 #
 # - M. Morduchow, P. A. Libby (1949)
-#   On a Complete Solution of the One-Dimensional Flow Equations 
+#   On a Complete Solution of the One-Dimensional Flow Equations
 #   of a Viscous, Head-Conducting, Compressible Gas
 #   [DOI: 10.2514/8.11882](https://doi.org/10.2514/8.11882)
 #
 #
 # The particular problem considered here is described in
-# - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017) 
+# - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017)
 #   Entropy in self-similar shock profiles
 #   [DOI: 10.1016/j.ijnonlinmec.2017.07.003](https://doi.org/10.1016/j.ijnonlinmec.2017.07.003)
 
@@ -33,8 +33,8 @@ prandtl_number() = 3 / 4
 ### Free choices: ###
 const gamma = 5 / 3
 
-# In Margolin et al., the Navier-Stokes equations are given for an 
-# isotropic stress tensor τ, i.e., ∇ ⋅ τ = μ Δu 
+# In Margolin et al., the Navier-Stokes equations are given for an
+# isotropic stress tensor τ, i.e., ∇ ⋅ τ = μ Δu
 const mu_isotropic = 0.15
 const mu_bar = mu_isotropic / (gamma - 1) # Re-scaled viscosity
 
@@ -56,7 +56,7 @@ const l = mu_bar / (rho_0 * v) * 2 * gamma / (gamma + 1) # Appropriate length sc
 """
     initial_condition_viscous_shock(x, t, equations)
 
-Classic 1D viscous shock wave problem with analytical solution 
+Classic 1D viscous shock wave problem with analytical solution
 for a special value of the Prandtl number.
 The version implemented here is described in
 - L. G. Margolin, J. M. Reisner, P. M. Jordan (2017)
@@ -84,7 +84,7 @@ initial_condition = initial_condition_viscous_shock
 
 equations = CompressibleEulerEquations3D(gamma)
 
-# Trixi implements the stress tensor in deviatoric form, thus we need to 
+# Trixi implements the stress tensor in deviatoric form, thus we need to
 # convert the "isotropic viscosity" to the "deviatoric viscosity"
 const mu_deviatoric = mu_bar * 3 / 4
 equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu_deviatoric,
@@ -128,7 +128,7 @@ boundary_conditions = Dict(:x_neg => boundary_condition_inflow,
                            :x_pos => boundary_condition_outflow)
 
 ### Viscous boundary conditions ###
-# For the viscous BCs, we use the known analytical solution 
+# For the viscous BCs, we use the known analytical solution
 boundary_condition_parabolic_dirichlet = BoundaryConditionDirichlet(initial_condition)
 
 boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_parabolic_dirichlet,
