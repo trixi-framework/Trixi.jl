@@ -629,7 +629,7 @@ end
 end
 
 """
-    flux_nonconservative_central(u_ll, u_rr, orientation_or_normal_direction,
+    flux_nonconservative_central(u_ll, u_rr, orientation::Integer,
                                  equations::IdealGlmMhdMultiIonEquations3D)
 
 Central non-conservative two-point "flux", where the symmetric parts are computed with standard averages.
@@ -1159,6 +1159,178 @@ function flux_ruedaramirez_etal(u_ll, u_rr, orientation::Integer,
     return SVector(f)
 end
 
+function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
+                                equations::IdealGlmMhdMultiIonEquations3D)
+    @unpack gammas = equations
+    # Unpack left and right states to get the magnetic field
+    B1_ll, B2_ll, B3_ll = magnetic_field(u_ll, equations)
+    B1_rr, B2_rr, B3_rr = magnetic_field(u_rr, equations)
+    psi_ll = divergence_cleaning_field(u_ll, equations)
+    psi_rr = divergence_cleaning_field(u_rr, equations)
+    B_dot_n_ll = B1_ll * normal_direction[1] +
+                 B2_ll * normal_direction[2] +
+                 B3_ll * normal_direction[3]
+    B_dot_n_rr = B1_rr * normal_direction[1] +
+                 B2_rr * normal_direction[2] +
+                 B3_rr * normal_direction[3]
+    B_dot_n_avg = 0.5f0 * (B_dot_n_ll + B_dot_n_rr)
+
+    v1_plus_ll, v2_plus_ll, v3_plus_ll, vk1_plus_ll, vk2_plus_ll, vk3_plus_ll = charge_averaged_velocities(u_ll,
+                                                                                                           equations)
+    v1_plus_rr, v2_plus_rr, v3_plus_rr, vk1_plus_rr, vk2_plus_rr, vk3_plus_rr = charge_averaged_velocities(u_rr,
+                                                                                                           equations)
+
+    f = zero(MVector{nvariables(equations), eltype(u_ll)})
+
+    # Compute averages for global variables
+    v1_plus_avg = 0.5f0 * (v1_plus_ll + v1_plus_rr)
+    v2_plus_avg = 0.5f0 * (v2_plus_ll + v2_plus_rr)
+    v3_plus_avg = 0.5f0 * (v3_plus_ll + v3_plus_rr)
+    B1_avg = 0.5f0 * (B1_ll + B1_rr)
+    B2_avg = 0.5f0 * (B2_ll + B2_rr)
+    B3_avg = 0.5f0 * (B3_ll + B3_rr)
+    mag_norm_ll = B1_ll^2 + B2_ll^2 + B3_ll^2
+    mag_norm_rr = B1_rr^2 + B2_rr^2 + B3_rr^2
+    mag_norm_avg = 0.5f0 * (mag_norm_ll + mag_norm_rr)
+    psi_avg = 0.5f0 * (psi_ll + psi_rr)
+    # Averages that depend on normal direction
+    psi_B_dot_n_avg = 0.5f0 *
+                      ((B1_ll * psi_ll + B1_rr * psi_rr) * normal_direction[1] +
+                       (B2_ll * psi_ll + B2_rr * psi_rr) * normal_direction[2] +
+                       (B3_ll * psi_ll + B3_rr * psi_rr) * normal_direction[3])
+
+    # Magnetic field components from f^MHD (we store them in f6..f9 for consistency with single-fluid MHD)
+    f6 = ((equations.c_h * psi_avg) * normal_direction[1] +
+          (v2_plus_avg * B1_avg - v1_plus_avg * B2_avg) * normal_direction[2] +
+          (v3_plus_avg * B1_avg - v1_plus_avg * B3_avg) * normal_direction[3])
+    f7 = ((v1_plus_avg * B2_avg - v2_plus_avg * B1_avg) * normal_direction[1] +
+          (equations.c_h * psi_avg) * normal_direction[2] +
+          (v3_plus_avg * B2_avg - v2_plus_avg * B3_avg) * normal_direction[3])
+    f8 = ((v1_plus_avg * B3_avg - v3_plus_avg * B1_avg) * normal_direction[1] +
+          (v2_plus_avg * B3_avg - v3_plus_avg * B2_avg) * normal_direction[2] +
+          (equations.c_h * psi_avg) * normal_direction[3])
+    f9 = equations.c_h * B_dot_n_avg
+
+    # Start building the flux
+    f[1] = f6
+    f[2] = f7
+    f[3] = f8
+    f[end] = f9
+
+    # Iterate over all components
+    for k in eachcomponent(equations)
+        # Unpack left and right states
+        rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll,
+                                                                          equations)
+        rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
+                                                                          equations)
+
+        rho_inv_ll = 1 / rho_ll
+        v1_ll = rho_v1_ll * rho_inv_ll
+        v2_ll = rho_v2_ll * rho_inv_ll
+        v3_ll = rho_v3_ll * rho_inv_ll
+        rho_inv_rr = 1 / rho_rr
+        v1_rr = rho_v1_rr * rho_inv_rr
+        v2_rr = rho_v2_rr * rho_inv_rr
+        v3_rr = rho_v3_rr * rho_inv_rr
+        vel_norm_ll = v1_ll^2 + v2_ll^2 + v3_ll^2
+        vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
+
+        p_ll = (gammas[k] - 1) *
+               (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
+                0.5f0 * psi_ll^2)
+        p_rr = (gammas[k] - 1) *
+               (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
+                0.5f0 * psi_rr^2)
+        beta_ll = 0.5f0 * rho_ll / p_ll
+        beta_rr = 0.5f0 * rho_rr / p_rr
+
+        # for convenience store vk_plus⋅B
+        vel_dot_mag_ll = vk1_plus_ll[k] * B1_ll + vk2_plus_ll[k] * B2_ll +
+                         vk3_plus_ll[k] * B3_ll
+        vel_dot_mag_rr = vk1_plus_rr[k] * B1_rr + vk2_plus_rr[k] * B2_rr +
+                         vk3_plus_rr[k] * B3_rr
+
+        # Compute the necessary mean values needed for either direction
+        rho_avg = 0.5f0 * (rho_ll + rho_rr)
+        rho_mean = ln_mean(rho_ll, rho_rr)
+        beta_mean = ln_mean(beta_ll, beta_rr)
+        beta_avg = 0.5f0 * (beta_ll + beta_rr)
+        p_mean = 0.5f0 * rho_avg / beta_avg
+        v1_avg = 0.5f0 * (v1_ll + v1_rr)
+        v2_avg = 0.5f0 * (v2_ll + v2_rr)
+        v3_avg = 0.5f0 * (v3_ll + v3_rr)
+        vel_norm_avg = 0.5f0 * (vel_norm_ll + vel_norm_rr)
+        vel_dot_mag_avg = 0.5f0 * (vel_dot_mag_ll + vel_dot_mag_rr)
+        vk1_plus_avg = 0.5f0 * (vk1_plus_ll[k] + vk1_plus_rr[k])
+        vk2_plus_avg = 0.5f0 * (vk2_plus_ll[k] + vk2_plus_rr[k])
+        vk3_plus_avg = 0.5f0 * (vk3_plus_ll[k] + vk3_plus_rr[k])
+        # v_minus
+        vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
+        vk2_minus_ll = v2_plus_ll - vk2_plus_ll[k]
+        vk3_minus_ll = v3_plus_ll - vk3_plus_ll[k]
+        vk1_minus_rr = v1_plus_rr - vk1_plus_rr[k]
+        vk2_minus_rr = v2_plus_rr - vk2_plus_rr[k]
+        vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
+        vk1_minus_avg = 0.5f0 * (vk1_minus_ll + vk1_minus_rr)
+        vk2_minus_avg = 0.5f0 * (vk2_minus_ll + vk2_minus_rr)
+        vk3_minus_avg = 0.5f0 * (vk3_minus_ll + vk3_minus_rr)
+        # Compute terms that depend on normal direction
+        v_dot_n_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2] +
+                     v3_ll * normal_direction[3]
+        v_dot_n_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2] +
+                     v3_rr * normal_direction[3]
+        vk_plus_mag_avg_dot_n = 0.5f0 * (normal_direction[1] *
+                                 (vk1_plus_ll[k] * mag_norm_ll +
+                                  vk1_plus_rr[k] * mag_norm_rr) +
+                                 normal_direction[2] *
+                                 (vk2_plus_ll[k] * mag_norm_ll +
+                                  vk2_plus_rr[k] * mag_norm_rr) +
+                                 normal_direction[3] *
+                                 (vk3_plus_ll[k] * mag_norm_ll +
+                                  vk3_plus_rr[k] * mag_norm_rr))
+        vk_plus_dot_n_avg = vk1_plus_avg * normal_direction[1] +
+                            vk2_plus_avg * normal_direction[2] +
+                            vk3_plus_avg * normal_direction[3]
+
+        # Fill the fluxes for the mass and momentum equations
+        f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+        f2 = f1 * v1_avg + p_mean * normal_direction[1]
+        f3 = f1 * v2_avg + p_mean * normal_direction[2]
+        f4 = f1 * v3_avg + p_mean * normal_direction[3]
+
+        # total energy flux is complicated and involves the previous eight components
+        # Euler part
+        f5 = f1 * 0.5f0 * (1 / (gammas[k] - 1) / beta_mean - vel_norm_avg) +
+             f2 * v1_avg + f3 * v2_avg + f4 * v3_avg
+        # MHD part
+        f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg - 0.5f0 * vk_plus_mag_avg_dot_n +
+               B_dot_n_avg * vel_dot_mag_avg # Same terms as in Derigs (but with v_plus)
+               + f9 * psi_avg - equations.c_h * psi_B_dot_n_avg # GLM terms
+               +
+               0.5f0 * vk_plus_dot_n_avg * mag_norm_avg -
+               vk1_plus_avg * B_dot_n_avg * B1_avg -
+               vk2_plus_avg * B_dot_n_avg * B2_avg -
+               vk3_plus_avg * B_dot_n_avg * B3_avg) # Additional terms related to the Lorentz non-conservative term (momentum eqs)
+
+        # Curl terms related to the multi-ion non-conservative term that depend on vk_minus
+        # These terms vanish in the limit of one ion species and come from the induction equation!
+        f5 -= (normal_direction[1] *
+               (B2_avg * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
+                B3_avg * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) +
+               normal_direction[2] *
+               (B1_avg * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
+                B3_avg * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) +
+               normal_direction[3] *
+               (B1_avg * (vk3_minus_avg * B1_avg - vk1_minus_avg * B3_avg) +
+                B2_avg * (vk3_minus_avg * B2_avg - vk2_minus_avg * B3_avg)))
+
+        set_component!(f, k, f1, f2, f3, f4, f5, equations)
+    end
+
+    return SVector(f)
+end
+
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 # This routine approximates the maximum wave speed as sum of the maximum ion velocity 
 # for all species and the maximum magnetosonic speed.
@@ -1194,6 +1366,37 @@ end
             rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u_rr, equations)
             v_rr = max(v_rr, abs(rho_v3 / rho))
         end
+    end
+
+    λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
+end
+
+@inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
+                                     equations::IdealGlmMhdMultiIonEquations3D)
+    # Calculate fast magnetoacoustic wave speeds
+    # left
+    cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
+    # right
+    cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
+
+    # Calculate velocities
+    v_ll = zero(eltype(u_ll))
+    v_rr = zero(eltype(u_rr))
+    for k in eachcomponent(equations)
+        # Left state
+        rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u_ll, equations)
+        inv_rho = 1 / rho
+        v_ll = max(v_ll,
+                   abs(rho_v1 * inv_rho * normal_direction[1] +
+                       rho_v2 * inv_rho * normal_direction[2] +
+                       rho_v3 * inv_rho * normal_direction[3]))
+        # Right state
+        rho, rho_v1, rho_v2, rho_v3, _ = get_component(k, u_rr, equations)
+        inv_rho = 1 / rho
+        v_rr = max(v_rr,
+                   abs(rho_v1 * inv_rho * normal_direction[1] +
+                       rho_v2 * inv_rho * normal_direction[2] +
+                       rho_v3 * inv_rho * normal_direction[3]))
     end
 
     λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
