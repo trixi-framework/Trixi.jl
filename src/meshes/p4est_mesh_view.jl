@@ -54,12 +54,12 @@ function extract_p4est_mesh_view(elements_parent,
     #                                              nelements(elements)))
 
     #     elements = deepcopy(elements_parent)
-    elements.inverse_jacobian = elements_parent.inverse_jacobian[.., mesh.cell_ids]
-    elements.jacobian_matrix = elements_parent.jacobian_matrix[.., mesh.cell_ids]
-    elements.node_coordinates = elements_parent.node_coordinates[.., mesh.cell_ids]
-    elements.contravariant_vectors = elements_parent.contravariant_vectors[..,
+    @views elements.inverse_jacobian .= elements_parent.inverse_jacobian[.., mesh.cell_ids]
+    @views elements.jacobian_matrix .= elements_parent.jacobian_matrix[.., mesh.cell_ids]
+    @views elements.node_coordinates .= elements_parent.node_coordinates[.., mesh.cell_ids]
+    @views elements.contravariant_vectors .= elements_parent.contravariant_vectors[..,
                                                                            mesh.cell_ids]
-    elements.surface_flux_values = elements_parent.surface_flux_values[..,
+    @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
                                                                        mesh.cell_ids]
     #     elements._inverse_jacobian = vec(elements.inverse_jacobian)
     #     elements._jacobian_matrix = vec(elements.jacobian_matrix)
