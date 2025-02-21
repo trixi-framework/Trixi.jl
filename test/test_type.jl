@@ -1584,6 +1584,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             x = SVector(zero(RealT), zero(RealT), zero(RealT))
             normal_direction = SVector(one(RealT), zero(RealT), zero(RealT))
+
             t = zero(RealT)
             u = u_ll = u_rr = cons = SVector(one(RealT), one(RealT), one(RealT),
                                              one(RealT),
