@@ -36,14 +36,16 @@ function electron_pressure_constantTe(u, equations::IdealGlmMhdMultiIonEquations
     end
 
     # Boltzmann constant divided by elementary charge
-    kB_e = 7.86319034E-02 #[nondimensional]
+    RealT = eltype(u)
+    kB_e = convert(RealT, 7.86319034E-02) #[nondimensional]
 
     return total_electron_charge * kB_e * Te
 end
 
 # Return the constant electron temperature Te = 1 keV
 function electron_temperature_constantTe(u, equations::IdealGlmMhdMultiIonEquations2D)
-    return 0.008029953773 # [nondimensional] = 1 [keV]
+    RealT = eltype(u)
+    return convert(RealT, 0.008029953773) # [nondimensional] = 1 [keV]
 end
 
 # semidiscretization of the ideal MHD equations
@@ -62,17 +64,20 @@ equations = IdealGlmMhdMultiIonEquations2D(gammas = (5 / 3, 5 / 3),
 
 # Frictional slowing of an ionized carbon fluid with respect to another background carbon fluid in motion
 function initial_condition_slow_down(x, t, equations::IdealGlmMhdMultiIonEquations2D)
-    v11 = 0.65508770000000
-    v21 = 0.0
-    v2 = v3 = 0.0
-    B1 = B2 = B3 = 0.0
-    rho1 = 0.1
-    rho2 = 1.0
+    RealT = eltype(x)
 
-    p1 = 0.00040170535986
-    p2 = 0.00401705359856
+    v11 = convert(RealT, 0.6550877)
+    v21 = zero(RealT)
+    v2 = v3 = zero(RealT)
+    B1 = B2 = B3 = zero(RealT)
+    rho1 = convert(RealT, 0.1)
+    rho2 = one(RealT)
 
-    return prim2cons(SVector(B1, B2, B3, rho1, v11, v2, v3, p1, rho2, v21, v2, v3, p2, 0.0),
+    p1 = convert(RealT, 0.00040170535986)
+    p2 = convert(RealT, 0.00401705359856)
+
+    return prim2cons(SVector(B1, B2, B3, rho1, v11, v2, v3, p1, rho2, v21, v2, v3, p2,
+                             zero(RealT)),
                      equations)
 end
 
