@@ -30,7 +30,7 @@ By default, LoopVectorization.jl is enabled, but it can
 be useful for performance comparisons to switch to the Julia core backend.
 
 This does not fully disable LoopVectorization.jl,
-but only its use internall as part of Trixi.jl.
+but only its internal use as part of Trixi.jl.
 """
 function set_loop_vectorization!(toggle::Bool; force = true)
     set_preferences!(TRIXI_UUID, "loop_vectorization" => toggle, force = force)
