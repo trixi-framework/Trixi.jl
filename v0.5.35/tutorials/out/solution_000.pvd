@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VTKFile type="Collection" version="1.0" byte_order="LittleEndian" compressor="vtkZLibDataCompressor">
+  <Collection>
+    <DataSet timestep="0.0" part="0" file="solution_000000.vtu"/>
+    <DataSet timestep="0.166502299284237" part="0" file="solution_000010.vtu"/>
+    <DataSet timestep="0.3348408764779485" part="0" file="solution_000020.vtu"/>
+    <DataSet timestep="0.5046430747162169" part="0" file="solution_000030.vtu"/>
+    <DataSet timestep="0.6750558696091945" part="0" file="solution_000040.vtu"/>
+    <DataSet timestep="0.8450101289920017" part="0" file="solution_000050.vtu"/>
+    <DataSet timestep="1.0136082528105994" part="0" file="solution_000060.vtu"/>
+    <DataSet timestep="1.1804078487518137" part="0" file="solution_000070.vtu"/>
+    <DataSet timestep="1.3454765820225945" part="0" file="solution_000080.vtu"/>
+    <DataSet timestep="1.5092974001854798" part="0" file="solution_000090.vtu"/>
+    <DataSet timestep="1.6726227325064347" part="0" file="solution_000100.vtu"/>
+    <DataSet timestep="1.8363029019291581" part="0" file="solution_000110.vtu"/>
+    <DataSet timestep="2.0011225713042085" part="0" file="solution_000120.vtu"/>
+    <DataSet timestep="2.1676314084386052" part="0" file="solution_000130.vtu"/>
+    <DataSet timestep="2.3359680125801874" part="0" file="solution_000140.vtu"/>
+    <DataSet timestep="2.5057502822446396" part="0" file="solution_000150.vtu"/>
+    <DataSet timestep="2.6761346193378515" part="0" file="solution_000160.vtu"/>
+    <DataSet timestep="2.8460678683712506" part="0" file="solution_000170.vtu"/>
+    <DataSet timestep="3.0" part="0" file="solution_000180.vtu"/>
+  </Collection>
+</VTKFile>
