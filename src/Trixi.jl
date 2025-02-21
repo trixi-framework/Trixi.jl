@@ -60,9 +60,9 @@ using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using LinearMaps: LinearMap
 if _PREFERENCE_LV
-    using LoopVectorization: @turbo, indices
+    using LoopVectorization: LoopVectorization, @turbo, indices
 else
-    using LoopVectorization: indices
+    using LoopVectorization: LoopVectorization, indices
     macro turbo(exprs...)
         body = nothing
         for expr in exprs
