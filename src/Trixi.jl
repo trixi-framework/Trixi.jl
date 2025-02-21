@@ -19,7 +19,7 @@ using Preferences: @load_preference, set_preferences!
 const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
 const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
 const _PREFERENCE_POLYESTER = @load_preference("polyester", true)
-const _PREFERENCE_LV = @load_preference("loop_vectorization", true)
+const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
 
 # Include other packages that are used in Trixi.jl
 # (standard library packages first, other packages next, all of them sorted alphabetically)
@@ -58,8 +58,7 @@ using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
-using LinearMaps: LinearMap
-if _PREFERENCE_LV
+if _PREFERENCE_LOOPVECTORIZATION
     using LoopVectorization: LoopVectorization, @turbo, indices
 else
     using LoopVectorization: LoopVectorization, indices
@@ -71,6 +70,8 @@ else
             end
         end
         @assert body !== nothing
+        # TODO: We should insert !loopinfo !julia.ivdep !julia.simd
+        #       but SimdLoop.compile doesn't deal with nested for loops.
         # esc(Base.SimdLoop.compile(body, Symbol("julia.ivdep")))
         return esc(body)
     end
