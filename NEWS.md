@@ -16,6 +16,7 @@ for human readability.
   paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 
+
 ## Changes when updating to v0.11 from v0.10.x
 
 #### Added
