@@ -156,6 +156,9 @@ function initial_condition_weak_blast_wave(x, t,
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
+    # We initialize each species with a fraction of the total density `rho`, such
+    # that the sum of the densities is `rho := density(prim, equations)`. The density of
+    # a species is double the density of the next species.
     prim_rho = SVector{ncomponents(equations), real(equations)}(r > 0.5f0 ?
                                                                 2^(i - 1) * (1 - 2) /
                                                                 (RealT(1) -
