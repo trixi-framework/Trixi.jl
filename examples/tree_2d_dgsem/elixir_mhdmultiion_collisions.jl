@@ -76,8 +76,9 @@ function initial_condition_slow_down(x, t, equations::IdealGlmMhdMultiIonEquatio
     p1 = convert(RealT, 0.00040170535986)
     p2 = convert(RealT, 0.00401705359856)
 
-    return prim2cons(SVector(B1, B2, B3, rho1, v11, v2, v3, p1, rho2, v21, v2, v3, p2,
-                             zero(RealT)),
+    psi = zero(RealT)
+
+    return prim2cons(SVector(B1, B2, B3, rho1, v11, v2, v3, p1, rho2, v21, v2, v3, p2, psi),
                      equations)
 end
 
