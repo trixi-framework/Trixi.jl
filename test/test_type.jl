@@ -1575,6 +1575,58 @@ isdir(outdir) && rm(outdir, recursive = true)
         end
     end
 
+    @timed_testset "Ideal Glm Mhd MultiIon 3D" begin
+        for RealT in (Float32, Float64)
+            gammas = (RealT(2), RealT(2))
+            charge_to_mass = (RealT(2), RealT(2))
+            equations = @inferred IdealGlmMhdMultiIonEquations3D(gammas = gammas,
+                                                                 charge_to_mass = charge_to_mass)
+
+            x = SVector(zero(RealT), zero(RealT), zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = cons = SVector(one(RealT), one(RealT), one(RealT),
+                                             one(RealT),
+                                             one(RealT),
+                                             one(RealT),
+                                             one(RealT),
+                                             one(RealT),
+                                             one(RealT),
+                                             one(RealT),
+                                             one(RealT),
+                                             one(RealT),
+                                             one(RealT),
+                                             one(RealT))
+            dissipation_es = DissipationLaxFriedrichsEntropyVariables()
+            orientations = [1, 2, 3]
+
+            @test eltype(@inferred initial_condition_weak_blast_wave(x, t, equations)) ==
+                  RealT
+
+            for orientation in orientations
+                @test eltype(@inferred flux(u, orientation, equations)) == RealT
+                @test eltype(@inferred flux_nonconservative_ruedaramirez_etal(u_ll, u_rr,
+                                                                              orientation,
+                                                                              equations)) ==
+                      RealT
+                @test eltype(@inferred flux_nonconservative_central(u_ll, u_rr, orientation,
+                                                                    equations)) ==
+                      RealT
+                @test eltype(@inferred flux_ruedaramirez_etal(u_ll, u_rr, orientation,
+                                                              equations)) == RealT
+
+                @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation,
+                                                           equations)) ==
+                      RealT
+            end
+
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+
+            for direction in orientations
+                @test typeof(Trixi.calc_fast_wavespeed(cons, direction, equations)) == RealT
+            end
+        end
+    end
+
     @timed_testset "Inviscid Burgers 1D" begin
         for RealT in (Float32, Float64)
             equations = @inferred InviscidBurgersEquation1D()
