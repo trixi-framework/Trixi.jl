@@ -16,7 +16,6 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(:inside => boundary_condition,
                            :outside => boundary_condition)
 
-# Note that the first argument refers to the level of refinement, unlike in for p4est
 mesh = Trixi.T8codeMeshCubedSphere(5, 3, 0.5, 0.5;
                                    polydeg = 3, initial_refinement_level = 0)
 
