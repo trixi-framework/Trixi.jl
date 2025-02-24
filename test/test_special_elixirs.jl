@@ -318,8 +318,8 @@ end
                                     analysis_callback,
                                     alive_callback,
                                     stepsize_callback)
-            sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-                        save_everystep = false, adaptive = false, dt = 1.0,
+            sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+                        ode_default_options()..., adaptive = false, dt = 1.0,
                         callback = callbacks)
             Trixi.integrate(energy_total, sol.u[end], semi)
         end

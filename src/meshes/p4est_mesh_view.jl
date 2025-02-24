@@ -41,19 +41,23 @@ function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
                                  boundaries_parent,
                                  mortars_parent,
-                                 mesh)
+                                 mesh,
+                                 equations,
+                                 dg,
+                                 ::Type{uEltype}) where {uEltype <: Real}
     elements = deepcopy(elements_parent)
-    elements.inverse_jacobian = elements_parent.inverse_jacobian[.., mesh.cell_ids]
-    elements.jacobian_matrix = elements_parent.jacobian_matrix[.., mesh.cell_ids]
-    elements.node_coordinates = elements_parent.node_coordinates[.., mesh.cell_ids]
-    elements.contravariant_vectors = elements_parent.contravariant_vectors[..,
-                                                                           mesh.cell_ids]
-    elements.surface_flux_values = elements_parent.surface_flux_values[..,
+    resize!(elements, length(mesh.cell_ids))
+
+    @views elements.inverse_jacobian .= elements_parent.inverse_jacobian[..,
+                                                                         mesh.cell_ids]
+    @views elements.jacobian_matrix .= elements_parent.jacobian_matrix[..,
                                                                        mesh.cell_ids]
-    elements._inverse_jacobian = vec(elements.inverse_jacobian)
-    elements._jacobian_matrix = vec(elements.jacobian_matrix)
-    elements._node_coordinates = vec(elements.node_coordinates)
-    elements._surface_flux_values = vec(elements.surface_flux_values)
+    @views elements.node_coordinates .= elements_parent.node_coordinates[..,
+                                                                         mesh.cell_ids]
+    @views elements.contravariant_vectors .= elements_parent.contravariant_vectors[..,
+                                                                                   mesh.cell_ids]
+    @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
+                                                                               mesh.cell_ids]
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
     return elements, interfaces, boundaries_parent, mortars_parent
@@ -166,8 +170,8 @@ function calc_node_coordinates!(node_coordinates,
         quadrants = unsafe_wrap_sc(p4est_quadrant_t, trees[tree_id].quadrants)
 
         for i in eachindex(quadrants)
-            parent_cell_id = offset + i
-            if !(parent_cell_id in mesh.cell_ids)
+            parent_mesh_cell_id = tree_offset + i
+            if !(parent_mesh_cell_id in mesh.cell_ids)
                 # This cell is not part of the mesh view, thus skip it
                 continue
             end
@@ -189,7 +193,7 @@ function calc_node_coordinates!(node_coordinates,
             multiply_dimensionwise!(view(node_coordinates, :, :, :, mesh_view_cell_id),
                                     matrix1, matrix2,
                                     view(mesh.parent.tree_node_coordinates, :, :, :,
-                                         tree),
+                                         tree_id),
                                     tmp1)
         end
     end

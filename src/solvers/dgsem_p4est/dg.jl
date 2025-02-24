@@ -50,7 +50,10 @@ function create_cache(mesh::P4estMeshView, equations::AbstractEquations, dg::DG,
                                                                         interfaces_parent,
                                                                         boundaries_parent,
                                                                         mortars_parent,
-                                                                        mesh)
+                                                                        mesh,
+                                                                        equations,
+                                                                        dg,
+                                                                        uEltype)
 
     cache = (; elements, interfaces, boundaries, mortars)
 
