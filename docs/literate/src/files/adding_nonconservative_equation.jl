@@ -200,10 +200,9 @@ end
 # For the example equation given in this tutorial, this new function for the limiting would take the form
 
 ## Specialized positivity limiter that avoids modification of the auxiliary variable `a`
-function limiter_zhang_shu!(u, threshold::Real, variable,
-                            mesh::AbstractMesh{1},
+function limiter_zhang_shu!(u, threshold, variable, mesh,
                             equations::NonconservativeLinearAdvectionEquation,
-                            dg::DGSEM, cache)
+                            dg, cache)
     weights = dg.basis
 
     for element in eachelement(dg, cache)
