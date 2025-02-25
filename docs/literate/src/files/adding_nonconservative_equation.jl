@@ -176,6 +176,77 @@ error_1 / error_2
 # For non-trivial boundary conditions involving non-conservative terms,
 # please refer to the section on [Other available example elixirs with non-trivial BC](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/non_periodic_boundaries/#Other-available-example-elixirs-with-non-trivial-BC).
 
+# Some additional routines need modified versions to avoid adding dissipation to the
+# variable coefficient quantity `a` that is carried as an auxiliary variable in
+# the solution vector. In particular, a specialized `DissipationLocalLaxFriedrichs` term
+# used together with the numerical surface flux `flux_lax_friedrichs` prevents "smearing"
+# the variable coefficient `a` artificially
+
+## Specialized dissipation term for the Lax-Friedrichs surface flux
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
+                                                              orientation::Integer,
+                                                              equation::NonconservativeLinearAdvectionEquation)
+    λ = dissipation.max_abs_speed(u_ll, u_rr, orientation, equation)
+
+    diss = -0.5 * λ * (u_rr - u_ll)
+    return SVector(diss[1], zero(u_ll))
+end
+
+# Another modification is necessary if one wishes to use the stage limiter `PositivityPreservingLimiterZhangShu`
+# during the time integration. This limiter takes in a `variable` (or set of variables) to limit and ensure positivity.
+# However, these variables are used to compute the limiter quantities that are then applied to every
+# variable in the solution vector `u`. To avoid artificially limiting (and in turn changing) the variable coefficient
+# quantity that should remain unchanged, a specialized implementation of the `limiter_zhang_shu!` function is required.
+# For the example equation given in this tutorial, this new function for the limiting would take the form
+
+## Specialized positivity limiter that avoids modification of the auxiliary variable `a`
+function limiter_zhang_shu!(u, threshold::Real, variable,
+                            mesh::AbstractMesh{1},
+                            equations::NonconservativeLinearAdvectionEquation,
+                            dg::DGSEM, cache)
+    @unpack weights = dg.basis
+
+    @threaded for element in eachelement(dg, cache)
+        ## determine minimum value
+        value_min = typemax(eltype(u))
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+            value_min = min(value_min, variable(u_node, equations))
+        end
+
+        ## detect if limiting is necessary
+        value_min < threshold || continue
+
+        ## compute mean value
+        u_mean = zero(get_node_vars(u, equations, dg, 1, element))
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+            u_mean += u_node * weights[i]
+        end
+        ## note that the reference element is [-1,1]^ndims(dg), thus the weights sum to 2
+        u_mean = u_mean / 2^ndims(mesh)
+
+        ## Compute the value directly with the mean values, as we assume that
+        ## Jensen's inequality holds.
+        value_mean = variable(u_mean, equations)
+        theta = (value_mean - threshold) / (value_mean - value_min)
+        for i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, element)
+
+            _, a_node = u_node
+            scalar_mean, _ = u_mean
+
+            ## mean values of variable coefficient not used as it must not be overwritten
+            u_mean = SVector(scalar_mean, a_node)
+
+            set_node_vars!(u, theta * u_node + (1 - theta) * u_mean,
+                           equations, dg, i, element)
+        end
+    end
+
+    return nothing
+end
+
 # ## Summary of the code
 
 # Here is the complete code that we used (without the callbacks since these
