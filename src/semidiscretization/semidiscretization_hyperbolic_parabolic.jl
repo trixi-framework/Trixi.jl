@@ -266,6 +266,12 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolicParab
     compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
+function get_node_variables!(node_variables, u_ode,
+                             semi::SemidiscretizationHyperbolicParabolic)
+    get_node_variables!(node_variables, u_ode, mesh_equations_solver_cache(semi)...,
+                        semi.equations_parabolic, semi.cache_parabolic)
+end
+
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
 

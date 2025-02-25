@@ -23,9 +23,53 @@ end
 # nothing by default, but can be specialized for certain volume integral types. 
 # For instance, shock capturing volume integrals output the blending factor
 # as an "element variable".
-function get_node_variables!(node_variables, mesh, equations,
-                             volume_integral::AbstractVolumeIntegral, dg, cache)
-    nothing
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             volume_integral::AbstractVolumeIntegral, dg, cache,
+                             equations_parabolic, cache_parabolic)
+    if !isempty(node_variables)
+        n_nodes = nnodes(dg)
+        n_elements = nelements(dg, cache)
+
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        if :vorticity in keys(node_variables)
+            @unpack viscous_container = cache_parabolic
+            @unpack gradients = viscous_container
+            gradients_x, gradients_y = gradients
+
+            vorticity_array = zeros(eltype(cache.elements),
+                                    n_nodes, n_nodes, n_elements)
+
+            #@threaded for element in eachelement(dg, cache)
+            for element in eachelement(dg, cache)
+                for j in eachnode(dg), i in eachnode(dg)
+                    u_node = get_node_vars(u, equations, dg, i, j, element)
+
+                    gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg,
+                                                i, j, element)
+                    gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg,
+                                                i, j, element)
+
+                    vorticity_nodal = vorticity(u_node, (gradients_1, gradients_2),
+                                                equations_parabolic)
+                    vorticity_array[i, j, element] = vorticity_nodal
+                end
+            end
+            node_variables[:vorticity] = vorticity_array
+        end
+    end
+
+    if typeof(volume_integral) == VolumeIntegralSubcellLimiting
+        # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
+        # called here to get up-to-date values for IO, this is not easily possible in this case
+        # because the calculation is very integrated into the method.
+        # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
+        # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
+        # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+        get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
+                            equations)
+    else
+        return nothing
+    end
 end
 
 """
@@ -441,8 +485,14 @@ function get_element_variables!(element_variables, u, mesh, equations, dg::DG, c
     get_element_variables!(element_variables, mesh, dg, cache)
 end
 
-function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
+function get_node_variables!(node_variables, u_ode, mesh, equations, dg::DG, cache)
     get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
+end
+function get_node_variables!(node_variables, u_ode, mesh, equations, dg::DG, cache,
+                             equations_parabolic, cache_parabolic)
+    get_node_variables!(node_variables, u_ode, mesh, equations, dg.volume_integral, dg,
+                        cache,
+                        equations_parabolic, cache_parabolic)
 end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
