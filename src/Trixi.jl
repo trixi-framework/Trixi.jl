@@ -63,19 +63,7 @@ if _PREFERENCE_LOOPVECTORIZATION
     using LoopVectorization: LoopVectorization, @turbo, indices
 else
     using LoopVectorization: LoopVectorization, indices
-    macro turbo(exprs...)
-        body = nothing
-        for expr in exprs
-            if expr.head == :for
-                body = expr
-            end
-        end
-        @assert body !== nothing
-        # TODO: We should insert !loopinfo !julia.ivdep !julia.simd
-        #       but SimdLoop.compile doesn't deal with nested for loops.
-        # esc(Base.SimdLoop.compile(body, Symbol("julia.ivdep")))
-        return esc(body)
-    end
+    include("auxiliary/mock_turbo.jl")
 end
 
 using StaticArrayInterface: static_length # used by LoopVectorization
