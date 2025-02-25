@@ -204,9 +204,9 @@ function limiter_zhang_shu!(u, threshold::Real, variable,
                             mesh::AbstractMesh{1},
                             equations::NonconservativeLinearAdvectionEquation,
                             dg::DGSEM, cache)
-    @unpack weights = dg.basis
+    weights = dg.basis
 
-    @threaded for element in eachelement(dg, cache)
+    for element in eachelement(dg, cache)
         ## determine minimum value
         value_min = typemax(eltype(u))
         for i in eachnode(dg)
