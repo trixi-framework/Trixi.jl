@@ -19,11 +19,13 @@ function get_element_variables!(element_variables, mesh, dg, cache)
     nothing
 end
 
+# Function to define "node variables" for the SaveSolutionCallback. 
+# Does for hyperbolic equations nothing by default, but can be specialized for certain volume integral types. 
+# For instance, shock capturing volume integrals output the blending factor as a "node variable".
 function get_node_variables!(node_variables, u_ode, mesh, equations,
                              volume_integral::AbstractVolumeIntegral, dg, cache)
     return nothing
 end
-
 function get_node_variables!(node_variables, u_ode, mesh, equations,
                              volume_integral::AbstractVolumeIntegral, dg, cache,
                              equations_parabolic, cache_parabolic)
@@ -40,8 +42,7 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
             vorticity_array = zeros(eltype(cache.elements),
                                     n_nodes, n_nodes, n_elements)
 
-            #@threaded for element in eachelement(dg, cache)
-            for element in eachelement(dg, cache)
+            @threaded for element in eachelement(dg, cache)
                 for j in eachnode(dg), i in eachnode(dg)
                     u_node = get_node_vars(u, equations, dg, i, j, element)
 

@@ -101,10 +101,15 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+node_variables = Dict{Symbol, Any}()
+# Add `:vorticity` key to `node_variables` dictionary.
+# The actual values are then computed during the `SaveSolutionCallback`.
+node_variables[:vorticity] = nothing
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     node_variables = node_variables)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
