@@ -11,7 +11,8 @@
                            save_initial_solution=true,
                            save_final_solution=true,
                            output_directory="out",
-                           solution_variables=cons2prim)
+                           solution_variables=cons2prim,
+                           node_variables=Dict{Symbol, Any}())
 
 Save the current numerical solution in regular intervals. Either pass `interval` to save
 every `interval` time steps or pass `dt` to save in intervals of `dt` in terms
@@ -20,6 +21,10 @@ of integration time by adding additional (shortened) time steps where necessary 
 at a single point to a set of solution variables. The first parameter passed
 to `solution_variables` will be the set of conservative variables
 and the second parameter is the equation struct.
+Additional nodal variables such as `:vorticity` can be saved by adding this symbol as a key to 
+the `node_variables` dictionary.
+In case that the [`SubcellLimiterIDP`](@ref) is used, this dictionary is automatically extended by the 
+`:limiting_coefficient` key which contains the limiting coefficient for each node.
 """
 mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
     interval_or_dt::IntervalType

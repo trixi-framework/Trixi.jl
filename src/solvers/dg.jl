@@ -19,10 +19,11 @@ function get_element_variables!(element_variables, mesh, dg, cache)
     nothing
 end
 
-# Function to define "element variables" for the SaveSolutionCallback. It does
-# nothing by default, but can be specialized for certain volume integral types. 
-# For instance, shock capturing volume integrals output the blending factor
-# as an "element variable".
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             volume_integral::AbstractVolumeIntegral, dg, cache)
+    return nothing
+end
+
 function get_node_variables!(node_variables, u_ode, mesh, equations,
                              volume_integral::AbstractVolumeIntegral, dg, cache,
                              equations_parabolic, cache_parabolic)
@@ -282,7 +283,7 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function get_node_variables!(node_variables, mesh, equations,
+function get_node_variables!(node_variables, u_ode, mesh, equations,
                              volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
     # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
     # called here to get up-to-date values for IO, this is not easily possible in this case
@@ -486,7 +487,8 @@ function get_element_variables!(element_variables, u, mesh, equations, dg::DG, c
 end
 
 function get_node_variables!(node_variables, u_ode, mesh, equations, dg::DG, cache)
-    get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
+    get_node_variables!(node_variables, u_ode, mesh, equations, dg.volume_integral, dg,
+                        cache)
 end
 function get_node_variables!(node_variables, u_ode, mesh, equations, dg::DG, cache,
                              equations_parabolic, cache_parabolic)
