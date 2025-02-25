@@ -96,85 +96,9 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorHennemannGass
         "indicator variable" => indicator.variable,
         "max. α" => indicator.alpha_max,
         "min. α" => indicator.alpha_min,
-        "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
+        "smooth α" => (indicator.alpha_smooth ? "yes" : "no")
     ]
     summary_box(io, "IndicatorHennemannGassner", setup)
-end
-
-# TODO: TrixiShallowWater: move the new indicator and all associated routines to the new package
-"""
-    IndicatorHennemannGassnerShallowWater(equations::AbstractEquations, basis;
-                                          alpha_max=0.5,
-                                          alpha_min=0.001,
-                                          alpha_smooth=true,
-                                          variable)
-
-Modified version of the [`IndicatorHennemannGassner`](@ref)
-indicator used for shock-capturing for shallow water equations. After
-the element-wise values for the blending factors are computed an additional check
-is made to see if the element is partially wet. In this case, partially wet elements
-are set to use the pure finite volume scheme that is guaranteed to be well-balanced
-for this wet/dry transition state of the flow regime.
-
-See also [`VolumeIntegralShockCapturingHG`](@ref).
-
-## References
-
-- Hennemann, Gassner (2020)
-  "A provably entropy stable subcell shock capturing approach for high order split form DG"
-  [arXiv: 2008.12044](https://arxiv.org/abs/2008.12044)
-"""
-struct IndicatorHennemannGassnerShallowWater{RealT <: Real, Variable, Cache} <:
-       AbstractIndicator
-    alpha_max::RealT
-    alpha_min::RealT
-    alpha_smooth::Bool
-    variable::Variable
-    cache::Cache
-end
-
-# this method is used when the indicator is constructed as for shock-capturing volume integrals
-# of the shallow water equations
-# It modifies the shock-capturing indicator to use full FV method in dry cells
-function IndicatorHennemannGassnerShallowWater(equations::AbstractShallowWaterEquations,
-                                               basis;
-                                               alpha_max = 0.5,
-                                               alpha_min = 0.001,
-                                               alpha_smooth = true,
-                                               variable)
-    alpha_max, alpha_min = promote(alpha_max, alpha_min)
-    cache = create_cache(IndicatorHennemannGassner, equations, basis)
-    IndicatorHennemannGassnerShallowWater{typeof(alpha_max), typeof(variable),
-                                          typeof(cache)}(alpha_max, alpha_min,
-                                                         alpha_smooth, variable, cache)
-end
-
-function Base.show(io::IO, indicator::IndicatorHennemannGassnerShallowWater)
-    @nospecialize indicator # reduce precompilation time
-
-    print(io, "IndicatorHennemannGassnerShallowWater(")
-    print(io, indicator.variable)
-    print(io, ", alpha_max=", indicator.alpha_max)
-    print(io, ", alpha_min=", indicator.alpha_min)
-    print(io, ", alpha_smooth=", indicator.alpha_smooth)
-    print(io, ")")
-end
-
-function Base.show(io::IO, ::MIME"text/plain",
-                   indicator::IndicatorHennemannGassnerShallowWater)
-    @nospecialize indicator # reduce precompilation time
-
-    if get(io, :compact, false)
-        show(io, indicator)
-    else
-        setup = [
-            "indicator variable" => indicator.variable,
-            "max. α" => indicator.alpha_max,
-            "min. α" => indicator.alpha_min,
-            "smooth α" => (indicator.alpha_smooth ? "yes" : "no"),
-        ]
-        summary_box(io, "IndicatorHennemannGassnerShallowWater", setup)
-    end
 end
 
 function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM, cache;
@@ -190,8 +114,11 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
     end
 
     # magic parameters
-    threshold = 0.5 * 10^(-1.8 * (nnodes(dg))^0.25)
-    parameter_s = log((1 - 0.0001) / 0.0001)
+    # TODO: Are there better values for Float32?
+    RealT = real(dg)
+    threshold = 0.5f0 * 10^(convert(RealT, -1.8) * nnodes(dg)^convert(RealT, 0.25))
+    o_0001 = convert(RealT, 0.0001)
+    parameter_s = log((1 - o_0001) / o_0001)
 
     @threaded for element in eachelement(dg, cache)
         # This is dispatched by mesh dimension.
@@ -269,7 +196,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorLöhner)
     else
         setup = [
             "indicator variable" => indicator.variable,
-            "f_wave" => indicator.f_wave,
+            "f_wave" => indicator.f_wave
         ]
         summary_box(io, "IndicatorLöhner", setup)
     end
@@ -327,7 +254,7 @@ function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorMax)
         show(io, indicator)
     else
         setup = [
-            "indicator variable" => indicator.variable,
+            "indicator variable" => indicator.variable
         ]
         summary_box(io, "IndicatorMax", setup)
     end

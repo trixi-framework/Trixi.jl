@@ -23,7 +23,8 @@ struct ElementContainer{NDIMS, RealT <: Real, uEltype <: Real, NDIMSP1, NDIMSP2,
 end
 
 # Create element container and initialize element data
-function init_elements(mesh::StructuredMesh{NDIMS, RealT},
+function init_elements(mesh::Union{StructuredMesh{NDIMS, RealT},
+                                   StructuredMeshView{NDIMS, RealT}},
                        equations::AbstractEquations,
                        basis,
                        ::Type{uEltype}) where {NDIMS, RealT <: Real, uEltype <: Real}

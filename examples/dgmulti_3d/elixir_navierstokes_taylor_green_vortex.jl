@@ -1,16 +1,14 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Navier-Stokes equations
 
-# TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 6.25e-4 # equivalent to Re = 1600
+mu = 6.25e-4 # equivalent to Re = 1600
 
 equations = CompressibleEulerEquations3D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusion3D(equations, mu = mu,
                                                           Prandtl = prandtl_number())
 
 """
@@ -63,9 +61,8 @@ alive_callback = AliveCallback(alive_interval = 10)
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval, uEltype = real(dg),
                                      extra_analysis_integrals = (energy_kinetic,
-                                                                 energy_internal,
-                                                                 enstrophy))
-callbacks = CallbackSet(summary_callback, alive_callback)
+                                                                 energy_internal))
+callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
 
 ###############################################################################
 # run the simulation
@@ -73,4 +70,3 @@ callbacks = CallbackSet(summary_callback, alive_callback)
 time_int_tol = 1e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-summary_callback() # print the timer summary

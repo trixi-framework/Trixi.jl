@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -53,7 +53,8 @@ cells_per_dimension = (8, 8)
 coordinates_min1 = (-1.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max1 = (0.0, 1.0) # maximum coordinates (max(x), max(y))
 
-mesh1 = StructuredMesh(cells_per_dimension, coordinates_min1, coordinates_max1)
+mesh1 = StructuredMesh(cells_per_dimension, coordinates_min1, coordinates_max1,
+                       periodicity = false)
 
 # Define the coupling functions
 coupling_function12 = (x, u, equations_other, equations_own) -> u
@@ -84,7 +85,8 @@ semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_converg
 coordinates_min2 = (0.0, 0.0) # minimum coordinates (min(x), min(y))
 coordinates_max2 = (1.0, 1.0) # maximum coordinates (max(x), max(y))
 
-mesh2 = StructuredMesh(cells_per_dimension, coordinates_min2, coordinates_max2)
+mesh2 = StructuredMesh(cells_per_dimension, coordinates_min2, coordinates_max2,
+                       periodicity = false)
 
 # Define the coupling functions
 coupling_function21 = (x, u, equations_other, equations_own) -> u
@@ -115,7 +117,8 @@ semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_converg
 coordinates_min3 = (-1.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max3 = (0.0, 0.0) # maximum coordinates (max(x), max(y))
 
-mesh3 = StructuredMesh(cells_per_dimension, coordinates_min3, coordinates_max3)
+mesh3 = StructuredMesh(cells_per_dimension, coordinates_min3, coordinates_max3,
+                       periodicity = false)
 
 # Define the coupling functions
 coupling_function34 = (x, u, equations_other, equations_own) -> u
@@ -146,7 +149,8 @@ semi3 = SemidiscretizationHyperbolic(mesh3, equations, initial_condition_converg
 coordinates_min4 = (0.0, -1.0) # minimum coordinates (min(x), min(y))
 coordinates_max4 = (1.0, 0.0) # maximum coordinates (max(x), max(y))
 
-mesh4 = StructuredMesh(cells_per_dimension, coordinates_min4, coordinates_max4)
+mesh4 = StructuredMesh(cells_per_dimension, coordinates_min4, coordinates_max4,
+                       periodicity = false)
 
 # Define the coupling functions
 coupling_function43 = (x, u, equations_other, equations_own) -> u
@@ -177,7 +181,7 @@ semi = SemidiscretizationCoupled(semi1, semi2, semi3, semi4)
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 2.0
-ode = semidiscretize(semi, (0.0, 2.0));
+ode = semidiscretize(semi, (0.0, 2.0))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -206,9 +210,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

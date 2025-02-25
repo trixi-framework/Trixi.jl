@@ -6,7 +6,8 @@
 #! format: noindent
 
 # Initialize data structures in element container
-function init_elements!(elements, mesh::StructuredMesh{2}, basis::LobattoLegendreBasis)
+function init_elements!(elements, mesh::Union{StructuredMesh{2}, StructuredMeshView{2}},
+                        basis::LobattoLegendreBasis)
     @unpack node_coordinates, left_neighbors,
     jacobian_matrix, contravariant_vectors, inverse_jacobian = elements
 
@@ -148,7 +149,9 @@ function calc_inverse_jacobian!(inverse_jacobian::AbstractArray{<:Any, 3}, eleme
 end
 
 # Save id of left neighbor of every element
-function initialize_left_neighbor_connectivity!(left_neighbors, mesh::StructuredMesh{2},
+function initialize_left_neighbor_connectivity!(left_neighbors,
+                                                mesh::Union{StructuredMesh{2},
+                                                            StructuredMeshView{2}},
                                                 linear_indices)
     # Neighbors in x-direction
     for cell_y in 1:size(mesh, 2)

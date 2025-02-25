@@ -2,12 +2,7 @@
 module TrixiMakieExt
 
 # Required for visualization code
-if isdefined(Base, :get_extension)
-    using Makie: Makie, GeometryBasics
-else
-    # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-    using ..Makie: Makie, GeometryBasics
-end
+using Makie: Makie, GeometryBasics
 
 # Use all exported symbols to avoid having to rewrite `recipes_makie.jl`
 using Trixi
@@ -262,7 +257,7 @@ function iplot(pd::PlotData2DTriangulated;
 
     # On OSX, shift-command-4 for screenshots triggers a constant "up-zoom".
     # To avoid this, we remap up-zoom to the right shift button instead.
-    Makie.cameracontrols(ax.scene).attributes[:up_key][] = Makie.Keyboard.right_shift
+    Makie.cameracontrols(ax.scene).controls.up_key = Makie.Keyboard.right_shift
 
     # typing this pulls up the figure (similar to display(plot!()) in Plots.jl)
     fig
@@ -345,7 +340,7 @@ function Makie.plot!(myplot::TrixiHeatmap)
 
     pd = pds.plot_data
     solution_z = vec(StructArrays.component(pd.data, pds.variable_id))
-    Makie.mesh!(myplot, plotting_mesh, color = solution_z, shading = false,
+    Makie.mesh!(myplot, plotting_mesh, color = solution_z, shading = Makie.NoShading,
                 colormap = myplot[:colormap])
     myplot.colorrange = extrema(solution_z)
 

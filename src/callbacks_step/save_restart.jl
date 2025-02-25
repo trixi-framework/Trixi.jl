@@ -38,7 +38,7 @@ function Base.show(io::IO, ::MIME"text/plain",
             "interval" => save_restart_callback.interval,
             "save final solution" => save_restart_callback.save_final_restart ? "yes" :
                                      "no",
-            "output directory" => abspath(normpath(save_restart_callback.output_directory)),
+            "output directory" => abspath(normpath(save_restart_callback.output_directory))
         ]
         summary_box(io, "SaveRestartCallback", setup)
     end
@@ -83,8 +83,7 @@ function (restart_callback::SaveRestartCallback)(u, t, integrator)
     #    (total #steps)       (#accepted steps)
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
-    return interval > 0 && (((integrator.stats.naccept % interval == 0) &&
-             !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
+    return interval > 0 && (integrator.stats.naccept % interval == 0 ||
             (save_final_restart && isfinished(integrator)))
 end
 
@@ -198,7 +197,7 @@ function load_adaptive_time_integrator!(integrator, restart_file::AbstractString
         # Reevaluate integrator.fsal_first on the first step
         integrator.reeval_fsal = true
         # Load additional parameters for PIDController
-        if hasproperty(controller, :err) # Distinguish PIDController from PIController 
+        if hasproperty(controller, :err) # Distinguish PIDController from PIController
             controller.err[:] = read(attributes(file)["time_integrator_controller_err"])
         end
     end

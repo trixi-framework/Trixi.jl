@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -6,18 +6,18 @@ using Trixi
 
 equations = ShallowWaterEquations2D(gravity_constant = 9.81, H0 = 3.25)
 
-# An initial condition with a bottom topography and a perturbation in the waterheight to test 
+# An initial condition with a bottom topography and a perturbation in the waterheight to test
 # boundary_condition_slip_wall
 function initial_condition_perturbation(x, t, equations::ShallowWaterEquations2D)
     # Set the background values
     H = equations.H0
-    v1 = 0.0
-    v2 = 0.0
+    v1 = 0
+    v2 = 0
 
     # Bottom topography
-    b = 1.5 * exp(-0.5 * ((x[1])^2 + (x[2])^2))
+    b = 1.5f0 * exp(-0.5f0 * ((x[1])^2 + (x[2])^2))
     # Waterheight perturbation
-    H = H + 0.5 * exp(-10.0 * ((x[1])^2 + (x[2])^2))
+    H = H + 0.5f0 * exp(-10 * ((x[1])^2 + (x[2])^2))
 
     return prim2cons(SVector(H, v1, v2, b), equations)
 end
@@ -29,8 +29,8 @@ boundary_condition = boundary_condition_slip_wall
 ###############################################################################
 # Get the DG approximation space
 
-volume_flux = (flux_wintermeyer_etal, flux_nonconservative_ersing_etal)
-surface_flux = (flux_lax_friedrichs, flux_nonconservative_ersing_etal)
+volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
+surface_flux = (flux_lax_friedrichs, flux_nonconservative_wintermeyer_etal)
 solver = DGSEM(polydeg = 3, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
@@ -76,7 +76,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

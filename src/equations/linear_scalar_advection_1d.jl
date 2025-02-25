@@ -34,9 +34,10 @@ A constant initial condition to test free-stream preservation.
 """
 function initial_condition_constant(x, t, equation::LinearScalarAdvectionEquation1D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    return SVector(2.0)
+    return SVector(RealT(2))
 end
 
 """
@@ -49,13 +50,14 @@ in non-periodic domains).
 function initial_condition_convergence_test(x, t,
                                             equation::LinearScalarAdvectionEquation1D)
     # Store translated coordinate for easy use of exact solution
+    RealT = eltype(x)
     x_trans = x - equation.advection_velocity * t
 
-    c = 1.0
-    A = 0.5
+    c = 1
+    A = 0.5f0
     L = 2
-    f = 1 / L
-    omega = 2 * pi * f
+    f = 1.0f0 / L
+    omega = 2 * convert(RealT, pi) * f
     scalar = c + A * sin(omega * sum(x_trans))
     return SVector(scalar)
 end
@@ -139,8 +141,13 @@ end
     λ_max = abs(equation.advection_velocity[orientation])
 end
 
-# Essentially first order upwind, see e.g.
-# https://math.stackexchange.com/a/4355076/805029
+"""
+    flux_godunov(u_ll, u_rr, orientation, 
+                 equations::LinearScalarAdvectionEquation1D)
+
+Godunov (upwind) flux for the 1D linear scalar advection equation.
+Essentially first order upwind, see e.g. https://math.stackexchange.com/a/4355076/805029 .
+"""
 function flux_godunov(u_ll, u_rr, orientation::Int,
                       equation::LinearScalarAdvectionEquation1D)
     u_L = u_ll[1]
@@ -161,7 +168,7 @@ function flux_engquist_osher(u_ll, u_rr, orientation::Int,
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    return SVector(0.5 * (flux(u_L, orientation, equation) +
+    return SVector(0.5f0 * (flux(u_L, orientation, equation) +
                     flux(u_R, orientation, equation) -
                     abs(equation.advection_velocity[orientation]) * (u_R - u_L)))
 end
@@ -200,14 +207,16 @@ end
 
 @inline function splitting_lax_friedrichs(u, ::Val{:plus}, orientation::Integer,
                                           equations::LinearScalarAdvectionEquation1D)
+    RealT = eltype(u)
     a = equations.advection_velocity[1]
-    return a > 0 ? flux(u, orientation, equations) : zero(u)
+    return a > 0 ? flux(u, orientation, equations) : SVector(zero(RealT))
 end
 
 @inline function splitting_lax_friedrichs(u, ::Val{:minus}, orientation::Integer,
                                           equations::LinearScalarAdvectionEquation1D)
+    RealT = eltype(u)
     a = equations.advection_velocity[1]
-    return a < 0 ? flux(u, orientation, equations) : zero(u)
+    return a < 0 ? flux(u, orientation, equations) : SVector(zero(RealT))
 end
 
 # Convert conservative variables to primitive
@@ -217,11 +226,11 @@ end
 @inline cons2entropy(u, equation::LinearScalarAdvectionEquation1D) = u
 
 # Calculate entropy for a conservative state `cons`
-@inline entropy(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5 * u^2
+@inline entropy(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
 @inline entropy(u, equation::LinearScalarAdvectionEquation1D) = entropy(u[1], equation)
 
 # Calculate total energy for a conservative state `cons`
-@inline energy_total(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5 * u^2
+@inline energy_total(u::Real, ::LinearScalarAdvectionEquation1D) = 0.5f0 * u^2
 @inline function energy_total(u, equation::LinearScalarAdvectionEquation1D)
     energy_total(u[1], equation)
 end

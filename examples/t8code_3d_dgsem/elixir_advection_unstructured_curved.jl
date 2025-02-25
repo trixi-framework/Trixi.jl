@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -47,12 +47,7 @@ end
 mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/d45c8ac1e248618885fa7cc31a50ab40/raw/37fba24890ab37cfa49c39eae98b44faf4502882/cube_unstructured_1.inp",
                            joinpath(@__DIR__, "cube_unstructured_1.inp"))
 
-# INP mesh files are only support by p4est. Hence, we
-# create a p4est connectivity object first from which
-# we can create a t8code mesh.
-conn = Trixi.read_inp_p4est(mesh_file, Val(3))
-
-mesh = T8codeMesh(conn, polydeg = 3,
+mesh = T8codeMesh(mesh_file, 3; polydeg = 3,
                   mapping = mapping,
                   initial_refinement_level = 2)
 
@@ -64,7 +59,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # ODE solvers, callbacks etc.
 
 # Create ODE problem with time span from 0.0 to 0.1
-ode = semidiscretize(semi, (0.0, 0.1));
+ode = semidiscretize(semi, (0.0, 0.1))
 
 # At the beginning of the main loop, the SummaryCallback prints a summary of the simulation setup
 # and resets the timers
@@ -76,20 +71,25 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+# The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted
+save_restart = SaveRestartCallback(interval = 100,
+                                   save_final_restart = true)
+
+# The SaveSolutionCallback allows to save the solution to a file in regular intervals
+save_solution = SaveSolutionCallback(interval = 100,
+                                     solution_variables = cons2prim)
+
 # The StepsizeCallback handles the re-calculation of the maximum Δt after each time step
 stepsize_callback = StepsizeCallback(cfl = 1.2)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
-                        stepsize_callback)
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_restart,
+                        save_solution, stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

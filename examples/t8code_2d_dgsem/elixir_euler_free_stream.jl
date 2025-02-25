@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -32,12 +32,7 @@ end
 mesh_file = Trixi.download("https://gist.githubusercontent.com/efaulhaber/a075f8ec39a67fa9fad8f6f84342cbca/raw/a7206a02ed3a5d3cadacd8d9694ac154f9151db7/square_unstructured_1.inp",
                            joinpath(@__DIR__, "square_unstructured_1.inp"))
 
-# INP mesh files are only support by p4est. Hence, we
-# create a p4est connecvity object first from which
-# we can create a t8code mesh.
-conn = Trixi.read_inp_p4est(mesh_file, Val(2))
-
-mesh = T8codeMesh(conn, polydeg = 3,
+mesh = T8codeMesh(mesh_file, 2; polydeg = 3,
                   mapping = mapping,
                   initial_refinement_level = 1)
 
@@ -77,16 +72,21 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+save_solution = SaveSolutionCallback(interval = 100,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+
 stepsize_callback = StepsizeCallback(cfl = 2.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
+                        save_solution,
                         stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

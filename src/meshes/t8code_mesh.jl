@@ -7,7 +7,7 @@ to manage trees and mesh refinement.
 """
 mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
                AbstractMesh{NDIMS}
-    forest      :: Ptr{t8_forest} # cpointer to forest
+    forest      :: T8code.ForestWrapper
     is_parallel :: IsParallel
 
     # This specifies the geometry interpolation for each tree.
@@ -26,48 +26,53 @@ mutable struct T8codeMesh{NDIMS, RealT <: Real, IsParallel, NDIMSP2, NNODES} <:
     nmpiinterfaces :: Int
     nmpimortars    :: Int
 
-    function T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
+    unsaved_changes::Bool
+
+    function T8codeMesh{NDIMS}(forest::Ptr{t8_forest}, tree_node_coordinates, nodes,
                                boundary_names,
-                               current_filename) where {NDIMS}
+                               current_filename,
+                               RealT = Float64) where {NDIMS}
         is_parallel = mpi_isparallel() ? True() : False()
 
-        mesh = new{NDIMS, Float64, typeof(is_parallel), NDIMS + 2, length(nodes)}(forest,
-                                                                                  is_parallel)
+        mesh = new{NDIMS, RealT, typeof(is_parallel), NDIMS + 2, length(nodes)}(T8code.ForestWrapper(forest),
+                                                                                is_parallel)
 
         mesh.nodes = nodes
         mesh.boundary_names = boundary_names
         mesh.current_filename = current_filename
         mesh.tree_node_coordinates = tree_node_coordinates
+        mesh.unsaved_changes = true
 
         finalizer(mesh) do mesh
-            # When finalizing `mesh.forest`, `mesh.scheme` and `mesh.cmesh` are
-            # also cleaned up from within `t8code`. The cleanup code for
-            # `cmesh` does some MPI calls for deallocating shared memory
-            # arrays. Due to garbage collection in Julia the order of shutdown
-            # is not deterministic. The following code might happen after MPI
-            # is already in finalized state.
-            # If the environment variable `TRIXI_T8CODE_SC_FINALIZE` is set the
-            # `finalize_hook` of the MPI module takes care of the cleanup. See
-            # further down. However, this might cause a pile-up of `mesh`
-            # objects during long-running sessions.
-            if !MPI.Finalized()
-                t8_forest_unref(Ref(mesh.forest))
-            end
-        end
-
-        # This finalizer call is only recommended during development and not for
-        # production runs, especially long-running sessions since a reference to
-        # the `mesh` object will be kept throughout the lifetime of the session.
-        # See comments in `init_t8code()` in file `src/auxiliary/t8code.jl` for
-        # more information.
-        if haskey(ENV, "TRIXI_T8CODE_SC_FINALIZE")
-            MPI.add_finalize_hook!() do
-                t8_forest_unref(Ref(mesh.forest))
+            # In serial mode we can finalize the forest right away. In parallel
+            # mode we keep the forest till Trixi shuts down or the user
+            # finalizes the forest wrapper explicitly.
+            if !mpi_isparallel()
+                finalize(mesh.forest)
             end
         end
 
         return mesh
     end
+end
+
+"""
+    Trixi.update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
+
+Update the `mesh` object with the `new_forest`. Ownership of the old forest
+goes to caller.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh.
+- `new_forest::Ptr{t8_forest}`: New forest.
+
+Returns `nothing`.
+"""
+function update_forest!(mesh::T8codeMesh, new_forest::Ptr{t8_forest})
+    # `mesh.forest` must not be overwritten. Its lifetime is attached to the
+    # `mesh` lifetime. Thus, this setter function.
+    mesh.forest.pointer = new_forest
+    return nothing
 end
 
 const SerialT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:False}
@@ -80,6 +85,7 @@ const ParallelT8codeMesh{NDIMS} = T8codeMesh{NDIMS, <:Real, <:True}
 
 @inline ntrees(mesh::T8codeMesh) = size(mesh.tree_node_coordinates)[end]
 @inline ncells(mesh::T8codeMesh) = Int(t8_forest_get_local_num_elements(mesh.forest))
+@inline ncellsglobal(mesh::T8codeMesh) = Int(t8_forest_get_global_num_elements(mesh.forest))
 
 function Base.show(io::IO, mesh::T8codeMesh)
     print(io, "T8codeMesh{", ndims(mesh), ", ", real(mesh), "}")
@@ -91,13 +97,291 @@ function Base.show(io::IO, ::MIME"text/plain", mesh::T8codeMesh)
     else
         setup = [
             "#trees" => ntrees(mesh),
-            "current #cells" => ncells(mesh),
-            "polydeg" => length(mesh.nodes) - 1,
+            "current #cells" => ncellsglobal(mesh),
+            "polydeg" => length(mesh.nodes) - 1
         ]
         summary_box(io,
                     "T8codeMesh{" * string(ndims(mesh)) * ", " * string(real(mesh)) * "}",
                     setup)
     end
+end
+
+"""
+    T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
+               boundary_names, treeIDs, neighIDs, faces, duals,
+               orientations, levels, num_elements_per_tree)
+
+Constructor for the `T8codeMesh`. Typically called by the `load_mesh` routine. 
+
+# Arguments
+- `ndims`: Dimension of the mesh. 
+- `ntrees`: Global number of trees. 
+- `nelements`: Global number of elements. 
+- `tree_node_coordinates`: Node coordinates for each tree: [dimension, i, j, k, tree]
+- `nodes`: Array of interpolation nodes.
+- `boundary_names`: List of boundary names.
+- `treeIDs`: List of tree IDs. The length is the number of conforming interfaces of the coarse mesh.
+- `neighIDs`: List of neighboring tree IDs. Same length as `treeIDs`.
+- `faces`: List of face IDs. Same length as `treeIDs`.
+- `duals`: List of face IDs of the neighboring tree. Same length as `treeIDs`.
+- `orientations`: Orientation number of the interface. Same length as `treeIDs`.
+- `levels`: List of levels of each element. Has length `nelements`.
+- `num_elements_per_tree`: List of global number of elements per tree. Has length `ntrees`.
+
+Returns a `T8codeMesh` object with a forest reconstructed by the input arguments.
+"""
+function T8codeMesh(ndims, ntrees, nelements, tree_node_coordinates, nodes,
+                    boundary_names, treeIDs, neighIDs, faces, duals,
+                    orientations, levels, num_elements_per_tree)
+    # Allocate new cmesh object.
+    cmesh = t8_cmesh_new()
+
+    # Use linear geometry for now. There is no real Lagrange geometry
+    # implementation (volume nodes) yet in t8code.
+    linear_geom = t8_geometry_linear_new()
+    t8_cmesh_register_geometry(cmesh, linear_geom)
+
+    # Determine element class.
+    eclass = ndims > 2 ? T8_ECLASS_HEX : T8_ECLASS_QUAD
+
+    # Store element vertices inside the cmesh.
+    N = length(nodes)
+    vertices = zeros(3 * 2^ndims) # quads/hexs only
+    for i in 1:ntrees
+        t8_cmesh_set_tree_class(cmesh, i - 1, eclass)
+
+        if ndims == 2
+            vertices[1] = tree_node_coordinates[1, 1, 1, i]
+            vertices[2] = tree_node_coordinates[2, 1, 1, i]
+
+            vertices[4] = tree_node_coordinates[1, N, 1, i]
+            vertices[5] = tree_node_coordinates[2, N, 1, i]
+
+            vertices[7] = tree_node_coordinates[1, 1, N, i]
+            vertices[8] = tree_node_coordinates[2, 1, N, i]
+
+            vertices[10] = tree_node_coordinates[1, N, N, i]
+            vertices[11] = tree_node_coordinates[2, N, N, i]
+        else
+            vertices[1] = tree_node_coordinates[1, 1, 1, 1, i]
+            vertices[2] = tree_node_coordinates[2, 1, 1, 1, i]
+            vertices[3] = tree_node_coordinates[3, 1, 1, 1, i]
+
+            vertices[4] = tree_node_coordinates[1, N, 1, 1, i]
+            vertices[5] = tree_node_coordinates[2, N, 1, 1, i]
+            vertices[6] = tree_node_coordinates[3, N, 1, 1, i]
+
+            vertices[7] = tree_node_coordinates[1, 1, N, 1, i]
+            vertices[8] = tree_node_coordinates[2, 1, N, 1, i]
+            vertices[9] = tree_node_coordinates[3, 1, N, 1, i]
+
+            vertices[10] = tree_node_coordinates[1, N, N, 1, i]
+            vertices[11] = tree_node_coordinates[2, N, N, 1, i]
+            vertices[12] = tree_node_coordinates[3, N, N, 1, i]
+
+            vertices[13] = tree_node_coordinates[1, 1, 1, N, i]
+            vertices[14] = tree_node_coordinates[2, 1, 1, N, i]
+            vertices[15] = tree_node_coordinates[3, 1, 1, N, i]
+
+            vertices[16] = tree_node_coordinates[1, N, 1, N, i]
+            vertices[17] = tree_node_coordinates[2, N, 1, N, i]
+            vertices[18] = tree_node_coordinates[3, N, 1, N, i]
+
+            vertices[19] = tree_node_coordinates[1, 1, N, N, i]
+            vertices[20] = tree_node_coordinates[2, 1, N, N, i]
+            vertices[21] = tree_node_coordinates[3, 1, N, N, i]
+
+            vertices[22] = tree_node_coordinates[1, N, N, N, i]
+            vertices[23] = tree_node_coordinates[2, N, N, N, i]
+            vertices[24] = tree_node_coordinates[3, N, N, N, i]
+        end
+
+        t8_cmesh_set_tree_vertices(cmesh, i - 1, vertices, 2^ndims)
+    end
+
+    # Connect the coarse mesh elements.
+    for i in eachindex(treeIDs)
+        t8_cmesh_set_join(cmesh, treeIDs[i], neighIDs[i], faces[i], duals[i],
+                          orientations[i])
+    end
+
+    t8_cmesh_commit(cmesh, mpi_comm())
+
+    # Init a new forest with just one element per tree.
+    do_face_ghost = mpi_isparallel()
+    scheme = t8_scheme_new_default_cxx()
+    initial_refinement_level = 0
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
+
+    cum_sum_num_elements_per_tree = cumsum(num_elements_per_tree)
+
+    global_element_id = 0 # zero-based index
+
+    # Compute the offset within the to-be-reconstructed forest. Depends on the
+    # MPI rank resp. first global tree id.
+    if mpi_rank() > 0 && t8_forest_get_local_num_elements(forest) > 0
+        last_global_tree_id_of_preceding_rank = t8_forest_global_tree_id(forest, 0) - 1
+        global_element_id += cum_sum_num_elements_per_tree[last_global_tree_id_of_preceding_rank + 1]
+    end
+
+    function adapt_callback(forest, local_tree_id, eclass_scheme, local_element_id,
+                            elements, is_family,
+                            user_data)
+
+        # Check if we are already in the next tree in terms of the `global_element_id`.
+        global_tree_id = t8_forest_global_tree_id(forest, local_tree_id)
+        if global_element_id + 1 > cum_sum_num_elements_per_tree[global_tree_id + 1]
+            return 0
+        end
+
+        # Test if we already reached the targeted level.
+        level = t8_element_level(eclass_scheme, elements[1])
+        if level < levels[global_element_id + 1]
+            return 1 # Go one refinement level deeper.
+        end
+
+        # Targeted level is reached.
+        global_element_id += 1
+        return 0
+    end
+
+    # The adapt callback refines the forest according to the `levels` array.
+    # For each tree the callback recursively increases the refinement level
+    # till it matches with the associated section in `levels.
+    forest = adapt_forest(forest, adapt_callback; recursive = true, balance = false,
+                          partition = false, ghost = false, user_data = C_NULL)
+
+    @assert t8_forest_get_global_num_elements(forest) == nelements
+
+    if mpi_isparallel()
+        forest = partition_forest(forest)
+    end
+
+    return T8codeMesh{ndims}(forest, tree_node_coordinates, nodes, boundary_names, "")
+end
+
+"""
+    T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = 1, mapping = nothing)
+
+Main mesh constructor for the `T8codeMesh` wrapping around a given t8code
+`forest` object. This constructor is typically called by other `T8codeMesh`
+constructors.
+
+# Arguments
+- `forest`: Pointer to a t8code forest.
+- `boundary_names`: List of boundary names.
+- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+"""
+function T8codeMesh{NDIMS, RealT}(forest::Ptr{t8_forest}, boundary_names; polydeg = 1,
+                                  mapping = nothing) where {NDIMS, RealT}
+    # In t8code reference space is [0,1].
+    basis = LobattoLegendreBasis(RealT, polydeg)
+    nodes = 0.5f0 .* (basis.nodes .+ 1)
+
+    cmesh = t8_forest_get_cmesh(forest)
+    number_of_trees = t8_forest_get_num_global_trees(forest)
+
+    tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
+                                                    ntuple(_ -> length(nodes), NDIMS)...,
+                                                    number_of_trees)
+
+    reference_coordinates = Vector{RealT}(undef, 3)
+
+    # Calculate node coordinates of reference mesh.
+    if NDIMS == 2
+        number_of_corners = 4 # quadrilateral
+
+        # Testing for negative element volumes.
+        vertices = zeros(3, number_of_corners)
+        for itree in 1:number_of_trees
+            vertices_pointer = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
+
+            # Note, `vertices = unsafe_wrap(Array, vertices_pointer, (3, 1 << NDIMS))`
+            # sometimes does not work since `vertices_pointer` is not necessarily properly
+            # aligned to 8 bytes.
+            for icorner in 1:number_of_corners
+                vertices[1, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 1)
+                vertices[2, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 2)
+            end
+
+            # Check if tree's node ordering is right-handed or print a warning.
+            let z = zero(eltype(vertices)), o = one(eltype(vertices))
+                u = vertices[:, 2] - vertices[:, 1]
+                v = vertices[:, 3] - vertices[:, 1]
+                w = [z, z, o]
+
+                # Triple product gives signed volume of spanned parallelepiped.
+                vol = dot(cross(u, v), w)
+
+                if vol < z
+                    error("Discovered negative volumes in `cmesh`: vol = $vol")
+                end
+            end
+
+            # Query geometry data from t8code.
+            for j in eachindex(nodes), i in eachindex(nodes)
+                reference_coordinates[1] = nodes[i]
+                reference_coordinates[2] = nodes[j]
+                reference_coordinates[3] = 0.0
+                t8_geometry_evaluate(cmesh, itree - 1, reference_coordinates, 1,
+                                     @view(tree_node_coordinates[:, i, j, itree]))
+            end
+        end
+
+    elseif NDIMS == 3
+        number_of_corners = 8 # hexahedron
+
+        # Testing for negative element volumes.
+        vertices = zeros(3, number_of_corners)
+        for itree in 1:number_of_trees
+            vertices_pointer = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
+
+            # Note, `vertices = unsafe_wrap(Array, vertices_pointer, (3, 1 << NDIMS))`
+            # sometimes does not work since `vertices_pointer` is not necessarily properly
+            # aligned to 8 bytes.
+            for icorner in 1:number_of_corners
+                vertices[1, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 1)
+                vertices[2, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 2)
+                vertices[3, icorner] = unsafe_load(vertices_pointer, (icorner - 1) * 3 + 3)
+            end
+
+            # Check if tree's node ordering is right-handed or print a warning.
+            let z = zero(eltype(vertices))
+                u = vertices[:, 2] - vertices[:, 1]
+                v = vertices[:, 3] - vertices[:, 1]
+                w = vertices[:, 5] - vertices[:, 1]
+
+                # Triple product gives signed volume of spanned parallelepiped.
+                vol = dot(cross(u, v), w)
+
+                if vol < z
+                    error("Discovered negative volumes in `cmesh`: vol = $vol")
+                end
+            end
+
+            # Query geometry data from t8code.
+            for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
+                reference_coordinates[1] = nodes[i]
+                reference_coordinates[2] = nodes[j]
+                reference_coordinates[3] = nodes[k]
+                t8_geometry_evaluate(cmesh, itree - 1, reference_coordinates, 1,
+                                     @view(tree_node_coordinates[:, i, j, k, itree]))
+            end
+        end
+    else
+        throw(ArgumentError("$NDIMS dimensions are not supported."))
+    end
+
+    # Apply user defined mapping.
+    map_node_coordinates!(tree_node_coordinates, mapping)
+
+    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, basis.nodes,
+                             boundary_names, "")
 end
 
 """
@@ -143,6 +427,8 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
                     periodicity = true)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
+    coordinates_min_max_check(coordinates_min, coordinates_max)
+
     @assert count(i -> i !== nothing,
                   (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
 
@@ -171,15 +457,11 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
 
     do_partition = 0
     if NDIMS == 2
-        conn = T8code.Libt8.p4est_connectivity_new_brick(trees_per_dimension...,
-                                                         periodicity...)
-        cmesh = t8_cmesh_new_from_p4est(conn, mpi_comm(), do_partition)
-        T8code.Libt8.p4est_connectivity_destroy(conn)
+        cmesh = t8_cmesh_new_brick_2d(trees_per_dimension..., periodicity...,
+                                      sc_MPI_COMM_WORLD)
     elseif NDIMS == 3
-        conn = T8code.Libt8.p8est_connectivity_new_brick(trees_per_dimension...,
-                                                         periodicity...)
-        cmesh = t8_cmesh_new_from_p8est(conn, mpi_comm(), do_partition)
-        T8code.Libt8.p8est_connectivity_destroy(conn)
+        cmesh = t8_cmesh_new_brick_3d(trees_per_dimension..., periodicity...,
+                                      sc_MPI_COMM_WORLD)
     end
 
     do_face_ghost = mpi_isparallel()
@@ -187,57 +469,10 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
-    basis = LobattoLegendreBasis(RealT, polydeg)
-    nodes = basis.nodes
-
-    num_trees = t8_cmesh_get_num_trees(cmesh)
-
-    tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
-                                                    ntuple(_ -> length(nodes), NDIMS)...,
-                                                    num_trees)
-
-    # Get cell length in reference mesh: Omega_ref = [-1,1]^NDIMS.
-    dx = [2 / n for n in trees_per_dimension]
-
     # Non-periodic boundaries.
     boundary_names = fill(Symbol("---"), 2 * NDIMS, prod(trees_per_dimension))
 
-    if mapping === nothing
-        mapping_ = coordinates2mapping(ntuple(_ -> -1.0, NDIMS), ntuple(_ -> 1.0, NDIMS))
-    else
-        mapping_ = mapping
-    end
-
-    for itree in 1:num_trees
-        veptr = t8_cmesh_get_tree_vertices(cmesh, itree - 1)
-        verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))
-
-        # Calculate node coordinates of reference mesh.
-        if NDIMS == 2
-            cell_x_offset = (verts[1, 1] - 0.5 * (trees_per_dimension[1] - 1)) * dx[1]
-            cell_y_offset = (verts[2, 1] - 0.5 * (trees_per_dimension[2] - 1)) * dx[2]
-
-            for j in eachindex(nodes), i in eachindex(nodes)
-                tree_node_coordinates[:, i, j, itree] .= mapping_(cell_x_offset +
-                                                                  dx[1] * nodes[i] / 2,
-                                                                  cell_y_offset +
-                                                                  dx[2] * nodes[j] / 2)
-            end
-        elseif NDIMS == 3
-            cell_x_offset = (verts[1, 1] - 0.5 * (trees_per_dimension[1] - 1)) * dx[1]
-            cell_y_offset = (verts[2, 1] - 0.5 * (trees_per_dimension[2] - 1)) * dx[2]
-            cell_z_offset = (verts[3, 1] - 0.5 * (trees_per_dimension[3] - 1)) * dx[3]
-
-            for k in eachindex(nodes), j in eachindex(nodes), i in eachindex(nodes)
-                tree_node_coordinates[:, i, j, k, itree] .= mapping_(cell_x_offset +
-                                                                     dx[1] * nodes[i] / 2,
-                                                                     cell_y_offset +
-                                                                     dx[2] * nodes[j] / 2,
-                                                                     cell_z_offset +
-                                                                     dx[3] * nodes[k] / 2)
-            end
-        end
-
+    for itree in 1:t8_forest_get_num_global_trees(forest)
         if !periodicity[1]
             boundary_names[1, itree] = :x_neg
             boundary_names[2, itree] = :x_pos
@@ -256,8 +491,13 @@ function T8codeMesh(trees_per_dimension; polydeg = 1,
         end
     end
 
-    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
-                             boundary_names, "")
+    # Note, `t8_cmesh_new_brick_*d` converts a domain of `[0,nx] x [0,ny] x ....`.
+    # Hence, transform mesh coordinates to reference space [-1,1]^NDIMS before applying user defined mapping.
+    mapping_(xyz...) = mapping((x * 2.0 / tpd - 1.0 for (x, tpd) in zip(xyz,
+                                                                        trees_per_dimension))...)
+
+    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
+                                    mapping = mapping_)
 end
 
 """
@@ -286,7 +526,7 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     @assert (t8_cmesh_get_num_trees(cmesh)>0) "Given `cmesh` does not contain any trees."
 
     # Infer NDIMS from the geometry of the first tree.
-    NDIMS = Int(t8_geom_get_dimension(t8_cmesh_get_tree_geometry(cmesh, 0)))
+    NDIMS = Int(t8_cmesh_get_dimension(cmesh))
 
     @assert (NDIMS == 2||NDIMS == 3) "NDIMS should be 2 or 3."
 
@@ -295,106 +535,11 @@ function T8codeMesh(cmesh::Ptr{t8_cmesh};
     forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
                                    mpi_comm())
 
-    basis = LobattoLegendreBasis(RealT, polydeg)
-    nodes = basis.nodes
+    # There's no simple and generic way to distinguish boundaries, yet. Name all of them :all.
+    boundary_names = fill(:all, 2 * NDIMS, t8_cmesh_get_num_trees(cmesh))
 
-    num_trees = t8_cmesh_get_num_trees(cmesh)
-
-    tree_node_coordinates = Array{RealT, NDIMS + 2}(undef, NDIMS,
-                                                    ntuple(_ -> length(nodes), NDIMS)...,
-                                                    num_trees)
-
-    nodes_in = [-1.0, 1.0]
-    matrix = polynomial_interpolation_matrix(nodes_in, nodes)
-
-    num_local_trees = t8_cmesh_get_num_local_trees(cmesh)
-
-    if NDIMS == 2
-        data_in = Array{RealT, 3}(undef, 2, 2, 2)
-        tmp1 = zeros(RealT, 2, length(nodes), length(nodes_in))
-        verts = zeros(3, 4)
-
-        for itree in 0:(num_local_trees - 1)
-            veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
-
-            # Note, `verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))`
-            # sometimes does not work since `veptr` is not necessarily properly
-            # aligned to 8 bytes.
-            for icorner in 1:4
-                verts[1, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 1)
-                verts[2, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 2)
-            end
-
-            # Check if tree's node ordering is right-handed or print a warning.
-            let z = zero(eltype(verts)), o = one(eltype(verts))
-                u = verts[:, 2] - verts[:, 1]
-                v = verts[:, 3] - verts[:, 1]
-                w = [z, z, o]
-
-                # Triple product gives signed volume of spanned parallelepiped.
-                vol = dot(cross(u, v), w)
-
-                if vol < z
-                    @warn "Discovered negative volumes in `cmesh`: vol = $vol"
-                end
-            end
-
-            # Tree vertices are stored in z-order.
-            @views data_in[:, 1, 1] .= verts[1:2, 1]
-            @views data_in[:, 2, 1] .= verts[1:2, 2]
-            @views data_in[:, 1, 2] .= verts[1:2, 3]
-            @views data_in[:, 2, 2] .= verts[1:2, 4]
-
-            # Interpolate corner coordinates to specified nodes.
-            multiply_dimensionwise!(view(tree_node_coordinates, :, :, :, itree + 1),
-                                    matrix, matrix,
-                                    data_in,
-                                    tmp1)
-        end
-
-    elseif NDIMS == 3
-        data_in = Array{RealT, 4}(undef, 3, 2, 2, 2)
-        tmp1 = zeros(RealT, 3, length(nodes), length(nodes_in), length(nodes_in))
-        verts = zeros(3, 8)
-
-        for itree in 0:(num_trees - 1)
-            veptr = t8_cmesh_get_tree_vertices(cmesh, itree)
-
-            # Note, `verts = unsafe_wrap(Array, veptr, (3, 1 << NDIMS))`
-            # sometimes does not work since `veptr` is not necessarily properly
-            # aligned to 8 bytes.
-            for icorner in 1:8
-                verts[1, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 1)
-                verts[2, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 2)
-                verts[3, icorner] = unsafe_load(veptr, (icorner - 1) * 3 + 3)
-            end
-
-            # Tree vertices are stored in z-order.
-            @views data_in[:, 1, 1, 1] .= verts[1:3, 1]
-            @views data_in[:, 2, 1, 1] .= verts[1:3, 2]
-            @views data_in[:, 1, 2, 1] .= verts[1:3, 3]
-            @views data_in[:, 2, 2, 1] .= verts[1:3, 4]
-
-            @views data_in[:, 1, 1, 2] .= verts[1:3, 5]
-            @views data_in[:, 2, 1, 2] .= verts[1:3, 6]
-            @views data_in[:, 1, 2, 2] .= verts[1:3, 7]
-            @views data_in[:, 2, 2, 2] .= verts[1:3, 8]
-
-            # Interpolate corner coordinates to specified nodes.
-            multiply_dimensionwise!(view(tree_node_coordinates, :, :, :, :, itree + 1),
-                                    matrix, matrix, matrix,
-                                    data_in,
-                                    tmp1)
-        end
-    end
-
-    map_node_coordinates!(tree_node_coordinates, mapping)
-
-    # There's no simple and generic way to distinguish boundaries. Name all of them :all.
-    boundary_names = fill(:all, 2 * NDIMS, num_trees)
-
-    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
-                             boundary_names, "")
+    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg,
+                                    mapping = mapping)
 end
 
 """
@@ -445,34 +590,243 @@ function T8codeMesh(conn::Ptr{p8est_connectivity}; kwargs...)
     return T8codeMesh(cmesh; kwargs...)
 end
 
+# Convenience types for multiple dispatch. Only used in this file.
+struct GmshFile{NDIMS}
+    path::String
+end
+
+struct AbaqusFile{NDIMS}
+    path::String
+end
+
 """
-    T8codeMesh(meshfile::String, ndims; kwargs...)
+    T8codeMesh(filepath::String, NDIMS; kwargs...)
+
+Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
+mesh from either a Gmsh mesh file (`.msh`) or Abaqus mesh file  (`.inp`) which is determined
+by the file extension.
+
+# Arguments
+- `filepath::String`: path to a Gmsh or Abaqus mesh file.
+- `ndims`: Mesh file dimension: `2` or `3`.
+
+# Optional Keyword Arguments
+- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
+                      will curve the imported uncurved mesh.
+- `RealT::Type`: The type that should be used for coordinates.
+- `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
+"""
+function T8codeMesh(filepath::String, ndims; kwargs...)
+    # Prevent `t8code` from crashing Julia if the file doesn't exist.
+    @assert isfile(filepath)
+
+    meshfile_prefix, meshfile_suffix = splitext(filepath)
+
+    file_extension = lowercase(meshfile_suffix)
+
+    if file_extension == ".msh"
+        return T8codeMesh(GmshFile{ndims}(filepath); kwargs...)
+    end
+
+    if file_extension == ".inp"
+        return T8codeMesh(AbaqusFile{ndims}(filepath); kwargs...)
+    end
+
+    throw(ArgumentError("Unknown file extension: " * file_extension))
+end
+
+"""
+    T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...)
 
 Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
 mesh from a Gmsh mesh file (`.msh`).
 
 # Arguments
-- `meshfile::String`: path to a Gmsh mesh file.
-- `ndims`: Mesh file dimension: `2` or `3`.
-- `mapping`: a function of `NDIMS` variables to describe the mapping that transforms
+- `meshfile::GmshFile{NDIMS}`: Gmsh mesh file object of dimension NDIMS and give `path` to the file.
+
+# Optional Keyword Arguments
+- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
              the imported mesh to the physical domain. Use `nothing` for the identity map.
-- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
                       The mapping will be approximated by an interpolation polynomial
                       of the specified degree for each tree.
                       The default of `1` creates an uncurved geometry. Use a higher value if the mapping
                       will curve the imported uncurved mesh.
-- `RealT::Type`: the type that should be used for coordinates.
-- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the simulation starts.
+- `RealT::Type`: The type that should be used for coordinates.
+- `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
 """
-function T8codeMesh(meshfile::String, ndims; kwargs...)
+function T8codeMesh(meshfile::GmshFile{NDIMS}; kwargs...) where {NDIMS}
     # Prevent `t8code` from crashing Julia if the file doesn't exist.
-    @assert isfile(meshfile)
+    @assert isfile(meshfile.path)
 
-    meshfile_prefix, meshfile_suffix = splitext(meshfile)
+    meshfile_prefix, meshfile_suffix = splitext(meshfile.path)
 
-    cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), ndims, 0, 0)
+    cmesh = t8_cmesh_from_msh_file(meshfile_prefix, 0, mpi_comm(), NDIMS, 0, 0)
 
     return T8codeMesh(cmesh; kwargs...)
+end
+
+"""
+    T8codeMesh(meshfile::AbaqusFile{NDIMS};
+               mapping=nothing, polydeg=1, RealT=Float64,
+               initial_refinement_level=0, unsaved_changes=true,
+               boundary_symbols = nothing)
+
+Main mesh constructor for the `T8codeMesh` that imports an unstructured, conforming
+mesh from an Abaqus mesh file (`.inp`).
+
+To create a curved unstructured `T8codeMesh` two strategies are available:
+
+- `HOHQMesh Abaqus`: High-order, curved boundary information created by
+                     [`HOHQMesh.jl`](https://github.com/trixi-framework/HOHQMesh.jl) is
+                     available in the `meshfile`. The mesh polynomial degree `polydeg`
+                     of the boundaries is provided from the `meshfile`. The computation of
+                     the mapped tree coordinates is done with transfinite interpolation
+                     with linear blending similar to [`UnstructuredMesh2D`](@ref). Boundary name
+                     information is also parsed from the `meshfile` such that different boundary
+                     conditions can be set at each named boundary on a given tree.
+
+- `Standard Abaqus`: By default, with `mapping=nothing` and `polydeg=1`, this creates a
+                     straight-sided mesh from the information parsed from the `meshfile`. If a mapping
+                     function is specified then it computes the mapped tree coordinates via polynomial
+                     interpolants with degree `polydeg`. The mesh created by this function will only
+                     have one boundary `:all` if `boundary_symbols` is not specified.
+                     If `boundary_symbols` is specified the mesh file will be parsed for nodesets defining
+                     the boundary nodes from which boundary edges (2D) and faces (3D) will be assigned.
+
+Note that the `mapping` and `polydeg` keyword arguments are only used by the `HOHQMesh Abaqus` option.
+The `Standard Abaqus` routine obtains the mesh `polydeg` directly from the `meshfile`
+and constructs the transfinite mapping internally.
+
+The particular strategy is selected according to the header present in the `meshfile` where
+the constructor checks whether or not the `meshfile` was created with
+[HOHQMesh.jl](https://github.com/trixi-framework/HOHQMesh.jl).
+If the Abaqus file header is not present in the `meshfile` then the `T8codeMesh` is created
+by `Standard Abaqus`.
+
+The default keyword argument `initial_refinement_level=0` corresponds to a forest
+where the number of trees is the same as the number of elements in the original `meshfile`.
+Increasing the `initial_refinement_level` allows one to uniformly refine the base mesh given
+in the `meshfile` to create a forest with more trees before the simulation begins.
+For example, if a two-dimensional base mesh contains 25 elements then setting
+`initial_refinement_level=1` creates an initial forest of `2^2 * 25 = 100` trees.
+
+# Arguments
+- `meshfile::AbaqusFile{NDIMS}`: Abaqus mesh file object of dimension NDIMS and given `path` to the file.
+
+# Optional Keyword Arguments
+- `mapping`: A function of `NDIMS` variables to describe the mapping that transforms
+             the imported mesh to the physical domain. Use `nothing` for the identity map.
+- `polydeg::Integer`: Polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+                      The default of `1` creates an uncurved geometry. Use a higher value if the mapping
+                      will curve the imported uncurved mesh.
+- `RealT::Type`: The type that should be used for coordinates.
+- `initial_refinement_level::Integer`: Refine the mesh uniformly to this level before the simulation starts.
+- `boundary_symbols::Vector{Symbol}`: A vector of symbols that correspond to the boundary names in the `meshfile`.
+                                      If `nothing` is passed then all boundaries are named `:all`.
+"""
+function T8codeMesh(meshfile::AbaqusFile{NDIMS};
+                    mapping = nothing, polydeg = 1, RealT = Float64,
+                    initial_refinement_level = 0,
+                    boundary_symbols = nothing) where {NDIMS}
+    # Prevent `t8code` from crashing Julia if the file doesn't exist.
+    @assert isfile(meshfile.path)
+
+    # Read in the Header of the meshfile to determine which constructor is appropriate.
+    header = open(meshfile.path, "r") do io
+        readline(io) # Header of the Abaqus file; discarded
+        readline(io) # Read in the actual header information
+    end
+
+    # Check if the meshfile was generated using HOHQMesh.
+    if header == " File created by HOHQMesh"
+        # Mesh curvature and boundary naming is handled with additional information available in meshfile
+        connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_hohqmesh_abaqus(meshfile.path,
+                                                                                                             NDIMS,
+                                                                                                             RealT)
+        # Apply user defined mapping.
+        map_node_coordinates!(tree_node_coordinates, mapping)
+    else
+        # Mesh curvature is handled directly by applying the mapping keyword argument.
+        connectivity, tree_node_coordinates, nodes, boundary_names = p4est_connectivity_from_standard_abaqus(meshfile.path,
+                                                                                                             mapping,
+                                                                                                             polydeg,
+                                                                                                             NDIMS,
+                                                                                                             RealT,
+                                                                                                             boundary_symbols)
+    end
+
+    cmesh = t8_cmesh_new_from_connectivity(connectivity, mpi_comm())
+    p4est_connectivity_destroy(connectivity)
+
+    do_face_ghost = mpi_isparallel()
+    scheme = t8_scheme_new_default_cxx()
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
+
+    return T8codeMesh{NDIMS}(forest, tree_node_coordinates, nodes,
+                             boundary_names, "")
+end
+
+function t8_cmesh_new_from_connectivity(connectivity::Ptr{p4est_connectivity}, comm)
+    return t8_cmesh_new_from_p4est(connectivity, comm, 0)
+end
+
+function t8_cmesh_new_from_connectivity(connectivity::Ptr{p8est_connectivity}, comm)
+    return t8_cmesh_new_from_p8est(connectivity, comm, 0)
+end
+
+"""
+T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius, thickness;
+                      polydeg, RealT=Float64, initial_refinement_level=0)
+
+Construct a cubed spherical shell of given inner radius and thickness as `T8codeMesh` with
+`6 * trees_per_face_dimension^2 * layers` trees. The mesh will have two boundaries,
+`:inside` and `:outside`.
+
+# Arguments
+- `lat_lon_levels_per_face_dimension::Integer`: number of trees per patch in longitudinal
+                                                and latitudinal direction given as level of
+                                                refinement.
+- `layers::Integer`: the number of trees in the third local dimension of each face, i.e.,
+                     the number of layers of the shell.
+- `inner_radius::Float64`: Radius of the inner side of the shell.
+- `thickness::Float64`: Thickness of the shell. The outer radius will be
+                        `inner_radius + thickness`.
+- `polydeg::Integer`: polynomial degree used to store the geometry of the mesh.
+                      The mapping will be approximated by an interpolation polynomial
+                      of the specified degree for each tree.
+- `RealT::Type`: the type that should be used for coordinates.
+- `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the
+                                       simulation starts.
+"""
+function T8codeMeshCubedSphere(lat_lon_levels_per_face_dimension, layers, inner_radius,
+                               thickness;
+                               polydeg, RealT = Float64, initial_refinement_level = 0)
+    NDIMS = 3
+    cmesh = t8_cmesh_new_cubed_spherical_shell(inner_radius, thickness,
+                                               lat_lon_levels_per_face_dimension,
+                                               layers, mpi_comm())
+    do_face_ghost = mpi_isparallel()
+    scheme = t8_scheme_new_default_cxx()
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level, do_face_ghost,
+                                   mpi_comm())
+
+    num_trees = t8_cmesh_get_num_trees(cmesh)
+    boundary_names = fill(Symbol("---"), 2 * NDIMS, num_trees)
+    for itree in 1:num_trees
+        boundary_names[5, itree] = :inside
+        boundary_names[6, itree] = :outside
+    end
+
+    return T8codeMesh{NDIMS, RealT}(forest, boundary_names; polydeg = polydeg)
 end
 
 struct adapt_callback_passthrough
@@ -516,6 +870,70 @@ function adapt_callback_wrapper(forest,
 end
 
 """
+    Trixi.adapt_forest(forest::Ptr{t8_forest}, adapt_callback; kwargs...)
+
+Adapt a `T8codeMesh` according to a user-defined `adapt_callback`. This
+function is primarily for internal use. See `Trixi.adapt!(mesh::T8codeMesh,
+adapt_callback; kwargs...)` for a more detailed documentation.
+
+# Arguments
+- `forest::Ptr{t8_forest}`: New forest.
+- `adapt_callback`: A user-defined callback which tells the adaption routines
+                    if an element should be refined, coarsened or stay unchanged.
+- `kwargs`: Refer to `Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)`.
+
+Note that the old forest usually gets deallocated within t8code. Call
+`t8_forest_ref(Ref(mesh.forest))` beforehand to prevent that.
+
+Returns a `Ptr{t8_forest}` to a new forest.
+"""
+function adapt_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}}, adapt_callback;
+                      recursive = true,
+                      balance = true,
+                      partition = true, ghost = true, user_data = C_NULL)
+    # Check that forest is a committed, that is valid and usable, forest.
+    @assert t8_forest_is_committed(forest) != 0
+
+    # Init new forest.
+    new_forest_ref = Ref{t8_forest_t}()
+    t8_forest_init(new_forest_ref)
+    new_forest = new_forest_ref[]
+
+    # Check out `examples/t8_step4_partition_balance_ghost.jl` in
+    # https://github.com/DLR-AMR/T8code.jl for detailed explanations.
+    let set_from = C_NULL, set_for_coarsening = 0, no_repartition = !partition
+        t8_forest_set_user_data(new_forest,
+                                pointer_from_objref(Ref(adapt_callback_passthrough(adapt_callback,
+                                                                                   user_data))))
+        t8_forest_set_adapt(new_forest, forest,
+                            @t8_adapt_callback(adapt_callback_wrapper),
+                            recursive)
+        if balance
+            t8_forest_set_balance(new_forest, set_from, no_repartition)
+        end
+
+        if partition
+            t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
+        end
+
+        if ghost
+            t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES)
+        end
+
+        # Julias's GC leads to random segfaults here. Temporarily switch it off.
+        GC.enable(false)
+
+        # The old forest is destroyed here.
+        # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
+        t8_forest_commit(new_forest)
+
+        GC.enable(true)
+    end
+
+    return new_forest
+end
+
+"""
     Trixi.adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
 
 Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
@@ -549,65 +967,56 @@ Adapt a `T8codeMesh` according to a user-defined `adapt_callback`.
     - `partition = true`: Partition the forest to redistribute elements evenly among MPI ranks.
     - `ghost = true`: Create a ghost layer for MPI data exchange.
     - `user_data = C_NULL`: Pointer to some arbitrary user-defined data.
-"""
-function adapt!(mesh::T8codeMesh, adapt_callback; recursive = true, balance = true,
-                partition = true, ghost = true, user_data = C_NULL)
-    # Check that forest is a committed, that is valid and usable, forest.
-    @assert t8_forest_is_committed(mesh.forest) != 0
 
-    # Init new forest.
+Returns `nothing`.
+"""
+function adapt!(mesh::T8codeMesh, adapt_callback; kwargs...)
+    # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
+    update_forest!(mesh, adapt_forest(mesh.forest, adapt_callback; kwargs...))
+    return nothing
+end
+
+function balance_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}})
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
 
-    # Check out `examples/t8_step4_partition_balance_ghost.jl` in
-    # https://github.com/DLR-AMR/T8code.jl for detailed explanations.
-    let set_from = C_NULL, set_for_coarsening = 0, no_repartition = !partition
-        t8_forest_set_user_data(new_forest,
-                                pointer_from_objref(Ref(adapt_callback_passthrough(adapt_callback,
-                                                                                   user_data))))
-        t8_forest_set_adapt(new_forest, mesh.forest,
-                            @t8_adapt_callback(adapt_callback_wrapper),
-                            recursive)
-        if balance
-            t8_forest_set_balance(new_forest, set_from, no_repartition)
-        end
-
-        if partition
-            t8_forest_set_partition(new_forest, set_from, set_for_coarsening)
-        end
-
-        t8_forest_set_ghost(new_forest, ghost, T8_GHOST_FACES) # Note: MPI support not available yet so it is a dummy call.
-
-        # The old forest is destroyed here.
-        # Call `t8_forest_ref(Ref(mesh.forest))` to keep it.
+    let set_from = forest, no_repartition = 1, do_ghost = 1
+        t8_forest_set_balance(new_forest, set_from, no_repartition)
+        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
         t8_forest_commit(new_forest)
     end
 
-    mesh.forest = new_forest
-
-    return nothing
+    return new_forest
 end
 
 """
     Trixi.balance!(mesh::T8codeMesh)
 
 Balance a `T8codeMesh` to ensure 2^(NDIMS-1):1 face neighbors.
+
+# Arguments
+- `mesh::T8codeMesh`: Initialized mesh object.
+
+Returns `nothing`.
 """
 function balance!(mesh::T8codeMesh)
+    update_forest!(mesh, balance_forest(mesh.forest))
+    return nothing
+end
+
+function partition_forest(forest::Union{T8code.ForestWrapper, Ptr{t8_forest}})
     new_forest_ref = Ref{t8_forest_t}()
     t8_forest_init(new_forest_ref)
     new_forest = new_forest_ref[]
 
-    let set_from = mesh.forest, no_repartition = 1, do_ghost = 1
-        t8_forest_set_balance(new_forest, set_from, no_repartition)
+    let set_from = forest, do_ghost = 1, allow_for_coarsening = 1
+        t8_forest_set_partition(new_forest, set_from, allow_for_coarsening)
         t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
         t8_forest_commit(new_forest)
     end
 
-    mesh.forest = new_forest
-
-    return nothing
+    return new_forest
 end
 
 """
@@ -617,20 +1026,11 @@ Partition a `T8codeMesh` in order to redistribute elements evenly among MPI rank
 
 # Arguments
 - `mesh::T8codeMesh`: Initialized mesh object.
+
+Returns `nothing`.
 """
 function partition!(mesh::T8codeMesh)
-    new_forest_ref = Ref{t8_forest_t}()
-    t8_forest_init(new_forest_ref)
-    new_forest = new_forest_ref[]
-
-    let set_from = mesh.forest, do_ghost = 1, allow_for_coarsening = 1
-        t8_forest_set_partition(new_forest, set_from, allow_for_coarsening)
-        t8_forest_set_ghost(new_forest, do_ghost, T8_GHOST_FACES)
-        t8_forest_commit(new_forest)
-    end
-
-    mesh.forest = new_forest
-
+    update_forest!(mesh, partition_forest(mesh.forest))
     return nothing
 end
 
@@ -644,10 +1044,14 @@ function get_global_first_element_ids(mesh::T8codeMesh)
 end
 
 function count_interfaces(mesh::T8codeMesh)
-    @assert t8_forest_is_committed(mesh.forest) != 0
+    return count_interfaces(mesh.forest, ndims(mesh))
+end
 
-    num_local_elements = t8_forest_get_local_num_elements(mesh.forest)
-    num_local_trees = t8_forest_get_num_local_trees(mesh.forest)
+function count_interfaces(forest, ndims)
+    @assert t8_forest_is_committed(forest) != 0
+
+    num_local_elements = t8_forest_get_local_num_elements(forest)
+    num_local_trees = t8_forest_get_num_local_trees(forest)
 
     current_index = t8_locidx_t(0)
 
@@ -658,32 +1062,32 @@ function count_interfaces(mesh::T8codeMesh)
     local_num_mpi_conform = 0
     local_num_mpi_mortars = 0
 
-    visited_global_mortar_ids = Set{UInt64}([])
+    visited_global_mortar_ids = Set{UInt128}([])
 
-    max_level = t8_forest_get_maxlevel(mesh.forest) #UInt64
-    max_tree_num_elements = UInt64(2^ndims(mesh))^max_level
+    max_level = t8_forest_get_maxlevel(forest)
+    max_tree_num_elements = UInt128(2^ndims)^max_level
 
     if mpi_isparallel()
-        ghost_num_trees = t8_forest_ghost_num_trees(mesh.forest)
+        ghost_num_trees = t8_forest_ghost_num_trees(forest)
 
         ghost_tree_element_offsets = [num_local_elements +
-                                      t8_forest_ghost_get_tree_element_offset(mesh.forest,
+                                      t8_forest_ghost_get_tree_element_offset(forest,
                                                                               itree)
                                       for itree in 0:(ghost_num_trees - 1)]
-        ghost_global_treeids = [t8_forest_ghost_get_global_treeid(mesh.forest, itree)
+        ghost_global_treeids = [t8_forest_ghost_get_global_treeid(forest, itree)
                                 for itree in 0:(ghost_num_trees - 1)]
     end
 
     for itree in 0:(num_local_trees - 1)
-        tree_class = t8_forest_get_tree_class(mesh.forest, itree)
-        eclass_scheme = t8_forest_get_eclass_scheme(mesh.forest, tree_class)
+        tree_class = t8_forest_get_tree_class(forest, itree)
+        eclass_scheme = t8_forest_get_eclass_scheme(forest, tree_class)
 
-        num_elements_in_tree = t8_forest_get_tree_num_elements(mesh.forest, itree)
+        num_elements_in_tree = t8_forest_get_tree_num_elements(forest, itree)
 
-        global_itree = t8_forest_global_tree_id(mesh.forest, itree)
+        global_itree = t8_forest_global_tree_id(forest, itree)
 
         for ielement in 0:(num_elements_in_tree - 1)
-            element = t8_forest_get_element_in_tree(mesh.forest, itree, ielement)
+            element = t8_forest_get_element_in_tree(forest, itree, ielement)
 
             level = t8_element_level(eclass_scheme, element)
 
@@ -703,7 +1107,7 @@ function count_interfaces(mesh::T8codeMesh)
 
                 forest_is_balanced = Cint(1)
 
-                t8_forest_leaf_face_neighbors(mesh.forest, itree, element,
+                t8_forest_leaf_face_neighbors(forest, itree, element,
                                               pneighbor_leaves_ref, iface, dual_faces_ref,
                                               num_neighbors_ref,
                                               pelement_indices_ref, pneigh_scheme_ref,
@@ -737,7 +1141,7 @@ function count_interfaces(mesh::T8codeMesh)
                         elseif level < neighbor_level
                             local_num_mpi_mortars += 1
 
-                            global_mortar_id = 2 * ndims(mesh) * current_linear_id + iface
+                            global_mortar_id = 2 * ndims * current_linear_id + iface
 
                         else # level > neighbor_level
                             neighbor_global_ghost_itree = ghost_global_treeids[findlast(ghost_tree_element_offsets .<=
@@ -747,7 +1151,7 @@ function count_interfaces(mesh::T8codeMesh)
                                                  t8_element_get_linear_id(neighbor_scheme,
                                                                           neighbor_leaves[1],
                                                                           max_level)
-                            global_mortar_id = 2 * ndims(mesh) * neighbor_linear_id +
+                            global_mortar_id = 2 * ndims * neighbor_linear_id +
                                                dual_faces[1]
 
                             if !(global_mortar_id in visited_global_mortar_ids)
@@ -756,11 +1160,12 @@ function count_interfaces(mesh::T8codeMesh)
                             end
                         end
                     end
-                end
 
-                t8_free(dual_faces_ref[])
-                t8_free(pneighbor_leaves_ref[])
-                t8_free(pelement_indices_ref[])
+                    t8_element_destroy(neighbor_scheme, num_neighbors, neighbor_leaves)
+                    t8_free(dual_faces_ref[])
+                    t8_free(pneighbor_leaves_ref[])
+                    t8_free(pelement_indices_ref[])
+                end
             end # for
 
             current_index += 1
@@ -825,17 +1230,19 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
         [1, 2, 0, 0, 3, 4, 0, 0], # 2
         [0, 0, 1, 2, 0, 0, 3, 4], # 3
         [1, 2, 3, 4, 0, 0, 0, 0], # 4
-        [0, 0, 0, 0, 1, 2, 3, 4], # 5
+        [0, 0, 0, 0, 1, 2, 3, 4] # 5
     ]
 
     # Helper variables to compute unique global MPI interface/mortar ids.
-    max_level = t8_forest_get_maxlevel(mesh.forest) #UInt64
-    max_tree_num_elements = UInt64(2^ndims(mesh))^max_level
+    max_level = t8_forest_get_maxlevel(mesh.forest)
+    max_tree_num_elements = UInt128(2^ndims(mesh))^max_level
 
     # These two variables help to ensure that we count MPI mortars from smaller
     # elements point of view only once.
-    visited_global_mortar_ids = Set{UInt64}([])
-    global_mortar_id_to_local = Dict{UInt64, Int}([])
+    visited_global_mortar_ids = Set{UInt128}([])
+    global_mortar_id_to_local = Dict{UInt128, Int}([])
+
+    cmesh = t8_forest_get_cmesh(mesh.forest)
 
     # Loop over all local trees.
     for itree in 0:(num_local_trees - 1)
@@ -860,20 +1267,6 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
             # Loop over all faces of the current local element.
             for iface in 0:(num_faces - 1)
-                # Compute the `orientation` of the touching faces.
-                if t8_element_is_root_boundary(eclass_scheme, element, iface) == 1
-                    cmesh = t8_forest_get_cmesh(mesh.forest)
-                    itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(mesh.forest, itree)
-                    iface_in_tree = t8_element_tree_face(eclass_scheme, element, iface)
-                    orientation_ref = Ref{Cint}()
-
-                    t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree, C_NULL,
-                                               orientation_ref)
-                    orientation = orientation_ref[]
-                else
-                    orientation = zero(Cint)
-                end
-
                 pelement_indices_ref = Ref{Ptr{t8_locidx_t}}()
                 pneighbor_leaves_ref = Ref{Ptr{Ptr{t8_element}}}()
                 pneigh_scheme_ref = Ref{Ptr{t8_eclass_scheme}}()
@@ -939,6 +1332,21 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                     # Interface or mortar.
                 else
                     neighbor_level = t8_element_level(neighbor_scheme, neighbor_leaves[1])
+
+                    # Compute the `orientation` of the touching faces.
+                    if t8_element_is_root_boundary(eclass_scheme, element, iface) == 1
+                        itree_in_cmesh = t8_forest_ltreeid_to_cmesh_ltreeid(mesh.forest,
+                                                                            itree)
+                        iface_in_tree = t8_element_tree_face(eclass_scheme, element, iface)
+                        orientation_ref = Ref{Cint}()
+
+                        t8_cmesh_get_face_neighbor(cmesh, itree_in_cmesh, iface_in_tree,
+                                                   C_NULL,
+                                                   orientation_ref)
+                        orientation = orientation_ref[]
+                    else
+                        orientation = zero(Cint)
+                    end
 
                     # Local interface or mortar.
                     if all(neighbor_ielements .< num_local_elements)
@@ -1078,10 +1486,10 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                                 global_mortar_id_to_local[global_mortar_id] = local_mpi_mortar_id
 
                                 mpi_mesh_info.mpi_mortars.local_neighbor_ids[local_mpi_mortar_id] = [
-                                    current_index + 1,
+                                    current_index + 1
                                 ]
                                 mpi_mesh_info.mpi_mortars.local_neighbor_positions[local_mpi_mortar_id] = [
-                                    map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1],
+                                    map_iface_to_ichild_to_position[iface + 1][t8_element_child_id(eclass_scheme, element) + 1]
                                 ]
                                 init_mortar_node_indices!(mpi_mesh_info.mpi_mortars,
                                                           (iface, dual_faces[1]),
@@ -1089,7 +1497,7 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
 
                                 neighbor_ranks = [
                                     remotes[findlast(ghost_remote_first_elem .<=
-                                                     neighbor_ielements[1])],
+                                                     neighbor_ielements[1])]
                                 ]
                                 mpi_mesh_info.neighbor_ranks_mortar[local_mpi_mortar_id] = neighbor_ranks
 
@@ -1097,11 +1505,12 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
                             end
                         end
                     end
-                end
 
-                t8_free(dual_faces_ref[])
-                t8_free(pneighbor_leaves_ref[])
-                t8_free(pelement_indices_ref[])
+                    t8_element_destroy(neighbor_scheme, num_neighbors, neighbor_leaves)
+                    t8_free(dual_faces_ref[])
+                    t8_free(pneighbor_leaves_ref[])
+                    t8_free(pelement_indices_ref[])
+                end # num_neighbors
             end # for iface
 
             current_index += 1
@@ -1109,6 +1518,66 @@ function fill_mesh_info!(mesh::T8codeMesh, interfaces, mortars, boundaries,
     end # for itree
 
     return nothing
+end
+
+function get_levels(mesh::T8codeMesh)
+    return trixi_t8_get_local_element_levels(mesh.forest)
+end
+
+function get_cmesh_info(mesh::T8codeMesh)
+    @assert t8_forest_is_committed(mesh.forest) == 1
+    cmesh = t8_forest_get_cmesh(mesh.forest)
+    return get_cmesh_info(cmesh, ndims(mesh))
+end
+
+# Note, `cmesh` is not partitioned as of now.
+# Every MPI rank has a full copy of the `cmesh`.
+function get_cmesh_info(cmesh::Ptr{t8_cmesh}, ndims)
+    num_trees = t8_cmesh_get_num_trees(cmesh)
+    num_faces = 2 * ndims
+
+    num_interfaces = 0
+
+    dual_face_ref = Ref{Cint}()
+    orientation_ref = Ref{Cint}()
+
+    # Count connected faces.
+    for itree in 0:(num_trees - 1)
+        for iface in 0:(num_faces - 1)
+            neigh_itree = t8_cmesh_get_face_neighbor(cmesh, itree, iface, dual_face_ref,
+                                                     C_NULL)
+            if itree < neigh_itree || itree == neigh_itree && iface < dual_face_ref[]
+                num_interfaces += 1
+            end
+        end
+    end
+
+    # Allocate arrays.
+    treeIDs = zeros(Int, num_interfaces)
+    neighIDs = zeros(Int, num_interfaces)
+    orientations = zeros(Int8, num_interfaces)
+    faces = zeros(Int8, num_interfaces)
+    duals = zeros(Int8, num_interfaces)
+
+    itf_index = 0 # interface index
+
+    for itree in 0:(num_trees - 1)
+        for iface in 0:(num_faces - 1)
+            neigh_itree = t8_cmesh_get_face_neighbor(cmesh, itree, iface, dual_face_ref,
+                                                     orientation_ref)
+
+            if itree < neigh_itree || itree == neigh_itree && iface < dual_face_ref[]
+                itf_index += 1
+                treeIDs[itf_index] = itree
+                neighIDs[itf_index] = neigh_itree
+                orientations[itf_index] = orientation_ref[]
+                faces[itf_index] = iface
+                duals[itf_index] = dual_face_ref[]
+            end
+        end
+    end
+
+    return treeIDs, neighIDs, faces, duals, orientations
 end
 
 #! format: off

@@ -6,12 +6,13 @@
 #! format: noindent
 
 """
-    LobattoLegendreBasis([RealT=Float64,] polydeg::Integer)
+    LobattoLegendreBasis([RealT = Float64,] polydeg::Integer)
 
 Create a nodal Lobatto-Legendre basis for polynomials of degree `polydeg`.
 
 For the special case `polydeg=0` the DG method reduces to a finite volume method.
 Therefore, this function sets the center point of the cell as single node.
+This exceptional case is currently only supported for TreeMesh!
 """
 struct LobattoLegendreBasis{RealT <: Real, NNODES,
                             VectorT <: AbstractVector{RealT},
@@ -36,35 +37,30 @@ end
 function LobattoLegendreBasis(RealT, polydeg::Integer)
     nnodes_ = polydeg + 1
 
-    # compute everything using `Float64` by default
-    nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_)
+    nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
     inverse_weights_ = inv.(weights_)
 
-    _, inverse_vandermonde_legendre_ = vandermonde_legendre(nodes_)
+    _, inverse_vandermonde_legendre = vandermonde_legendre(nodes_, RealT)
 
-    boundary_interpolation_ = zeros(nnodes_, 2)
-    boundary_interpolation_[:, 1] = calc_lhat(-1.0, nodes_, weights_)
-    boundary_interpolation_[:, 2] = calc_lhat(1.0, nodes_, weights_)
+    boundary_interpolation = zeros(RealT, nnodes_, 2)
+    boundary_interpolation[:, 1] = calc_lhat(-one(RealT), nodes_, weights_)
+    boundary_interpolation[:, 2] = calc_lhat(one(RealT), nodes_, weights_)
 
-    derivative_matrix_ = polynomial_derivative_matrix(nodes_)
-    derivative_split_ = calc_dsplit(nodes_, weights_)
-    derivative_split_transpose_ = Matrix(derivative_split_')
-    derivative_dhat_ = calc_dhat(nodes_, weights_)
+    derivative_matrix = polynomial_derivative_matrix(nodes_)
+    derivative_split = calc_dsplit(nodes_, weights_)
+    derivative_split_transpose = Matrix(derivative_split')
+    derivative_dhat = calc_dhat(nodes_, weights_)
 
-    # type conversions to get the requested real type and enable possible
-    # optimizations of runtime performance and latency
+    # Type conversions to enable possible optimizations of runtime performance 
+    # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
     inverse_weights = SVector{nnodes_, RealT}(inverse_weights_)
 
-    inverse_vandermonde_legendre = convert.(RealT, inverse_vandermonde_legendre_)
-    boundary_interpolation = convert.(RealT, boundary_interpolation_)
-
-    # Usually as fast as `SMatrix` (when using `let` in the volume integral/`@threaded`)
-    derivative_matrix = Matrix{RealT}(derivative_matrix_)
-    derivative_split = Matrix{RealT}(derivative_split_)
-    derivative_split_transpose = Matrix{RealT}(derivative_split_transpose_)
-    derivative_dhat = Matrix{RealT}(derivative_dhat_)
+    # We keep the matrices above stored using the standard `Matrix` type 
+    # since this is usually as fast as `SMatrix`
+    # (when using `let` in the volume integral/`@threaded`)
+    # and reduces latency
 
     return LobattoLegendreBasis{RealT, nnodes_, typeof(nodes),
                                 typeof(inverse_vandermonde_legendre),
@@ -78,7 +74,6 @@ function LobattoLegendreBasis(RealT, polydeg::Integer)
                                                            derivative_split_transpose,
                                                            derivative_dhat)
 end
-
 LobattoLegendreBasis(polydeg::Integer) = LobattoLegendreBasis(Float64, polydeg)
 
 function Base.show(io::IO, basis::LobattoLegendreBasis)
@@ -164,18 +159,15 @@ function MortarL2(basis::LobattoLegendreBasis)
     RealT = real(basis)
     nnodes_ = nnodes(basis)
 
-    # compute everything using `Float64` by default
-    forward_upper_ = calc_forward_upper(nnodes_)
-    forward_lower_ = calc_forward_lower(nnodes_)
-    reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss))
-    reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss))
+    forward_upper = calc_forward_upper(nnodes_, RealT)
+    forward_lower = calc_forward_lower(nnodes_, RealT)
+    reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
+    reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
 
-    # type conversions to get the requested real type and enable possible
-    # optimizations of runtime performance and latency
-
-    # Usually as fast as `SMatrix` but better for latency
-    forward_upper = Matrix{RealT}(forward_upper_)
-    forward_lower = Matrix{RealT}(forward_lower_)
+    # We keep the matrices above stored using the standard `Matrix` type 
+    # since this is usually as fast as `SMatrix`
+    # (when using `let` in the volume integral/`@threaded`)
+    # and reduces latency
 
     # TODO: Taal performance
     #       Check the performance of different implementations of `mortar_fluxes_to_elements!`
@@ -185,8 +177,6 @@ function MortarL2(basis::LobattoLegendreBasis)
     #       `@tullio` when the matrix sizes are not necessarily static.
     # reverse_upper = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_upper_)
     # reverse_lower = SMatrix{nnodes_, nnodes_, RealT, nnodes_^2}(reverse_lower_)
-    reverse_upper = Matrix{RealT}(reverse_upper_)
-    reverse_lower = Matrix{RealT}(reverse_lower_)
 
     LobattoLegendreMortarL2{RealT, nnodes_, typeof(forward_upper),
                             typeof(reverse_upper)}(forward_upper, forward_lower,
@@ -227,10 +217,10 @@ end
 # end
 
 # function MortarEC(basis::LobattoLegendreBasis{RealT}, surface_flux)
-#   forward_upper   = calc_forward_upper(n_nodes)
-#   forward_lower   = calc_forward_lower(n_nodes)
-#   l2reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss_lobatto))
-#   l2reverse_lower = calc_reverse_lower(n_nodes, Val(:gauss_lobatto))
+#   forward_upper   = calc_forward_upper(n_nodes, RealT)
+#   forward_lower   = calc_forward_lower(n_nodes, RealT)
+#   l2reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss_lobatto), RealT)
+#   l2reverse_lower = calc_reverse_lower(n_nodes, Val(:gauss_lobatto), RealT)
 
 #   # type conversions to make use of StaticArrays etc.
 #   nnodes_ = nnodes(basis)
@@ -262,16 +252,13 @@ function SolutionAnalyzer(basis::LobattoLegendreBasis;
     RealT = real(basis)
     nnodes_ = analysis_polydeg + 1
 
-    # compute everything using `Float64` by default
-    nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_)
-    vandermonde_ = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
+    nodes_, weights_ = gauss_lobatto_nodes_weights(nnodes_, RealT)
+    vandermonde = polynomial_interpolation_matrix(get_nodes(basis), nodes_)
 
-    # type conversions to get the requested real type and enable possible
-    # optimizations of runtime performance and latency
+    # Type conversions to enable possible optimizations of runtime performance 
+    # and latency
     nodes = SVector{nnodes_, RealT}(nodes_)
     weights = SVector{nnodes_, RealT}(weights_)
-
-    vandermonde = Matrix{RealT}(vandermonde_)
 
     return LobattoLegendreAnalyzer{RealT, nnodes_, typeof(nodes), typeof(vandermonde)}(nodes,
                                                                                        weights,
@@ -321,11 +308,10 @@ end
 function AdaptorL2(basis::LobattoLegendreBasis{RealT}) where {RealT}
     nnodes_ = nnodes(basis)
 
-    # compute everything using `Float64` by default
-    forward_upper_ = calc_forward_upper(nnodes_)
-    forward_lower_ = calc_forward_lower(nnodes_)
-    reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss))
-    reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss))
+    forward_upper_ = calc_forward_upper(nnodes_, RealT)
+    forward_lower_ = calc_forward_lower(nnodes_, RealT)
+    reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
+    reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
 
     # type conversions to get the requested real type and enable possible
     # optimizations of runtime performance and latency
@@ -403,10 +389,11 @@ function calc_dsplit(nodes, weights)
     return dsplit
 end
 
-# Calculate the polynomial derivative matrix D
+# Calculate the polynomial derivative matrix D.
+# This implements algorithm 37 "PolynomialDerivativeMatrix" from Kopriva's book.
 function polynomial_derivative_matrix(nodes)
     n_nodes = length(nodes)
-    d = zeros(n_nodes, n_nodes)
+    d = zeros(eltype(nodes), n_nodes, n_nodes)
     wbary = barycentric_weights(nodes)
 
     for i in 1:n_nodes, j in 1:n_nodes
@@ -420,6 +407,7 @@ function polynomial_derivative_matrix(nodes)
 end
 
 # Calculate and interpolation matrix (Vandermonde matrix) between two given sets of nodes
+# See algorithm 32 "PolynomialInterpolationMatrix" from Kopriva's book.
 function polynomial_interpolation_matrix(nodes_in, nodes_out,
                                          baryweights_in = barycentric_weights(nodes_in))
     n_nodes_in = length(nodes_in)
@@ -432,6 +420,7 @@ function polynomial_interpolation_matrix(nodes_in, nodes_out,
     return vandermonde
 end
 
+# This implements algorithm 32 "PolynomialInterpolationMatrix" from Kopriva's book.
 function polynomial_interpolation_matrix!(vandermonde,
                                           nodes_in, nodes_out,
                                           baryweights_in)
@@ -462,10 +451,22 @@ function polynomial_interpolation_matrix!(vandermonde,
     return vandermonde
 end
 
-# Calculate the barycentric weights for a given node distribution.
+"""
+    barycentric_weights(nodes)
+
+Calculate the barycentric weights for a given node distribution, i.e.,
+```math
+w_j = \\frac{1}{ \\prod_{k \\neq j} \\left( x_j - x_k \\right ) }
+```
+
+For details, see (especially Section 3)
+- Jean-Paul Berrut and Lloyd N. Trefethen (2004).
+  Barycentric Lagrange Interpolation.
+  [DOI:10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
+"""
 function barycentric_weights(nodes)
     n_nodes = length(nodes)
-    weights = ones(n_nodes)
+    weights = ones(eltype(nodes), n_nodes)
 
     for j in 2:n_nodes, k in 1:(j - 1)
         weights[k] *= nodes[k] - nodes[j]
@@ -493,12 +494,31 @@ function calc_lhat(x, nodes, weights)
     return lhat
 end
 
-# Calculate Lagrange polynomials for a given node distribution.
+""" 
+    lagrange_interpolating_polynomials(x, nodes, wbary)
+
+Calculate Lagrange polynomials for a given node distribution with
+associated barycentric weights `wbary` at a given point `x` on the 
+reference interval ``[-1, 1]``.
+
+This returns all ``l_j(x)``, i.e., the Lagrange polynomials for each node ``x_j``.
+Thus, to obtain the interpolating polynomial ``p(x)`` at ``x``, one has to 
+multiply the Lagrange polynomials with the nodal values ``u_j`` and sum them up:
+``p(x) = \\sum_{j=1}^{n} u_j l_j(x)``.
+
+For details, see e.g. Section 2 of 
+- Jean-Paul Berrut and Lloyd N. Trefethen (2004).
+  Barycentric Lagrange Interpolation.
+  [DOI:10.1137/S0036144502417715](https://doi.org/10.1137/S0036144502417715)
+"""
 function lagrange_interpolating_polynomials(x, nodes, wbary)
     n_nodes = length(nodes)
-    polynomials = zeros(n_nodes)
+    polynomials = zeros(eltype(nodes), n_nodes)
 
     for i in 1:n_nodes
+        # Avoid division by zero when `x` is close to node by using 
+        # the Kronecker-delta property at nodes
+        # of the Lagrange interpolation polynomials.
         if isapprox(x, nodes[i], rtol = eps(x))
             polynomials[i] = 1
             return polynomials
@@ -517,15 +537,25 @@ function lagrange_interpolating_polynomials(x, nodes, wbary)
     return polynomials
 end
 
-# From FLUXO (but really from blue book by Kopriva)
-function gauss_lobatto_nodes_weights(n_nodes::Integer)
-    # From Kopriva's book
-    n_iterations = 10
-    tolerance = 1e-15
+"""
+    gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
+
+Computes nodes ``x_j`` and weights ``w_j`` for the (Legendre-)Gauss-Lobatto quadrature.
+This implements algorithm 25 "GaussLobattoNodesAndWeights" from the book
+
+- David A. Kopriva, (2009). 
+  Implementing spectral methods for partial differential equations:
+  Algorithms for scientists and engineers. 
+  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+"""
+function gauss_lobatto_nodes_weights(n_nodes::Integer, RealT = Float64)
+    # From FLUXO (but really from blue book by Kopriva)
+    n_iterations = 20
+    tolerance = 2 * eps(RealT) # Relative tolerance for Newton iteration
 
     # Initialize output
-    nodes = zeros(n_nodes)
-    weights = zeros(n_nodes)
+    nodes = zeros(RealT, n_nodes)
+    weights = zeros(RealT, n_nodes)
 
     # Special case for polynomial degree zero (first order finite volume)
     if n_nodes == 1
@@ -538,15 +568,15 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer)
     N = n_nodes - 1
 
     # Calculate values at boundary
-    nodes[1] = -1.0
-    nodes[end] = 1.0
-    weights[1] = 2 / (N * (N + 1))
+    nodes[1] = -1
+    nodes[end] = 1
+    weights[1] = RealT(2) / (N * (N + 1))
     weights[end] = weights[1]
 
     # Calculate interior values
     if N > 1
-        cont1 = pi / N
-        cont2 = 3 / (8 * N * pi)
+        cont1 = convert(RealT, pi) / N
+        cont2 = 3 / (8 * N * convert(RealT, pi))
 
         # Use symmetry -> only left side is computed
         for i in 1:(div(N + 1, 2) - 1)
@@ -562,6 +592,10 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer)
                 if abs(dx) < tolerance * abs(nodes[i + 1])
                     break
                 end
+
+                if k == n_iterations
+                    @warn "`gauss_lobatto_nodes_weights` Newton iteration did not converge"
+                end
             end
 
             # Calculate weight
@@ -576,20 +610,22 @@ function gauss_lobatto_nodes_weights(n_nodes::Integer)
 
     # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
     if n_nodes % 2 == 1
-        _, _, L = calc_q_and_l(N, 0)
-        nodes[div(N, 2) + 1] = 0.0
+        _, _, L = calc_q_and_l(N, zero(RealT))
+        nodes[div(N, 2) + 1] = 0
         weights[div(N, 2) + 1] = weights[1] / L^2
     end
 
     return nodes, weights
 end
 
-# From FLUXO (but really from blue book by Kopriva)
-function calc_q_and_l(N::Integer, x::Float64)
-    L_Nm2 = 1.0
+# From FLUXO (but really from blue book by Kopriva, algorithm 24)
+function calc_q_and_l(N::Integer, x::Real)
+    RealT = typeof(x)
+
+    L_Nm2 = one(RealT)
     L_Nm1 = x
-    Lder_Nm2 = 0.0
-    Lder_Nm1 = 1.0
+    Lder_Nm2 = zero(RealT)
+    Lder_Nm1 = one(RealT)
 
     local L
     for i in 2:N
@@ -606,34 +642,42 @@ function calc_q_and_l(N::Integer, x::Float64)
 
     return q, qder, L
 end
-calc_q_and_l(N::Integer, x::Real) = calc_q_and_l(N, convert(Float64, x))
 
-# From FLUXO (but really from blue book by Kopriva)
-function gauss_nodes_weights(n_nodes::Integer)
-    # From Kopriva's book
-    n_iterations = 10
-    tolerance = 1e-15
+"""
+    gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
+
+Computes nodes ``x_j`` and weights ``w_j`` for the Gauss-Legendre quadrature.
+This implements algorithm 23 "LegendreGaussNodesAndWeights" from the book
+
+- David A. Kopriva, (2009). 
+  Implementing spectral methods for partial differential equations:
+  Algorithms for scientists and engineers. 
+  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+"""
+function gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
+    n_iterations = 20
+    tolerance = 2 * eps(RealT) # Relative tolerance for Newton iteration
 
     # Initialize output
-    nodes = ones(n_nodes) * 1000
-    weights = zeros(n_nodes)
+    nodes = ones(RealT, n_nodes)
+    weights = zeros(RealT, n_nodes)
 
     # Get polynomial degree for convenience
     N = n_nodes - 1
     if N == 0
-        nodes .= 0.0
-        weights .= 2.0
+        nodes .= 0
+        weights .= 2
         return nodes, weights
     elseif N == 1
-        nodes[1] = -sqrt(1 / 3)
+        nodes[1] = -sqrt(one(RealT) / 3)
         nodes[end] = -nodes[1]
-        weights .= 1.0
+        weights .= 1
         return nodes, weights
     else # N > 1
         # Use symmetry property of the roots of the Legendre polynomials
         for i in 0:(div(N + 1, 2) - 1)
             # Starting guess for Newton method
-            nodes[i + 1] = -cos(pi / (2 * N + 2) * (2 * i + 1))
+            nodes[i + 1] = -cos(convert(RealT, pi) / (2 * N + 2) * (2 * i + 1))
 
             # Newton iteration to find root of Legendre polynomial (= integration node)
             for k in 0:n_iterations
@@ -642,6 +686,10 @@ function gauss_nodes_weights(n_nodes::Integer)
                 nodes[i + 1] += dx
                 if abs(dx) < tolerance * abs(nodes[i + 1])
                     break
+                end
+
+                if k == n_iterations
+                    @warn "`gauss_nodes_weights` Newton iteration did not converge"
                 end
             end
 
@@ -656,8 +704,8 @@ function gauss_nodes_weights(n_nodes::Integer)
 
         # If odd number of nodes, set center node to origin (= 0.0) and calculate weight
         if n_nodes % 2 == 1
-            poly, deriv = legendre_polynomial_and_derivative(N + 1, 0.0)
-            nodes[div(N, 2) + 1] = 0.0
+            poly, deriv = legendre_polynomial_and_derivative(N + 1, zero(RealT))
+            nodes[div(N, 2) + 1] = 0
             weights[div(N, 2) + 1] = (2 * N + 3) / deriv^2
         end
 
@@ -665,22 +713,33 @@ function gauss_nodes_weights(n_nodes::Integer)
     end
 end
 
-# From FLUXO (but really from blue book by Kopriva)
-function legendre_polynomial_and_derivative(N::Int, x::Real)
-    if N == 0
-        poly = 1.0
-        deriv = 0.0
-    elseif N == 1
-        poly = convert(Float64, x)
-        deriv = 1.0
-    else
-        poly_Nm2 = 1.0
-        poly_Nm1 = convert(Float64, x)
-        deriv_Nm2 = 0.0
-        deriv_Nm1 = 1.0
+"""
+    legendre_polynomial_and_derivative(N::Int, x::Real)
 
-        poly = 0.0
-        deriv = 0.0
+Computes the Legendre polynomial of degree `N` and its derivative at `x`.
+This implements algorithm 22 "LegendrePolynomialAndDerivative" from the book
+
+- David A. Kopriva, (2009). 
+  Implementing spectral methods for partial differential equations:
+  Algorithms for scientists and engineers. 
+  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+"""
+function legendre_polynomial_and_derivative(N::Int, x::Real)
+    RealT = typeof(x)
+    if N == 0
+        poly = one(RealT)
+        deriv = zero(RealT)
+    elseif N == 1
+        poly = x
+        deriv = one(RealT)
+    else
+        poly_Nm2 = one(RealT)
+        poly_Nm1 = copy(x)
+        deriv_Nm2 = zero(RealT)
+        deriv_Nm1 = one(RealT)
+
+        poly = zero(RealT)
+        deriv = zero(RealT)
         for i in 2:N
             poly = ((2 * i - 1) * x * poly_Nm1 - (i - 1) * poly_Nm2) / i
             deriv = deriv_Nm2 + (2 * i - 1) * poly_Nm1
@@ -699,10 +758,10 @@ function legendre_polynomial_and_derivative(N::Int, x::Real)
 end
 
 # Calculate Legendre vandermonde matrix and its inverse
-function vandermonde_legendre(nodes, N)
+function vandermonde_legendre(nodes, N::Integer, RealT = Float64)
     n_nodes = length(nodes)
     n_modes = N + 1
-    vandermonde = zeros(n_nodes, n_modes)
+    vandermonde = zeros(RealT, n_nodes, n_modes)
 
     for i in 1:n_nodes
         for m in 1:n_modes
@@ -713,5 +772,7 @@ function vandermonde_legendre(nodes, N)
     inverse_vandermonde = inv(vandermonde)
     return vandermonde, inverse_vandermonde
 end
-vandermonde_legendre(nodes) = vandermonde_legendre(nodes, length(nodes) - 1)
+vandermonde_legendre(nodes, RealT = Float64) = vandermonde_legendre(nodes,
+                                                                    length(nodes) - 1,
+                                                                    RealT)
 end # @muladd

@@ -1,16 +1,14 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Navier-Stokes equations
 
-# TODO: parabolic; unify names of these accessor functions
 prandtl_number() = 0.72
-mu() = 1.0 / 3.0 * 10^(-5) # equivalent to Re = 30,000
+mu = 1.0 / 3.0 * 10^(-4) # equivalent to Re = 30,000
 
 equations = CompressibleEulerEquations2D(1.4)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                           Prandtl = prandtl_number())
 
 """
@@ -23,15 +21,16 @@ Brown and Minion (1995).
 """
 function initial_condition_shear_layer(x, t, equations::CompressibleEulerEquations2D)
     # Shear layer parameters
+    RealT = eltype(x)
     k = 80
-    delta = 0.05
-    u0 = 1.0
+    delta = convert(RealT, 0.05)
+    u0 = 1
 
-    Ms = 0.1 # maximum Mach number
+    Ms = convert(RealT, 0.1) # maximum Mach number
 
-    rho = 1.0
-    v1 = x[2] <= 0.5 ? u0 * tanh(k * (x[2] - 0.25)) : u0 * tanh(k * (0.75 - x[2]))
-    v2 = u0 * delta * sin(2 * pi * (x[1] + 0.25))
+    rho = 1
+    v1 = x[2] <= 0.5f0 ? u0 * tanh(k * (x[2] - 0.25f0)) : u0 * tanh(k * (0.75f0 - x[2]))
+    v2 = u0 * delta * sinpi(2 * (x[1] + 0.25f0))
     p = (u0 / Ms)^2 * rho / equations.gamma # scaling to get Ms
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
@@ -90,7 +89,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

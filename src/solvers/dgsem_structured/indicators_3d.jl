@@ -21,14 +21,17 @@ function apply_smoothing!(mesh::StructuredMesh{3}, alpha, alpha_tmp, dg, cache)
         front = cache.elements.left_neighbors[3, element]
 
         # Apply smoothing
-        alpha[left] = max(alpha_tmp[left], 0.5 * alpha_tmp[element], alpha[left])
-        alpha[element] = max(alpha_tmp[element], 0.5 * alpha_tmp[left], alpha[element])
+        alpha[left] = max(alpha_tmp[left], 0.5f0 * alpha_tmp[element], alpha[left])
+        alpha[element] = max(alpha_tmp[element], 0.5f0 * alpha_tmp[left],
+                             alpha[element])
 
-        alpha[lower] = max(alpha_tmp[lower], 0.5 * alpha_tmp[element], alpha[lower])
-        alpha[element] = max(alpha_tmp[element], 0.5 * alpha_tmp[lower], alpha[element])
+        alpha[lower] = max(alpha_tmp[lower], 0.5f0 * alpha_tmp[element], alpha[lower])
+        alpha[element] = max(alpha_tmp[element], 0.5f0 * alpha_tmp[lower],
+                             alpha[element])
 
-        alpha[front] = max(alpha_tmp[front], 0.5 * alpha_tmp[element], alpha[front])
-        alpha[element] = max(alpha_tmp[element], 0.5 * alpha_tmp[front], alpha[element])
+        alpha[front] = max(alpha_tmp[front], 0.5f0 * alpha_tmp[element], alpha[front])
+        alpha[element] = max(alpha_tmp[element], 0.5f0 * alpha_tmp[front],
+                             alpha[element])
     end
 end
 end # @muladd

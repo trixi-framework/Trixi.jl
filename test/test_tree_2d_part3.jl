@@ -20,14 +20,14 @@ isdir(outdir) && rm(outdir, recursive = true)
     # MHD Multicomponent
     include("test_tree_2d_mhdmulti.jl")
 
+    # MHD Multi-ion
+    include("test_tree_2d_mhdmultiion.jl")
+
     # Lattice-Boltzmann
     include("test_tree_2d_lbm.jl")
 
     # Shallow water
     include("test_tree_2d_shallowwater.jl")
-
-    # Two-Layer Shallow Water
-    include("test_tree_2d_shallowwater_twolayer.jl")
 
     # FDSBP methods on the TreeMesh
     include("test_tree_2d_fdsbp.jl")

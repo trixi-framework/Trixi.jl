@@ -10,6 +10,7 @@
 [![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-success.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3996439.svg)](https://doi.org/10.5281/zenodo.3996439)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8695/badge)](https://www.bestpractices.dev/projects/8695)
 
 [**Trixi.jl**](https://github.com/trixi-framework/Trixi.jl)
 is a numerical simulation framework for conservation
@@ -26,11 +27,17 @@ installation and postprocessing procedures. Its features include:
   * Hierarchical quadtree/octree grid with adaptive mesh refinement
   * Forests of quadtrees/octrees with [p4est](https://github.com/cburstedde/p4est) via [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 * High-order accuracy in space and time
+  * Arbitrary floating-point precision
 * Discontinuous Galerkin methods
   * Kinetic energy-preserving and entropy-stable methods based on flux differencing
   * Entropy-stable shock capturing
   * Positivity-preserving limiting
+  * Subcell invariant domain-preserving (IDP) limiting
   * [Finite difference summation by parts (SBP) methods](https://github.com/ranocha/SummationByPartsOperators.jl)
+* Advanced limiting strategies
+  * Positivity-preserving limiting
+  * Subcell invariant domain-preserving (IDP) limiting
+  * Entropy-bounded limiting
 * Compatible with the [SciML ecosystem for ordinary differential equations](https://diffeq.sciml.ai/latest/)
   * [Explicit low-storage Runge-Kutta time integration](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Low-Storage-Methods)
   * [Strong stability preserving methods](https://diffeq.sciml.ai/latest/solvers/ode_solve/#Explicit-Strong-Stability-Preserving-Runge-Kutta-Methods-for-Hyperbolic-PDEs-(Conservation-Laws))
@@ -47,7 +54,7 @@ installation and postprocessing procedures. Its features include:
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
   * Shallow water equations
-  * Scalar advection
+  * Several scalar conservation laws (e.g., linear advection, Burgers' equation, LWR traffic flow)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
 * Shared-memory parallelization via multithreading
@@ -61,24 +68,26 @@ installation and postprocessing procedures. Its features include:
 ## Installation
 If you have not yet installed Julia, please [follow the instructions for your
 operating system](https://julialang.org/downloads/platform/). Trixi.jl works
-with Julia v1.8 and newer. We recommend using the latest stable release of Julia.
+with Julia v1.10 and newer. We recommend using the latest stable release of Julia.
 
 ### For users
 Trixi.jl and its related tools are registered Julia packages. Hence, you
-can install Trixi.jl, the visualization tool
-[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl),
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl), and
+can install Trixi.jl, the visualization tools
+[Trixi2Vtk](https://github.com/trixi-framework/Trixi2Vtk.jl), and
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+as well as the time integration sub-packages of
+[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl),
 by executing the following commands in the Julia REPL:
 ```julia
 julia> using Pkg
 
-julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEq", "Plots"])
+julia> Pkg.add(["Trixi", "Trixi2Vtk", "OrdinaryDiffEqLowStorageRK",
+                "OrdinaryDiffEqSSPRK", "Plots"])
 ```
 You can copy and paste all commands to the REPL *including* the leading
 `julia>` prompts - they will automatically be stripped away by Julia.
 The package [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
-provides time integration schemes used by Trixi.jl, while
+and its sub-packages provide time integration schemes used by Trixi.jl, while
 [Plots.jl](https://github.com/JuliaPlots/Plots.jl) can be used to directly
 visualize Trixi.jl's results from the REPL.
 
@@ -93,11 +102,11 @@ If the installed version does not match the current release, please check the
 [Troubleshooting](@ref old-release) section.
 
 The commands above can also be used to update Trixi.jl. A brief list of notable
-changes to Trixi.jl is available in [`NEWS.md`](https://github.com/trixi-framework/Trixi.jl/NEWS.md).
+changes to Trixi.jl is available in the [`Changelog`](@ref).
 
 ### [For developers](@id for-developers)
-If you plan on editing Trixi.jl itself, you can download Trixi.jl to a local folder
-and use the code from the cloned directory:
+If you plan on editing Trixi.jl itself, you can download Trixi.jl locally and use the
+code from the cloned directory:
 ```bash
 git clone git@github.com:trixi-framework/Trixi.jl.git
 cd Trixi.jl
@@ -119,13 +128,13 @@ to share with others.
 
 Since the postprocessing tool Trixi2Vtk.jl typically does not need to be modified,
 it is recommended to install it as a normal package.  Likewise, you can install
-[OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl) and
-[Plots.jl](https://github.com/JuliaPlots/Plots.jl)
+[Plots.jl](https://github.com/JuliaPlots/Plots.jl) and
+sub-packages of [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 as ordinary packages. To achieve this, use the following REPL commands:
 ```julia
 julia> using Pkg
 
-julia> Pkg.add(["OrdinaryDiffEq", "Trixi2Vtk", "Plots"])
+julia> Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Trixi2Vtk", "Plots"])
 ```
 Note that the postprocessing tools Trixi2Vtk.jl and Plots.jl are optional and
 can be omitted.
@@ -323,11 +332,11 @@ In addition, you can also refer to Trixi.jl directly as
 
 ## [Authors](@id authors-index-md)
 Trixi.jl was initiated by [Michael
-Schlottke-Lakemper](https://lakemper.eu)
-(RWTH Aachen University/High-Performance Computing Center Stuttgart (HLRS), Germany) and
+Schlottke-Lakemper](https://www.uni-augsburg.de/fakultaet/mntf/math/prof/hpsc)
+(University of Augsburg, Germany) and
 [Gregor Gassner](https://www.mi.uni-koeln.de/NumSim/gregor-gassner)
 (University of Cologne, Germany). Together with [Hendrik Ranocha](https://ranocha.de)
-(Johannes Gutenberg University Mainz, Germany) and [Andrew Winters](https://liu.se/en/employee/andwi94)
+(Johannes Gutenberg University Mainz, Germany), [Andrew Winters](https://liu.se/en/employee/andwi94)
 (Linköping University, Sweden), and [Jesse Chan](https://jlchan.github.io) (Rice University, US),
 they are the principal developers of Trixi.jl.
 The full list of contributors can be found under [Authors](@ref).
@@ -342,6 +351,26 @@ of our community to adhere to our [Code of Conduct](@ref code-of-conduct).
 To get in touch with the developers,
 [join us on Slack](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 or [create an issue](https://github.com/trixi-framework/Trixi.jl/issues/new).
+
+
+## Participating research groups
+Participating research groups in alphabetical order:
+
+[Applied and Computational Mathematics, RWTH Aachen University 🇩🇪](https://www.acom.rwth-aachen.de)
+
+[Applied Mathematics, Department of Mathematics, University of Hamburg 🇩🇪](https://www.math.uni-hamburg.de/en/forschung/bereiche/am.html)
+
+[Division of Applied Mathematics, Department of Mathematics, Linköping University 🇸🇪](https://liu.se/en/employee/andwi94)
+
+[Computational and Applied Mathematics, Rice University 🇺🇸](https://jlchan.github.io/)
+
+[High-Performance Computing, Institute of Software Technology, German Aerospace Center (DLR) 🇩🇪](https://www.dlr.de/en/sc/about-us/departments/high-performance-computing)
+
+[High-Performance Scientific Computing, University of Augsburg 🇩🇪](https://hpsc.math.uni-augsburg.de)
+
+[Numerical Mathematics, Institute of Mathematics, Johannes Gutenberg University Mainz 🇩🇪](https://ranocha.de)
+
+[Numerical Simulation, Department of Mathematics and Computer Science, University of Cologne 🇩🇪](https://www.mi.uni-koeln.de/NumSim/)
 
 
 ## Acknowledgments
@@ -372,7 +401,7 @@ Forschungsgemeinschaft](https://www.dfg.de/) (DFG, German Research Foundation)
 through the following grants:
 * Excellence Strategy EXC 2044-390685587, Mathematics Münster: Dynamics-Geometry-Structure.
 * Research unit FOR 5409 "Structure-Preserving Numerical Methods for Bulk- and
-  Interface Coupling of Heterogeneous Models (SNuBIC)" (project number 463312734).
+  Interface Coupling of Heterogeneous Models ([SNuBIC](https://www.snubic.io))" (project number 463312734).
 * Individual grant no. 528753982.
 
 This project has benefited from funding from the [European Research Council](https://erc.europa.eu)

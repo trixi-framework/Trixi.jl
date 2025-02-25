@@ -28,9 +28,9 @@ end
 # type parameters for `TensorProductFaceOperator`.
 abstract type AbstractGaussOperator end
 struct Interpolation <: AbstractGaussOperator end
-# - `Projection{ScaleByFaceWeights=Static.False()}` corresponds to the operator `projection_matrix_gauss_to_face = M \ Vf'`,
+# - `Projection{ScaleByFaceWeights = False()}` corresponds to the operator `projection_matrix_gauss_to_face = M \ Vf'`,
 #   which is used in `VolumeIntegralFluxDifferencing`.
-# - `Projection{ScaleByFaceWeights=Static.True()}` corresponds to the quadrature-based lifting
+# - `Projection{ScaleByFaceWeights = True()}` corresponds to the quadrature-based lifting
 #   operator `LIFT = M \ (Vf' * diagm(rd.wf))`, which is used in `SurfaceIntegralWeakForm`
 struct Projection{ScaleByFaceWeights} <: AbstractGaussOperator end
 
@@ -49,6 +49,29 @@ struct TensorProductGaussFaceOperator{NDIMS, OperatorType <: AbstractGaussOperat
     face_indices_tensor_product::Tindices
     nnodes_1d::Int
     nfaces::Int
+end
+
+function TensorProductGaussFaceOperator(operator::AbstractGaussOperator,
+                                        dg::DGMulti{1, Line, GaussSBP})
+    rd = dg.basis
+
+    rq1D, wq1D = StartUpDG.gauss_quad(0, 0, polydeg(dg))
+    interp_matrix_gauss_to_face_1d = polynomial_interpolation_matrix(rq1D, [-1; 1])
+
+    nnodes_1d = length(rq1D)
+    face_indices_tensor_product = nothing # not needed in 1D; we fall back to mul!
+
+    num_faces = 2
+
+    T_op = typeof(operator)
+    Tm = typeof(interp_matrix_gauss_to_face_1d)
+    Tw = typeof(inv.(wq1D))
+    Tf = typeof(rd.wf)
+    Ti = typeof(face_indices_tensor_product)
+    return TensorProductGaussFaceOperator{1, T_op, Tm, Tw, Tf, Ti}(interp_matrix_gauss_to_face_1d,
+                                                                   inv.(wq1D), rd.wf,
+                                                                   face_indices_tensor_product,
+                                                                   nnodes_1d, num_faces)
 end
 
 # constructor for a 2D operator
@@ -126,6 +149,21 @@ end
     end
 end
 
+@inline function tensor_product_gauss_face_operator!(out::AbstractVector,
+                                                     A::TensorProductGaussFaceOperator{1,
+                                                                                       Interpolation},
+                                                     x::AbstractVector)
+    mul!(out, A.interp_matrix_gauss_to_face_1d, x)
+end
+
+@inline function tensor_product_gauss_face_operator!(out::AbstractVector,
+                                                     A::TensorProductGaussFaceOperator{1,
+                                                                                       <:Projection},
+                                                     x::AbstractVector)
+    mul!(out, A.interp_matrix_gauss_to_face_1d', x)
+    @. out *= A.inv_volume_weights_1d
+end
+
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
 # we need to opt-in explicitly.
@@ -138,7 +176,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{2, Interpolation},
                                                      x_in::AbstractVector)
-#! format: on                                                     
+#! format: on
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; nnodes_1d) = A
 
@@ -177,7 +215,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{3, Interpolation},
                                                      x::AbstractVector)
-#! format: on                                                     
+#! format: on
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; nnodes_1d) = A
 
@@ -230,7 +268,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{2, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
-#! format: on                                                     
+#! format: on
     (; interp_matrix_gauss_to_face_1d, face_indices_tensor_product) = A
     (; inv_volume_weights_1d, nnodes_1d) = A
 
@@ -284,7 +322,7 @@ end
 @inline function tensor_product_gauss_face_operator!(out_vec::AbstractVector,
                                                      A::TensorProductGaussFaceOperator{3, Projection{ApplyFaceWeights}},
                                                      x::AbstractVector) where {ApplyFaceWeights}
-#! format: on                                                                               
+#! format: on
     @unpack interp_matrix_gauss_to_face_1d, face_indices_tensor_product = A
     @unpack inv_volume_weights_1d, nnodes_1d, nfaces = A
 
@@ -352,7 +390,7 @@ end
 # For now, this is mostly the same as `create_cache` for DGMultiFluxDiff{<:Polynomial}.
 # In the future, we may modify it so that we can specialize additional parts of GaussSBP() solvers.
 function create_cache(mesh::DGMultiMesh, equations,
-                      dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Quad, Hex}}, RealT,
+                      dg::DGMultiFluxDiff{<:GaussSBP, <:Union{Line, Quad, Hex}}, RealT,
                       uEltype)
 
     # call general Polynomial flux differencing constructor
@@ -380,12 +418,12 @@ function create_cache(mesh::DGMultiMesh, equations,
 
     # specialized operators to perform tensor product interpolation to faces for Gauss nodes
     interp_matrix_gauss_to_face = TensorProductGaussFaceOperator(Interpolation(), dg)
-    projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{Static.False()}(),
+    projection_matrix_gauss_to_face = TensorProductGaussFaceOperator(Projection{False()}(),
                                                                      dg)
 
     # `LIFT` matrix for Gauss nodes - this is equivalent to `projection_matrix_gauss_to_face` scaled by `diagm(rd.wf)`,
     # where `rd.wf` are Gauss node face quadrature weights.
-    gauss_LIFT = TensorProductGaussFaceOperator(Projection{Static.True()}(), dg)
+    gauss_LIFT = TensorProductGaussFaceOperator(Projection{True()}(), dg)
 
     nvars = nvariables(equations)
     rhs_volume_local_threaded = [allocate_nested_array(uEltype, nvars, (rd.Nq,), dg)
@@ -544,7 +582,7 @@ end
 
 # Specialize RHS so that we can call `invert_jacobian_and_interpolate!` instead of just `invert_jacobian!`,
 # since `invert_jacobian!` is also used in other places (e.g., parabolic terms).
-function rhs!(du, u, t, mesh, equations, initial_condition, boundary_conditions::BC,
+function rhs!(du, u, t, mesh, equations, boundary_conditions::BC,
               source_terms::Source, dg::DGMultiFluxDiff{<:GaussSBP},
               cache) where {Source, BC}
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)

@@ -29,6 +29,22 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
+@trixi_testset "elixir_burgers_gauss_shock_capturing.jl " begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_burgers_gauss_shock_capturing.jl"),
+                        cells_per_dimension=(8,), tspan=(0.0, 0.1),
+                        l2=[0.445804588167854],
+                        linf=[0.74780611426038])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_flux_diff.jl " begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_flux_diff.jl"),
                         cells_per_dimension=(16,),
@@ -36,12 +52,36 @@ end
                         l2=[
                             7.853842541289665e-7,
                             9.609905503440606e-7,
-                            2.832322219966481e-6,
+                            2.832322219966481e-6
                         ] ./ sqrt(2.0),
                         linf=[
                             1.5003758788711963e-6,
                             1.802998748523521e-6,
-                            4.83599270806323e-6,
+                            4.83599270806323e-6
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_shu_osher_gauss_shock_capturing.jl " begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_shu_osher_gauss_shock_capturing.jl"),
+                        cells_per_dimension=(64,), tspan=(0.0, 1.0),
+                        l2=[
+                            1.6967151731067875,
+                            6.018445633981826,
+                            21.77425594743242
+                        ],
+                        linf=[
+                            3.2229876650556477,
+                            10.702690533393842,
+                            38.37424900889908
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -77,12 +117,12 @@ end
                         l2=[
                             6.437827414849647e-6,
                             2.1840558851820947e-6,
-                            1.3245669629438228e-5,
+                            1.3245669629438228e-5
                         ],
                         linf=[
                             2.0715843751295537e-5,
                             8.519520630301258e-6,
-                            4.2642194098885255e-5,
+                            4.2642194098885255e-5
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -106,12 +146,12 @@ end
                         l2=[
                             1.8684509287853788e-5,
                             1.0641411823379635e-5,
-                            5.178010291876143e-5,
+                            5.178010291876143e-5
                         ],
                         linf=[
                             6.933493585936645e-5,
                             3.0277366229292113e-5,
-                            0.0002220020568932668,
+                            0.0002220020568932668
                         ])
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
@@ -128,14 +168,12 @@ end
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         l2=[
-                            9.146929180585711e-7,
-                            1.8997616878017292e-6,
-                            3.991417702211889e-6,
+                            9.146929178341782e-7, 1.8997616876521201e-6,
+                            3.991417701005622e-6
                         ],
                         linf=[
-                            1.7321089884614338e-6,
-                            3.3252888855805907e-6,
-                            6.5252787737613005e-6,
+                            1.7321089882393892e-6, 3.3252888869128583e-6,
+                            6.525278767988141e-6
                         ])
     show(stdout, semi.solver.basis)
     show(stdout, MIME"text/plain"(), semi.solver.basis)
@@ -169,16 +207,16 @@ end
                         cells_per_dimension=(8,),
                         approximation_type=SBP(),
                         l2=[
-                            3.03001101100507e-6,
-                            1.692177335948727e-5,
-                            3.002634351734614e-16,
-                            1.1636653574178203e-15,
+                            3.0300196635805022e-6,
+                            1.6921833812545857e-5,
+                            2.9844594164368975e-16,
+                            1.1012004949980629e-15
                         ],
                         linf=[
-                            1.2043401988570679e-5,
-                            5.346847010329059e-5,
+                            1.2043309307818717e-5,
+                            5.346754311919e-5,
                             9.43689570931383e-16,
-                            2.220446049250313e-15,
+                            2.220446049250313e-15
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -198,13 +236,13 @@ end
                             1.633271343738687e-5,
                             9.575385661756332e-6,
                             1.2700331443128421e-5,
-                            0.0,
+                            0.0
                         ],
                         linf=[
                             7.304984704381567e-5,
                             5.2365944135601694e-5,
                             6.469559594934893e-5,
-                            0.0,
+                            0.0
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

@@ -2,9 +2,6 @@
 function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
                       volume_integral::VolumeIntegralShockCapturingHG,
                       dg::DGMultiFluxDiff{<:GaussSBP}, RealT, uEltype) where {NDIMS}
-    element_ids_dg = Int[]
-    element_ids_dgfv = Int[]
-
     # build element to element (element_to_element_connectivity) connectivity for smoothing of
     # shock capturing parameters.
     face_to_face_connectivity = mesh.md.FToF # num_faces x num_elements matrix
@@ -31,8 +28,7 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations,
     sparsity_pattern = sum(map(A -> abs.(A)', sparse_hybridized_SBP_operators)) .>
                        100 * eps()
 
-    return (; element_ids_dg, element_ids_dgfv,
-            sparse_hybridized_SBP_operators, sparsity_pattern,
+    return (; sparse_hybridized_SBP_operators, sparsity_pattern,
             element_to_element_connectivity)
 end
 
@@ -151,66 +147,41 @@ function apply_smoothing!(mesh::DGMultiMesh, alpha, alpha_tmp, dg::DGMulti, cach
     end
 end
 
-#     pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg, cache)
-#
-# Given blending factors `alpha` and the solver `dg`, fill
-# `element_ids_dg` with the IDs of elements using a pure DG scheme and
-# `element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
-function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha,
-                                       mesh::DGMultiMesh, dg::DGMulti)
-    empty!(element_ids_dg)
-    empty!(element_ids_dgfv)
-
-    for element in eachelement(mesh, dg)
-        # Clip blending factor for values close to zero (-> pure DG)
-        dg_only = isapprox(alpha[element], 0, atol = 1e-12)
-        if dg_only
-            push!(element_ids_dg, element)
-        else
-            push!(element_ids_dgfv, element)
-        end
-    end
-
-    return nothing
-end
-
 function calc_volume_integral!(du, u,
                                mesh::DGMultiMesh,
                                have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGMultiFluxDiff, cache)
-    (; element_ids_dg, element_ids_dgfv) = cache
     (; volume_flux_dg, volume_flux_fv, indicator) = volume_integral
 
     # Calculate blending factors α: u = u_DG * (1 - α) + u_FV * α
     alpha = @trixi_timeit timer() "blending factors" indicator(u, mesh, equations, dg,
                                                                cache)
 
-    # Determine element ids for DG-only and blended DG-FV volume integral
-    pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, mesh, dg)
+    # For `Float64`, this gives 1.8189894035458565e-12
+    # For `Float32`, this gives 1.1920929f-5
+    RealT = eltype(alpha)
+    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
 
-    # Loop over pure DG elements
-    @trixi_timeit timer() "pure DG" @threaded for idx_element in eachindex(element_ids_dg)
-        element = element_ids_dg[idx_element]
-        flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
-                                  equations, volume_flux_dg, dg, cache)
-    end
-
-    # Loop over blended DG-FV elements, blend the high and low order RHS contributions
-    # via `rhs_high * (1 - alpha) + rhs_low * (alpha)`.
-    @trixi_timeit timer() "blended DG-FV" @threaded for idx_element in eachindex(element_ids_dgfv)
-        element = element_ids_dgfv[idx_element]
+    @threaded for element in eachelement(mesh, dg)
         alpha_element = alpha[element]
+        # Clip blending factor for values close to zero (-> pure DG)
+        dg_only = isapprox(alpha_element, 0, atol = atol)
 
-        # Calculate DG volume integral contribution
-        flux_differencing_kernel!(du, u, element, mesh,
-                                  have_nonconservative_terms, equations,
-                                  volume_flux_dg, dg, cache, 1 - alpha_element)
+        if dg_only
+            flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
+                                      equations, volume_flux_dg, dg, cache)
+        else
+            # Calculate DG volume integral contribution
+            flux_differencing_kernel!(du, u, element, mesh,
+                                      have_nonconservative_terms, equations,
+                                      volume_flux_dg, dg, cache, 1 - alpha_element)
 
-        # Calculate "FV" low order volume integral contribution
-        low_order_flux_differencing_kernel!(du, u, element, mesh,
-                                            have_nonconservative_terms, equations,
-                                            volume_flux_fv, dg, cache, alpha_element)
+            # Calculate "FV" low order volume integral contribution
+            low_order_flux_differencing_kernel!(du, u, element, mesh,
+                                                have_nonconservative_terms, equations,
+                                                volume_flux_fv, dg, cache, alpha_element)
+        end
     end
 
     return nothing

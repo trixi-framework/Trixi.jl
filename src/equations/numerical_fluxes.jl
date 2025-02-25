@@ -21,7 +21,7 @@ DG method (except floating point errors).
     f_rr = flux(u_rr, orientation_or_normal_direction, equations)
 
     # Average regular fluxes
-    return 0.5 * (f_ll + f_rr)
+    return 0.5f0 * (f_ll + f_rr)
 end
 
 """
@@ -172,7 +172,7 @@ DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_na
                                                               equations)
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation_or_normal_direction,
                                   equations)
-    return -0.5 * λ * (u_rr - u_ll)
+    return -0.5f0 * λ * (u_rr - u_ll)
 end
 
 function Base.show(io::IO, d::DissipationLocalLaxFriedrichs)
@@ -221,13 +221,53 @@ See [`FluxLaxFriedrichs`](@ref).
 """
 const flux_lax_friedrichs = FluxLaxFriedrichs()
 
+@doc raw"""
+    DissipationLaxFriedrichsEntropyVariables(max_abs_speed=max_abs_speed_naive)
+
+Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable. This operator
+must be used together with an entropy-conservative two-point flux function (e.g., `flux_ec`) to yield 
+an entropy-stable surface flux. The surface flux function can be initialized as:
+```julia
+flux_es = FluxPlusDissipation(flux_ec, DissipationLaxFriedrichsEntropyVariables())
+```
+
+In particular, the numerical flux has the form
+```math
+f^{\mathrm{ES}} = f^{\mathrm{EC}} - \frac{1}{2} \lambda_{\mathrm{max}} H (w_r - w_l),
+```
+where ``f^{\mathrm{EC}}`` is the entropy-conservative two-point flux function (computed with, e.g., `flux_ec`), ``\lambda_{\mathrm{max}}`` 
+is the maximum wave speed estimated as `max_abs_speed(u_l, u_r, orientation_or_normal_direction, equations)`,
+defaulting to [`max_abs_speed_naive`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
+depends on the left and right states `u_l` and `u_r`, and ``(w_r - w_l)`` is the jump in entropy variables.
+Ideally, ``H (w_r - w_l) = (u_r - u_l)``, such that the dissipation operator is consistent with the local
+Lax-Friedrichs dissipation.
+
+The entropy-stable dissipation operator is computed with the function
+`function (dissipation::DissipationLaxFriedrichsEntropyVariables)(u_l, u_r, orientation_or_normal_direction, equations)`,
+which must be specialized for each equation.
+
+For the derivation of the dissipation matrix for the multi-ion GLM-MHD equations, see:
+- A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
+  of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
 """
-    FluxHLL(min_max_speed=min_max_speed_naive)
+struct DissipationLaxFriedrichsEntropyVariables{MaxAbsSpeed}
+    max_abs_speed::MaxAbsSpeed
+end
+
+DissipationLaxFriedrichsEntropyVariables() = DissipationLaxFriedrichsEntropyVariables(max_abs_speed_naive)
+
+function Base.show(io::IO, d::DissipationLaxFriedrichsEntropyVariables)
+    print(io, "DissipationLaxFriedrichsEntropyVariables(", d.max_abs_speed, ")")
+end
+
+"""
+    FluxHLL(min_max_speed=min_max_speed_davis)
 
 Create an HLL (Harten, Lax, van Leer) numerical flux where the minimum and maximum
 wave speeds are estimated as
 `λ_min, λ_max = min_max_speed(u_ll, u_rr, orientation_or_normal_direction, equations)`,
-defaulting to [`min_max_speed_naive`](@ref).
+defaulting to [`min_max_speed_davis`](@ref).
 Original paper:
 - Amiram Harten, Peter D. Lax, Bram van Leer (1983)
   On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
@@ -237,7 +277,7 @@ struct FluxHLL{MinMaxSpeed}
     min_max_speed::MinMaxSpeed
 end
 
-FluxHLL() = FluxHLL(min_max_speed_naive)
+FluxHLL() = FluxHLL(min_max_speed_davis)
 
 """
     min_max_speed_naive(u_ll, u_rr, orientation::Integer, equations)
@@ -246,9 +286,15 @@ FluxHLL() = FluxHLL(min_max_speed_naive)
 Simple and fast estimate(!) of the minimal and maximal wave speed of the Riemann problem with
 left and right states `u_ll, u_rr`, usually based only on the local wave speeds associated to
 `u_ll` and `u_rr`.
+Slightly more diffusive than [`min_max_speed_davis`](@ref).
 - Amiram Harten, Peter D. Lax, Bram van Leer (1983)
   On Upstream Differencing and Godunov-Type Schemes for Hyperbolic Conservation Laws
   [DOI: 10.1137/1025002](https://doi.org/10.1137/1025002)
+
+See eq. (10.37) from
+- Eleuterio F. Toro (2009)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
 See also [`FluxHLL`](@ref), [`min_max_speed_davis`](@ref), [`min_max_speed_einfeldt`](@ref).
 """
@@ -266,6 +312,10 @@ left and right states `u_ll, u_rr`, usually based only on the local wave speeds 
   Simplified Second-Order Godunov-Type Methods
   [DOI: 10.1137/0909030](https://doi.org/10.1137/0909030)
 
+See eq. (10.38) from
+- Eleuterio F. Toro (2009)
+  Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
+  [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 See also [`FluxHLL`](@ref), [`min_max_speed_naive`](@ref), [`min_max_speed_einfeldt`](@ref).
 """
 function min_max_speed_davis end
@@ -325,29 +375,6 @@ See [`min_max_speed_einfeldt`](@ref).
 This is a [`FluxHLL`](@ref)-type two-wave solver with special estimates of the wave speeds.
 """
 const flux_hlle = FluxHLL(min_max_speed_einfeldt)
-
-# TODO: TrixiShallowWater: move the chen_noelle flux structure to the new package
-
-# An empty version of the `min_max_speed_chen_noelle` function is declared here
-# in order to create a dimension agnostic version of `flux_hll_chen_noelle`.
-# The full description of this wave speed estimate can be found in the docstrings
-# for `min_max_speed_chen_noelle` in `shallow_water_1d.jl` or `shallow_water_2d.jl`.
-function min_max_speed_chen_noelle end
-
-"""
-    flux_hll_chen_noelle = FluxHLL(min_max_speed_chen_noelle)
-
-An instance of [`FluxHLL`](@ref) specific to the shallow water equations that
-uses the wave speed estimates from [`min_max_speed_chen_noelle`](@ref).
-This HLL flux is guaranteed to have zero numerical mass flux out of a "dry" element,
-maintain positivity of the water height, and satisfy an entropy inequality.
-
-For complete details see Section 2.4 of the following reference
-- Guoxian Chen and Sebastian Noelle (2017)
-  A new hydrostatic reconstruction scheme based on subcell reconstructions
-  [DOI: 10.1137/15M1053074](https://doi.org/10.1137/15M1053074)
-"""
-const flux_hll_chen_noelle = FluxHLL(min_max_speed_chen_noelle)
 
 """
     flux_shima_etal_turbo(u_ll, u_rr, orientation_or_normal_direction, equations)
@@ -428,7 +455,8 @@ flux vector splitting.
 
 The [`SurfaceIntegralUpwind`](@ref) with a given `splitting` is equivalent to
 the [`SurfaceIntegralStrongForm`](@ref) with `FluxUpwind(splitting)`
-as numerical flux (up to floating point differences).
+as numerical flux (up to floating point differences). Note, that
+[`SurfaceIntegralUpwind`](@ref) is only available on [`TreeMesh`](@ref).
 
 !!! warning "Experimental implementation (upwind SBP)"
     This is an experimental feature and may change in future releases.
@@ -442,6 +470,15 @@ end
     fm = splitting(u_rr, Val{:minus}(), orientation, equations)
     fp = splitting(u_ll, Val{:plus}(), orientation, equations)
     return fm + fp
+end
+
+@inline function (numflux::FluxUpwind)(u_ll, u_rr,
+                                       normal_direction::AbstractVector,
+                                       equations::AbstractEquations{2})
+    @unpack splitting = numflux
+    f_tilde_m = splitting(u_rr, Val{:minus}(), normal_direction, equations)
+    f_tilde_p = splitting(u_ll, Val{:plus}(), normal_direction, equations)
+    return f_tilde_m + f_tilde_p
 end
 
 Base.show(io::IO, f::FluxUpwind) = print(io, "FluxUpwind(", f.splitting, ")")

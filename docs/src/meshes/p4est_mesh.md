@@ -256,6 +256,8 @@ By doing so, only nodesets with a label present in `boundary_symbols` are treate
 Other nodesets that could be used for diagnostics are not treated as external boundaries.
 Note that there is a leading colon `:` compared to the label in the `.inp` mesh file.
 This is required to turn the label into a [`Symbol`](https://docs.julialang.org/en/v1/manual/metaprogramming/#Symbols).
+**Important**: In Julia, a symbol _cannot_ contain a hyphen/dash `-`, i.e., `:BC-1` is _not_ a valid symbol.
+Keep this in mind when importing boundaries, you might have to convert hyphens/dashes `-` to underscores `_` in the `.inp` mesh file, i.e., `BC_1` instead of `BC-1`.
 
 A 2D example for this mesh, which is read-in for an unstructured mesh file created with `gmsh`, is presented in 
 `examples/p4est_2d_dgsem/elixir_euler_NACA6412airfoil_mach2.jl`.
@@ -384,6 +386,7 @@ transfinite map of the straight sided hexahedral element to find
 
 Also for a mesh in standard Abaqus format there are no qualitative changes when going from 2D to 3D.
 The most notable difference is that boundaries are formed in 3D by faces defined by four nodes while in 2D boundaries are edges consisting of two elements.
+Note that standard Abaqus also defines quadratic element types. In Trixi.jl, these higher-order elements are currently only supported in 2D, i.e., 8-node quadrilaterals.
 A simple mesh file, which is used also in `examples/p4est_3d_dgsem/elixir_euler_free_stream_boundaries.jl`, is given below:
 ```
 *Heading

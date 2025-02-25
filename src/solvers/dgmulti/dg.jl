@@ -128,6 +128,14 @@ end
 # interface with semidiscretization_hyperbolic
 wrap_array(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
 wrap_array_native(u_ode, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = u_ode
+
+# used to initialize `u_ode` in `semidiscretize`
+function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
+    return VectorOfArray(allocate_nested_array(real(dg), nvariables(equations),
+                                               size(mesh.md.x), dg))
+end
+wrap_array(u_ode::VectorOfArray, mesh::DGMultiMesh, equations, dg::DGMulti, cache) = parent(u_ode)
+
 function digest_boundary_conditions(boundary_conditions::NamedTuple{Keys, ValueTypes},
                                     mesh::DGMultiMesh,
                                     dg::DGMulti,
@@ -197,10 +205,6 @@ function create_cache(mesh::DGMultiMesh{NDIMS}, equations, dg::DGMultiWeakForm, 
     return (; md, weak_differentiation_matrices, lift_scalings, invJ, dxidxhatj,
             u_values, u_face_values, flux_face_values,
             local_values_threaded, flux_threaded, rotated_flux_threaded)
-end
-
-function allocate_coefficients(mesh::DGMultiMesh, equations, dg::DGMulti, cache)
-    return allocate_nested_array(real(dg), nvariables(equations), size(mesh.md.x), dg)
 end
 
 function compute_coefficients!(u, initial_condition, t,
@@ -407,11 +411,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
             # Two notes on the use of `flux_nonconservative`:
             # 1. In contrast to other mesh types, only one nonconservative part needs to be
             #    computed since we loop over the elements, not the unique interfaces.
-            # 2. In general, nonconservative fluxes can depend on both the contravariant
-            #    vectors (normal direction) at the current node and the averaged ones. However,
-            #    both are the same at watertight interfaces, so we pass `normal` twice.
-            nonconservative_part = flux_nonconservative(uM, uP, normal, normal,
-                                                        equations)
+            nonconservative_part = flux_nonconservative(uM, uP, normal, equations)
             # The factor 0.5 is necessary for the nonconservative fluxes based on the
             # interpretation of global SBP operators.
             flux_face_values[idM] = (conservative_part + 0.5 * nonconservative_part) *
@@ -523,7 +523,6 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
                                     dg::DGMulti{NDIMS}) where {NDIMS}
     rd = dg.basis
     md = mesh.md
-    surface_flux, nonconservative_flux = dg.surface_integral.surface_flux
 
     # reshape face/normal arrays to have size = (num_points_on_face, num_faces_total).
     # mesh.boundary_faces indexes into the columns of these face-reshaped arrays.
@@ -550,23 +549,16 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
 
             # Compute conservative and non-conservative fluxes separately.
             # This imposes boundary conditions on the conservative part of the flux.
-            cons_flux_at_face_node = boundary_condition(u_face_values[i, f],
-                                                        face_normal, face_coordinates,
-                                                        t,
-                                                        surface_flux, equations)
-
-            # Compute pointwise nonconservative numerical flux at the boundary.
-            # In general, nonconservative fluxes can depend on both the contravariant
-            # vectors (normal direction) at the current node and the averaged ones.
-            # However, there is only one `face_normal` at boundaries, which we pass in twice.
-            # Note: This does not set any type of boundary condition for the nonconservative term
-            noncons_flux_at_face_node = nonconservative_flux(u_face_values[i, f],
-                                                             u_face_values[i, f],
-                                                             face_normal, face_normal,
-                                                             equations)
+            cons_flux_at_face_node, noncons_flux_at_face_node = boundary_condition(u_face_values[i,
+                                                                                                 f],
+                                                                                   face_normal,
+                                                                                   face_coordinates,
+                                                                                   t,
+                                                                                   dg.surface_integral.surface_flux,
+                                                                                   equations)
 
             flux_face_values[i, f] = (cons_flux_at_face_node +
-                                      0.5 * noncons_flux_at_face_node) * Jf[i, f]
+                                      0.5f0 * noncons_flux_at_face_node) * Jf[i, f]
         end
     end
 
@@ -642,7 +634,7 @@ function calc_sources!(du, u, t, source_terms,
 end
 
 function rhs!(du, u, t, mesh, equations,
-              initial_condition, boundary_conditions::BC, source_terms::Source,
+              boundary_conditions::BC, source_terms::Source,
               dg::DGMulti, cache) where {BC, Source}
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 

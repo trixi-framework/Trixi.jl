@@ -36,7 +36,8 @@ end
     orientation = (direction + 1) >> 1
     normal = get_contravariant_vector(orientation, contravariant_vectors, indices...)
 
-    # Contravariant vectors at interfaces in negative coordinate direction are pointing inwards
+    # Contravariant vectors at interfaces in negative coordinate direction are pointing inwards,
+    # flip sign to make them point outwards
     if isodd(direction)
         return -normal
     else
@@ -52,4 +53,6 @@ include("dg_2d_parabolic.jl")
 include("dg_3d.jl")
 include("dg_3d_parabolic.jl")
 include("dg_parallel.jl")
+
+include("subcell_limiters_2d.jl")
 end # @muladd

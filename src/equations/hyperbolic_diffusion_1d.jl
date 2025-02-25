@@ -53,13 +53,14 @@ function initial_condition_poisson_nonperiodic(x, t,
                                                equations::HyperbolicDiffusionEquations1D)
     # elliptic equation: -νΔϕ = f
     # Taken from Section 6.1 of Nishikawa https://doi.org/10.1016/j.jcp.2007.07.029
-    if t == 0.0
+    RealT = eltype(x)
+    if t == 0
         # initial "guess" of the solution and its derivative
         phi = x[1]^2 - x[1]
         q1 = 2 * x[1] - 1
     else
         phi = sinpi(x[1])      # ϕ
-        q1 = pi * cospi(x[1]) # ϕ_x
+        q1 = convert(RealT, pi) * cospi(x[1]) # ϕ_x
     end
     return SVector(phi, q1)
 end
@@ -76,9 +77,10 @@ diffusion system that is used with [`initial_condition_poisson_nonperiodic`](@re
                                                   equations::HyperbolicDiffusionEquations1D)
     # elliptic equation: -νΔϕ = f
     # analytical solution: ϕ = sin(πx) and f = π^2sin(πx)
+    RealT = eltype(u)
     @unpack inv_Tr = equations
 
-    dphi = pi^2 * sinpi(x[1])
+    dphi = convert(RealT, pi)^2 * sinpi(x[1])
     dq1 = -inv_Tr * u[2]
 
     return SVector(dphi, dq1)
@@ -96,8 +98,9 @@ function boundary_condition_poisson_nonperiodic(u_inner, orientation, direction,
                                                 surface_flux_function,
                                                 equations::HyperbolicDiffusionEquations1D)
     # elliptic equation: -νΔϕ = f
+    RealT = eltype(u_inner)
     phi = sinpi(x[1])      # ϕ
-    q1 = pi * cospi(x[1]) # ϕ_x
+    q1 = convert(RealT, pi) * cospi(x[1]) # ϕ_x
     u_boundary = SVector(phi, q1)
 
     # Calculate boundary flux
@@ -122,7 +125,7 @@ Source term that only includes the forcing from the hyperbolic diffusion system.
 
     dq1 = -inv_Tr * u[2]
 
-    return SVector(zero(dq1), dq1)
+    return SVector(0, dq1)
 end
 
 """
@@ -138,13 +141,14 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
                                                           equations::HyperbolicDiffusionEquations1D)
 
     # Determine phi_x
-    G = 1.0           # gravitational constant
-    C = -4.0 * G / pi # -4 * G / ndims * pi
-    A = 0.1           # perturbation coefficient must match Euler setup
+    RealT = eltype(x)
+    G = 1             # gravitational constant
+    C = -4 * G / convert(RealT, pi) # -4 * G / ndims * pi
+    A = convert(RealT, 0.1)           # perturbation coefficient must match Euler setup
     rho1 = A * sinpi(x[1] - t)
     # initialize with ansatz of gravity potential
     phi = C * rho1
-    q1 = C * A * pi * cospi(x[1] - t) # = gravity acceleration in x-direction
+    q1 = C * A * convert(RealT, pi) * cospi(x[1] - t) # = gravity acceleration in x-direction
 
     return SVector(phi, q1)
 end
@@ -196,6 +200,6 @@ end
 @inline function energy_total(u, equations::HyperbolicDiffusionEquations1D)
     # energy function as found in equations (2.5.12) in the book "I Do Like CFD, Vol. 1"
     phi, q1 = u
-    return 0.5 * (phi^2 + equations.Lr^2 * q1^2)
+    return 0.5f0 * (phi^2 + equations.Lr^2 * q1^2)
 end
 end # @muladd

@@ -12,7 +12,7 @@ function calc_acoustic_sources!(acoustic_source_terms, u_euler, u_acoustics,
                                 dg::DGSEM, cache)
     acoustic_source_terms .= zero(eltype(acoustic_source_terms))
 
-    @threaded for k in 1:length(coupled_element_ids)
+    @threaded for k in eachindex(coupled_element_ids)
         element = coupled_element_ids[k]
 
         for j in eachnode(dg), i in eachnode(dg)

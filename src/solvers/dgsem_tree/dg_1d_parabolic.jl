@@ -15,7 +15,7 @@
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
 function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
                         equations_parabolic::AbstractEquationsParabolic,
-                        initial_condition, boundary_conditions_parabolic, source_terms,
+                        boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack viscous_container = cache_parabolic
     @unpack u_transformed, gradients, flux_viscous = viscous_container
@@ -190,7 +190,7 @@ function calc_interface_flux!(surface_flux_values,
 
         # Compute interface flux as mean of left and right viscous fluxes
         # TODO: parabolic; only BR1 at the moment
-        flux = 0.5 * (flux_ll + flux_rr)
+        flux = 0.5f0 * (flux_ll + flux_rr)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
@@ -456,7 +456,7 @@ function calc_gradient!(gradients, u_transformed, t,
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                equations_parabolic, dg, interface)
-            flux = 0.5 * (u_ll + u_rr)
+            flux = 0.5f0 * (u_ll + u_rr)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)

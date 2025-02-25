@@ -15,7 +15,7 @@
 # boundary conditions will be applied to both grad(u) and div(f(u, grad(u))).
 function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
                         equations_parabolic::AbstractEquationsParabolic,
-                        initial_condition, boundary_conditions_parabolic, source_terms,
+                        boundary_conditions_parabolic, source_terms,
                         dg::DG, parabolic_scheme, cache, cache_parabolic)
     @unpack viscous_container = cache_parabolic
     @unpack u_transformed, gradients, flux_viscous = viscous_container
@@ -89,7 +89,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, flux_viscous, mesh, equations_parabolic,
-                         dg.mortar, dg.surface_integral, dg)
+                         dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
@@ -228,7 +228,7 @@ function calc_interface_flux!(surface_flux_values,
 
             # Compute interface flux as mean of left and right viscous fluxes
             # TODO: parabolic; only BR1 at the moment
-            flux = 0.5 * (flux_ll + flux_rr)
+            flux = 0.5f0 * (flux_ll + flux_rr)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)
@@ -513,13 +513,13 @@ end
 
 # `cache` is the hyperbolic cache, i.e., in particular not `cache_parabolic`.
 # This is because mortar handling is done in the (hyperbolic) `cache`.
-# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since 
-#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and 
+# Specialization `flux_viscous::Vector{Array{uEltype, 4}}` needed since
+#`prolong2mortars!` in dg_2d.jl is used for both purely hyperbolic and
 # hyperbolic-parabolic systems.
 function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                           mesh::TreeMesh{2},
                           equations_parabolic::AbstractEquationsParabolic,
-                          mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                          mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM) where {uEltype <: Real}
     flux_viscous_x, flux_viscous_y = flux_viscous
     @threaded for mortar in eachmortar(dg, cache)
@@ -623,12 +623,12 @@ function calc_mortar_flux!(surface_flux_values,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_upper = fstar_upper_threaded[Threads.threadid()]
-        fstar_lower = fstar_lower_threaded[Threads.threadid()]
+        fstar_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_lower = fstar_primary_lower_threaded[Threads.threadid()]
 
         # Calculate fluxes
         orientation = orientations[mortar]
@@ -654,7 +654,7 @@ end
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i,
                                            interface)
         # TODO: parabolic; only BR1 at the moment
-        flux = 0.5 * (u_ll + u_rr)
+        flux = 0.5f0 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations_parabolic, dg, i)
@@ -725,7 +725,7 @@ end
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
     #               mortar_l2.reverse_upper, fstar_upper[v, :])
     #   @views mul!(surface_flux_values[v, :, direction, large_element],
-    #               mortar_l2.reverse_lower,  fstar_lower[v, :], true, true)
+    #               mortar_l2.reverse_lower, fstar_lower[v, :], true, true)
     # end
     # The code above could be replaced by the following code. However, the relative efficiency
     # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
@@ -801,7 +801,7 @@ function calc_gradient!(gradients, u_transformed, t,
                 u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                    equations_parabolic, dg, i,
                                                    interface)
-                flux = 0.5 * (u_ll + u_rr)
+                flux = 0.5f0 * (u_ll + u_rr)
 
                 # Copy flux to left and right element storage
                 for v in eachvariable(equations_parabolic)
@@ -830,7 +830,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # NOTE: This re-uses the implementation for hyperbolic terms in "dg_2d.jl"
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u_transformed, mesh, equations_parabolic,
-                         dg.mortar, dg.surface_integral, dg)
+                         dg.mortar, dg)
     end
 
     # Calculate mortar fluxes

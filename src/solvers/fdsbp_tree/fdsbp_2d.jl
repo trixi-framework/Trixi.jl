@@ -19,7 +19,7 @@ function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
     return (; f_threaded)
 end
 
-function create_cache(mesh::TreeMesh{2}, equations,
+function create_cache(mesh::Union{TreeMesh{2}, UnstructuredMesh2D}, equations,
                       volume_integral::VolumeIntegralUpwind, dg, uEltype)
     u_node = SVector{nvariables(equations), uEltype}(ntuple(_ -> zero(uEltype),
                                                             Val{nvariables(equations)}()))
@@ -326,7 +326,7 @@ function integrate_via_indices(func::Func, u,
     integral = zero(func(u, 1, 1, 1, equations, dg, args...))
 
     # Use quadrature to numerically integrate over entire domain
-    for element in eachelement(dg, cache)
+    @batch reduction=(+, integral) for element in eachelement(dg, cache)
         volume_jacobian_ = volume_jacobian(element, mesh, cache)
         for j in eachnode(dg), i in eachnode(dg)
             integral += volume_jacobian_ * weights[i] * weights[j] *

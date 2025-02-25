@@ -42,7 +42,8 @@ For example, the following steps were used to benchmark the changes introduced i
    ```julia
    julia> using BenchmarkTools, Revise; using Trixi
 
-   julia> trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
+   julia> # nowadays "examples/tree_2d_dgsem/elixir_euler_sedov_blast_wave.jl"
+          trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
 
    julia> du_test = copy(sol.u[end]); u_test = copy(sol.u[end]);
 
@@ -65,7 +66,8 @@ For example, the following steps were used to benchmark the changes introduced i
 
    shell> git checkout 222241ff54f8a4ca9876cc1fc25ae262416a4ea0
 
-   julia> trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
+   julia> # nowadays "examples/tree_2d_dgsem/elixir_euler_sedov_blast_wave.jl"
+          trixi_include("examples/2d/elixir_euler_sedov_blast_wave.jl")
 
    julia> @benchmark Trixi.rhs!(
              $(du_test),
@@ -85,6 +87,10 @@ For example, the following steps were used to benchmark the changes introduced i
     evals/sample:     1
    ```
    Run the `@benchmark ...` commands multiple times to see whether there are any significant fluctuations.
+   Note that the elixir name has changed since
+   [PR #256](https://github.com/trixi-framework/Trixi.jl/pull/256).
+   Nowadays, the relevant elixir is
+   [`examples/tree_2d_dgsem/elixir_euler_sedov_blast_wave.jl`](https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_euler_sedov_blast_wave.jl).
 
 Follow these steps for both commits you want to compare. The relevant benchmark results you should typically be looking at
 are the median and mean values of the runtime and the memory/allocs estimate. In this example, the differences
@@ -234,10 +240,10 @@ want to be measured (such as I/O callbacks, visualization etc.).
 ### Local, `rhs!`-only indicator
 The *local, `rhs!`-only indicator* is computed as
 ```math
-\text{time/DOF/rhs!} = \frac{t_\text{\texttt{rhs!}}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{time/DOF/rhs!} = \frac{t_\text{\texttt{rhs!}} \cdot n_{\text{threads}}}{n_\text{DOFs,local} \cdot n_\text{calls,\texttt{rhs!}}},
 ```
-where ``t_\text{\texttt{rhs!}}`` is the accumulated time spent in `rhs!`,
-``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
+where ``t_\text{\texttt{rhs!}}`` is the accumulated time spent in `rhs!`, ``n_{\text{threads}}`` is
+the number of threads, ``n_\text{DOFs,local}`` is the *local* number of DOFs (i.e., on the
 current MPI rank; if doing a serial run, you can just think of this as *the*
 number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
 `rhs!` function has been evaluated. Note that for this indicator, we measure *only*
@@ -251,10 +257,10 @@ core numerical methods (e.g., when doing performance tuning).
 ### Performance index (PID)
 The *performance index* (PID) is computed as
 ```math
-\text{PID} = \frac{t_\text{wall} \cdot n_\text{ranks,MPI}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
+\text{PID} = \frac{t_\text{wall} \cdot n_\text{ranks,MPI} \cdot n_{\text{threads}}}{n_\text{DOFs,global} \cdot n_\text{calls,\texttt{rhs!}}},
 ```
-where ``t_\text{wall}`` is the walltime since the last call to the `AnalysisCallback`,
-``n_\text{ranks,MPI}`` is the number of MPI ranks used,
+where ``t_\text{wall}`` is the walltime since the last call to the `AnalysisCallback`, ``n_{\text{threads}}``
+is the number of threads, ``n_\text{ranks,MPI}`` is the number of MPI ranks used,
 ``n_\text{DOFs,global}`` is the *global* number of DOFs (i.e., the sum of
 DOFs over all MPI ranks; if doing a serial run, you can just think of this as *the*
 number of DOFs), and ``n_\text{calls,\texttt{rhs!}}`` is the number of times the
@@ -282,14 +288,3 @@ requires. It can thus be seen as a proxy for "energy used" and, as an extension,
     timing result, you need to set the analysis interval such that the
     `AnalysisCallback` is invoked at least once during the course of the simulation and
     discard the first PID value.
-
-## Performance issues with multi-threaded reductions
-[False sharing](https://en.wikipedia.org/wiki/False_sharing) is a known performance issue
-for systems with distributed caches. It also occurred for the implementation of a thread
-parallel bounds checking routine for the subcell IDP limiting
-in [PR #1736](https://github.com/trixi-framework/Trixi.jl/pull/1736).
-After some [testing and discussion](https://github.com/trixi-framework/Trixi.jl/pull/1736#discussion_r1423881895),
-it turned out that initializing a vector of length `n * Threads.nthreads()` and only using every
-n-th entry instead of a vector of length `Threads.nthreads()` fixes the problem.
-Since there are no processors with caches over 128B, we use `n = 128B / size(uEltype)`.
-Now, the bounds checking routine of the IDP limiting scales as hoped.

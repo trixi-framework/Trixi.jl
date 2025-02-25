@@ -19,9 +19,6 @@ The third-order SSP Runge-Kutta method of Shu and Osher.
 - Shu, Osher (1988)
   "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
   [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
     numerator_a::SVector{3, Float64}
@@ -42,7 +39,7 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
         c = SVector(0.0, 1.0, 1 / 2)
 
         # Butcher tableau
-        #   c |       a
+        #   c |       A
         #   0 |
         #   1 |   1
         # 1/2 | 1/4  1/4
@@ -81,19 +78,19 @@ end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
 mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
-                                   SimpleIntegratorSSPOptions}
+                                   SimpleIntegratorSSPOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
     r0::uType
     t::RealT
-    tdir::RealT
+    tdir::RealT # DIRection of time integration, i.e., if one marches forward or backward in time
     dt::RealT # current time step
-    dtcache::RealT # ignored
+    dtcache::RealT # manually set time step
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F
-    alg::Alg
+    f::F # `rhs!` of the semidiscretization
+    alg::Alg # SimpleSSPRK33
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
     dtchangeable::Bool
@@ -102,7 +99,7 @@ end
 
 """
     add_tstop!(integrator::SimpleIntegratorSSP, t)
-Add a time stop during the time integration process. 
+Add a time stop during the time integration process.
 This function is called after the periodic SaveSolutionCallback to specify the next stop to save the solution.
 """
 function add_tstop!(integrator::SimpleIntegratorSSP, t)
@@ -133,19 +130,16 @@ end
 
 The following structures and methods provide the infrastructure for SSP Runge-Kutta methods
 of type `SimpleAlgorithmSSP`.
-
-!!! warning "Experimental implementation"
-    This is an experimental feature and may change in future releases.
 """
 function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
-               dt, callback = nothing, kwargs...)
+               dt, callback::Union{CallbackSet, Nothing} = nothing, kwargs...)
     u = copy(ode.u0)
     du = similar(u)
     r0 = similar(u)
     t = first(ode.tspan)
     tdir = sign(ode.tspan[end] - ode.tspan[1])
     iter = 0
-    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, zero(dt), iter, ode.p,
+    integrator = SimpleIntegratorSSP(u, du, r0, t, tdir, dt, dt, iter, ode.p,
                                      (prob = ode,), ode.f, alg,
                                      SimpleIntegratorSSPOptions(callback, ode.tspan;
                                                                 kwargs...),
@@ -157,13 +151,11 @@ function solve(ode::ODEProblem, alg = SimpleSSPRK33()::SimpleAlgorithmSSP;
     # initialize callbacks
     if callback isa CallbackSet
         foreach(callback.continuous_callbacks) do cb
-            error("unsupported")
+            throw(ArgumentError("Continuous callbacks are unsupported with the SSP time integration methods."))
         end
         foreach(callback.discrete_callbacks) do cb
             cb.initialize(cb, integrator.u, integrator.t, integrator)
         end
-    elseif !isnothing(callback)
-        error("unsupported")
     end
 
     for stage_callback in alg.stage_callbacks
@@ -185,14 +177,14 @@ function solve!(integrator::SimpleIntegratorSSP)
             error("time step size `dt` is NaN")
         end
 
+        modify_dt_for_tstops!(integrator)
+
         # if the next iteration would push the simulation beyond the end time, set dt accordingly
         if integrator.t + integrator.dt > t_end ||
            isapprox(integrator.t + integrator.dt, t_end)
             integrator.dt = t_end - integrator.t
             terminate!(integrator)
         end
-
-        modify_dt_for_tstops!(integrator)
 
         @. integrator.r0 = integrator.u
         for stage in eachindex(alg.c)
@@ -216,11 +208,14 @@ function solve!(integrator::SimpleIntegratorSSP)
         integrator.iter += 1
         integrator.t += integrator.dt
 
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
+        @trixi_timeit timer() "Step-Callbacks" begin
+            # handle callbacks
+            if callbacks isa CallbackSet
+                foreach(callbacks.discrete_callbacks) do cb
+                    if cb.condition(integrator.u, integrator.t, integrator)
+                        cb.affect!(integrator)
+                    end
+                    return nothing
                 end
             end
         end
@@ -232,7 +227,7 @@ function solve!(integrator::SimpleIntegratorSSP)
         end
     end
 
-    # Empty the tstops array. 
+    # Empty the tstops array.
     # This cannot be done in terminate!(integrator::SimpleIntegratorSSP) because DiffEqCallbacks.PeriodicCallbackAffect would return at error.
     extract_all!(integrator.opts.tstops)
 
@@ -253,12 +248,12 @@ u_modified!(integrator::SimpleIntegratorSSP, ::Bool) = false
 
 # used by adaptive timestepping algorithms in DiffEq
 function set_proposed_dt!(integrator::SimpleIntegratorSSP, dt)
-    integrator.dt = dt
+    (integrator.dt = dt; integrator.dtcache = dt)
 end
 
 # used by adaptive timestepping algorithms in DiffEq
 function get_proposed_dt(integrator::SimpleIntegratorSSP)
-    return integrator.dt
+    return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
 end
 
 # stop the time integration

@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -30,7 +29,9 @@ boundary_condition = Dict(:OuterCircle => boundary_condition_constant)
 # Get the DG approximation space
 
 volume_flux = (flux_wintermeyer_etal, flux_nonconservative_wintermeyer_etal)
-solver = DGSEM(polydeg = 4, surface_flux = (flux_hll, flux_nonconservative_fjordholm_etal),
+solver = DGSEM(polydeg = 4,
+               surface_flux = (flux_hll,
+                               flux_nonconservative_fjordholm_etal),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 ###############################################################################
@@ -73,4 +74,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # use a Runge-Kutta method with automatic (error based) time step size control
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-11, reltol = 1.0e-11,
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

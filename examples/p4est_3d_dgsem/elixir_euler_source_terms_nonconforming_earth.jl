@@ -2,7 +2,7 @@
 # of the size of the Earth's atmosphere (using an atmospheric height of 30km).
 # The initial condition and source terms have also been rescaled to planetary size.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 using LinearAlgebra
 
@@ -68,7 +68,7 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(:inside => boundary_condition,
                            :outside => boundary_condition)
 
-surface_flux = flux_hll
+surface_flux = FluxHLL(min_max_speed_naive)
 # Note that a free stream is not preserved if N < 2 * N_geo, where N is the
 # polydeg of the solver and N_geo is the polydeg of the mesh.
 # However, the FSP error is negligible in this example.
@@ -131,5 +131,3 @@ callbacks = CallbackSet(summary_callback,
 # Use a Runge-Kutta method with automatic (error based) time step size control
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
             ode_default_options()..., callback = callbacks);
-
-summary_callback() # print the timer summary

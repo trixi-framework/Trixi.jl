@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 """
@@ -66,7 +65,7 @@ gamma = 5 / 3
 equations_euler = CompressibleEulerEquations2D(gamma)
 
 polydeg = 3
-solver_euler = DGSEM(polydeg, flux_hll)
+solver_euler = DGSEM(polydeg, FluxHLL(min_max_speed_naive))
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
@@ -91,7 +90,7 @@ semi_gravity = SemidiscretizationHyperbolic(mesh, equations_gravity, initial_con
 # combining both semidiscretizations for Euler + self-gravity
 parameters = ParametersEulerGravity(background_density = 1.5e7, # aka rho0
                                     gravitational_constant = 6.674e-8, # aka G
-                                    cfl = 1.6,
+                                    cfl = 0.8, # value as used in the paper
                                     resid_tol = 1.0e-4,
                                     n_iterations_max = 1000,
                                     timestep_gravity = timestep_gravity_carpenter_kennedy_erk54_2N!)
@@ -101,11 +100,11 @@ semi = SemidiscretizationEulerGravity(semi_euler, semi_gravity, parameters)
 ###############################################################################
 # ODE solvers, callbacks etc.
 tspan = (0.0, 5.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-stepsize_callback = StepsizeCallback(cfl = 1.0)
+stepsize_callback = StepsizeCallback(cfl = 0.5) # value as used in the paper
 
 save_solution = SaveSolutionCallback(interval = 10,
                                      save_initial_solution = true,
@@ -137,7 +136,9 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t,
         u_gravity_local = Trixi.get_node_vars(u_gravity, equations_gravity, dg, i, j,
                                               element)
         # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
-        return (u_euler_local[1] - 1.5e7) * u_gravity_local[1]
+        # For formula of potential energy see
+        # "Galactic Dynamics" by Binney and Tremaine, 2nd ed., equation (2.18)
+        return 0.5f0 * (u_euler_local[1] - 1.5f7) * u_gravity_local[1]
     end
     return e_potential
 end
@@ -155,8 +156,8 @@ callbacks = CallbackSet(summary_callback, stepsize_callback,
 
 ###############################################################################
 # run the simulation
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);
+
 println("Number of gravity subcycles: ", semi.gravity_counter.ncalls_since_readout)

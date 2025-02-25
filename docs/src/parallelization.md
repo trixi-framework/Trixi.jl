@@ -25,7 +25,8 @@ the same time, the latter takes precedence.
 If you use time integration methods from
 [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl)
 and want to use multiple threads therein, you need to set the keyword argument
-`thread=OrdinaryDiffEq.True()` of the algorithms, as described in the
+`thread = Trixi.True()` (or `thread = OrdinaryDiffEq.True()`)
+of the algorithms, as described in the
 [section on time integration methods](@ref time-integration).
 
 !!! warning
@@ -69,8 +70,7 @@ installations. Follow the steps described [here](https://github.com/DLR-AMR/T8co
 [here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) for the configuration.
 The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
 the same for P4est.jl and T8code.jl. This could, e.g., be `libp4est.so` that usually can be found
-in `lib/` or `local/lib/` in the installation directory of `t8code`. Note that the `T8codeMesh`, however,
-does not support MPI yet.
+in `lib/` or `local/lib/` in the installation directory of `t8code`.
 The preferences for [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) always need to be set, even if you
 do not want to use `HDF5` from Trixi.jl, see also [issue #1079 in HDF5.jl](https://github.com/JuliaIO/HDF5.jl/issues/1079).
 To set the preferences for HDF5.jl, follow the instructions described
@@ -79,7 +79,7 @@ To set the preferences for HDF5.jl, follow the instructions described
 In total, in your active Julia project you should have a `LocalPreferences.toml` file with sections
 `[MPIPreferences]`, `[T8code]` (only needed if `T8codeMesh` is used), `[P4est]` (only needed if
 `P4estMesh` is used), and `[HDF5]` as well as an entry `MPIPreferences` in your
-`Project.toml` to use a custom MPI installation. A `LocalPreferences.toml` file 
+`Project.toml` to use a custom MPI installation. A `LocalPreferences.toml` file
 created as described above might look something like the following:
 ```toml
 [HDF5]
@@ -222,7 +222,7 @@ section, specifically at the descriptions of the performance index (PID).
 ### Using error-based step size control with MPI
 If you use error-based step size control (see also the section on
 [error-based adaptive step sizes](@ref adaptive_step_sizes)) together with MPI you need to pass
-`internalnorm=ode_norm` and you should pass `unstable_check=ode_unstable_check` to
+`internalnorm = ode_norm` and you should pass `unstable_check = ode_unstable_check` to
 OrdinaryDiffEq's [`solve`](https://docs.sciml.ai/DiffEqDocs/latest/basics/common_solver_opts/),
 which are both included in [`ode_default_options`](@ref).
 

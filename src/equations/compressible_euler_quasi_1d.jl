@@ -78,18 +78,19 @@ A smooth initial condition used for convergence tests in combination with
 """
 function initial_condition_convergence_test(x, t,
                                             equations::CompressibleEulerEquationsQuasi1D)
+    RealT = eltype(x)
     c = 2
-    A = 0.1
+    A = convert(RealT, 0.1)
     L = 2
-    f = 1 / L
-    ω = 2 * pi * f
+    f = 1.0f0 / L
+    ω = 2 * convert(RealT, pi) * f
     ini = c + A * sin(ω * (x[1] - t))
 
     rho = ini
-    v1 = 1.0
+    v1 = 1
     e = ini^2 / rho
-    p = (equations.gamma - 1) * (e - 0.5 * rho * v1^2)
-    a = 1.5 - 0.5 * cos(x[1] * pi)
+    p = (equations.gamma - 1) * (e - 0.5f0 * rho * v1^2)
+    a = 1.5f0 - 0.5f0 * cos(x[1] * convert(RealT, pi))
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
@@ -108,19 +109,20 @@ as defined in [`initial_condition_convergence_test`](@ref).
                                                equations::CompressibleEulerEquationsQuasi1D)
     # Same settings as in `initial_condition_convergence_test`. 
     # Derivatives calculated with ForwardDiff.jl
+    RealT = eltype(u)
     c = 2
-    A = 0.1
+    A = convert(RealT, 0.1)
     L = 2
-    f = 1 / L
-    ω = 2 * pi * f
+    f = 1.0f0 / L
+    ω = 2 * convert(RealT, pi) * f
     x1, = x
     ini(x1, t) = c + A * sin(ω * (x1 - t))
 
     rho(x1, t) = ini(x1, t)
-    v1(x1, t) = 1.0
+    v1(x1, t) = 1
     e(x1, t) = ini(x1, t)^2 / rho(x1, t)
-    p1(x1, t) = (equations.gamma - 1) * (e(x1, t) - 0.5 * rho(x1, t) * v1(x1, t)^2)
-    a(x1, t) = 1.5 - 0.5 * cos(x1 * pi)
+    p1(x1, t) = (equations.gamma - 1) * (e(x1, t) - 0.5f0 * rho(x1, t) * v1(x1, t)^2)
+    a(x1, t) = 1.5f0 - 0.5f0 * cos(x1 * pi)
 
     arho(x1, t) = a(x1, t) * rho(x1, t)
     arhou(x1, t) = arho(x1, t) * v1(x1, t)
@@ -142,7 +144,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     du2 = darhou_dt(x1, t) + darhouu_dx(x1, t) + a(x1, t) * dp1_dx(x1, t)
     du3 = daE_dt(x1, t) + dauEp_dx(x1, t)
 
-    return SVector(du1, du2, du3, 0.0)
+    return SVector(du1, du2, du3, 0)
 end
 
 # Calculate 1D flux for a single point
@@ -157,7 +159,7 @@ end
     f2 = a_rho_v1 * v1
     f3 = a * v1 * (e + p)
 
-    return SVector(f1, f2, f3, zero(eltype(u)))
+    return SVector(f1, f2, f3, 0)
 end
 
 """
@@ -189,9 +191,7 @@ Further details are available in the paper:
     # in the arithmetic average of {p}.
     p_avg = p_ll + p_rr
 
-    z = zero(eltype(u_ll))
-
-    return SVector(z, a_ll * p_avg, z, z)
+    return SVector(0, a_ll * p_avg, 0, 0)
 end
 
 # While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
@@ -239,19 +239,19 @@ Further details are available in the paper:
     #     log((ϱₗ/pₗ) / (ϱᵣ/pᵣ)) / (ϱₗ/pₗ - ϱᵣ/pᵣ)
     #   = pₗ pᵣ log((ϱₗ pᵣ) / (ϱᵣ pₗ)) / (ϱₗ pᵣ - ϱᵣ pₗ)
     inv_rho_p_mean = p_ll * p_rr * inv_ln_mean(rho_ll * p_rr, rho_rr * p_ll)
-    v1_avg = 0.5 * (v1_ll + v1_rr)
-    a_v1_avg = 0.5 * (a_ll * v1_ll + a_rr * v1_rr)
-    p_avg = 0.5 * (p_ll + p_rr)
-    velocity_square_avg = 0.5 * (v1_ll * v1_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    a_v1_avg = 0.5f0 * (a_ll * v1_ll + a_rr * v1_rr)
+    p_avg = 0.5f0 * (p_ll + p_rr)
+    velocity_square_avg = 0.5f0 * (v1_ll * v1_rr)
 
     # Calculate fluxes
     # Ignore orientation since it is always "1" in 1D
     f1 = rho_mean * a_v1_avg
     f2 = rho_mean * a_v1_avg * v1_avg
     f3 = f1 * (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one) +
-         0.5 * (p_ll * a_rr * v1_rr + p_rr * a_ll * v1_ll)
+         0.5f0 * (p_ll * a_rr * v1_rr + p_rr * a_ll * v1_ll)
 
-    return SVector(f1, f2, f3, zero(eltype(u_ll)))
+    return SVector(f1, f2, f3, 0)
 end
 
 # While `normal_direction` isn't strictly necessary in 1D, certain solvers assume that 
@@ -276,13 +276,13 @@ end
     e_ll = a_e_ll / a_ll
     v1_ll = a_rho_v1_ll / a_rho_ll
     v_mag_ll = abs(v1_ll)
-    p_ll = (equations.gamma - 1) * (e_ll - 0.5 * rho_ll * v_mag_ll^2)
+    p_ll = (equations.gamma - 1) * (e_ll - 0.5f0 * rho_ll * v_mag_ll^2)
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     rho_rr = a_rho_rr / a_rr
     e_rr = a_e_rr / a_rr
     v1_rr = a_rho_v1_rr / a_rho_rr
     v_mag_rr = abs(v1_rr)
-    p_rr = (equations.gamma - 1) * (e_rr - 0.5 * rho_rr * v_mag_rr^2)
+    p_rr = (equations.gamma - 1) * (e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
     λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
@@ -293,7 +293,7 @@ end
     rho = a_rho / a
     v1 = a_rho_v1 / a_rho
     e = a_e / a
-    p = (equations.gamma - 1) * (e - 0.5 * rho * v1^2)
+    p = (equations.gamma - 1) * (e - 0.5f0 * rho * v1^2)
     c = sqrt(equations.gamma * p / rho)
 
     return (abs(v1) + c,)
@@ -314,10 +314,8 @@ end
 # 1D compressible Euler equations scaled by the channel width `a`.
 @inline function entropy(u, equations::CompressibleEulerEquationsQuasi1D)
     a_rho, a_rho_v1, a_e, a = u
-    q = a * entropy(SVector(a_rho, a_rho_v1, a_e) / a,
-                CompressibleEulerEquations1D(equations.gamma))
-
-    return SVector(q[1], q[2], q[3], a)
+    return a * entropy(SVector(a_rho, a_rho_v1, a_e) / a,
+                   CompressibleEulerEquations1D(equations.gamma))
 end
 
 # Convert conservative variables to entropy. The entropy variables for the 

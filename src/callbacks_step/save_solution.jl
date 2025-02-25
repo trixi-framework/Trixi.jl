@@ -62,7 +62,7 @@ function Base.show(io::IO, ::MIME"text/plain",
                                        "yes" : "no",
             "save final solution" => save_solution_callback.save_final_solution ?
                                      "yes" : "no",
-            "output directory" => abspath(normpath(save_solution_callback.output_directory)),
+            "output directory" => abspath(normpath(save_solution_callback.output_directory))
         ]
         summary_box(io, "SaveSolutionCallback", setup)
     end
@@ -85,7 +85,7 @@ function Base.show(io::IO, ::MIME"text/plain",
                                        "yes" : "no",
             "save final solution" => save_solution_callback.save_final_solution ?
                                      "yes" : "no",
-            "output directory" => abspath(normpath(save_solution_callback.output_directory)),
+            "output directory" => abspath(normpath(save_solution_callback.output_directory))
         ]
         summary_box(io, "SaveSolutionCallback", setup)
     end
@@ -174,8 +174,7 @@ function (solution_callback::SaveSolutionCallback)(u, t, integrator)
     #    (total #steps)       (#accepted steps)
     # We need to check the number of accepted steps since callbacks are not
     # activated after a rejected step.
-    return interval_or_dt > 0 && (((integrator.stats.naccept % interval_or_dt == 0) &&
-             !(integrator.stats.naccept == 0 && integrator.iter > 0)) ||
+    return interval_or_dt > 0 && (integrator.stats.naccept % interval_or_dt == 0 ||
             (save_final_solution && isfinished(integrator)))
 end
 

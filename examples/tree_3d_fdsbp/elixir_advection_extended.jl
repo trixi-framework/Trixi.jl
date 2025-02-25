@@ -1,7 +1,7 @@
 # !!! warning "Experimental implementation (upwind SBP)"
 #     This is an experimental feature and may change in future releases.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -32,7 +32,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 # ODE solvers, callbacks etc.
 
 tspan = (0.0, 1.0)
-ode = semidiscretize(semi, tspan);
+ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
@@ -51,4 +51,3 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-9, reltol = 1.0e-9,
             ode_default_options()..., callback = callbacks)
-summary_callback()

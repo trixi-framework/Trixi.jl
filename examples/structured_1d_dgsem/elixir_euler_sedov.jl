@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -38,7 +37,8 @@ initial_condition = initial_condition_sedov_blast_wave
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
-basis = LobattoLegendreBasis(3)
+polydeg = 3
+basis = LobattoLegendreBasis(polydeg)
 shock_indicator_variable = density_pressure
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 1.0,
@@ -87,7 +87,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

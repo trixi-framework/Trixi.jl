@@ -86,7 +86,7 @@ function trixi2txt(filename::AbstractString...;
                   "maximum supported level $max_supported_level")
         end
         max_available_nodes_per_finest_element = 2^(max_supported_level - max_level)
-        if nvisnodes == nothing
+        if nvisnodes === nothing
             max_nvisnodes = 2 * n_nodes
         elseif nvisnodes == 0
             max_nvisnodes = n_nodes
@@ -137,9 +137,9 @@ function trixi2txt(filename::AbstractString...;
             println(io)
 
             # Data
-            for idx in 1:length(xs)
+            for idx in eachindex(xs)
                 @printf(io, "%+10.8e", xs[idx])
-                for variable_id in 1:length(variables)
+                for variable_id in eachindex(variables)
                     @printf(io, " %+10.8e ", node_centered_data[idx, variable_id])
                 end
                 println(io)
@@ -199,7 +199,7 @@ function read_meshfile(filename::String)
         # Extract leaf cells (= cells to be plotted) and contract all other arrays accordingly
         leaf_cells = similar(levels)
         n_cells = 0
-        for cell_id in 1:length(levels)
+        for cell_id in eachindex(levels)
             if sum(child_ids[:, cell_id]) > 0
                 continue
             end
