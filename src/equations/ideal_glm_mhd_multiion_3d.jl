@@ -14,7 +14,7 @@ The ideal compressible multi-ion MHD equations in three space dimensions augment
 generalized Langange multipliers (GLM) divergence-cleaning technique. This is a
 multi-species variant of the ideal GLM-MHD equations for calorically perfect plasmas
 with independent momentum and energy equations for each ion species. This implementation 
-assumes that the equations are non-dimensionalized such, that the vacuum permeability is ``\mu_0 = 1``.
+assumes that the equations are non-dimensionalized, such that the vacuum permeability is ``\mu_0 = 1``.
 
 In case of more than one ion species, the specific heat capacity ratios `gammas` and the charge-to-mass 
 ratios `charge_to_mass` should be passed as tuples, e.g., `gammas=(1.4, 1.667)`.
@@ -43,8 +43,8 @@ mutable struct IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT <: Real,
                AbstractIdealGlmMhdMultiIonEquations{3, NVARS, NCOMP}
     gammas::SVector{NCOMP, RealT} # Heat capacity ratios
     charge_to_mass::SVector{NCOMP, RealT} # Charge to mass ratios
-    electron_pressure::ElectronPressure       # Function to compute the electron pressure
-    c_h::RealT                 # GLM cleaning speed
+    electron_pressure::ElectronPressure # Function to compute the electron pressure
+    c_h::RealT # GLM cleaning speed
     function IdealGlmMhdMultiIonEquations3D{NVARS, NCOMP, RealT,
                                             ElectronPressure}(gammas
                                                               ::SVector{NCOMP, RealT},
@@ -134,9 +134,14 @@ function initial_condition_weak_blast_wave(x, t,
     prim[1] = 1
     prim[2] = 1
     prim[3] = 1
+
     for k in eachcomponent(equations)
+        # We initialize each species with a fraction of the total density `rho`, such
+        # that the sum of the densities is `rho := density(prim, equations)`. The density of
+        # a species is double the density of the next species.
+        fraction = 2^(k - 1) * (1 - 2) / (1 - 2^ncomponents(equations))
         set_component!(prim, k,
-                       2^(k - 1) * (1 - 2) / (1 - 2^ncomponents(equations)) * rho, v1,
+                       fraction * rho, v1,
                        v2, v3, p, equations)
     end
 
@@ -258,7 +263,7 @@ Entropy-conserving non-conservative two-point "flux" as described in
     of local and symmetric parts and are meant to be used in the same way as the conservative
     fluxes (i.e., flux + flux_noncons in both volume and surface integrals). In this routine, 
     the fluxes are multiplied by 2 because the non-conservative fluxes are always multiplied 
-    by 0.5 whenever they are used in the Trixi code.
+    by 0.5 whenever they are used in the Trixi.jl code.
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
@@ -312,7 +317,7 @@ The term is composed of four individual non-conservative terms:
 
     if orientation == 1
         # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
-        # multiplied by 0.5 whenever it's used in the Trixi code)
+        # multiplied by 0.5 whenever it's used in the Trixi.jl code)
         f[1] = 2 * v1_plus_ll * B1_avg
         f[2] = 2 * v2_plus_ll * B1_avg
         f[3] = 2 * v3_plus_ll * B1_avg
@@ -353,12 +358,12 @@ The term is composed of four individual non-conservative terms:
                            equations)
         end
         # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
-        # multiplied by 0.5 whenever it's used in the Trixi code)
+        # multiplied by 0.5 whenever it's used in the Trixi.jl code)
         f[end] = 2 * v1_plus_ll * psi_avg
 
     elseif orientation == 2
         # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
-        # multiplied by 0.5 whenever it's used in the Trixi code)
+        # multiplied by 0.5 whenever it's used in the Trixi.jl code)
         f[1] = 2 * v1_plus_ll * B2_avg
         f[2] = 2 * v2_plus_ll * B2_avg
         f[3] = 2 * v3_plus_ll * B2_avg
@@ -395,16 +400,16 @@ The term is composed of four individual non-conservative terms:
             f5 += v2_plus_ll * psi_ll * psi_avg
 
             # Add to the flux vector (multiply by 2 because the non-conservative flux is 
-            # multiplied by 0.5 whenever it's used in the Trixi code)
+            # multiplied by 0.5 whenever it's used in the Trixi.jl code)
             set_component!(f, k, 0, 2 * f2, 2 * f3, 2 * f4, 2 * f5,
                            equations)
         end
         # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
-        # multiplied by 0.5 whenever it's used in the Trixi code)
+        # multiplied by 0.5 whenever it's used in the Trixi.jl code)
         f[end] = 2 * v2_plus_ll * psi_avg
     else #if orientation == 3
         # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is 
-        # multiplied by 0.5 whenever it's used in the Trixi code)
+        # multiplied by 0.5 whenever it's used in the Trixi.jl code)
         f[1] = 2 * v1_plus_ll * B3_avg
         f[2] = 2 * v2_plus_ll * B3_avg
         f[3] = 2 * v3_plus_ll * B3_avg
@@ -441,12 +446,12 @@ The term is composed of four individual non-conservative terms:
             f5 += v3_plus_ll * psi_ll * psi_avg
 
             # Add to the flux vector (multiply by 2 because the non-conservative flux is 
-            # multiplied by 0.5 whenever it's used in the Trixi code)
+            # multiplied by 0.5 whenever it's used in the Trixi.jl code)
             set_component!(f, k, 0, 2 * f2, 2 * f3, 2 * f4, 2 * f5,
                            equations)
         end
         # Compute GLM term for psi (multiply by 2 because the non-conservative flux is 
-        # multiplied by 0.5 whenever it's used in the Trixi code)
+        # multiplied by 0.5 whenever it's used in the Trixi.jl code)
         f[end] = 2 * v3_plus_ll * psi_avg
     end
 
@@ -463,12 +468,12 @@ with [`VolumeIntegralFluxDifferencing`](@ref) yields a "standard"
 (weak-form) DGSEM discretization of the multi-ion GLM-MHD system. This flux can also be used to construct a
 standard local Lax-Friedrichs flux using `surface_flux = (flux_lax_friedrichs, flux_nonconservative_central)`.
 
-!!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi"
+!!! info "Usage and Scaling of Non-Conservative Fluxes in Trixi.jl"
     The central non-conservative fluxes implemented in this function are written as the product
     of local and symmetric parts, where the symmetric part is a standard average. These fluxes
     are meant to be used in the same way as the conservative fluxes (i.e., flux + flux_noncons 
     in both volume and surface integrals). In this routine, the fluxes are multiplied by 2 because 
-    the non-conservative fluxes are always multiplied by 0.5 whenever they are used in the Trixi code.
+    the non-conservative fluxes are always multiplied by 0.5 whenever they are used in the Trixi.jl code.
 
 The term is composed of four individual non-conservative terms:
 1. The Godunov-Powell term, which arises for plasmas with non-vanishing magnetic field divergence, and
@@ -1061,10 +1066,9 @@ end
         v1 = rho_v1 * rho_inv
         v2 = rho_v2 * rho_inv
         v3 = rho_v3 * rho_inv
-        v_mag = sqrt(v1^2 + v2^2 + v3^2)
         gamma = equations.gammas[k]
         p = (gamma - 1) *
-            (rho_e - 0.5f0 * rho * v_mag^2 - 0.5f0 * (B1^2 + B2^2 + B3^2) -
+            (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) - 0.5f0 * (B1^2 + B2^2 + B3^2) -
              0.5f0 * psi^2)
         a_square = gamma * p * rho_inv
         inv_sqrt_rho = 1 / sqrt(rho)
@@ -1078,17 +1082,17 @@ end
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 2 * a_square * b1^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b1^2)))
         elseif orientation == 2
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 2 * a_square * b2^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b2^2)))
         else #if orientation == 3
             c_f = max(c_f,
                       sqrt(0.5f0 * (a_square + b_square) +
                            0.5f0 *
-                           sqrt((a_square + b_square)^2 - 2 * a_square * b3^2)))
+                           sqrt((a_square + b_square)^2 - 4 * a_square * b3^2)))
         end
     end
 
