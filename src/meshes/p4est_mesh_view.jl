@@ -66,7 +66,6 @@ end
 function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Remove all interfaces that have a tuple of neighbor_ids where at least one is
     # not part of this meshview, i.e. mesh.cell_ids.
-    @autoinfiltrate
     # For the p4est mesh view, the neighbor ids change.
     # Here we make sure that they get updated correctly.
     mask = BitArray(undef, ninterfaces(interfaces_parent))
@@ -75,15 +74,22 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
                           (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
         # Elements can interface in the x and y-directions.
         # Find out by looking at the node_indices.
-        if ~mask[interface] && interfaces_parent.node_indices[1, interface] == (:end, :i_forward)
-            # x-interface
-            left_idx = minimum(interfaces_parent.neighbor_ids[:, interface])
-            right_idx = maximum(interfaces_parent.neighbor_ids[:, interface])
-            mesh.parent.boundary_names[2, left_idx] = :x_pos
-            mesh.parent.boundary_names[1, right_idx] = :x_neg
-#             @autoinfiltrate
-#         else
-            # y-interface
+        if ~mask[interface] &&
+            (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids ||
+             interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
+            if interfaces_parent.node_indices[1, interface] == (:end, :i_forward)
+                # x-interface
+                left_idx = minimum(interfaces_parent.neighbor_ids[:, interface])
+                right_idx = maximum(interfaces_parent.neighbor_ids[:, interface])
+                mesh.parent.boundary_names[2, left_idx] = :x_pos
+                mesh.parent.boundary_names[1, right_idx] = :x_neg
+            else
+                # y-interface
+                down_idx = minimum(interfaces_parent.neighbor_ids[:, interface])
+                up_idx = maximum(interfaces_parent.neighbor_ids[:, interface])
+                mesh.parent.boundary_names[4, down_idx] = :y_pos
+                mesh.parent.boundary_names[3, up_idx] = :y_neg
+            end
         end
 
         interfaces_parent.neighbor_ids[1, interface]
@@ -108,10 +114,6 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     interfaces._u = vec(interfaces.u)
     interfaces._node_indices = vec(interfaces.node_indices)
     interfaces._neighbor_ids = vec(interfaces.neighbor_ids)
-
-    # Add boundaries between mesh views in the parent mesh.
-    @autoinfiltrate
-    # mesh.parent.boundary_names
 
     return interfaces
 end
