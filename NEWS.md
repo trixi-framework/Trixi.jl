@@ -6,6 +6,14 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes in the v0.11 lifecycle
+
+#### Added
+
+- Added the three-dimensional multi-ion magneto-hydrodynamics (MHD) equations with a
+  generalized Lagrange multipliers (GLM) divergence cleaning technique ([#2215]).
+
+
 ## Changes when updating to v0.11 from v0.10.x
 
 #### Added
