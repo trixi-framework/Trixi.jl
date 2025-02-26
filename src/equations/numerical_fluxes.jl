@@ -271,7 +271,9 @@ an entropy-stable surface flux. The surface flux function can be initialized as:
 ```julia
 flux_es = FluxPlusDissipation(flux_ec, DissipationMatrixWintersEtal())
 ```
-This implementation is adapted from the [Atum.jl library](https://github.com/mwarusz/Atum.jl/blob/c7ed44f2b7972ac726ef345da7b98b0bda60e2a3/src/balancelaws/euler.jl#L198).
+The 1D and 2D implementations are adapted from the [Atum.jl library](https://github.com/mwarusz/Atum.jl/blob/c7ed44f2b7972ac726ef345da7b98b0bda60e2a3/src/balancelaws/euler.jl#L198).
+The 3D implementation is adapted from the [FLUXO library](https://github.com/project-fluxo/fluxo)
+
 For the derivation of the matrix dissipation operator, see:
 - A. R. Winters, D. Derigs, G. Gassner, S. Walch, A uniquely defined entropy stable matrix dissipation operator 
   for high Mach number ideal MHD and compressible Euler simulations (2017). Journal of Computational Physics.
