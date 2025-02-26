@@ -178,9 +178,9 @@ error_1 / error_2
 
 # Some additional routines need modified versions to avoid adding dissipation to the
 # variable coefficient quantity `a` that is carried as an auxiliary variable in
-# the solution vector. In particular, a specialized `DissipationLocalLaxFriedrichs` term
-# used together with the numerical surface flux `flux_lax_friedrichs` prevents "smearing"
-# the variable coefficient `a` artificially
+# the solution vector. In particular, a specialized [`DissipationLocalLaxFriedrichs`](@ref) term
+# used together with the numerical surface flux [`flux_lax_friedrichs`](@ref) prevents "smearing"
+# the variable coefficient `a` artificially.
 
 ## Specialized dissipation term for the Lax-Friedrichs surface flux
 @inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr,
@@ -189,10 +189,11 @@ error_1 / error_2
     λ = dissipation.max_abs_speed(u_ll, u_rr, orientation, equation)
 
     diss = -0.5 * λ * (u_rr - u_ll)
+    ## do not add dissipation to the variable coefficient a used as last entry of u
     return SVector(diss[1], zero(u_ll))
 end
 
-# Another modification is necessary if one wishes to use the stage limiter `PositivityPreservingLimiterZhangShu`
+# Another modification is necessary if one wishes to use the stage limiter [`PositivityPreservingLimiterZhangShu`](@ref)
 # during the time integration. This limiter takes in a `variable` (or set of variables) to limit and ensure positivity.
 # However, these variables are used to compute the limiter quantities that are then applied to every
 # variable in the solution vector `u`. To avoid artificially limiting (and in turn changing) the variable coefficient
@@ -200,9 +201,9 @@ end
 # For the example equation given in this tutorial, this new function for the limiting would take the form
 
 ## Specialized positivity limiter that avoids modification of the auxiliary variable `a`
-function limiter_zhang_shu!(u, threshold, variable, mesh,
-                            equations::NonconservativeLinearAdvectionEquation,
-                            dg, cache)
+function Trixi.limiter_zhang_shu!(u, threshold, variable, mesh,
+                                  equations::NonconservativeLinearAdvectionEquation,
+                                  dg, cache)
     weights = dg.basis
 
     for element in eachelement(dg, cache)
