@@ -299,9 +299,9 @@ Pkg.status(["Trixi", "OrdinaryDiffEqTsit5", "Plots"],
 
 # ## Additional modifications
 
-# When one carries auxiliary vairable(s) in the solution vector, e.g., for non-constant coefficient advection problems
-# some routines may require modification to avoid adding dissipation to the
-# variable coefficient quantity `a` that is carried as an auxiliary variable in
+# When one carries auxiliary variable(s) in the solution vector, e.g., for non-constant
+# coefficient advection problems some routines may require modification to avoid adding
+# dissipation to the variable coefficient quantity `a` that is carried as an auxiliary variable in
 # the solution vector. In particular, a specialized [`DissipationLocalLaxFriedrichs`](@ref) term
 # used together with the numerical surface flux [`flux_lax_friedrichs`](@ref) prevents "smearing"
 # the variable coefficient `a` artificially.
