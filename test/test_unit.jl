@@ -1691,6 +1691,50 @@ end
           norm(normal_direction) * dissipation_matrix_winters_etal(u_ll, u_rr,
                                           normal_direction / norm(normal_direction),
                                           equations)
+
+    # test that 3D flux is consistent with 1D and 2D versions
+    equations = CompressibleEulerEquations3D(1.4)
+    dissipation_matrix_winters_etal = DissipationMatrixWintersEtal()
+
+    # test for consistency with 1D and 2D flux
+    u_ll = prim2cons(SVector(1, 0.1, 0, 0, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, 0, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 0.0, 0.0),
+                                                     equations)
+    dissipation_1d = dissipation_matrix_winters_etal(u_ll[[1, 2, 5]], u_rr[[1, 2, 5]],
+                                                     SVector(1.0),
+                                                     CompressibleEulerEquations1D(1.4))
+    @test dissipation_3d[[1, 2, 5]] ≈ dissipation_1d
+
+    u_ll = prim2cons(SVector(1, 0.1, 0.2, 0, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, -0.3, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0, 0.0),
+                                                     equations)
+    dissipation_2d = dissipation_matrix_winters_etal(u_ll[[1, 2, 3, 5]],
+                                                     u_rr[[1, 2, 3, 5]],
+                                                     SVector(1.0, 1.0),
+                                                     CompressibleEulerEquations2D(1.4))
+    @test dissipation_3d[[1, 2, 3, 5]] ≈ dissipation_2d
+
+    # test 3D entropy dissipation
+    u_ll = prim2cons(SVector(1, 0.1, 0.2, 0.3, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, -0.3, 0.4, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 2.0, 3.0),
+                                                     equations)
+    @test dot(v_ll - v_rr, dissipation_3d) ≥ 0
+
+    # test non-unit vector
+    normal_direction = SVector(1.0, 2.0, 3.0)
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, normal_direction, equations) ≈
+          norm(normal_direction) * dissipation_matrix_winters_etal(u_ll, u_rr,
+                                          normal_direction / norm(normal_direction),
+                                          equations)
 end
 
 @testset "Equivalent Wave Speed Estimates" begin
