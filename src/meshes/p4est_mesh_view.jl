@@ -28,7 +28,7 @@ Create a `P4estMeshView` on a [`P4estMesh`](@ref) parent.
 - `cell_ids`: array of cell ids that are part of this view.
 """
 function P4estMeshView(parent::P4estMesh{NDIMS, NDIMS_AMBIENT, RealT},
-                       cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}    
+                       cell_ids::Vector) where {NDIMS, NDIMS_AMBIENT, RealT}
     return P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT, typeof(parent)}(parent, cell_ids,
                                                                       parent.unsaved_changes,
                                                                       parent.current_filename)
