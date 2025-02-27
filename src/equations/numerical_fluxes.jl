@@ -264,7 +264,7 @@ end
 @doc raw"""
     DissipationMatrixWintersEtal()
 
-Creates the Roe-like entropy stable matrix dissipation operator from Winters et al. (2017). This operator
+Creates the Roe-like entropy-stable matrix dissipation operator from Winters et al. (2017). This operator
 must be used together with an entropy-conservative two-point flux function 
 (e.g., [`flux_ranocha`](@ref) or [`flux_chandrashekar`](@ref)) to yield 
 an entropy-stable surface flux. The surface flux function can be initialized as:

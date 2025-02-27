@@ -1271,10 +1271,10 @@ end
 
     rho_log = ln_mean(rho_ll, rho_rr)
     b_log = ln_mean(b_ll, b_rr)
-    v1_avg = avg(v1_ll, v1_rr)
-    v2_avg = avg(v2_ll, v2_rr)
-    v3_avg = avg(v3_ll, v3_rr)
-    p_avg = avg(rho_ll, rho_rr) / (2 * avg(b_ll, b_rr))
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    v3_avg = 0.5f0 * (v3_ll + v3_rr)
+    p_avg = 0.5f0 * (rho_ll + rho_rr) / (b_ll + b_rr)
     v_squared_bar = v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr
     h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5f0 * v_squared_bar
     c_bar = sqrt(gamma * p_avg / rho_log)
