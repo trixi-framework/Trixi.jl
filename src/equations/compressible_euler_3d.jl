@@ -1280,7 +1280,10 @@ end
     c_bar = sqrt(gamma * p_avg / rho_log)
 
     # Step 3:
-    # Build the dissipation term as given in Appendix A of the paper
+    # Build the dissipation term as given in Appendix A of the paper 
+    # - A. R. Winters, D. Derigs, G. Gassner, S. Walch, A uniquely defined entropy stable matrix dissipation operator 
+    # for high Mach number ideal MHD and compressible Euler simulations (2017). Journal of Computational Physics.
+    # [DOI: 10.1016/j.jcp.2016.12.006](https://doi.org/10.1016/j.jcp.2016.12.006).
 
     # Get entropy variables jump in the rotated variables
     w_jump = cons2entropy(u_rr_rotated, equations) -
