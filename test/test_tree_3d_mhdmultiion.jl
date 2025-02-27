@@ -148,6 +148,50 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "Multi-ion GLM-MHD collision source terms (3D)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhdmultiion_collisions.jl"),
+                        l2=[
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0595534208484378,
+                            0.0,
+                            0.0,
+                            0.019718485574500753,
+                            0.0,
+                            0.059553420848437816,
+                            0.0,
+                            0.0,
+                            0.01738507024352939,
+                            0.0
+                        ],
+                        linf=[
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.059553420848437816,
+                            0.0,
+                            0.0,
+                            0.019718485574500757,
+                            0.0,
+                            0.05955342084843786,
+                            0.0,
+                            0.0,
+                            0.017385070243529404,
+                            0.0
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 end # module
