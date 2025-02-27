@@ -549,7 +549,7 @@ end
     charge_ratio_ll = zero(MVector{ncomponents(equations), eltype(u_ll)})
     total_electron_charge = zero(eltype(u_ll))
     for k in eachcomponent(equations)
-        rho_k = u_ll[3 + (k - 1) * 5 + 1]
+        rho_k = u_ll[3 + (k - 1) * 5 + 1] # Extract densities from conserved variable vector
         charge_ratio_ll[k] = rho_k * charge_to_mass[k]
         total_electron_charge += charge_ratio_ll[k]
     end

@@ -55,7 +55,7 @@ end
 
 trees_per_dimension = (8, 8, 8)
 mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 0, mapping = mapping,
+                 polydeg = 3, mapping = mapping,
                  periodicity = true)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
