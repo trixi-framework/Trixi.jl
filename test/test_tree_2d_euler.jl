@@ -290,6 +290,25 @@ end
                             1.831228461662809
                         ],
                         maxiters=30)
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
+                        surface_flux=FluxPlusDissipation(flux_ranocha,
+                                                         DissipationMatrixWintersEtal()),
+                        cfl=0.5,
+                        l2=[
+                            0.06672572073864967,
+                            0.05682931483200232,
+                            0.05682927815823951,
+                            0.14488551702848282
+                        ],
+                        linf=[
+                            6.044753672457437,
+                            1.4753112303346838,
+                            1.4753112303346836,
+                            3.493387250703384
+                        ],
+                        maxiters=30)
+
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
