@@ -281,6 +281,34 @@ For the derivation of the matrix dissipation operator, see:
 """
 struct DissipationMatrixWintersEtal end
 
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::AbstractEquations{1})
+    return dissipation(u_ll, u_rr, SVector(1), equations)
+end
+
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::AbstractEquations{2})
+    if orientation == 1
+        return dissipation(u_ll, u_rr, SVector(1, 0), equations)
+    elseif orientation == 2
+        return dissipation(u_ll, u_rr, SVector(0, 1), equations)
+    end
+end
+
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::AbstractEquations{3})
+    if orientation == 1
+        return dissipation(u_ll, u_rr, SVector(1, 0, 0), equations)
+    elseif orientation == 2
+        return dissipation(u_ll, u_rr, SVector(0, 1, 0), equations)
+    elseif orientation == 3
+        return dissipation(u_ll, u_rr, SVector(0, 0, 1), equations)
+    end
+end
+
 """
     FluxHLL(min_max_speed=min_max_speed_davis)
 
