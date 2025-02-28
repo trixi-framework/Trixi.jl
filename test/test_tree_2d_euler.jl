@@ -291,6 +291,17 @@ end
                         ],
                         maxiters=30)
 
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+  end
+
+  @trixi_testset "elixir_euler_blast_wave.jl with DissipationMatrixWintersEtal" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave.jl"),
                         surface_flux=FluxPlusDissipation(flux_ranocha,
                                                          DissipationMatrixWintersEtal()),
