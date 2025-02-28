@@ -292,7 +292,7 @@ end
                                                              equations::AbstractEquations{2})
     if orientation == 1
         return dissipation(u_ll, u_rr, SVector(1, 0), equations)
-    elseif orientation == 2
+    else # orientation == 2
         return dissipation(u_ll, u_rr, SVector(0, 1), equations)
     end
 end
@@ -304,7 +304,7 @@ end
         return dissipation(u_ll, u_rr, SVector(1, 0, 0), equations)
     elseif orientation == 2
         return dissipation(u_ll, u_rr, SVector(0, 1, 0), equations)
-    elseif orientation == 3
+    else # orientation == 3
         return dissipation(u_ll, u_rr, SVector(0, 0, 1), equations)
     end
 end
