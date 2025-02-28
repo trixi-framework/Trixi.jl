@@ -165,6 +165,26 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_modified_sod.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_1d",
+                                 "elixir_euler_modified_sod.jl"),
+                        cells_per_dimension=(16,),
+                        l2=[0.26352391505659767, 0.4528974787813885, 0.9310255091126164],
+                        linf=[
+                            0.6268146194274395,
+                            0.8214003799995101,
+                            1.8606901431409795
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         l2=[
