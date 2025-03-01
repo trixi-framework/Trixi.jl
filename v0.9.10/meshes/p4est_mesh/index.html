@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>P4est-based mesh · Trixi.jl</title><meta name="title" content="P4est-based mesh · Trixi.jl"/><meta property="og:title" content="P4est-based mesh · Trixi.jl"/><meta property="twitter:title" content="P4est-based mesh · Trixi.jl"/><meta name="description" content="Documentation for Trixi.jl."/><meta property="og:description" content="Documentation for Trixi.jl."/><meta property="twitter:description" content="Documentation for Trixi.jl."/><meta property="og:url" content="https://trixi-framework.github.io/Trixi.jl/stable/meshes/p4est_mesh/"/><meta property="twitter:url" content="https://trixi-framework.github.io/Trixi.jl/stable/meshes/p4est_mesh/"/><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/meshes/p4est_mesh/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Trixi.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../overview/">Overview</a></li><li><a class="tocitem" href="../../visualization/">Visualization</a></li><li><a class="tocitem" href="../../restart/">Restart simulation</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../tutorials/introduction/">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox"/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">1 First steps in Trixi.jl</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../tutorials/first_steps/getting_started/">1.1 Getting started</a></li><li><a class="tocitem" href="../../tutorials/first_steps/create_first_setup/">1.2 Create your first setup</a></li><li><a class="tocitem" href="../../tutorials/first_steps/changing_trixi/">1.3 Changing Trixi.jl itself</a></li></ul></li><li><a class="tocitem" href="../../tutorials/behind_the_scenes_simulation_setup/">2 Behind the scenes of a simulation setup</a></li><li><a class="tocitem" href="../../tutorials/scalar_linear_advection_1d/">3 Introduction to DG methods</a></li><li><a class="tocitem" href="../../tutorials/DGSEM_FluxDiff/">4 DGSEM with flux differencing</a></li><li><a class="tocitem" href="../../tutorials/shock_capturing/">5 Shock capturing with flux differencing and stage limiter</a></li><li><a class="tocitem" href="../../tutorials/subcell_shock_capturing/">6 Subcell limiting with the IDP Limiter</a></li><li><a class="tocitem" href="../../tutorials/non_periodic_boundaries/">7 Non-periodic boundaries</a></li><li><a class="tocitem" href="../../tutorials/DGMulti_1/">8 DG schemes via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../../tutorials/DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../../tutorials/upwind_fdsbp/">10 Upwind FD SBP schemes</a></li><li><a class="tocitem" href="../../tutorials/adding_new_scalar_equations/">11 Adding a new scalar conservation law</a></li><li><a class="tocitem" href="../../tutorials/adding_nonconservative_equation/">12 Adding a non-conservative equation</a></li><li><a class="tocitem" href="../../tutorials/parabolic_terms/">13 Parabolic terms</a></li><li><a class="tocitem" href="../../tutorials/adding_new_parabolic_terms/">14 Adding new parabolic terms</a></li><li><a class="tocitem" href="../../tutorials/adaptive_mesh_refinement/">15 Adaptive mesh refinement</a></li><li><a class="tocitem" href="../../tutorials/structured_mesh_mapping/">16 Structured mesh with curvilinear mapping</a></li><li><a class="tocitem" href="../../tutorials/hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl</a></li><li><a class="tocitem" href="../../tutorials/p4est_from_gmsh/">18 P4est mesh from gmsh</a></li><li><a class="tocitem" href="../../tutorials/time_stepping/">19 Explicit time stepping</a></li><li><a class="tocitem" href="../../tutorials/differentiable_programming/">20 Differentiable programming</a></li><li><a class="tocitem" href="../../tutorials/custom_semidiscretization/">21 Custom semidiscretizations</a></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox" checked/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../unstructured_quad_mesh/">Unstructured mesh</a></li><li class="is-active"><a class="tocitem" href>P4est-based mesh</a><ul class="internal"><li><a class="tocitem" href="#Construction-of-a-P4estMesh-from-an-Abaqus-file"><span>Construction of a P4estMesh from an Abaqus file</span></a></li></ul></li><li><a class="tocitem" href="../dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../../multi-physics_coupling/">Coupling</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../development/">Development</a></li><li><a class="tocitem" href="../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../testing/">Testing</a></li><li><a class="tocitem" href="../../performance/">Performance</a></li><li><a class="tocitem" href="../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../reference-trixibase/">TrixiBase.jl</a></li><li><a class="tocitem" href="../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../changelog/">Changelog</a></li><li><a class="tocitem" href="../../authors/">Authors</a></li><li><a class="tocitem" href="../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../code_of_conduct/">Code of Conduct</a></li><li><a class="tocitem" href="../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Basic building blocks</a></li><li><a class="is-disabled">Meshes</a></li><li class="is-active"><a href>P4est-based mesh</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>P4est-based mesh</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl/blob/main/docs/src/meshes/p4est_mesh.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="P4est-based-mesh"><a class="docs-heading-anchor" href="#P4est-based-mesh">P4est-based mesh</a><a id="P4est-based-mesh-1"></a><a class="docs-heading-anchor-permalink" href="#P4est-based-mesh" title="Permalink"></a></h1><p>The <a href="../../reference-trixi/#Trixi.P4estMesh"><code>P4estMesh</code></a> is an unstructured, curvilinear, nonconforming mesh type for quadrilateral (2D) and hexahedral (3D) cells. It supports quadtree/octree-based adaptive mesh refinement (AMR) via the C library <a href="https://github.com/cburstedde/p4est"><code>p4est</code></a>. See <a href="../../reference-trixi/#Trixi.AMRCallback"><code>AMRCallback</code></a> for further information.</p><p>Due to its curvilinear nature, (numerical) fluxes need to implement methods dispatching on the <code>normal::AbstractVector</code>. Rotationally invariant equations such as the compressible Euler equations can use <a href="../../reference-trixi/#Trixi.FluxRotated"><code>FluxRotated</code></a> to wrap numerical fluxes implemented only for Cartesian meshes. This simplifies the re-use of existing functionality for the <a href="../../reference-trixi/#Trixi.TreeMesh"><code>TreeMesh</code></a> but is usually less efficient, cf. <a href="https://github.com/trixi-framework/Trixi.jl/pull/550">PR #550</a>.</p><h2 id="Construction-of-a-P4estMesh-from-an-Abaqus-file"><a class="docs-heading-anchor" href="#Construction-of-a-P4estMesh-from-an-Abaqus-file">Construction of a P4estMesh from an Abaqus file</a><a id="Construction-of-a-P4estMesh-from-an-Abaqus-file-1"></a><a class="docs-heading-anchor-permalink" href="#Construction-of-a-P4estMesh-from-an-Abaqus-file" title="Permalink"></a></h2><p>One available option to construct a <a href="../../reference-trixi/#Trixi.P4estMesh"><code>P4estMesh</code></a> is to read in an Abaqus (<code>.inp</code>) mesh file. We briefly describe the structure of this file, the conventions it uses, and how the mesh file is parsed to create an initial unstructured, curvilinear, and conforming mesh.</p><h3 id="Mesh-in-two-spatial-dimensions"><a class="docs-heading-anchor" href="#Mesh-in-two-spatial-dimensions">Mesh in two spatial dimensions</a><a id="Mesh-in-two-spatial-dimensions-1"></a><a class="docs-heading-anchor-permalink" href="#Mesh-in-two-spatial-dimensions" title="Permalink"></a></h3><p>For this discussion we use the following two-dimensional unstructured curved mesh with three elements:</p><p><img src="https://user-images.githubusercontent.com/25242486/139241997-88e70a01-286f-4cee-80b1-2fd83c60bcca.png" alt="abaqus-2dmesh-docs"/></p><p>We note that the corner and element connectivity information parsed from the Abaqus file creates a straight sided (linear) mesh. From this linear mesh there are two strategies available to make the mesh curvilinear:</p><ol><li>Apply a <code>mapping</code> function to describe a transformation of the linear mesh to another physical domain. The mapping is approximated using interpolation polynomial of a user specified polynomial degree. The default value of this polynomial degree is <code>1</code> that corresponds to an uncurved geometry.</li><li>High-order boundary information is available in the <code>.inp</code> mesh file because it was created with the <a href="https://github.com/trixi-framework/HOHQMesh">HOHQMesh</a> mesh generator, which is available via the Julia package <a href="https://github.com/trixi-framework/HOHQMesh.jl">HOHQMesh.jl</a>. This information is used to create appropriate transfinite mappings during the mesh construction.</li></ol><p>We divide our discussion into two parts. The first part discusses the standard corner and element information contained in the <code>.inp</code> mesh file. The second part specifically deals with the mesh file parsing of an Abaqus file created by HOHQMesh.jl.</p><h4 id="Mesh-file-header"><a class="docs-heading-anchor" href="#Mesh-file-header">Mesh file header</a><a id="Mesh-file-header-1"></a><a class="docs-heading-anchor-permalink" href="#Mesh-file-header" title="Permalink"></a></h4><p>An Abaqus <code>.inp</code> mesh file typically begins with a <code>*Heading</code>. Though <em>optional</em>, the <code>*Heading</code> is helpful to give users some information about the mesh described by the mesh file. In particular, a <code>.inp</code> mesh file created with <code>HOHQMesh</code> will contain the header</p><pre><code class="nohighlight hljs">*Heading
+ File created by HOHQMesh</code></pre><p>This heading is used to indicate to the mesh constructor which of the above mapping strategies to apply in order to create a curvilinear mesh. If the Abaqus file header is <strong>not</strong> present then the <code>P4estMesh</code> is created with the first strategy above.</p><h4 id="corner-node-list"><a class="docs-heading-anchor" href="#corner-node-list">List of corner nodes</a><a id="corner-node-list-1"></a><a class="docs-heading-anchor-permalink" href="#corner-node-list" title="Permalink"></a></h4><p>Next, prefaced with <code>*NODE</code>, comes a list of the physical <code>(x,y,z)</code> coordinates of all the corners. The first integer in the list of the corners provides its id number. Thus, for the two-dimensional example mesh this block of corner information is</p><pre><code class="nohighlight hljs">*NODE
+1, 1.0, -1.0, 0.0
+2, 3.0,  0.0, 0.0
+3, 1.0,  1.0, 0.0
+4, 2.0,  0.0, 0.0
+5, 0.0,  0.0, 0.0
+6, 3.0,  1.0, 0.0
+7, 3.0, -1.0, 0.0</code></pre><h4 id="element-list"><a class="docs-heading-anchor" href="#element-list">List of elements</a><a id="element-list-1"></a><a class="docs-heading-anchor-permalink" href="#element-list" title="Permalink"></a></h4><p>The element connectivity is given after the list of corners. The header for this information block is</p><pre><code class="nohighlight hljs">*ELEMENT, type=CPS4, ELSET=Surface1</code></pre><p>The Abaqus element type <code>CPS4</code> corresponds to a quadrilateral element. Each quadrilateral element in the unstructured mesh is dictated by four corner points with indexing taken from the numbering given by the corner list above. The elements connect a set of four corner points (starting from the bottom left) in an anti-clockwise fashion; making the element <em>right-handed</em>. This element handedness is indicated using the circular arrow in the figure above. Just as with the corner list, the first integer in the element connectivity list indicates the element id number. Thus, the element connectivity list for the three element example mesh is</p><pre><code class="nohighlight hljs">*ELEMENT, type=CPS4, ELSET=Surface1
+1, 5, 1, 4, 3
+2, 4, 2, 6, 3
+3, 7, 2, 4, 1</code></pre><h4 id="Element-neighbor-connectivity"><a class="docs-heading-anchor" href="#Element-neighbor-connectivity">Element neighbor connectivity</a><a id="Element-neighbor-connectivity-1"></a><a class="docs-heading-anchor-permalink" href="#Element-neighbor-connectivity" title="Permalink"></a></h4><p>The construction of the element neighbor ids and identifying physical boundary surfaces is done using functionality directly from the <a href="https://github.com/cburstedde/p4est"><code>p4est</code></a> library. For example, the neighbor connectivity is created in the mesh constructor using the wrapper <code>read_inp_p4est</code> function.</p><h4 id="Encoding-of-boundaries"><a class="docs-heading-anchor" href="#Encoding-of-boundaries">Encoding of boundaries</a><a id="Encoding-of-boundaries-1"></a><a class="docs-heading-anchor-permalink" href="#Encoding-of-boundaries" title="Permalink"></a></h4><h5 id="HOHQMesh-boundary-information"><a class="docs-heading-anchor" href="#HOHQMesh-boundary-information">HOHQMesh boundary information</a><a id="HOHQMesh-boundary-information-1"></a><a class="docs-heading-anchor-permalink" href="#HOHQMesh-boundary-information" title="Permalink"></a></h5><p>If present, any additional information in the mesh file that was created by <code>HOHQMesh</code> is prefaced with <code>**</code> to make it an Abaqus comment. This ensures that the read in of the file by a standard Abaqus file parser, as done in the <code>read_inp_p4est</code> function, is done correctly.</p><p>The high-order, curved boundary information and labels of the physical boundary created by <code>HOHQMesh</code> is found below the comment line</p><pre><code class="nohighlight hljs">** ***** HOHQMesh boundary information ***** **</code></pre><p>Next comes the <em>polynomial degree</em> that the mesh will use to represent any curved sides</p><pre><code class="nohighlight hljs">** mesh polynomial degree = 8</code></pre><p>The mesh file then, again, provides the element connectivity as well as information for curved surfaces either interior to the domain or along the physical boundaries. A set of check digits are included directly below the four corner indexes to indicate whether the local surface index (<code>-y</code>, <code>+x</code>, <code>+y</code>, or <code>-x</code>) within the element is straight sided, <code>0</code>, or is curved, <code>1</code>. If the local surface is straight sided no additional information is necessary during the mesh file read in. But for any curved surfaces the mesh file provides <code>(x,y,z)</code> coordinate values in order to construct an interpolant of this surface with the mesh polynomial order at the Chebyshev-Gauss-Lobatto nodes. This list of <code>(x,y,z)</code> data will be given in the direction of the local coordinate system. Given below is the element curvature information for the example mesh:</p><pre><code class="nohighlight hljs">**  5 1 4 3
+**  0 0 1 1
+**   1.000000000000000   1.000000000000000   0.0
+**   1.024948365654583   0.934461926834452   0.0
+**   1.116583018200151   0.777350964621867   0.0
+**   1.295753434047077   0.606254343587194   0.0
+**   1.537500000000000   0.462500000000000   0.0
+**   1.768263070247418   0.329729152118310   0.0
+**   1.920916981799849   0.185149035378133   0.0
+**   1.986035130050921   0.054554577460044   0.0
+**   2.000000000000000                 0.0   0.0
+**                 0.0                 0.0   0.0
+**   0.035513826946206   0.105291711848750   0.0
+**   0.148591270347399   0.317731556850611   0.0
+**   0.340010713990041   0.452219430075470   0.0
+**   0.575000000000000   0.462500000000000   0.0
+**   0.788022294598950   0.483764065630034   0.0
+**   0.926408729652601   0.644768443149389   0.0
+**   0.986453164464803   0.883724792445746   0.0
+**   1.000000000000000   1.000000000000000   0.0
+**  4 2 6 3
+**  0 0 0 1
+**   2.000000000000000                 0.0   0.0
+**   1.986035130050921   0.054554577460044   0.0
+**   1.920916981799849   0.185149035378133   0.0
+**   1.768263070247418   0.329729152118310   0.0
+**   1.537500000000000   0.462500000000000   0.0
+**   1.295753434047077   0.606254343587194   0.0
+**   1.116583018200151   0.777350964621867   0.0
+**   1.024948365654583   0.934461926834452   0.0
+**   1.000000000000000   1.000000000000000   0.0
+**  7 2 4 1
+**  0 0 0 0</code></pre><p>The last piece of information provided by <code>HOHQMesh</code> are labels for the different surfaces of an element. These labels are useful to set boundary conditions along physical surfaces. The labels can be short descriptive words up to 32 characters in length. The label <code>---</code> indicates an internal surface where no boundary condition is required.</p><p>It is important to note that these labels are given in the following order according to the local surface index <code>-x</code> <code>+x</code> <code>-y</code> <code>+y</code> as required by the <a href="https://github.com/cburstedde/p4est"><code>p4est</code></a> library.</p><pre><code class="nohighlight hljs">**  Bezier --- Slant ---
+**  --- Right --- Top
+**  Bottom --- Right ---</code></pre><p>For completeness, we provide the entire Abaqus mesh file for the example mesh in the figure above:</p><pre><code class="nohighlight hljs">*Heading
+ File created by HOHQMesh
+*NODE
+1, 1.0, -1.0, 0.0
+2, 3.0,  0.0, 0.0
+3, 1.0,  1.0, 0.0
+4, 2.0,  0.0, 0.0
+5, 0.0,  0.0, 0.0
+6, 3.0,  1.0, 0.0
+7, 3.0, -1.0, 0.0
+*ELEMENT, type=CPS4, ELSET=Surface1
+1, 5, 1, 4, 3
+2, 4, 2, 6, 3
+3, 7, 2, 4, 1
+** ***** HOHQMesh boundary information ***** **
+** mesh polynomial degree = 8
+**  5 1 4 3
+**  0 0 1 1
+**   1.000000000000000   1.000000000000000   0.0
+**   1.024948365654583   0.934461926834452   0.0
+**   1.116583018200151   0.777350964621867   0.0
+**   1.295753434047077   0.606254343587194   0.0
+**   1.537500000000000   0.462500000000000   0.0
+**   1.768263070247418   0.329729152118310   0.0
+**   1.920916981799849   0.185149035378133   0.0
+**   1.986035130050921   0.054554577460044   0.0
+**   2.000000000000000                 0.0   0.0
+**                 0.0                 0.0   0.0
+**   0.035513826946206   0.105291711848750   0.0
+**   0.148591270347399   0.317731556850611   0.0
+**   0.340010713990041   0.452219430075470   0.0
+**   0.575000000000000   0.462500000000000   0.0
+**   0.788022294598950   0.483764065630034   0.0
+**   0.926408729652601   0.644768443149389   0.0
+**   0.986453164464803   0.883724792445746   0.0
+**   1.000000000000000   1.000000000000000   0.0
+**  4 2 6 3
+**  0 0 0 1
+**   2.000000000000000                 0.0   0.0
+**   1.986035130050921   0.054554577460044   0.0
+**   1.920916981799849   0.185149035378133   0.0
+**   1.768263070247418   0.329729152118310   0.0
+**   1.537500000000000   0.462500000000000   0.0
+**   1.295753434047077   0.606254343587194   0.0
+**   1.116583018200151   0.777350964621867   0.0
+**   1.024948365654583   0.934461926834452   0.0
+**   1.000000000000000   1.000000000000000   0.0
+**  7 2 4 1
+**  0 0 0 0
+**  Bezier --- Slant ---
+**  --- Right --- Top
+**  Bottom --- Right ---</code></pre><h5 id="Standard-Abaqus-format-boundary-information"><a class="docs-heading-anchor" href="#Standard-Abaqus-format-boundary-information">Standard Abaqus format boundary information</a><a id="Standard-Abaqus-format-boundary-information-1"></a><a class="docs-heading-anchor-permalink" href="#Standard-Abaqus-format-boundary-information" title="Permalink"></a></h5><p>As an alternative to an Abaqus mesh generated by <code>HOHQMesh</code>, <code>.inp</code> files with boundary information encoded as nodesets <code>*NSET,NSET=</code> can be used to construct a <code>p4est</code> mesh. This is especially useful for usage of existing meshes (consisting of bilinear elements) which could stem from the popular <a href="https://gmsh.info/"><code>gmsh</code></a> meshing software.</p><p>In addition to the list of <a href="#corner-node-list">nodes</a> and <a href="#element-list">elements</a> given above, there are nodesets of the form </p><pre><code class="nohighlight hljs">*NSET,NSET=PhysicalLine1
+1, 4, 52, 53, 54, 55, 56, 57, 58, </code></pre><p>present which are used to associate the edges defined through their corner nodes with a label. In this case it is called <code>PhysicalLine1</code>. By looping over every element and its associated edges, consisting of two nodes, we query the read in <code>NSET</code>s if the current node pair is present.</p><p>To prevent that every nodeset following <code>*NSET,NSET=</code> is treated as a boundary, the user must supply a <code>boundary_symbols</code> keyword to the <a href="../../reference-trixi/#Trixi.P4estMesh"><code>P4estMesh</code></a> constructor:</p><pre><code class="language-julia hljs">boundary_symbols = [:PhysicalLine1]
+
+mesh = P4estMesh{2}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)</code></pre><p>By doing so, only nodesets with a label present in <code>boundary_symbols</code> are treated as physical boundaries. Other nodesets that could be used for diagnostics are not treated as external boundaries. Note that there is a leading colon <code>:</code> compared to the label in the <code>.inp</code> mesh file. This is required to turn the label into a <a href="https://docs.julialang.org/en/v1/manual/metaprogramming/#Symbols"><code>Symbol</code></a>. <strong>Important</strong>: In Julia, a symbol <em>cannot</em> contain a hyphen/dash <code>-</code>, i.e., <code>:BC-1</code> is <em>not</em> a valid symbol. Keep this in mind when importing boundaries, you might have to convert hyphens/dashes <code>-</code> to underscores <code>_</code> in the <code>.inp</code> mesh file, i.e., <code>BC_1</code> instead of <code>BC-1</code>.</p><p>A 2D example for this mesh, which is read-in for an unstructured mesh file created with <code>gmsh</code>, is presented in  <code>examples/p4est_2d_dgsem/elixir_euler_NACA6412airfoil_mach2.jl</code>.</p><h3 id="Mesh-in-three-spatial-dimensions"><a class="docs-heading-anchor" href="#Mesh-in-three-spatial-dimensions">Mesh in three spatial dimensions</a><a id="Mesh-in-three-spatial-dimensions-1"></a><a class="docs-heading-anchor-permalink" href="#Mesh-in-three-spatial-dimensions" title="Permalink"></a></h3><h4 id="HOHQMesh-Extended-Abaqus-format"><a class="docs-heading-anchor" href="#HOHQMesh-Extended-Abaqus-format"><code>HOHQMesh</code>-Extended Abaqus format</a><a id="HOHQMesh-Extended-Abaqus-format-1"></a><a class="docs-heading-anchor-permalink" href="#HOHQMesh-Extended-Abaqus-format" title="Permalink"></a></h4><p>The 3D Abaqus file format with high-order boundary information from <code>HOHQMesh</code> is very similar to the 2D version discussed above. There are only three changes:</p><ol><li>The element connectivity would be given in terms of the eight corners that define a hexahedron. The corners are numbered as shown in the figure below. The header of the element list changes to be<pre><code class="nohighlight hljs">*ELEMENT, type=C3D8, ELSET=Volume1</code></pre>where <code>C3D8</code> corresponds to a Abaqus hexahedral element.</li><li>There are six check digits included directly below the eight corner indexes to indicate whether the local face within the element is straight sided, <code>0</code>, or is curved, <code>1</code>. For curved faces <code>(x,y,z)</code> coordinate values are available in order to construct an face interpolant with the mesh polynomial order at the Chebyshev-Gauss-Lobatto nodes.</li><li>The boundary labels are given in the following order according to the local surface index <code>-x</code> <code>+x</code> <code>-y</code> <code>+y</code> <code>-z</code> <code>+z</code> as required by the <a href="https://github.com/cburstedde/p4est"><code>p4est</code></a> library.</li></ol><p>For completeness, we also give a short description and derivation of the three-dimensional transfinite mapping formulas used to compute the physical coordinates <span>$\mathbf{x}=(x,y,z)$</span> of a (possibly curved) hexahedral element give the reference coordinates <span>$\boldsymbol{\xi} = (\xi, \eta, \zeta)$</span> which lie in <span>$[-1,1]^3$</span>. That is, we will create an expression <span>$\mathbf{x}= \mathbf{X}(\boldsymbol{\xi})$</span>.</p><p>Below we provide a sketch of a single hexahedral element with curved faces. This is done to introduce the numbering conventions for corners, edges, and faces of the element.</p><p><img src="https://user-images.githubusercontent.com/25242486/139839161-8c5f5979-2724-4cfb-9eac-6af58105ef12.png" alt="abaqus-3dmesh-docs"/></p><p>When the hexahedron is a straight sided (linear) element we compute the transfinite mapping directly from the element corner points according to</p><p class="math-container">\[\begin{aligned}
+\mathbf{X}_{linear}(\boldsymbol{\xi}) &amp;=  \frac{1}{8}[\quad\, \mathbf{x}_1(1-\xi)(1-\eta)(1-\zeta)
+                                                         + \mathbf{x}_2(1+\xi)(1-\eta)(1-\zeta)\\[-0.15cm]
+                                    &amp; \qquad\;             + \mathbf{x}_3(1+\xi)(1+\eta)(1-\zeta)
+                                                         + \mathbf{x}_4(1-\xi)(1+\eta)(1-\zeta) \\
+                                    &amp; \qquad\;             + \mathbf{x}_5(1-\xi)(1-\eta)(1+\zeta)
+                                                         + \mathbf{x}_6(1+\xi)(1-\eta)(1+\zeta) \\
+                                    &amp; \qquad\;             + \mathbf{x}_7(1+\xi)(1+\eta)(1+\zeta)
+                                                         + \mathbf{x}_8(1-\xi)(1+\eta)(1+\zeta)\quad].
+\end{aligned}\]</p><p>Next, we create a transfinite mapping function, <span>$\mathbf{X}(\boldsymbol{\xi})$</span>, for a hexahedron that has one or more curved faces. For this we assume that have a set of six interpolating polynomials <span>$\{\Gamma_i\}_{i=1}^6$</span> that approximate the faces. The interpolating polynomial for any curved faces is provided by the information in a <code>HOHQMesh</code> Abaqus mesh file or is constructed on the fly via a bi-linear interpolation routine for any linear faces. Explicitly, these six face interpolation polynomials depend on the computational coordinates <span>$\boldsymbol{\xi}$</span> as follows</p><p class="math-container">\[  \begin{aligned}
+    \Gamma_1(\xi, \zeta), \quad &amp;&amp; \quad \Gamma_3(\xi, \eta), \quad &amp;&amp; \quad \Gamma_4(\eta, \zeta),\\[0.1cm]
+    \Gamma_2(\xi, \zeta), \quad &amp;&amp; \quad \Gamma_5(\xi, \eta), \quad &amp;&amp; \quad \Gamma_6(\eta, \zeta).
+  \end{aligned}\]</p><p>To determine the form of the mapping we first create linear interpolations between two opposing faces, e.g., <span>$\Gamma_3$</span> and <span>$\Gamma_5$</span> and sum them together to have</p><p class="math-container">\[\begin{aligned}
+  \boldsymbol\Sigma(\boldsymbol{\xi}) &amp;= \frac{1}{2}[\quad\,(1-\xi)\Gamma_6(\eta,\zeta) + (1+\xi)\Gamma_4(\eta,\zeta) \\[-0.15cm]
+  &amp;\qquad\;+ (1-\eta)\Gamma_1(\xi,\zeta) + (1+\eta)\Gamma_2(\xi,\zeta) \\%[-0.15cm]
+                                  &amp;\qquad\; +(1-\zeta)\Gamma_3(\xi,\eta) + (1+\zeta)\Gamma_5(\xi,\eta)\quad].
+\end{aligned}\]</p><p>Unfortunately, the linear interpolations <span>$\boldsymbol\Sigma(\boldsymbol{\xi})$</span> no longer match at the faces, e.g., evaluating at <span>$\eta = -1$</span> we have</p><p class="math-container">\[\boldsymbol\Sigma(\xi,-1,\zeta) = \Gamma_1(\xi,\zeta) + \frac{1}{2}[\;(1-\xi)\Gamma_6(-1,\zeta) + (1+\xi)\Gamma_4(-1,\zeta)
+                                 +(1-\zeta)\Gamma_3(\xi,-1) + (1+\zeta)\Gamma_5(\xi,-1)\;],\]</p><p>which is the desired face <span>$\Gamma_1(\xi,\zeta)$</span> plus four edge error terms. Analogous edge error terms occur at the other faces evaluating <span>$\boldsymbol\Sigma(\boldsymbol{\xi})$</span> at <span>$\eta=1$</span>, <span>$\xi=\pm 1$</span>, and <span>$\zeta=\pm 1$</span>. In order to match the faces, we subtract a linear interpolant in the <span>$\xi$</span>, <span>$\eta$</span>, and <span>$\zeta$</span> directions of the edge error terms, e.g., the terms in braces in the above equation. So, continuing the example above, the correction term to be subtracted for face <span>$\Gamma_1$</span> to match would be</p><p class="math-container">\[\left(\frac{1-\eta}{2}\right) \bigg[ \frac{1}{2} [ \; (1-\xi)\Gamma_6(-1,\zeta) + (1+\xi)\Gamma_4(-1,\zeta)+(1-\zeta)\Gamma_3(\xi,-1)
+ + (1+\zeta)\Gamma_5(\xi,-1)\;] \bigg].\]</p><p>For clarity, and to allow an easier comparison to the implementation, we introduce auxiliary notation for the 12 edge values present in the complete correction term. That is, for given values of <span>$\xi$</span>, <span>$\eta$</span>, and <span>$\zeta$</span> we have</p><p class="math-container">\[  \begin{aligned}
+    \texttt{edge}_{1} &amp;= \Gamma_1(\xi, -1), \quad &amp;&amp; \quad \texttt{edge}_{5} = \Gamma_2(\xi, -1), \quad &amp; \quad  \texttt{edge}_{9} &amp;= \Gamma_6(\eta, -1),\\[0.1cm]
+    \texttt{edge}_{2} &amp;= \Gamma_1(1, \zeta), \quad &amp;&amp; \quad\texttt{edge}_{6} = \Gamma_2(1, \zeta), \quad &amp; \quad  \texttt{edge}_{10} &amp;= \Gamma_4(\eta, -1),\\[0.1cm]
+    \texttt{edge}_{3} &amp;= \Gamma_1(\xi, 1), \quad &amp;&amp; \quad \texttt{edge}_{7} = \Gamma_2(\xi,  1), \quad &amp; \quad  \texttt{edge}_{11} &amp;= \Gamma_4(\eta, 1),\\[0.1cm]
+    \texttt{edge}_{4} &amp;= \Gamma_1(-1, \zeta), \quad &amp;&amp; \quad \texttt{edge}_{8} = \Gamma_2(-1, \zeta), \quad &amp; \quad  \texttt{edge}_{12} &amp;= \Gamma_6(\eta, 1).
+  \end{aligned}\]</p><p>With this notation for the edge terms (and after some algebraic manipulation) we write the complete edge correction term, <span>$\mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi})$</span>, as</p><p class="math-container">\[\begin{aligned}
+\mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi}) &amp;=  \frac{1}{4}[\quad\, (1-\eta)(1-\zeta)\texttt{edge}_{1}\\[-0.15cm]
+                                    &amp; \qquad\;              + (1+\xi)(1-\eta)\texttt{edge}_{2} \\
+                                    &amp; \qquad\;              + (1-\eta)(1+\zeta)\texttt{edge}_{3} \\
+                                    &amp; \qquad\;              + (1-\xi)(1-\eta)\texttt{edge}_{4} \\
+                                    &amp; \qquad\;              + (1+\eta)(1-\zeta)\texttt{edge}_{5} \\
+                                    &amp; \qquad\;              + (1+\xi)(1+\eta)\texttt{edge}_{6} \\
+                                    &amp; \qquad\;              + (1+\eta)(1+\zeta)\texttt{edge}_{7} \\
+                                    &amp; \qquad\;              + (1-\xi)(1+\eta)\texttt{edge}_{8} \\
+                                    &amp; \qquad\;              + (1-\xi)(1-\zeta)\texttt{edge}_{9} \\
+                                    &amp; \qquad\;              + (1+\xi)(1-\zeta)\texttt{edge}_{10} \\
+                                    &amp; \qquad\;              + (1+\xi)(1+\zeta)\texttt{edge}_{11} \\
+                                    &amp; \qquad\;              + (1-\xi)(1+\zeta)\texttt{edge}_{12}\quad].
+\end{aligned}\]</p><p>However, subtracting the edge correction terms <span>$\mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi})$</span> from <span>$\boldsymbol\Sigma(\boldsymbol{\xi})$</span> removes the interior element contributions twice. Thus, to complete the construction of the transfinite mapping <span>$\mathbf{X}(\boldsymbol{\xi})$</span> we add the transfinite map of the straight sided hexahedral element to find</p><p class="math-container">\[\mathbf{X}(\boldsymbol{\xi}) = \boldsymbol\Sigma(\boldsymbol{\xi})
+                             - \mathcal{C}_{\texttt{edge}}(\boldsymbol{\xi})
+                             + \mathbf{X}_{linear}(\boldsymbol{\xi}).\]</p><h4 id="Construction-from-standard-Abaqus"><a class="docs-heading-anchor" href="#Construction-from-standard-Abaqus">Construction from standard Abaqus</a><a id="Construction-from-standard-Abaqus-1"></a><a class="docs-heading-anchor-permalink" href="#Construction-from-standard-Abaqus" title="Permalink"></a></h4><p>Also for a mesh in standard Abaqus format there are no qualitative changes when going from 2D to 3D. The most notable difference is that boundaries are formed in 3D by faces defined by four nodes while in 2D boundaries are edges consisting of two elements. A simple mesh file, which is used also in <code>examples/p4est_3d_dgsem/elixir_euler_free_stream_boundaries.jl</code>, is given below:</p><pre><code class="nohighlight hljs">*Heading
+&lt;SOMETHING DIFFERENT FROM &quot;File created by HOHQMesh&quot;&gt;
+*NODE
+1, -2, 0, 0
+2, -1, 0, 0
+3, -1, 1, 0
+4, -2, 1, 0
+5, -2, 0, 1
+6, -1, 0, 1
+7, -1, 1, 1
+8, -2, 1, 1
+9, -1.75, 1, 0
+10, -1.5, 1, 0
+11, -1.25, 1, 0
+12, -1, 0.75000000000035, 0
+13, -1, 0.50000000000206, 0
+14, -1, 0.25000000000104, 0
+15, -1.25, 0, 0
+16, -1.5, 0, 0
+17, -1.75, 0, 0
+18, -2, 0.24999999999941, 0
+19, -2, 0.49999999999869, 0
+20, -2, 0.74999999999934, 0
+21, -1.75, 0, 1
+22, -1.5, 0, 1
+23, -1.25, 0, 1
+24, -1, 0.24999999999941, 1
+25, -1, 0.49999999999869, 1
+26, -1, 0.74999999999934, 1
+27, -1.25, 1, 1
+28, -1.5, 1, 1
+29, -1.75, 1, 1
+30, -2, 0.75000000000035, 1
+31, -2, 0.50000000000206, 1
+32, -2, 0.25000000000104, 1
+33, -2, 0, 0.24999999999941
+34, -2, 0, 0.49999999999869
+35, -2, 0, 0.74999999999934
+36, -2, 1, 0.24999999999941
+37, -2, 1, 0.49999999999869
+38, -2, 1, 0.74999999999934
+39, -1, 0, 0.24999999999941
+40, -1, 0, 0.49999999999869
+41, -1, 0, 0.74999999999934
+42, -1, 1, 0.24999999999941
+43, -1, 1, 0.49999999999869
+44, -1, 1, 0.74999999999934
+45, -1.25, 0.25000000000063, 0
+46, -1.25, 0.50000000000122, 0
+47, -1.25, 0.7500000000001, 0
+48, -1.5, 0.25000000000023, 0
+49, -1.5, 0.50000000000038, 0
+50, -1.5, 0.74999999999984, 0
+51, -1.75, 0.24999999999982, 0
+52, -1.75, 0.49999999999953, 0
+53, -1.75, 0.74999999999959, 0
+54, -1.75, 0.25000000000063, 1
+55, -1.75, 0.50000000000122, 1
+56, -1.75, 0.7500000000001, 1
+57, -1.5, 0.25000000000023, 1
+58, -1.5, 0.50000000000038, 1
+59, -1.5, 0.74999999999984, 1
+60, -1.25, 0.24999999999982, 1
+61, -1.25, 0.49999999999953, 1
+62, -1.25, 0.74999999999959, 1
+63, -2, 0.24999999999982, 0.24999999999941
+64, -2, 0.49999999999953, 0.24999999999941
+65, -2, 0.74999999999959, 0.24999999999941
+66, -2, 0.25000000000023, 0.49999999999869
+67, -2, 0.50000000000038, 0.49999999999869
+68, -2, 0.74999999999984, 0.49999999999869
+69, -2, 0.25000000000063, 0.74999999999934
+70, -2, 0.50000000000122, 0.74999999999934
+71, -2, 0.7500000000001, 0.74999999999934
+72, -1.25, 1, 0.74999999999934
+73, -1.25, 1, 0.49999999999869
+74, -1.25, 1, 0.24999999999941
+75, -1.5, 1, 0.74999999999934
+76, -1.5, 1, 0.49999999999869
+77, -1.5, 1, 0.24999999999941
+78, -1.75, 1, 0.74999999999934
+79, -1.75, 1, 0.49999999999869
+80, -1.75, 1, 0.24999999999941
+81, -1, 0.25000000000063, 0.24999999999941
+82, -1, 0.50000000000122, 0.24999999999941
+83, -1, 0.7500000000001, 0.24999999999941
+84, -1, 0.25000000000023, 0.49999999999869
+85, -1, 0.50000000000038, 0.49999999999869
+86, -1, 0.74999999999984, 0.49999999999869
+87, -1, 0.24999999999982, 0.74999999999934
+88, -1, 0.49999999999953, 0.74999999999934
+89, -1, 0.74999999999959, 0.74999999999934
+90, -1.75, 0, 0.74999999999934
+91, -1.75, 0, 0.49999999999869
+92, -1.75, 0, 0.24999999999941
+93, -1.5, 0, 0.74999999999934
+94, -1.5, 0, 0.49999999999869
+95, -1.5, 0, 0.24999999999941
+96, -1.25, 0, 0.74999999999934
+97, -1.25, 0, 0.49999999999869
+98, -1.25, 0, 0.24999999999941
+99, -1.75, 0.25000000000043, 0.74999999999934
+100, -1.75, 0.25000000000023, 0.49999999999869
+101, -1.75, 0.25000000000002, 0.24999999999941
+102, -1.75, 0.5000000000008, 0.74999999999934
+103, -1.75, 0.50000000000038, 0.49999999999869
+104, -1.75, 0.49999999999995, 0.24999999999941
+105, -1.75, 0.74999999999997, 0.74999999999934
+106, -1.75, 0.74999999999984, 0.49999999999869
+107, -1.75, 0.74999999999972, 0.24999999999941
+108, -1.5, 0.25000000000023, 0.74999999999934
+109, -1.5, 0.25000000000023, 0.49999999999869
+110, -1.5, 0.25000000000023, 0.24999999999941
+111, -1.5, 0.50000000000038, 0.74999999999934
+112, -1.5, 0.50000000000038, 0.49999999999869
+113, -1.5, 0.50000000000038, 0.24999999999941
+114, -1.5, 0.74999999999984, 0.74999999999934
+115, -1.5, 0.74999999999984, 0.49999999999869
+116, -1.5, 0.74999999999984, 0.24999999999941
+117, -1.25, 0.25000000000002, 0.74999999999934
+118, -1.25, 0.25000000000023, 0.49999999999869
+119, -1.25, 0.25000000000043, 0.24999999999941
+120, -1.25, 0.49999999999995, 0.74999999999934
+121, -1.25, 0.50000000000038, 0.49999999999869
+122, -1.25, 0.5000000000008, 0.24999999999941
+123, -1.25, 0.74999999999972, 0.74999999999934
+124, -1.25, 0.74999999999984, 0.49999999999869
+125, -1.25, 0.74999999999997, 0.24999999999941
+******* E L E M E N T S *************
+*ELEMENT, type=C3D8, ELSET=Volume1
+153, 54, 21, 5, 32, 99, 90, 35, 69
+154, 99, 90, 35, 69, 100, 91, 34, 66
+155, 100, 91, 34, 66, 101, 92, 33, 63
+156, 101, 92, 33, 63, 51, 17, 1, 18
+157, 55, 54, 32, 31, 102, 99, 69, 70
+158, 102, 99, 69, 70, 103, 100, 66, 67
+159, 103, 100, 66, 67, 104, 101, 63, 64
+160, 104, 101, 63, 64, 52, 51, 18, 19
+161, 56, 55, 31, 30, 105, 102, 70, 71
+162, 105, 102, 70, 71, 106, 103, 67, 68
+163, 106, 103, 67, 68, 107, 104, 64, 65
+164, 107, 104, 64, 65, 53, 52, 19, 20
+165, 29, 56, 30, 8, 78, 105, 71, 38
+166, 78, 105, 71, 38, 79, 106, 68, 37
+167, 79, 106, 68, 37, 80, 107, 65, 36
+168, 80, 107, 65, 36, 9, 53, 20, 4
+169, 57, 22, 21, 54, 108, 93, 90, 99
+170, 108, 93, 90, 99, 109, 94, 91, 100
+171, 109, 94, 91, 100, 110, 95, 92, 101
+172, 110, 95, 92, 101, 48, 16, 17, 51
+173, 58, 57, 54, 55, 111, 108, 99, 102
+174, 111, 108, 99, 102, 112, 109, 100, 103
+175, 112, 109, 100, 103, 113, 110, 101, 104
+176, 113, 110, 101, 104, 49, 48, 51, 52
+177, 59, 58, 55, 56, 114, 111, 102, 105
+178, 114, 111, 102, 105, 115, 112, 103, 106
+179, 115, 112, 103, 106, 116, 113, 104, 107
+180, 116, 113, 104, 107, 50, 49, 52, 53
+181, 28, 59, 56, 29, 75, 114, 105, 78
+182, 75, 114, 105, 78, 76, 115, 106, 79
+183, 76, 115, 106, 79, 77, 116, 107, 80
+184, 77, 116, 107, 80, 10, 50, 53, 9
+185, 60, 23, 22, 57, 117, 96, 93, 108
+186, 117, 96, 93, 108, 118, 97, 94, 109
+187, 118, 97, 94, 109, 119, 98, 95, 110
+188, 119, 98, 95, 110, 45, 15, 16, 48
+189, 61, 60, 57, 58, 120, 117, 108, 111
+190, 120, 117, 108, 111, 121, 118, 109, 112
+191, 121, 118, 109, 112, 122, 119, 110, 113
+192, 122, 119, 110, 113, 46, 45, 48, 49
+193, 62, 61, 58, 59, 123, 120, 111, 114
+194, 123, 120, 111, 114, 124, 121, 112, 115
+195, 124, 121, 112, 115, 125, 122, 113, 116
+196, 125, 122, 113, 116, 47, 46, 49, 50
+197, 27, 62, 59, 28, 72, 123, 114, 75
+198, 72, 123, 114, 75, 73, 124, 115, 76
+199, 73, 124, 115, 76, 74, 125, 116, 77
+200, 74, 125, 116, 77, 11, 47, 50, 10
+201, 24, 6, 23, 60, 87, 41, 96, 117
+202, 87, 41, 96, 117, 84, 40, 97, 118
+203, 84, 40, 97, 118, 81, 39, 98, 119
+204, 81, 39, 98, 119, 14, 2, 15, 45
+205, 25, 24, 60, 61, 88, 87, 117, 120
+206, 88, 87, 117, 120, 85, 84, 118, 121
+207, 85, 84, 118, 121, 82, 81, 119, 122
+208, 82, 81, 119, 122, 13, 14, 45, 46
+209, 26, 25, 61, 62, 89, 88, 120, 123
+210, 89, 88, 120, 123, 86, 85, 121, 124
+211, 86, 85, 121, 124, 83, 82, 122, 125
+212, 83, 82, 122, 125, 12, 13, 46, 47
+213, 7, 26, 62, 27, 44, 89, 123, 72
+214, 44, 89, 123, 72, 43, 86, 124, 73
+215, 43, 86, 124, 73, 42, 83, 125, 74
+216, 42, 83, 125, 74, 3, 12, 47, 11
+*NSET,NSET=PhysicalSurface1
+1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
+11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 
+21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 
+31, 32, 33, 34, 35, 36, 37, 38, 45, 46, 
+47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 
+57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 
+67, 68, 69, 70, 71, 
+*NSET,NSET=PhysicalSurface2
+1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
+11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 
+24, 25, 26, 27, 28, 29, 33, 34, 35, 36, 
+37, 38, 39, 40, 41, 42, 43, 44, 72, 73, 
+74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 
+84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 
+94, 95, 96, 97, 98, </code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../unstructured_quad_mesh/">« Unstructured mesh</a><a class="docs-footer-nextpage" href="../dgmulti_mesh/">DGMulti mesh »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Wednesday 11 December 2024 11:16">Wednesday 11 December 2024</span>. Using Julia version 1.10.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
