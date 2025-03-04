@@ -92,7 +92,8 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
         Polyester.reset_threads!()
     end
 
-    u0_ode = compute_coefficients(first(tspan), semi)
+    u0_ode_ = compute_coefficients(first(tspan), semi)
+    u0_ode = ThreadedBroadcastArray(u0_ode_)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
@@ -101,8 +102,78 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
     return ODEProblem{iip, specialize}(rhs!, u0_ode, tspan, semi)
 end
 
+struct ThreadedBroadcastArray{T, N, A} <: AbstractArray{T, N}
+    array::A
+
+    function ThreadedBroadcastArray(array::AbstractArray{T, N}) where {T, N}
+        new{T, N, typeof(array)}(array)
+    end
+end
+
+function Base.similar(m::ThreadedBroadcastArray, ::Type{T}) where {T}
+    return ThreadedBroadcastArray(similar(m.array, T))
+end
+
+Base.parent(m::ThreadedBroadcastArray) = m.array
+Base.size(m::ThreadedBroadcastArray) = size(m.array)
+
+Base.@propagate_inbounds function Base.getindex(m::ThreadedBroadcastArray, i...)
+    return getindex(m.array, i...)
+end
+
+Base.@propagate_inbounds function Base.setindex!(m::ThreadedBroadcastArray, x...)
+    setindex!(m.array, x...)
+    return m
+end
+
+function Base.fill!(m::ThreadedBroadcastArray{T}, x) where {T}
+    xT = x isa T ? x : convert(T, x)::T
+    @threaded for i in eachindex(m.array)
+        @inbounds m.array[i] = xT
+    end
+
+    return m
+end
+
+function Base.copyto!(dest::ThreadedBroadcastArray, src::AbstractArray)
+    if eachindex(dest) == eachindex(src)
+        # Shared-iterator implementation
+        @threaded for I in eachindex(dest)
+            @inbounds dest.array[I] = src[I]
+        end
+    else
+        # Dual-iterator implementation
+        @threaded for (Idest, Isrc) in zip(eachindex(dest), eachindex(src))
+            @inbounds dest.array[Idest] = src[Isrc]
+        end
+    end
+
+    return dest
+end
+
+function Broadcast.BroadcastStyle(::Type{ThreadedBroadcastArray{T, N, A}}) where {T, N,
+                                                                                  A}
+    return Broadcast.ArrayStyle{ThreadedBroadcastArray}()
+end
+
+function Broadcast.copyto!(dest::ThreadedBroadcastArray,
+                           bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{ThreadedBroadcastArray}})
+    # Check bounds
+    axes(dest.array) == axes(bc) || Broadcast.throwdm(axes(dest.array), axes(bc))
+
+    @threaded for i in eachindex(dest.array)
+        @inbounds dest.array[i] = bc[i]
+    end
+    return dest
+end
+
+@inline function wrap_array(u_ode::ThreadedBroadcastArray, mesh::AbstractMesh, equations,
+                            dg::DGSEM, cache)
+    return ThreadedBroadcastArray(wrap_array(u_ode.array, mesh, equations, dg, cache))
+end
+
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan, 
+    semidiscretize(semi::AbstractSemidiscretization, tspan,
                    restart_file::AbstractString)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
@@ -268,7 +339,7 @@ end
 function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
-    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
         Trixi.rhs!(du_ode, u_ode, new_semi, t0)
@@ -302,7 +373,7 @@ end
 function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
     new_semi = remake(semi, uEltype = eltype(config))
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
-    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain,
                              config) do du_ode_plain, u_ode_plain
