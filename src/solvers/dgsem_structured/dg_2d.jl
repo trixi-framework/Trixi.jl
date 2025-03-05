@@ -60,7 +60,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    element,
                                    mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                                UnstructuredMesh2D, P4estMesh{2},
-                                               T8codeMesh{2}},
+                                               P4estMeshView{2}, T8codeMesh{2}},
                                    nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
@@ -619,7 +619,8 @@ end
 
 function apply_jacobian!(du,
                          mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
-                                     UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
+                                     UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
+                                     T8codeMesh{2}},
                          equations, dg::DG, cache)
     @unpack inverse_jacobian = cache.elements
 
