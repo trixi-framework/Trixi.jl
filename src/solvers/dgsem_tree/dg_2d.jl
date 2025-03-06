@@ -1221,7 +1221,6 @@ function calc_mortar_flux!(surface_flux_values,
                                    fstar_secondary_upper, fstar_secondary_lower)
 
         ### Entropy correction procedure ###
-        #=
         # Choose thread-specific pre-allocated container
         fstar_upper_correction = fstar_upper_correction_threaded[Threads.threadid()]
         fstar_lower_correction = fstar_lower_correction_threaded[Threads.threadid()]
@@ -1258,7 +1257,6 @@ function calc_mortar_flux!(surface_flux_values,
                               direction, large_element_id, mortar,
                               fstar_upper_correction, fstar_lower_correction,
                               surface_flux)
-        =#
     end
 
     return nothing
