@@ -114,8 +114,10 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_ec)}, uEltype, 2,
                   nvariables(equations) * nnodes(mortar_ec)}
-    fstar_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
-    fstar_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
     MA3d = MArray{Tuple{nvariables(equations), nnodes(mortar_ec), nnodes(mortar_ec)},
                   uEltype, 3,
@@ -127,7 +129,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
     # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_ec)) for _ in 1:Threads.nthreads()]
     # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_ec)) for _ in 1:Threads.nthreads()]
 
-    (; fstar_upper_threaded, fstar_lower_threaded,
+    (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded,
      fstar_upper_correction_threaded, fstar_lower_correction_threaded)
 end
 
@@ -819,7 +822,7 @@ end
 function prolong2mortars!(cache, u,
                           mesh::TreeMesh{2}, equations,
                           mortar_type::Union{LobattoLegendreMortarL2,
-                                             LobattoLegendreMortarEC}, surface_integral,
+                                             LobattoLegendreMortarEC},
                           dg::DGSEM)
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -1190,27 +1193,35 @@ function calc_mortar_flux!(surface_flux_values,
                            surface_integral, dg::DG, cache, u)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     @unpack fstar_upper_correction_threaded, fstar_lower_correction_threaded = cache
 
     @threaded for mortar in eachmortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar_upper = fstar_upper_threaded[Threads.threadid()]
-        fstar_lower = fstar_lower_threaded[Threads.threadid()]
+        fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+        fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
+        fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_upper, equations, surface_flux, dg, u_upper, mortar,
+        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
                     orientation)
-        calc_fstar!(fstar_lower, equations, surface_flux, dg, u_lower, mortar,
+        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
+                    orientation)
+        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
+                    orientation)
+        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
                     orientation)
 
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_ec, dg, cache,
-                                   mortar, fstar_upper, fstar_lower)
+                                   mortar, fstar_primary_upper, fstar_primary_lower,
+                                   fstar_secondary_upper, fstar_secondary_lower)
 
         ### Entropy correction procedure ###
-
+        #=
         # Choose thread-specific pre-allocated container
         fstar_upper_correction = fstar_upper_correction_threaded[Threads.threadid()]
         fstar_lower_correction = fstar_lower_correction_threaded[Threads.threadid()]
@@ -1247,6 +1258,7 @@ function calc_mortar_flux!(surface_flux_values,
                               direction, large_element_id, mortar,
                               fstar_upper_correction, fstar_lower_correction,
                               surface_flux)
+        =#
     end
 
     return nothing
@@ -1338,8 +1350,8 @@ end
     # depends on the types of fstar_upper/fstar_lower and dg.l2mortar_reverse_upper.
     # Using StaticArrays for both makes the code above faster for common test cases.
     multiply_dimensionwise!(view(surface_flux_values, :, :, direction, large_element),
-                            mortar_type.reverse_upper, fstar_upper,
-                            mortar_type.reverse_lower, fstar_lower)
+                            mortar_type.reverse_upper, fstar_secondary_upper,
+                            mortar_type.reverse_lower, fstar_secondary_lower)
 
     return nothing
 end

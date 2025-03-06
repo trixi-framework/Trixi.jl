@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # define new structs inside a module to allow re-evaluating the file
@@ -121,6 +121,7 @@ basis = LobattoLegendreBasis(Float64, polydeg)
 solver = DGSEM(basis, surf_flux,
                VolumeIntegralFluxDifferencing(flux_ranocha),
                MortarEC(basis)
+               #MortarL2(basis)
                )
 
 coordinates_min = (-10.0, -10.0)
@@ -162,7 +163,7 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-stepsize_callback = StepsizeCallback(cfl = 0.3)
+stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
@@ -175,4 +176,4 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+

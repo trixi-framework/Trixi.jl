@@ -221,16 +221,10 @@ function MortarEC(basis::LobattoLegendreBasis)
     RealT = real(basis)
     nnodes_ = nnodes(basis)
 
-    forward_upper_ = calc_forward_upper(nnodes_)
-    forward_lower_ = calc_forward_lower(nnodes_)
-    reverse_upper_ = calc_reverse_upper(nnodes_, Val(:gauss_lobatto))
-    reverse_lower_ = calc_reverse_lower(nnodes_, Val(:gauss_lobatto))
-
-    # type conversions to make use of StaticArrays etc.
-    forward_upper = Matrix{RealT}(forward_upper_)
-    forward_lower = Matrix{RealT}(forward_lower_)
-    reverse_upper = Matrix{RealT}(reverse_upper_)
-    reverse_lower = Matrix{RealT}(reverse_lower_)
+    forward_upper = calc_forward_upper(nnodes_, RealT)
+    forward_lower = calc_forward_lower(nnodes_, RealT)
+    reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
+    reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
 
     LobattoLegendreMortarEC{RealT, nnodes_, typeof(forward_upper),
                             typeof(reverse_upper)}(forward_upper, forward_lower,
