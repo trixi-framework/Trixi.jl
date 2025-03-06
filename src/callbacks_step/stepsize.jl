@@ -10,9 +10,12 @@
 
 Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself.
+
+The supplied keyword argument `cfl` must be either a `Real` number or
+a function of time `t` returning a `Real` number.
 """
-mutable struct StepsizeCallback{RealT}
-    cfl_number::RealT
+mutable struct StepsizeCallback{CflType}
+    cfl_number::CflType
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
@@ -39,8 +42,8 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-function StepsizeCallback(; cfl::Real = 1.0)
-    stepsize_callback = StepsizeCallback(cfl)
+function StepsizeCallback(; cfl = 1.0)
+    stepsize_callback = StepsizeCallback{typeof(cfl)}(cfl)
 
     DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
                      save_positions = (false, false),
@@ -80,16 +83,6 @@ end
     return nothing
 end
 
-# General case for a single semidiscretization
-function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
-    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    u = wrap_array(u_ode, mesh, equations, solver, cache)
-
-    dt = cfl_number * max_dt(u, t, mesh,
-                have_constant_speed(equations), equations,
-                solver, cache)
-end
-
 # Time integration methods from the DiffEq ecosystem without adaptive time stepping on their own
 # such as `CarpenterKennedy2N54` require passing `dt=...` in `solve(ode, ...)`. Since we don't have
 # an integrator at this stage but only the ODE, this method will be used there. It's called in
@@ -103,11 +96,28 @@ function (cb::DiscreteCallback{Condition, Affect!})(ode::ODEProblem) where {Cond
     u_ode = ode.u0
     t = first(ode.tspan)
     semi = ode.p
+
+    dt = calculate_dt(u_ode, t, cfl_number, semi)
+end
+
+# General case for a single (i.e., non-coupled) semidiscretization
+# Case for constant `cfl_number`.
+function calculate_dt(u_ode, t, cfl_number::Real, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
-    return cfl_number *
-           max_dt(u, t, mesh, have_constant_speed(equations), equations, solver, cache)
+    dt = cfl_number * max_dt(u, t, mesh,
+                have_constant_speed(equations), equations,
+                solver, cache)
+end
+# Case for `cfl_number` as a function of time `t`.
+function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
+    mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
+    u = wrap_array(u_ode, mesh, equations, solver, cache)
+
+    dt = cfl_number(t) * max_dt(u, t, mesh,
+                have_constant_speed(equations), equations,
+                solver, cache)
 end
 
 include("stepsize_dg1d.jl")

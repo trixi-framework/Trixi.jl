@@ -78,12 +78,11 @@ function CompressibleEulerMulticomponentEquations1D(; gammas, gas_constants)
     _gas_constants = promote(gas_constants...)
     RealT = promote_type(eltype(_gammas), eltype(_gas_constants),
                          typeof(gas_constants[1] / (gammas[1] - 1)))
+    __gammas = SVector(map(RealT, _gammas))
+    __gas_constants = SVector(map(RealT, _gas_constants))
 
     NVARS = length(_gammas) + 2
     NCOMP = length(_gammas)
-
-    __gammas = SVector(map(RealT, _gammas))
-    __gas_constants = SVector(map(RealT, _gas_constants))
 
     return CompressibleEulerMulticomponentEquations1D{NVARS, NCOMP, RealT}(__gammas,
                                                                            __gas_constants)

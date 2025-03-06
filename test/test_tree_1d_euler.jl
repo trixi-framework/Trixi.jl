@@ -21,10 +21,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
                             1.6205433861493646e-7,
                             1.465427772462391e-7,
                             5.372255111879554e-7
-                        ],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time series to check against.
-                        coverage_override=(maxiters = 20,))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -284,8 +281,7 @@ end
                             2.9766770877037168,
                             0.16838100902295852,
                             2.6655773445485798
-                        ],
-                        coverage_override=(maxiters = 6,))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -320,9 +316,7 @@ end
                             3.4296365168219216,
                             0.17635583964559245,
                             2.6574584326179505
-                        ],
-                        # Let this test run longer to cover some lines in flux_hllc
-                        coverage_override=(maxiters = 10^5, tspan = (0.0, 0.1)))
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -342,8 +336,7 @@ end
                             2.6650170188241047
                         ],
                         shock_indicator_variable=pressure,
-                        cfl=0.2,
-                        coverage_override=(maxiters = 6,))
+                        cfl=0.2,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -363,8 +356,7 @@ end
                             2.666689753470263
                         ],
                         shock_indicator_variable=density,
-                        cfl=0.2,
-                        coverage_override=(maxiters = 6,))
+                        cfl=0.2,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -378,8 +370,7 @@ end
 @trixi_testset "elixir_euler_positivity.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
                         l2=[1.6493820253458906, 0.19793887460986834, 0.9783506076125921],
-                        linf=[4.71751203912051, 0.5272411022735763, 2.7426163947635844],
-                        coverage_override=(maxiters = 3,))
+                        linf=[4.71751203912051, 0.5272411022735763, 2.7426163947635844],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

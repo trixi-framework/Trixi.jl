@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -20,19 +19,19 @@ function initial_condition_stone_throw_discontinuous_bottom(x, t,
     H = equations.H0
 
     # Discontinuous velocity
-    v = 0.0
-    if x[1] >= -0.75 && x[1] <= 0.0
-        v = -1.0
-    elseif x[1] >= 0.0 && x[1] <= 0.75
-        v = 1.0
+    v = 0
+    if x[1] >= -0.75f0 && x[1] <= 0
+        v = -1
+    elseif x[1] >= 0 && x[1] <= 0.75f0
+        v = 1
     end
 
-    b = (1.5 / exp(0.5 * ((x[1] - 1.0)^2)) +
-         0.75 / exp(0.5 * ((x[1] + 1.0)^2)))
+    b = (1.5f0 / exp(0.5f0 * ((x[1] - 1)^2)) +
+         0.75f0 / exp(0.5f0 * ((x[1] + 1)^2)))
 
     # Force a discontinuous bottom topography
-    if x[1] >= -1.5 && x[1] <= 0.0
-        b = 0.5
+    if x[1] >= -1.5f0 && x[1] <= 0
+        b = 0.5f0
     end
 
     return prim2cons(SVector(H, v, b), equations)
@@ -113,4 +112,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # use a Runge-Kutta method with automatic (error based) time step size control
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-7, reltol = 1.0e-7,
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

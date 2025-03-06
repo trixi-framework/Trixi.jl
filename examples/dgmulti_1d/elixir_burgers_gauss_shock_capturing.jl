@@ -1,11 +1,11 @@
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 
 equations = InviscidBurgersEquation1D()
 
 ###############################################################################
-# setup the GSBP DG discretization that uses the Gauss operators from 
-# Chan, Del Rey Fernandez, Carpenter (2019). 
+# setup the GSBP DG discretization that uses the Gauss operators from
+# Chan, Del Rey Fernandez, Carpenter (2019).
 # [https://doi.org/10.1137/18M1209234](https://doi.org/10.1137/18M1209234)
 
 surface_flux = flux_lax_friedrichs
@@ -64,5 +64,5 @@ callbacks = CallbackSet(summary_callback, analysis_callback, stepsize_callback)
 # ###############################################################################
 # # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
-            dt = 1.0, save_everystep = false, callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+            dt = 1.0, ode_default_options()..., callback = callbacks);

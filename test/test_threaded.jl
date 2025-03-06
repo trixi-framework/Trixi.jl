@@ -47,7 +47,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                      "elixir_advection_restart.jl"),
                             alg=CarpenterKennedy2N54(williamson_condition = false,
-                                                     thread = OrdinaryDiffEq.True()),
+                                                     thread = Trixi.True()),
                             # Expected errors are exactly the same as in the serial test!
                             l2=[8.005068880114254e-6],
                             linf=[6.39093577996519e-5])
@@ -142,7 +142,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                      "elixir_advection_diffusion.jl"),
                             initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
-                            alg=RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
                             l2=[4.0915532997994255e-6],
                             linf=[2.3040850347877395e-5])
 
@@ -209,10 +209,7 @@ end
                             linf=[0.0015194252169410394],
                             rtol=5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
                             elixir_file="elixir_advection_waving_flag.jl",
-                            restart_file="restart_000000021.h5",
-                            # With the default `maxiters = 1` in coverage tests,
-                            # there would be no time steps after the restart.
-                            coverage_override=(maxiters = 100_000,))
+                            restart_file="restart_000000021.h5",)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -392,18 +389,18 @@ end
     @trixi_testset "elixir_euler_curved.jl with threaded time integration" begin
         @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                      "elixir_euler_curved.jl"),
-                            alg=RDPK3SpFSAL49(thread = OrdinaryDiffEq.True()),
+                            alg=RDPK3SpFSAL49(thread = Trixi.True()),
                             l2=[
-                                1.7204593127904542e-5,
-                                1.5921547179522804e-5,
-                                1.5921547180107928e-5,
-                                4.894071422525737e-5
+                                1.720916434676505e-5,
+                                1.5928649356300228e-5,
+                                1.5928649356913923e-5,
+                                4.896339454587786e-5
                             ],
                             linf=[
-                                0.00010525416930584619,
-                                0.00010003778091061122,
-                                0.00010003778085621029,
-                                0.00036426282101720275
+                                0.00010525404319960963,
+                                0.00010003768703459315,
+                                0.00010003768696797977,
+                                0.0003642622844073351
                             ])
 
         # Ensure that we do not have excessive memory allocations
@@ -442,7 +439,7 @@ end
         end
     end
 
-    @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
+    @trixi_testset "elixir_euler_fdsbp_periodic.jl (2D)" begin
         @test_trixi_include(joinpath(examples_dir(), "dgmulti_2d",
                                      "elixir_euler_fdsbp_periodic.jl"),
                             l2=[
@@ -465,6 +462,33 @@ end
             u_ode = sol.u[end]
             du_ode = similar(u_ode)
             @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        end
+    end
+
+    @trixi_testset "elixir_euler_fdsbp_periodic.jl (3D)" begin
+        @test_trixi_include(joinpath(examples_dir(),
+                                     "dgmulti_3d/elixir_euler_fdsbp_periodic.jl"),
+                            l2=[
+                                7.561468750241556e-5,
+                                6.882819932057486e-5,
+                                6.882819932056578e-5,
+                                6.882819932056221e-5,
+                                0.0002010869398143227
+                            ],
+                            linf=[
+                                0.00013375688549710496,
+                                0.00011568674101658516,
+                                0.00011568674101614107,
+                                0.00011568674101658516,
+                                0.0003446273444156489
+                            ])
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
         end
     end
 end

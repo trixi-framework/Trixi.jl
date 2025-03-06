@@ -39,7 +39,7 @@ struct SimpleSSPRK33{StageCallbacks} <: SimpleAlgorithmSSP
         c = SVector(0.0, 1.0, 1 / 2)
 
         # Butcher tableau
-        #   c |       a
+        #   c |       A
         #   0 |
         #   1 |   1
         # 1/2 | 1/4  1/4
@@ -78,19 +78,19 @@ end
 # https://diffeq.sciml.ai/v6.8/basics/integrator/#Handing-Integrators-1
 # which are used in Trixi.
 mutable struct SimpleIntegratorSSP{RealT <: Real, uType, Params, Sol, F, Alg,
-                                   SimpleIntegratorSSPOptions}
+                                   SimpleIntegratorSSPOptions} <: AbstractTimeIntegrator
     u::uType
     du::uType
     r0::uType
     t::RealT
-    tdir::RealT
+    tdir::RealT # DIRection of time integration, i.e., if one marches forward or backward in time
     dt::RealT # current time step
     dtcache::RealT # manually set time step
     iter::Int # current number of time steps (iteration)
     p::Params # will be the semidiscretization from Trixi
     sol::Sol # faked
-    f::F
-    alg::Alg
+    f::F # `rhs!` of the semidiscretization
+    alg::Alg # SimpleSSPRK33
     opts::SimpleIntegratorSSPOptions
     finalstep::Bool # added for convenience
     dtchangeable::Bool
@@ -208,11 +208,14 @@ function solve!(integrator::SimpleIntegratorSSP)
         integrator.iter += 1
         integrator.t += integrator.dt
 
-        # handle callbacks
-        if callbacks isa CallbackSet
-            foreach(callbacks.discrete_callbacks) do cb
-                if cb.condition(integrator.u, integrator.t, integrator)
-                    cb.affect!(integrator)
+        @trixi_timeit timer() "Step-Callbacks" begin
+            # handle callbacks
+            if callbacks isa CallbackSet
+                foreach(callbacks.discrete_callbacks) do cb
+                    if cb.condition(integrator.u, integrator.t, integrator)
+                        cb.affect!(integrator)
+                    end
+                    return nothing
                 end
             end
         end

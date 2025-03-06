@@ -148,7 +148,7 @@ end
 function flux(u, gradients, orientation::Integer,
               equations::CompressibleNavierStokesDiffusion2D)
     # Here, `u` is assumed to be the "transformed" variables specified by `gradient_variable_transformation`.
-    rho, v1, v2, _ = convert_transformed_to_primitive(u, equations)
+    _, v1, v2, _ = convert_transformed_to_primitive(u, equations)
     # Here `gradients` is assumed to contain the gradients of the primitive variables (rho, v1, v2, T)
     # either computed directly or reverse engineered from the gradient of the entropy variables
     # by way of the `convert_gradient_variables` function.
@@ -281,6 +281,13 @@ end
     return T
 end
 
+@inline function velocity(u, equations::CompressibleNavierStokesDiffusion2D)
+    rho = u[1]
+    v1 = u[2] / rho
+    v2 = u[3] / rho
+    return SVector(v1, v2)
+end
+
 @inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
@@ -318,7 +325,6 @@ end
                                                                                       t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
-    # rho, v1, v2, _ = u_inner
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
@@ -431,8 +437,7 @@ end
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
 end
 
-# Dirichlet Boundary Condition for P4est mesh
-
+# Dirichlet Boundary Condition for e.g. P4est mesh
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
                                                                   u_inner,
                                                                   normal::AbstractVector,

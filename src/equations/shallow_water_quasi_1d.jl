@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquationsQuasi1D(; gravity, H0 = 0, threshold_limiter = nothing threshold_wet = nothing)
+    ShallowWaterEquationsQuasi1D(; gravity_constant, H0 = 0)
 
 The quasi-1D shallow water equations (SWE). The equations are given by
 ```math

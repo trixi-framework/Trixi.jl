@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations2D(; gravity, H0 = 0)
+    ShallowWaterEquations2D(; gravity_constant, H0 = 0)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math
@@ -180,8 +180,10 @@ For details see Section 9.2.5 of the book:
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t,
-                                              surface_flux_function,
+                                              surface_flux_functions,
                                               equations::ShallowWaterEquations2D)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
     # normalize the outward pointing direction
     normal = normal_direction / norm(normal_direction)
 
@@ -196,8 +198,10 @@ For details see Section 9.2.5 of the book:
 
     # calculate the boundary flux
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+    noncons_flux = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
+                                                 equations)
 
-    return flux
+    return flux, noncons_flux
 end
 
 """
@@ -208,8 +212,11 @@ Should be used together with [`TreeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation,
                                               direction, x, t,
-                                              surface_flux_function,
+                                              surface_flux_functions,
                                               equations::ShallowWaterEquations2D)
+    # The boundary conditions for the non-conservative term are identically 0 here.
+    # Bottom topography is assumed to be continuous at the boundary.
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
     ## get the appropriate normal vector from the orientation
     if orientation == 1
         u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4])
@@ -220,11 +227,15 @@ Should be used together with [`TreeMesh`](@ref).
     # Calculate boundary flux
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+        noncons_flux = nonconservative_flux_function(u_inner, u_boundary, orientation,
+                                                     equations)
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+        noncons_flux = nonconservative_flux_function(u_boundary, u_inner, orientation,
+                                                     equations)
     end
 
-    return flux
+    return flux, noncons_flux
 end
 
 # Calculate 1D flux for a single point
@@ -329,7 +340,7 @@ This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces 
 conservation and well-balancedness.
 
 Further details for the original finite volume formulation are available in
-- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 and for curvilinear 2D case in the paper:
@@ -491,7 +502,7 @@ is nonzero this should only be used as a surface flux otherwise the scheme will 
 For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
 
 Details are available in Eq. (4.1) in the paper:
-- Ulrik S. Fjordholm, Siddhartha Mishr and Eitan Tadmor (2011)
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
   Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
   [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
 """

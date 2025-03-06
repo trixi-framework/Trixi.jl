@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -16,12 +15,13 @@ incompressible Navier-Stokes equations. To be used in combination with
 this setup will converge to the state set in [`initial_condition_couette_steady`](@ref).
 """
 function initial_condition_couette_unsteady(x, t, equations::LatticeBoltzmannEquations2D)
+    RealT = eltype(x)
     @unpack L, u0, rho0, nu = equations
 
     x1, x2 = x
     v1 = u0 * x2 / L
     for m in 1:100
-        lambda_m = m * pi / L
+        lambda_m = m * convert(RealT, pi) / L
         v1 += 2 * u0 * (-1)^m / (lambda_m * L) * exp(-nu * lambda_m^2 * t) *
               sin(lambda_m * x2)
     end
@@ -133,7 +133,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

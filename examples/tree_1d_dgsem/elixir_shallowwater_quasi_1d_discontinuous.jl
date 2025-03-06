@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -8,15 +8,16 @@ using Trixi
 equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81)
 
 function initial_condition_discontinuity(x, t, equations::ShallowWaterEquationsQuasi1D)
-    H = 2 + 0.1 * exp(-25 * x[1]^2)
-    v = 0.0
+    RealT = eltype(x)
+    H = 2 + convert(RealT, 0.1) * exp(-25 * x[1]^2)
+    v = 0
 
     if x[1] > 0
-        b = 0.1
-        a = 1.0
+        b = convert(RealT, 0.1)
+        a = one(RealT)
     else
-        b = 0.0
-        a = 1.1
+        b = zero(RealT)
+        a = convert(RealT, 1.1)
     end
 
     return prim2cons(SVector(H, v, b, a), equations)
@@ -70,4 +71,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # use a Runge-Kutta method with automatic (error based) time step size control
 sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-8, reltol = 1.0e-8,
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

@@ -1,21 +1,15 @@
 # Package extension for adding Convex-based features to Trixi.jl
 module TrixiConvexECOSExt
 
-# Required for coefficient optimization in P-ERK scheme integrators
-if isdefined(Base, :get_extension)
-    using Convex: MOI, solve!, Variable, minimize, evaluate
-    using ECOS: Optimizer
-else
-    # Until Julia v1.9 is the minimum required version for Trixi.jl, we still support Requires.jl
-    using ..Convex: MOI, solve!, Variable, minimize, evaluate
-    using ..ECOS: Optimizer
-end
+# Required for coefficient optimization in PERK scheme integrators
+using Convex: MOI, solve!, Variable, minimize, evaluate
+using ECOS: Optimizer
 
 # Use other necessary libraries
 using LinearAlgebra: eigvals
 
 # Use functions that are to be extended and additional symbols that are not exported
-using Trixi: Trixi, undo_normalization!, bisect_stability_polynomial, @muladd
+using Trixi: Trixi, bisect_stability_polynomial, @muladd
 
 # By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
 # Since these FMAs can increase the performance of many numerical algorithms,
@@ -26,7 +20,7 @@ using Trixi: Trixi, undo_normalization!, bisect_stability_polynomial, @muladd
 
 # Undo normalization of stability polynomial coefficients by index factorial
 # relative to consistency order.
-function Trixi.undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
+function undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
     for k in (consistency_order + 1):num_stage_evals
         gamma_opt[k - consistency_order] = gamma_opt[k - consistency_order] /
                                            factorial(k)
@@ -60,7 +54,11 @@ function stability_polynomials!(pnoms, consistency_order, num_stage_evals,
     end
 
     # For optimization only the maximum is relevant
-    return maximum(abs(pnoms))
+    if consistency_order - num_stage_evals == 0
+        return maximum(abs.(pnoms)) # If there is no variable to optimize, we need to use the broadcast operator.
+    else
+        return maximum(abs(pnoms))
+    end
 end
 
 #=
@@ -151,12 +149,18 @@ function Trixi.bisect_stability_polynomial(consistency_order, num_eig_vals,
         println("Concluded stability polynomial optimization \n")
     end
 
-    gamma_opt = evaluate(gamma)
+    if consistency_order - num_stage_evals != 0
+        gamma_opt = evaluate(gamma)
+    else
+        gamma_opt = nothing # If there is no variable to optimize, return gamma_opt as nothing.
+    end
 
     # Catch case S = 3 (only one opt. variable)
     if isa(gamma_opt, Number)
         gamma_opt = [gamma_opt]
     end
+
+    undo_normalization!(gamma_opt, consistency_order, num_stage_evals)
 
     return gamma_opt, dt
 end

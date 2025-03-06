@@ -387,12 +387,20 @@ function refine!(t::AbstractTree, cell_ids,
     return refined_original_cells
 end
 
-# Refine all leaf cells with coordinates in a given rectangular box
-function refine_box!(t::AbstractTree{NDIMS}, coordinates_min,
-                     coordinates_max) where {NDIMS}
-    for dim in 1:NDIMS
-        @assert coordinates_min[dim]<coordinates_max[dim] "Minimum coordinates are not minimum."
+@inline function coordinates_min_max_check(coordinates_min, coordinates_max)
+    for dim in eachindex(coordinates_min)
+        @assert coordinates_min[dim]<coordinates_max[dim] "coordinates_min[$dim] must be smaller than coordinates_max[$dim]!"
     end
+end
+# For the p4est and the t8code mesh we allow `coordinates_min` and `coordinates_max` to be `nothing`.
+# This corresponds to meshes constructed from analytic mapping functions.
+coordinates_min_max_check(::Nothing, ::Nothing) = nothing
+
+# Refine all leaf cells with coordinates in a given rectangular box
+function refine_box!(t::AbstractTree{NDIMS},
+                     coordinates_min,
+                     coordinates_max) where {NDIMS}
+    coordinates_min_max_check(coordinates_min, coordinates_max)
 
     # Find all leaf cells within box
     cells = filter_leaf_cells(t) do cell_id
@@ -404,10 +412,11 @@ function refine_box!(t::AbstractTree{NDIMS}, coordinates_min,
     refine!(t, cells)
 end
 
-# Convenience method for 1D
-function refine_box!(t::AbstractTree{1}, coordinates_min::Real, coordinates_max::Real)
-    return refine_box!(t, [convert(Float64, coordinates_min)],
-                       [convert(Float64, coordinates_max)])
+# Convenience method for 1D (arguments are no arrays)
+function refine_box!(t::AbstractTree{1},
+                     coordinates_min::Real,
+                     coordinates_max::Real)
+    return refine_box!(t, [coordinates_min], [coordinates_max])
 end
 
 # Refine all leaf cells with coordinates in a given sphere
@@ -617,8 +626,9 @@ end
 coarsen!(t::AbstractTree, cell_id::Int) = coarsen!(t::AbstractTree, [cell_id])
 
 # Coarsen all viable parent cells with coordinates in a given rectangular box
-function coarsen_box!(t::AbstractTree{NDIMS}, coordinates_min::AbstractArray{Float64},
-                      coordinates_max::AbstractArray{Float64}) where {NDIMS}
+function coarsen_box!(t::AbstractTree{NDIMS},
+                      coordinates_min,
+                      coordinates_max) where {NDIMS}
     for dim in 1:NDIMS
         @assert coordinates_min[dim]<coordinates_max[dim] "Minimum coordinates are not minimum."
     end
@@ -642,10 +652,11 @@ function coarsen_box!(t::AbstractTree{NDIMS}, coordinates_min::AbstractArray{Flo
     coarsen!(t, parents)
 end
 
-# Convenience method for 1D
-function coarsen_box!(t::AbstractTree{1}, coordinates_min::Real, coordinates_max::Real)
-    return coarsen_box!(t, [convert(Float64, coordinates_min)],
-                        [convert(Float64, coordinates_max)])
+# Convenience method for 1D (arguments are no arrays)
+function coarsen_box!(t::AbstractTree{1},
+                      coordinates_min::Real,
+                      coordinates_max::Real)
+    return coarsen_box!(t, [coordinates_min], [coordinates_max])
 end
 
 # Return coordinates of a child cell based on its relative position to the parent.

@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -22,7 +21,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # that is advected to left with v - c and to the right with v + c.
 # Correspondigly, the bump splits in half.
 function initial_condition_gauss_wall(x, t, equations::LinearizedEulerEquations1D)
-    v1_prime = 0.0
+    v1_prime = 0
     rho_prime = p_prime = 2 * exp(-(x[1] - 45)^2 / 25)
     return SVector(rho_prime, v1_prime, p_prime)
 end
@@ -57,9 +56,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks)
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks)

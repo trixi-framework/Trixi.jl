@@ -386,6 +386,7 @@ transfinite map of the straight sided hexahedral element to find
 
 Also for a mesh in standard Abaqus format there are no qualitative changes when going from 2D to 3D.
 The most notable difference is that boundaries are formed in 3D by faces defined by four nodes while in 2D boundaries are edges consisting of two elements.
+Note that standard Abaqus also defines quadratic element types. In Trixi.jl, these higher-order elements are currently only supported in 2D, i.e., 8-node quadrilaterals.
 A simple mesh file, which is used also in `examples/p4est_3d_dgsem/elixir_euler_free_stream_boundaries.jl`, is given below:
 ```
 *Heading

@@ -12,6 +12,17 @@ function get_element_variables!(element_variables, u, mesh, equations,
     nothing
 end
 
+# Function to define "element variables" for the SaveSolutionCallback. It does
+# nothing by default, but can be specialized for certain mesh types. For instance,
+# parallel meshes output the mpi rank as an "element variable".
+function get_element_variables!(element_variables, mesh, dg, cache)
+    nothing
+end
+
+# Function to define "element variables" for the SaveSolutionCallback. It does
+# nothing by default, but can be specialized for certain volume integral types. 
+# For instance, shock capturing volume integrals output the blending factor
+# as an "element variable".
 function get_node_variables!(node_variables, mesh, equations,
                              volume_integral::AbstractVolumeIntegral, dg, cache)
     nothing
@@ -427,6 +438,7 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
     get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral,
                            dg, cache)
+    get_element_variables!(element_variables, mesh, dg, cache)
 end
 
 function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)

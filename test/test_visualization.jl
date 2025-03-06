@@ -98,7 +98,12 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
 
         semi = sol.prob.p
         if mesh == "DGMulti"
-            scalar_data = StructArrays.component(sol.u[end], 1)
+            if sol.u[end] isa Trixi.VectorOfArray
+                u = parent(sol.u[end])
+            else
+                u = sol.u[end]
+            end
+            scalar_data = StructArrays.component(u, 1)
             @test_nowarn_mod Plots.plot(ScalarPlotData2D(scalar_data, semi))
         else
             cache = semi.cache
@@ -185,9 +190,14 @@ end
         pd = PlotData1D(sol)
 
         @test_nowarn_mod Plots.plot(sol)
+        @test_nowarn_mod Plots.plot(sol, reinterpolate = false)
         @test_nowarn_mod Plots.plot(pd)
         @test_nowarn_mod Plots.plot(pd["p"])
         @test_nowarn_mod Plots.plot(getmesh(pd))
+        initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
+                                                                  equations)
+        @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+        @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
     end
 
     # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
@@ -220,6 +230,9 @@ end
                                    tspan = (0.0, 0.0),
                                    approximation_type = Polynomial())
     @test PlotData1D(sol) isa PlotData1D
+    initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "dgmulti_1d",
@@ -227,6 +240,24 @@ end
                                    tspan = (0.0, 0.0),
                                    approximation_type = SBP())
     @test PlotData1D(sol) isa PlotData1D
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
+end
+
+@timed_testset "1D plot recipes (StructuredMesh)" begin
+    @test_nowarn_mod trixi_include(@__MODULE__,
+                                   joinpath(examples_dir(), "structured_1d_dgsem",
+                                            "elixir_euler_source_terms.jl"),
+                                   tspan = (0.0, 0.0))
+
+    pd = PlotData1D(sol)
+    initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
+    @test_nowarn_mod Plots.plot(sol)
+    @test_nowarn_mod Plots.plot(pd)
+    @test_nowarn_mod Plots.plot(pd["p"])
+    @test_nowarn_mod Plots.plot(sol.u[end], semi)
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 end
 
 @timed_testset "plot time series" begin

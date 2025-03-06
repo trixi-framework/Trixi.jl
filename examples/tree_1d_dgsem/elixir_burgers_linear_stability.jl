@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -8,8 +7,9 @@ using Trixi
 equations = InviscidBurgersEquation1D()
 
 function initial_condition_linear_stability(x, t, equation::InviscidBurgersEquation1D)
+    RealT = eltype(x)
     k = 1
-    2 + sinpi(k * (x[1] - 0.7)) |> SVector
+    SVector(2 + sinpi(k * (x[1] - convert(RealT, 0.7))))
 end
 
 volume_flux = flux_ec
@@ -49,7 +49,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

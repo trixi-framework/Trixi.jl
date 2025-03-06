@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -11,9 +10,9 @@ equations = ShallowWaterEquations1D(gravity_constant = 1.0, H0 = 3.0)
 function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations1D)
     # Set the background values
     H = equations.H0
-    v = 0.0
+    v = 0
 
-    b = (1.5 / exp(0.5 * ((x[1] - 1.0)^2)) + 0.75 / exp(0.5 * ((x[1] + 1.0)^2)))
+    b = (1.5f0 / exp(0.5f0 * ((x[1] - 1)^2)) + 0.75f0 / exp(0.5f0 * ((x[1] + 1)^2)))
 
     return prim2cons(SVector(H, v, b), equations)
 end
@@ -72,7 +71,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);
