@@ -190,7 +190,7 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
-       DissipationLaxFriedrichsEntropyVariables,
+       DissipationLaxFriedrichsEntropyVariables, DissipationMatrixWintersEtal,
        FluxLaxFriedrichs, max_abs_speed_naive,
        FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
        FluxLMARS,
@@ -219,7 +219,8 @@ export boundary_condition_do_nothing,
        BoundaryConditionCoupled
 
 export initial_condition_convergence_test, source_terms_convergence_test,
-       source_terms_lorentz
+       source_terms_lorentz, source_terms_collision_ion_electron,
+       source_terms_collision_ion_ion
 export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic,
        boundary_condition_poisson_nonperiodic
