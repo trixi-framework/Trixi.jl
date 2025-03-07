@@ -31,10 +31,6 @@ function finalize_callbacks(integrator::AbstractTimeIntegrator)
     @unpack alg = integrator
     callbacks = integrator.opts.callback
 
-    for stage_callback in alg.stage_callbacks
-        finalize_callback(stage_callback, integrator.p)
-    end
-
     if callbacks isa CallbackSet
         foreach(callbacks.discrete_callbacks) do cb
             cb.finalize(cb, integrator.u, integrator.t, integrator)

@@ -231,6 +231,10 @@ function solve!(integrator::SimpleIntegratorSSP)
     # This cannot be done in terminate!(integrator::SimpleIntegratorSSP) because DiffEqCallbacks.PeriodicCallbackAffect would return at error.
     extract_all!(integrator.opts.tstops)
 
+    for stage_callback in alg.stage_callbacks
+        finalize_callback(stage_callback, integrator.p)
+    end
+
     finalize_callbacks(integrator)
 
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
