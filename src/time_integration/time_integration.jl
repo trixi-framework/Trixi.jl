@@ -28,7 +28,6 @@ function DiffEqBase.get_tstops_max(integrator::AbstractTimeIntegrator)
 end
 
 function finalize_callbacks(integrator::AbstractTimeIntegrator)
-    @unpack alg = integrator
     callbacks = integrator.opts.callback
 
     if callbacks isa CallbackSet
