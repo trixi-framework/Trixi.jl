@@ -1920,6 +1920,27 @@ end
                     0.31168238866709846 0.18831761133290154], atol = 1e-13)
 end
 
+@testset "PERK Single p4 Constructors" begin
+    path_coeff_file = mktempdir()
+    Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
+                   joinpath(path_coeff_file, "spectrum.txt"))
+
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    tspan = (0.0, 1.0)
+    ode_algorithm = Trixi.PairedExplicitRK4(14, tspan, vec(eig_vals))
+
+    @test isapprox(transpose(ode_algorithm.a_matrix),
+                   [0.9935765040401348 0.0064234959598652
+                    0.9849926812139576 0.0150073187860425
+                    0.9731978940975923 0.0268021059024077
+                    0.9564664284695985 0.0435335715304015
+                    0.9319632992510594 0.0680367007489407
+                    0.8955171743167522 0.1044828256832478
+                    0.8443975130657495 0.1556024869342504
+                    0.7922561745278265 0.2077438254721735
+                    0.7722324105428290 0.2277675894571710], atol = 1e-13)
+end
+
 @testset "Sutherlands Law" begin
     function mu(u, equations)
         T_ref = 291.15
