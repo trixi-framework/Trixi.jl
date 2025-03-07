@@ -56,6 +56,28 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
             flux_temp_threaded, fhat_temp_threaded)
 end
 
+# The methods below are specialized on the mortar type
+# and called from the basic `create_cache` method at the top.
+function create_cache(mesh::TreeMesh{2},
+                      equations, mortar_idp::LobattoLegendreMortarIDP, uEltype)
+    # TODO: Taal performance using different types
+
+    # TODO: What do I really need?
+    MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_idp)}, uEltype, 2,
+                  nvariables(equations) * nnodes(mortar_idp)}
+    fstar_primary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_primary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+    fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
+
+    # A2d = Array{uEltype, 2}
+    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_idp)) for _ in 1:Threads.nthreads()]
+    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_idp)) for _ in 1:Threads.nthreads()]
+
+    (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
+end
+
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                            P4estMesh{2}},
@@ -467,6 +489,295 @@ end
     antidiffusive_flux2_L[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_L))
     antidiffusive_flux2_R[:, :, 1, element] .= zero(eltype(antidiffusive_flux2_R))
     antidiffusive_flux2_R[:, :, nnodes(dg) + 1, element] .= zero(eltype(antidiffusive_flux2_R))
+
+    return nothing
+end
+
+function prolong2mortars!(cache, u,
+                          mesh::TreeMesh{2}, equations,
+                          mortar_l2::LobattoLegendreMortarIDP,
+                          dg::DGSEM)
+    @threaded for mortar in eachmortar(dg, cache)
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        # Copy solutions
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if cache.mortars.orientations[mortar] == 1
+                # IDP mortars in x-direction
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_upper[v, l, mortar] = u[v, 1, l, upper_element]
+                        cache.mortars.u_lower[v, l, mortar] = u[v, 1, l, lower_element]
+                        cache.mortars.u_large[v, l, mortar] = u[v, nnodes(dg), l, large_element]
+                    end
+                end
+            else
+                # IDP mortars in y-direction
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_upper[v, l, mortar] = u[v, l, 1, upper_element]
+                        cache.mortars.u_lower[v, l, mortar] = u[v, l, 1, lower_element]
+                        cache.mortars.u_large[v, l, mortar] = u[v, l, nnodes(dg), large_element]
+                    end
+                end
+            end
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if cache.mortars.orientations[mortar] == 1
+                # IDP mortars in x-direction
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_upper[v, l, mortar] = u[v, nnodes(dg), l, upper_element]
+                        cache.mortars.u_lower[v, l, mortar] = u[v, nnodes(dg), l, lower_element]
+                        cache.mortars.u_large[v, l, mortar] = u[v, 1, l, large_element]
+                    end
+                end
+            else
+                # IDP mortars in y-direction
+                for l in eachnode(dg)
+                    for v in eachvariable(equations)
+                        cache.mortars.u_upper[v, l, mortar] = u[v, l, nnodes(dg), upper_element]
+                        cache.mortars.u_lower[v, l, mortar] = u[v, l, nnodes(dg), lower_element]
+                        cache.mortars.u_large[v, l, mortar] = u[v, l, 1, large_element]
+                    end
+                end
+            end
+        end
+    end
+
+    return nothing
+end
+
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::TreeMesh{2},
+                           nonconservative_terms::False, equations,
+                           mortar_idp::LobattoLegendreMortarIDP,
+                           surface_integral, dg::DG, cache)
+    @unpack surface_flux = surface_integral
+    @unpack u_lower, u_upper, u_large, orientations = cache.mortars
+    @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
+    fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
+    (; weights) = dg.basis
+
+    #=@threaded =#for mortar in eachmortar(dg, cache)
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        # Choose thread-specific pre-allocated container
+        # fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        # fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+        # fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
+        # fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
+
+        # Calculate fluxes
+        orientation = orientations[mortar]
+
+        lambda1_max = zero(eltype(surface_flux_values))
+        lambda2_max = zero(eltype(surface_flux_values))
+        for i in eachnode(dg)
+            u_lower_local = get_node_vars(u_lower, equations, dg, i, mortar)
+            u_upper_local = get_node_vars(u_upper, equations, dg, i, mortar)
+            u_large_local = get_node_vars(u_large, equations, dg, i, mortar)
+
+            lambda1_lower, lambda2_lower = max_abs_speeds(u_lower_local, equations)
+            lambda1_upper, lambda2_upper = max_abs_speeds(u_upper_local, equations)
+            lambda1_large, lambda2_large = max_abs_speeds(u_large_local, equations)
+            lambda1_max = max(lambda1_max, lambda1_lower, lambda1_upper, lambda1_large)
+            lambda2_max = max(lambda2_max, lambda2_lower, lambda2_upper, lambda2_large)
+        end
+
+        if orientation == 1
+            lambda_max = lambda1_max
+        else
+            lambda_max = lambda2_max
+        end
+
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if orientation == 1
+                # L2 mortars in x-direction
+                direction_small = 1
+                direction_large = 2
+            else
+                # L2 mortars in y-direction
+                direction_small = 3
+                direction_large = 4
+            end
+
+            # Lower element
+            for i in eachnode(dg)
+                # Call pointwise two-point numerical flux function
+                u_lower_local = get_node_vars(u_lower, equations, dg, i, mortar) # u_rr
+
+                # flux part
+                f_lower = flux(u_lower_local, orientation, equations) # f_rr
+
+                own_part = 0.5f0 * (f_lower - lambda_max * u_lower_local)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_small, lower_element)
+
+                for j in eachnode(dg)
+                    u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
+                    f_large = flux(u_large_local, orientation, equations) # f_ll
+
+                    other_part = 0.5f0 * (f_large + lambda_max * u_large_local)
+                    add_to_node_vars!(surface_flux_values, (0.5f0 * weights[j]) * other_part,
+                                      equations, dg, i, direction_small, lower_element)
+                end
+            end
+            # Upper element
+            for i in eachnode(dg)
+                # Call pointwise two-point numerical flux function
+                u_upper_local = get_node_vars(u_upper, equations, dg, i, mortar) # u_rr
+
+                # flux part
+                f_upper = flux(u_upper_local, orientation, equations) # f_rr
+
+                own_part = 0.5f0 * (f_upper - lambda_max * u_upper_local)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_small, upper_element)
+
+                for j in eachnode(dg)
+                    u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
+                    f_large = flux(u_large_local, orientation, equations) # f_ll
+
+                    other_part = 0.5f0 * (f_large + lambda_max * u_large_local)
+                    add_to_node_vars!(surface_flux_values, (0.5f0 * weights[j]) * other_part,
+                                      equations, dg, i, direction_small, upper_element)
+                end
+            end
+            # Large element
+            for i in eachnode(dg)
+                # Call pointwise two-point numerical flux function
+                u_large_local = get_node_vars(u_large, equations, dg, i, mortar) # u_ll
+
+                # flux part
+                f_large = flux(u_large_local, orientation, equations) # f_ll
+
+                own_part = 0.5f0 * (f_large + lambda_max * u_large_local)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_large, large_element)
+
+                for j in eachnode(dg)
+                    # lower
+                    u_lower_local = get_node_vars(u_lower, equations, dg, j, mortar) # u_rr
+                    f_lower = flux(u_lower_local, orientation, equations) # f_rr
+
+                    other_part = 0.5f0 * (f_lower - lambda_max * u_lower_local)
+                    add_to_node_vars!(surface_flux_values, (0.25f0 * weights[j]) * other_part,
+                                      equations, dg, i, direction_large, large_element)
+
+                    # upper
+                    u_upper_local = get_node_vars(u_upper, equations, dg, j, mortar) # u_rr
+                    f_upper = flux(u_upper_local, orientation, equations) # f_rr
+
+                    other_part = 0.5f0 * (f_upper - lambda_max * u_upper_local)
+                    add_to_node_vars!(surface_flux_values, (0.25f0 * weights[j]) * other_part,
+                                      equations, dg, i, direction_large, large_element)
+                end
+            end
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if orientation == 1
+                # L2 mortars in x-direction
+                direction_small = 2
+                direction_large = 1
+            else
+                # L2 mortars in y-direction
+                direction_small = 4
+                direction_large = 3
+            end
+
+            # Lower element
+            for i in eachnode(dg)
+                # Call pointwise two-point numerical flux function
+                u_lower_local = get_node_vars(u_lower, equations, dg, i, mortar) # u_ll
+
+                # flux part
+                f_lower = flux(u_lower_local, orientation, equations)
+
+                own_part = 0.5f0 * (f_lower + lambda_max * u_lower_local)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_small, lower_element)
+
+                for j in eachnode(dg)
+                    u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
+                    f_large = flux(u_large_local, orientation, equations)
+
+                    other_part = 0.5f0 * (f_large - lambda_max * u_large_local)
+                    add_to_node_vars!(surface_flux_values, (0.5f0 * weights[j]) * other_part, equations, dg, i, direction_small, lower_element)
+                end
+            end
+            # Upper element
+            for i in eachnode(dg)
+                # Call pointwise two-point numerical flux function
+                u_upper_local = get_node_vars(u_upper, equations, dg, i, mortar) # u_ll
+
+                # flux part
+                f_upper = flux(u_upper_local, orientation, equations)
+
+                own_part = 0.5f0 * (f_upper + lambda_max * u_upper_local)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_small, upper_element)
+
+                for j in eachnode(dg)
+                    u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
+                    f_large = flux(u_large_local, orientation, equations)
+
+                    other_part = 0.5f0 * (f_large - lambda_max * u_large_local)
+                    add_to_node_vars!(surface_flux_values, (0.5f0 * weights[j]) * other_part, equations, dg, i, direction_small, upper_element)
+                end
+            end
+            # Large element
+            for i in eachnode(dg)
+                # Call pointwise two-point numerical flux function
+                u_large_local = get_node_vars(u_large, equations, dg, i, mortar) # u_rr
+
+                # flux part
+                f_large = flux(u_large_local, orientation, equations)
+
+                own_part = 0.5f0 * (f_large - lambda_max * u_large_local)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_large, large_element)
+
+                for j in eachnode(dg)
+                    # lower
+                    u_lower_local = get_node_vars(u_lower, equations, dg, j, mortar) # u_ll
+                    f_lower = flux(u_lower_local, orientation, equations)
+
+                    other_part = 0.5f0 * (f_lower + lambda_max * u_lower_local)
+                    add_to_node_vars!(surface_flux_values, (0.25 * weights[j]) * other_part,
+                                      equations, dg, i, direction_large, large_element)
+
+                    # upper
+                    u_upper_local = get_node_vars(u_upper, equations, dg, j, mortar) # u_ll
+                    f_upper = flux(u_upper_local, orientation, equations)
+
+                    other_part = 0.5f0 * (f_upper + lambda_max * u_upper_local)
+                    add_to_node_vars!(surface_flux_values, (0.25 * weights[j]) * other_part,
+                                      equations, dg, i, direction_large, large_element)
+                end
+            end
+        end
+    end
+
+    # #=@threaded =#for mortar in eachmortar(dg, cache)
+    #     # Choose thread-specific pre-allocated container
+    #     # fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
+    #     # fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
+    #     # fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
+    #     # fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
+
+    #     # Calculate fluxes
+    #     orientation = orientations[mortar]
+    #     calc_fstar_IDP_AMR!(surface_flux_values, equations, surface_flux, dg, u_lower, u_upper, u_large, mortar,
+    #                 orientation)
+    #     # calc_fstar_IDP_AMR!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
+    #     #             orientation)
+    #     # calc_fstar_IDP_AMR!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
+    #     #             orientation)
+    #     # calc_fstar_IDP_AMR!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
+    #     #             orientation)
+
+    #     # mortar_fluxes_to_elements!(surface_flux_values,
+    #     #                            mesh, equations, mortar_idp, dg, cache,
+    #     #                            mortar, fstar_primary_upper, fstar_primary_lower,
+    #     #                            fstar_secondary_upper, fstar_secondary_lower)
+    # end
 
     return nothing
 end

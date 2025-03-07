@@ -145,6 +145,38 @@ end
 left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES} <: AbstractMortarL2{RealT}
+end
+
+function MortarIDP(basis::LobattoLegendreBasis)
+    RealT = real(basis)
+    nnodes_ = nnodes(basis)
+
+    LobattoLegendreMortarIDP{RealT, nnodes_}()
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+    # TODO
+    print(io, "LobattoLegendreMortarIDP{", real(mortar), "}(polydeg=", polydeg(mortar),
+          ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
+    @nospecialize mortar # reduce precompilation time
+    # TODO
+    print(io, "LobattoLegendreMortarIDP{", real(mortar), "} with polynomials of degree ",
+          polydeg(mortar))
+end
+
+@inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortarIDP{RealT, NNODES}) where {RealT,
+                                                                               NNODES}
+    NNODES
+end
+
+@inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
+
 struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
                                ForwardMatrix <: AbstractMatrix{RealT},
                                ReverseMatrix <: AbstractMatrix{RealT}} <:
