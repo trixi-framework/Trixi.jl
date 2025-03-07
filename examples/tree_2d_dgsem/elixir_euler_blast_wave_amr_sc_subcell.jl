@@ -106,7 +106,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_errors = true))
+stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_errors = false))
 
 sol = Trixi.solve(ode,
                   Trixi.SimpleEuler(stage_callbacks = stage_callbacks);
