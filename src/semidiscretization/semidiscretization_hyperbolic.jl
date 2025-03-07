@@ -30,19 +30,22 @@ mutable struct SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
 
     function SemidiscretizationHyperbolic{Mesh, Equations, InitialCondition,
                                           BoundaryConditions, SourceTerms, Solver,
-                                          Cache}(mesh::Mesh, equations::Equations,
+                                          Cache}(mesh::Mesh,
+                                                 equations::Equations,
                                                  initial_condition::InitialCondition,
                                                  boundary_conditions::BoundaryConditions,
                                                  source_terms::SourceTerms,
                                                  solver::Solver,
-                                                 cache::Cache) where {Mesh, Equations,
-                                                                      InitialCondition,
-                                                                      BoundaryConditions,
-                                                                      SourceTerms,
-                                                                      Solver,
-                                                                      Cache}
-        performance_counter = PerformanceCounter()
-
+                                                 cache::Cache,
+                                                 performance_counter::PerformanceCounter) where {
+                                                                                                 Mesh,
+                                                                                                 Equations,
+                                                                                                 InitialCondition,
+                                                                                                 BoundaryConditions,
+                                                                                                 SourceTerms,
+                                                                                                 Solver,
+                                                                                                 Cache
+                                                                                                 }
         new(mesh, equations, initial_condition, boundary_conditions, source_terms,
             solver, cache, performance_counter)
     end
@@ -74,6 +77,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
 
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
+    performance_counter = PerformanceCounter()
+
     SemidiscretizationHyperbolic{typeof(mesh), typeof(equations),
                                  typeof(initial_condition),
                                  typeof(_boundary_conditions), typeof(source_terms),
@@ -81,7 +86,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                                                 initial_condition,
                                                                 _boundary_conditions,
                                                                 source_terms, solver,
-                                                                cache)
+                                                                cache,
+                                                                performance_counter)
 end
 
 # Create a new semidiscretization but change some parameters compared to the input.
@@ -102,6 +108,9 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms, boundary_conditions, uEltype)
 end
+
+# @eval due to @muladd
+@eval Adapt.@adapt_structure(SemidiscretizationHyperbolic)
 
 # general fallback
 function digest_boundary_conditions(boundary_conditions, mesh, solver, cache)
