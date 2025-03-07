@@ -34,9 +34,9 @@ function finalize_callbacks(integrator::AbstractTimeIntegrator)
         foreach(callbacks.discrete_callbacks) do cb
             cb.finalize(cb, integrator.u, integrator.t, integrator)
         end
-        foreach(callbacks.continuous_callbacks) do cb 
-             cb.finalize(cb, integrator.u, integrator.t, integrator) 
-         end
+        foreach(callbacks.continuous_callbacks) do cb
+            cb.finalize(cb, integrator.u, integrator.t, integrator)
+        end
     end
 end
 
