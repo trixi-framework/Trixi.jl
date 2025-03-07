@@ -510,7 +510,8 @@ function prolong2mortars!(cache, u,
                     for v in eachvariable(equations)
                         cache.mortars.u_upper[v, l, mortar] = u[v, 1, l, upper_element]
                         cache.mortars.u_lower[v, l, mortar] = u[v, 1, l, lower_element]
-                        cache.mortars.u_large[v, l, mortar] = u[v, nnodes(dg), l, large_element]
+                        cache.mortars.u_large[v, l, mortar] = u[v, nnodes(dg), l,
+                                                                large_element]
                     end
                 end
             else
@@ -519,7 +520,8 @@ function prolong2mortars!(cache, u,
                     for v in eachvariable(equations)
                         cache.mortars.u_upper[v, l, mortar] = u[v, l, 1, upper_element]
                         cache.mortars.u_lower[v, l, mortar] = u[v, l, 1, lower_element]
-                        cache.mortars.u_large[v, l, mortar] = u[v, l, nnodes(dg), large_element]
+                        cache.mortars.u_large[v, l, mortar] = u[v, l, nnodes(dg),
+                                                                large_element]
                     end
                 end
             end
@@ -528,8 +530,10 @@ function prolong2mortars!(cache, u,
                 # IDP mortars in x-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        cache.mortars.u_upper[v, l, mortar] = u[v, nnodes(dg), l, upper_element]
-                        cache.mortars.u_lower[v, l, mortar] = u[v, nnodes(dg), l, lower_element]
+                        cache.mortars.u_upper[v, l, mortar] = u[v, nnodes(dg), l,
+                                                                upper_element]
+                        cache.mortars.u_lower[v, l, mortar] = u[v, nnodes(dg), l,
+                                                                lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, 1, l, large_element]
                     end
                 end
@@ -537,8 +541,10 @@ function prolong2mortars!(cache, u,
                 # IDP mortars in y-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        cache.mortars.u_upper[v, l, mortar] = u[v, l, nnodes(dg), upper_element]
-                        cache.mortars.u_lower[v, l, mortar] = u[v, l, nnodes(dg), lower_element]
+                        cache.mortars.u_upper[v, l, mortar] = u[v, l, nnodes(dg),
+                                                                upper_element]
+                        cache.mortars.u_lower[v, l, mortar] = u[v, l, nnodes(dg),
+                                                                lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, l, 1, large_element]
                     end
                 end
@@ -560,7 +566,7 @@ function calc_mortar_flux!(surface_flux_values,
     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     (; weights) = dg.basis
 
-    #=@threaded =#for mortar in eachmortar(dg, cache)
+    for mortar in eachmortar(dg, cache)    #=@threaded =#
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
@@ -614,14 +620,16 @@ function calc_mortar_flux!(surface_flux_values,
                 f_lower = flux(u_lower_local, orientation, equations) # f_rr
 
                 own_part = 0.5f0 * (f_lower - lambda_max * u_lower_local)
-                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_small, lower_element)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i,
+                               direction_small, lower_element)
 
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
                     f_large = flux(u_large_local, orientation, equations) # f_ll
 
                     other_part = 0.5f0 * (f_large + lambda_max * u_large_local)
-                    add_to_node_vars!(surface_flux_values, (0.5f0 * weights[j]) * other_part,
+                    add_to_node_vars!(surface_flux_values,
+                                      (0.5f0 * weights[j]) * other_part,
                                       equations, dg, i, direction_small, lower_element)
                 end
             end
@@ -634,14 +642,16 @@ function calc_mortar_flux!(surface_flux_values,
                 f_upper = flux(u_upper_local, orientation, equations) # f_rr
 
                 own_part = 0.5f0 * (f_upper - lambda_max * u_upper_local)
-                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_small, upper_element)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i,
+                               direction_small, upper_element)
 
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
                     f_large = flux(u_large_local, orientation, equations) # f_ll
 
                     other_part = 0.5f0 * (f_large + lambda_max * u_large_local)
-                    add_to_node_vars!(surface_flux_values, (0.5f0 * weights[j]) * other_part,
+                    add_to_node_vars!(surface_flux_values,
+                                      (0.5f0 * weights[j]) * other_part,
                                       equations, dg, i, direction_small, upper_element)
                 end
             end
@@ -654,7 +664,8 @@ function calc_mortar_flux!(surface_flux_values,
                 f_large = flux(u_large_local, orientation, equations) # f_ll
 
                 own_part = 0.5f0 * (f_large + lambda_max * u_large_local)
-                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_large, large_element)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i,
+                               direction_large, large_element)
 
                 for j in eachnode(dg)
                     # lower
@@ -662,7 +673,8 @@ function calc_mortar_flux!(surface_flux_values,
                     f_lower = flux(u_lower_local, orientation, equations) # f_rr
 
                     other_part = 0.5f0 * (f_lower - lambda_max * u_lower_local)
-                    add_to_node_vars!(surface_flux_values, (0.25f0 * weights[j]) * other_part,
+                    add_to_node_vars!(surface_flux_values,
+                                      (0.25f0 * weights[j]) * other_part,
                                       equations, dg, i, direction_large, large_element)
 
                     # upper
@@ -670,7 +682,8 @@ function calc_mortar_flux!(surface_flux_values,
                     f_upper = flux(u_upper_local, orientation, equations) # f_rr
 
                     other_part = 0.5f0 * (f_upper - lambda_max * u_upper_local)
-                    add_to_node_vars!(surface_flux_values, (0.25f0 * weights[j]) * other_part,
+                    add_to_node_vars!(surface_flux_values,
+                                      (0.25f0 * weights[j]) * other_part,
                                       equations, dg, i, direction_large, large_element)
                 end
             end
@@ -694,14 +707,17 @@ function calc_mortar_flux!(surface_flux_values,
                 f_lower = flux(u_lower_local, orientation, equations)
 
                 own_part = 0.5f0 * (f_lower + lambda_max * u_lower_local)
-                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_small, lower_element)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i,
+                               direction_small, lower_element)
 
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
                     f_large = flux(u_large_local, orientation, equations)
 
                     other_part = 0.5f0 * (f_large - lambda_max * u_large_local)
-                    add_to_node_vars!(surface_flux_values, (0.5f0 * weights[j]) * other_part, equations, dg, i, direction_small, lower_element)
+                    add_to_node_vars!(surface_flux_values,
+                                      (0.5f0 * weights[j]) * other_part, equations, dg,
+                                      i, direction_small, lower_element)
                 end
             end
             # Upper element
@@ -713,14 +729,17 @@ function calc_mortar_flux!(surface_flux_values,
                 f_upper = flux(u_upper_local, orientation, equations)
 
                 own_part = 0.5f0 * (f_upper + lambda_max * u_upper_local)
-                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_small, upper_element)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i,
+                               direction_small, upper_element)
 
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
                     f_large = flux(u_large_local, orientation, equations)
 
                     other_part = 0.5f0 * (f_large - lambda_max * u_large_local)
-                    add_to_node_vars!(surface_flux_values, (0.5f0 * weights[j]) * other_part, equations, dg, i, direction_small, upper_element)
+                    add_to_node_vars!(surface_flux_values,
+                                      (0.5f0 * weights[j]) * other_part, equations, dg,
+                                      i, direction_small, upper_element)
                 end
             end
             # Large element
@@ -732,7 +751,8 @@ function calc_mortar_flux!(surface_flux_values,
                 f_large = flux(u_large_local, orientation, equations)
 
                 own_part = 0.5f0 * (f_large - lambda_max * u_large_local)
-                set_node_vars!(surface_flux_values, own_part, equations, dg, i, direction_large, large_element)
+                set_node_vars!(surface_flux_values, own_part, equations, dg, i,
+                               direction_large, large_element)
 
                 for j in eachnode(dg)
                     # lower
@@ -740,7 +760,8 @@ function calc_mortar_flux!(surface_flux_values,
                     f_lower = flux(u_lower_local, orientation, equations)
 
                     other_part = 0.5f0 * (f_lower + lambda_max * u_lower_local)
-                    add_to_node_vars!(surface_flux_values, (0.25 * weights[j]) * other_part,
+                    add_to_node_vars!(surface_flux_values,
+                                      (0.25 * weights[j]) * other_part,
                                       equations, dg, i, direction_large, large_element)
 
                     # upper
@@ -748,7 +769,8 @@ function calc_mortar_flux!(surface_flux_values,
                     f_upper = flux(u_upper_local, orientation, equations)
 
                     other_part = 0.5f0 * (f_upper + lambda_max * u_upper_local)
-                    add_to_node_vars!(surface_flux_values, (0.25 * weights[j]) * other_part,
+                    add_to_node_vars!(surface_flux_values,
+                                      (0.25 * weights[j]) * other_part,
                                       equations, dg, i, direction_large, large_element)
                 end
             end

@@ -164,14 +164,15 @@ end
 function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarIDP)
     @nospecialize mortar # reduce precompilation time
     # TODO
-    print(io, "LobattoLegendreMortarIDP{", real(mortar), "} with polynomials of degree ",
+    print(io, "LobattoLegendreMortarIDP{", real(mortar),
+          "} with polynomials of degree ",
           polydeg(mortar))
 end
 
 @inline Base.real(mortar::LobattoLegendreMortarIDP{RealT}) where {RealT} = RealT
 
 @inline function nnodes(mortar::LobattoLegendreMortarIDP{RealT, NNODES}) where {RealT,
-                                                                               NNODES}
+                                                                                NNODES}
     NNODES
 end
 

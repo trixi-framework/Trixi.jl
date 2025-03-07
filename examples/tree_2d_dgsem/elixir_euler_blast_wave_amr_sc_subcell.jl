@@ -83,7 +83,7 @@ save_solution = SaveSolutionCallback(interval = 1,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-amr_indicator = IndicatorMax(semi, variable=first)
+amr_indicator = IndicatorMax(semi, variable = first)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                       base_level = 4,
@@ -110,7 +110,7 @@ stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback(save_error
 
 sol = Trixi.solve(ode,
                   Trixi.SimpleEuler(stage_callbacks = stage_callbacks);
-                #   Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+                  # Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep = false, callback = callbacks);
 summary_callback() # print the timer summary

@@ -47,8 +47,8 @@ function SimpleSSPRK33(; stage_callbacks = ())
     # --------------------
     #   b | 1/6  1/6  2/3
 
-    SimpleSSPRK{length(c), typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
-                                 stage_callbacks)
+    SimpleSSPRK{length(c), typeof(stage_callbacks)}(numerator_a, numerator_b,
+                                                    denominator, c, stage_callbacks)
 end
 
 function SimpleEuler(; stage_callbacks = ())
@@ -63,8 +63,8 @@ function SimpleEuler(; stage_callbacks = ())
     # --------------------
     #   b | 1
 
-    SimpleSSPRK{length(c), typeof(stage_callbacks)}(numerator_a, numerator_b, denominator, c,
-                                 stage_callbacks)
+    SimpleSSPRK{length(c), typeof(stage_callbacks)}(numerator_a, numerator_b,
+                                                    denominator, c, stage_callbacks)
 end
 
 # This struct is needed to fake https://github.com/SciML/OrdinaryDiffEq.jl/blob/0c2048a502101647ac35faabd80da8a5645beac7/src/integrators/type.jl#L1

@@ -671,7 +671,7 @@ function Base.resize!(mortars::IDPMortarContainer2D, capacity)
 end
 
 function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
-                                      n_nodes) where {uEltype <: Real}
+                                       n_nodes) where {uEltype <: Real}
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
@@ -695,9 +695,9 @@ function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
-    return IDPMortarContainer2D{uEltype}(u_upper, u_lower, u_large, neighbor_ids, large_sides,
-                                        orientations,
-                                        _u_upper, _u_lower, _u_large, _neighbor_ids)
+    return IDPMortarContainer2D{uEltype}(u_upper, u_lower, u_large, neighbor_ids,
+                                         large_sides, orientations,
+                                         _u_upper, _u_lower, _u_large, _neighbor_ids)
 end
 
 # Return number of IDP mortars
