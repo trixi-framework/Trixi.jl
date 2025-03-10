@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -16,7 +16,6 @@ boundary_condition = BoundaryConditionDirichlet(initial_condition)
 boundary_conditions = Dict(:inside => boundary_condition,
                            :outside => boundary_condition)
 
-# Note that the first argument refers to the level of refinement, unlike in for p4est
 mesh = Trixi.T8codeMeshCubedSphere(5, 3, 0.5, 0.5;
                                    polydeg = 3, initial_refinement_level = 0)
 
@@ -53,9 +52,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);
