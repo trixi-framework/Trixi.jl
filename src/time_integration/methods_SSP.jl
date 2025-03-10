@@ -10,6 +10,20 @@
 abstract type SimpleAlgorithmSSP end
 
 """
+    SimpleSSPRK(; stage_callbacks=())
+
+The explicit strong stability-preserving (SSP) Runge-Kutta (RK) methods. These methods can be
+written and are implemented as a convex combination of forward Euler steps.
+"""
+struct SimpleSSPRK{NStages, StageCallbacks} <: SimpleAlgorithmSSP
+    numerator_a::SVector{NStages, Float64}
+    numerator_b::SVector{NStages, Float64}
+    denominator::SVector{NStages, Float64}
+    c::SVector{NStages, Float64}
+    stage_callbacks::StageCallbacks
+end
+
+"""
     SimpleSSPRK33(; stage_callbacks=())
 
 The third-order SSP Runge-Kutta method of Shu and Osher.
@@ -20,14 +34,6 @@ The third-order SSP Runge-Kutta method of Shu and Osher.
   "Efficient Implementation of Essentially Non-oscillatory Shock-Capturing Schemes" (Eq. 2.18)
   [DOI: 10.1016/0021-9991(88)90177-5](https://doi.org/10.1016/0021-9991(88)90177-5)
 """
-struct SimpleSSPRK{NStages, StageCallbacks} <: SimpleAlgorithmSSP
-    numerator_a::SVector{NStages, Float64}
-    numerator_b::SVector{NStages, Float64}
-    denominator::SVector{NStages, Float64}
-    c::SVector{NStages, Float64}
-    stage_callbacks::StageCallbacks
-end
-
 function SimpleSSPRK33(; stage_callbacks = ())
     # Mathematically speaking, it is not necessary for the algorithm to split the factors
     # into numerator and denominator. Otherwise, however, rounding errors of the order of
@@ -51,6 +57,11 @@ function SimpleSSPRK33(; stage_callbacks = ())
                                                     denominator, c, stage_callbacks)
 end
 
+"""
+    SimpleEuler(; stage_callbacks=())
+
+The basic explicit Euler method.
+"""
 function SimpleEuler(; stage_callbacks = ())
     numerator_a = SVector(0.0) # a = numerator_a / denominator
     numerator_b = SVector(1.0) # b = numerator_b / denominator

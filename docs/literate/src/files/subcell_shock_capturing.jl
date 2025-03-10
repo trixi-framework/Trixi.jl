@@ -33,8 +33,8 @@
 # Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)
 # ````
 #-
-# Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher)
-# [`Trixi.SimpleSSPRK33`](@ref) is implemented.
+# Right now, only the basic explicit Euler method [`Trixi.SimpleEuler`](@ref) and the canonical
+# three-stage, third-order SSPRK method (Shu-Osher) [`Trixi.SimpleSSPRK33`](@ref) are implemented.
 
 # # [IDP Limiting](@id IDPLimiter)
 # The implementation of the invariant domain preserving (IDP) limiting approach ([`SubcellLimiterIDP`](@ref))
