@@ -235,6 +235,8 @@ function solve!(integrator::SimpleIntegratorSSP)
         finalize_callback(stage_callback, integrator.p)
     end
 
+    finalize_callbacks(integrator)
+
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                                   (prob.u0, integrator.u), prob)
 end
