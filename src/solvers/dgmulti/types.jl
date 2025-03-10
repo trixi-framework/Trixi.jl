@@ -147,8 +147,8 @@ end
 
 function DGMultiMesh(dg::DGMulti, geometric_term_type, md::MeshData{NDIMS},
                      boundary_faces) where {NDIMS}
-    return DGMultiMesh{NDIMS, typeof(geometric_term_type), typeof(md),
-                       typeof(boundary_faces)}(md, boundary_faces)
+    return DGMultiMesh{NDIMS, typeof(geometric_term_type), typeof(md), typeof(dg.basis),
+                       typeof(boundary_faces)}(md, dg.basis, boundary_faces)
 end
 
 # Mesh types used internally for trait dispatch
@@ -431,5 +431,31 @@ function LinearAlgebra.mul!(b_in, A_kronecker::SimpleKronecker{3}, x_in)
     end
 
     return nothing
+end
+
+"""
+    DGMultiMesh(dg::DGMulti, cmesh::Ptr{t8_cmesh})
+
+Constructs a [`DGMultiMesh`](@ref) from a `cmesh::Ptr{t8_cmesh}` from t8code.
+"""
+function DGMultiMesh(dg::DGMulti, cmesh::Ptr{t8_cmesh}; initial_refinement_level = 0,
+                     is_on_boundary::Dict{Symbol, <:Function} = Dict())
+    do_face_ghost = 0
+    scheme = t8_scheme_new_default_cxx()
+    forest = t8_forest_new_uniform(cmesh, scheme, initial_refinement_level,
+                                   do_face_ghost,
+                                   mpi_comm())
+
+    VXYZ, EToV = compute_EToV(forest)
+    md = MeshData(VXYZ..., EToV, dg.basis)
+    xyz = compute_coordinates(forest, dg.basis, md)
+    md = MeshData(dg.basis, md, xyz...)
+
+    boundary_nodes = tag_boundary_nodes(md, is_on_boundary)
+
+    mesh = DGMultiMesh(dg, GeometricTermsType(Curved(), dg), md, boundary_nodes)
+    mesh.boundary_faces_type = :nodes # Tell DG solver to interpret `boundary_faces` as nodes.
+
+    return mesh
 end
 end # @muladd
