@@ -346,4 +346,34 @@ function unsafe_wrap_or_alloc(to, vec, size)
         return unsafe_wrap(to, pointer(vec), size)
     end
 end
+
+struct TrixiAdaptor{Storage, Real} end
+
+function trixi_adapt(storage, real, x)
+    adapt(TrixiAdaptor{storage, real}(), x)
+end
+
+# Custom rules
+# 1. handling of StaticArrays
+function Adapt.adapt_storage(::TrixiAdaptor{<:Any, Real}, x::StaticArrays.StaticArray{S, T, N}) where {Real,S,T,N}
+    StaticArrays.similar_type(x, Real)(x)
+end
+
+# 2. Handling of Arrays
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real}, x::AbstractArray{T}) where{Storage, Real, T<:AbstractFloat}
+    adapt(Storage{Real}, x)
+end
+
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real}, x::AbstractArray{T}) where {Storage, Real,T<:StaticArrays.StaticArray}
+    adapt(Storage{StaticArrays.similar_type(T, Real)},x)
+end
+
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real}, x::AbstractArray) where{Storage, Real}
+    adapt(Storage, x)
+end
+
+# 3. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
+
+unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage} = unsafe_wrap_or_alloc(Storage, vec, size)
+
 end # @muladd

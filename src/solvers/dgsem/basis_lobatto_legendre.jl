@@ -34,6 +34,32 @@ struct LobattoLegendreBasis{RealT <: Real, NNODES,
     # negative adjoint wrt the SBP dot product
 end
 
+function Adapt.adapt_structure(to, basis::LobattoLegendreBasis)
+    inverse_vandermonde_legendre = adapt(to, basis.inverse_vandermonde_legendre)
+    RealT = eltype(inverse_vandermonde_legendre)
+
+    nodes = SVector{<:Any, RealT}(basis.nodes)
+    weights = SVector{<:Any, RealT}(basis.weights)
+    inverse_weights = SVector{<:Any, RealT}(basis.inverse_weights)
+    boundary_interpolation = adapt(to, basis.boundary_interpolation)
+    derivative_matrix = adapt(to, basis.derivative_matrix)
+    derivative_split = adapt(to, basis.derivative_split)
+    derivative_split_transpose = adapt(to,basis.derivative_split_transpose)
+    derivative_dhat = adapt(to, basis.derivative_dhat)
+    return LobattoLegendreBasis{RealT, nnodes(basis), typeof(nodes),
+                                typeof(inverse_vandermonde_legendre),
+                                typeof(boundary_interpolation),
+                                typeof(derivative_matrix)}(nodes,
+                                                           weights,
+                                                           inverse_weights,
+                                                           inverse_vandermonde_legendre,
+                                                           boundary_interpolation,
+                                                           derivative_matrix,
+                                                           derivative_split,
+                                                           derivative_split_transpose,
+                                                           derivative_dhat)
+end
+
 function LobattoLegendreBasis(RealT, polydeg::Integer)
     nnodes_ = polydeg + 1
 
@@ -122,9 +148,6 @@ In particular, not the nodes themselves are returned.
 
 @inline get_nodes(basis::LobattoLegendreBasis) = basis.nodes
 
-# @eval due to @muladd
-@eval Adapt.@adapt_structure(LobattoLegendreBasis)
-
 """
     integrate(f, u, basis::LobattoLegendreBasis)
 
@@ -156,6 +179,16 @@ struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
     forward_lower::ForwardMatrix
     reverse_upper::ReverseMatrix
     reverse_lower::ReverseMatrix
+end
+
+function Adapt.adapt_structure(to, mortar::LobattoLegendreMortarL2)
+    forward_upper = adapt(to, mortar.forward_upper)
+    forward_lower = adapt(to, mortar.forward_lower)
+    reverse_upper = adapt(to, mortar.reverse_upper)
+    reverse_lower = adapt(to, mortar.reverse_lower)
+    return LobattoLegendreMortarL2{eltype(forward_upper), nnodes(mortar), typeof(forward_upper),
+                                   typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                          reverse_upper, reverse_lower)
 end
 
 function MortarL2(basis::LobattoLegendreBasis)
@@ -207,9 +240,6 @@ end
 end
 
 @inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
-
-# @eval due to @muladd
-@eval Adapt.@adapt_structure(LobattoLegendreMortarL2)
 
 # TODO: We can create EC mortars along the lines of the following implementation.
 # abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end

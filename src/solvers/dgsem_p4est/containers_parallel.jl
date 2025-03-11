@@ -93,10 +93,10 @@ end
 # Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, mpi_interfaces::P4estMPIInterfaceContainer)
     # Adapt Vectors and underlying storage
-    _u = Adapt.adapt_structure(to, mpi_interfaces._u)
-    local_neighbor_ids = Adapt.adapt_structure(to, mpi_interfaces.local_neighbor_ids)
-    node_indices = Adapt.adapt_structure(to, mpi_interfaces.node_indices)
-    local_sides = Adapt.adapt_structure(to, mpi_interfaces.local_sides)
+    _u = adapt(to, mpi_interfaces._u)
+    local_neighbor_ids = adapt(to, mpi_interfaces.local_neighbor_ids)
+    node_indices = adapt(to, mpi_interfaces.node_indices)
+    local_sides = adapt(to, mpi_interfaces.local_sides)
 
     # Wrap array again
     u = unsafe_wrap_or_alloc(to, _u, size(mpi_interfaces.u))
@@ -224,7 +224,7 @@ function Adapt.adapt_structure(to, mpi_mortars::P4estMPIMortarContainer)
     # must be redesigned. This skeleton implementation here just exists just
     # for compatibility with the rest of the KA.jl solver code
 
-    _u = Adapt.adapt_structure(to, mpi_mortars._u)
+    _u = adapt(to, mpi_mortars._u)
     _node_indices = mpi_mortars._node_indices
     _normal_directions = mpi_mortars._normal_directions
 

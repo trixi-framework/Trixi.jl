@@ -144,17 +144,16 @@ end
 
 # Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to,
-                               elements::P4estElementContainer{NDIMS, RealT, uEltype}) where {
-                                                                                              NDIMS,
-                                                                                              RealT,
-                                                                                              uEltype
-                                                                                              }
+                               elements::P4estElementContainer{NDIMS}) where {NDIMS}
     # Adapt underlying storage
-    _node_coordinates = Adapt.adapt_structure(to, elements._node_coordinates)
-    _jacobian_matrix = Adapt.adapt_structure(to, elements._jacobian_matrix)
-    _contravariant_vectors = Adapt.adapt_structure(to, elements._contravariant_vectors)
-    _inverse_jacobian = Adapt.adapt_structure(to, elements._inverse_jacobian)
-    _surface_flux_values = Adapt.adapt_structure(to, elements._surface_flux_values)
+    _node_coordinates = adapt(to, elements._node_coordinates)
+    _jacobian_matrix = adapt(to, elements._jacobian_matrix)
+    _contravariant_vectors = adapt(to, elements._contravariant_vectors)
+    _inverse_jacobian = adapt(to, elements._inverse_jacobian)
+    _surface_flux_values = adapt(to, elements._surface_flux_values)
+
+    RealT = eltype(_inverse_jacobian)
+    uEltype = eltype(_surface_flux_values)
 
     # Wrap arrays again
     node_coordinates = unsafe_wrap_or_alloc(to, _node_coordinates,
@@ -179,8 +178,7 @@ function Adapt.adapt_structure(to,
                        typeof(jacobian_matrix), # ArrayNDIMSP3
                        typeof(_node_coordinates), # VectorRealT
                        typeof(_surface_flux_values), # VectoruEltype
-                       to,
-                       true)
+                       to)
     return P4estElementContainer{new_type_params...}(node_coordinates,
                                                      jacobian_matrix,
                                                      contravariant_vectors,
@@ -294,9 +292,9 @@ end
 # Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, interfaces::P4estInterfaceContainer)
     # Adapt underlying storage
-    _u = Adapt.adapt_structure(to, interfaces._u)
-    _neighbor_ids = Adapt.adapt_structure(to, interfaces._neighbor_ids)
-    _node_indices = Adapt.adapt_structure(to, interfaces._node_indices)
+    _u = adapt(to, interfaces._u)
+    _neighbor_ids = adapt(to, interfaces._neighbor_ids)
+    _node_indices = adapt(to, interfaces._node_indices)
     # Wrap arrays again
     u = unsafe_wrap_or_alloc(to, _u, size(interfaces.u))
     neighbor_ids = unsafe_wrap_or_alloc(to, _neighbor_ids,
@@ -306,12 +304,11 @@ function Adapt.adapt_structure(to, interfaces::P4estInterfaceContainer)
 
     NDIMS = ndims(interfaces)
     new_type_params = (NDIMS,
-                       eltype(interfaces),
+                       eltype(_u),
                        NDIMS + 2,
                        typeof(u), typeof(neighbor_ids), typeof(node_indices),
                        typeof(_u), typeof(_neighbor_ids), typeof(_node_indices),
-                       to,
-                       true)
+                       to)
     return P4estInterfaceContainer{new_type_params...}(u, neighbor_ids, node_indices,
                                                        _u, _neighbor_ids, _node_indices)
 end
@@ -436,16 +433,16 @@ end
 
 # Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, boundaries::P4estBoundaryContainer)
-    _u = Adapt.adapt_structure(to, boundaries._u)
+    _u = adapt(to, boundaries._u)
     u = unsafe_wrap_or_alloc(to, _u, size(boundaries.u))
-    neighbor_ids = Adapt.adapt_structure(to, boundaries.neighbor_ids)
-    node_indices = Adapt.adapt_structure(to, boundaries.node_indices)
+    neighbor_ids = adapt(to, boundaries.neighbor_ids)
+    node_indices = adapt(to, boundaries.node_indices)
     name = boundaries.name
 
     NDIMS = ndims(boundaries)
-    return P4estBoundaryContainer{NDIMS, eltype(boundaries), NDIMS + 1, typeof(u),
+    return P4estBoundaryContainer{NDIMS, eltype(_u), NDIMS + 1, typeof(u),
                                   typeof(neighbor_ids), typeof(node_indices),
-                                  typeof(_u), to, true}(u, neighbor_ids, node_indices,
+                                  typeof(_u), to}(u, neighbor_ids, node_indices,
                                                         name, _u)
 end
 
@@ -574,9 +571,9 @@ end
 # Manual adapt_structure since we have aliasing memory
 function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
     # Adapt underlying storage
-    _u = Adapt.adapt_structure(to, mortars._u)
-    _neighbor_ids = Adapt.adapt_structure(to, mortars._neighbor_ids)
-    _node_indices = Adapt.adapt_structure(to, mortars._node_indices)
+    _u = adapt(to, mortars._u)
+    _neighbor_ids = adapt(to, mortars._neighbor_ids)
+    _node_indices = adapt(to, mortars._node_indices)
 
     # Wrap arrays again
     u = unsafe_wrap_or_alloc(to, _u, size(mortars.u))
@@ -585,13 +582,12 @@ function Adapt.adapt_structure(to, mortars::P4estMortarContainer)
 
     NDIMS = ndims(mortars)
     new_type_params = (NDIMS,
-                       eltype(mortars),
+                       eltype(_u),
                        NDIMS + 1,
                        NDIMS + 3,
                        typeof(u), typeof(neighbor_ids), typeof(node_indices),
                        typeof(_u), typeof(_neighbor_ids), typeof(_node_indices),
-                       to,
-                       true)
+                       to)
     return P4estMortarContainer{new_type_params...}(u, neighbor_ids, node_indices,
                                                     _u, _neighbor_ids, _node_indices)
 end
