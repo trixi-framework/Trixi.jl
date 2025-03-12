@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -41,8 +41,8 @@ boundary_conditions_parabolic = Dict(:x_neg => BoundaryConditionDirichlet(initia
 # Create DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-# This maps the domain [-1, 1]^2 to [-1, 0] x [-0.5, 0.5] while also 
-# introducing a curved warping to interior nodes. 
+# This maps the domain [-1, 1]^2 to [-1, 0] x [-0.5, 0.5] while also
+# introducing a curved warping to interior nodes.
 function mapping(xi, eta)
     x = xi + 0.1 * sin(pi * xi) * sin(pi * eta)
     y = eta + 0.1 * sin(pi * xi) * sin(pi * eta)
@@ -88,6 +88,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 time_int_tol = 1.0e-11
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-# Print the timer summary
-summary_callback()

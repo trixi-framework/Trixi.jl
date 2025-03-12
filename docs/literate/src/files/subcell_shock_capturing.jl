@@ -124,7 +124,6 @@ local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]
 # Since the setup is mostly very similar to a pure DGSEM setup as in
 # `tree_2d_dgsem/elixir_euler_blast_wave.jl`, the equivalent parts are used without any explanation
 # here.
-using OrdinaryDiffEq
 using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
@@ -217,7 +216,6 @@ stage_callbacks = (SubcellLimiterIDPCorrection(),)
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
-summary_callback() # print the timer summary
 
 # ## Visualization
 # As for a standard simulation in Trixi.jl, it is possible to visualize the solution using the

@@ -110,6 +110,8 @@ function solve!(integrator::AbstractPairedExplicitRKIntegrator)
         step!(integrator)
     end
 
+    finalize_callbacks(integrator)
+
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                                   (prob.u0, integrator.u),
                                   integrator.sol.prob)
