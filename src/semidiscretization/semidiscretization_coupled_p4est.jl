@@ -61,53 +61,53 @@ function Base.show(io::IO, semi::SemidiscretizationCoupledP4Est)
     print(io, "SemidiscretizationCoupledP4Est($(semi.semis))")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4Est)
-    @nospecialize semi # reduce precompilation time
+# function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4Est)
+#     @nospecialize semi # reduce precompilation time
+#
+#     if get(io, :compact, false)
+#         show(io, semi)
+#     else
+#         summary_header(io, "SemidiscretizationCoupledP4Est")
+#         summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
+#         summary_line(io, "#systems", nsystems(semi))
+#         for i in eachsystem(semi)
+#             summary_line(io, "system", i)
+#             mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
+#             summary_line(increment_indent(io), "mesh", mesh |> typeof |> nameof)
+#             summary_line(increment_indent(io), "equations",
+#                          equations |> typeof |> nameof)
+#             summary_line(increment_indent(io), "initial condition",
+#                          semi.semis[i].initial_condition)
+#             # no boundary conditions since that could be too much
+#             summary_line(increment_indent(io), "source terms",
+#                          semi.semis[i].source_terms)
+#             summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
+#         end
+#         summary_line(io, "total #DOFs per field", ndofsglobal(semi))
+#         summary_footer(io)
+#     end
+# end
 
-    if get(io, :compact, false)
-        show(io, semi)
-    else
-        summary_header(io, "SemidiscretizationCoupledP4Est")
-        summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
-        summary_line(io, "#systems", nsystems(semi))
-        for i in eachsystem(semi)
-            summary_line(io, "system", i)
-            mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
-            summary_line(increment_indent(io), "mesh", mesh |> typeof |> nameof)
-            summary_line(increment_indent(io), "equations",
-                         equations |> typeof |> nameof)
-            summary_line(increment_indent(io), "initial condition",
-                         semi.semis[i].initial_condition)
-            # no boundary conditions since that could be too much
-            summary_line(increment_indent(io), "source terms",
-                         semi.semis[i].source_terms)
-            summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
-        end
-        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
-        summary_footer(io)
-    end
-end
-
-function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCoupledP4Est)
-    show(io, MIME"text/plain"(), semi)
-    println(io, "\n")
-    for i in eachsystem(semi)
-        mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
-        summary_header(io, "System #$i")
-
-        summary_line(io, "mesh", mesh |> typeof |> nameof)
-        show(increment_indent(io), MIME"text/plain"(), mesh)
-
-        summary_line(io, "equations", equations |> typeof |> nameof)
-        show(increment_indent(io), MIME"text/plain"(), equations)
-
-        summary_line(io, "solver", solver |> typeof |> nameof)
-        show(increment_indent(io), MIME"text/plain"(), solver)
-
-        summary_footer(io)
-        println(io, "\n")
-    end
-end
+# function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCoupledP4Est)
+#     show(io, MIME"text/plain"(), semi)
+#     println(io, "\n")
+#     for i in eachsystem(semi)
+#         mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
+#         summary_header(io, "System #$i")
+#
+#         summary_line(io, "mesh", mesh |> typeof |> nameof)
+#         show(increment_indent(io), MIME"text/plain"(), mesh)
+#
+#         summary_line(io, "equations", equations |> typeof |> nameof)
+#         show(increment_indent(io), MIME"text/plain"(), equations)
+#
+#         summary_line(io, "solver", solver |> typeof |> nameof)
+#         show(increment_indent(io), MIME"text/plain"(), solver)
+#
+#         summary_footer(io)
+#         println(io, "\n")
+#     end
+# end
 
 @inline Base.ndims(semi::SemidiscretizationCoupledP4Est) = ndims(semi.semis[1])
 
@@ -137,22 +137,22 @@ running in parallel with MPI.
     sum(ndofsglobal, semi.semis)
 end
 
-function compute_coefficients(t, semi::SemidiscretizationCoupledP4Est)
-    @unpack u_indices = semi
+# function compute_coefficients(t, semi::SemidiscretizationCoupledP4Est)
+#     @unpack u_indices = semi
+#
+#     u_ode = Vector{real(semi)}(undef, u_indices[end][end])
+#
+#     for i in eachsystem(semi)
+#         # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
+#         u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
+#     end
+#
+#     return u_ode
+# end
 
-    u_ode = Vector{real(semi)}(undef, u_indices[end][end])
-
-    for i in eachsystem(semi)
-        # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
-        u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
-    end
-
-    return u_ode
-end
-
-@inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupledP4Est)
-    @view u_ode[semi.u_indices[index]]
-end
+# @inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupledP4Est)
+#     @view u_ode[semi.u_indices[index]]
+# end
 
 # Same as `foreach(enumerate(something))`, but without allocations.
 #
@@ -171,8 +171,6 @@ end
 end
 
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4Est, t)
-    @unpack u_indices = semi
-
     time_start = time_ns()
 
     @trixi_timeit timer() "copy to coupled boundaries" begin
@@ -703,56 +701,5 @@ function get_boundary_indices(element, orientation,
 
     return cell_indices
 end
-
-################################################################################
-### Special elixirs
-################################################################################
-
-# Analyze convergence for SemidiscretizationCoupled
-function analyze_convergence(errors_coupled, iterations,
-                             semi_coupled::SemidiscretizationCoupled)
-    # Extract errors: the errors are currently stored as
-    # | iter 1 sys 1 var 1...n | iter 1 sys 2 var 1...n | ... | iter 2 sys 1 var 1...n | ...
-    # but for calling `analyze_convergence` below, we need the following layout
-    # sys n: | iter 1 var 1...n | iter 1 var 1...n | ... | iter 2 var 1...n | ...
-    # That is, we need to extract and join the data for a single system
-    errors = Dict{Symbol, Vector{Float64}}[]
-    for i in eachsystem(semi_coupled)
-        push!(errors, Dict(:l2 => Float64[], :linf => Float64[]))
-    end
-    offset = 0
-    for iter in 1:iterations, i in eachsystem(semi_coupled)
-        # Extract information on current semi
-        semi = semi_coupled.semis[i]
-        _, equations, _, _ = mesh_equations_solver_cache(semi)
-        variablenames = varnames(cons2cons, equations)
-
-        # Compute offset
-        first = offset + 1
-        last = offset + length(variablenames)
-        offset += length(variablenames)
-
-        # Append errors to appropriate storage
-        append!(errors[i][:l2], errors_coupled[:l2][first:last])
-        append!(errors[i][:linf], errors_coupled[:linf][first:last])
-    end
-
-    eoc_mean_values = Vector{Dict{Symbol, Any}}(undef, nsystems(semi_coupled))
-    for i in eachsystem(semi_coupled)
-        # Use visual cues to separate output from multiple systems
-        println()
-        println("="^100)
-        println("# System $i")
-        println("="^100)
-
-        # Extract information on current semi
-        semi = semi_coupled.semis[i]
-        _, equations, _, _ = mesh_equations_solver_cache(semi)
-        variablenames = varnames(cons2cons, equations)
-
-        eoc_mean_values[i] = analyze_convergence(errors[i], iterations, variablenames)
-    end
-
-    return eoc_mean_values
-end
 end # @muladd
+
