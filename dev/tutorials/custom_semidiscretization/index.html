@@ -53,11 +53,11 @@ ode = semidiscretize(semi, tspan)
 
 sol = solve(ode, RDPK3SpFSAL49(); ode_default_options()...)
 
-plot(sol; label = &quot;numerical sol.&quot;, legend = :topright)</code></pre><img src="0e71ed08.svg" alt="Example block output"/><p>We can also plot the analytical solution for comparison. Since Trixi.jl uses <code>SVector</code>s for the variables, we take their <code>first</code> (and only) component to get the scalar value for manual plotting.</p><pre><code class="language-julia hljs">let
+plot(sol; label = &quot;numerical sol.&quot;, legend = :topright)</code></pre><img src="cb3c3115.svg" alt="Example block output"/><p>We can also plot the analytical solution for comparison. Since Trixi.jl uses <code>SVector</code>s for the variables, we take their <code>first</code> (and only) component to get the scalar value for manual plotting.</p><pre><code class="language-julia hljs">let
     x = range(-1.0, 1.0; length = 200)
     plot!(x, first.(initial_condition.(x, sol.t[end], equations)),
           label = &quot;analytical sol.&quot;, linestyle = :dash, legend = :topright)
-end</code></pre><img src="29c90e36.svg" alt="Example block output"/><p>We can also add the initial condition to the plot.</p><pre><code class="language-julia hljs">plot!(sol.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="1960b7be.svg" alt="Example block output"/><p>You can of course also use some <a href="https://trixi-framework.github.io/Trixi.jl/stable/callbacks/">callbacks</a> provided by Trixi.jl as usual.</p><pre><code class="language-julia hljs">summary_callback = SummaryCallback()
+end</code></pre><img src="09e1c4a4.svg" alt="Example block output"/><p>We can also add the initial condition to the plot.</p><pre><code class="language-julia hljs">plot!(sol.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="420e2e91.svg" alt="Example block output"/><p>You can of course also use some <a href="https://trixi-framework.github.io/Trixi.jl/stable/callbacks/">callbacks</a> provided by Trixi.jl as usual.</p><pre><code class="language-julia hljs">summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi; interval = analysis_interval)
 alive_callback = AliveCallback(; analysis_interval)
@@ -94,7 +94,7 @@ let
     plot!(x, first.(initial_condition.(x, sol_source_custom.t[end], equations)),
           label = &quot;analytical sol.&quot;, linestyle = :dash, legend = :topleft)
 end
-plot!(sol_source_custom.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="b312255b.svg" alt="Example block output"/><p>This also works with callbacks as usual.</p><pre><code class="language-julia hljs">summary_callback = SummaryCallback()
+plot!(sol_source_custom.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="f9e353e7.svg" alt="Example block output"/><p>This also works with callbacks as usual.</p><pre><code class="language-julia hljs">summary_callback = SummaryCallback()
 analysis_interval = 100
 analysis_callback = AnalysisCallback(semi; interval = analysis_interval)
 alive_callback = AliveCallback(; analysis_interval)
@@ -144,7 +144,7 @@ let
     plot!(x, first.(initial_condition.(x, sol_semi_custom.t[end], equations)),
           label = &quot;analytical sol.&quot;, linestyle = :dash, legend = :topleft)
 end
-plot!(sol_semi_custom.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="e77013d4.svg" alt="Example block output"/><p>This also works with many callbacks as usual. However, the <a href="../../reference-trixi/#Trixi.AnalysisCallback"><code>AnalysisCallback</code></a> requires some special handling since it makes use of a performance counter contained in the standard semidiscretizations of Trixi.jl to report some <a href="../../performance/#performance-metrics">performance metrics</a>. Here, we forward all accesses to the performance counter to the wrapped semidiscretization.</p><pre><code class="language-julia hljs">function Base.getproperty(semi::CustomSemidiscretization, s::Symbol)
+plot!(sol_semi_custom.u[1], semi, label = &quot;u0&quot;, linestyle = :dot, legend = :topleft)</code></pre><img src="cf2b987a.svg" alt="Example block output"/><p>This also works with many callbacks as usual. However, the <a href="../../reference-trixi/#Trixi.AnalysisCallback"><code>AnalysisCallback</code></a> requires some special handling since it makes use of a performance counter contained in the standard semidiscretizations of Trixi.jl to report some <a href="../../performance/#performance-metrics">performance metrics</a>. Here, we forward all accesses to the performance counter to the wrapped semidiscretization.</p><pre><code class="language-julia hljs">function Base.getproperty(semi::CustomSemidiscretization, s::Symbol)
     if s === :performance_counter
         wrapped_semi = getfield(semi, :semi)
         wrapped_semi.performance_counter
@@ -179,8 +179,8 @@ versioninfo()
 
 using Pkg
 Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEqLowStorageRK&quot;, &quot;Plots&quot;],
-           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.8
-Commit 4c16ff44be8 (2025-01-22 10:06 UTC)
+           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.9
+Commit 5595d20a287 (2025-03-10 12:51 UTC)
 Build Info:
   Official https://julialang.org/ release
 Platform Info:
@@ -194,5 +194,5 @@ Environment:
   JULIA_PKG_SERVER_REGISTRY_PREFERENCE = eager
 <span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
   <span class="sgr90">[b0944070] </span>OrdinaryDiffEqLowStorageRK v1.2.1
-  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
-  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.2-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../differentiable_programming/">« 20 Differentiable programming</a><a class="docs-footer-nextpage" href="../../meshes/tree_mesh/">Tree mesh »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.1 on <span class="colophon-date" title="Friday 7 March 2025 19:44">Friday 7 March 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.10
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.2-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../differentiable_programming/">« 20 Differentiable programming</a><a class="docs-footer-nextpage" href="../../meshes/tree_mesh/">Tree mesh »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.1 on <span class="colophon-date" title="Thursday 13 March 2025 05:14">Thursday 13 March 2025</span>. Using Julia version 1.10.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
