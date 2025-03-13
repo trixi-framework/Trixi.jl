@@ -587,12 +587,12 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                 # L2 mortars in x-direction
                 u_large = view(flux_viscous_x, :, nnodes(dg), :, large_element)
                 element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
+                                              mortar, u_large, dg, equations_parabolic)
             else
                 # L2 mortars in y-direction
                 u_large = view(flux_viscous_y, :, :, nnodes(dg), large_element)
                 element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
+                                              mortar, u_large, dg, equations_parabolic)
             end
         else # large_sides[mortar] == 2 -> large element on right side
             leftright = 2
@@ -600,12 +600,12 @@ function prolong2mortars!(cache, flux_viscous::Vector{Array{uEltype, 4}},
                 # L2 mortars in x-direction
                 u_large = view(flux_viscous_x, :, 1, :, large_element)
                 element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
+                                              mortar, u_large, dg, equations_parabolic)
             else
                 # L2 mortars in y-direction
                 u_large = view(flux_viscous_y, :, :, 1, large_element)
                 element_solutions_to_mortars!(cache.mortars, mortar_l2, leftright,
-                                              mortar, u_large)
+                                              mortar, u_large, dg, equations_parabolic)
             end
         end
     end
