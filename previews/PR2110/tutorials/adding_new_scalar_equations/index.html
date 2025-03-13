@@ -105,21 +105,21 @@ sol = solve(ode, SSPRK43();
 <span class="sgr1">─────────────────────────────────────────────────────────────────────────────────</span>
 <span class="sgr1">           Trixi.jl            </span>         Time                    Allocations
                                ───────────────────────   ────────────────────────
-       Tot / % measured:            112μs /  75.1%           10.6KiB /  62.2%
+       Tot / % measured:            117μs /  76.5%           10.6KiB /  62.2%
 
 Section                ncalls     time    %tot     avg     alloc    %tot      avg
 ─────────────────────────────────────────────────────────────────────────────────
-rhs!                       58   84.5μs  100.0%  1.46μs   6.61KiB  100.0%     117B
-  ~rhs!~                   58   44.1μs   52.2%   761ns   6.61KiB  100.0%     117B
-  volume integral          58   14.8μs   17.6%   256ns     0.00B    0.0%    0.00B
-  interface flux           58   6.39μs    7.6%   110ns     0.00B    0.0%    0.00B
-  prolong2interfaces       58   4.29μs    5.1%  73.9ns     0.00B    0.0%    0.00B
-  surface integral         58   3.47μs    4.1%  59.8ns     0.00B    0.0%    0.00B
-  Jacobian                 58   2.88μs    3.4%  49.6ns     0.00B    0.0%    0.00B
-  prolong2boundaries       58   2.53μs    3.0%  43.7ns     0.00B    0.0%    0.00B
-  reset ∂u/∂t              58   2.38μs    2.8%  41.1ns     0.00B    0.0%    0.00B
-  boundary flux            58   1.84μs    2.2%  31.7ns     0.00B    0.0%    0.00B
-  source terms             58   1.75μs    2.1%  30.2ns     0.00B    0.0%    0.00B
+rhs!                       58   89.2μs  100.0%  1.54μs   6.61KiB  100.0%     117B
+  ~rhs!~                   58   46.5μs   52.1%   802ns   6.61KiB  100.0%     117B
+  volume integral          58   16.7μs   18.7%   287ns     0.00B    0.0%    0.00B
+  interface flux           58   6.12μs    6.9%   106ns     0.00B    0.0%    0.00B
+  prolong2interfaces       58   4.26μs    4.8%  73.4ns     0.00B    0.0%    0.00B
+  surface integral         58   3.72μs    4.2%  64.1ns     0.00B    0.0%    0.00B
+  prolong2boundaries       58   3.07μs    3.4%  52.9ns     0.00B    0.0%    0.00B
+  Jacobian                 58   3.03μs    3.4%  52.2ns     0.00B    0.0%    0.00B
+  reset ∂u/∂t              58   2.25μs    2.5%  38.9ns     0.00B    0.0%    0.00B
+  source terms             58   1.83μs    2.0%  31.5ns     0.00B    0.0%    0.00B
+  boundary flux            58   1.77μs    2.0%  30.5ns     0.00B    0.0%    0.00B
 <span class="sgr1">─────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>That&#39;s it, you ran your first simulation using your new equation with Trixi.jl! Now, we can plot the solution at the final time using Plots.jl.</p><pre><code class="language-julia hljs">using Plots
 plot(sol)</code></pre><img src="346219f9.svg" alt="Example block output"/><p>You can already see that discontinuities will develop and oscillations start to occur around steep parts of the wave. That&#39;s expected from our central discretization. To avoid these issues, we need to use dissipative numerical fluxes (approximate Riemann solvers) at interfaces.</p><h2 id="Advanced-setup"><a class="docs-heading-anchor" href="#Advanced-setup">Advanced setup</a><a id="Advanced-setup-1"></a><a class="docs-heading-anchor-permalink" href="#Advanced-setup" title="Permalink"></a></h2><p>Thus, we add a Godunov&#39;s flux for our cubic equation. That is easy for this equation since the wave speed <code>f&#39;(u) = 3u^2</code> is always non-negative.</p><pre><code class="language-julia hljs">@inline Trixi.flux_godunov(u_ll, u_rr, orientation, equation::CubicEquation) = flux(u_ll,
                                                                                     orientation,
@@ -213,8 +213,8 @@ versioninfo()
 
 using Pkg
 Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEqSSPRK&quot;, &quot;Plots&quot;],
-           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.8
-Commit 4c16ff44be8 (2025-01-22 10:06 UTC)
+           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.9
+Commit 5595d20a287 (2025-03-10 12:51 UTC)
 Build Info:
   Official https://julialang.org/ release
 Platform Info:
@@ -228,5 +228,5 @@ Environment:
   JULIA_PKG_SERVER_REGISTRY_PREFERENCE = eager
 <span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
   <span class="sgr90">[669c94d9] </span>OrdinaryDiffEqSSPRK v1.2.0
-  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
-  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.2-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../upwind_fdsbp/">« 10 Upwind FD SBP schemes</a><a class="docs-footer-nextpage" href="../adding_nonconservative_equation/">12 Adding a non-conservative equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.1 on <span class="colophon-date" title="Monday 10 March 2025 12:20">Monday 10 March 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.10
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.2-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../upwind_fdsbp/">« 10 Upwind FD SBP schemes</a><a class="docs-footer-nextpage" href="../adding_nonconservative_equation/">12 Adding a non-conservative equation »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.1 on <span class="colophon-date" title="Thursday 13 March 2025 17:31">Thursday 13 March 2025</span>. Using Julia version 1.10.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

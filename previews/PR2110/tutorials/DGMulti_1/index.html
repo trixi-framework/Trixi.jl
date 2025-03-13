@@ -29,11 +29,11 @@ callbacks = CallbackSet(analysis_callback, alive_callback);</code></pre><p>Run t
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       1.37300000e-06 s
+ #timesteps:                  0                run time:       1.24200000e-06 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:        766.704 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:        813.873 MiB
  #elements:               16384
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -42,18 +42,18 @@ callbacks = CallbackSet(analysis_callback, alive_callback);</code></pre><p>Run t
  ∑∂S/∂U ⋅ Uₜ :  -8.96621432e-17
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 8.7726e-03 │ sim. time: 6.2374e-02 (15.594%)  │ run time: 5.2149e+00 s
-#timesteps:     20 │ Δt: 1.2422e-02 │ sim. time: 1.7295e-01 (43.238%)  │ run time: 9.9588e+00 s
-#timesteps:     30 │ Δt: 1.3709e-02 │ sim. time: 3.0609e-01 (76.522%)  │ run time: 1.4650e+01 s
+#timesteps:     10 │ Δt: 8.7726e-03 │ sim. time: 6.2374e-02 (15.594%)  │ run time: 5.2754e+00 s
+#timesteps:     20 │ Δt: 1.2422e-02 │ sim. time: 1.7295e-01 (43.238%)  │ run time: 9.9792e+00 s
+#timesteps:     30 │ Δt: 1.3709e-02 │ sim. time: 3.0609e-01 (76.522%)  │ run time: 1.4691e+01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 37                run time:       1.79581870e+01 s
- Δt:             9.70561500e-03                └── GC time:    9.50646688e-01 s (5.294%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  9.17848411e-08 s
-                                               PID:            3.26157865e-06 s
- #DOFs per field:         16384                alloc&#39;d memory:        977.754 MiB
+ #timesteps:                 37                run time:       1.79820107e+01 s
+ Δt:             9.70561500e-03                └── GC time:    1.02546800e+00 s (5.703%)
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  9.32520618e-08 s
+                                               PID:            3.26589345e-06 s
+ #DOFs per field:         16384                alloc&#39;d memory:        937.633 MiB
  #elements:               16384
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -97,11 +97,11 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       1.37200000e-06 s
+ #timesteps:                  0                run time:       1.43300000e-06 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:        897.064 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:       1316.410 MiB
  #elements:               16384
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -110,19 +110,19 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
  ∑∂S/∂U ⋅ Uₜ :  -1.01164379e-01
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 5.0471e-03 │ sim. time: 3.3353e-02 (8.338%)   │ run time: 5.0699e+00 s
-#timesteps:     20 │ Δt: 8.8313e-03 │ sim. time: 1.0593e-01 (26.482%)  │ run time: 1.0206e+01 s
-#timesteps:     30 │ Δt: 1.0520e-02 │ sim. time: 2.0429e-01 (51.074%)  │ run time: 1.5253e+01 s
-#timesteps:     40 │ Δt: 1.1006e-02 │ sim. time: 3.1237e-01 (78.093%)  │ run time: 2.0357e+01 s
+#timesteps:     10 │ Δt: 5.0471e-03 │ sim. time: 3.3353e-02 (8.338%)   │ run time: 5.1036e+00 s
+#timesteps:     20 │ Δt: 8.8313e-03 │ sim. time: 1.0593e-01 (26.482%)  │ run time: 1.0214e+01 s
+#timesteps:     30 │ Δt: 1.0520e-02 │ sim. time: 2.0429e-01 (51.074%)  │ run time: 1.5291e+01 s
+#timesteps:     40 │ Δt: 1.1006e-02 │ sim. time: 3.1237e-01 (78.093%)  │ run time: 2.0398e+01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 48                run time:       2.44902717e+01 s
- Δt:             1.00922624e-02                └── GC time:    1.32450660e+00 s (5.408%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  3.10168683e-07 s
-                                               PID:            3.43526550e-06 s
- #DOFs per field:         16384                alloc&#39;d memory:        773.436 MiB
+ #timesteps:                 48                run time:       2.44781954e+01 s
+ Δt:             1.00922624e-02                └── GC time:    1.41912047e+00 s (5.797%)
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  3.07375791e-07 s
+                                               PID:            3.43358128e-06 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1077.786 MiB
  #elements:               16384
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -169,7 +169,7 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         30720                alloc&#39;d memory:        773.605 MiB
+ #DOFs per field:         30720                alloc&#39;d memory:       1076.973 MiB
  #elements:               30720
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -178,19 +178,19 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
  ∑∂S/∂U ⋅ Uₜ :  -7.93719284e-03
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     10 │ Δt: 6.6161e-03 │ sim. time: 4.5052e-02 (11.263%)  │ run time: 9.9289e+00 s
-#timesteps:     20 │ Δt: 1.0469e-02 │ sim. time: 1.3545e-01 (33.861%)  │ run time: 1.9373e+01 s
-#timesteps:     30 │ Δt: 1.2067e-02 │ sim. time: 2.5018e-01 (62.545%)  │ run time: 2.8757e+01 s
-#timesteps:     40 │ Δt: 1.2627e-02 │ sim. time: 3.7413e-01 (93.532%)  │ run time: 3.8169e+01 s
+#timesteps:     10 │ Δt: 6.6161e-03 │ sim. time: 4.5052e-02 (11.263%)  │ run time: 1.0127e+01 s
+#timesteps:     20 │ Δt: 1.0469e-02 │ sim. time: 1.3545e-01 (33.861%)  │ run time: 1.9538e+01 s
+#timesteps:     30 │ Δt: 1.2067e-02 │ sim. time: 2.5018e-01 (62.545%)  │ run time: 2.8968e+01 s
+#timesteps:     40 │ Δt: 1.2627e-02 │ sim. time: 3.7413e-01 (93.532%)  │ run time: 3.8380e+01 s
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 43                run time:       4.10176256e+01 s
- Δt:             4.97642894e-04                └── GC time:    2.15416156e+00 s (5.252%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  2.71736729e-07 s
-                                               PID:            3.42273469e-06 s
- #DOFs per field:         30720                alloc&#39;d memory:       1107.765 MiB
+ #timesteps:                 43                run time:       4.12196859e+01 s
+ Δt:             4.97642894e-04                └── GC time:    2.30728420e+00 s (5.598%)
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  2.71946913e-07 s
+                                               PID:            3.43960718e-06 s
+ #DOFs per field:         30720                alloc&#39;d memory:       1096.525 MiB
  #elements:               30720
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -248,11 +248,11 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       1.10200000e-06 s
+ #timesteps:                  0                run time:       8.92000000e-07 s
  Δt:             1.49245207e-03                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:          5980                alloc&#39;d memory:        978.506 MiB
+ #DOFs per field:          5980                alloc&#39;d memory:        879.935 MiB
  #elements:                5980
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -261,12 +261,12 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
  ∑∂S/∂U ⋅ Uₜ :  -1.23444983e-02
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 
-#timesteps:     20 │ Δt: 1.4925e-03 │ sim. time: 2.9849e-02 (14.925%)  │ run time: 5.5184e-01 s
-#timesteps:     40 │ Δt: 1.4925e-03 │ sim. time: 5.9698e-02 (29.849%)  │ run time: 1.0920e+00 s
-#timesteps:     60 │ Δt: 1.4925e-03 │ sim. time: 8.9547e-02 (44.774%)  │ run time: 1.6307e+00 s
-#timesteps:     80 │ Δt: 1.4925e-03 │ sim. time: 1.1940e-01 (59.698%)  │ run time: 2.1730e+00 s
-#timesteps:    100 │ Δt: 1.4925e-03 │ sim. time: 1.4925e-01 (74.623%)  │ run time: 2.7117e+00 s
-#timesteps:    120 │ Δt: 1.4925e-03 │ sim. time: 1.7909e-01 (89.547%)  │ run time: 3.2526e+00 s
+#timesteps:     20 │ Δt: 1.4925e-03 │ sim. time: 2.9849e-02 (14.925%)  │ run time: 5.5650e-01 s
+#timesteps:     40 │ Δt: 1.4925e-03 │ sim. time: 5.9698e-02 (29.849%)  │ run time: 1.0999e+00 s
+#timesteps:     60 │ Δt: 1.4925e-03 │ sim. time: 8.9547e-02 (44.774%)  │ run time: 1.6420e+00 s
+#timesteps:     80 │ Δt: 1.4925e-03 │ sim. time: 1.1940e-01 (59.698%)  │ run time: 2.1856e+00 s
+#timesteps:    100 │ Δt: 1.4925e-03 │ sim. time: 1.4925e-01 (74.623%)  │ run time: 2.7296e+00 s
+#timesteps:    120 │ Δt: 1.4925e-03 │ sim. time: 1.7909e-01 (89.547%)  │ run time: 3.2795e+00 s
 ────────────────────────────────────────────────────────────────────────────────────────────────────
 Trixi.jl simulation finished.  Final time: 0.2  Time steps: 135 (accepted), 135 (total)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -275,11 +275,11 @@ Trixi.jl simulation finished.  Final time: 0.2  Time steps: 135 (accepted), 135 
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGMulti(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                135                run time:       3.65729625e+00 s
+ #timesteps:                135                run time:       3.68810921e+00 s
  Δt:             1.14223386e-05                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      2.00000000e-01 (100.000%)     time/DOF/rhs!:  8.94729809e-07 s
-                                               PID:            9.03114396e-07 s
- #DOFs per field:          5980                alloc&#39;d memory:        985.815 MiB
+ sim. time:      2.00000000e-01 (100.000%)     time/DOF/rhs!:  9.01174063e-07 s
+                                               PID:            9.10752801e-07 s
+ #DOFs per field:          5980                alloc&#39;d memory:        887.244 MiB
  #elements:                5980
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -294,8 +294,8 @@ versioninfo()
 
 using Pkg
 Pkg.status([&quot;Trixi&quot;, &quot;StartUpDG&quot;, &quot;OrdinaryDiffEqLowStorageRK&quot;, &quot;Plots&quot;],
-           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.8
-Commit 4c16ff44be8 (2025-01-22 10:06 UTC)
+           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.9
+Commit 5595d20a287 (2025-03-10 12:51 UTC)
 Build Info:
   Official https://julialang.org/ release
 Platform Info:
@@ -309,6 +309,6 @@ Environment:
   JULIA_PKG_SERVER_REGISTRY_PREFERENCE = eager
 <span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
   <span class="sgr90">[b0944070] </span>OrdinaryDiffEqLowStorageRK v1.2.1
-  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
+  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.10
   <span class="sgr90">[472ebc20] </span>StartUpDG v1.1.5
-  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.2-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../non_periodic_boundaries/">« 7 Non-periodic boundaries</a><a class="docs-footer-nextpage" href="../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.1 on <span class="colophon-date" title="Monday 10 March 2025 12:20">Monday 10 March 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.2-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../non_periodic_boundaries/">« 7 Non-periodic boundaries</a><a class="docs-footer-nextpage" href="../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.1 on <span class="colophon-date" title="Thursday 13 March 2025 17:31">Thursday 13 March 2025</span>. Using Julia version 1.10.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

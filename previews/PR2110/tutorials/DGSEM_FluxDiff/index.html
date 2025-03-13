@@ -54,11 +54,11 @@ ode = semidiscretize(semi, tspan);</code></pre><p>To analyse the entropy conserv
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       7.62000000e-07 s
+ #timesteps:                  0                run time:       8.21000000e-07 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:       1232.486 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:       1073.906 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -71,11 +71,11 @@ ode = semidiscretize(semi, tspan);</code></pre><p>To analyse the entropy conserv
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 61                run time:       8.35595830e-01 s
+ #timesteps:                 61                run time:       8.41922033e-01 s
  Δt:             2.65388338e-06                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  8.60744011e-08 s
-                                               PID:            9.18863651e-08 s
- #DOFs per field:         16384                alloc&#39;d memory:       1238.628 MiB
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  8.67664922e-08 s
+                                               PID:            9.25750370e-08 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1080.048 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -113,11 +113,11 @@ analysis_callback = AnalysisCallback(semi, interval = 100);</code></pre><p>We no
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                  0                run time:       9.02000000e-07 s
+ #timesteps:                  0                run time:       8.21000000e-07 s
  Δt:             0.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
  sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
                                                PID:                   Inf s
- #DOFs per field:         16384                alloc&#39;d memory:       1169.814 MiB
+ #DOFs per field:         16384                alloc&#39;d memory:       1339.449 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -130,11 +130,11 @@ analysis_callback = AnalysisCallback(semi, interval = 100);</code></pre><p>We no
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
 ────────────────────────────────────────────────────────────────────────────────────────────────────
- #timesteps:                 37                run time:       4.92053664e-01 s
+ #timesteps:                 37                run time:       4.94891645e-01 s
  Δt:             9.70561500e-03                └── GC time:    0.00000000e+00 s (0.000%)
- sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  8.26211685e-08 s
-                                               PID:            8.85523137e-08 s
- #DOFs per field:         16384                alloc&#39;d memory:       1175.952 MiB
+ sim. time:      4.00000000e-01 (100.000%)     time/DOF/rhs!:  8.28606747e-08 s
+                                               PID:            8.90517587e-08 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1345.588 MiB
  #elements:                1024
 
  Variable:       rho              rho_v1           rho_v2           rho_e
@@ -147,8 +147,8 @@ versioninfo()
 
 using Pkg
 Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEqLowStorageRK&quot;, &quot;Plots&quot;],
-           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.8
-Commit 4c16ff44be8 (2025-01-22 10:06 UTC)
+           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.9
+Commit 5595d20a287 (2025-03-10 12:51 UTC)
 Build Info:
   Official https://julialang.org/ release
 Platform Info:
@@ -162,5 +162,5 @@ Environment:
   JULIA_PKG_SERVER_REGISTRY_PREFERENCE = eager
 <span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
   <span class="sgr90">[b0944070] </span>OrdinaryDiffEqLowStorageRK v1.2.1
-  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
-  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.2-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../scalar_linear_advection_1d/">« 3 Introduction to DG methods</a><a class="docs-footer-nextpage" href="../shock_capturing/">5 Shock capturing with flux differencing and stage limiter »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.1 on <span class="colophon-date" title="Monday 10 March 2025 12:18">Monday 10 March 2025</span>. Using Julia version 1.10.8.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.10
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.2-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../scalar_linear_advection_1d/">« 3 Introduction to DG methods</a><a class="docs-footer-nextpage" href="../shock_capturing/">5 Shock capturing with flux differencing and stage limiter »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.1 on <span class="colophon-date" title="Thursday 13 March 2025 17:29">Thursday 13 March 2025</span>. Using Julia version 1.10.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
