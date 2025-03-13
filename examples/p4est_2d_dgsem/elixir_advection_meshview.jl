@@ -59,6 +59,3 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
-# Load the mesh file for code coverage.
-loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
-                                     RealT = typeof(parent_mesh).parameters[3])
