@@ -115,8 +115,12 @@ function rhs!(du, u, t,
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
+
+    @unpack surface_flux_values = cache.elements
+
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
+
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
@@ -157,6 +161,7 @@ function rhs!(du, u, t,
     end
 
     # Calculate mortar fluxes
+    # TODO!!!
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
                           have_nonconservative_terms(equations), equations,
@@ -325,6 +330,7 @@ end
         end
     end
 end
+
 
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{2},
@@ -876,6 +882,7 @@ function calc_boundary_flux_by_direction!(t, boundary_condition,
             else # Element is on the right, boundary on the left
                 u_inner = u_rr
             end
+
             x = get_node_coords(node_coordinates, equations, dg, i, boundary)
             flux = boundary_condition(u_inner, orientations[boundary], direction, x, t,
                                       surface_flux,
