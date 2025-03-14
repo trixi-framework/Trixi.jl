@@ -1422,4 +1422,104 @@ function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
 
     return nothing
 end
+
+# Container for storing values of auxiliary variables at volume/surface quadrature nodes
+struct AuxiliaryNodeVariablesContainer{NDIMS, uEltype <: Real, NDIMSP2}
+    auxiliary_node_vars::Array{uEltype, NDIMSP2}         # [variable, i, j, k, element]
+    auxiliary_surface_node_vars::Array{uEltype, NDIMSP2} # [variable, i, j, k, element]
+
+    # internal `resize!`able storage
+    _auxiliary_node_vars::Vector{uEltype}
+    _auxiliary_surface_node_vars::Vector{uEltype}
+end
+
+# TODO: generic? local_leaf_cells, count_required_interfaces
+# Create auxiliary node variable container and initialize auxiliary variables
+function init_auxiliary_node_variables(mesh, equations, solver, cache,
+                                       auxiliary_field)
+
+    @unpack  elements, interfaces = cache
+    leaf_cell_ids = local_leaf_cells(mesh.tree)
+
+    n_elements = nelements(elements)
+    ninterfaces = count_required_interfaces(mesh, leaf_cell_ids)
+    #ninterfaces = Trixi.count_required_surfaces(mesh).interfaces
+    NDIMS = ndims(mesh)
+    uEltype = eltype(elements)
+
+    _auxiliary_node_vars = Vector{uEltype}(undef,
+                                           n_auxiliary_node_vars(equations) *
+                                           nnodes(solver)^NDIMS * n_elements)
+    auxiliary_node_vars = unsafe_wrap(Array, pointer(_auxiliary_node_vars),
+                                      (n_auxiliary_node_vars(equations),
+                                       ntuple(_ -> nnodes(solver), NDIMS)...,
+                                       n_elements))
+    _auxiliary_surface_node_vars = Vector{uEltype}(undef,
+                                                   2 * n_auxiliary_node_vars(equations) *
+                                                   nnodes(solver)^(NDIMS - 1) * ninterfaces)
+    auxiliary_surface_node_vars = unsafe_wrap(Array, pointer(_auxiliary_surface_node_vars),
+                                              (2, n_auxiliary_node_vars(equations),
+                                               ntuple(_ -> nnodes(solver), NDIMS - 1)...,
+                                               ninterfaces))
+
+    auxiliary_variables = AuxiliaryNodeVariablesContainer{NDIMS, uEltype, NDIMS + 2}(
+        auxiliary_node_vars, auxiliary_surface_node_vars,
+        _auxiliary_node_vars, _auxiliary_surface_node_vars)
+
+    init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, solver, cache,
+                                   auxiliary_field)
+    init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equations, solver,
+                                           cache)
+    return auxiliary_variables
+end
+
+function init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, solver,
+                                        cache, auxiliary_field)
+    @unpack auxiliary_node_vars = auxiliary_variables
+    @unpack node_coordinates = cache.elements
+
+    @threaded for element in eachelement(solver, cache)
+        for j in eachnode(solver), i in eachnode(solver)
+            x_local = get_node_coords(node_coordinates, equations, solver,
+                                      i, j, element)
+            set_auxiliary_node_vars!(auxiliary_node_vars, auxiliary_field(x_local),
+                                     equations, solver, i, j, element)
+        end
+    end
+end
+
+function init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equations,
+                                                solver, cache)
+    @unpack auxiliary_node_vars, auxiliary_surface_node_vars = auxiliary_variables
+    @unpack orientations, neighbor_ids = cache.interfaces
+
+    @threaded for interface in eachinterface(solver, cache)
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
+
+        if orientations[interface] == 1
+            # interface in x-direction
+            for j in eachnode(solver)
+                for v in axes(auxiliary_surface_node_vars, 1)
+                    auxiliary_surface_node_vars[1, v, j, interface] =
+                    auxiliary_node_vars[v, nnodes(solver), j, left_element]
+                    auxiliary_surface_node_vars[2, v, j, interface] =
+                    auxiliary_node_vars[v, 1, j, right_element]
+                end
+            end
+        else # if orientations[interface] == 2
+            # interface in y-direction
+            for i in eachnode(solver)
+                for v in axes(auxiliary_surface_node_vars, 1)
+                    auxiliary_surface_node_vars[1, v, i, interface] =
+                    auxiliary_node_vars[v, i, nnodes(solver), left_element]
+                    auxiliary_surface_node_vars[2, v, i, interface] =
+                    auxiliary_node_vars[v, i, 1, right_element]
+                end
+            end
+        end
+    end
+
+    return nothing
+end
 end # @muladd

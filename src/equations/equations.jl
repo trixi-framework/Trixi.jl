@@ -308,6 +308,15 @@ function n_nonconservative_terms end
 have_constant_speed(::AbstractEquations) = False()
 
 """
+    have_auxiliary_node_vars(equations)
+
+Trait function determining whether `equations` need to access additional auxiliary
+variables.
+The return value will be `True()` or `False()` to allow dispatching on the return type.
+"""
+have_auxiliary_node_vars(::AbstractEquations) = False()
+
+"""
     default_analysis_errors(equations)
 
 Default analysis errors (`:l2_error` and `:linf_error`) used by the
@@ -488,10 +497,12 @@ include("shallow_water_quasi_1d.jl")
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
+include("compressible_euler_abstract.jl")
 include("compressible_euler_1d.jl")
 include("compressible_euler_2d.jl")
 include("compressible_euler_3d.jl")
 include("compressible_euler_quasi_1d.jl")
+include("compressible_euler_perturbation_2d.jl")
 
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <:

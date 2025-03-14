@@ -64,11 +64,19 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       # `RealT` is used as real type for node locations etc.
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT = real(solver), uEltype = RealT,
-                                      initial_cache = NamedTuple())
+                                      initial_cache = NamedTuple(),
+                                      auxiliary_field = nothing)
     @assert ndims(mesh) == ndims(equations)
 
     cache = (; create_cache(mesh, equations, solver, RealT, uEltype)...,
              initial_cache...)
+
+    # Add specialized parts of the cache for auxiliary node variables
+    cache = (; cache...,
+               create_cache_auxiliary(mesh, equations, solver, cache,
+                                      have_auxiliary_node_vars(equations),
+                                      auxiliary_field)...)
+
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
 
@@ -101,6 +109,20 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
     #       the indicators and their own caches...).
     SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                  source_terms, boundary_conditions, uEltype)
+end
+
+# If there are auxiliary variables, initialize them
+function create_cache_auxiliary(mesh, equations, solver, cache,
+                                have_auxiliary_node_vars::True, auxiliary_field)
+    auxiliary_variables = init_auxiliary_node_variables(mesh, equations, solver, cache,
+                                                        auxiliary_field)
+    return (; auxiliary_variables)
+end
+
+# Do nothing if there are no auxiliary variables
+function create_cache_auxiliary(mesh, equations, solver, cache,
+                                have_auxiliary_node_vars::False, auxiliary_field)
+    return NamedTuple()
 end
 
 # general fallback
