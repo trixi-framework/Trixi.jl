@@ -1,5 +1,6 @@
 using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
+using Plots
 
 # Warm bubble test case from
 # - Wicker, L. J., and Skamarock, W. C. (1998)
@@ -72,8 +73,6 @@ function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquationsPer
     E_ref = c_v * T_ref
 
     return SVector(rho - rho_ref, rho * v1, rho * v2, rho * E - rho_ref * E_ref)
-    #return SVector(rho, rho * v1, rho * v2, rho * E - rho_ref * E_ref)
-    #return SVector(rho - rho_ref, rho * v1, rho * v2, rho * E)
     #return SVector(rho, rho * v1, rho * v2, rho * E)
 end
 
@@ -97,9 +96,7 @@ function (setup::WarmBubbleSetup)(x)
     rho_ref = p_ref / (R * T_ref)
     E_ref = c_v * T_ref
 
-    return SVector(rho_ref, rho_ref * E_ref, p_ref)
-    #return SVector(0, rho_ref * E_ref)
-    #return SVector(rho_ref, 0)
+    return SVector(rho_ref, rho_ref * E_ref)
     #return SVector(0, 0)
 end
 
@@ -108,10 +105,9 @@ end
                                           ::CompressibleEulerEquationsPerturbation2D)
     @unpack g = setup
     rho_pert, _, rho_v2, _ = u
-    rho_ref, _ = aux
 
     # TODO: use perturbation
-    rho_total = rho_ref + rho_pert
+    rho_total = rho_pert + aux[1]
 
     return SVector(zero(eltype(u)), zero(eltype(u)), -g * rho_pert, -g * rho_v2)
 end
@@ -171,14 +167,23 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = analysis_interval,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     output_directory = "out_warm_bubble_pert+p",
+                                     output_directory = "out_warm_bubble_testing",
                                      solution_variables = cons2cons)
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
+visualization = VisualizationCallback(interval = 100, show_mesh = false,
+                                      suspend = true,
+                                      #plot_creator = Trixi.show_plot_makie,
+                                      solution_variables = cons2prim_pert,
+                                      variable_names = ["rho_pert"],
+                                      #aspect_ratio = 4
+                                      )
+
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
+                        visualization,
                         save_solution)
                         #stepsize_callback)
 

@@ -22,20 +22,22 @@ struct CompressibleEulerEquationsPerturbation2D{RealT <: Real} <:
 end
 
 have_auxiliary_node_vars(::CompressibleEulerEquationsPerturbation2D) = True()
-n_auxiliary_node_vars(::CompressibleEulerEquationsPerturbation2D) = 3
+n_auxiliary_node_vars(::CompressibleEulerEquationsPerturbation2D) = 2
 
 # Convert conservative variables to primitive
-#=
-@inline function cons2prim(u, equations::CompressibleEulerEquationsPerturbation2D)
+@inline function cons2prim_pert(u, equations::CompressibleEulerEquationsPerturbation2D)
     rho, rho_v1, rho_v2, rho_e = u
 
+    # TODO does not work for rho ~ 0
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
 
     return SVector(rho, v1, v2, p)
 end
-=#
+
+varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbation2D) =
+    ("rho_pert", "v1", "v2", "p_pert")
 
 @inline function cons2prim_total(u, aux,
                                  equations::CompressibleEulerEquationsPerturbation2D)
@@ -43,7 +45,7 @@ end
 
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * rho_v1 + rho_v2 * rho_v2) / rho)
+    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
 
     return SVector(rho, v1, v2, p)
 end
@@ -55,8 +57,10 @@ end
 end
 
 # Convert conservative variables to entropy
-# TODO !!!!
 @inline function cons2entropy(u, equations::CompressibleEulerEquationsPerturbation2D)
+    # TODO: based on total quantities?
+    #rho, v1, v2, p = cons2prim_total
+
     rho, rho_v1, rho_v2, rho_e = u
 
     v1 = rho_v1 / rho
@@ -106,52 +110,26 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
-#=
-# Calculate 2D flux for a single point
-@inline function flux(u, orientation::Integer,
-                      equations::CompressibleEulerEquationsPerturbation2D)
-    rho, rho_v1, rho_v2, rho_e = u
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    # p computed based on total quantities
-    # TODO p perturbed?
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
-    if orientation == 1
-        f1 = rho_v1
-        f2 = rho_v1 * v1 + p
-        f3 = rho_v1 * v2
-        f4 = (rho_e + p) * v1
-    else
-        f1 = rho_v2
-        f2 = rho_v2 * v1
-        f3 = rho_v2 * v2 + p
-        f4 = (rho_e + p) * v2
-    end
-    return SVector(f1, f2, f3, f4)
-end
-=#
-
 # Calculate 2D flux for a single point
 @inline function flux(u, aux, orientation::Integer,
                       equations::CompressibleEulerEquationsPerturbation2D)
-    rho, rho_v1, rho_v2, rho_e = u
-    rho_total = rho + aux[1]
-    rho_e_total = rho_e + aux[2]
-    # p computed based on total quantities
-    p_total = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * rho_v1 + rho_v2 * rho_v2) / rho_total)
-    p_pert = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * rho_v1 + rho_v2 * rho_v2) / rho_total)
-    # TODO override
-    #p_pert = p_total - aux[3]
+    _, rho_v1, rho_v2, rho_e = u
+    rho_total, _, _, rho_e_total = cons2cons_total(u, aux, equations)
+    v1 = rho_v1 / rho_total
+    v2 = rho_v2 / rho_total
+    p_total = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    p_pert  = (equations.gamma - 1) * (rho_e       - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+
     if orientation == 1
         f1 = rho_v1
-        f2 = rho_v1 * rho_v1 / rho_total + p_pert
-        f3 = rho_v1 * rho_v2 / rho_total
-        f4 = (rho_e_total + p_total) * rho_v1 / rho_total
+        f2 = rho_v1 * v1 + p_pert
+        f3 = rho_v1 * v2
+        f4 = (rho_e_total + p_total) * v1
     else
         f1 = rho_v2
-        f2 = rho_v2 * rho_v1 / rho_total
-        f3 = rho_v2 * rho_v2 / rho_total +  p_pert
-        f4 = (rho_e_total + p_total) * rho_v2 / rho_total
+        f2 = rho_v2 * v1
+        f3 = rho_v2 * v2 + p_pert
+        f4 = (rho_e_total + p_total) * v2
     end
     return SVector(f1, f2, f3, f4)
 end
@@ -384,6 +362,8 @@ end
                                                      x, t,
                                                      surface_flux_function,
                                                      equations::CompressibleEulerEquationsPerturbation2D)
+    # create the "external" boundary solution state
+    # independent on normal, only x or y relevant
     if orientation == 1
         u2 = -u_inner[2]
         u3 = u_inner[3]
@@ -392,13 +372,12 @@ end
         u3 = -u_inner[3]
     end
 
-    # create the "external" boundary solution state
     u_boundary = SVector(u_inner[1],
                          u2,
                          u3,
                          u_inner[4])
 
-    # calculate the boundary flux
+    # direction?
     if isodd(direction)
         flux = flux_central(u_inner, u_boundary, aux_inner, aux_inner,
                              orientation, equations)
