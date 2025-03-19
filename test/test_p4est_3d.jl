@@ -135,6 +135,26 @@ end
                             0.008526972236273522
                         ],
                         tspan=(0.0, 0.01))
+
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_source_terms_nonconforming_unstructured_curved.jl"),
+                        surface_flux=FluxPlusDissipation(flux_ranocha,
+                                                         DissipationMatrixWintersEtal()),
+                        l2=[
+                            4.068002997087932e-5,
+                            4.4742882348806466e-5,
+                            5.101817697733163e-5,
+                            5.100410876233901e-5,
+                            0.000199848133462063
+                        ],
+                        linf=[
+                            0.0013080357114820806,
+                            0.0028524316301083985,
+                            0.0019100643150573582,
+                            0.0024800222220195955,
+                            0.00830424488849335
+                        ],
+                        tspan=(0.0, 0.01),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
