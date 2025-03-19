@@ -248,7 +248,7 @@ end
 end
 
 function prolong2boundaries!(cache, u,
-                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG)
     @unpack boundaries = cache
     index_range = eachnode(dg)
@@ -278,8 +278,45 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+function prolong2boundaries!(cache, u,
+                             mesh::P4estMeshView{2},
+                             equations, surface_integral, dg::DG)
+    @unpack interfaces, boundaries = cache
+    index_range = eachnode(dg)
+
+    # Since boundaries from cache are for the parent mesh we need to change that.
+    boundaries.name
+    boundaries.neighbor_ids
+    boundaries.node_indices
+    boundaries.u
+
+    @autoinfiltrate
+
+    @threaded for boundary in eachboundary(dg, cache)
+        # Copy solution data from the element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                boundaries.u[v, i, boundary] = u[v, i_node, j_node, element]
+            end
+            i_node += i_node_step
+            j_node += j_node_step
+        end
+    end
+
+    return nothing
+end
+
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
-                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
@@ -315,7 +352,7 @@ end
 
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                                      nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
