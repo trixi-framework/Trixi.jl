@@ -230,7 +230,8 @@ export initial_condition_eoc_test_coupled_euler_gravity,
        source_terms_eoc_test_coupled_euler_gravity, source_terms_eoc_test_euler
 
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
-       cons2entropy, entropy2cons
+       cons2entropy, entropy2cons,
+       cons2prim_pert
 export density, pressure, density_pressure, velocity, global_mean_vars,
        equilibrium_distribution, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
