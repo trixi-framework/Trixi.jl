@@ -137,6 +137,10 @@ end
                                                                  length(mesh.cell_ids))
     result = Trixi.calc_node_coordinates!(node_coordinates, mesh, parent_mesh.nodes)
     @test parent_mesh.tree_node_coordinates == result
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
+                                         RealT = typeof(parent_mesh).parameters[3])
 end
 
 @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin

@@ -23,7 +23,7 @@ parent_mesh = P4estMesh(trees_per_dimension, polydeg = 3,
                         initial_refinement_level = 0)
 
 # Define the mesh view covering the whole parent mesh.
-cell_ids = Vector(1:Trixi.ncells(parent_mesh))
+cell_ids = collect(1:Trixi.ncells(parent_mesh))
 mesh = P4estMeshView(parent_mesh, cell_ids)
 
 # A semidiscretization collects data structures and functions for the spatial discretization
@@ -40,9 +40,6 @@ ode = semidiscretize(semi, (0.0, 1.0))
 # and resets the timers
 summary_callback = SummaryCallback()
 
-# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
-analysis_callback = AnalysisCallback(semi, interval = 100)
-
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim)
@@ -51,7 +48,8 @@ save_solution = SaveSolutionCallback(interval = 100,
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
+callbacks = CallbackSet(summary_callback, save_solution,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
@@ -60,7 +58,3 @@ callbacks = CallbackSet(summary_callback, save_solution, stepsize_callback)
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
-
-# Load the mesh file for code coverage.
-loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
-                                     RealT = typeof(parent_mesh).parameters[3])
