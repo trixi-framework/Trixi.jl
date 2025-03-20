@@ -143,6 +143,22 @@ end
                                          RealT = typeof(parent_mesh).parameters[3])
 end
 
+@trixi_testset "elixir_advection_basic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_basic.jl"),
+                        # Expected errors are exactly the same as with TreeMesh!
+                        l2=[0.00013773915040249946],
+                        linf=[0.0010140184322192658],
+                        initial_refinement_level=0)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_source_terms_nonconforming_unstructured_flag.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
