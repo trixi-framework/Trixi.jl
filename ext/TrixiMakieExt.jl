@@ -445,20 +445,75 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
         if visualization_callback.makie_step_independent.fig === nothing
             @warn "Creating new figure"
             fig = Makie.Figure()
+            grid1 = fig[1,1] = Makie.GridLayout()
+            grid2 = fig[1,2] = Makie.GridLayout()
             axes = []
             for v in 1:nvars
-                push!(axes, (ndims == 2) ? Makie.Axis(fig[makieLayoutHelper(v )...], aspect = Makie.DataAspect(), title = variable_names[v]) : 
-                Makie.Axis3(fig[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v]))
+                push!(axes, (ndims == 2) ? Makie.Axis(grid1[makieLayoutHelper(v )...], aspect = Makie.DataAspect(), title = variable_names[v]) : 
+                Makie.Axis3(grid1[makieLayoutHelper(v)...], aspect=:equal, title = variable_names[v]))
             end
             if show_mesh 
                 if ndims == 2
-                    push!(axes, Makie.Axis(fig[makieLayoutHelper(nvars + 1)...], aspect = Makie.DataAspect(), title = "mesh"))
+                    push!(axes, Makie.Axis(grid2[1,1], aspect = Makie.DataAspect(), title = "mesh"))
                 else
-                    push!(axes, Makie.Axis3(fig[makieLayoutHelper(nvars + 1)...], aspect=:equal, title = "mesh"))
+                    push!(axes, Makie.Axis3(grid2[1,1], aspect=:equal, title = "mesh"))
                     Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y, plot_data.mesh_vertices_z, color=:black)
                 end
             end
-            colorbar = Makie.Colorbar(fig[makieLayoutHelper(nvars + 2)...], colorrange = limits)
+            colorbar = Makie.Colorbar(grid2[1,2], colorrange = limits)
+
+            if ndims == 3
+                cam_button_grid = grid2[2,1] = Makie.GridLayout(label = "Set view direction")
+                xp_button = Makie.Button(cam_button_grid[1,1], label = "+x")
+                xm_button = Makie.Button(cam_button_grid[1,2], label = "-x")
+                yp_button = Makie.Button(cam_button_grid[1,3], label = "+y")
+                ym_button = Makie.Button(cam_button_grid[1,4], label = "-y")
+                zp_button = Makie.Button(cam_button_grid[1,5], label = "+z")
+                zm_button = Makie.Button(cam_button_grid[1,6], label = "-z")
+
+                Makie.on(xp_button.clicks) do _
+                    for ax in axes
+                        ax.azimuth = 0* pi
+                        ax.elevation = 0 * pi
+                    end
+                end
+        
+                Makie.on(xm_button.clicks) do _
+                    for ax in axes
+                        ax.azimuth = 1 * pi
+                        ax.elevation = 0 * pi
+                    end
+                end
+        
+                Makie.on(yp_button.clicks) do _
+                    for ax in axes
+                        ax.azimuth = 0.5 * pi
+                        ax.elevation = 0 * pi
+                    end
+                end
+        
+                Makie.on(ym_button.clicks) do _
+                    for ax in axes
+                        ax.azimuth = 1.5 * pi
+                        ax.elevation = 0 * pi
+                    end
+                end
+        
+                Makie.on(zp_button.clicks) do _
+                    for ax in axes
+                        ax.azimuth = 1.5 * pi
+                        ax.elevation = 0.5 * pi
+                    end
+                end
+        
+                Makie.on(zm_button.clicks) do _
+                    for ax in axes
+                        ax.azimuth = 0.5 * pi
+                        ax.elevation = 1.5 * pi
+                    end
+                end
+            end
+
             visualization_callback.makie_step_independent = Makie_Step_independent(fig, axes, colorbar)
             Makie.display(visualization_callback.makie_step_independent.fig)
         end
@@ -495,10 +550,6 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
         end
     # TODO: show_mesh
     end
-
-positions = nothing
-sg = nothing
-cam_sg = nothing
 
 function project_to_unit_cube(p, x, y, z)
     return Makie.Point3f((p[1] - x[1])/(x[end] - x[1]), (p[2] - y[1])/(y[end] - y[1]), (p[3] - z[1])/(z[end] - z[1]))
@@ -540,25 +591,76 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
             (label = "nz", range = 0:0.01:1, format = "{:.2f}", startvalue = 0),
             tellheight = false,
             tellwidth = false)
-        cam_slider_grid = Makie.SliderGrid(
-            grid2[3,1],
-            (label = "camera azimuth", range = 0:0.01:2, format = "{:.2f}π", startvalue = 1.275),
-            (label = "camera elevation", range = 0:0.01:2, format = "{:.2f}π", startvalue = 0.125),
-            tellheight = false,
-            tellwidth = false)
 
-        Makie.on(cam_slider_grid.sliders[1].value) do value
-            for ax in axes
-                ax.azimuth = value * pi
-            end
-        end
+        # cam_slider_grid = Makie.SliderGrid(
+        #     grid2[3,1],
+        #     (label = "camera azimuth", range = 0:0.01:2, format = "{:.2f}π", startvalue = 1.275),
+        #     (label = "camera elevation", range = 0:0.01:2, format = "{:.2f}π", startvalue = 0.125),
+        #     tellheight = false,
+        #     tellwidth = false)
+
+        cam_button_grid = grid2[3,1] = Makie.GridLayout(label = "Set view direction")
+        xp_button = Makie.Button(cam_button_grid[1,1], label = "+x")
+        xm_button = Makie.Button(cam_button_grid[1,2], label = "-x")
+        yp_button = Makie.Button(cam_button_grid[1,3], label = "+y")
+        ym_button = Makie.Button(cam_button_grid[1,4], label = "-y")
+        zp_button = Makie.Button(cam_button_grid[1,5], label = "+z")
+        zm_button = Makie.Button(cam_button_grid[1,6], label = "-z")
+
+        # Makie.on(cam_slider_grid.sliders[1].value) do value
+        #     for ax in axes
+        #         ax.azimuth = value * pi
+        #     end
+        # end
     
-        Makie.on(cam_slider_grid.sliders[2].value) do value
+        # Makie.on(cam_slider_grid.sliders[2].value) do value
+        #     for ax in axes
+        #         ax.elevation = value * pi
+        #     end
+        # end
+
+        Makie.on(xp_button.clicks) do _
             for ax in axes
-                ax.elevation = value * pi
+                ax.azimuth = 0* pi
+                ax.elevation = 0 * pi
             end
         end
 
+        Makie.on(xm_button.clicks) do _
+            for ax in axes
+                ax.azimuth = 1 * pi
+                ax.elevation = 0 * pi
+            end
+        end
+
+        Makie.on(yp_button.clicks) do _
+            for ax in axes
+                ax.azimuth = 0.5 * pi
+                ax.elevation = 0 * pi
+            end
+        end
+
+        Makie.on(ym_button.clicks) do _
+            for ax in axes
+                ax.azimuth = 1.5 * pi
+                ax.elevation = 0 * pi
+            end
+        end
+
+        Makie.on(zp_button.clicks) do _
+            for ax in axes
+                ax.azimuth = 1.5 * pi
+                ax.elevation = 0.5 * pi
+            end
+        end
+
+        Makie.on(zm_button.clicks) do _
+            for ax in axes
+                ax.azimuth = 0.5 * pi
+                ax.elevation = 1.5 * pi
+            end
+        end
+            
         x0_ob, y0_ob, z0_ob, nx_ob, ny_ob, nz_ob = (slice_slider_grid.sliders[i].value for i in 1:6)
 
         positions = Makie.@lift begin 
@@ -670,11 +772,12 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
             update_plots_ob[](value)
         end
 
-        visualization_callback.makie_step_independent = Makie_Step_independent(fig, axes, colorbar, slice_slider_grid, cam_slider_grid, positions, triangles, uv_mesh, update_plots_ob)
+        Makie.trim!(fig.layout)
+        visualization_callback.makie_step_independent = Makie_Step_independent(fig, axes, colorbar, slice_slider_grid, positions, triangles, uv_mesh, update_plots_ob)
         Makie.display(visualization_callback.makie_step_independent.fig)
     end
 
-    @unpack axes, colorbar, uv_mesh = visualization_callback.makie_step_independent
+    @unpack fig, axes, colorbar, uv_mesh = visualization_callback.makie_step_independent
     colorbar.colorrange = limits
 
     if show_mesh
@@ -694,6 +797,7 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
             Makie.wireframe!(axes[v], Makie.Rect3f(Makie.Vec3f(plot_data.x[1], plot_data.y[1], plot_data.z[1]), Makie.Vec3f(plot_data.x[end] - plot_data.x[1], plot_data.y[end] - plot_data.y[1], plot_data.z[end] - plot_data.z[1])), transparency=true, color=(:gray, 0.5))
         end
     end
+    Makie.trim!(fig.layout)
 
 end
 
