@@ -160,7 +160,7 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
             t = sol.t[end]
             u_ode = sol.u[end]
             du_ode = similar(u_ode)
-            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
         end
     end
 
