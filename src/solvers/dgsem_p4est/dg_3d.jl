@@ -353,12 +353,11 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
-function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
+function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             equations, surface_integral, dg::DG)
+                             equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
-    @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
-    @unpack surface_flux = surface_integral
+    @unpack surface_flux_values = cache.elements
     index_range = eachnode(dg)
 
     @threaded for local_index in eachindex(boundary_indexing)
@@ -449,7 +448,7 @@ end
                             boundary_index)
 
     # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction, contravariant_vectors,
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
                                             i_index, j_index, k_index, element_index)
 
     # Coordinates at boundary node
@@ -467,7 +466,7 @@ end
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
         surface_flux_values[v, i_node_index, j_node_index,
-                            direction_index, element_index] = flux_[v] + 0.5f0 *
+                            direction_index, element_index] = flux[v] + 0.5f0 *
                                                               noncons_flux[v]
     end
 end
