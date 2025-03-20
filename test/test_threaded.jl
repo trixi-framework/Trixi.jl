@@ -139,7 +139,8 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
     end
 
     @trixi_testset "elixir_euler_positivity.jl" begin
-        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_positivity.jl"),
+        @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                     "elixir_euler_positivity.jl"),
                             l2=[
                                 0.48862067511841695,
                                 0.16787541578869494,
