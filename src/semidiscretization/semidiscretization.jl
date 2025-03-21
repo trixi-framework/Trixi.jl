@@ -400,6 +400,64 @@ function get_element_variables(u_ode, semi::AbstractSemidiscretization)
     return element_variables
 end
 
+"""
+    get_element_variables(integrator)
+
+Same purpose as the method accepting `u_ode, semi::AbstractSemidiscretization`,
+but for use with a time `integrator` from the
+[SciML ecosystem](https://docs.sciml.ai/DiffEqDocs/stable/basics/integrator/).
+In addition to the element variables depending only on the current state
+`integrator.u` and the semidiscretization `integrator.p`, this method can also
+access the callbacks.
+
+# Examples
+
+```@example get_element_variables_integrator
+sol, callbacks = redirect_stdio(stdout = devnull) do
+    trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                           "elixir_euler_vortex_amr.jl"), maxiters = 0)
+    sol, callbacks
+end;
+ode = semidiscretize(semi, (sol.t[end], 1.0));
+integrator = redirect_stdout(devnull) do
+    init(ode, SSPRK43(); ode_default_options()..., callback = callbacks)
+end;
+element_variables = get_element_variables(integrator)
+```
+"""
+function get_element_variables(integrator)
+    u_ode = integrator.u
+    semi = integrator.p
+
+    # Get the basic element variables used also in the SaveSolutionCallback
+    # as well as variables depending on the mesh type that can be used
+    # for visualization etc.
+    element_variables = get_element_variables(u_ode, semi)
+
+    # Add additional element variables depending on the callbacks
+    callbacks = integrator.opts.callback
+    iter = integrator.stats.naccept
+    get_element_variables_callbacks!(element_variables, u_ode, semi, callbacks;
+                                     t = integrator.t, iter = iter)
+
+    return element_variables
+end
+
+function get_element_variables_callbacks!(element_variables, u_ode,
+                                          semi::AbstractSemidiscretization,
+                                          callbacks; t, iter)
+    if callbacks isa CallbackSet
+        foreach(callbacks.continuous_callbacks) do cb
+            get_element_variables!(element_variables, u_ode, semi, cb;
+                                   t = t, iter = iter)
+        end
+        foreach(callbacks.discrete_callbacks) do cb
+            get_element_variables!(element_variables, u_ode, semi, cb;
+                                   t = t, iter = iter)
+        end
+    end
+end
+
 function get_element_variables_visualization!(element_variables,
                                               mesh,
                                               semi::AbstractSemidiscretization)
