@@ -766,11 +766,14 @@ end
 
 # Calculate the arc length of a curve given by ndims x npoints point coordinates (piece-wise linear approximation)
 function calc_arc_length(coordinates)
-    n_points = size(coordinates)[2]
+    n_points = size(coordinates, 2)
     arc_length = zeros(n_points)
     for i in 1:(n_points - 1)
-        arc_length[i + 1] = arc_length[i] +
-                            sqrt(sum((coordinates[:, i] - coordinates[:, i + 1]) .^ 2))
+        res = zero(eltype(arc_length))
+        for j in axes(coordinates, 1)
+            res += (coordinates[j, i + 1] - coordinates[j, i])^2
+        end
+        arc_length[i + 1] = arc_length[i] + sqrt(res)
     end
     return arc_length
 end
