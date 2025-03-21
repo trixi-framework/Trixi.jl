@@ -580,26 +580,6 @@ function calc_mortar_flux!(surface_flux_values,
         # Calculate fluxes
         orientation = orientations[mortar]
 
-        lambda1_max = zero(eltype(surface_flux_values))
-        lambda2_max = zero(eltype(surface_flux_values))
-        for i in eachnode(dg)
-            u_lower_local = get_node_vars(u_lower, equations, dg, i, mortar)
-            u_upper_local = get_node_vars(u_upper, equations, dg, i, mortar)
-            u_large_local = get_node_vars(u_large, equations, dg, i, mortar)
-
-            lambda1_lower, lambda2_lower = max_abs_speeds(u_lower_local, equations)
-            lambda1_upper, lambda2_upper = max_abs_speeds(u_upper_local, equations)
-            lambda1_large, lambda2_large = max_abs_speeds(u_large_local, equations)
-            lambda1_max = max(lambda1_max, lambda1_lower, lambda1_upper, lambda1_large)
-            lambda2_max = max(lambda2_max, lambda2_lower, lambda2_upper, lambda2_large)
-        end
-
-        if orientation == 1
-            lambda_max = lambda1_max
-        else
-            lambda_max = lambda2_max
-        end
-
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
             if orientation == 1
                 # L2 mortars in x-direction
@@ -625,8 +605,11 @@ function calc_mortar_flux!(surface_flux_values,
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
                     f_large = flux(u_large_local, orientation, equations) # f_ll
 
-                    own_part = 0.5f0 * (f_lower - lambda_max * u_lower_local)
-                    other_part = 0.5f0 * (f_large + lambda_max * u_large_local)
+                    lambda_max_local = max_abs_speed_naive(u_large_local, u_lower_local,
+                                                           orientation, equations)
+
+                    own_part = 0.5f0 * (f_lower - lambda_max_local * u_lower_local)
+                    other_part = 0.5f0 * (f_large + lambda_max_local * u_large_local)
                     local_term = 0.5f0 * weights[j] * (own_part + other_part)
 
                     add_to_node_vars!(surface_flux_values, local_term, equations, dg,
@@ -644,8 +627,11 @@ function calc_mortar_flux!(surface_flux_values,
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
                     f_large = flux(u_large_local, orientation, equations) # f_ll
 
-                    own_part = 0.5f0 * (f_upper - lambda_max * u_upper_local)
-                    other_part = 0.5f0 * (f_large + lambda_max * u_large_local)
+                    lambda_max_local = max_abs_speed_naive(u_large_local, u_upper_local,
+                                                           orientation, equations)
+
+                    own_part = 0.5f0 * (f_upper - lambda_max_local * u_upper_local)
+                    other_part = 0.5f0 * (f_large + lambda_max_local * u_large_local)
                     local_term = 0.5f0 * weights[j] * (own_part + other_part)
 
                     add_to_node_vars!(surface_flux_values, local_term, equations, dg,
@@ -664,8 +650,11 @@ function calc_mortar_flux!(surface_flux_values,
                     u_lower_local = get_node_vars(u_lower, equations, dg, j, mortar) # u_rr
                     f_lower = flux(u_lower_local, orientation, equations) # f_rr
 
-                    own_part = 0.5f0 * (f_large + lambda_max * u_large_local)
-                    other_part = 0.5f0 * (f_lower - lambda_max * u_lower_local)
+                    lambda_max_local = max_abs_speed_naive(u_large_local, u_lower_local,
+                                                           orientation, equations)
+
+                    own_part = 0.5f0 * (f_large + lambda_max_local * u_large_local)
+                    other_part = 0.5f0 * (f_lower - lambda_max_local * u_lower_local)
                     local_term = 0.25f0 * weights[j] * (own_part + other_part)
 
                     add_to_node_vars!(surface_flux_values, local_term, equations, dg,
@@ -675,7 +664,11 @@ function calc_mortar_flux!(surface_flux_values,
                     u_upper_local = get_node_vars(u_upper, equations, dg, j, mortar) # u_rr
                     f_upper = flux(u_upper_local, orientation, equations) # f_rr
 
-                    other_part = 0.5f0 * (f_upper - lambda_max * u_upper_local)
+                    lambda_max_local = max_abs_speed_naive(u_large_local, u_upper_local,
+                                                           orientation, equations)
+
+                    own_part = 0.5f0 * (f_large + lambda_max_local * u_large_local)
+                    other_part = 0.5f0 * (f_upper - lambda_max_local * u_upper_local)
                     local_term = 0.25f0 * weights[j] * (own_part + other_part)
 
                     add_to_node_vars!(surface_flux_values, local_term, equations, dg,
@@ -707,8 +700,11 @@ function calc_mortar_flux!(surface_flux_values,
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
                     f_large = flux(u_large_local, orientation, equations)
 
-                    own_part = 0.5f0 * (f_lower + lambda_max * u_lower_local)
-                    other_part = 0.5f0 * (f_large - lambda_max * u_large_local)
+                    lambda_max_local = max_abs_speed_naive(u_lower_local, u_large_local,
+                                                           orientation, equations)
+
+                    own_part = 0.5f0 * (f_lower + lambda_max_local * u_lower_local)
+                    other_part = 0.5f0 * (f_large - lambda_max_local * u_large_local)
                     local_term = 0.5f0 * weights[j] * (own_part + other_part)
 
                     add_to_node_vars!(surface_flux_values, local_term, equations, dg,
@@ -726,8 +722,11 @@ function calc_mortar_flux!(surface_flux_values,
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
                     f_large = flux(u_large_local, orientation, equations)
 
-                    own_part = 0.5f0 * (f_upper + lambda_max * u_upper_local)
-                    other_part = 0.5f0 * (f_large - lambda_max * u_large_local)
+                    lambda_max_local = max_abs_speed_naive(u_upper_local, u_large_local,
+                                                           orientation, equations)
+
+                    own_part = 0.5f0 * (f_upper + lambda_max_local * u_upper_local)
+                    other_part = 0.5f0 * (f_large - lambda_max_local * u_large_local)
                     local_term = 0.5f0 * weights[j] * (own_part + other_part)
 
                     add_to_node_vars!(surface_flux_values, local_term, equations, dg,
@@ -746,8 +745,11 @@ function calc_mortar_flux!(surface_flux_values,
                     u_lower_local = get_node_vars(u_lower, equations, dg, j, mortar) # u_ll
                     f_lower = flux(u_lower_local, orientation, equations)
 
-                    own_part = 0.5f0 * (f_large - lambda_max * u_large_local)
-                    other_part = 0.5f0 * (f_lower + lambda_max * u_lower_local)
+                    lambda_max_local = max_abs_speed_naive(u_lower_local, u_large_local,
+                                                           orientation, equations)
+
+                    own_part = 0.5f0 * (f_large - lambda_max_local * u_large_local)
+                    other_part = 0.5f0 * (f_lower + lambda_max_local * u_lower_local)
                     local_term = 0.25f0 * weights[j] * (own_part + other_part)
 
                     add_to_node_vars!(surface_flux_values, local_term, equations, dg,
@@ -757,7 +759,11 @@ function calc_mortar_flux!(surface_flux_values,
                     u_upper_local = get_node_vars(u_upper, equations, dg, j, mortar) # u_ll
                     f_upper = flux(u_upper_local, orientation, equations)
 
-                    other_part = 0.5f0 * (f_upper + lambda_max * u_upper_local)
+                    lambda_max_local = max_abs_speed_naive(u_upper_local, u_large_local,
+                                                           orientation, equations)
+
+                    own_part = 0.5f0 * (f_large - lambda_max_local * u_large_local)
+                    other_part = 0.5f0 * (f_upper + lambda_max_local * u_upper_local)
                     local_term = 0.25f0 * weights[j] * (own_part + other_part)
 
                     add_to_node_vars!(surface_flux_values, local_term, equations, dg,
