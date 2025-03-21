@@ -468,7 +468,7 @@ function density end
 """
     pressure(u, equations)
 
-Return the presure associated to the conserved variables `u` for a given set of
+Return the pressure associated to the conserved variables `u` for a given set of
 `equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
