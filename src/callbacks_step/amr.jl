@@ -736,7 +736,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
 end
 
 function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::T8codeMesh,
-                                     equations, dg::DG, cache, semi,
+                                     equations, dg::Union{DG, FV}, cache, semi,
                                      t, iter;
                                      only_refine = false, only_coarsen = false,
                                      passive_args = ())
@@ -972,7 +972,7 @@ end
 #       But that would remove the simplest possibility to write that stuff to a file...
 #       We could of course implement some additional logic and workarounds, but is it worth the effort?
 function (controller::ControllerThreeLevel)(u::AbstractArray{<:Any},
-                                            mesh, equations, dg::DG, cache;
+                                            mesh, equations, dg::Union{DG, FV}, cache;
                                             kwargs...)
     @unpack controller_value = controller.cache
     resize!(controller_value, nelements(dg, cache))
@@ -1160,4 +1160,8 @@ include("amr_dg.jl")
 include("amr_dg1d.jl")
 include("amr_dg2d.jl")
 include("amr_dg3d.jl")
+
+include("amr_fv.jl")
+include("amr_fv2d.jl")
+include("amr_fv3d.jl")
 end # @muladd
