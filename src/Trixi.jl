@@ -301,8 +301,9 @@ export DGMulti, DGMultiBasis, estimate_dt, DGMultiMesh, GaussSBP
 export ViscousFormulationBassiRebay1, ViscousFormulationLocalDG
 
 # Visualization-related exports
-export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh, adapt_to_mesh_level!,
-       adapt_to_mesh_level,
+export PlotData1D, PlotData2D, ScalarPlotData2D, getmesh,
+       adapt_to_mesh_level!, adapt_to_mesh_level,
+       get_element_variables,
        iplot, iplot!
 
 function __init__()

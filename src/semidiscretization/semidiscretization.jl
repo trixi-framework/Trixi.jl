@@ -102,7 +102,7 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
 end
 
 """
-    semidiscretize(semi::AbstractSemidiscretization, tspan, 
+    semidiscretize(semi::AbstractSemidiscretization, tspan,
                    restart_file::AbstractString)
 
 Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan`
@@ -268,7 +268,7 @@ end
 function _jacobian_ad_forward(semi, t0, u0_ode, du_ode, config)
     new_semi = remake(semi, uEltype = eltype(config))
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
-    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode, u0_ode, config) do du_ode, u_ode
         Trixi.rhs!(du_ode, u_ode, new_semi, t0)
@@ -302,7 +302,7 @@ end
 function _jacobian_ad_forward_structarrays(semi, t0, u0_ode_plain, du_ode_plain, config)
     new_semi = remake(semi, uEltype = eltype(config))
     # Create anonymous function passed as first argument to `ForwardDiff.jacobian` to match
-    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray, 
+    # `ForwardDiff.jacobian(f!, y::AbstractArray, x::AbstractArray,
     #                       cfg::JacobianConfig = JacobianConfig(f!, y, x), check=Val{true}())`
     J = ForwardDiff.jacobian(du_ode_plain, u0_ode_plain,
                              config) do du_ode_plain, u_ode_plain
@@ -358,6 +358,64 @@ function get_element_variables!(element_variables, u_ode,
                                 semi::AbstractSemidiscretization)
     u = wrap_array(u_ode, semi)
     get_element_variables!(element_variables, u, mesh_equations_solver_cache(semi)...)
+end
+
+"""
+    get_element_variables(u_ode, semi::AbstractSemidiscretization)
+
+Return a dictionary of element variables associated with the semidiscretization `semi`
+and the numerical solution `u_ode`. This can be used, e.g., for visualization purposes.
+
+# Examples
+
+```@example get_element_variables_u_semi
+sol = redirect_stdio(stdout = devnull) do
+    trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                            "elixir_euler_shockcapturing.jl"), tspan = (0.0, 0.1))
+    sol
+end;
+element_variables = get_element_variables(sol.u[end], sol.prob.p)
+```
+
+The returned `get_element_variables(sol.u[end], sol.prob.p)` can be used for visualization,
+e.g.,
+
+```@example get_element_variables_u_semi
+using CairoMakie
+heatmap(element_variables[:x], element_variables[:y],
+        element_variables[:indicator_shock_capturing])
+```
+"""
+function get_element_variables(u_ode, semi::AbstractSemidiscretization)
+    element_variables = Dict{Symbol, Any}()
+
+    # Get the basic element variables used also in the SaveSolutionCallback
+    get_element_variables!(element_variables, u_ode, semi)
+
+    # Add additional element variables depending on the mesh type
+    # to simplify visualization etc.
+    mesh, _ = mesh_equations_solver_cache(semi)
+    get_element_variables_visualization!(element_variables, mesh, semi)
+
+    return element_variables
+end
+
+function get_element_variables_visualization!(element_variables,
+                                              mesh,
+                                              semi::AbstractSemidiscretization)
+    # Do nothing by default
+    return element_variables
+end
+
+function get_element_variables_visualization!(element_variables,
+                                              mesh::TreeMesh,
+                                              semi::AbstractSemidiscretization)
+    cell_ids = semi.cache.elements.cell_ids
+    x = mesh.tree.coordinates[1, cell_ids]
+    y = mesh.tree.coordinates[2, cell_ids]
+    element_variables[:x] = x
+    element_variables[:y] = y
+    return element_variables
 end
 
 function get_node_variables!(node_variables, semi::AbstractSemidiscretization)
