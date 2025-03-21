@@ -577,7 +577,7 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
             push!(axes, Makie.Axis3(grid1[makieLayoutHelper(v)...], aspect=:equal, title = "slice " * variable_names[v]))
         end
         if show_mesh 
-            push!(axes, Makie.Axis3(grid2[1,1], aspect=:equal, title = "mesh"))
+            push!(axes, Makie.Axis3(grid1[makieLayoutHelper(nvars + 1)...], aspect=:equal, title = "mesh"))
             Makie.lines!(axes[nvars + 1], plot_data.mesh_vertices_x, plot_data.mesh_vertices_y, plot_data.mesh_vertices_z, color=:black)
         end
         colorbar = Makie.Colorbar(grid2[1,2], colorrange = limits)
@@ -620,45 +620,57 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
         # end
 
         Makie.on(xp_button.clicks) do _
-            for ax in axes
-                ax.azimuth = 0* pi
-                ax.elevation = 0 * pi
-            end
+            # for ax in axes
+            #     ax.azimuth = 0* pi
+            #     ax.elevation = 0 * pi
+            # end
+            axes[1].azimuth = 0* pi
+            axes[1].elevation = 0 * pi
         end
 
         Makie.on(xm_button.clicks) do _
-            for ax in axes
-                ax.azimuth = 1 * pi
-                ax.elevation = 0 * pi
-            end
+            # for ax in axes
+            #     ax.azimuth = 1 * pi
+            #     ax.elevation = 0 * pi
+            # end
+            axes[1].azimuth = 1 * pi
+            axes[1].elevation = 0 * pi
         end
 
         Makie.on(yp_button.clicks) do _
-            for ax in axes
-                ax.azimuth = 0.5 * pi
-                ax.elevation = 0 * pi
-            end
+            # for ax in axes
+            #     ax.azimuth = 0.5 * pi
+            #     ax.elevation = 0 * pi
+            # end
+            axes[1].azimuth = 0.5 * pi
+            axes[1].elevation = 0 * pi
         end
 
         Makie.on(ym_button.clicks) do _
-            for ax in axes
-                ax.azimuth = 1.5 * pi
-                ax.elevation = 0 * pi
-            end
+            # for ax in axes
+            #     ax.azimuth = 1.5 * pi
+            #     ax.elevation = 0 * pi
+            # end
+            axes[1].azimuth = 1.5 * pi
+            axes[1].elevation = 0 * pi
         end
 
         Makie.on(zp_button.clicks) do _
-            for ax in axes
-                ax.azimuth = 1.5 * pi
-                ax.elevation = 0.5 * pi
-            end
+            # for ax in axes
+            #     ax.azimuth = 1.5 * pi
+            #     ax.elevation = 0.5 * pi
+            # end
+            axes[1].azimuth = 1.5 * pi
+            axes[1].elevation = 0.5 * pi
         end
 
         Makie.on(zm_button.clicks) do _
-            for ax in axes
-                ax.azimuth = 0.5 * pi
-                ax.elevation = 1.5 * pi
-            end
+            # for ax in axes
+            #     ax.azimuth = 0.5 * pi
+            #     ax.elevation = 1.5 * pi
+            # end
+            axes[1].azimuth = 0.5 * pi
+            axes[1].elevation = 1.5 * pi
         end
             
         x0_ob, y0_ob, z0_ob, nx_ob, ny_ob, nz_ob = (slice_slider_grid.sliders[i].value for i in 1:6)
@@ -771,8 +783,17 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
         Makie.on(uv_mesh) do value
             update_plots_ob[](value)
         end
+        
+        # for i in 2:(size(axes)[1])
+        #     setfield!(axes[i].scene, :camera, axes[1].scene.camera)
+        # end
 
-        Makie.trim!(fig.layout)
+        # Makie.on(axes[1].scene.camera) do value
+        #     for i in 2:(size(axes)[1])
+        #         Makie.update_cam!(axes[i].scene.camera, eyeposition= value.eyeposition, lookat = value.view_direction)
+        #     end
+        # end
+
         visualization_callback.makie_step_independent = Makie_Step_independent(fig, axes, colorbar, slice_slider_grid, positions, triangles, uv_mesh, update_plots_ob)
         Makie.display(visualization_callback.makie_step_independent.fig)
     end
@@ -797,7 +818,6 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
             Makie.wireframe!(axes[v], Makie.Rect3f(Makie.Vec3f(plot_data.x[1], plot_data.y[1], plot_data.z[1]), Makie.Vec3f(plot_data.x[end] - plot_data.x[1], plot_data.y[end] - plot_data.y[1], plot_data.z[end] - plot_data.z[1])), transparency=true, color=(:gray, 0.5))
         end
     end
-    Makie.trim!(fig.layout)
 
 end
 
