@@ -815,7 +815,8 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     # Iterate over all found elements.
     for element in 1:n_points_curve
         min_coordinate = get_point(original_nodes, 1, 1, element_ids[element])
-        max_coordinate = get_point(original_nodes, n_nodes, n_nodes, element_ids[element])
+        max_coordinate = get_point(original_nodes, n_nodes, n_nodes,
+                                   element_ids[element])
         element_length = max_coordinate - min_coordinate
 
         normalized_coordinates = (get_point(curve, element) - min_coordinate) /
@@ -838,7 +839,8 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
                     temp_data[i, element, v] = res
                 end
             end
-            data_on_curve[element, v] = dot(vandermonde_x, view(temp_data, :, element, v))
+            data_on_curve[element, v] = dot(vandermonde_x,
+                                            view(temp_data, :, element, v))
         end
     end
 
