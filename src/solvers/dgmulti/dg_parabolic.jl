@@ -468,7 +468,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
         # This is because the parabolic fluxes are assumed to be of the form
         #   `du/dt + df/dx = dg/dx + source(x,t)`,
         # where f(u) is the inviscid flux and g(u) is the viscous flux.
-        invert_jacobian!(du, mesh, equations, dg, cache; scaling = 1.0)
+        invert_jacobian!(du, mesh, equations_parabolic, dg, cache; scaling = 1.0)
     end
     return nothing
 end
