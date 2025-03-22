@@ -411,11 +411,6 @@ function calc_divergence!(du, u::StructArray, t, flux_viscous, mesh::DGMultiMesh
     apply_to_each_field(mul_by_accum!(cache_parabolic.divergence_lift_matrix), du,
                         scalar_flux_face_values)
 
-    # Note: we do not flip the sign of the geometric Jacobian here.
-    # This is because the parabolic fluxes are assumed to be of the form
-    #   `du/dt + df/dx = dg/dx + source(x,t)`,
-    # where f(u) is the inviscid flux and g(u) is the viscous flux.
-    invert_jacobian!(du, mesh, equations, dg, cache; scaling = 1.0)
 end
 
 # assumptions: parabolic terms are of the form div(f(u, grad(u))) and
@@ -449,6 +444,14 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
     @trixi_timeit timer() "calc divergence" begin
         calc_divergence!(du, u_transformed, t, flux_viscous, mesh, equations_parabolic,
                          boundary_conditions, dg, parabolic_scheme, cache, cache_parabolic)
+    end
+
+    @trixi_timeit timer() "jacobian" begin
+        # Note: we do not flip the sign of the geometric Jacobian here.
+        # This is because the parabolic fluxes are assumed to be of the form
+        #   `du/dt + df/dx = dg/dx + source(x,t)`,
+        # where f(u) is the inviscid flux and g(u) is the viscous flux.
+        invert_jacobian!(du, mesh, equations, dg, cache; scaling = 1.0)    
     end
     return nothing
 end
