@@ -144,7 +144,7 @@ function calc_gradient_interface_flux!(scalar_flux_face_values,
         uP = u_face_values[idP]
         # Here, we use the "strong" formulation to compute the gradient. This guarantees that the parabolic
         # formulation is symmetric and stable on curved meshes with variable geometric terms.        
-        scalar_flux_face_values[idM] = 0.5f0 * (uP + uM)
+        scalar_flux_face_values[idM] = 0.5f0 * (uP - uM)
     end
 end
 
