@@ -764,12 +764,12 @@ function calc_gradient_interface_flux!(surface_flux_values,
         for i in eachnode(dg)
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                               equations_parabolic, dg, i,
+                                               equations, dg, i,
                                                interface)
             flux = 0.5f0 * (u_ll + u_rr)
 
             # Copy flux to left and right element storage
-            for v in eachvariable(equations_parabolic)
+            for v in eachvariable(equations)
                 surface_flux_values[v, i, left_direction, left_id] = flux[v]
                 surface_flux_values[v, i, right_direction, right_id] = flux[v]
             end
