@@ -28,8 +28,9 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
 
     # Compute the gradients of the transformed variables
     @trixi_timeit timer() "calculate gradient" begin
-        calc_gradient!(gradients, u_transformed, t, mesh, equations_parabolic,
-                       boundary_conditions_parabolic, dg, cache, cache_parabolic)
+        calc_gradient!(gradients, u_transformed, t, parabolic_scheme, mesh,
+                       equations_parabolic, boundary_conditions_parabolic,
+                       dg, cache, cache_parabolic)
     end
 
     # Compute and store the viscous fluxes
@@ -68,8 +69,9 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
-        calc_interface_flux!(cache_parabolic.elements.surface_flux_values, mesh,
-                             equations_parabolic, dg, cache_parabolic)
+        calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
+                             parabolic_scheme, mesh, equations_parabolic,
+                             dg, cache_parabolic)
     end
 
     # Prolong solution to boundaries
@@ -205,6 +207,7 @@ end
 
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values,
+                              parabolic_scheme::ViscousFormulationBassiRebay1,
                               mesh::TreeMesh{2}, equations_parabolic,
                               dg::DG, cache_parabolic)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
@@ -617,6 +620,7 @@ end
 # Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 function calc_mortar_flux!(surface_flux_values,
+                           parabolic_scheme,
                            mesh::TreeMesh{2},
                            equations_parabolic::AbstractEquationsParabolic,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -632,9 +636,11 @@ function calc_mortar_flux!(surface_flux_values,
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_upper, equations_parabolic, surface_flux, dg, u_upper, mortar,
+        calc_fstar!(fstar_upper, parabolic_scheme, equations_parabolic, surface_flux,
+                    dg, u_upper, mortar,
                     orientation)
-        calc_fstar!(fstar_lower, equations_parabolic, surface_flux, dg, u_lower, mortar,
+        calc_fstar!(fstar_lower, parabolic_scheme, equations_parabolic, surface_flux,
+                    dg, u_lower, mortar,
                     orientation)
 
         mortar_fluxes_to_elements!(surface_flux_values,
@@ -646,6 +652,7 @@ function calc_mortar_flux!(surface_flux_values,
 end
 
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
+                             parabolic_scheme::ViscousFormulationBassiRebay1,
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_flux, dg::DGSEM,
                              u_interfaces, interface, orientation)
@@ -653,7 +660,7 @@ end
         # Call pointwise two-point numerical flux function
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i,
                                            interface)
-        # TODO: parabolic; only BR1 at the moment
+
         flux = 0.5f0 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
@@ -737,8 +744,42 @@ end
     return nothing
 end
 
+function calc_gradient_interface_flux!(surface_flux_values,
+                                       parabolic_scheme::ViscousFormulationBassiRebay1,
+                                       mesh::TreeMesh{2}, equations, dg::DG, cache,
+                                       cache_parabolic)
+    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
+
+    @threaded for interface in eachinterface(dg, cache_parabolic)
+        # Get neighboring elements
+        left_id = neighbor_ids[1, interface]
+        right_id = neighbor_ids[2, interface]
+
+        # Determine interface direction with respect to elements:
+        # orientation = 1: left -> 2, right -> 1
+        # orientation = 2: left -> 4, right -> 3
+        left_direction = 2 * orientations[interface]
+        right_direction = 2 * orientations[interface] - 1
+
+        for i in eachnode(dg)
+            # Call pointwise Riemann solver
+            u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+                                               equations_parabolic, dg, i,
+                                               interface)
+            flux = 0.5f0 * (u_ll + u_rr)
+
+            # Copy flux to left and right element storage
+            for v in eachvariable(equations_parabolic)
+                surface_flux_values[v, i, left_direction, left_id] = flux[v]
+                surface_flux_values[v, i, right_direction, right_id] = flux[v]
+            end
+        end
+    end
+end
+
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t,
+                        parabolic_scheme,
                         mesh::TreeMesh{2}, equations_parabolic,
                         boundary_conditions_parabolic, dg::DG, cache, cache_parabolic)
     gradients_x, gradients_y = gradients
@@ -783,33 +824,8 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         @unpack surface_flux_values = cache_parabolic.elements
-        @unpack neighbor_ids, orientations = cache_parabolic.interfaces
-
-        @threaded for interface in eachinterface(dg, cache_parabolic)
-            # Get neighboring elements
-            left_id = neighbor_ids[1, interface]
-            right_id = neighbor_ids[2, interface]
-
-            # Determine interface direction with respect to elements:
-            # orientation = 1: left -> 2, right -> 1
-            # orientation = 2: left -> 4, right -> 3
-            left_direction = 2 * orientations[interface]
-            right_direction = 2 * orientations[interface] - 1
-
-            for i in eachnode(dg)
-                # Call pointwise Riemann solver
-                u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                                   equations_parabolic, dg, i,
-                                                   interface)
-                flux = 0.5f0 * (u_ll + u_rr)
-
-                # Copy flux to left and right element storage
-                for v in eachvariable(equations_parabolic)
-                    surface_flux_values[v, i, left_direction, left_id] = flux[v]
-                    surface_flux_values[v, i, right_direction, right_id] = flux[v]
-                end
-            end
-        end
+        calc_gradient_interface_flux!(surface_flux_values, parabolic_scheme,
+                                      mesh, equations, dg, cache, cache_parabolic)
     end
 
     # Prolong solution to boundaries
@@ -836,6 +852,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(surface_flux_values,
+                          parabolic_scheme,
                           mesh,
                           equations_parabolic,
                           dg.mortar, dg.surface_integral, dg, cache)
