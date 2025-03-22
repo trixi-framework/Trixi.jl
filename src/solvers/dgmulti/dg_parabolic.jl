@@ -376,6 +376,8 @@ end
 function calc_divergence_interface_flux!(scalar_flux_face_values,
                                          parabolic_scheme::ViscousFormulationBassiRebay1,
                                          mesh, equations, dg, cache, cache_parabolic)
+
+    flux_viscous_face_values = cache_parabolic.gradients_face_values # reuse storage
     (; mapM, mapP, nxyzJ) = mesh.md
 
     @threaded for face_node_index in each_face_node_global(mesh, dg, cache, cache_parabolic)
