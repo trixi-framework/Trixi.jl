@@ -825,7 +825,8 @@ function calc_gradient!(gradients, u_transformed, t,
     @trixi_timeit timer() "interface flux" begin
         @unpack surface_flux_values = cache_parabolic.elements
         calc_gradient_interface_flux!(surface_flux_values, parabolic_scheme,
-                                      mesh, equations, dg, cache, cache_parabolic)
+                                      mesh, equations_parabolic, dg, cache,
+                                      cache_parabolic)
     end
 
     # Prolong solution to boundaries
