@@ -70,8 +70,8 @@ function rhs_parabolic!(du, u, t, mesh::TreeMesh{1},
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
-                             parabolic_scheme, mesh,
-                             equations_parabolic, dg, cache_parabolic)
+                             mesh, equations_parabolic, dg, parabolic_scheme,
+                             cache_parabolic)
     end
 
     # Prolong solution to boundaries
@@ -171,9 +171,9 @@ end
 
 # This is the version used when calculating the divergence of the viscous fluxes
 function calc_interface_flux!(surface_flux_values,
-                              parabolic_scheme::ViscousFormulationBassiRebay1,
                               mesh::TreeMesh{1}, equations_parabolic,
-                              dg::DG, cache_parabolic)
+                              dg::DG, parabolic_scheme::ViscousFormulationBassiRebay1,
+                              cache_parabolic)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
     @threaded for interface in eachinterface(dg, cache_parabolic)
@@ -405,8 +405,9 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 end
 
 function calc_gradient_interface_flux!(surface_flux_values,
+                                       mesh::TreeMesh{1}, equations, dg::DG,
                                        parabolic_scheme::ViscousFormulationBassiRebay1,
-                                       mesh::TreeMesh{1}, equations, dg::DG, cache,
+                                       cache,
                                        cache_parabolic)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
@@ -472,8 +473,10 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         @unpack surface_flux_values = cache_parabolic.elements
-        calc_gradient_interface_flux!(surface_flux_values, parabolic_scheme,
-                                      mesh, equations, dg, cache, cache_parabolic)
+        calc_gradient_interface_flux!(surface_flux_values,
+                                      mesh, equations_parabolic, dg, parabolic_scheme,
+                                      cache,
+                                      cache_parabolic)
     end
 
     # Prolong solution to boundaries
