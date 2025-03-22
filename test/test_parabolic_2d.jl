@@ -74,6 +74,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                            equations_parabolic,
                            boundary_condition_periodic,
                            dg, semi.solver_parabolic, cache, cache_parabolic)
+    Trixi.invert_jacobian!(du, mesh, equations_parabolic, dg, cache; scaling = 1.0)                           
     @test getindex.(du, 1) ≈ 2 * y
 end
 
