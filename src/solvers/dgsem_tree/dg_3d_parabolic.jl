@@ -721,6 +721,7 @@ end
 # Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 function calc_mortar_flux!(surface_flux_values,
+                           parabolic_scheme,
                            mesh::TreeMesh{3},
                            equations_parabolic::AbstractEquationsParabolic,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -741,13 +742,17 @@ function calc_mortar_flux!(surface_flux_values,
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_upper_left, equations_parabolic, surface_flux, dg,
+        calc_fstar!(fstar_upper_left, parabolic_scheme, equations_parabolic,
+                    surface_flux, dg,
                     u_upper_left, mortar, orientation)
-        calc_fstar!(fstar_upper_right, equations_parabolic, surface_flux, dg,
+        calc_fstar!(fstar_upper_right, parabolic_scheme, equations_parabolic,
+                    surface_flux, dg,
                     u_upper_right, mortar, orientation)
-        calc_fstar!(fstar_lower_left, equations_parabolic, surface_flux, dg,
+        calc_fstar!(fstar_lower_left, parabolic_scheme, equations_parabolic,
+                    surface_flux, dg,
                     u_lower_left, mortar, orientation)
-        calc_fstar!(fstar_lower_right, equations_parabolic, surface_flux, dg,
+        calc_fstar!(fstar_lower_right, parabolic_scheme, equations_parabolic,
+                    surface_flux, dg,
                     u_lower_right, mortar, orientation)
 
         mortar_fluxes_to_elements!(surface_flux_values,
@@ -761,6 +766,7 @@ function calc_mortar_flux!(surface_flux_values,
 end
 
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 3},
+                             parabolic_scheme::ViscousFormulationBassiRebay1,
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_flux, dg::DGSEM,
                              u_interfaces, interface, orientation)
@@ -768,7 +774,6 @@ end
         # Call pointwise two-point numerical flux function
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i, j,
                                            interface)
-        # TODO: parabolic; only BR1 at the moment
         flux = 0.5f0 * (u_ll + u_rr)
 
         # Copy flux to left and right element storage
