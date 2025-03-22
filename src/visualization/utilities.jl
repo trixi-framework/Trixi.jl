@@ -769,11 +769,11 @@ function calc_arc_length(coordinates)
     n_points = size(coordinates, 2)
     arc_length = zeros(n_points)
     for i in 1:(n_points - 1)
-        res = zero(eltype(arc_length))
+        dist_squared = zero(eltype(arc_length))
         for j in axes(coordinates, 1)
-            res += (coordinates[j, i + 1] - coordinates[j, i])^2
+            dist_squared += (coordinates[j, i + 1] - coordinates[j, i])^2
         end
-        arc_length[i + 1] = arc_length[i] + sqrt(res)
+        arc_length[i + 1] = arc_length[i] + sqrt(dist_squared)
     end
     return arc_length
 end
@@ -781,13 +781,13 @@ end
 # Convert 2d unstructured data to 1d data at given curve.
 function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes,
                                      curve, mesh, solver, cache)
-    # Extract points as `SVector`s
-    get_point(data, idx...) = SVector(data[1, idx...], data[2, idx...])
-
     n_points_curve = size(curve)[2]
     n_nodes, _, n_elements, n_variables = size(unstructured_data)
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
     baryweights_in = barycentric_weights(nodes_in)
+
+    # Utility function to extract points as `SVector`s
+    get_point(data, idx...) = SVector(data[1, idx...], data[2, idx...])
 
     # Check if input is correct.
     min = get_point(original_nodes, 1, 1, 1)
