@@ -722,8 +722,8 @@ end
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
 function calc_mortar_flux!(surface_flux_values, mesh::TreeMesh{3},
                            equations_parabolic::AbstractEquationsParabolic,
-                           mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, parabolic_scheme, cache)
+                           mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                           dg::DG, parabolic_scheme, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower_left, u_lower_right, u_upper_left, u_upper_right, orientations = cache.mortars
     @unpack (fstar_primary_upper_left_threaded, fstar_primary_upper_right_threaded,
@@ -977,9 +977,9 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(surface_flux_values,
-                          mesh,
-                          equations_parabolic,
-                          dg.mortar, dg.surface_integral, dg, cache)
+                          mesh, equations_parabolic,
+                          dg.mortar, dg.surface_integral,
+                          dg, parabolic_scheme, cache)
     end
 
     # Calculate surface integrals

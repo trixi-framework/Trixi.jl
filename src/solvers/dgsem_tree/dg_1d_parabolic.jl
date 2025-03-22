@@ -405,10 +405,9 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
 end
 
 function calc_gradient_interface_flux!(surface_flux_values,
-                                       mesh::TreeMesh{1}, equations, dg::DG,
+                                       mesh::TreeMesh{1}, equations_parabolic, dg::DG,
                                        parabolic_scheme::ViscousFormulationBassiRebay1,
-                                       cache,
-                                       cache_parabolic)
+                                       cache, cache_parabolic)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
     @threaded for interface in eachinterface(dg, cache_parabolic)
