@@ -116,8 +116,8 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-function calc_interface_flux!(surface_flux_values, 
-                              parabolic_scheme::ViscousFormulationBassiRebay1, 
+function calc_interface_flux!(surface_flux_values,
+                              parabolic_scheme::ViscousFormulationBassiRebay1,
                               mesh::TreeMesh{3}, equations_parabolic,
                               dg::DG, cache_parabolic)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
