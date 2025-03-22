@@ -136,6 +136,7 @@ end
 function calc_gradient_interface_flux!(scalar_flux_face_values,
                                        parabolic_scheme::ViscousFormulationBassiRebay1,
                                        mesh, equations, dg, cache, cache_parabolic)
+    (; u_face_values) = cache_parabolic
     (; mapM, mapP) = mesh.md
     @threaded for face_node_index in each_face_node_global(mesh, dg)
         idM, idP = mapM[face_node_index], mapP[face_node_index]
