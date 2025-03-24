@@ -393,7 +393,7 @@ function calc_divergence_interface_flux!(scalar_flux_face_values,
             fP = flux_viscous_face_values[dim][idP]
             # Here, we use the "weak" formulation to compute the divergence (to ensure stability on curved meshes).
             flux_face_value = flux_face_value +
-                              0.5 * (fP + fM) * nxyzJ[dim][face_node_index]
+                              0.5f0 * (fP + fM) * nxyzJ[dim][face_node_index]
         end
         scalar_flux_face_values[idM] = flux_face_value
     end
@@ -473,7 +473,7 @@ function rhs_parabolic!(du, u, t, mesh::DGMultiMesh,
         # This is because the parabolic fluxes are assumed to be of the form
         #   `du/dt + df/dx = dg/dx + source(x,t)`,
         # where f(u) is the inviscid flux and g(u) is the viscous flux.
-        invert_jacobian!(du, mesh, equations_parabolic, dg, cache; scaling = 1.0)
+        invert_jacobian!(du, mesh, equations_parabolic, dg, cache; scaling = 1)
     end
     return nothing
 end
