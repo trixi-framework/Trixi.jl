@@ -662,7 +662,7 @@ end
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i,
                                            interface)
 
-        flux = 0.5f0 * (u_ll + u_rr)
+        flux = 0.5f0 * (u_ll + u_rr) # Bassi-Rebay 1 (BR1)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations_parabolic, dg, i)
