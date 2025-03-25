@@ -974,7 +974,8 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
                 for ii in 1:n_nodes
                     res_ii = zero(eltype(temp_data))
                     for n in 1:n_nodes
-                        res_ii += vandermonde_z[n] * unstructured_data[i, ii, n, element_id, v]
+                        res_ii += vandermonde_z[n] *
+                                  unstructured_data[i, ii, n, element_id, v]
                     end
                     temp_data[i, ii, element, v] = res_ii
                 end
