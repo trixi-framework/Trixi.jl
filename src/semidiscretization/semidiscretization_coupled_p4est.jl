@@ -6,9 +6,9 @@
 #! format: noindent
 
 """
-    SemidiscretizationCoupledP4Est
+    SemidiscretizationCoupledP4est
 
-Specialized semidiscretization routines for coupled problems using p4est meshes.
+Specialized semidiscretization routines for coupled problems using P4est meshes.
 This is analogous to the implimantation for structured meshes.
 [`semidiscretize`](@ref) will return an `ODEProblem` that synchronizes time steps between the semidiscretizations.
 Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
@@ -17,7 +17,7 @@ The semidiscretizations can be coupled by gluing meshes together using [`Boundar
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct SemidiscretizationCoupledP4Est{S, Indices, EquationList} <:
+mutable struct SemidiscretizationCoupledP4est{S, Indices, EquationList} <:
                AbstractSemidiscretization
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
@@ -25,11 +25,11 @@ mutable struct SemidiscretizationCoupledP4Est{S, Indices, EquationList} <:
 end
 
 """
-    SemidiscretizationCoupledP4Est(semis...)
+    SemidiscretizationCoupledP4est(semis...)
 
 Create a coupled semidiscretization that consists of the semidiscretizations passed as arguments.
 """
-function SemidiscretizationCoupledP4Est(semis...)
+function SemidiscretizationCoupledP4est(semis...)
     @assert all(semi -> ndims(semi) == ndims(semis[1]), semis) "All semidiscretizations must have the same dimension!"
 
     # Number of coefficients for each semidiscretization
@@ -50,24 +50,24 @@ function SemidiscretizationCoupledP4Est(semis...)
 
     performance_counter = PerformanceCounter()
 
-    SemidiscretizationCoupledP4Est{typeof(semis), typeof(u_indices),
+    SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
                                    typeof(performance_counter)}(semis, u_indices,
                                                                 performance_counter)
 end
 
-function Base.show(io::IO, semi::SemidiscretizationCoupledP4Est)
+function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
     @nospecialize semi # reduce precompilation time
 
-    print(io, "SemidiscretizationCoupledP4Est($(semi.semis))")
+    print(io, "SemidiscretizationCoupledP4est($(semi.semis))")
 end
 
-# function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4Est)
+# function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4est)
 #     @nospecialize semi # reduce precompilation time
 #
 #     if get(io, :compact, false)
 #         show(io, semi)
 #     else
-#         summary_header(io, "SemidiscretizationCoupledP4Est")
+#         summary_header(io, "SemidiscretizationCoupledP4est")
 #         summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
 #         summary_line(io, "#systems", nsystems(semi))
 #         for i in eachsystem(semi)
@@ -88,7 +88,7 @@ end
 #     end
 # end
 
-# function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCoupledP4Est)
+# function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCoupledP4est)
 #     show(io, MIME"text/plain"(), semi)
 #     println(io, "\n")
 #     for i in eachsystem(semi)
@@ -109,35 +109,35 @@ end
 #     end
 # end
 
-@inline Base.ndims(semi::SemidiscretizationCoupledP4Est) = ndims(semi.semis[1])
+@inline Base.ndims(semi::SemidiscretizationCoupledP4est) = ndims(semi.semis[1])
 
-@inline nsystems(semi::SemidiscretizationCoupledP4Est) = length(semi.semis)
+@inline nsystems(semi::SemidiscretizationCoupledP4est) = length(semi.semis)
 
-@inline eachsystem(semi::SemidiscretizationCoupledP4Est) = Base.OneTo(nsystems(semi))
+@inline eachsystem(semi::SemidiscretizationCoupledP4est) = Base.OneTo(nsystems(semi))
 
-@inline Base.real(semi::SemidiscretizationCoupledP4Est) = promote_type(real.(semi.semis)...)
+@inline Base.real(semi::SemidiscretizationCoupledP4est) = promote_type(real.(semi.semis)...)
 
-@inline function Base.eltype(semi::SemidiscretizationCoupledP4Est)
+@inline function Base.eltype(semi::SemidiscretizationCoupledP4est)
     promote_type(eltype.(semi.semis)...)
 end
 
-@inline function ndofs(semi::SemidiscretizationCoupledP4Est)
+@inline function ndofs(semi::SemidiscretizationCoupledP4est)
     sum(ndofs, semi.semis)
 end
 
 """
-    ndofsglobal(semi::SemidiscretizationCoupledP4Est)
+    ndofsglobal(semi::SemidiscretizationCoupledP4est)
 
 Return the global number of degrees of freedom associated with each scalar variable across all MPI ranks, and summed up over all coupled systems.
 This is the same as [`ndofs`](@ref) for simulations running in serial or
 parallelized via threads. It will in general be different for simulations
 running in parallel with MPI.
 """
-@inline function ndofsglobal(semi::SemidiscretizationCoupledP4Est)
+@inline function ndofsglobal(semi::SemidiscretizationCoupledP4est)
     sum(ndofsglobal, semi.semis)
 end
 
-# function compute_coefficients(t, semi::SemidiscretizationCoupledP4Est)
+# function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
 #     @unpack u_indices = semi
 #
 #     u_ode = Vector{real(semi)}(undef, u_indices[end][end])
@@ -150,7 +150,7 @@ end
 #     return u_ode
 # end
 
-# @inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupledP4Est)
+# @inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupledP4est)
 #     @view u_ode[semi.u_indices[index]]
 # end
 
@@ -170,7 +170,7 @@ end
     foreach_enumerate(func, remaining_collection, index + 1)
 end
 
-function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4Est, t)
+function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
     @trixi_timeit timer() "copy to coupled boundaries" begin
@@ -321,7 +321,7 @@ end
 ################################################################################
 
 # Save mesh for a coupled semidiscretization, which contains multiple meshes internally
-function save_mesh(semi::SemidiscretizationCoupledP4Est, output_directory, timestep = 0)
+function save_mesh(semi::SemidiscretizationCoupledP4est, output_directory, timestep = 0)
     for i in eachsystem(semi)
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
@@ -333,7 +333,7 @@ function save_mesh(semi::SemidiscretizationCoupledP4Est, output_directory, times
     end
 end
 
-@inline function save_solution_file(semi::SemidiscretizationCoupledP4Est, u_ode,
+@inline function save_solution_file(semi::SemidiscretizationCoupledP4est, u_ode,
                                     solution_callback,
                                     integrator)
     @unpack semis = semi
@@ -351,7 +351,7 @@ end
 
 # In case of coupled system, use minimum timestep over all systems
 # Case for constant `cfl_number`.
-function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCoupledP4Est)
+function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCoupledP4est)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
         calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
@@ -360,7 +360,7 @@ function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCouple
     return dt
 end
 # Case for `cfl_number` as a function of time `t`.
-function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupledP4Est)
+function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupledP4est)
     cfl_number_ = cfl_number(t)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
@@ -368,7 +368,7 @@ function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupledP4Est
     end
 end
 
-function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupledP4Est,
+function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupledP4est,
                                 glm_speed_callback, dt, t)
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
