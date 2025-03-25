@@ -20,6 +20,8 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 4,
                 n_cells_max = 10_000)
 
+# The multi-ion GLM-MHD equations require the inclusion of source_terms_lorentz 
+# whenever multiple ion species are present
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_lorentz)
 
