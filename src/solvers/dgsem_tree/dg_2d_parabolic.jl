@@ -781,7 +781,7 @@ end
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t,
                         mesh::TreeMesh{2}, equations_parabolic,
-                        boundary_conditions_parabolic, dg::DG, parabolic_scheme, 
+                        boundary_conditions_parabolic, dg::DG, parabolic_scheme,
                         cache, cache_parabolic)
     gradients_x, gradients_y = gradients
 
@@ -826,7 +826,7 @@ function calc_gradient!(gradients, u_transformed, t,
     @trixi_timeit timer() "interface flux" begin
         @unpack surface_flux_values = cache_parabolic.elements
         calc_gradient_interface_flux!(surface_flux_values, mesh, equations_parabolic,
-                                      dg, parabolic_scheme, 
+                                      dg, parabolic_scheme,
                                       cache, cache_parabolic)
     end
 
