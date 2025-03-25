@@ -515,8 +515,8 @@ function rhs!(du, u, t,
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
+        calc_mortar_flux!(cache.elements.surface_flux_values, u,
+                          mesh, have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 

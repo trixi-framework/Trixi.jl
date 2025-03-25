@@ -100,10 +100,6 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
     fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
     fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
-    # A2d = Array{uEltype, 2}
-    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
-    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_l2)) for _ in 1:Threads.nthreads()]
-
     (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
      fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
 end
@@ -124,10 +120,6 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                   nvariables(equations) * nnodes(mortar_ec) * nnodes(mortar_ec)}
     fstar_upper_correction_threaded = MA3d[MA3d(undef) for _ in 1:Threads.nthreads()]
     fstar_lower_correction_threaded = MA3d[MA3d(undef) for _ in 1:Threads.nthreads()]
-
-    # A2d = Array{uEltype, 2}
-    # fstar_upper_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_ec)) for _ in 1:Threads.nthreads()]
-    # fstar_lower_threaded = [A2d(undef, nvariables(equations), nnodes(mortar_ec)) for _ in 1:Threads.nthreads()]
 
     (; fstar_primary_upper_threaded, fstar_primary_lower_threaded,
      fstar_secondary_upper_threaded, fstar_secondary_lower_threaded,
@@ -183,9 +175,9 @@ function rhs!(du, u, t,
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+        calc_mortar_flux!(cache.elements.surface_flux_values, u, mesh,
                           have_nonconservative_terms(equations), equations,
-                          dg.mortar, dg.surface_integral, dg, cache, u)
+                          dg.mortar, dg.surface_integral, dg, cache)
     end
 
     # Calculate surface integrals
@@ -967,11 +959,11 @@ end
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(surface_flux_values, u,
                            mesh::TreeMesh{2},
                            nonconservative_terms::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, cache, u)
+                           surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
@@ -1186,11 +1178,11 @@ function calc_flux_correction!(surface_flux_values,
     end
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(surface_flux_values, u,
                            mesh::TreeMesh{2},
                            nonconservative_terms::False, equations,
                            mortar_ec::LobattoLegendreMortarEC,
-                           surface_integral, dg::DG, cache, u)
+                           surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
