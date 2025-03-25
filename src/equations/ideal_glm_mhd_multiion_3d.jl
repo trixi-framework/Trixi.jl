@@ -1506,8 +1506,8 @@ end
 
         c_f = max(c_f,
                   sqrt((0.5f0 * (a_square + b_square) +
-                        0.5f0 *
-                        sqrt((a_square + b_square)^2 - 4 * a_square * b_dot_n_squared)) *
+                        0.5f0 * sqrt((a_square + b_square)^2 - 
+                                     4 * a_square * b_dot_n_squared)) *
                        norm_squared))
     end
 
