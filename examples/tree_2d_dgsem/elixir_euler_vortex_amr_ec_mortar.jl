@@ -1,5 +1,5 @@
 
-using OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # define new structs inside a module to allow re-evaluating the file
@@ -116,7 +116,8 @@ end
 initial_condition = initial_condition_isentropic_vortex
 
 polydeg = 2
-surf_flux = flux_ranocha
+#surf_flux = flux_ranocha 
+surf_flux = flux_lax_friedrichs
 basis = LobattoLegendreBasis(Float64, polydeg)
 solver = DGSEM(basis, surf_flux,
                VolumeIntegralFluxDifferencing(flux_ranocha),
@@ -130,7 +131,7 @@ coordinates_max = (10.0, 10.0)
 refinement_patches = ((type = "box", coordinates_min = (-5.0, -5.0),
                        coordinates_max = (5.0, 5.0)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 3,
                 refinement_patches = refinement_patches,
                 n_cells_max = 10_000)
 
@@ -173,7 +174,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, SSPRK33(thread = Trixi.True()),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
 
