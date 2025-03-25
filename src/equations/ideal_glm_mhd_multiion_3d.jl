@@ -1294,7 +1294,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
                             vk3_plus_avg * normal_direction[3]
 
         # Fill the fluxes for the mass and momentum equations
-        f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
+        f1 = rho_mean * 0.5f0 * (v_dot_n_ll + v_dot_n_rr)
         f2 = f1 * v1_avg + p_mean * normal_direction[1]
         f3 = f1 * v2_avg + p_mean * normal_direction[2]
         f4 = f1 * v3_avg + p_mean * normal_direction[3]
