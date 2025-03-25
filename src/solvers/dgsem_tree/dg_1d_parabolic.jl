@@ -423,7 +423,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
         # Call pointwise Riemann solver
         u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                            equations_parabolic, dg, interface)
-        flux = 0.5f0 * (u_ll + u_rr)
+        flux = 0.5f0 * (u_ll + u_rr) # Bassi-Rebay 1 (BR1)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
@@ -474,8 +474,7 @@ function calc_gradient!(gradients, u_transformed, t, mesh::TreeMesh{1},
         @unpack surface_flux_values = cache_parabolic.elements
         calc_gradient_interface_flux!(surface_flux_values,
                                       mesh, equations_parabolic, dg, parabolic_scheme,
-                                      cache,
-                                      cache_parabolic)
+                                      cache, cache_parabolic)
     end
 
     # Prolong solution to boundaries
