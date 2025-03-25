@@ -44,8 +44,6 @@ function SemidiscretizationCoupledP4est(semis...)
     for i in 1:length(semis)
         offset = sum(n_coefficients[1:(i - 1)]) + 1
         u_indices[i] = range(offset, length = n_coefficients[i])
-
-        allocate_coupled_boundary_conditions(semis[i])
     end
 
     performance_counter = PerformanceCounter()
@@ -61,53 +59,53 @@ function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
     print(io, "SemidiscretizationCoupledP4est($(semi.semis))")
 end
 
-# function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4est)
-#     @nospecialize semi # reduce precompilation time
-#
-#     if get(io, :compact, false)
-#         show(io, semi)
-#     else
-#         summary_header(io, "SemidiscretizationCoupledP4est")
-#         summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
-#         summary_line(io, "#systems", nsystems(semi))
-#         for i in eachsystem(semi)
-#             summary_line(io, "system", i)
-#             mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
-#             summary_line(increment_indent(io), "mesh", mesh |> typeof |> nameof)
-#             summary_line(increment_indent(io), "equations",
-#                          equations |> typeof |> nameof)
-#             summary_line(increment_indent(io), "initial condition",
-#                          semi.semis[i].initial_condition)
-#             # no boundary conditions since that could be too much
-#             summary_line(increment_indent(io), "source terms",
-#                          semi.semis[i].source_terms)
-#             summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
-#         end
-#         summary_line(io, "total #DOFs per field", ndofsglobal(semi))
-#         summary_footer(io)
-#     end
-# end
+function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationCoupledP4est)
+    @nospecialize semi # reduce precompilation time
 
-# function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCoupledP4est)
-#     show(io, MIME"text/plain"(), semi)
-#     println(io, "\n")
-#     for i in eachsystem(semi)
-#         mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
-#         summary_header(io, "System #$i")
-#
-#         summary_line(io, "mesh", mesh |> typeof |> nameof)
-#         show(increment_indent(io), MIME"text/plain"(), mesh)
-#
-#         summary_line(io, "equations", equations |> typeof |> nameof)
-#         show(increment_indent(io), MIME"text/plain"(), equations)
-#
-#         summary_line(io, "solver", solver |> typeof |> nameof)
-#         show(increment_indent(io), MIME"text/plain"(), solver)
-#
-#         summary_footer(io)
-#         println(io, "\n")
-#     end
-# end
+    if get(io, :compact, false)
+        show(io, semi)
+    else
+        summary_header(io, "SemidiscretizationCoupledP4est")
+        summary_line(io, "#spatial dimensions", ndims(semi.semis[1]))
+        summary_line(io, "#systems", nsystems(semi))
+        for i in eachsystem(semi)
+            summary_line(io, "system", i)
+            mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
+            summary_line(increment_indent(io), "mesh", mesh |> typeof |> nameof)
+            summary_line(increment_indent(io), "equations",
+                         equations |> typeof |> nameof)
+            summary_line(increment_indent(io), "initial condition",
+                         semi.semis[i].initial_condition)
+            # no boundary conditions since that could be too much
+            summary_line(increment_indent(io), "source terms",
+                         semi.semis[i].source_terms)
+            summary_line(increment_indent(io), "solver", solver |> typeof |> nameof)
+        end
+        summary_line(io, "total #DOFs per field", ndofsglobal(semi))
+        summary_footer(io)
+    end
+end
+
+function print_summary_semidiscretization(io::IO, semi::SemidiscretizationCoupledP4est)
+    show(io, MIME"text/plain"(), semi)
+    println(io, "\n")
+    for i in eachsystem(semi)
+        mesh, equations, solver, _ = mesh_equations_solver_cache(semi.semis[i])
+        summary_header(io, "System #$i")
+
+        summary_line(io, "mesh", mesh |> typeof |> nameof)
+        show(increment_indent(io), MIME"text/plain"(), mesh)
+
+        summary_line(io, "equations", equations |> typeof |> nameof)
+        show(increment_indent(io), MIME"text/plain"(), equations)
+
+        summary_line(io, "solver", solver |> typeof |> nameof)
+        show(increment_indent(io), MIME"text/plain"(), solver)
+
+        summary_footer(io)
+        println(io, "\n")
+    end
+end
 
 @inline Base.ndims(semi::SemidiscretizationCoupledP4est) = ndims(semi.semis[1])
 
@@ -137,22 +135,22 @@ running in parallel with MPI.
     sum(ndofsglobal, semi.semis)
 end
 
-# function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
-#     @unpack u_indices = semi
-#
-#     u_ode = Vector{real(semi)}(undef, u_indices[end][end])
-#
-#     for i in eachsystem(semi)
-#         # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
-#         u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
-#     end
-#
-#     return u_ode
-# end
+function compute_coefficients(t, semi::SemidiscretizationCoupledP4est)
+    @unpack u_indices = semi
 
-# @inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupledP4est)
-#     @view u_ode[semi.u_indices[index]]
-# end
+    u_ode = Vector{real(semi)}(undef, u_indices[end][end])
+
+    for i in eachsystem(semi)
+        # Call `compute_coefficients` in `src/semidiscretization/semidiscretization.jl`
+        u_ode[u_indices[i]] .= compute_coefficients(t, semi.semis[i])
+    end
+
+    return u_ode
+end
+
+@inline function get_system_u_ode(u_ode, index, semi::SemidiscretizationCoupledP4est)
+    @view u_ode[semi.u_indices[index]]
+end
 
 # Same as `foreach(enumerate(something))`, but without allocations.
 #

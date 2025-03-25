@@ -60,8 +60,6 @@ function extract_p4est_mesh_view(elements_parent,
                                                                                mesh.cell_ids]
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
-    @autoinfiltrate
-
     return elements, interfaces, boundaries_parent, mortars_parent
 end
 
