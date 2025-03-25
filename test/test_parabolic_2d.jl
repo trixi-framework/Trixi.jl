@@ -54,8 +54,10 @@ isdir(outdir) && rm(outdir, recursive = true)
     u0 = Base.parent(ode.u0)
     t = 0.0
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
+    parabolic_scheme = semi.solver_parabolic
     Trixi.calc_gradient!(gradients, u0, t, mesh, equations_parabolic,
-                         boundary_condition_periodic, dg, cache, cache_parabolic)
+                         boundary_condition_periodic, dg, parabolic_scheme,
+                         cache, cache_parabolic)
     @unpack x, y, xq, yq = mesh.md
     @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
     @test getindex.(gradients[2], 1) ≈ xq .^ 2
@@ -72,6 +74,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                            equations_parabolic,
                            boundary_condition_periodic,
                            dg, semi.solver_parabolic, cache, cache_parabolic)
+    Trixi.invert_jacobian!(du, mesh, equations_parabolic, dg, cache; scaling = 1.0)
     @test getindex.(du, 1) ≈ 2 * y
 end
 
