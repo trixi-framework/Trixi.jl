@@ -3,7 +3,7 @@
 # Similar to unstructured_2d_fdsbp/elixir_euler_free_stream_upwind.jl
 # but using Float32 instead of the default Float64
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -82,7 +82,5 @@ callbacks = CallbackSet(summary_callback,
 # run the simulation
 
 # set small tolerances for the free-stream preservation test
-sol = solve(ode, SSPRK43(), abstol = 1.0f-6, reltol = 1.0f-6,
-            save_everystep = false, callback = callbacks)
-
-summary_callback() # print the timer summary
+sol = solve(ode, SSPRK43(), abstol = 1.0f-6, reltol = 1.0f-6;
+            ode_default_options()..., callback = callbacks)

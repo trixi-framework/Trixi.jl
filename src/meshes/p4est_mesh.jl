@@ -191,6 +191,8 @@ function P4estMesh(trees_per_dimension; polydeg,
                    p4est_partition_allow_for_coarsening = true)
     @assert ((coordinates_min === nothing)===(coordinates_max === nothing)) "Either both or none of coordinates_min and coordinates_max must be specified"
 
+    coordinates_min_max_check(coordinates_min, coordinates_max)
+
     @assert count(i -> i !== nothing,
                   (mapping, faces, coordinates_min))==1 "Exactly one of mapping, faces and coordinates_min/max must be specified"
 

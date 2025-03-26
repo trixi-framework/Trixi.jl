@@ -1283,6 +1283,100 @@ end
                    u[5])
 end
 
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
+                                                             normal_direction::AbstractVector,
+                                                             equations::CompressibleEulerEquations3D)
+    (; gamma) = equations
+
+    # Step 1:
+    # Rotate solution into the appropriate direction
+
+    norm_ = norm(normal_direction)
+    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
+    normal_vector = normal_direction / norm_
+
+    # Some vector that can't be identical to normal_vector (unless normal_vector == 0)
+    tangent1 = SVector(normal_direction[2], normal_direction[3], -normal_direction[1])
+    # Orthogonal projection
+    tangent1 -= dot(normal_vector, tangent1) * normal_vector
+    tangent1 = normalize(tangent1)
+
+    # Third orthogonal vector
+    tangent2 = normalize(cross(normal_direction, tangent1))
+
+    u_ll_rotated = rotate_to_x(u_ll, normal_vector, tangent1, tangent2, equations)
+    u_rr_rotated = rotate_to_x(u_rr, normal_vector, tangent1, tangent2, equations)
+
+    # Step 2:
+    # Compute the averages using the rotated variables
+    rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll_rotated, equations)
+    rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr_rotated, equations)
+
+    b_ll = rho_ll / (2 * p_ll)
+    b_rr = rho_rr / (2 * p_rr)
+
+    rho_log = ln_mean(rho_ll, rho_rr)
+    b_log = ln_mean(b_ll, b_rr)
+    v1_avg = 0.5f0 * (v1_ll + v1_rr)
+    v2_avg = 0.5f0 * (v2_ll + v2_rr)
+    v3_avg = 0.5f0 * (v3_ll + v3_rr)
+    p_avg = 0.5f0 * (rho_ll + rho_rr) / (b_ll + b_rr)
+    v_squared_bar = v1_ll * v1_rr + v2_ll * v2_rr + v3_ll * v3_rr
+    h_bar = gamma / (2 * b_log * (gamma - 1)) + 0.5f0 * v_squared_bar
+    c_bar = sqrt(gamma * p_avg / rho_log)
+
+    # Step 3:
+    # Build the dissipation term as given in Appendix A of the paper 
+    # - A. R. Winters, D. Derigs, G. Gassner, S. Walch, A uniquely defined entropy stable matrix dissipation operator 
+    # for high Mach number ideal MHD and compressible Euler simulations (2017). Journal of Computational Physics.
+    # [DOI: 10.1016/j.jcp.2016.12.006](https://doi.org/10.1016/j.jcp.2016.12.006).
+
+    # Get entropy variables jump in the rotated variables
+    w_jump = cons2entropy(u_rr_rotated, equations) -
+             cons2entropy(u_ll_rotated, equations)
+
+    # Entries of the diagonal scaling matrix where D = ABS(\Lambda)T
+    lambda_1 = abs(v1_avg - c_bar) * rho_log / (2 * gamma)
+    lambda_2 = abs(v1_avg) * rho_log * (gamma - 1) / gamma
+    lambda_3 = abs(v1_avg) * p_avg # scaled repeated eigenvalue in the tangential direction
+    lambda_5 = abs(v1_avg + c_bar) * rho_log / (2 * gamma)
+    D = SVector(lambda_1, lambda_2, lambda_3, lambda_3, lambda_5)
+
+    # Entries of the right eigenvector matrix (others have already been precomputed)
+    r21 = v1_avg - c_bar
+    r25 = v1_avg + c_bar
+    r51 = h_bar - v1_avg * c_bar
+    r52 = 0.5f0 * v_squared_bar
+    r55 = h_bar + v1_avg * c_bar
+
+    # Build R and transpose of R matrices
+    R = @SMatrix [[1;; 1;; 0;; 0;; 1];
+                  [r21;; v1_avg;; 0;; 0;; r25];
+                  [v2_avg;; v2_avg;; 1;; 0;; v2_avg];
+                  [v3_avg;; v3_avg;; 0;; 1;; v3_avg];
+                  [r51;; r52;; v2_avg;; v3_avg;; r55]]
+
+    RT = @SMatrix [[1;; r21;; v2_avg;; v3_avg;; r51];
+                   [1;; v1_avg;; v2_avg;; v3_avg;; r52];
+                   [0;; 0;; 1;; 0;; v2_avg];
+                   [0;; 0;; 0;; 1;; v3_avg];
+                   [1;; r25;; v2_avg;; v3_avg;; r55]]
+
+    # Compute the dissipation term R * D * R^T * [[w]] from right-to-left
+
+    # First comes R^T * [[w]]
+    diss = RT * w_jump
+    # Next multiply with the eigenvalues and Barth scaling
+    diss = D .* diss
+    # Finally apply the remaining eigenvector matrix
+    diss = R * diss
+
+    # Step 4:
+    # Do not forget to backrotate and then return with proper normalization scaling
+    return -0.5f0 * rotate_from_x(diss, normal_vector, tangent1, tangent2, equations) *
+           norm_
+end
+
 # Rotate x-axis to normal vector; normal, tangent1 and tangent2 need to be orthonormal
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the directions
 # has been normalized prior to this back-rotation of the state vector

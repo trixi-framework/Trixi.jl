@@ -3,6 +3,7 @@ module TestUnit
 using Test
 using Trixi
 
+using LinearAlgebra: norm, dot
 using DelimitedFiles: readdlm
 
 # Use Convex and ECOS to load the extension that extends functions for testing
@@ -646,6 +647,39 @@ end
     end
 end
 
+@timed_testset "boundary_condition_do_nothing_non_conservative" begin
+    rho, v1, v2, v3, p, B1, B2, B3, psi = 1.0, 0.1, 0.2, 0.3, 1.0, 0.0,
+                                          40.0 / sqrt(4.0 * pi), 0.0, 0.0
+
+    let equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
+        u = prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+        x = SVector(1.0, 2.0)
+        t = 0.5
+        surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_powell)
+
+        outward_direction = SVector(0.2, 0.3)
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(ntuple(i -> surface_fluxes[i](u, u,
+                                                                  outward_direction,
+                                                                  equations), 2),
+                                    boundary_condition_do_nothing(u, outward_direction,
+                                                                  x, t, surface_fluxes,
+                                                                  equations)))
+
+        orientation = 2
+        direction = 4
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(ntuple(i -> surface_fluxes[i](u, u, orientation,
+                                                                  equations), 2),
+                                    boundary_condition_do_nothing(u, orientation,
+                                                                  direction, x, t,
+                                                                  surface_fluxes,
+                                                                  equations)))
+    end
+end
+
 @timed_testset "TimeSeriesCallback" begin
     # Test the 2D TreeMesh version of the callback and some warnings
     @test_nowarn_mod trixi_include(@__MODULE__,
@@ -1191,6 +1225,25 @@ end
               flux(u, normal_direction, equations)
     end
 
+    # check consistency between 1D and 2D HLLC fluxes
+    u_1d = SVector(1.1, -0.5, 5.5)
+    u_2d = SVector(u_1d[1], u_1d[2], 0.0, u_1d[3])
+    normal_1d = SVector(-0.3)
+    normal_2d = SVector(normal_1d[1], 0.0)
+    equations_1d = CompressibleEulerEquations1D(1.4)
+    equations_2d = CompressibleEulerEquations2D(1.4)
+    flux_1d = flux_hllc(u_1d, u_1d, normal_1d, equations_1d)
+    flux_2d = flux_hllc(u_2d, u_2d, normal_2d, equations_2d)
+    @test flux_1d ≈ flux(u_1d, normal_1d, equations_1d)
+    @test flux_1d ≈ flux_2d[[1, 2, 4]]
+
+    # test when u_ll is not the same as u_rr
+    u_rr_1d = SVector(2.1, 0.3, 0.1)
+    u_rr_2d = SVector(u_rr_1d[1], u_rr_1d[2], 0.0, u_rr_1d[3])
+    flux_1d = flux_hllc(u_1d, u_rr_1d, normal_1d, equations_1d)
+    flux_2d = flux_hllc(u_2d, u_rr_2d, normal_2d, equations_2d)
+    @test flux_1d ≈ flux_2d[[1, 2, 4]]
+
     equations = CompressibleEulerEquations3D(1.4)
     u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
 
@@ -1583,6 +1636,105 @@ end
             end
         end
     end
+end
+
+@timed_testset "DissipationMatrixWintersEtal entropy dissipation and consistency tests" begin
+    equations = CompressibleEulerEquations1D(1.4)
+    dissipation_matrix_winters_etal = DissipationMatrixWintersEtal()
+
+    # test constant preservation and entropy dissipation vector
+    u_ll = prim2cons(SVector(1, 0, 2.0), equations)
+    u_rr = prim2cons(SVector(1.1, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    @test norm(dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)) <
+          100 * eps()
+    @test dot(v_ll - v_rr,
+              dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)) ≥ 0
+
+    # test non-unit vector
+    u_ll = prim2cons(SVector(rand(), randn(), rand()), equations)
+    u_rr = prim2cons(SVector(rand(), randn(), rand()), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    @test dot(v_ll - v_rr,
+              dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)) ≥ 0
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, SVector(0.1), equations) ≈
+          0.1 * dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)
+
+    equations = CompressibleEulerEquations2D(1.4)
+
+    # test that 2D flux is consistent with 1D matrix flux
+    u_ll = prim2cons(SVector(1, 0.1, 0, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    normal = SVector(1.0, 0.0)
+    ids = [1, 2, 4] # indices of 1D variables/fluxes within the 2D solution
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, normal, equations)[ids] ≈
+          dissipation_matrix_winters_etal(u_ll[ids], u_rr[ids],
+                                          SVector(1.0),
+                                          CompressibleEulerEquations1D(1.4))
+
+    # test 2D entropy dissipation
+    u_ll = prim2cons(SVector(1, 1, -3, 100.0), equations)
+    u_rr = prim2cons(SVector(100, -2, 4, 1.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0),
+                                                  equations)
+    @test dot(v_ll - v_rr, dissipation) ≥ 0
+
+    # test non-unit vector
+    normal_direction = SVector(1.0, 2.0)
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, normal_direction, equations) ≈
+          norm(normal_direction) * dissipation_matrix_winters_etal(u_ll, u_rr,
+                                          normal_direction / norm(normal_direction),
+                                          equations)
+
+    # test that 3D flux is consistent with 1D and 2D versions
+    equations = CompressibleEulerEquations3D(1.4)
+    dissipation_matrix_winters_etal = DissipationMatrixWintersEtal()
+
+    # test for consistency with 1D and 2D flux
+    u_ll = prim2cons(SVector(1, 0.1, 0, 0, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, 0, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 0.0, 0.0),
+                                                     equations)
+    dissipation_1d = dissipation_matrix_winters_etal(u_ll[[1, 2, 5]], u_rr[[1, 2, 5]],
+                                                     SVector(1.0),
+                                                     CompressibleEulerEquations1D(1.4))
+    @test dissipation_3d[[1, 2, 5]] ≈ dissipation_1d
+
+    u_ll = prim2cons(SVector(1, 0.1, 0.2, 0, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, -0.3, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0, 0.0),
+                                                     equations)
+    dissipation_2d = dissipation_matrix_winters_etal(u_ll[[1, 2, 3, 5]],
+                                                     u_rr[[1, 2, 3, 5]],
+                                                     SVector(1.0, 1.0),
+                                                     CompressibleEulerEquations2D(1.4))
+    @test dissipation_3d[[1, 2, 3, 5]] ≈ dissipation_2d
+
+    # test 3D entropy dissipation
+    u_ll = prim2cons(SVector(1, 0.1, 0.2, 0.3, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, -0.3, 0.4, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 2.0, 3.0),
+                                                     equations)
+    @test dot(v_ll - v_rr, dissipation_3d) ≥ 0
+
+    # test non-unit vector
+    normal_direction = SVector(1.0, 2.0, 3.0)
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, normal_direction, equations) ≈
+          norm(normal_direction) * dissipation_matrix_winters_etal(u_ll, u_rr,
+                                          normal_direction / norm(normal_direction),
+                                          equations)
 end
 
 @testset "Equivalent Wave Speed Estimates" begin
@@ -2238,6 +2390,27 @@ end
                     0.8161315324169078 0.1838684675830921
                     0.7532704453316061 0.2467295546683939
                     0.31168238866709846 0.18831761133290154], atol = 1e-13)
+end
+
+@testset "PERK Single p4 Constructors" begin
+    path_coeff_file = mktempdir()
+    Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
+                   joinpath(path_coeff_file, "spectrum.txt"))
+
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    tspan = (0.0, 1.0)
+    ode_algorithm = Trixi.PairedExplicitRK4(14, tspan, vec(eig_vals))
+
+    @test isapprox(transpose(ode_algorithm.a_matrix),
+                   [0.9935765040401348 0.0064234959598652
+                    0.9849926812139576 0.0150073187860425
+                    0.9731978940975923 0.0268021059024077
+                    0.9564664284695985 0.0435335715304015
+                    0.9319632992510594 0.0680367007489407
+                    0.8955171743167522 0.1044828256832478
+                    0.8443975130657495 0.1556024869342504
+                    0.7922561745278265 0.2077438254721735
+                    0.7722324105428290 0.2277675894571710], atol = 1e-13)
 end
 
 @testset "Sutherlands Law" begin

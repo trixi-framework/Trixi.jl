@@ -351,7 +351,8 @@ end
 ################################################################################
 
 # In case of coupled system, use minimum timestep over all systems
-function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
+# Case for constant `cfl_number`.
+function calculate_dt(u_ode, t, cfl_number::Real, semi::SemidiscretizationCoupled)
     dt = minimum(eachsystem(semi)) do i
         u_ode_slice = get_system_u_ode(u_ode, i, semi)
         calculate_dt(u_ode_slice, t, cfl_number, semi.semis[i])
@@ -359,9 +360,17 @@ function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
 
     return dt
 end
+# Case for `cfl_number` as a function of time `t`.
+function calculate_dt(u_ode, t, cfl_number, semi::SemidiscretizationCoupled)
+    cfl_number_ = cfl_number(t)
+    dt = minimum(eachsystem(semi)) do i
+        u_ode_slice = get_system_u_ode(u_ode, i, semi)
+        calculate_dt(u_ode_slice, t, cfl_number_, semi.semis[i])
+    end
+end
 
 function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
-                                glm_speed_callback, dt)
+                                glm_speed_callback, dt, t)
     @unpack glm_scale, cfl, semi_indices = glm_speed_callback
 
     if length(semi_indices) == 0
@@ -376,12 +385,19 @@ function update_cleaning_speed!(semi_coupled::SemidiscretizationCoupled,
         end
     end
 
+    if cfl isa Real # Case for constant CFL
+        cfl_number = cfl
+    else # Variable CFL
+        cfl_number = cfl(t)
+    end
+
     for semi_index in semi_indices
         semi = semi_coupled.semis[semi_index]
         mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
         # compute time step for GLM linear advection equation with c_h=1 (redone due to the possible AMR)
-        c_h_deltat = calc_dt_for_cleaning_speed(cfl, mesh, equations, solver, cache)
+        c_h_deltat = calc_dt_for_cleaning_speed(cfl_number,
+                                                mesh, equations, solver, cache)
 
         # c_h is proportional to its own time step divided by the complete MHD time step
         # We use @reset here since the equations are immutable (to work on GPUs etc.).

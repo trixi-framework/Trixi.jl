@@ -8,8 +8,8 @@
 # Define all of the functions necessary for polynomial optimizations
 include("polynomial_optimizer.jl")
 
-# Abstract base type for both single/standalone and multi-level 
-# PERK (Paired-Explicit Runge-Kutta) time integration schemes
+# Abstract base type for both single/standalone and multi-level
+# PERK (Paired Explicit Runge-Kutta) time integration schemes
 abstract type AbstractPairedExplicitRK end
 # Abstract base type for single/standalone PERK time integration schemes
 abstract type AbstractPairedExplicitRKSingle <: AbstractPairedExplicitRK end
@@ -36,7 +36,7 @@ function PairedExplicitRKOptions(callback, tspan; maxiters = typemax(Int), kwarg
                                                                        tstops_internal)
 end
 
-abstract type AbstractPairedExplicitRKIntegrator end
+abstract type AbstractPairedExplicitRKIntegrator <: AbstractTimeIntegrator end
 abstract type AbstractPairedExplicitRKSingleIntegrator <:
               AbstractPairedExplicitRKIntegrator end
 
@@ -110,6 +110,8 @@ function solve!(integrator::AbstractPairedExplicitRKIntegrator)
         step!(integrator)
     end
 
+    finalize_callbacks(integrator)
+
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                                   (prob.u0, integrator.u),
                                   integrator.sol.prob)
@@ -176,7 +178,7 @@ end
 
 """
     modify_dt_for_tstops!(integrator::PairedExplicitRK)
- 
+
 Modify the time-step size to match the time stops specified in integrator.opts.tstops.
 To avoid adding OrdinaryDiffEq to Trixi's dependencies, this routine is a copy of
 https://github.com/SciML/OrdinaryDiffEq.jl/blob/d76335281c540ee5a6d1bd8bb634713e004f62ee/src/integrators/integrator_utils.jl#L38-L54
@@ -206,5 +208,8 @@ function solve_a_butcher_coeffs_unknown! end
 
 # Basic implementation of the second-order paired explicit Runge-Kutta (PERK) method
 include("methods_PERK2.jl")
+# Slightly customized implementation of the third-order PERK method
 include("methods_PERK3.jl")
+# Basic implementation of the fourth-order PERK method
+include("methods_PERK4.jl")
 end # @muladd
