@@ -2172,11 +2172,10 @@ end
         B3 = 0.4
         rho1_ll_rr = SVector(0.5, 0.5)
         rho2_ll_rr = SVector(0.5, 0.5)
-        vx1_ll_rr = SVector(0.1, 0.2)
-        vx2_ll_rr = SVector(0.1, 0.2)
-
-        vy1_ll_rr = SVector(0.2, 0.1)
-        vy2_ll_rr = SVector(0.2, 0.1)
+        vx1_ll_rr = SVector(0.1, 0.1)
+        vx2_ll_rr = SVector(0.2, 0.2)
+        vy1_ll_rr = SVector(0.3, 0.3)
+        vy2_ll_rr = SVector(0.4, 0.4)
         vz1 = 0.0
         vz2 = 0.0
         p1 = 0.4
@@ -2194,6 +2193,50 @@ end
         for orientation in [1, 2]
             @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
                   max_abs_speed(u_ll, u_rr, orientation, equations)
+        end
+    end
+
+    @timed_testset "IdealGlmMhdMultiIonEquations3D" begin
+        equations = IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667),
+                                                   charge_to_mass = (1.0, 2.0))
+
+        B1 = 1.1
+        B2 = -0.3
+        B3 = 0.4
+        rho1_ll_rr = SVector(0.5, 0.5)
+        rho2_ll_rr = SVector(0.5, 0.5)
+        vx1_ll_rr = SVector(0.1, 0.1)
+        vx2_ll_rr = SVector(0.2, 0.2)
+        vy1_ll_rr = SVector(0.3, 0.3)
+        vy2_ll_rr = SVector(0.4, 0.4)
+        vz1_ll_rr = SVector(0.5, 0.5)
+        vz2_ll_rr = SVector(0.6, 0.6)
+        p1 = 0.4
+        p2 = 0.4
+        psi = 0.1
+
+        u_ll = prim2cons(SVector(B1, B2, B3, rho1_ll_rr[1], rho2_ll_rr[1],
+                                 vx1_ll_rr[1], vy1_ll_rr[1], vx2_ll_rr[1], vy2_ll_rr[1],
+                                 vz1_ll_rr[1], vz2_ll_rr[1], p1, p2, psi), equations)
+
+        u_rr = prim2cons(SVector(B1, B2, B3, rho1_ll_rr[2], rho2_ll_rr[2],
+                                 vx1_ll_rr[2], vy1_ll_rr[2], vx2_ll_rr[2], vy2_ll_rr[2],
+                                 vz1_ll_rr[2], vz2_ll_rr[2], p1, p2, psi), equations)
+
+        for orientation in [1, 2, 3]
+            @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                  max_abs_speed(u_ll, u_rr, orientation, equations)
+        end
+
+        normal_directions = [SVector(1.0, 0.0, 0.0),
+            SVector(0.0, 1.0, 0.0),
+            SVector(0.0, 0.0, 1.0),
+            SVector(0.5, -0.5, 0.2),
+            SVector(-1.2, 0.3, 1.4)]
+
+        for normal_direction in normal_directions
+            @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                  max_abs_speed(u_ll, u_rr, normal_direction, equations)
         end
     end
 
