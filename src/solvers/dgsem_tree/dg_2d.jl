@@ -1000,7 +1000,7 @@ function calc_mortar_flux!(surface_flux_values, u,
                            mesh::TreeMesh{2},
                            nonconservative_terms::True, equations,
                            mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, cache, u)
+                           surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u_lower, u_upper, orientations, large_sides = cache.mortars
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
