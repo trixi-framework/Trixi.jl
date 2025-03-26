@@ -115,6 +115,7 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
     fstar_secondary_upper_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
     fstar_secondary_lower_threaded = MA2d[MA2d(undef) for _ in 1:Threads.nthreads()]
 
+    # Additional datastructures for the correction terms
     MA3d = MArray{Tuple{nvariables(equations), nnodes(mortar_ec), nnodes(mortar_ec)},
                   uEltype, 3,
                   nvariables(equations) * nnodes(mortar_ec) * nnodes(mortar_ec)}
@@ -904,7 +905,7 @@ end
 @inline function element_solutions_to_mortars!(mortars,
                                                mortar_l2::LobattoLegendreMortarL2,
                                                leftright, mortar,
-                                               u_large::AbstractArray{<:Any, 2},
+                                               u_large::AbstractArray{<:Any, 2}, # This fixes the dimension
                                                dg, equations)
     multiply_dimensionwise!(view(mortars.u_upper, leftright, :, :, mortar),
                             mortar_l2.forward_upper, u_large)
@@ -916,20 +917,17 @@ end
 @inline function element_solutions_to_mortars!(mortars,
                                                mortar_ec::LobattoLegendreMortarEC,
                                                leftright, mortar,
-                                               u_large::AbstractArray{<:Any, 2},
+                                               u_large::AbstractArray{<:Any, 2}, # This fixes the dimension
                                                dg, equations)
-    # TODO: `get_node_vars` does not allocate and seems to be equivalent here.
-    # Conversely, `view` seems to allocate (but yields same results.)
     # Convert conservative to entropy variables
     for i in 1:nnodes(dg) # 2D face is 1D line
         set_node_vars!(u_large,
                        cons2entropy(get_node_vars(u_large, equations, dg, i),
-                                    #view(u_large, :, i),
                                     equations),
                        equations, dg, i)
     end
 
-    # Interpolate big face values to mortars
+    # Interpolate large face values to mortars
     u_upper = view(mortars.u_upper, leftright, :, :, mortar)
     u_lower = view(mortars.u_lower, leftright, :, :, mortar)
     multiply_dimensionwise!(u_upper,
@@ -941,17 +939,14 @@ end
     for i in 1:nnodes(dg)
         set_node_vars!(u_large,
                        entropy2cons(get_node_vars(u_large, equations, dg, i),
-                                    #view(u_large, :, i),
                                     equations),
                        equations, dg, i)
         set_node_vars!(u_upper,
                        entropy2cons(get_node_vars(u_upper, equations, dg, i),
-                                    #view(u_upper, :, i),
                                     equations),
                        equations, dg, i)
         set_node_vars!(u_lower,
                        entropy2cons(get_node_vars(u_lower, equations, dg, i),
-                                    #view(u_lower, :, i),
                                     equations),
                        equations, dg, i)
     end
@@ -1139,6 +1134,11 @@ function calc_flux_correction!(surface_flux_values,
             # Calculate flux corrections for i'th node
             flux_correction = zero(eltype(fstar_upper_correction))
 
+            # Loop over inner-element nodes (see Fig. 3) of
+            #   Chan, Bencomo, Del Rey Fernández (2021).
+            #   Mortar-based Entropy-Stable Discontinuous Galerkin Methods on 
+            #     Non-conforming Quadrilateral and Hexahedral Meshes.
+            #   https://doi.org/10.1007/s10915-021-01652-3
             for j in 1:nnodes(dg)
                 # j-local flux: "Forward" flux
                 f_j_upper = fstar_upper_correction[v, i, j]
@@ -1228,8 +1228,8 @@ function calc_mortar_flux!(surface_flux_values, u,
                 u_large = view(u, :, :, 1, large_element_id)
             end
         end
-        calc_flux_correction!(surface_flux_values, mortar_ec, dg, equations,
-                              cache,
+        calc_flux_correction!(surface_flux_values, mortar_ec,
+                              dg, equations, cache,
                               u_large, u_large_upper, u_large_lower,
                               direction, large_element_id, mortar,
                               fstar_upper_correction, fstar_lower_correction,

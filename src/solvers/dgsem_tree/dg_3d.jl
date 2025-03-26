@@ -1034,7 +1034,7 @@ end
 @inline function element_solutions_to_mortars!(mortars,
                                                mortar_l2::LobattoLegendreMortarL2,
                                                leftright, mortar,
-                                               u_large::AbstractArray{<:Any, 3},
+                                               u_large::AbstractArray{<:Any, 3}, # This fixes the dimension
                                                fstar_tmp1)
     multiply_dimensionwise!(view(mortars.u_upper_left, leftright, :, :, :, mortar),
                             mortar_l2.forward_lower, mortar_l2.forward_upper, u_large,

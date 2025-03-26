@@ -2,69 +2,6 @@
 using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
-# define new structs inside a module to allow re-evaluating the file
-module TrixiExtension
-
-using Trixi
-
-struct IndicatorVortex{Cache <: NamedTuple} <: Trixi.AbstractIndicator
-    cache::Cache
-end
-
-function IndicatorVortex(semi)
-    basis = semi.solver.basis
-    alpha = Vector{real(basis)}()
-    A = Array{real(basis), 2}
-    indicator_threaded = [A(undef, nnodes(basis), nnodes(basis))
-                          for _ in 1:Threads.nthreads()]
-    cache = (; semi.mesh, alpha, indicator_threaded)
-
-    return IndicatorVortex{typeof(cache)}(cache)
-end
-
-function (indicator_vortex::IndicatorVortex)(u::AbstractArray{<:Any, 4},
-                                             mesh, equations, dg, cache;
-                                             t, kwargs...)
-    mesh = indicator_vortex.cache.mesh
-    alpha = indicator_vortex.cache.alpha
-    resize!(alpha, nelements(dg, cache))
-
-    # get analytical vortex center (based on assumption that center=[0.0,0.0]
-    # at t=0.0 and that we stop after one period)
-    domain_length = mesh.tree.length_level_0
-    if t < 0.5 * domain_length
-        center = (t, t)
-    else
-        center = (t - domain_length, t - domain_length)
-    end
-
-    Threads.@threads for element in eachelement(dg, cache)
-        cell_id = cache.elements.cell_ids[element]
-        coordinates = (mesh.tree.coordinates[1, cell_id], mesh.tree.coordinates[2, cell_id])
-        # use the negative radius as indicator since the AMR controller increases
-        # the level with increasing value of the indicator and we want to use
-        # high levels near the vortex center
-        alpha[element] = -periodic_distance_2d(coordinates, center, domain_length)
-    end
-
-    return alpha
-end
-
-function periodic_distance_2d(coordinates, center, domain_length)
-    dx = @. abs(coordinates - center)
-    dx_periodic = @. min(dx, domain_length - dx)
-    return sqrt(sum(abs2, dx_periodic))
-end
-
-# Optional: Nicer display of the indicator
-function Base.show(io::IO, ::MIME"text/plain", indicator::IndicatorVortex)
-    Trixi.summary_box(io, "IndicatorVortex")
-end
-
-end # module TrixiExtension
-
-import .TrixiExtension
-
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 
@@ -94,7 +31,7 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
     vel = SVector(v1, v2)
     p = 25.0
     rt = p / rho                  # ideal gas equation
-    t_loc = 0.0
+    t_loc = 0
     cent = inicenter + vel * t_loc      # advection of center
     # ATTENTION: handle periodic BC, but only for v1 = v2 = 1.0 (!!!!)
 
@@ -115,25 +52,26 @@ function initial_condition_isentropic_vortex(x, t, equations::CompressibleEulerE
 end
 initial_condition = initial_condition_isentropic_vortex
 
-polydeg = 2
-#surf_flux = flux_ranocha 
-surf_flux = flux_lax_friedrichs
+polydeg = 3
+
+#surf_flux = flux_ranocha # For truly entropy-conservative spatial discretization
+surf_flux = flux_lax_friedrichs # For convergence test
+
 basis = LobattoLegendreBasis(Float64, polydeg)
 solver = DGSEM(basis, surf_flux,
                VolumeIntegralFluxDifferencing(flux_ranocha),
-               MortarEC(basis)
-               #MortarL2(basis)
-               )
+               MortarEC(basis))
 
 coordinates_min = (-10.0, -10.0)
 coordinates_max = (10.0, 10.0)
 
-refinement_patches = ((type = "box", coordinates_min = (-5.0, -5.0),
-                       coordinates_max = (5.0, 5.0)),)
+# Add refinement patch 
+refinement_patch = ((type = "box", coordinates_min = (-5.0, -5.0),
+                     coordinates_max = (5.0, 5.0)),)
 mesh = TreeMesh(coordinates_min, coordinates_max,
                 initial_refinement_level = 3,
-                refinement_patches = refinement_patches,
-                n_cells_max = 10_000)
+                refinement_patches = refinement_patch,
+                n_cells_max = 100_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -150,30 +88,20 @@ analysis_interval = 50_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      extra_analysis_errors = (:conservation_error,),
                                      save_analysis = true,
-                                     analysis_filename = "analysis_ER.dat",
+                                     analysis_filename = "analysis.dat",
                                      extra_analysis_integrals = (entropy,))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorVortex(semi),
-                                      base_level = 3,
-                                      med_level = 4, med_threshold = -3.0,
-                                      max_level = 5, max_threshold = -2.0)
-amr_callback = AMRCallback(semi, amr_controller,
-                           interval = 5,
-                           adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
-
-stepsize_callback = StepsizeCallback(cfl = 1.0)
+stepsize_callback = StepsizeCallback(cfl = 1.4)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        #amr_callback, 
                         stepsize_callback)
 
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, SSPRK33(thread = Trixi.True()),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);

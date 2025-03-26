@@ -231,6 +231,7 @@ end
 
 !!! warning "Experimental implementation"
     This is an experimental feature and may change in any future releases.
+    Currently only implemented for 2D [`TreeMesh`](@ref).
 
 Flux-corrected, entropy-conservative L2-projection based mortar tailored to the [`LobattoLegendreBasis`](@ref).
 Mortars are required to handle non-conforming interfaces. 
