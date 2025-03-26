@@ -155,6 +155,24 @@ struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
     reverse_lower::ReverseMatrix
 end
 
+"""
+    MortarL2(basis::LobattoLegendreBasis)
+
+L2-projection based mortar tailored to the [`LobattoLegendreBasis`](@ref).
+Mortars are required to handle non-conforming interfaces. 
+Currently, Trixi.jl only supports 2h-nonconforming interfaces.
+This means that all nonconforming interfaces (lines in 2D and faces in 3D) are of a 2-1 (or 1-2) coupling, i.e.,
+side A has exactly twice the number of nodes (per dimension) of side B (or vice-versa).
+
+# References
+- David A. Kopriva, (2009). 
+  Implementing spectral methods for partial differential equations:
+  Algorithms for scientists and engineers. 
+  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+- David A. Kopriva, (1996). 
+  A Conservative Staggered-Grid Chebyshev Multidomain Method for Compressible Flows. II. A Semi-Structured Method.
+  [DOI:10.1006/jcph.1996.0225](https://doi.org/10.1006/jcph.1996.0225)
+"""
 function MortarL2(basis::LobattoLegendreBasis)
     RealT = real(basis)
     nnodes_ = nnodes(basis)
@@ -196,15 +214,6 @@ function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2)
           polydeg(mortar))
 end
 
-@inline Base.real(mortar::LobattoLegendreMortarL2{RealT}) where {RealT} = RealT
-
-@inline function nnodes(mortar::LobattoLegendreMortarL2{RealT, NNODES}) where {RealT,
-                                                                               NNODES}
-    NNODES
-end
-
-@inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
-
 abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
 
 struct LobattoLegendreMortarEC{RealT <: Real, NNODES,
@@ -217,6 +226,26 @@ struct LobattoLegendreMortarEC{RealT <: Real, NNODES,
     reverse_lower::ReverseMatrix
 end
 
+"""
+    MortarEC(basis::LobattoLegendreBasis)
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in any future releases.
+
+Flux-corrected, entropy-conservative L2-projection based mortar tailored to the [`LobattoLegendreBasis`](@ref).
+Mortars are required to handle non-conforming interfaces. 
+Currently, Trixi.jl only supports 2h-nonconforming interfaces.
+This means that all nonconforming interfaces (lines in 2D and faces in 3D) are of a 2-1 (or 1-2) coupling, i.e.,
+side A has exactly twice the number of nodes (per dimension) of side B (or vice-versa).
+
+The entropy-conservative mortar is based on the [`MortarL2`](@ref) but adds a flux correction term
+to ensure that the mortar projection/interpolation operations are entropy-conservative.
+
+# References
+- Jesse Chan, Mario J. Bencomo, and David C. Del Rey Fernández (2021).
+  Mortar-based Entropy-Stable Discontinuous Galerkin Methods on Non-conforming Quadrilateral and Hexahedral Meshes.
+  [DOI:10.1007/s10915-021-01652-3](https://doi.org/10.1007/s10915-021-01652-3)
+"""
 function MortarEC(basis::LobattoLegendreBasis)
     RealT = real(basis)
     nnodes_ = nnodes(basis)
@@ -244,14 +273,19 @@ function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarEC)
           polydeg(mortar))
 end
 
-@inline Base.real(mortar::LobattoLegendreMortarEC{RealT}) where {RealT} = RealT
+@inline Base.real(mortar::Union{LobattoLegendreMortarL2{RealT},
+LobattoLegendreMortarEC{RealT}}) where {RealT} = RealT
 
-@inline function nnodes(mortar::LobattoLegendreMortarEC{RealT, NNODES}) where {RealT,
-                                                                               NNODES}
+@inline function nnodes(mortar::Union{LobattoLegendreMortarL2{RealT, NNODES},
+                                      LobattoLegendreMortarEC{RealT, NNODES}}) where {
+                                                                                      RealT,
+                                                                                      NNODES
+                                                                                      }
     NNODES
 end
 
-@inline polydeg(mortar::LobattoLegendreMortarEC) = nnodes(mortar) - 1
+@inline polydeg(mortar::Union{LobattoLegendreMortarL2,
+LobattoLegendreMortarEC}) = nnodes(mortar) - 1
 
 struct LobattoLegendreAnalyzer{RealT <: Real, NNODES,
                                VectorT <: AbstractVector{RealT},

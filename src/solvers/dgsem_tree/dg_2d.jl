@@ -1136,10 +1136,9 @@ function calc_flux_correction!(surface_flux_values,
     for i in 1:nnodes(dg)
         # Loop over all variables
         for v in eachvariable(equations)
-            # Calculate flux corrections for f_i
+            # Calculate flux corrections for i'th node
             flux_correction = zero(eltype(fstar_upper_correction))
 
-            # Inner loop over nodes
             for j in 1:nnodes(dg)
                 # j-local flux: "Forward" flux
                 f_j_upper = fstar_upper_correction[v, i, j]
