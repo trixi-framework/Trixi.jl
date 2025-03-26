@@ -920,7 +920,7 @@ end
                                                u_large::AbstractArray{<:Any, 2}, # This fixes the dimension
                                                dg, equations)
     # Convert conservative to entropy variables
-    for i in 1:nnodes(dg) # 2D face is 1D line
+    for i in eachnode(dg) # 2D face is 1D line
         set_node_vars!(u_large,
                        cons2entropy(get_node_vars(u_large, equations, dg, i),
                                     equations),
@@ -936,7 +936,7 @@ end
                             mortar_ec.forward_lower, u_large)
 
     # Convert entropy variables back to conservative
-    for i in 1:nnodes(dg)
+    for i in eachnode(dg)
         set_node_vars!(u_large,
                        entropy2cons(get_node_vars(u_large, equations, dg, i),
                                     equations),
@@ -1108,10 +1108,10 @@ function calc_flux_correction!(surface_flux_values,
                                surface_flux)
     orientation = cache.mortars.orientations[mortar]
 
-    for j in 1:nnodes(dg)
+    for j in eachnode(dg)
         u_rr_upper = get_node_vars(u_large_upper, equations, dg, j)
         u_rr_lower = get_node_vars(u_large_lower, equations, dg, j)
-        for i in 1:nnodes(dg)
+        for i in eachnode(dg)
             u_ll_large = get_node_vars(u_large, equations, dg, i)
 
             # Call pointwise two-point numerical flux function
@@ -1128,7 +1128,7 @@ function calc_flux_correction!(surface_flux_values,
     end
 
     # Loop over all nodes on large face
-    for i in 1:nnodes(dg)
+    for i in eachnode(dg)
         # Loop over all variables
         for v in eachvariable(equations)
             # Calculate flux corrections for i'th node
@@ -1139,13 +1139,13 @@ function calc_flux_correction!(surface_flux_values,
             #   Mortar-based Entropy-Stable Discontinuous Galerkin Methods on 
             #     Non-conforming Quadrilateral and Hexahedral Meshes.
             #   https://doi.org/10.1007/s10915-021-01652-3
-            for j in 1:nnodes(dg)
+            for j in eachnode(dg)
                 # j-local flux: "Forward" flux
                 f_j_upper = fstar_upper_correction[v, i, j]
                 f_j_lower = fstar_lower_correction[v, i, j]
 
                 # Subtract "forward" flux
-                for k in 1:nnodes(dg)
+                for k in eachnode(dg)
                     f_j_upper -= mortar_ec.forward_upper[j, k] *
                                  fstar_upper_correction[v, k, j]
                     f_j_lower -= mortar_ec.forward_lower[j, k] *

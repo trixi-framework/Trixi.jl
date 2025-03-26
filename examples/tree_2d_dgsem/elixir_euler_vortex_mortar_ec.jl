@@ -54,11 +54,11 @@ initial_condition = initial_condition_isentropic_vortex
 
 polydeg = 3
 
-#surf_flux = flux_ranocha # For truly entropy-conservative spatial discretization
-surf_flux = flux_lax_friedrichs # For convergence test
+#surface_flux = flux_ranocha # For truly entropy-conservative spatial discretization
+surface_flux = flux_lax_friedrichs # For convergence test
 
 basis = LobattoLegendreBasis(Float64, polydeg)
-solver = DGSEM(basis, surf_flux,
+solver = DGSEM(basis, surface_flux,
                VolumeIntegralFluxDifferencing(flux_ranocha),
                MortarEC(basis))
 
@@ -83,8 +83,7 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 50_000
-
+analysis_interval = 100
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      extra_analysis_errors = (:conservation_error,),
                                      save_analysis = true,
