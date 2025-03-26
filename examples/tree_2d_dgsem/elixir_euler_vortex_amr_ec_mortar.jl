@@ -177,4 +177,3 @@ callbacks = CallbackSet(summary_callback,
 sol = solve(ode, SSPRK33(thread = Trixi.True()),
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             save_everystep = false, callback = callbacks);
-
