@@ -1127,10 +1127,10 @@ function calc_flux_correction!(surface_flux_values,
         end
     end
 
-    # Loop over all nodes on large face
-    for i in eachnode(dg)
-        # Loop over all variables
-        for v in eachvariable(equations)
+    # Loop over all variables
+    for v in eachvariable(equations)
+        # Loop over all nodes on large face
+        for i in eachnode(dg)
             # Calculate flux corrections for i'th node
             flux_correction = zero(eltype(fstar_upper_correction))
 
