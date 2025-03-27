@@ -814,8 +814,7 @@ end
 
 function prolong2mortars!(cache, u,
                           mesh::TreeMesh{2}, equations,
-                          mortar_type::Union{LobattoLegendreMortarL2,
-                                             LobattoLegendreMortarEC},
+                          mortar_type::LobattoLegendreMortar,
                           dg::DGSEM)
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -1256,8 +1255,7 @@ end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::TreeMesh{2}, equations,
-                                            mortar_type::Union{LobattoLegendreMortarL2,
-                                                               LobattoLegendreMortarEC},
+                                            mortar_type::LobattoLegendreMortar,
                                             dg::DGSEM, cache,
                                             mortar, fstar_primary_upper,
                                             fstar_primary_lower,

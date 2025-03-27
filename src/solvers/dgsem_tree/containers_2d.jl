@@ -600,10 +600,10 @@ end
 # Create mortar container and initialize mortar data in `elements`.
 function init_mortars(cell_ids, mesh::TreeMesh2D,
                       elements::ElementContainer2D,
-                      ::Union{LobattoLegendreMortarL2, LobattoLegendreMortarEC})
+                      ::LobattoLegendreMortar)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
-    # We can reuse the `L2MortarContainer2D` also for the EC mortar
+    # We can reuse the `L2MortarContainer2D` also for the `LobattoLegendreMortarEC` mortar
     mortars = L2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
                                                     nnodes(elements))
 

@@ -274,19 +274,22 @@ function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarEC)
           polydeg(mortar))
 end
 
-@inline Base.real(mortar::Union{LobattoLegendreMortarL2{RealT},
-LobattoLegendreMortarEC{RealT}}) where {RealT} = RealT
+# Shared type alias for both mortar types to enable common functions in a compact way
+const LobattoLegendreMortar{RealT, NNODES} = Union{LobattoLegendreMortarL2{RealT,
+                                                                           NNODES},
+                                                   LobattoLegendreMortarEC{RealT,
+                                                                           NNODES}}
 
-@inline function nnodes(mortar::Union{LobattoLegendreMortarL2{RealT, NNODES},
-                                      LobattoLegendreMortarEC{RealT, NNODES}}) where {
-                                                                                      RealT,
-                                                                                      NNODES
-                                                                                      }
+@inline Base.real(mortar::LobattoLegendreMortar{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortar{RealT, NNODES}) where {
+                                                                             RealT,
+                                                                             NNODES
+                                                                             }
     NNODES
 end
 
-@inline polydeg(mortar::Union{LobattoLegendreMortarL2,
-LobattoLegendreMortarEC}) = nnodes(mortar) - 1
+@inline polydeg(mortar::LobattoLegendreMortar) = nnodes(mortar) - 1
 
 struct LobattoLegendreAnalyzer{RealT <: Real, NNODES,
                                VectorT <: AbstractVector{RealT},
