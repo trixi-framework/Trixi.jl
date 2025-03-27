@@ -472,44 +472,84 @@ function Trixi.show_plot_makie(visualization_callback, plot_data, variable_names
                 zm_button = Makie.Button(cam_button_grid[1,6], label = "-z")
 
                 Makie.on(xp_button.clicks) do _
-                    for ax in axes
-                        ax.azimuth = 0* pi
-                        ax.elevation = 0 * pi
-                    end
+                    # for ax in axes
+                    #     ax.azimuth = 0* pi
+                    #     ax.elevation = 0 * pi
+                    # end
+                    axes[1].azimuth = 0* pi
+                    axes[1].elevation = 0 * pi
                 end
         
                 Makie.on(xm_button.clicks) do _
-                    for ax in axes
-                        ax.azimuth = 1 * pi
-                        ax.elevation = 0 * pi
-                    end
+                    # for ax in axes
+                    #     ax.azimuth = 1 * pi
+                    #     ax.elevation = 0 * pi
+                    # end
+                    axes[1].azimuth = 1 * pi
+                    axes[1].elevation = 0 * pi
                 end
         
                 Makie.on(yp_button.clicks) do _
-                    for ax in axes
-                        ax.azimuth = 0.5 * pi
-                        ax.elevation = 0 * pi
-                    end
+                    # for ax in axes
+                    #     ax.azimuth = 0.5 * pi
+                    #     ax.elevation = 0 * pi
+                    # end
+                    axes[1].azimuth = 0.5 * pi
+                    axes[1].elevation = 0 * pi
                 end
         
                 Makie.on(ym_button.clicks) do _
-                    for ax in axes
-                        ax.azimuth = 1.5 * pi
-                        ax.elevation = 0 * pi
-                    end
+                    # for ax in axes
+                    #     ax.azimuth = 1.5 * pi
+                    #     ax.elevation = 0 * pi
+                    # end
+                    axes[1].azimuth = 1.5 * pi
+                    axes[1].elevation = 0 * pi
                 end
         
                 Makie.on(zp_button.clicks) do _
-                    for ax in axes
-                        ax.azimuth = 1.5 * pi
-                        ax.elevation = 0.5 * pi
-                    end
+                    # for ax in axes
+                    #     ax.azimuth = 1.5 * pi
+                    #     ax.elevation = 0.5 * pi
+                    # end
+                    axes[1].azimuth = 1.5 * pi
+                    axes[1].elevation = 0.5 * pi
                 end
         
                 Makie.on(zm_button.clicks) do _
-                    for ax in axes
-                        ax.azimuth = 0.5 * pi
-                        ax.elevation = 1.5 * pi
+                    # for ax in axes
+                    #     ax.azimuth = 0.5 * pi
+                    #     ax.elevation = 1.5 * pi
+                    # end
+                    axes[1].azimuth = 0.5 * pi
+                    axes[1].elevation = 1.5 * pi
+                end
+
+                Makie.on(axes[1].azimuth) do az
+                    for i in 2:(size(axes)[1])
+                        if axes[i].azimuth[] != axes[1].azimuth[]
+                            axes[i].azimuth[] = az
+                        end
+                    end
+                end
+                Makie.on(axes[1].elevation) do el
+                    for i in 2:(size(axes)[1])
+                        if axes[i].elevation[] != axes[1].elevation[]
+                            axes[i].elevation[] = el
+                        end
+                    end
+                end
+        
+                for i in 2:(size(axes)[1])
+                    Makie.on(axes[i].azimuth) do az
+                        if axes[i].azimuth[] != axes[1].azimuth[]
+                            axes[1].azimuth[] = az
+                        end
+                    end
+                    Makie.on(axes[i].elevation) do el
+                        if axes[i].elevation[] != axes[1].elevation[]
+                            axes[1].elevation[] = el
+                        end
                     end
                 end
             end
@@ -783,16 +823,34 @@ function Trixi.show_plot_makie_slicing(visualization_callback, plot_data, variab
         Makie.on(uv_mesh) do value
             update_plots_ob[](value)
         end
-        
-        # for i in 2:(size(axes)[1])
-        #     setfield!(axes[i].scene, :camera, axes[1].scene.camera)
-        # end
 
-        # Makie.on(axes[1].scene.camera) do value
-        #     for i in 2:(size(axes)[1])
-        #         Makie.update_cam!(axes[i].scene.camera, eyeposition= value.eyeposition, lookat = value.view_direction)
-        #     end
-        # end
+        Makie.on(axes[1].azimuth) do az
+            for i in 2:(size(axes)[1])
+                if axes[i].azimuth[] != axes[1].azimuth[]
+                    axes[i].azimuth[] = az
+                end
+            end
+        end
+        Makie.on(axes[1].elevation) do el
+            for i in 2:(size(axes)[1])
+                if axes[i].elevation[] != axes[1].elevation[]
+                    axes[i].elevation[] = el
+                end
+            end
+        end
+
+        for i in 2:(size(axes)[1])
+            Makie.on(axes[i].azimuth) do az
+                if axes[i].azimuth[] != axes[1].azimuth[]
+                    axes[1].azimuth[] = az
+                end
+            end
+            Makie.on(axes[i].elevation) do el
+                if axes[i].elevation[] != axes[1].elevation[]
+                    axes[1].elevation[] = el
+                end
+            end
+        end
 
         visualization_callback.makie_step_independent = Makie_Step_independent(fig, axes, colorbar, slice_slider_grid, positions, triangles, uv_mesh, update_plots_ob)
         Makie.display(visualization_callback.makie_step_independent.fig)
