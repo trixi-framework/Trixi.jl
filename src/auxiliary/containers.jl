@@ -314,4 +314,66 @@ end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
     raw_copy!(c, c, from, from, destination)
 end
+
+# Containers that support multiple storage backends
+# should be subtypes of this type. 
+#
+# The first type parameter must be `Array` by default and if 
+# `Adapt.adapt_structure(to, container)` is called then this must be
+# `typeof(to)`. This is used in downstream code, e.g. for calling
+# `wrap_array` with an appropriate type after `resize!`ing.
+abstract type AbstractHeterogeneousContainer{T} <: AbstractContainer end
+array_type(::AbstractHeterogeneousContainer{T}) where {T} = T
+
+# Subtypes must implement a method for these functions
+function Adapt.adapt_structure(to, ::AbstractHeterogeneousContainer)
+    error("required method not implemented")
+end
+
+# For some storage backends like CUDA.jl, empty arrays do seem to simply be
+# null pointers which can cause `unsafe_wrap` to fail when calling
+# Adapt.adapt (ArgumentError, see
+# https://github.com/JuliaGPU/CUDA.jl/blob/v5.4.2/src/array.jl#L212-L229).
+# To circumvent this, on length zero arrays this allocates
+# a separate empty array instead of wrapping.
+# However, since zero length arrays are not used in calculations,
+# it should be okay if the underlying storage vectors and wrapped arrays
+# are not the same as long as they are properly wrapped when `resize!`d etc.
+function unsafe_wrap_or_alloc(to, vec, size)
+    if length(vec) == 0
+        return similar(vec, size)
+    else
+        return unsafe_wrap(to, pointer(vec), size)
+    end
+end
+
+struct TrixiAdaptor{Storage, Real} end
+
+function trixi_adapt(storage, real, x)
+    adapt(TrixiAdaptor{storage, real}(), x)
+end
+
+# Custom rules
+# 1. handling of StaticArrays
+function Adapt.adapt_storage(::TrixiAdaptor{<:Any, Real}, x::StaticArrays.StaticArray{S, T, N}) where {Real,S,T,N}
+    StaticArrays.similar_type(x, Real)(x)
+end
+
+# 2. Handling of Arrays
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real}, x::AbstractArray{T}) where{Storage, Real, T<:AbstractFloat}
+    adapt(Storage{Real}, x)
+end
+
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real}, x::AbstractArray{T}) where {Storage, Real,T<:StaticArrays.StaticArray}
+    adapt(Storage{StaticArrays.similar_type(T, Real)},x)
+end
+
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real}, x::AbstractArray) where{Storage, Real}
+    adapt(Storage, x)
+end
+
+# 3. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
+
+unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage} = unsafe_wrap_or_alloc(Storage, vec, size)
+
 end # @muladd
