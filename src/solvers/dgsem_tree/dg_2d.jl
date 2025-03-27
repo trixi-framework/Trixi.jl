@@ -1096,6 +1096,7 @@ function calc_mortar_flux!(surface_flux_values, u,
     return nothing
 end
 
+# Flux correction is invoked after the standard L2-Mortar flux (`fstar`) calculation
 function calc_flux_correction!(surface_flux_values,
                                mortar_ec::LobattoLegendreMortarEC, dg::DG, equations,
                                cache,
@@ -1201,6 +1202,7 @@ function calc_mortar_flux!(surface_flux_values, u,
         fstar_upper_correction = fstar_upper_correction_threaded[Threads.threadid()]
         fstar_lower_correction = fstar_lower_correction_threaded[Threads.threadid()]
 
+        # Get large element data
         large_element_id = cache.mortars.neighbor_ids[3, mortar]
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
             u_large_upper = view(u_upper, 1, :, :, mortar)
@@ -1227,6 +1229,7 @@ function calc_mortar_flux!(surface_flux_values, u,
                 u_large = view(u, :, :, 1, large_element_id)
             end
         end
+        # Perform flux correction to achieve entropy conservation/stability
         calc_flux_correction!(surface_flux_values, mortar_ec,
                               dg, equations, cache,
                               u_large, u_large_upper, u_large_lower,
