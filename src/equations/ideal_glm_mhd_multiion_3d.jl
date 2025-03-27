@@ -1440,6 +1440,7 @@ end
     λ_max = max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
 end
 
+# Less "cautios", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
 @inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
                                equations::IdealGlmMhdMultiIonEquations3D)
     # Calculate fast magnetoacoustic wave speeds
