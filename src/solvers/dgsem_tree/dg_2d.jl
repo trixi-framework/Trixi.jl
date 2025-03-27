@@ -1220,11 +1220,11 @@ function calc_mortar_flux!(surface_flux_values, u,
             u_large_upper = view(u_upper, 2, :, :, mortar)
             u_large_lower = view(u_lower, 2, :, :, mortar)
             if cache.mortars.orientations[mortar] == 1
-                # L2 mortars in x-direction
+                # EC mortars in x-direction
                 direction = 2
                 u_large = view(u, :, 1, :, large_element_id)
             else
-                # L2 mortars in y-direction
+                # EC mortars in y-direction
                 direction = 4
                 u_large = view(u, :, :, 1, large_element_id)
             end

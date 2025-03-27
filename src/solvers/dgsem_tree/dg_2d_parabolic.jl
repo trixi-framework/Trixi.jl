@@ -96,7 +96,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache_parabolic.elements.surface_flux_values, u,
+        calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
                           mesh, equations_parabolic, dg.mortar, dg.surface_integral,
                           dg, parabolic_scheme, cache)
     end
@@ -620,7 +620,7 @@ end
 # NOTE: Use analogy to "calc_mortar_flux!" for hyperbolic eqs with no nonconservative terms.
 # Reasoning: "calc_interface_flux!" for parabolic part is implemented as the version for
 # hyperbolic terms with conserved terms only, i.e., no nonconservative terms.
-function calc_mortar_flux!(surface_flux_values, u,
+function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
                            equations_parabolic::AbstractEquationsParabolic,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -853,7 +853,7 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(surface_flux_values, u_transformed,
+        calc_mortar_flux!(surface_flux_values,
                           mesh, equations_parabolic,
                           dg.mortar, dg.surface_integral, dg, parabolic_scheme,
                           cache)
