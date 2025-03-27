@@ -41,17 +41,14 @@ function varnames(::typeof(cons2prim), equations::AbstractIdealGlmMhdMultiIonEqu
     return prim
 end
 
-function default_analysis_integrals(::AbstractIdealGlmMhdMultiIonEquations)
-    (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
-end
-
 """
     source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
 
 Source terms due to the Lorentz' force for plasmas with more than one ion species. These source 
 terms are a fundamental, inseparable part of the multi-ion GLM-MHD equations, and vanish for 
 a single-species plasma. In particular, they have to be used for every
-simulation of [`IdealGlmMhdMultiIonEquations2D`](@ref) and [`IdealGlmMhdMultiIonEquations3D`](@ref).
+simulation of [`IdealMhdMultiIonEquations1D`](@ref), [`IdealGlmMhdMultiIonEquations2D`](@ref),
+and [`IdealGlmMhdMultiIonEquations3D`](@ref).
 """
 function source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
     @unpack charge_to_mass = equations
@@ -182,6 +179,30 @@ divergence_cleaning_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = 
     end
     return rho
 end
+
+# Computes the sum of the densities times the sum of the pressures
+@inline function density_pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
+    B1, B2, B3 = magnetic_field(u, equations)
+    psi = divergence_cleaning_field(cons, equations)
+
+    rho_total = zero(real(equations))
+    p_total = zero(real(equations))
+    for k in eachcomponent(equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+
+        v1 = rho_v1 / rho
+        v2 = rho_v2 / rho
+        v3 = rho_v3 / rho
+        v_mag = sqrt(v1^2 + v2^2 + v3^2)
+        gamma = equations.gammas[k]
+
+        p = (gamma - 1) *
+            (rho_e - 0.5 * rho * v_mag^2 - 0.5 * (B1^2 + B2^2 + B3^2) - 0.5 * psi^2)
+
+        rho_total += rho
+        p_total += p
+    end
+    return rho_total * p_total
 
 @inline function pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
     B1, B2, B3, _ = u
