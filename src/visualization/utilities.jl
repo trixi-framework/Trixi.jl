@@ -1541,7 +1541,7 @@ end
 
 # Find the ids of elements and triangles containing given coordinates by using the triangulation in 'pd'.
 function get_ids_by_coordinates(coordinates, pd)
-    ids = Matrix(undef, size(coordinates, 2), 2)
+    ids = Matrix{Int}(undef, size(coordinates, 2), 2)
     get_ids_by_coordinates!(ids, coordinates, pd)
     return ids
 end
@@ -1575,9 +1575,19 @@ function find_element(point, pd)
     for element in 1:n_elements
         # Iterate over all triangles in given element.
         for tri in 1:n_tri
-            if is_in_triangle(point, pd.x[pd.t[tri, :], element],
-                              pd.y[pd.t[tri, :], element])
-                return SVector(element, tri)
+            # The code below is equivalent to
+            #   x == pd.x[pd.t[tri, :], element]
+            #   y == pd.y[pd.t[tri, :], element]
+            # but avoids allocations and is thus more efficient.
+            tri_indices = (pd.t[tri, 1], pd.t[tri, 2], pd.t[tri, 3])
+            x = SVector(pd.x[tri_indices[1], element],
+                        pd.x[tri_indices[2], element],
+                        pd.x[tri_indices[3], element])
+            y = SVector(pd.y[tri_indices[1], element],
+                        pd.y[tri_indices[2], element],
+                        pd.y[tri_indices[3], element])
+            if is_in_triangle(point, x, y)
+                return (element, tri)
             end
         end
     end
