@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>6 Subcell limiting with the IDP Limiter · Trixi.jl</title><meta name="title" content="6 Subcell limiting with the IDP Limiter · Trixi.jl"/><meta property="og:title" content="6 Subcell limiting with the IDP Limiter · Trixi.jl"/><meta property="twitter:title" content="6 Subcell limiting with the IDP Limiter · Trixi.jl"/><meta name="description" content="Documentation for Trixi.jl."/><meta property="og:description" content="Documentation for Trixi.jl."/><meta property="twitter:description" content="Documentation for Trixi.jl."/><meta property="og:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/subcell_shock_capturing/"/><meta property="twitter:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/subcell_shock_capturing/"/><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/subcell_shock_capturing/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Trixi.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../overview/">Overview</a></li><li><a class="tocitem" href="../../visualization/">Visualization</a></li><li><a class="tocitem" href="../../restart/">Restart simulation</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../introduction/">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox"/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">1 First steps in Trixi.jl</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../first_steps/getting_started/">1.1 Getting started</a></li><li><a class="tocitem" href="../first_steps/create_first_setup/">1.2 Create your first setup</a></li><li><a class="tocitem" href="../first_steps/changing_trixi/">1.3 Changing Trixi.jl itself</a></li></ul></li><li><a class="tocitem" href="../behind_the_scenes_simulation_setup/">2 Behind the scenes of a simulation setup</a></li><li><a class="tocitem" href="../scalar_linear_advection_1d/">3 Introduction to DG methods</a></li><li><a class="tocitem" href="../DGSEM_FluxDiff/">4 DGSEM with flux differencing</a></li><li><a class="tocitem" href="../shock_capturing/">5 Shock capturing with flux differencing and stage limiter</a></li><li class="is-active"><a class="tocitem" href>6 Subcell limiting with the IDP Limiter</a><ul class="internal"><li><a class="tocitem" href="#Time-integration-method"><span>Time integration method</span></a></li><li class="toplevel"><a class="tocitem" href="#IDPLimiter"><span>IDP Limiting</span></a></li><li><a class="tocitem" href="#Exemplary-simulation"><span>Exemplary simulation</span></a></li><li><a class="tocitem" href="#Visualization"><span>Visualization</span></a></li><li><a class="tocitem" href="#subcell_bounds_check"><span>Bounds checking</span></a></li></ul></li><li><a class="tocitem" href="../non_periodic_boundaries/">7 Non-periodic boundaries</a></li><li><a class="tocitem" href="../DGMulti_1/">8 DG schemes via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../upwind_fdsbp/">10 Upwind FD SBP schemes</a></li><li><a class="tocitem" href="../adding_new_scalar_equations/">11 Adding a new scalar conservation law</a></li><li><a class="tocitem" href="../adding_nonconservative_equation/">12 Adding a non-conservative equation</a></li><li><a class="tocitem" href="../parabolic_terms/">13 Parabolic terms</a></li><li><a class="tocitem" href="../adding_new_parabolic_terms/">14 Adding new parabolic terms</a></li><li><a class="tocitem" href="../adaptive_mesh_refinement/">15 Adaptive mesh refinement</a></li><li><a class="tocitem" href="../structured_mesh_mapping/">16 Structured mesh with curvilinear mapping</a></li><li><a class="tocitem" href="../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl</a></li><li><a class="tocitem" href="../p4est_from_gmsh/">18 P4est mesh from gmsh</a></li><li><a class="tocitem" href="../time_stepping/">19 Explicit time stepping</a></li><li><a class="tocitem" href="../differentiable_programming/">20 Differentiable programming</a></li><li><a class="tocitem" href="../custom_semidiscretization/">21 Custom semidiscretizations</a></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox"/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li><li><a class="tocitem" href="../../meshes/p4est_mesh/">P4est-based mesh</a></li><li><a class="tocitem" href="../../meshes/dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../../multi-physics_coupling/">Coupling</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../development/">Development</a></li><li><a class="tocitem" href="../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../testing/">Testing</a></li><li><a class="tocitem" href="../../performance/">Performance</a></li><li><a class="tocitem" href="../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../reference-trixibase/">TrixiBase.jl</a></li><li><a class="tocitem" href="../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../changelog/">Changelog</a></li><li><a class="tocitem" href="../../authors/">Authors</a></li><li><a class="tocitem" href="../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../code_of_conduct/">Code of Conduct</a></li><li><a class="tocitem" href="../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>6 Subcell limiting with the IDP Limiter</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>6 Subcell limiting with the IDP Limiter</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl/blob/main/docs/literate/src/files/subcell_shock_capturing.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="subcell_shock_capturing"><a class="docs-heading-anchor" href="#subcell_shock_capturing">6: Subcell limiting with the IDP Limiter</a><a id="subcell_shock_capturing-1"></a><a class="docs-heading-anchor-permalink" href="#subcell_shock_capturing" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=tutorials/notebooks/subcell_shock_capturing.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/tutorials/notebooks/subcell_shock_capturing.ipynb"><img src="https://img.shields.io/badge/render-nbviewer-f37726" alt/></a> <a href="https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/tutorials/notebooks/subcell_shock_capturing.ipynb"><img src="https://img.shields.io/badge/raw-notebook-4cc61e" alt/></a></p><p>In the previous tutorial, the element-wise limiting with <a href="../../reference-trixi/#Trixi.IndicatorHennemannGassner"><code>IndicatorHennemannGassner</code></a> and <a href="../../reference-trixi/#Trixi.VolumeIntegralShockCapturingHG"><code>VolumeIntegralShockCapturingHG</code></a> was explained. This tutorial contains a short introduction to the idea and implementation of subcell shock capturing approaches in Trixi.jl, which is also based on the DGSEM scheme in flux differencing formulation. Trixi.jl contains the a-posteriori invariant domain-preserving (IDP) limiter which was introduced by <a href="https://doi.org/10.1016/j.cma.2021.113876">Pazner (2020)</a> and <a href="https://doi.org/10.1016/j.compfluid.2022.105627">Rueda-Ramírez, Pazner, Gassner (2022)</a>. It is a flux-corrected transport-type (FCT) limiter and is implemented using <a href="../../reference-trixi/#Trixi.SubcellLimiterIDP"><code>SubcellLimiterIDP</code></a> and <a href="../../reference-trixi/#Trixi.VolumeIntegralSubcellLimiting"><code>VolumeIntegralSubcellLimiting</code></a>. Since it is an a-posteriori limiter you have to apply a correction stage after each Runge-Kutta stage. This is done by passing the stage callback <a href="../../reference-trixi/#Trixi.SubcellLimiterIDPCorrection"><code>SubcellLimiterIDPCorrection</code></a> to the time integration method.</p><h2 id="Time-integration-method"><a class="docs-heading-anchor" href="#Time-integration-method">Time integration method</a><a id="Time-integration-method-1"></a><a class="docs-heading-anchor-permalink" href="#Time-integration-method" title="Permalink"></a></h2><p>As mentioned before, the IDP limiting is an a-posteriori limiter. Its limiting process guarantees the target bounds for an explicit (forward) Euler time step. To still achieve a high-order approximation, the implementation uses strong-stability preserving (SSP) Runge-Kutta methods, which can be written as convex combinations of forward Euler steps. As such, they preserve the convexity of convex functions and functionals, such as the TVD semi-norm and the maximum principle in 1D, for instance.</p><p>Since IDP/FCT limiting procedure operates on independent forward Euler steps, its a-posteriori correction stage is implemented as a stage callback that is triggered after each forward Euler step in an SSP Runge-Kutta method. Unfortunately, the <code>solve(...)</code> routines in <a href="https://github.com/SciML/OrdinaryDiffEq.jl">OrdinaryDiffEq.jl</a>, typically employed for time integration in Trixi.jl, do not support this type of stage callback.</p><p>Therefore, subcell limiting with the IDP limiter requires the use of a Trixi-intern time integration SSPRK method called with</p><pre><code class="language-julia hljs">Trixi.solve(ode, method(stage_callbacks = stage_callbacks); ...)</code></pre><p>Right now, only the canonical three-stage, third-order SSPRK method (Shu-Osher) <a href="../../reference-trixi/#Trixi.SimpleSSPRK33"><code>Trixi.SimpleSSPRK33</code></a> is implemented.</p><h1 id="IDPLimiter"><a class="docs-heading-anchor" href="#IDPLimiter">IDP Limiting</a><a id="IDPLimiter-1"></a><a class="docs-heading-anchor-permalink" href="#IDPLimiter" title="Permalink"></a></h1><p>The implementation of the invariant domain preserving (IDP) limiting approach (<a href="../../reference-trixi/#Trixi.SubcellLimiterIDP"><code>SubcellLimiterIDP</code></a>) is based on <a href="https://doi.org/10.1016/j.cma.2021.113876">Pazner (2020)</a> and <a href="https://doi.org/10.101/j.compfluid.2022.105627">Rueda-Ramírez, Pazner, Gassner (2022)</a>. It supports several types of limiting which are enabled by passing parameters individually.</p><h3 id="global_bounds"><a class="docs-heading-anchor" href="#global_bounds">Global bounds</a><a id="global_bounds-1"></a><a class="docs-heading-anchor-permalink" href="#global_bounds" title="Permalink"></a></h3><p>If enabled, the global bounds enforce physical admissibility conditions, such as non-negativity of variables. This can be done for conservative variables, where the limiter is of a one-sided Zalesak-type (<a href="https://doi.org/10.1016/0021-9991(79)90051-2">Zalesak, 1979</a>), and general non-linear variables, where a Newton-bisection algorithm is used to enforce the bounds.</p><p>The Newton-bisection algorithm is an iterative method and requires some parameters. It uses a fixed maximum number of iteration steps (<code>max_iterations_newton = 10</code>) and relative/absolute tolerances (<code>newton_tolerances = (1.0e-12, 1.0e-14)</code>). The given values are sufficient in most cases and therefore used as default. If the implemented bounds checking functionality indicates problems with the limiting (see <a href="#subcell_bounds_check">below</a>) the Newton method with the chosen parameters might not manage to converge. If so, adapting the mentioned parameters helps fix that. Additionally, there is the parameter <code>gamma_constant_newton</code>, which can be used to scale the antidiffusive flux for the computation of the blending coefficients of nonlinear variables. The default value is <code>2 * ndims(equations)</code>, as it was shown by <a href="https://doi.org/10.1016/j.cma.2021.113876">Pazner (2020)</a> [Section 4.2.2.] that this value guarantees the fulfillment of bounds for a forward-Euler increment.</p><p>Very small non-negative values can be an issue as well. That&#39;s why we use an additional correction factor in the calculation of the global bounds,</p><p class="math-container">\[u^{new} \geq \beta * u^{FV}.\]</p><p>By default, <span>$\beta$</span> (named <code>positivity_correction_factor</code>) is set to <code>0.1</code> which works properly in most of the tested setups.</p><h4 id="Conservative-variables"><a class="docs-heading-anchor" href="#Conservative-variables">Conservative variables</a><a id="Conservative-variables-1"></a><a class="docs-heading-anchor-permalink" href="#Conservative-variables" title="Permalink"></a></h4><p>The procedure to enforce global bounds for a conservative variables is as follows: If you want to guarantee non-negativity for the density of the compressible Euler equations, you pass the specific quantity name of the conservative variable.</p><pre><code class="language-julia hljs">using Trixi
+equations = CompressibleEulerEquations2D(1.4)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CompressibleEulerEquations2D                                                                     │
+│ ════════════════════════════                                                                     │
+│ #variables: ………………………………………………… 4                                                                │
+│ │ variable 1: …………………………………………… rho                                                              │
+│ │ variable 2: …………………………………………… rho_v1                                                           │
+│ │ variable 3: …………………………………………… rho_v2                                                           │
+│ │ variable 4: …………………………………………… rho_e                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>The quantity name of the density is <code>rho</code> which is how we enable its limiting.</p><pre><code class="language-julia hljs">positivity_variables_cons = [&quot;rho&quot;]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1-element Vector{String}:
+ &quot;rho&quot;</code></pre><p>The quantity names are passed as a vector to allow several quantities. This is used, for instance, if you want to limit the density of two different components using the multicomponent compressible Euler equations.</p><pre><code class="language-julia hljs">equations = CompressibleEulerMulticomponentEquations2D(gammas = (1.4, 1.648),
+                                                       gas_constants = (0.287, 1.578))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CompressibleEulerMulticomponentEquations2D                                                       │
+│ ══════════════════════════════════════════                                                       │
+│ #variables: ………………………………………………… 5                                                                │
+│ │ variable 1: …………………………………………… rho_v1                                                           │
+│ │ variable 2: …………………………………………… rho_v2                                                           │
+│ │ variable 3: …………………………………………… rho_e                                                            │
+│ │ variable 4: …………………………………………… rho1                                                             │
+│ │ variable 5: …………………………………………… rho2                                                             │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>Then, we just pass both quantity names.</p><pre><code class="language-julia hljs">positivity_variables_cons = [&quot;rho1&quot;, &quot;rho2&quot;]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{String}:
+ &quot;rho1&quot;
+ &quot;rho2&quot;</code></pre><p>Alternatively, it is possible to all limit all density variables with a general command using</p><pre><code class="language-julia hljs">positivity_variables_cons = [&quot;rho&quot; * string(i) for i in eachcomponent(equations)]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{String}:
+ &quot;rho1&quot;
+ &quot;rho2&quot;</code></pre><h4 id="Non-linear-variables"><a class="docs-heading-anchor" href="#Non-linear-variables">Non-linear variables</a><a id="Non-linear-variables-1"></a><a class="docs-heading-anchor-permalink" href="#Non-linear-variables" title="Permalink"></a></h4><p>To allow limitation for all possible non-linear variables, including variables defined on-the-fly, you can directly pass the function that computes the quantity for which you want to enforce positivity. For instance, if you want to enforce non-negativity for the pressure, do as follows.</p><pre><code class="language-julia hljs">positivity_variables_nonlinear = [pressure]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1-element Vector{typeof(pressure)}:
+ pressure (generic function with 15 methods)</code></pre><h3 id="Local-bounds"><a class="docs-heading-anchor" href="#Local-bounds">Local bounds</a><a id="Local-bounds-1"></a><a class="docs-heading-anchor-permalink" href="#Local-bounds" title="Permalink"></a></h3><p>Second, Trixi.jl supports the limiting with local bounds for conservative variables using a two-sided Zalesak-type limiter (<a href="https://doi.org/10.1016/0021-9991(79)90051-2">Zalesak, 1979</a>) and for general non-linear variables using a one-sided Newton-bisection algorithm. They allow to avoid spurious oscillations within the global bounds and to improve the shock-capturing capabilities of the method. The corresponding numerical admissibility conditions are frequently formulated as local maximum or minimum principles. The local bounds are computed using the maximum and minimum values of all local neighboring nodes. Within this calculation we use the low-order FV solution values for each node.</p><p>As for the limiting with global bounds you are passing the quantity names of the conservative variables you want to limit. So, to limit the density with lower and upper local bounds pass the following.</p><pre><code class="language-julia hljs">local_twosided_variables_cons = [&quot;rho&quot;]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1-element Vector{String}:
+ &quot;rho&quot;</code></pre><p>To limit non-linear variables locally, pass the variable function combined with the requested bound (<code>min</code> or <code>max</code>) as a tuple. For instance, to impose a lower local bound on the modified specific entropy <a href="../../reference-trixi/#Trixi.entropy_guermond_etal-Tuple{Any, CompressibleEulerEquations2D}"><code>Trixi.entropy_guermond_etal</code></a>, use</p><pre><code class="language-julia hljs">local_onesided_variables_nonlinear = [(Trixi.entropy_guermond_etal, min)]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1-element Vector{Tuple{typeof(Trixi.entropy_guermond_etal), typeof(min)}}:
+ (Trixi.entropy_guermond_etal, min)</code></pre><h2 id="Exemplary-simulation"><a class="docs-heading-anchor" href="#Exemplary-simulation">Exemplary simulation</a><a id="Exemplary-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Exemplary-simulation" title="Permalink"></a></h2><p>How to set up a simulation using the IDP limiting becomes clearer when looking at an exemplary setup. This will be a simplified version of <code>tree_2d_dgsem/elixir_euler_blast_wave_sc_subcell.jl</code>. Since the setup is mostly very similar to a pure DGSEM setup as in <code>tree_2d_dgsem/elixir_euler_blast_wave.jl</code>, the equivalent parts are used without any explanation here.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq
+using Trixi
+
+equations = CompressibleEulerEquations2D(1.4)
+
+function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
+    # Modified From Hennemann &amp; Gassner JCP paper 2020 (Sec. 6.3) -&gt; &quot;medium blast wave&quot;
+    # Set up polar coordinates
+    inicenter = SVector(0.0, 0.0)
+    x_norm = x[1] - inicenter[1]
+    y_norm = x[2] - inicenter[2]
+    r = sqrt(x_norm^2 + y_norm^2)
+    phi = atan(y_norm, x_norm)
+    sin_phi, cos_phi = sincos(phi)
+
+    # Calculate primitive variables
+    rho = r &gt; 0.5 ? 1.0 : 1.1691
+    v1 = r &gt; 0.5 ? 0.0 : 0.1882 * cos_phi
+    v2 = r &gt; 0.5 ? 0.0 : 0.1882 * sin_phi
+    p = r &gt; 0.5 ? 1.0E-3 : 1.245
+
+    return prim2cons(SVector(rho, v1, v2, p), equations)
+end
+initial_condition = initial_condition_blast_wave;</code></pre><p>Since the surface integral is equal for both the DG and the subcell FV method, the limiting is applied only in the volume integral.</p><p>Note, that the DG method is based on the flux differencing formulation. Hence, you have to use a two-point flux, such as <a href="../../reference-trixi/#Trixi.flux_ranocha-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_ranocha</code></a>, <a href="../../reference-trixi/#Trixi.flux_shima_etal-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_shima_etal</code></a>, <a href="../../reference-trixi/#Trixi.flux_chandrashekar-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_chandrashekar</code></a> or <a href="../../reference-trixi/#Trixi.flux_kennedy_gruber-Tuple{Any, Any, Integer, CompressibleEulerEquations1D}"><code>flux_kennedy_gruber</code></a>, for the DG volume flux.</p><pre><code class="language-julia hljs">surface_flux = flux_lax_friedrichs
+volume_flux = flux_ranocha</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">flux_ranocha (generic function with 9 methods)</code></pre><p>The limiter is implemented within <a href="../../reference-trixi/#Trixi.SubcellLimiterIDP"><code>SubcellLimiterIDP</code></a>. It always requires the parameters <code>equations</code> and <code>basis</code>. With additional parameters (described <a href="#IDPLimiter">above</a> or listed in the docstring) you can specify and enable additional limiting options. Here, the simulation should contain local limiting for the density using lower and upper bounds.</p><pre><code class="language-julia hljs">basis = LobattoLegendreBasis(3)
+limiter_idp = SubcellLimiterIDP(equations, basis;
+                                local_twosided_variables_cons = [&quot;rho&quot;])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SubcellLimiterIDP                                                                                │
+│ ═════════════════                                                                                │
+│ Limiter: …………………………………………………………                                                                  │
+│ : …………………………………………………………………………… Local two-sided limiting for conservative variables [1]          │
+│ Local bounds: …………………………………………… FV solution                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>The initialized limiter is passed to <code>VolumeIntegralSubcellLimiting</code> in addition to the volume fluxes of the low-order and high-order scheme.</p><pre><code class="language-julia hljs">volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
+                                                volume_flux_dg = volume_flux,
+                                                volume_flux_fv = surface_flux)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ VolumeIntegralSubcellLimiting                                                                    │
+│ ═════════════════════════════                                                                    │
+│ volume flux DG: ……………………………………… flux_ranocha                                                     │
+│ volume flux FV: ……………………………………… FluxLaxFriedrichs(max_abs_speed_naive)                           │
+│ limiter: ………………………………………………………… SubcellLimiterIDP                                                │
+│ │ Limiter: ……………………………………………………                                                                  │
+│ │ : ……………………………………………………………………… Local two-sided limiting for conservative variables [1]          │
+│ │ Local bounds: ……………………………………… FV solution                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>Then, the volume integral is passed to <code>solver</code> as it is done for the standard flux-differencing DG scheme or the element-wise limiting.</p><pre><code class="language-julia hljs">solver = DGSEM(basis, surface_flux, volume_integral)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DG{Float64}                                                                                      │
+│ ═══════════                                                                                      │
+│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
+│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
+│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
+│ │ surface flux: ……………………………………… FluxLaxFriedrichs(max_abs_speed_naive)                           │
+│ volume integral: …………………………………… VolumeIntegralSubcellLimiting                                    │
+│ │ volume flux DG: ………………………………… flux_ranocha                                                     │
+│ │ volume flux FV: ………………………………… FluxLaxFriedrichs(max_abs_speed_naive)                           │
+│ │ limiter: …………………………………………………… SubcellLimiterIDP                                                │
+│ │ │ Limiter: ………………………………………………                                                                  │
+│ │ │ : ………………………………………………………………… Local two-sided limiting for conservative variables [1]          │
+│ │ │ Local bounds: ………………………………… FV solution                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><pre><code class="language-julia hljs">coordinates_min = (-2.0, -2.0)
+coordinates_max = (2.0, 2.0)
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 5,
+                n_cells_max = 10_000)
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
+
+tspan = (0.0, 2.0)
+ode = semidiscretize(semi, tspan)
+
+summary_callback = SummaryCallback()
+
+analysis_interval = 1000
+analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
+
+alive_callback = AliveCallback(analysis_interval = analysis_interval)
+
+save_solution = SaveSolutionCallback(interval = 1000,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim)
+
+stepsize_callback = StepsizeCallback(cfl = 0.3)
+
+callbacks = CallbackSet(summary_callback,
+                        analysis_callback, alive_callback,
+                        save_solution,
+                        stepsize_callback);</code></pre><p>As explained above, the IDP limiter works a-posteriori and requires the additional use of a correction stage implemented with the stage callback <a href="../../reference-trixi/#Trixi.SubcellLimiterIDPCorrection"><code>SubcellLimiterIDPCorrection</code></a>. This callback is passed within a tuple to the time integration method.</p><pre><code class="language-julia hljs">stage_callbacks = (SubcellLimiterIDPCorrection(),)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(SubcellLimiterIDPCorrection(),)</code></pre><p>Moreover, as mentioned before as well, simulations with subcell limiting require a Trixi-intern SSPRK time integration methods with passed stage callbacks and a Trixi-intern <code>Trixi.solve(...)</code> routine.</p><pre><code class="language-julia hljs">sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
+                  dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+                  callback = callbacks);
+summary_callback() # print the timer summary</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+████████╗██████╗ ██╗██╗  ██╗██╗
+╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
+   ██║   ██████╔╝██║ ╚███╔╝ ██║
+   ██║   ██╔══██╗██║ ██╔██╗ ██║
+   ██║   ██║  ██║██║██╔╝ ██╗██║
+   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SemidiscretizationHyperbolic                                                                     │
+│ ════════════════════════════                                                                     │
+│ #spatial dimensions: ………………………… 2                                                                │
+│ mesh: ………………………………………………………………… TreeMesh{2, Trixi.SerialTree{2}} with length 1365                │
+│ equations: …………………………………………………… CompressibleEulerEquations2D                                     │
+│ initial condition: ……………………………… initial_condition_blast_wave                                     │
+│ boundary conditions: ………………………… Trixi.BoundaryConditionPeriodic                                  │
+│ source terms: …………………………………………… nothing                                                          │
+│ solver: …………………………………………………………… DG                                                               │
+│ total #DOFs per field: …………………… 16384                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ TreeMesh{2, Trixi.SerialTree{2}}                                                                 │
+│ ════════════════════════════════                                                                 │
+│ center: …………………………………………………………… [0.0, 0.0]                                                       │
+│ length: …………………………………………………………… 4.0                                                              │
+│ periodicity: ……………………………………………… (true, true)                                                     │
+│ current #cells: ……………………………………… 1365                                                             │
+│ #leaf-cells: ……………………………………………… 1024                                                             │
+│ maximum #cells: ……………………………………… 10000                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ CompressibleEulerEquations2D                                                                     │
+│ ════════════════════════════                                                                     │
+│ #variables: ………………………………………………… 4                                                                │
+│ │ variable 1: …………………………………………… rho                                                              │
+│ │ variable 2: …………………………………………… rho_v1                                                           │
+│ │ variable 3: …………………………………………… rho_v2                                                           │
+│ │ variable 4: …………………………………………… rho_e                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DG{Float64}                                                                                      │
+│ ═══════════                                                                                      │
+│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
+│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
+│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
+│ │ surface flux: ……………………………………… FluxLaxFriedrichs(max_abs_speed_naive)                           │
+│ volume integral: …………………………………… VolumeIntegralSubcellLimiting                                    │
+│ │ volume flux DG: ………………………………… flux_ranocha                                                     │
+│ │ volume flux FV: ………………………………… FluxLaxFriedrichs(max_abs_speed_naive)                           │
+│ │ limiter: …………………………………………………… SubcellLimiterIDP                                                │
+│ │ │ Limiter: ………………………………………………                                                                  │
+│ │ │ : ………………………………………………………………… Local two-sided limiting for conservative variables [1]          │
+│ │ │ Local bounds: ………………………………… FV solution                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ AnalysisCallback                                                                                 │
+│ ════════════════                                                                                 │
+│ interval: ……………………………………………………… 1000                                                             │
+│ analyzer: ……………………………………………………… LobattoLegendreAnalyzer{Float64}(polydeg=6)                      │
+│ │ error 1: …………………………………………………… l2_error                                                         │
+│ │ error 2: …………………………………………………… linf_error                                                       │
+│ │ integral 1: …………………………………………… entropy_timederivative                                           │
+│ save analysis to file: …………………… no                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ AliveCallback                                                                                    │
+│ ═════════════                                                                                    │
+│ interval: ……………………………………………………… 100                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SaveSolutionCallback                                                                             │
+│ ════════════════════                                                                             │
+│ interval: ……………………………………………………… 1000                                                             │
+│ solution variables: …………………………… cons2prim                                                        │
+│ save initial solution: …………………… yes                                                              │
+│ save final solution: ………………………… yes                                                              │
+│ output directory: ………………………………… /home/runner/work/Trixi.jl/Trixi.jl/docs/build/tutorials/out     │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ StepsizeCallback                                                                                 │
+│ ════════════════                                                                                 │
+│ CFL number: ………………………………………………… 0.3                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Time integration                                                                                 │
+│ ════════════════                                                                                 │
+│ Start time: ………………………………………………… 0.0                                                              │
+│ Final time: ………………………………………………… 2.0                                                              │
+│ time integrator: …………………………………… SimpleSSPRK33                                                    │
+│ adaptive: ……………………………………………………… false                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Environment information                                                                          │
+│ ═══════════════════════                                                                          │
+│ #threads: ……………………………………………………… 1                                                                │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                  0                run time:       1.41300000e-06 s
+ Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
+                                               PID:                   Inf s
+ #DOFs per field:         16384                alloc&#39;d memory:       1493.166 MiB
+ #elements:                1024
+
+ Variable:       rho              rho_v1           rho_v2           rho_e
+ L2 error:       6.25621384e-03   5.88786362e-03   5.81457821e-03   1.15827059e-01
+ Linf error:     1.06470791e-01   2.46283676e-01   1.37585923e-01   1.97119199e+00
+ ∑∂S/∂U ⋅ Uₜ :  -6.22526192e+02
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+#timesteps:    100 │ Δt: 2.9061e-03 │ sim. time: 2.9394e-01 (14.697%)  │ run time: 1.5884e+00 s
+#timesteps:    200 │ Δt: 3.2316e-03 │ sim. time: 6.0126e-01 (30.063%)  │ run time: 2.6938e+00 s
+#timesteps:    300 │ Δt: 3.8243e-03 │ sim. time: 9.5591e-01 (47.795%)  │ run time: 3.8238e+00 s
+#timesteps:    400 │ Δt: 4.3979e-03 │ sim. time: 1.3674e+00 (68.371%)  │ run time: 4.9814e+00 s
+#timesteps:    500 │ Δt: 5.0302e-03 │ sim. time: 1.8395e+00 (91.977%)  │ run time: 6.1514e+00 s
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;CompressibleEulerEquations2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                532                run time:       6.58175790e+00 s
+ Δt:             2.58201930e-03                └── GC time:    4.54795660e-02 s (0.691%)
+ sim. time:      2.00000000e+00 (100.000%)     time/DOF/rhs!:  1.89259558e-07 s
+                                               PID:            2.49695047e-07 s
+ #DOFs per field:         16384                alloc&#39;d memory:       1012.831 MiB
+ #elements:                1024
+
+ Variable:       rho              rho_v1           rho_v2           rho_e
+ L2 error:       1.01030662e+00   3.05177209e-01   3.05188326e-01   6.85712113e-01
+ Linf error:     3.29436672e+00   1.45717455e+00   1.45659687e+00   2.92881060e+00
+ ∑∂S/∂U ⋅ Uₜ :  -2.91165098e+01
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Trixi.jl simulation finished.  Final time: 2.0  Time steps: 532 (accepted), 532 (total)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+<span class="sgr1">────────────────────────────────────────────────────────────────────────────────</span>
+<span class="sgr1">           Trixi.jl           </span>         Time                    Allocations
+                              ───────────────────────   ────────────────────────
+      Tot / % measured:            6.59s / 100.0%           21.1MiB /  99.5%
+
+Section               ncalls     time    %tot     avg     alloc    %tot      avg
+────────────────────────────────────────────────────────────────────────────────
+main loop                  1    6.05s   91.8%   6.05s   8.67MiB   41.2%  8.67MiB
+  rhs!                 1.60k    4.95s   75.1%  3.10ms   9.33KiB    0.0%    5.98B
+    volume integral    1.60k    4.41s   66.8%  2.76ms     0.00B    0.0%    0.00B
+    interface flux     1.60k    285ms    4.3%   178μs     0.00B    0.0%    0.00B
+    prolong2interf...  1.60k    119ms    1.8%  74.3μs     0.00B    0.0%    0.00B
+    surface integral   1.60k    102ms    1.6%  64.0μs     0.00B    0.0%    0.00B
+    reset ∂u/∂t        1.60k   17.6ms    0.3%  11.0μs     0.00B    0.0%    0.00B
+    Jacobian           1.60k   17.0ms    0.3%  10.6μs     0.00B    0.0%    0.00B
+    ~rhs!~             1.60k   2.62ms    0.0%  1.64μs   9.33KiB    0.0%    5.98B
+    prolong2mortars    1.60k    121μs    0.0%  75.5ns     0.00B    0.0%    0.00B
+    prolong2bounda...  1.60k    114μs    0.0%  71.6ns     0.00B    0.0%    0.00B
+    mortar flux        1.60k   81.3μs    0.0%  51.0ns     0.00B    0.0%    0.00B
+    source terms       1.60k   58.9μs    0.0%  36.9ns     0.00B    0.0%    0.00B
+    boundary flux      1.60k   51.6μs    0.0%  32.4ns     0.00B    0.0%    0.00B
+  a posteriori lim...  1.60k    954ms   14.5%   598μs    214KiB    1.0%     137B
+    blending factors   1.60k    649ms    9.8%   407μs    213KiB    1.0%     137B
+      local twosided   1.60k    580ms    8.8%   364μs    212KiB    1.0%     136B
+      ~blending fa...  1.60k   63.9ms    1.0%  40.1μs   1.47KiB    0.0%    0.94B
+      reset alpha      1.60k   4.64ms    0.1%  2.91μs     0.00B    0.0%    0.00B
+    ~a posteriori ...  1.60k    305ms    4.6%   191μs      752B    0.0%    0.47B
+  ~main loop~              1   86.2ms    1.3%  86.2ms   2.31MiB   11.0%  2.31MiB
+  calculate dt           532   51.0ms    0.8%  95.9μs     0.00B    0.0%    0.00B
+  analyze solution         1   6.62ms    0.1%  6.62ms   4.64MiB   22.0%  4.64MiB
+  I/O                      1   1.90ms    0.0%  1.90ms   1.52MiB    7.2%  1.52MiB
+    save solution          1   1.90ms    0.0%  1.90ms   1.51MiB    7.2%  1.51MiB
+    ~I/O~                  1   4.38μs    0.0%  4.38μs   3.94KiB    0.0%  3.94KiB
+    get node varia...      1    872ns    0.0%   872ns     0.00B    0.0%    0.00B
+    get element va...      1    160ns    0.0%   160ns     0.00B    0.0%    0.00B
+    save mesh              1   90.0ns    0.0%  90.0ns     0.00B    0.0%    0.00B
+I/O                        2    490ms    7.4%   245ms   7.60MiB   36.1%  3.80MiB
+  ~I/O~                    2    487ms    7.4%   244ms   6.09MiB   29.0%  3.04MiB
+  save solution            1   2.16ms    0.0%  2.16ms   1.51MiB    7.2%  1.51MiB
+  get node variables       1    912ns    0.0%   912ns     0.00B    0.0%    0.00B
+  get element vari...      1    792ns    0.0%   792ns     0.00B    0.0%    0.00B
+  save mesh                1    251ns    0.0%   251ns     0.00B    0.0%    0.00B
+analyze solution           1   52.5ms    0.8%  52.5ms   4.76MiB   22.6%  4.76MiB
+calculate dt               1   96.0μs    0.0%  96.0μs     0.00B    0.0%    0.00B
+<span class="sgr1">────────────────────────────────────────────────────────────────────────────────</span></code></pre><h2 id="Visualization"><a class="docs-heading-anchor" href="#Visualization">Visualization</a><a id="Visualization-1"></a><a class="docs-heading-anchor-permalink" href="#Visualization" title="Permalink"></a></h2><p>As for a standard simulation in Trixi.jl, it is possible to visualize the solution using the <code>plot</code> routine from Plots.jl.</p><pre><code class="language-julia hljs">using Plots
+plot(sol)</code></pre><img src="f906f202.svg" alt="Example block output"/><p>To get an additional look at the amount of limiting that is used, you can use the visualization approach using the <a href="../../reference-trixi/#Trixi.SaveSolutionCallback"><code>SaveSolutionCallback</code></a>, <a href="https://github.com/trixi-framework/Trixi2Vtk.jl"><code>Trixi2Vtk</code></a> and <a href="https://www.paraview.org/download/">ParaView</a>. More details about this procedure can be found in the <a href="../../visualization/#visualization">visualization documentation</a>. Unfortunately, the support for subcell limiting data is not yet merged into the main branch of Trixi2Vtk but lies in the branch <a href="https://github.com/bennibolm/Trixi2Vtk.jl/tree/node-variables"><code>bennibolm/node-variables</code></a>.</p><p>With that implementation and the standard procedure used for Trixi2Vtk you get the following dropdown menu in ParaView.</p><p><img src="https://github.com/trixi-framework/Trixi.jl/assets/74359358/70d15f6a-059b-4349-8291-68d9ab3af43e" alt="ParaView_Dropdownmenu"/></p><p>The resulting visualization of the density and the limiting parameter then looks like this. <img src="https://github.com/trixi-framework/Trixi.jl/assets/74359358/e5808bed-c8ab-43bf-af7a-050fe43dd630" alt="blast_wave_paraview"/></p><p>You can see that the limiting coefficient does not lie in the interval [0,1] because Trixi2Vtk interpolates all quantities to regular nodes by default. You can disable this functionality with <code>reinterpolate=false</code> within the call of <code>trixi2vtk(...)</code> and get the following visualization. <img src="https://github.com/trixi-framework/Trixi.jl/assets/74359358/39274f18-0064-469c-b4da-bac4b843e116" alt="blast_wave_paraview_reinterpolate=false"/></p><h2 id="subcell_bounds_check"><a class="docs-heading-anchor" href="#subcell_bounds_check">Bounds checking</a><a id="subcell_bounds_check-1"></a><a class="docs-heading-anchor-permalink" href="#subcell_bounds_check" title="Permalink"></a></h2><p>Subcell limiting is based on the fulfillment of target bounds - either global or local. Although the implementation works and has been thoroughly tested, there are some cases where these bounds are not met. For instance, the deviations could be in machine precision, which is not problematic. Larger deviations can be cause by too large time-step sizes (which can be easily fixed by reducing the CFL number), specific boundary conditions or source terms. Insufficient parameters for the Newton-bisection algorithm can also be a reason when limiting non-linear variables. There are described <a href="#global_bounds">above</a>.</p><p>In many cases, it is reasonable to monitor the bounds deviations. Because of that, Trixi.jl supports a bounds checking routine implemented using the stage callback <a href="../../reference-trixi/#Trixi.BoundsCheckCallback"><code>BoundsCheckCallback</code></a>. It checks all target bounds for fulfillment in every RK stage. If added to the tuple of stage callbacks like</p><pre><code class="language-julia hljs">stage_callbacks = (SubcellLimiterIDPCorrection(), BoundsCheckCallback())</code></pre><p>and passed to the time integration method, a summary is added to the final console output. For the given example, this summary shows that all bounds are met at all times.</p><pre><code class="nohighlight hljs">────────────────────────────────────────────────────────────────────────────────────────────────────
+Maximum deviation from bounds:
+────────────────────────────────────────────────────────────────────────────────────────────────────
+rho:
+- lower bound: 0.0
+- upper bound: 0.0
+────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre><p>Moreover, it is also possible to monitor the bounds deviations incurred during the simulations. To do that use the parameter <code>save_errors = true</code>, such that the instant deviations are written to <code>deviations.txt</code> in <code>output_directory</code> every <code>interval</code> time steps.</p><pre><code class="language-julia hljs">BoundsCheckCallback(save_errors = true, output_directory = &quot;out&quot;, interval = 100)</code></pre><p>Then, for the given example the deviations file contains all daviations for the current timestep and simulation time.</p><pre><code class="nohighlight hljs">iter, simu_time, rho_min, rho_max
+100, 0.29103427131404924, 0.0, 0.0
+200, 0.5980281923063808, 0.0, 0.0
+300, 0.9520853560765293, 0.0, 0.0
+400, 1.3630295622683186, 0.0, 0.0
+500, 1.8344999624013498, 0.0, 0.0
+532, 1.9974179806990118, 0.0, 0.0</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../shock_capturing/">« 5 Shock capturing with flux differencing and stage limiter</a><a class="docs-footer-nextpage" href="../non_periodic_boundaries/">7 Non-periodic boundaries »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.7.0 on <span class="colophon-date" title="Wednesday 30 October 2024 16:19">Wednesday 30 October 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
