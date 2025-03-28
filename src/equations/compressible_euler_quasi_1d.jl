@@ -308,7 +308,7 @@ end
     p_rr = (equations.gamma - 1) * (e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-    λ_max = max(v_mag_ll + c_ll, v_mag_rr + c_rr)
+    return max(v_mag_ll + c_ll, v_mag_rr + c_rr)
 end
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquationsQuasi1D)

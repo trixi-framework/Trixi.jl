@@ -428,7 +428,7 @@ end
     c_ll = sqrt(gamma_ll * p_ll / rho_ll)
     c_rr = sqrt(gamma_rr * p_rr / rho_rr)
 
-    λ_max = max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
+    return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
 end
 
 @inline function max_abs_speeds(u,

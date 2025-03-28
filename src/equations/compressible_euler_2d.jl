@@ -1451,7 +1451,7 @@ end
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-    λ_max = max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
+    return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
 end
 
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
@@ -1460,7 +1460,7 @@ end
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
 
-    # Calculate normal velocities and sound speed
+    # Calculate normal velocities and sound speeds
     # left
     v_ll = (v1_ll * normal_direction[1]
             +

@@ -295,7 +295,7 @@ end
     c_mean_ll = u_ll[6]
     c_mean_rr = u_rr[6]
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
 end
 
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
@@ -313,7 +313,7 @@ end
     c_mean_ll = u_ll[6]
     c_mean_rr = u_rr[6]
 
-    λ_max = max(abs(v_ll) + c_mean_ll, abs(v_rr) + c_mean_rr)
+    return max(abs(v_ll) + c_mean_ll, abs(v_rr) + c_mean_rr)
 end
 
 # Calculate 1D flux for a single point in the normal direction
@@ -376,7 +376,7 @@ end
 
     norm_ = norm(normal_direction)
     # The v_normals are already scaled by the norm
-    λ_max = max(abs(v_ll) + c_mean_ll * norm_, abs(v_rr) + c_mean_rr * norm_)
+    return max(abs(v_ll) + c_mean_ll * norm_, abs(v_rr) + c_mean_rr * norm_)
 end
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the mean values

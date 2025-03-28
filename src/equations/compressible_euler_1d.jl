@@ -794,7 +794,7 @@ end
     p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-    λ_max = max(v_mag_ll + c_ll, v_mag_rr + c_rr)
+    return max(v_mag_ll + c_ll, v_mag_rr + c_rr)
 end
 
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes

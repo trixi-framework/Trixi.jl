@@ -441,7 +441,7 @@ end
     v_rr = rho_v1_rr / rho_rr
     cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
 
-    λ_max = max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
+    return max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
 end
 
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
