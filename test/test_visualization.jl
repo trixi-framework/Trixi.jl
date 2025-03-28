@@ -341,6 +341,8 @@ end
 
     @timed_testset "1D plot from 3D solution on P4estMesh" begin
         @trixi_testset "Create 1D plot along curve" begin
+            using OrdinaryDiffEqSSPRK
+
             equations = CompressibleEulerEquations3D(1.4)
             solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
