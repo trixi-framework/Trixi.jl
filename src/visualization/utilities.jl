@@ -987,8 +987,8 @@ function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
     u_node = get_node_vars(u, equations, solver, 1, 1, 1, 1)
     var_node = solution_variables(u_node, equations)
     n_variables = length(var_node)
-
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
+
     nodes = cache.elements.node_coordinates
 
     # Iterate over every point on the curve and determine the solutions value at given point.
@@ -997,6 +997,41 @@ function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
         get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
                                nodes, u, equations, solver;
                                cache = get_value_at_point_3d_cache(u))
+    end
+
+    mesh_vertices_x = nothing
+
+    return calc_arc_length(curve), data_on_curve, mesh_vertices_x
+end
+
+# The P4estMesh can make use of the efficient search functionality of p4est
+# to speed up the process of finding the elements in which the curve points are located.
+function unstructured_3d_to_1d_curve(u, mesh::P4estMesh, equations, solver, cache,
+                                     curve, solution_variables)
+    # Set up data structure.
+    @assert size(curve, 1) == 3
+    n_points_curve = size(curve, 2)
+
+    # Get the number of variables after applying the transformation to solution variables.
+    u_node = get_node_vars(u, equations, solver, 1, 1, 1, 1)
+    var_node = solution_variables(u_node, equations)
+    n_variables = length(var_node)
+    data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
+
+    # Iterate over every point on the curve and determine the solutions value at given point.
+    # We can use the efficient search functionality of p4est to speed up the process.
+    # However, the logic is only implemented for linear meshes so far.
+    if mesh.polydeg == 1
+        # TODO: Finish this implementation
+    else
+        nodes = cache.elements.node_coordinates
+
+        for i in 1:n_points_curve
+            point = SVector(curve[1, i], curve[2, i], curve[3, i])
+            get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
+                                   nodes, u, equations, solver;
+                                   cache = get_value_at_point_3d_cache(u))
+        end
     end
 
     mesh_vertices_x = nothing
@@ -1129,6 +1164,7 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
 
     # Restrict the interpolation to the closest element only.
     closest_element = index[4]
+    @info "get_value_at_point_3d!" closest_element point
     @views element_distances = distances[:, :, :, closest_element]
 
     # Find a tetrahedron, which is given by four corners, to interpolate from.
