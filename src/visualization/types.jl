@@ -690,8 +690,10 @@ function PlotData1D(u, mesh, equations, solver, cache;
         # a naive loop through all nodes. However, the P4estMesh can make use of the
         # efficient search functionality of p4est to speed up the process. Thus, we
         # pass the mesh, too.
-        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
-                                                               curve, solution_variables_)
+        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(u, mesh, equations,
+                                                               solver, cache,
+                                                               curve,
+                                                               solution_variables_)
     end
 
     return PlotData1D(x, data, variable_names_, mesh_vertices_x,

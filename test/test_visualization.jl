@@ -348,8 +348,8 @@ end
             coordinates_max = (+1.0, +1.0, +1.0)
             trees_per_dimension = (2, 2, 2)
             mesh = P4estMesh(trees_per_dimension; polydeg = 1,
-                            coordinates_min, coordinates_max,
-                            initial_refinement_level = 0)
+                             coordinates_min, coordinates_max,
+                             initial_refinement_level = 0)
 
             semi = SemidiscretizationHyperbolic(mesh, equations,
                                                 initial_condition_constant,

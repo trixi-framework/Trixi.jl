@@ -1121,7 +1121,8 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
                              nodes[2, index[1], index[2], index[3], index[4]],
                              nodes[3, index[1], index[2], index[3], index[4]])
     if nodes_at_index == point
-        u_node = get_node_vars(u, equations, solver, index[1], index[2], index[3], index[4])
+        u_node = get_node_vars(u, equations, solver,
+                               index[1], index[2], index[3], index[4])
         data_on_curve_at_point .= solution_variables(u_node, equations)
         return data_on_curve_at_point
     end
