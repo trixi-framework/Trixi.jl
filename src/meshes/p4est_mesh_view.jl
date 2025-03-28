@@ -126,23 +126,37 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces, 
     boundaries = deepcopy(boundaries_parent)
     boundaries.neighbor_ids = Vector{typeof(boundaries_parent.neighbor_ids)}()
 
+    inner_outer_tuples = Vector{Tuple{Int, Int}}()
     _neighbor_ids_global = [Tuple(col) for col in eachcol(neighbor_ids_global)]
 
     # Add all parent interfaces that are shared between views to the view boundaries.
     for idx in 1:size(neighbor_ids_global)[2]
         for idx_parent in 1:size(interfaces_parent.neighbor_ids)[2]
-            println(idx, " ", idx_parent)
             if (neighbor_ids_global[1, idx] in interfaces_parent.neighbor_ids[:, idx_parent]) ⊻
                 (neighbor_ids_global[2, idx] in interfaces_parent.neighbor_ids[:, idx_parent])
                 if !(Tuple(interfaces_parent.neighbor_ids[:, idx_parent]) in _neighbor_ids_global)
-                    println(neighbor_ids_global[:, idx], " ", interfaces_parent.neighbor_ids[:, idx_parent])
-                    push!()
+                    push!(inner_outer_tuples, Tuple(interfaces_parent.neighbor_ids[:, idx_parent]))
                 end
             end
         end
     end
+    inner_outer_tuples = Set(inner_outer_tuples)
+
+    for inner_outer_tuple in inner_outer_tuples
+        if inner_outer_tuple[1] in _neighbor_ids_global
+            outside_idx = inner_outer_tuple[2]
+        else
+            outside_idx = inner_outer_tuple[1]
+        end
+        push!(boundaries.neighbor_ids, outside_idx)
+    end
 
     # Add parent boundaries to view boundaries.
+    for parent_id in boundaries_parent.neighbor_ids
+        if parent_id in mesh.cell_ids
+            push!(boundaries.neighbor_ids, parent_id)
+        end
+    end
 
     # boundaries.name
     # boundaries.neighbor_ids
