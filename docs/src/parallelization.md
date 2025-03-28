@@ -246,8 +246,42 @@ julia> using HDF5
 julia> HDF5.API.set_libraries!("/path/to/your/libhdf5.so", "/path/to/your/libhdf5_hl.so")
 ```
 For more information see also the
-[documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). In total, you should
-have a file called `LocalPreferences.toml` in the project directory that contains a section
+[documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). 
+
+To install the MPI-enabled `HDF5` library, i.e., the `libhdf5.so` and `libhdf5_hl.so` files, download the latest release from the [HDF5 download page](https://www.hdfgroup.org/download-hdf5/source-code/).
+After extracting the tarball, navigate to the extracted directory and export the environment variable `CC` to the desired MPI C compiler, in the simplest case
+```bash
+export CC=mpicc
+```
+Then, export also that you desire to use HDF5 with MPI:
+```bash
+export HDF5_MPI="ON"
+```
+Now you can run the `configure` bash script located in the extracted directory with the options
+```bash
+./configure --enable-shared --enable-parallel
+```
+The `--enable-shared` option is necessary to create shared libraries, i.e., the `.so` lib files which are required to make HDF5 work with Julia, i.e., `HDF5.jl`.
+The `--enable-parallel` option is necessary to enable MPI support. If you want to install the library in a custom directory, you can use the `--prefix` option, e.g.,
+```bash
+./configure --enable-shared --enable-parallel --prefix=/path/to/your/hdf5/installation/directory
+```
+which might be desirable if you experiment with different versions of the library.
+In that case, you should also set
+```bash
+export HDF5_DIR="/path/to/your/hdf5/installation/directory"
+```
+After the configuration is done, you can run the usual
+```bash
+make -j 4
+```
+to compile the library. The `-j 4` options tells `make` to use four threads for compilation, which can speed up the process. After the compilation is done, you can install the library with
+```bash
+make install
+```
+where you might need to switch to `sudo` mode if you did not provide an installation directory in your home directory.
+
+In total, you should have a file called `LocalPreferences.toml` in the project directory that contains a section
 `[MPIPreferences]`, a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl`, a section `[P4est]`
 with the entry `libp4est` as well as a section `[T8code]` with the entries `libt8`, `libp4est`
 and `libsc`.
