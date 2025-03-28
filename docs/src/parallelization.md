@@ -253,9 +253,9 @@ there are two options.
 First, there might be a package available from the package manager, e.g., `libhdf5-openmpi-dev` for 
 `OpenMPI` or `libhdf5-mpich-dev` for `MPICH`. 
 On `Ubuntu`, you find a list of available `libhdf5-` packages [here](https://packages.ubuntu.com/search?keywords=libhdf5-&searchon=names&suite=all&section=all).
-For other linux distributions you can consult the package manager of your distribution or the third-party webpage https://pkgs.org/. 
+For other Linux distributions you can consult the package manager of your distribution or the third-party webpage https://pkgs.org/. 
 
-Second option is to build the library on your system.
+The second option is to manually build the library on your system.
 To do so, download the latest release from the [HDF5 download page](https://www.hdfgroup.org/download-hdf5/source-code/).
 After extracting the tarball, navigate to the extracted directory and set the environment variable `CC` to the desired MPI C compiler, in the simplest case
 ```bash
@@ -270,7 +270,7 @@ Now you can run the `configure` bash script located in the extracted directory w
 ```bash
 ./configure --enable-shared --enable-parallel
 ```
-The `--enable-shared` option is necessary to create shared libraries, i.e., the `.so` lib files which are required to make HDF5 work with Julia, i.e., `HDF5.jl`.
+The `--enable-shared` option is necessary to create shared libraries, i.e., the `.so` lib files, which are required to make HDF5 work with Julia, i.e., `HDF5.jl`.
 The `--enable-parallel` option is necessary to enable MPI support. If you want to install the library in a custom directory, you can use the `--prefix` option, e.g.,
 ```bash
 ./configure --enable-shared --enable-parallel --prefix=/path/to/your/hdf5/installation/directory
