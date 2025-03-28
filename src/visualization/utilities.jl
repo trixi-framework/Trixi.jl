@@ -884,21 +884,36 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
 
     # Iterate over all points on the curve.
     for point in 1:n_points_curve
-        element = @view element_ids[point]
-        triangle = @view pd.t[triangle_ids[point], :]
-        for v in 1:n_variables
-            # Get the x and y coordinates of the corners of given triangle.
-            x_coordinates_triangle = SVector{3}(pd.x[triangle, element])
-            y_coordinates_triangle = SVector{3}(pd.y[triangle, element])
+        point_on_curve = SVector(curve[1, point], curve[2, point])
 
-            # Extract solutions values in corners of the triangle.
-            values_triangle = SVector{3}(getindex.(view(pd.data, triangle, element), v))
+        element = element_ids[point]
+        triangle_id = triangle_ids[point]
+        triangle = (pd.t[triangle_id, 1], pd.t[triangle_id, 2], pd.t[triangle_id, 3])
+
+        # Get the x and y coordinates of the corners of given triangle.
+        x_coordinates_triangle = SVector(pd.x[triangle[1], element],
+                                         pd.x[triangle[2], element],
+                                         pd.x[triangle[3], element])
+        y_coordinates_triangle = SVector(pd.y[triangle[1], element],
+                                         pd.y[triangle[2], element],
+                                         pd.y[triangle[3], element])
+
+        # Extract solution values in corners of the triangle.
+        data_in_triangle = (pd.data[triangle[1], element],
+                            pd.data[triangle[2], element],
+                            pd.data[triangle[3], element])
+
+        for v in 1:n_variables
+            # Extract solution values of variable `v` in corners of the triangle.
+            values_triangle = SVector(data_in_triangle[1][v],
+                                      data_in_triangle[2][v],
+                                      data_in_triangle[3][v])
 
             # Linear interpolation in each triangle to the points on the curve.
             data_on_curve[point, v] = triangle_interpolation(x_coordinates_triangle,
                                                              y_coordinates_triangle,
                                                              values_triangle,
-                                                             curve[:, point])
+                                                             point_on_curve)
         end
     end
 
