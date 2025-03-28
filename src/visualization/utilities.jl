@@ -1049,25 +1049,37 @@ function tetrahedron_interpolation(x_coordinates_in, y_coordinates_in, z_coordin
            c[3] * coordinate_out[3] + c[4]
 end
 
-# Calculate the distances from every entry in `nodes` to the given `point`.
-function distances_from_single_point!(distances, nodes, point)
+# Calculate the distances from every entry in `nodes` to the given `point` and return
+# the minimal/maximal squared distance as well as the index of the minimal squared distance.
+function squared_distances_from_single_point!(distances, nodes, point)
     _, n_nodes, _, _, n_elements = size(nodes)
     @assert size(nodes, 1) == 3
     @assert size(nodes, 3) == size(nodes, 4) == n_nodes
     @assert size(distances, 1) == size(distances, 2) == size(distances, 3) == n_nodes
     @assert size(distances, 4) == n_elements
 
+    # Prepare for reduction
+    dist_max = typemin(eltype(distances))
+    dist_min = typemax(eltype(distances))
+    index_min = CartesianIndex(1, 1, 1, 1)
+
     # Iterate over every entry
     for element in 1:n_elements
         for z in 1:n_nodes, y in 1:n_nodes, x in 1:n_nodes
-            dist = sqrt((nodes[1, x, y, z, element] - point[1])^2 +
-                        (nodes[2, x, y, z, element] - point[2])^2 +
-                        (nodes[3, x, y, z, element] - point[3])^2)
+            dist = (nodes[1, x, y, z, element] - point[1])^2 +
+                   (nodes[2, x, y, z, element] - point[2])^2 +
+                   (nodes[3, x, y, z, element] - point[3])^2
             distances[x, y, z, element] = dist
+
+            dist_max = max(dist_max, dist)
+            if dist < dist_min
+                dist_min = dist
+                index_min = CartesianIndex(x, y, z, element)
+            end
         end
     end
 
-    return distances
+    return dist_max, dist_min, index_min
 end
 
 # Interpolate the data on given nodes to a single value at given point.
@@ -1089,9 +1101,11 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data;
     n_variables = size(data, 1)
     (; distances, coordinates_tetrahedron, value_tetrahedron) = cache
 
-    distances_from_single_point!(distances, nodes, point)
-    maximum_distance = maximum(distances)
-    index = argmin(distances)
+    maximum_distance, _, index = squared_distances_from_single_point!(distances, nodes, point)
+    # We could also use the following code to find the maximum distance and index:
+    #   maximum_distance = maximum(distances)
+    #   index = argmin(distances)
+    # However, it is more efficient if we do it in one pass through the memory.
 
     # If the point sits exactly on a node, no interpolation is needed.
     nodes_at_index = SVector(nodes[1, index[1], index[2], index[3], index[4]],
