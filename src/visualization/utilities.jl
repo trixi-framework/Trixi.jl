@@ -1548,7 +1548,8 @@ function get_ids_by_coordinates!(ids, coordinates, pd)
     n_coordinates = size(coordinates, 2)
 
     for index in 1:n_coordinates
-        ids[index, :] .= find_element(coordinates[:, index], pd)
+        point = SVector(coordinates[1, index], coordinates[2, index])
+        ids[index, :] .= find_element(point, pd)
     end
 
     return ids
