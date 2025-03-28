@@ -181,7 +181,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, semi_, t)
+        rhs!(du_loc, u_loc, semi_, t, u_ode)
     end
 
     runtime = time_ns() - time_start

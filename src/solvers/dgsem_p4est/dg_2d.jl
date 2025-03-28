@@ -253,8 +253,6 @@ function prolong2boundaries!(cache, u,
     @unpack boundaries = cache
     index_range = eachnode(dg)
 
-    @autoinfiltrate
-
     @threaded for boundary in eachboundary(dg, cache)
         # Copy solution data from the element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.
@@ -277,20 +275,12 @@ function prolong2boundaries!(cache, u,
 
     return nothing
 end
-
-function prolong2boundaries!(cache, u,
+    
+function prolong2boundaries!(cache, u, u_global,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
     @unpack interfaces, boundaries = cache
     index_range = eachnode(dg)
-
-    # Since boundaries from cache are for the parent mesh we need to change that.
-    boundaries.name
-    boundaries.neighbor_ids
-    boundaries.node_indices
-    boundaries.u
-
-    @autoinfiltrate
 
     @threaded for boundary in eachboundary(dg, cache)
         # Copy solution data from the element using "delayed indexing" with

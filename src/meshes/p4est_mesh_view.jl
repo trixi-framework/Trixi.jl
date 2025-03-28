@@ -58,7 +58,9 @@ function extract_p4est_mesh_view(elements_parent,
                                                                                    mesh.cell_ids]
     @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
                                                                                mesh.cell_ids]
-    interfaces = extract_interfaces(mesh, interfaces_parent)
+    interfaces, neighbor_ids_global = extract_interfaces(mesh, interfaces_parent)
+
+    boundaries = extract_boundaries(mesh, boundaries_parent, interfaces, interfaces_parent, neighbor_ids_global)
 
     return elements, interfaces, boundaries_parent, mortars_parent
 end
@@ -115,7 +117,39 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     interfaces._node_indices = vec(interfaces.node_indices)
     interfaces._neighbor_ids = vec(interfaces.neighbor_ids)
 
-    return interfaces
+    return interfaces, interfaces_parent.neighbor_ids[.., mask]
+end
+
+function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces, interfaces_parent, neighbor_ids_global)
+    @autoinfiltrate
+
+    boundaries = deepcopy(boundaries_parent)
+    boundaries.neighbor_ids = Vector{typeof(boundaries_parent.neighbor_ids)}()
+
+    _neighbor_ids_global = [Tuple(col) for col in eachcol(neighbor_ids_global)]
+
+    # Add all parent interfaces that are shared between views to the view boundaries.
+    for idx in 1:size(neighbor_ids_global)[2]
+        for idx_parent in 1:size(interfaces_parent.neighbor_ids)[2]
+            println(idx, " ", idx_parent)
+            if (neighbor_ids_global[1, idx] in interfaces_parent.neighbor_ids[:, idx_parent]) ⊻
+                (neighbor_ids_global[2, idx] in interfaces_parent.neighbor_ids[:, idx_parent])
+                if !(Tuple(interfaces_parent.neighbor_ids[:, idx_parent]) in _neighbor_ids_global)
+                    println(neighbor_ids_global[:, idx], " ", interfaces_parent.neighbor_ids[:, idx_parent])
+                    push!()
+                end
+            end
+        end
+    end
+
+    # Add parent boundaries to view boundaries.
+
+    # boundaries.name
+    # boundaries.neighbor_ids
+    # boundaries.node_indices
+    # boundaries.u
+
+    return nothing
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
