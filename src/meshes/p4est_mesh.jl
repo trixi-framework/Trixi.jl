@@ -758,7 +758,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     # Broadcast from meshfile retrieved variables across all MPI ranks
     if mpi_isparallel()
         if mpi_isroot()
-            # Convert the String to a Vector{UInt8} for broadcasting
+            # Convert the String to a `Vector{UInt8}` of `bitstype` for broadcasting
             meshfile_preproc_bytes = Vector{UInt8}(meshfile_preproc)
             meshfile_preproc_length = length(meshfile_preproc_bytes)
             MPI.Bcast!(Ref(meshfile_preproc_length), mpi_root(), mpi_comm())
