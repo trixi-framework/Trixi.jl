@@ -679,9 +679,9 @@ function PlotData1D(u, mesh, equations, solver, cache;
         # Extract the information required to create a PlotData1D object.
         # If no curve is defined, create a axis curve.
         if curve === nothing
-            curve = axis_curve(original_nodes[1, :, :, :, :],
-                               original_nodes[2, :, :, :, :],
-                               original_nodes[3, :, :, :, :],
+            curve = axis_curve(view(original_nodes, 1, :, :, :, :),
+                               view(original_nodes, 2, :, :, :, :),
+                               view(original_nodes, 3, :, :, :, :),
                                slice, point, nvisnodes)
         end
 

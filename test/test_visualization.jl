@@ -362,6 +362,7 @@ end
 
             x = range(0, 2, length = 3) / sqrt(3)
             curve = vcat(x', x', x')
+            # Ensure that PlotData1D is type stable
             pd = @inferred PlotData1D(sol; curve)
 
             # Compare with reference data
