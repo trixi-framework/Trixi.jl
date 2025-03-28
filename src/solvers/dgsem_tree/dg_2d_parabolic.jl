@@ -276,8 +276,10 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
             for v in eachvariable(equations_parabolic)
                 # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
                 # which we set to  -1 on the left and +1 on the right in 1D.
-                surface_flux_values[v, i, left_direction, left_id] = flux[v] + flux_jump[v]
-                surface_flux_values[v, i, right_direction, right_id] = flux[v] - flux_jump[v]
+                surface_flux_values[v, i, left_direction, left_id] = flux[v] +
+                                                                     flux_jump[v]
+                surface_flux_values[v, i, right_direction, right_id] = flux[v] -
+                                                                       flux_jump[v]
             end
         end
     end
@@ -840,16 +842,18 @@ function calc_gradient_interface_flux!(surface_flux_values,
             u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                equations, dg, i,
                                                interface)
-            flux = 0.5f0 * (u_ll + u_rr) 
-            flux_jump = 0.5f0 * (u_rr - u_ll) 
+            flux = 0.5f0 * (u_ll + u_rr)
+            flux_jump = 0.5f0 * (u_rr - u_ll)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
                 # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
                 # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
                 # jump term should be opposite that of the sign used in the divergence flux. 
-                surface_flux_values[v, i, left_direction, left_id] = flux[v] - flux_jump[v]
-                surface_flux_values[v, i, right_direction, right_id] = flux[v] + flux_jump[v]
+                surface_flux_values[v, i, left_direction, left_id] = flux[v] -
+                                                                     flux_jump[v]
+                surface_flux_values[v, i, right_direction, right_id] = flux[v] +
+                                                                       flux_jump[v]
             end
         end
     end

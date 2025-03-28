@@ -490,8 +490,8 @@ function calc_gradient_interface_flux!(surface_flux_values,
         # Call pointwise Riemann solver
         u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                            equations_parabolic, dg, interface)
-        flux = 0.5f0 * (u_ll + u_rr) 
-        flux_jump = 0.5f0 * (u_rr - u_ll) 
+        flux = 0.5f0 * (u_ll + u_rr)
+        flux_jump = 0.5f0 * (u_rr - u_ll)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)

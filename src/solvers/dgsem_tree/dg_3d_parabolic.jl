@@ -185,8 +185,10 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)
-                surface_flux_values[v, i, j, left_direction, left_id] = flux[v] + flux_jump[v]
-                surface_flux_values[v, i, j, right_direction, right_id] = flux[v] - flux_jump[v]
+                surface_flux_values[v, i, j, left_direction, left_id] = flux[v] +
+                                                                        flux_jump[v]
+                surface_flux_values[v, i, j, right_direction, right_id] = flux[v] -
+                                                                          flux_jump[v]
             end
         end
     end
@@ -966,13 +968,15 @@ function calc_gradient_interface_flux!(surface_flux_values,
             u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                equations, dg, i, j,
                                                interface)
-            flux = 0.5f0 * (u_ll + u_rr) 
-            flux_jump = 0.5f0 * (u_rr - u_ll) 
+            flux = 0.5f0 * (u_ll + u_rr)
+            flux_jump = 0.5f0 * (u_rr - u_ll)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
-                surface_flux_values[v, i, j, left_direction, left_id] = flux[v] - flux_jump[v]
-                surface_flux_values[v, i, j, right_direction, right_id] = flux[v] + flux_jump[v]
+                surface_flux_values[v, i, j, left_direction, left_id] = flux[v] -
+                                                                        flux_jump[v]
+                surface_flux_values[v, i, j, right_direction, right_id] = flux[v] +
+                                                                          flux_jump[v]
             end
         end
     end
