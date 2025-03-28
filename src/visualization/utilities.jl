@@ -1021,8 +1021,18 @@ function unstructured_3d_to_1d_curve(u, mesh::P4estMesh, equations, solver, cach
     # Iterate over every point on the curve and determine the solutions value at given point.
     # We can use the efficient search functionality of p4est to speed up the process.
     # However, the logic is only implemented for linear meshes so far.
-    if mesh.polydeg == 1
-        # TODO: Finish this implementation
+    if length(mesh.nodes) == 2
+        # FIXME: Finish this implementation
+        point_and_index = Float64[curve[1, 1], curve[2, 1], curve[3, 1], 0]
+        for i in 1:n_points_curve
+            # TODO
+            # point = SVector(curve[1, i], curve[2, i], curve[3, i])
+            point_and_index[1] = curve[1, i]
+            point_and_index[2] = curve[2, i]
+            point_and_index[3] = curve[3, i]
+            point_and_index[4] = typemin(Int64)
+            search_point_in_p4est_mesh_3d(mesh, point_and_index)
+        end
     else
         nodes = cache.elements.node_coordinates
 
@@ -1037,6 +1047,42 @@ function unstructured_3d_to_1d_curve(u, mesh::P4estMesh, equations, solver, cach
     mesh_vertices_x = nothing
 
     return calc_arc_length(curve), data_on_curve, mesh_vertices_x
+end
+
+function search_point_in_p4est_mesh_3d_callback(p4est::Ptr{p8est_t},
+                                                which_tree::p4est_topidx_t,
+                                                quadrant::Ptr{p8est_quadrant_t},
+                                                local_num::p4est_locidx_t,
+                                                point_and_index::Ptr{Cvoid})::Cint
+    # Extract the point coordinates
+    # x, y, z, _ = unsafe_load(Ptr{NTuple{4, Cdouble}}(point_and_index))
+
+    # @info "search_point_in_p4est_mesh_3d_callback" x y z
+    # x = unsafe_load(Ptr{Cdouble}(point_and_index))
+    println(123)
+    return 1
+    # Convert quadrant to physical coordinates
+    # q_min, q_max = quadrant_to_physical(quadrant, which_tree, p4est)
+
+    # # Check if the point lies within the quadrant
+    # if q_min[1] <= x <= q_max[1] && q_min[2] <= y <= q_max[2] && q_min[3] <= z <= q_max[3]
+    #     # Store the found quadrant or its identifier
+    #     global found_quadrant = quadrant
+    #     return 1  # Stop the search
+    # else
+    #     return 0  # Continue search
+    # end
+end
+
+function search_point_in_p4est_mesh_3d(mesh::P4estMesh, point_and_index)
+    call_post = 0
+    quadrant_fn = C_NULL
+    point_fn = @cfunction(search_point_in_p4est_mesh_3d_callback,
+                          Cint,
+                          (Ptr{p8est_t}, p4est_topidx_t, Ptr{p8est_quadrant_t},
+                           p4est_locidx_t, Ptr{Cvoid}))
+    p4est_search_local(pointer(mesh.p4est), call_post, quadrant_fn, point_fn, point_and_index)
+    return nothing
 end
 
 # Check if the first 'amount'-many points can still form a valid tetrahedron.
