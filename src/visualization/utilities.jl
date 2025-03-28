@@ -1101,7 +1101,8 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data;
     n_variables = size(data, 1)
     (; distances, coordinates_tetrahedron, value_tetrahedron) = cache
 
-    maximum_distance, _, index = squared_distances_from_single_point!(distances, nodes, point)
+    maximum_distance, _, index = squared_distances_from_single_point!(distances, nodes,
+                                                                      point)
     # We could also use the following code to find the maximum distance and index:
     #   maximum_distance = maximum(distances)
     #   index = argmin(distances)
