@@ -705,7 +705,7 @@ end
     p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-    λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+    return max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
 @inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,

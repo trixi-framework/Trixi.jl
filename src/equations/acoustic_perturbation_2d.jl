@@ -355,8 +355,8 @@ end
     c_mean_rr = u_rr[6]
 
     # The v_normals are already scaled by the norm
-    λ_max = max(abs(v_ll), abs(v_rr)) +
-            max(c_mean_ll, c_mean_rr) * norm(normal_direction)
+    return (max(abs(v_ll), abs(v_rr)) +
+            max(c_mean_ll, c_mean_rr) * norm(normal_direction))
 end
 
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`

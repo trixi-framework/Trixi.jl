@@ -1410,7 +1410,7 @@ end
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,

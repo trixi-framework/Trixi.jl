@@ -322,7 +322,7 @@ end
     c_ll = sqrt(equations.gamma * equations.kappa * rho_ll^(equations.gamma - 1))
     c_rr = sqrt(equations.gamma * equations.kappa * rho_rr^(equations.gamma - 1))
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,

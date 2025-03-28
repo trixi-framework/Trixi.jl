@@ -902,7 +902,7 @@ end
         end
     end
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
 end
 
 # Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
