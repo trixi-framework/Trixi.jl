@@ -248,11 +248,20 @@ julia> HDF5.API.set_libraries!("/path/to/your/libhdf5.so", "/path/to/your/libhdf
 For more information see also the
 [documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). 
 
-To install the MPI-enabled `HDF5` library, i.e., the `libhdf5.so` and `libhdf5_hl.so` files, download the latest release from the [HDF5 download page](https://www.hdfgroup.org/download-hdf5/source-code/).
+To install the MPI-enabled `HDF5` library, i.e., the `libhdf5.so` and `libhdf5_hl.so` files, 
+there are two options.
+First, there might be a package available from the package manager, e.g., `libhdf5-openmpi-dev` for 
+`OpenMPI` or `libhdf5-mpich-dev` for `MPICH`. 
+On `Ubuntu`, you find a list of available `libhdf5-` packages [here](https://packages.ubuntu.com/search?keywords=libhdf5-&searchon=names&suite=all&section=all).
+For other linux distributions you can consult the package manager of your distribution or the third-party webpage https://pkgs.org/. 
+
+Second option is to build the library on your system.
+To do so, download the latest release from the [HDF5 download page](https://www.hdfgroup.org/download-hdf5/source-code/).
 After extracting the tarball, navigate to the extracted directory and export the environment variable `CC` to the desired MPI C compiler, in the simplest case
 ```bash
 export CC=mpicc
 ```
+Make sure that this is the same compiler as used for compilation of, e.g., `p4est` and `t8code`!
 Then, export also that you desire to use HDF5 with MPI:
 ```bash
 export HDF5_MPI="ON"
