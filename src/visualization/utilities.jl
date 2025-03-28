@@ -987,7 +987,8 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
 
     # Iterate over every point on the curve and determine the solutions value at given point.
     for i in 1:n_points_curve
-        @views data_on_curve[i, :] .= get_value_at_point(curve[:, i], nodes, data)
+        point = SVector(curve[1, i], curve[2, i], curve[3, i])
+        get_value_at_point_3d!(view(data_on_curve, i, :), point, nodes, data)
     end
 
     mesh_vertices_x = nothing
@@ -1061,8 +1062,8 @@ function distances_from_single_point(nodes, point)
 end
 
 # Interpolate the data on given nodes to a single value at given point.
-function get_value_at_point(point, nodes, data)
-    # Set up ata structures.
+function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data)
+    # Set up data structures.
     n_variables, n_x_nodes, n_y_nodes, n_z_nodes, _ = size(data)
     distances = distances_from_single_point(nodes, point)
     maximum_distance = maximum(distances)
@@ -1074,7 +1075,10 @@ function get_value_at_point(point, nodes, data)
 
     # If the point sits exactly on a node, no interpolation is needed.
     if nodes[:, index[1], index[2], index[3], index[4]] == point
-        return data[1, index[1], index[2], index[3], index[4]]
+        for v in 1:n_variables
+            data_on_curve_at_point[v] = data[v, index[1], index[2], index[3], index[4]]
+        end
+        return data_on_curve_at_point
     end
 
     @views coordinates_tetrahedron[:, 1] = nodes[:, index[1], index[2], index[3],
@@ -1105,15 +1109,14 @@ function get_value_at_point(point, nodes, data)
     end
 
     # Interpolate from tetrahedron to given point.
-    value_at_point = Array{Float64}(undef, n_variables)
     for v in 1:n_variables
-        value_at_point[v] = tetrahedron_interpolation(coordinates_tetrahedron[1, :],
-                                                      coordinates_tetrahedron[2, :],
-                                                      coordinates_tetrahedron[3, :],
-                                                      value_tetrahedron[v, :], point)
+        data_on_curve_at_point[v] = tetrahedron_interpolation(coordinates_tetrahedron[1, :],
+                                                              coordinates_tetrahedron[2, :],
+                                                              coordinates_tetrahedron[3, :],
+                                                              value_tetrahedron[v, :], point)
     end
 
-    return value_at_point
+    return data_on_curve_at_point
 end
 
 # Convert 3d unstructured data to 1d slice and interpolate them.
