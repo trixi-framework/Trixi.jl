@@ -338,6 +338,40 @@ end
             @test_nowarn_mod Plots.plot(pd1D)
         end
     end
+
+    @testset "1D plot from 3D solution on P4estMesh" begin
+        @testset "Create 1D plot along curve" begin
+            equations = CompressibleEulerEquations3D(1.4)
+            solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+            coordinates_min = (-1.0, -1.0, -1.0)
+            coordinates_max = (+1.0, +1.0, +1.0)
+            trees_per_dimension = (2, 2, 2)
+            mesh = P4estMesh(trees_per_dimension; polydeg = 1,
+                            coordinates_min, coordinates_max,
+                            initial_refinement_level = 0)
+
+            semi = SemidiscretizationHyperbolic(mesh, equations,
+                                                initial_condition_constant,
+                                                solver)
+            ode = semidiscretize(semi, (0.0, 0.1))
+            # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
+            # and Ketcheson (2021)
+            sol = solve(ode, SSPRK43();
+                        dt = 0.01, ode_default_options()...)
+
+            x = range(0, 2, length = 3) / sqrt(3)
+            curve = vcat(x', x', x')
+            pd = @inferred PlotData1D(sol; curve)
+
+            # Compare with reference data
+            u_node = SVector(1.0, 0.1, -0.2, 0.7, 10.0)
+            val = cons2prim(u_node, equations)
+            for v in axes(pd.data, 2), i in axes(pd.data, 1)
+                @test isapprox(pd.data[i, v], val[v])
+            end
+        end
+    end
 end
 
 @timed_testset "plotting TimeIntegratorSolution" begin

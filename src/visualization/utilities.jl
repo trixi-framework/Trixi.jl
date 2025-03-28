@@ -907,7 +907,7 @@ end
 
 # Convert 3d unstructured data to 1d data at given curve.
 function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes,
-                                     curve, mesh, solver, cache)
+                                     curve, mesh::TreeMesh, solver, cache)
     n_points_curve = size(curve)[2]
     n_nodes, _, _, n_elements, n_variables = size(unstructured_data)
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
@@ -973,23 +973,30 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 end
 
 # Convert 3d unstructured data from a general mesh to 1d data at given curve.
-function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes)
-    # If no curve is defined, create a axis curve.
-    if curve === nothing
-        curve = axis_curve(nodes[1, :, :, :, :], nodes[2, :, :, :, :],
-                           nodes[3, :, :, :, :], slice, point, nvisnodes)
-    end
-
+#
+# We need to loop through all the points and check in which element they are
+# located. A general implementation working for all mesh types has to perform
+# a naive loop through all nodes.
+function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
+                                     curve, solution_variables)
     # Set up data structure.
+    @assert size(curve, 1) == 3
     n_points_curve = size(curve, 2)
-    n_variables = size(data, 1)
-    data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
-    cache = get_value_at_point_3d_cache(nodes, data)
+
+    # Get the number of variables after applying the transformation to solution variables.
+    u_node = get_node_vars(u, equations, solver, 1, 1, 1, 1)
+    var_node = solution_variables(u_node, equations)
+    n_variables = length(var_node)
+
+    data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
+    nodes = cache.elements.node_coordinates
 
     # Iterate over every point on the curve and determine the solutions value at given point.
     for i in 1:n_points_curve
         point = SVector(curve[1, i], curve[2, i], curve[3, i])
-        get_value_at_point_3d!(view(data_on_curve, i, :), point, nodes, data; cache)
+        get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
+                               nodes, u, equations, solver;
+                               cache = get_value_at_point_3d_cache(u))
     end
 
     mesh_vertices_x = nothing
@@ -1083,22 +1090,23 @@ function squared_distances_from_single_point!(distances, nodes, point)
 end
 
 # Interpolate the data on given nodes to a single value at given point.
-function get_value_at_point_3d_cache(nodes, data)
-    n_variables, n_x_nodes, n_y_nodes, n_z_nodes, n_elements = size(data)
+function get_value_at_point_3d_cache(u)
+    n_variables, n_x_nodes, n_y_nodes, n_z_nodes, n_elements = size(u)
     @assert n_x_nodes == n_y_nodes == n_z_nodes
     n_nodes = n_x_nodes
 
     distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
     coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
-    value_tetrahedron = Array{Float64}(undef, n_variables, 4)
+    value_tetrahedron = Array{eltype(u)}(undef, n_variables, 4)
     cache = (; distances, coordinates_tetrahedron, value_tetrahedron)
     return cache
 end
 
-function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data;
-                                cache = get_value_at_point_3d_cache(nodes, data))
+function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variables,
+                                nodes, u, equations, solver;
+                                cache = get_value_at_point_3d_cache(u))
     # Set up data structures.
-    n_variables = size(data, 1)
+    n_variables = size(u, 1)
     (; distances, coordinates_tetrahedron, value_tetrahedron) = cache
 
     maximum_distance, _, index = squared_distances_from_single_point!(distances, nodes,
@@ -1113,9 +1121,8 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data;
                              nodes[2, index[1], index[2], index[3], index[4]],
                              nodes[3, index[1], index[2], index[3], index[4]])
     if nodes_at_index == point
-        for v in 1:n_variables
-            data_on_curve_at_point[v] = data[v, index[1], index[2], index[3], index[4]]
-        end
+        u_node = get_node_vars(u, equations, solver, index[1], index[2], index[3], index[4])
+        data_on_curve_at_point .= solution_variables(u_node, equations)
         return data_on_curve_at_point
     end
 
@@ -1136,9 +1143,9 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data;
                                                       closest_element]
             end
             for v in 1:n_variables
-                value_tetrahedron[v, i] = data[v,
-                                               index[1], index[2], index[3],
-                                               closest_element]
+                value_tetrahedron[v, i] = u[v,
+                                            index[1], index[2], index[3],
+                                            closest_element]
             end
 
             # Look for another point if current tetrahedron is not valid.
@@ -1161,11 +1168,20 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data;
                             coordinates_tetrahedron[3, 2],
                             coordinates_tetrahedron[3, 3],
                             coordinates_tetrahedron[3, 4])
-    for v in 1:n_variables
-        values = SVector(value_tetrahedron[v, 1],
-                         value_tetrahedron[v, 2],
-                         value_tetrahedron[v, 3],
-                         value_tetrahedron[v, 4])
+    # We compute the solution_variables first and interpolate them.
+    u1 = get_node_vars(value_tetrahedron, equations, solver, 1)
+    u2 = get_node_vars(value_tetrahedron, equations, solver, 2)
+    u3 = get_node_vars(value_tetrahedron, equations, solver, 3)
+    u4 = get_node_vars(value_tetrahedron, equations, solver, 4)
+    val1 = solution_variables(u1, equations)
+    val2 = solution_variables(u2, equations)
+    val3 = solution_variables(u3, equations)
+    val4 = solution_variables(u4, equations)
+    for v in eachindex(val1)
+        values = SVector(val1[v],
+                         val2[v],
+                         val3[v],
+                         val4[v])
         data_on_curve_at_point[v] = tetrahedron_interpolation(x_coordinates,
                                                               y_coordinates,
                                                               z_coordinates,

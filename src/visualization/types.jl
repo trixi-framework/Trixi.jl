@@ -677,8 +677,21 @@ function PlotData1D(u, mesh, equations, solver, cache;
                                                                nvisnodes)
     else # ndims(mesh) == 3
         # Extract the information required to create a PlotData1D object.
-        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve,
-                                                               slice, point, nvisnodes)
+        # If no curve is defined, create a axis curve.
+        if curve === nothing
+            curve = axis_curve(original_nodes[1, :, :, :, :],
+                               original_nodes[2, :, :, :, :],
+                               original_nodes[3, :, :, :, :],
+                               slice, point, nvisnodes)
+        end
+
+        # We need to loop through all the points and check in which element they are
+        # located. A general implementation working for all mesh types has to perform
+        # a naive loop through all nodes. However, the P4estMesh can make use of the
+        # efficient search functionality of p4est to speed up the process. Thus, we
+        # pass the mesh, too.
+        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
+                                                               curve, solution_variables_)
     end
 
     return PlotData1D(x, data, variable_names_, mesh_vertices_x,
