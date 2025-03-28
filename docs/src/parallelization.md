@@ -270,7 +270,7 @@ Now you can run the `configure` bash script located in the extracted directory w
 ```bash
 ./configure --enable-shared --enable-parallel
 ```
-The `--enable-shared` option is necessary to create shared libraries, i.e., the `.so` lib files, which are required to make HDF5 work with Julia, i.e., `HDF5.jl`.
+The `--enable-shared` option is necessary to create shared libraries, i.e., the `.so` lib files, which are required to make HDF5 work with Julia, i.e., HDF5.jl.
 The `--enable-parallel` option is necessary to enable MPI support. If you want to install the library in a custom directory, you can use the `--prefix` option, e.g.,
 ```bash
 ./configure --enable-shared --enable-parallel --prefix=/path/to/your/hdf5/installation/directory
