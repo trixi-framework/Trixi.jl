@@ -861,10 +861,11 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
     @assert size(input_curve, 1)==2 "Input 'curve' must be 2xn dimensional."
 
     # For each coordinate find the corresponding triangle with its ids.
+    # The default value if no element is found is 0.
     ids_by_coordinates = get_ids_by_coordinates(input_curve, pd)
-    found_coordinates = ids_by_coordinates[:, 1] .!= nothing
+    found_coordinates = ids_by_coordinates[:, 1] .!= 0
 
-    @assert found_coordinates!=zeros(size(input_curve, 2)) "No points of 'curve' are inside of the solutions domain."
+    @assert !iszero(found_coordinates) "No points of 'curve' are inside of the solutions domain."
 
     # These hold the ids of the elements and triangles the points of the curve sit in.
     element_ids = @view ids_by_coordinates[found_coordinates, 1]
@@ -1607,6 +1608,8 @@ function find_element(point, pd)
             end
         end
     end
+
+    return (0, 0)
 end
 
 # Interpolate from three corners of a triangle to a single point.
