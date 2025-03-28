@@ -134,7 +134,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     end
 end
 
-@trixi_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
+@timed_testset "PlotData1D, PlotDataSeries, PlotMesh" begin
     # Run Trixi.jl
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_1d_dgsem",
@@ -220,7 +220,7 @@ end
     end
 end
 
-@trixi_testset "PlotData1D (DGMulti)" begin
+@timed_testset "PlotData1D (DGMulti)" begin
     # Test two different approximation types since these use different memory layouts:
     # - structure of arrays for `Polynomial()`
     # - array of structures for `SBP()`
@@ -244,7 +244,7 @@ end
     @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 end
 
-@trixi_testset "1D plot recipes (StructuredMesh)" begin
+@timed_testset "1D plot recipes (StructuredMesh)" begin
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "structured_1d_dgsem",
                                             "elixir_euler_source_terms.jl"),
@@ -260,7 +260,7 @@ end
     @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 end
 
-@trixi_testset "plot time series" begin
+@timed_testset "plot time series" begin
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_2d_dgsem",
                                             "elixir_acoustics_gaussian_source.jl"),
@@ -270,7 +270,7 @@ end
     @test PlotData1D(time_series, 1) isa PlotData1D
 end
 
-@trixi_testset "adapt_to_mesh_level" begin
+@timed_testset "adapt_to_mesh_level" begin
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_2d_dgsem",
                                             "elixir_advection_basic.jl"),
@@ -285,7 +285,7 @@ end
     @test isapprox(sol.u[end], u_ode_level5, atol = 1e-13)
 end
 
-@trixi_testset "plot 3D" begin
+@timed_testset "plot 3D" begin
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "tree_3d_dgsem",
                                             "elixir_advection_basic.jl"),
@@ -339,8 +339,8 @@ end
         end
     end
 
-    @trixi_testset "1D plot from 3D solution on P4estMesh" begin
-        @testset "Create 1D plot along curve" begin
+    @timed_testset "1D plot from 3D solution on P4estMesh" begin
+        @trixi_testset "Create 1D plot along curve" begin
             equations = CompressibleEulerEquations3D(1.4)
             solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
@@ -375,7 +375,7 @@ end
     end
 end
 
-@trixi_testset "plotting TimeIntegratorSolution" begin
+@timed_testset "plotting TimeIntegratorSolution" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_hypdiff_lax_friedrichs.jl"),
                         maxiters=1, analysis_callback=Trixi.TrivialCallback(),
@@ -383,7 +383,7 @@ end
     @test_nowarn_mod Plots.plot(sol)
 end
 
-@trixi_testset "VisualizationCallback" begin
+@timed_testset "VisualizationCallback" begin
     # To make CI tests work, disable showing a plot window with the GR backend of the Plots package
     # Xref: https://github.com/jheinen/GR.jl/issues/278
     # Xref: https://github.com/JuliaPlots/Plots.jl/blob/8cc6d9d48755ba452a2835f9b89d3880e9945377/test/runtests.jl#L103
@@ -424,7 +424,7 @@ end
     end
 end
 
-@trixi_testset "Makie visualization tests for UnstructuredMesh2D" begin
+@timed_testset "Makie visualization tests for UnstructuredMesh2D" begin
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "unstructured_2d_dgsem",
                                             "elixir_euler_wall_bc.jl"))
