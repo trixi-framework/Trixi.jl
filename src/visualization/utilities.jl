@@ -817,9 +817,11 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 
     # Iterate over all found elements.
     for element in 1:n_points_curve
-        min_coordinate = get_point(original_nodes, 1, 1, element_ids[element])
+        element_id = element_ids[element]
+        min_coordinate = get_point(original_nodes, 1, 1,
+                                   element_id)
         max_coordinate = get_point(original_nodes, n_nodes, n_nodes,
-                                   element_ids[element])
+                                   element_id)
         element_length = max_coordinate - min_coordinate
 
         normalized_coordinates = (get_point(curve, element) - min_coordinate) /
@@ -834,16 +836,17 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
                                          normalized_coordinates[2], baryweights_in)
         for v in 1:n_variables
             for i in 1:n_nodes
-                element_id = element_ids[element]
-                let res = zero(eltype(temp_data))
-                    for n in 1:n_nodes
-                        res += vandermonde_y[n] * unstructured_data[i, n, element_id, v]
-                    end
-                    temp_data[i, element, v] = res
+                res_i = zero(eltype(temp_data))
+                for n in 1:n_nodes
+                    res_i += vandermonde_y[n] * unstructured_data[i, n, element_id, v]
                 end
+                temp_data[i, element, v] = res_i
             end
-            data_on_curve[element, v] = dot(vandermonde_x,
-                                            view(temp_data, :, element, v))
+            res_v = zero(eltype(data_on_curve))
+            for n in 1:n_nodes
+                res_v += vandermonde_x[n] * temp_data[n, element, v]
+            end
+            data_on_curve[element, v] = res_v
         end
     end
 
@@ -911,16 +914,22 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     n_points_curve = size(curve)[2]
     n_nodes, _, _, n_elements, n_variables = size(unstructured_data)
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+    baryweights_in = barycentric_weights(nodes_in)
+
+    # Utility function to extract points as `SVector`s
+    get_point(data, idx...) = SVector(data[1, idx...],
+                                      data[2, idx...],
+                                      data[3, idx...])
 
     # Check if input is correct.
-    min = original_nodes[:, 1, 1, 1, 1]
-    max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, n_elements]
+    min = get_point(original_nodes, 1, 1, 1, 1)
+    max = get_point(original_nodes, n_nodes, n_nodes, n_nodes, n_elements)
     @assert size(curve)==(3, n_points_curve) "Coordinates along curve must be 3xn dimensional."
     for element in 1:n_points_curve
-        @assert (prod(vcat(curve[:, n_points_curve] .>= min,
-                           curve[:, n_points_curve]
-                           .<=
-                           max))) "Some coordinates from `curve` are outside of the domain.."
+        p = get_point(curve, element)
+        if any(p .< min) || any(p .> max)
+            throw(DomainError("Some coordinates from `curve` are outside of the domain."))
+        end
     end
 
     # Set nodes according to the length of the curve.
@@ -933,39 +942,54 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     # For each coordinate find the corresponding element with its id.
     element_ids = get_elements_by_coordinates(curve, mesh, solver, cache)
 
+    # These Vandermonde matrices are really 1×n_nodes matrices, i.e.,
+    # row vectors. We allocate memory here to improve performance.
+    vandermonde_x = polynomial_interpolation_matrix(nodes_in, zero(eltype(curve)))
+    vandermonde_y = similar(vandermonde_x)
+    vandermonde_z = similar(vandermonde_x)
+
     # Iterate over all found elements.
     for element in 1:n_points_curve
-        min_coordinate = original_nodes[:, 1, 1, 1, element_ids[element]]
-        max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes,
-                                        element_ids[element]]
+        element_id = element_ids[element]
+        min_coordinate = get_point(original_nodes, 1, 1, 1,
+                                   element_id)
+        max_coordinate = get_point(original_nodes, n_nodes, n_nodes, n_nodes,
+                                   element_id)
         element_length = max_coordinate - min_coordinate
 
-        normalized_coordinates = (curve[:, element] - min_coordinate) /
+        normalized_coordinates = (get_point(curve, element) - min_coordinate) /
                                  element_length[1] * 2 .- 1
 
         # Interpolate to a single point in each element.
-        vandermonde_x = polynomial_interpolation_matrix(nodes_in,
-                                                        normalized_coordinates[1])
-        vandermonde_y = polynomial_interpolation_matrix(nodes_in,
-                                                        normalized_coordinates[2])
-        vandermonde_z = polynomial_interpolation_matrix(nodes_in,
-                                                        normalized_coordinates[3])
+        # These Vandermonde matrices are really 1×n_nodes matrices, i.e.,
+        # row vectors.
+        polynomial_interpolation_matrix!(vandermonde_x, nodes_in,
+                                         normalized_coordinates[1], baryweights_in)
+        polynomial_interpolation_matrix!(vandermonde_y, nodes_in,
+                                         normalized_coordinates[2], baryweights_in)
+        polynomial_interpolation_matrix!(vandermonde_z, nodes_in,
+                                         normalized_coordinates[3], baryweights_in)
         for v in 1:n_variables
             for i in 1:n_nodes
                 for ii in 1:n_nodes
-                    temp_data[i, ii, element, v] = (vandermonde_z * unstructured_data[i,
-                                                                                      ii,
-                                                                                      :,
-                                                                                      element_ids[element],
-                                                                                      v])[1]
+                    res_ii = zero(eltype(temp_data))
+                    for n in 1:n_nodes
+                        res_ii += vandermonde_z[n] *
+                                  unstructured_data[i, ii, n, element_id, v]
+                    end
+                    temp_data[i, ii, element, v] = res_ii
                 end
-                temp_data[i, n_nodes + 1, element, v] = (vandermonde_y * temp_data[i,
-                                                                                   1:n_nodes,
-                                                                                   element,
-                                                                                   v])[1]
+                res_i = zero(eltype(temp_data))
+                for n in 1:n_nodes
+                    res_i += vandermonde_y[n] * temp_data[i, n, element, v]
+                end
+                temp_data[i, n_nodes + 1, element, v] = res_i
             end
-            data_on_curve[element, v] = (vandermonde_x * temp_data[:, n_nodes + 1,
-                                                                   element, v])[1]
+            res_v = zero(eltype(temp_data))
+            for n in 1:n_nodes
+                res_v += vandermonde_x[n] * temp_data[n, n_nodes + 1, element, v]
+            end
+            data_on_curve[element, v] = res_v
         end
     end
 
