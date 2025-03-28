@@ -984,11 +984,12 @@ function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes
     n_points_curve = size(curve, 2)
     n_variables = size(data, 1)
     data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+    cache = get_value_at_point_3d_cache(nodes, data)
 
     # Iterate over every point on the curve and determine the solutions value at given point.
     for i in 1:n_points_curve
         point = SVector(curve[1, i], curve[2, i], curve[3, i])
-        get_value_at_point_3d!(view(data_on_curve, i, :), point, nodes, data)
+        get_value_at_point_3d!(view(data_on_curve, i, :), point, nodes, data; cache)
     end
 
     mesh_vertices_x = nothing
@@ -1049,11 +1050,12 @@ function tetrahedron_interpolation(x_coordinates_in, y_coordinates_in, z_coordin
 end
 
 # Calculate the distances from every entry in `nodes` to the given `point`.
-function distances_from_single_point(nodes, point)
+function distances_from_single_point!(distances, nodes, point)
     _, n_nodes, _, _, n_elements = size(nodes)
     @assert size(nodes, 1) == 3
     @assert size(nodes, 3) == size(nodes, 4) == n_nodes
-    distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
+    @assert size(distances, 1) == size(distances, 2) == size(distances, 3) == n_nodes
+    @assert size(distances, 4) == n_elements
 
     # Iterate over every entry
     for element in 1:n_elements
@@ -1069,15 +1071,26 @@ function distances_from_single_point(nodes, point)
 end
 
 # Interpolate the data on given nodes to a single value at given point.
-function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data)
-    # Set up data structures.
-    n_variables, n_x_nodes, n_y_nodes, n_z_nodes, _ = size(data)
-    distances = distances_from_single_point(nodes, point)
-    maximum_distance = maximum(distances)
+function get_value_at_point_3d_cache(nodes, data)
+    n_variables, n_x_nodes, n_y_nodes, n_z_nodes, n_elements = size(data)
+    @assert n_x_nodes == n_y_nodes == n_z_nodes
+    n_nodes = n_x_nodes
 
+    distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
     coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
     value_tetrahedron = Array{Float64}(undef, n_variables, 4)
+    cache = (; distances, coordinates_tetrahedron, value_tetrahedron)
+    return cache
+end
 
+function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data;
+                                cache = get_value_at_point_3d_cache(nodes, data))
+    # Set up data structures.
+    n_variables = size(data, 1)
+    (; distances, coordinates_tetrahedron, value_tetrahedron) = cache
+
+    distances_from_single_point!(distances, nodes, point)
+    maximum_distance = maximum(distances)
     index = argmin(distances)
 
     # If the point sits exactly on a node, no interpolation is needed.
