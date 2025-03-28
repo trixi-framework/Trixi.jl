@@ -998,17 +998,24 @@ end
 
 # Check if the first 'amount'-many points can still form a valid tetrahedron.
 function is_valid_tetrahedron(amount, coordinates; tol = 10^-4)
-    a = coordinates[:, 1]
-    b = coordinates[:, 2]
-    c = coordinates[:, 3]
-    d = coordinates[:, 4]
+    a = SVector(coordinates[1, 1], coordinates[2, 1], coordinates[3, 1])
+    b = SVector(coordinates[1, 2], coordinates[2, 2], coordinates[3, 2])
+    c = SVector(coordinates[1, 3], coordinates[2, 3], coordinates[3, 3])
+    d = SVector(coordinates[1, 4], coordinates[2, 4], coordinates[3, 4])
+
     if amount == 2 # If two points are the same, then no tetrahedron can be formed.
         return !(isapprox(a, b; atol = tol))
     elseif amount == 3 # Check if three points are on the same line.
         return !on_the_same_line(a, b, c; tol = tol)
     elseif amount == 4 # Check if four points form a tetrahedron.
-        A = hcat(coordinates[1, :], coordinates[2, :], coordinates[3, :],
-                 SVector(1, 1, 1, 1))
+        # This is the same as
+        # A = hcat(coordinates[1, :], coordinates[2, :], coordinates[3, :],
+        #          SVector(1, 1, 1, 1))
+        # but more efficient.
+        A = SMatrix{4, 4}(coordinates[1, 1], coordinates[2, 1], coordinates[3, 1], 1,
+                          coordinates[1, 2], coordinates[2, 2], coordinates[3, 2], 1,
+                          coordinates[1, 3], coordinates[2, 3], coordinates[3, 3], 1,
+                          coordinates[1, 4], coordinates[2, 4], coordinates[3, 4], 1)
         return !isapprox(det(A), 0; atol = tol)
     else # With one point a tetrahedron can always be formed.
         return true
@@ -1074,16 +1081,15 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data)
     index = argmin(distances)
 
     # If the point sits exactly on a node, no interpolation is needed.
-    if nodes[:, index[1], index[2], index[3], index[4]] == point
+    nodes_at_index = SVector(nodes[1, index[1], index[2], index[3], index[4]],
+                             nodes[2, index[1], index[2], index[3], index[4]],
+                             nodes[3, index[1], index[2], index[3], index[4]])
+    if nodes_at_index == point
         for v in 1:n_variables
             data_on_curve_at_point[v] = data[v, index[1], index[2], index[3], index[4]]
         end
         return data_on_curve_at_point
     end
-
-    @views coordinates_tetrahedron[:, 1] = nodes[:, index[1], index[2], index[3],
-                                                 index[4]]
-    @views value_tetrahedron[:, 1] = data[:, index[1], index[2], index[3], index[4]]
 
     # Restrict the interpolation to the closest element only.
     closest_element = index[4]
@@ -1096,10 +1102,16 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data)
             index = argmin(element_distances)
             element_distances[index[1], index[2], index[3]] = maximum_distance
 
-            @views coordinates_tetrahedron[:, i] = nodes[:, index[1], index[2],
-                                                         index[3], closest_element]
-            @views value_tetrahedron[:, i] = data[:, index[1], index[2], index[3],
-                                                  closest_element]
+            for k in 1:3
+                coordinates_tetrahedron[k, i] = nodes[k,
+                                                      index[1], index[2], index[3],
+                                                      closest_element]
+            end
+            for v in 1:n_variables
+                value_tetrahedron[v, i] = data[v,
+                                               index[1], index[2], index[3],
+                                               closest_element]
+            end
 
             # Look for another point if current tetrahedron is not valid.
             if is_valid_tetrahedron(i, coordinates_tetrahedron)
