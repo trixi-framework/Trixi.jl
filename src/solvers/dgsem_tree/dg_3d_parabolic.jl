@@ -156,6 +156,46 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
+function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
+                              equations_parabolic,
+                              dg::DG, parabolic_scheme::ViscousFormulationLocalDG,
+                              cache_parabolic)
+    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
+
+    @threaded for interface in eachinterface(dg, cache_parabolic)
+        # Get neighboring elements
+        left_id = neighbor_ids[1, interface]
+        right_id = neighbor_ids[2, interface]
+
+        # Determine interface direction with respect to elements:
+        # orientation = 1: left -> 2, right -> 1
+        # orientation = 2: left -> 4, right -> 3
+        # orientation = 3: left -> 6, right -> 5
+        left_direction = 2 * orientations[interface]
+        right_direction = 2 * orientations[interface] - 1
+
+        for j in eachnode(dg), i in eachnode(dg)
+            # Get precomputed fluxes at interfaces
+            flux_ll, flux_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+                                                     equations_parabolic,
+                                                     dg, i, j, interface)
+
+            # Compute interface flux as mean of left and right viscous fluxes
+            flux = 0.5f0 * (flux_ll + flux_rr)
+            flux_jump = 0.5f0 * (flux_rr - flux_ll)
+
+            # Copy flux to left and right element storage
+            for v in eachvariable(equations_parabolic)
+                surface_flux_values[v, i, j, left_direction, left_id] = flux[v] + flux_jump[v]
+                surface_flux_values[v, i, j, right_direction, right_id] = flux[v] - flux_jump[v]
+            end
+        end
+    end
+
+    return nothing
+end
+
+# This is the version used when calculating the divergence of the viscous fluxes
 function prolong2boundaries!(cache_parabolic, flux_viscous,
                              mesh::TreeMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
@@ -899,6 +939,41 @@ function calc_gradient_interface_flux!(surface_flux_values,
             for v in eachvariable(equations)
                 surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
                 surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
+            end
+        end
+    end
+end
+
+function calc_gradient_interface_flux!(surface_flux_values,
+                                       mesh::TreeMesh{3}, equations, dg::DG,
+                                       parabolic_scheme::ViscousFormulationLocalDG,
+                                       cache, cache_parabolic)
+    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
+
+    @threaded for interface in eachinterface(dg, cache_parabolic)
+        # Get neighboring elements
+        left_id = neighbor_ids[1, interface]
+        right_id = neighbor_ids[2, interface]
+
+        # Determine interface direction with respect to elements:
+        # orientation = 1: left -> 2, right -> 1
+        # orientation = 2: left -> 4, right -> 3
+        # orientation = 3: left -> 6, right -> 5
+        left_direction = 2 * orientations[interface]
+        right_direction = 2 * orientations[interface] - 1
+
+        for j in eachnode(dg), i in eachnode(dg)
+            # Call pointwise Riemann solver
+            u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
+                                               equations, dg, i, j,
+                                               interface)
+            flux = 0.5f0 * (u_ll + u_rr) 
+            flux_jump = 0.5f0 * (u_rr - u_ll) 
+
+            # Copy flux to left and right element storage
+            for v in eachvariable(equations)
+                surface_flux_values[v, i, j, left_direction, left_id] = flux[v] - flux_jump[v]
+                surface_flux_values[v, i, j, right_direction, right_id] = flux[v] + flux_jump[v]
             end
         end
     end
