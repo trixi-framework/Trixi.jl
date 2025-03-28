@@ -1121,11 +1121,27 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, nodes, data)
     end
 
     # Interpolate from tetrahedron to given point.
+    x_coordinates = SVector(coordinates_tetrahedron[1, 1],
+                            coordinates_tetrahedron[1, 2],
+                            coordinates_tetrahedron[1, 3],
+                            coordinates_tetrahedron[1, 4])
+    y_coordinates = SVector(coordinates_tetrahedron[2, 1],
+                            coordinates_tetrahedron[2, 2],
+                            coordinates_tetrahedron[2, 3],
+                            coordinates_tetrahedron[2, 4])
+    z_coordinates = SVector(coordinates_tetrahedron[3, 1],
+                            coordinates_tetrahedron[3, 2],
+                            coordinates_tetrahedron[3, 3],
+                            coordinates_tetrahedron[3, 4])
     for v in 1:n_variables
-        data_on_curve_at_point[v] = tetrahedron_interpolation(coordinates_tetrahedron[1, :],
-                                                              coordinates_tetrahedron[2, :],
-                                                              coordinates_tetrahedron[3, :],
-                                                              value_tetrahedron[v, :], point)
+        values = SVector(value_tetrahedron[v, 1],
+                         value_tetrahedron[v, 2],
+                         value_tetrahedron[v, 3],
+                         value_tetrahedron[v, 4])
+        data_on_curve_at_point[v] = tetrahedron_interpolation(x_coordinates,
+                                                              y_coordinates,
+                                                              z_coordinates,
+                                                              values, point)
     end
 
     return data_on_curve_at_point
