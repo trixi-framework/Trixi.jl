@@ -1059,7 +1059,8 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh, equations, solver, cac
         for idx in eachindex(elements)
             element = elements[idx]
             point = SVector(curve[1, idx], curve[2, idx], curve[3, idx])
-            get_value_at_point_3d!(view(data_on_curve, idx, :), point, solution_variables,
+            get_value_at_point_3d!(view(data_on_curve, idx, :), point,
+                                   solution_variables,
                                    view(nodes, :, :, :, :, element:element),
                                    view(u, :, :, :, :, element:element),
                                    equations, solver;
@@ -1115,14 +1116,17 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
     end
 
     tolerance = 1.0e-13
-    t8_forest_element_points_inside(forest, ltreeid, element, coords, num_active_queries, query_matches, tolerance)
+    t8_forest_element_points_inside(forest, ltreeid, element, coords,
+                                    num_active_queries, query_matches, tolerance)
 
     for i in 1:num_active_queries
         if (is_leaf == 1) && (query_matches[i] == 1)
-            index = t8_forest_get_tree_element_offset(forest, ltreeid) + tree_leaf_index + 1
+            index = t8_forest_get_tree_element_offset(forest, ltreeid) +
+                    tree_leaf_index + 1
             query_index = query_indices[i] + 1
             query = queries[query_index]
-            new_query = SearchPointsInT8codeMesh3DHelper(query.x, query.y, query.z, index)
+            new_query = SearchPointsInT8codeMesh3DHelper(query.x, query.y, query.z,
+                                                         index)
             queries[query_index] = new_query
         end
     end
