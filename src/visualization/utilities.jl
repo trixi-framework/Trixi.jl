@@ -1029,103 +1029,11 @@ function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
     return calc_arc_length(curve), data_on_curve, mesh_vertices_x
 end
 
-# # The P4estMesh can make use of the efficient search functionality of p4est
-# # to speed up the process of finding the elements in which the curve points are located.
-# function unstructured_3d_to_1d_curve(u, mesh::P4estMesh, equations, solver, cache,
-#                                      curve, solution_variables)
-#     # Set up data structure.
-#     @assert size(curve, 1) == 3
-#     n_points_curve = size(curve, 2)
-
-#     # Get the number of variables after applying the transformation to solution variables.
-#     u_node = get_node_vars(u, equations, solver, 1, 1, 1, 1)
-#     var_node = solution_variables(u_node, equations)
-#     n_variables = length(var_node)
-#     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
-
-#     # Iterate over every point on the curve and determine the solutions value at given point.
-#     # We can use the efficient search functionality of p4est to speed up the process.
-#     # However, the logic is only implemented for linear meshes so far.
-#     if length(mesh.nodes) == 2
-#         # FIXME: Finish this implementation
-#         point_and_index = Float64[curve[1, 1], curve[2, 1], curve[3, 1], 0]
-#         for i in 1:n_points_curve
-#             # TODO
-#             # point = SVector(curve[1, i], curve[2, i], curve[3, i])
-#             point_and_index[1] = curve[1, i]
-#             point_and_index[2] = curve[2, i]
-#             point_and_index[3] = curve[3, i]
-#             point_and_index[4] = typemin(Int64)
-#             # @info "unstructured_3d_to_1d_curve" point_and_index n_points_curve
-#             search_point_in_p4est_mesh_3d(mesh, point_and_index)
-#         end
-#     else
-#         nodes = cache.elements.node_coordinates
-
-#         for i in 1:n_points_curve
-#             point = SVector(curve[1, i], curve[2, i], curve[3, i])
-#             get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
-#                                    nodes, u, equations, solver;
-#                                    cache = get_value_at_point_3d_cache(u))
-#         end
-#     end
-
-#     mesh_vertices_x = nothing
-
-#     return calc_arc_length(curve), data_on_curve, mesh_vertices_x
-# end
-
-# function search_point_in_p4est_mesh_3d_callback(p4est::Ptr{p8est_t},
-#                                                 which_tree::p4est_topidx_t,
-#                                                 quadrant::Ptr{p8est_quadrant_t},
-#                                                 local_num::p4est_locidx_t,
-#                                                 point_and_index::Ptr{Cvoid})::Cint
-#     p4est_pw = PointerWrapper(p4est)
-#     quadrant_pw = PointerWrapper(quadrant)
-
-#     @info "callback" unsafe_load(quadrant_pw.p.user_data[])
-
-#     # p4est_root_len = 1 << P4EST_MAXLEVEL
-#     # p4est_quadrant_len = 1 << (P4EST_MAXLEVEL - quadrant_pw.level[])
-#     # quad_length = p4est_root_len / p4est_quadrant_len
-
-#     # xmin = 2 * (quad_length * 0 + quadrant_pw.x[] / p4est_root_len) - 1
-#     # xmax = 2 * (quad_length * 1 + quadrant_pw.x[] / p4est_root_len) - 1
-#     # ymin = 2 * (quad_length * 0 + quadrant_pw.y[] / p4est_root_len) - 1
-#     # ymax = 2 * (quad_length * 1 + quadrant_pw.y[] / p4est_root_len) - 1
-#     # zmin = 2 * (quad_length * 0 + quadrant_pw.z[] / p4est_root_len) - 1
-#     # zmax = 2 * (quad_length * 1 + quadrant_pw.z[] / p4est_root_len) - 1
-
-#     # @info "callback" quadrant_pw.level[] xmin xmax ymin ymax zmin zmax which_tree local_num point_and_index
-
-#     return 0
-# end
-
-# function search_point_in_p4est_mesh_3d(mesh::P4estMesh, point_and_index)
-#     call_post = 0
-
-#     # quadrant_fn = C_NULL
-#     # point_fn = @cfunction(search_point_in_p4est_mesh_3d_callback,
-#     #                       Cint,
-#     #                       (Ptr{p8est_t}, p4est_topidx_t, Ptr{p8est_quadrant_t},
-#     #                        p4est_locidx_t, Ptr{Cvoid}))
-
-#     # quadrant_fn = @cfunction(search_point_in_p4est_mesh_3d_callback,
-#     #                          Cint,
-#     #                          (Ptr{p8est_t}, p4est_topidx_t, Ptr{p8est_quadrant_t},
-#     #                           p4est_locidx_t, Ptr{Cvoid}))
-#     # point_fn = C_NULL
-
-#     quadrant_fn = @cfunction(search_point_in_p4est_mesh_3d_callback,
-#                              Cint,
-#                              (Ptr{p8est_t}, p4est_topidx_t, Ptr{p8est_quadrant_t},
-#                               p4est_locidx_t, Ptr{Cvoid}))
-#     point_fn = quadrant_fn
-
-#     p4est_search_local(pointer(mesh.p4est), call_post, quadrant_fn, point_fn, point_and_index)
-#     return nothing
-# end
-
+# The T8codeMesh can make use of the efficient search functionality
+# based on the tree structure to speed up the process of finding the
+# elements in which the curve points are located.
+# TODO: The same could be done for the P4estMesh - but the callbacks
+#       etc. have to be implemented differently.
 function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh, equations, solver, cache,
                                      curve, solution_variables)
     # Set up data structure.
@@ -1138,47 +1046,33 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh, equations, solver, cac
     n_variables = length(var_node)
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
 
+    nodes = cache.elements.node_coordinates
+
     # Iterate over every point on the curve and determine the solutions value at given point.
     # We can use the efficient search functionality of p4est to speed up the process.
     # However, the logic is only implemented for linear meshes so far.
     if length(mesh.nodes) == 2
-        # FIXME: Finish this implementation
-
         elements = search_points_in_t8code_mesh_3d(mesh, curve)
-        # @info "unstructured_3d_to_1d_curve" curve elements
 
         nodes = cache.elements.node_coordinates
         interpolation_cache = get_value_at_point_3d_cache(view(u, :, :, :, :, 1:1))
         for idx in eachindex(elements)
             element = elements[idx]
             point = SVector(curve[1, idx], curve[2, idx], curve[3, idx])
-            # @info "unstructured_3d_to_1d_curve" point element
             get_value_at_point_3d!(view(data_on_curve, idx, :), point, solution_variables,
                                    view(nodes, :, :, :, :, element:element),
                                    view(u, :, :, :, :, element:element),
                                    equations, solver;
                                    cache = interpolation_cache)
         end
-
-        # point_and_index = Float64[curve[1, 1], curve[2, 1], curve[3, 1], 0]
-        # for i in 1:n_points_curve
-        #     # FIXME
-        #     # point = SVector(curve[1, i], curve[2, i], curve[3, i])
-        #     point_and_index[1] = curve[1, i]
-        #     point_and_index[2] = curve[2, i]
-        #     point_and_index[3] = curve[3, i]
-        #     point_and_index[4] = typemin(Int64)
-        #     # @info "unstructured_3d_to_1d_curve" point_and_index n_points_curve
-        #     search_points_in_t8code_mesh_3d(mesh, point_and_index)
-        # end
     else
-        nodes = cache.elements.node_coordinates
-
+        # Fallback to the naive approach if the mesh is not linear.
+        interpolation_cache = get_value_at_point_3d_cache(u)
         for i in 1:n_points_curve
             point = SVector(curve[1, i], curve[2, i], curve[3, i])
             get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
                                    nodes, u, equations, solver;
-                                   cache = get_value_at_point_3d_cache(u))
+                                   cache = interpolation_cache)
         end
     end
 
@@ -1193,8 +1087,6 @@ function search_points_in_t8code_mesh_3d_callback_element(forest::t8_forest_t,
                                                           is_leaf::Cint,
                                                           leaf_elements::Ptr{t8_element_array_t},
                                                           tree_leaf_index::t8_locidx_t)::Cint
-    # FIXME
-    # @info "callback_element" ltreeid
     # Continue the search
     return 1
 end
@@ -1222,14 +1114,8 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
         coords[3 * (i - 1) + 3] = query.z
     end
 
-    # FIXME
-    # @info "callback_query" queries query_indices query_matches num_active_queries coords'
-
     tolerance = 1.0e-13
     t8_forest_element_points_inside(forest, ltreeid, element, coords, num_active_queries, query_matches, tolerance)
-
-    # FIXME
-    # @info "callback_query" query_matches
 
     for i in 1:num_active_queries
         if (is_leaf == 1) && (query_matches[i] == 1)
@@ -1238,8 +1124,6 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
             query = queries[query_index]
             new_query = SearchPointsInT8codeMesh3DHelper(query.x, query.y, query.z, index)
             queries[query_index] = new_query
-            # FIXME
-            # @info "callback_query found point" i new_query
         end
     end
 
@@ -1409,8 +1293,6 @@ function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variable
 
     # Restrict the interpolation to the closest element only.
     closest_element = index[4]
-    # FIXME
-    # @info "get_value_at_point_3d!" closest_element point
     @views element_distances = distances[:, :, :, closest_element]
 
     # Find a tetrahedron, which is given by four corners, to interpolate from.
