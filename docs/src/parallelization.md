@@ -266,7 +266,7 @@ The `--enable-parallel` option is necessary to enable MPI support. If you want t
 ```bash
 ./configure --enable-shared --enable-parallel --prefix=/path/to/your/hdf5/installation/directory
 ```
-which might be desirable if you experiment with different versions of the library.
+which might be desirable if you experiment with different configurations of the library.
 In that case, you should also set
 ```bash
 export HDF5_DIR="/path/to/your/hdf5/installation/directory"
