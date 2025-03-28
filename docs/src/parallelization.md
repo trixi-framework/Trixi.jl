@@ -257,7 +257,7 @@ For other linux distributions you can consult the package manager of your distri
 
 Second option is to build the library on your system.
 To do so, download the latest release from the [HDF5 download page](https://www.hdfgroup.org/download-hdf5/source-code/).
-After extracting the tarball, navigate to the extracted directory and export the environment variable `CC` to the desired MPI C compiler, in the simplest case
+After extracting the tarball, navigate to the extracted directory and set the environment variable `CC` to the desired MPI C compiler, in the simplest case
 ```bash
 export CC=mpicc
 ```
