@@ -62,6 +62,7 @@ function calc_node_coordinates!(node_coordinates,
                            quad.y / p4est_root_len) .- 1
             nodes_out_z = 2 * (quad_length * 1 / 2 * (nodes .+ 1) .+
                            quad.z / p4est_root_len) .- 1
+            @info "calc_node_coordinates!" quad.level nodes_out_x nodes_out_y nodes_out_z
 
             matrix1 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_x)
             matrix2 = polynomial_interpolation_matrix(mesh.nodes, nodes_out_y)
