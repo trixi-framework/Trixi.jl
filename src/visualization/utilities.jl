@@ -1040,23 +1040,23 @@ function tetrahedron_interpolation(x_coordinates_in, y_coordinates_in, z_coordin
            c[3] * coordinate_out[3] + c[4]
 end
 
-# Calculate the distances from every entry in node to given point.
+# Calculate the distances from every entry in `nodes` to the given `point`.
 function distances_from_single_point(nodes, point)
     _, n_nodes, _, _, n_elements = size(nodes)
-    shifted_data = nodes .- point
+    @assert size(nodes, 1) == 3
+    @assert size(nodes, 3) == size(nodes, 4) == n_nodes
     distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
 
-    # Iterate over every entry.
+    # Iterate over every entry
     for element in 1:n_elements
-        for x in 1:n_nodes
-            for y in 1:n_nodes
-                for z in 1:n_nodes
-                    distances[x, y, z, element] = norm(shifted_data[:, x, y, z,
-                                                                    element])
-                end
-            end
+        for z in 1:n_nodes, y in 1:n_nodes, x in 1:n_nodes
+            dist = sqrt((nodes[1, x, y, z, element] - point[1])^2 +
+                        (nodes[2, x, y, z, element] - point[2])^2 +
+                        (nodes[3, x, y, z, element] - point[3])^2)
+            distances[x, y, z, element] = dist
         end
     end
+
     return distances
 end
 
