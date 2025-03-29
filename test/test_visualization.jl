@@ -406,8 +406,9 @@ end
                 p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
                 p = p +
                     1.0 / 16.0 * A^2 * rho *
-                    (cos(2 * x[1]) * cos(2 * x[3]) + 2 * cos(2 * x[2]) + 2 * cos(2 * x[1]) +
-                    cos(2 * x[2]) * cos(2 * x[3]))
+                    (cos(2 * x[1]) * cos(2 * x[3]) + 2 * cos(2 * x[2]) +
+                     2 * cos(2 * x[1]) +
+                     cos(2 * x[2]) * cos(2 * x[3]))
 
                 return prim2cons(SVector(rho, v1, v2, v3, p), equations)
             end
