@@ -1157,11 +1157,10 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
                                                         tree_leaf_index::t8_locidx_t,
                                                         queries_ptr::Ptr{sc_array_t},
                                                         query_indices_ptr::Ptr{sc_array_t},
-                                                        query_matches_ptr::Ptr{Cint},
+                                                        query_matches::Ptr{Cint},
                                                         num_active_queries::Csize_t)::Cvoid
     queries = PointerWrapper(queries_ptr)
     query_indices = PointerWrapper(query_indices_ptr)
-    query_matches = unsafe_wrap(Array, query_matches_ptr, num_active_queries)
 
     tolerance = 1.0e-13
     # It would be nice if we could just use
@@ -1258,7 +1257,7 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
                     -tolerance <= coefficients[3] <= 1 + tolerance
 
         if is_inside
-            query_matches[i] = 1
+            unsafe_store!(query_matches, 1, i)
 
             if is_leaf == 1
                 # If we are in a valid element (leaf of the tree), we store
@@ -1273,7 +1272,7 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
                 unsafe_store_sc!(queries, new_query, query_index)
             end
         else
-            query_matches[i] = 0
+            unsafe_store!(query_matches, 0, i)
         end
     end
 
