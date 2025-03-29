@@ -260,7 +260,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # along with a specialization on `calc_mortar_flux!(fstar, ...)` and `mortar_fluxes_to_elements!` for
     # AbstractEquationsParabolic.
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
+        calc_mortar_flux!(cache_parabolic.elements.surface_flux_values, u_transformed,
                           mesh, False(), # False() = no nonconservative terms
                           equations_parabolic,
                           dg.mortar, dg.surface_integral, dg, cache)

@@ -205,8 +205,8 @@ function rhs!(du, u, t,
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
-        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
+        calc_mortar_flux!(cache.elements.surface_flux_values, u,
+                          mesh, have_nonconservative_terms(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
@@ -1034,7 +1034,7 @@ end
 @inline function element_solutions_to_mortars!(mortars,
                                                mortar_l2::LobattoLegendreMortarL2,
                                                leftright, mortar,
-                                               u_large::AbstractArray{<:Any, 3},
+                                               u_large::AbstractArray{<:Any, 3}, # This fixes the dimension
                                                fstar_tmp1)
     multiply_dimensionwise!(view(mortars.u_upper_left, leftright, :, :, :, mortar),
                             mortar_l2.forward_lower, mortar_l2.forward_upper, u_large,
@@ -1051,7 +1051,7 @@ end
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(surface_flux_values, u,
                            mesh::TreeMesh{3},
                            nonconservative_terms::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
@@ -1109,7 +1109,7 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(surface_flux_values, u,
                            mesh::TreeMesh{3},
                            nonconservative_terms::True, equations,
                            mortar_l2::LobattoLegendreMortarL2,

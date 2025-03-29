@@ -914,6 +914,31 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_vortex_mortar_ec.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_mortar_ec.jl"),
+                        # Expected errors are exactly the same as in the parallel test!
+                        l2=[
+                            0.0006129490386872212,
+                            0.02493089490558065,
+                            0.026421719876697353,
+                            0.05800640325055998
+                        ],
+                        linf=[
+                            0.011454723226935526,
+                            0.3015931304059589,
+                            0.28828855246078633,
+                            1.0438636782623405
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_vortex_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_amr.jl"),
                         # Expected errors are exactly the same as in the parallel test!
