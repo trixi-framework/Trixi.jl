@@ -1099,7 +1099,7 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh, equations, dg::DGSEM, 
             end
 
             # Next, we interpolate the solution variables to the located point.
-            @turbo for v in 1:n_variables
+            for v in 1:n_variables
                 for i in 1:n_nodes
                     for ii in 1:n_nodes
                         res_ii = zero(eltype(temp_data))
