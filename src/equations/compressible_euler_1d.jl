@@ -705,7 +705,7 @@ end
     p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-    λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+    return max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
 end
 
 @inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
@@ -776,6 +776,25 @@ end
     λ_max = v1_rr + sqrt(equations.gamma * p_rr / rho_rr)
 
     return λ_min, λ_max
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::CompressibleEulerEquations1D)
+    rho_ll, rho_v1_ll, rho_e_ll = u_ll
+    rho_rr, rho_v1_rr, rho_e_rr = u_rr
+
+    # Calculate primitive variables and speed of sound
+    v1_ll = rho_v1_ll / rho_ll
+    v_mag_ll = abs(v1_ll)
+    p_ll = (equations.gamma - 1) * (rho_e_ll - 0.5f0 * rho_ll * v_mag_ll^2)
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    v1_rr = rho_v1_rr / rho_rr
+    v_mag_rr = abs(v1_rr)
+    p_rr = (equations.gamma - 1) * (rho_e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    return max(v_mag_ll + c_ll, v_mag_rr + c_rr)
 end
 
 # More refined estimates for minimum and maximum wave speeds for HLL-type fluxes

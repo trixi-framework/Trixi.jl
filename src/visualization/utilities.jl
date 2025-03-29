@@ -817,9 +817,11 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 
     # Iterate over all found elements.
     for element in 1:n_points_curve
-        min_coordinate = get_point(original_nodes, 1, 1, element_ids[element])
+        element_id = element_ids[element]
+        min_coordinate = get_point(original_nodes, 1, 1,
+                                   element_id)
         max_coordinate = get_point(original_nodes, n_nodes, n_nodes,
-                                   element_ids[element])
+                                   element_id)
         element_length = max_coordinate - min_coordinate
 
         normalized_coordinates = (get_point(curve, element) - min_coordinate) /
@@ -834,16 +836,17 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
                                          normalized_coordinates[2], baryweights_in)
         for v in 1:n_variables
             for i in 1:n_nodes
-                element_id = element_ids[element]
-                let res = zero(eltype(temp_data))
-                    for n in 1:n_nodes
-                        res += vandermonde_y[n] * unstructured_data[i, n, element_id, v]
-                    end
-                    temp_data[i, element, v] = res
+                res_i = zero(eltype(temp_data))
+                for n in 1:n_nodes
+                    res_i += vandermonde_y[n] * unstructured_data[i, n, element_id, v]
                 end
+                temp_data[i, element, v] = res_i
             end
-            data_on_curve[element, v] = dot(vandermonde_x,
-                                            view(temp_data, :, element, v))
+            res_v = zero(eltype(data_on_curve))
+            for n in 1:n_nodes
+                res_v += vandermonde_x[n] * temp_data[n, element, v]
+            end
+            data_on_curve[element, v] = res_v
         end
     end
 
@@ -923,20 +926,26 @@ end
 
 # Convert 3d unstructured data to 1d data at given curve.
 function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnodes,
-                                     curve, mesh, solver, cache)
+                                     curve, mesh::TreeMesh, solver, cache)
     n_points_curve = size(curve)[2]
     n_nodes, _, _, n_elements, n_variables = size(unstructured_data)
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
+    baryweights_in = barycentric_weights(nodes_in)
+
+    # Utility function to extract points as `SVector`s
+    get_point(data, idx...) = SVector(data[1, idx...],
+                                      data[2, idx...],
+                                      data[3, idx...])
 
     # Check if input is correct.
-    min = original_nodes[:, 1, 1, 1, 1]
-    max = max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes, n_elements]
+    min = get_point(original_nodes, 1, 1, 1, 1)
+    max = get_point(original_nodes, n_nodes, n_nodes, n_nodes, n_elements)
     @assert size(curve)==(3, n_points_curve) "Coordinates along curve must be 3xn dimensional."
     for element in 1:n_points_curve
-        @assert (prod(vcat(curve[:, n_points_curve] .>= min,
-                           curve[:, n_points_curve]
-                           .<=
-                           max))) "Some coordinates from `curve` are outside of the domain.."
+        p = get_point(curve, element)
+        if any(p .< min) || any(p .> max)
+            throw(DomainError("Some coordinates from `curve` are outside of the domain."))
+        end
     end
 
     # Set nodes according to the length of the curve.
@@ -949,39 +958,54 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     # For each coordinate find the corresponding element with its id.
     element_ids = get_elements_by_coordinates(curve, mesh, solver, cache)
 
+    # These Vandermonde matrices are really 1×n_nodes matrices, i.e.,
+    # row vectors. We allocate memory here to improve performance.
+    vandermonde_x = polynomial_interpolation_matrix(nodes_in, zero(eltype(curve)))
+    vandermonde_y = similar(vandermonde_x)
+    vandermonde_z = similar(vandermonde_x)
+
     # Iterate over all found elements.
     for element in 1:n_points_curve
-        min_coordinate = original_nodes[:, 1, 1, 1, element_ids[element]]
-        max_coordinate = original_nodes[:, n_nodes, n_nodes, n_nodes,
-                                        element_ids[element]]
+        element_id = element_ids[element]
+        min_coordinate = get_point(original_nodes, 1, 1, 1,
+                                   element_id)
+        max_coordinate = get_point(original_nodes, n_nodes, n_nodes, n_nodes,
+                                   element_id)
         element_length = max_coordinate - min_coordinate
 
-        normalized_coordinates = (curve[:, element] - min_coordinate) /
+        normalized_coordinates = (get_point(curve, element) - min_coordinate) /
                                  element_length[1] * 2 .- 1
 
         # Interpolate to a single point in each element.
-        vandermonde_x = polynomial_interpolation_matrix(nodes_in,
-                                                        normalized_coordinates[1])
-        vandermonde_y = polynomial_interpolation_matrix(nodes_in,
-                                                        normalized_coordinates[2])
-        vandermonde_z = polynomial_interpolation_matrix(nodes_in,
-                                                        normalized_coordinates[3])
+        # These Vandermonde matrices are really 1×n_nodes matrices, i.e.,
+        # row vectors.
+        polynomial_interpolation_matrix!(vandermonde_x, nodes_in,
+                                         normalized_coordinates[1], baryweights_in)
+        polynomial_interpolation_matrix!(vandermonde_y, nodes_in,
+                                         normalized_coordinates[2], baryweights_in)
+        polynomial_interpolation_matrix!(vandermonde_z, nodes_in,
+                                         normalized_coordinates[3], baryweights_in)
         for v in 1:n_variables
             for i in 1:n_nodes
                 for ii in 1:n_nodes
-                    temp_data[i, ii, element, v] = (vandermonde_z * unstructured_data[i,
-                                                                                      ii,
-                                                                                      :,
-                                                                                      element_ids[element],
-                                                                                      v])[1]
+                    res_ii = zero(eltype(temp_data))
+                    for n in 1:n_nodes
+                        res_ii += vandermonde_z[n] *
+                                  unstructured_data[i, ii, n, element_id, v]
+                    end
+                    temp_data[i, ii, element, v] = res_ii
                 end
-                temp_data[i, n_nodes + 1, element, v] = (vandermonde_y * temp_data[i,
-                                                                                   1:n_nodes,
-                                                                                   element,
-                                                                                   v])[1]
+                res_i = zero(eltype(temp_data))
+                for n in 1:n_nodes
+                    res_i += vandermonde_y[n] * temp_data[i, n, element, v]
+                end
+                temp_data[i, n_nodes + 1, element, v] = res_i
             end
-            data_on_curve[element, v] = (vandermonde_x * temp_data[:, n_nodes + 1,
-                                                                   element, v])[1]
+            res_v = zero(eltype(temp_data))
+            for n in 1:n_nodes
+                res_v += vandermonde_x[n] * temp_data[n, n_nodes + 1, element, v]
+            end
+            data_on_curve[element, v] = res_v
         end
     end
 
@@ -989,21 +1013,30 @@ function unstructured_3d_to_1d_curve(original_nodes, unstructured_data, nvisnode
 end
 
 # Convert 3d unstructured data from a general mesh to 1d data at given curve.
-function unstructured_3d_to_1d_curve(nodes, data, curve, slice, point, nvisnodes)
-    # If no curve is defined, create a axis curve.
-    if curve === nothing
-        curve = axis_curve(nodes[1, :, :, :, :], nodes[2, :, :, :, :],
-                           nodes[3, :, :, :, :], slice, point, nvisnodes)
-    end
-
+#
+# We need to loop through all the points and check in which element they are
+# located. A general implementation working for all mesh types has to perform
+# a naive loop through all nodes.
+function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
+                                     curve, solution_variables)
     # Set up data structure.
+    @assert size(curve, 1) == 3
     n_points_curve = size(curve, 2)
-    n_variables = size(data, 1)
-    data_on_curve = Array{Float64}(undef, n_points_curve, n_variables)
+
+    # Get the number of variables after applying the transformation to solution variables.
+    u_node = get_node_vars(u, equations, solver, 1, 1, 1, 1)
+    var_node = solution_variables(u_node, equations)
+    n_variables = length(var_node)
+
+    data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
+    nodes = cache.elements.node_coordinates
 
     # Iterate over every point on the curve and determine the solutions value at given point.
     for i in 1:n_points_curve
-        @views data_on_curve[i, :] .= get_value_at_point(curve[:, i], nodes, data)
+        point = SVector(curve[1, i], curve[2, i], curve[3, i])
+        get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
+                               nodes, u, equations, solver;
+                               cache = get_value_at_point_3d_cache(u))
     end
 
     mesh_vertices_x = nothing
@@ -1013,17 +1046,24 @@ end
 
 # Check if the first 'amount'-many points can still form a valid tetrahedron.
 function is_valid_tetrahedron(amount, coordinates; tol = 10^-4)
-    a = coordinates[:, 1]
-    b = coordinates[:, 2]
-    c = coordinates[:, 3]
-    d = coordinates[:, 4]
+    a = SVector(coordinates[1, 1], coordinates[2, 1], coordinates[3, 1])
+    b = SVector(coordinates[1, 2], coordinates[2, 2], coordinates[3, 2])
+    c = SVector(coordinates[1, 3], coordinates[2, 3], coordinates[3, 3])
+    d = SVector(coordinates[1, 4], coordinates[2, 4], coordinates[3, 4])
+
     if amount == 2 # If two points are the same, then no tetrahedron can be formed.
         return !(isapprox(a, b; atol = tol))
     elseif amount == 3 # Check if three points are on the same line.
         return !on_the_same_line(a, b, c; tol = tol)
     elseif amount == 4 # Check if four points form a tetrahedron.
-        A = hcat(coordinates[1, :], coordinates[2, :], coordinates[3, :],
-                 SVector(1, 1, 1, 1))
+        # This is the same as
+        # A = hcat(coordinates[1, :], coordinates[2, :], coordinates[3, :],
+        #          SVector(1, 1, 1, 1))
+        # but more efficient.
+        A = SMatrix{4, 4}(coordinates[1, 1], coordinates[2, 1], coordinates[3, 1], 1,
+                          coordinates[1, 2], coordinates[2, 2], coordinates[3, 2], 1,
+                          coordinates[1, 3], coordinates[2, 3], coordinates[3, 3], 1,
+                          coordinates[1, 4], coordinates[2, 4], coordinates[3, 4], 1)
         return !isapprox(det(A), 0; atol = tol)
     else # With one point a tetrahedron can always be formed.
         return true
@@ -1056,46 +1096,76 @@ function tetrahedron_interpolation(x_coordinates_in, y_coordinates_in, z_coordin
            c[3] * coordinate_out[3] + c[4]
 end
 
-# Calculate the distances from every entry in node to given point.
-function distances_from_single_point(nodes, point)
+# Calculate the distances from every entry in `nodes` to the given `point` and return
+# the minimal/maximal squared distance as well as the index of the minimal squared distance.
+function squared_distances_from_single_point!(distances, nodes, point)
     _, n_nodes, _, _, n_elements = size(nodes)
-    shifted_data = nodes .- point
-    distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
+    @assert size(nodes, 1) == 3
+    @assert size(nodes, 3) == size(nodes, 4) == n_nodes
+    @assert size(distances, 1) == size(distances, 2) == size(distances, 3) == n_nodes
+    @assert size(distances, 4) == n_elements
 
-    # Iterate over every entry.
+    # Prepare for reduction
+    dist_max = typemin(eltype(distances))
+    dist_min = typemax(eltype(distances))
+    index_min = CartesianIndex(1, 1, 1, 1)
+
+    # Iterate over every entry
     for element in 1:n_elements
-        for x in 1:n_nodes
-            for y in 1:n_nodes
-                for z in 1:n_nodes
-                    distances[x, y, z, element] = norm(shifted_data[:, x, y, z,
-                                                                    element])
-                end
+        for z in 1:n_nodes, y in 1:n_nodes, x in 1:n_nodes
+            dist = (nodes[1, x, y, z, element] - point[1])^2 +
+                   (nodes[2, x, y, z, element] - point[2])^2 +
+                   (nodes[3, x, y, z, element] - point[3])^2
+            distances[x, y, z, element] = dist
+
+            dist_max = max(dist_max, dist)
+            if dist < dist_min
+                dist_min = dist
+                index_min = CartesianIndex(x, y, z, element)
             end
         end
     end
-    return distances
+
+    return dist_max, dist_min, index_min
 end
 
 # Interpolate the data on given nodes to a single value at given point.
-function get_value_at_point(point, nodes, data)
-    # Set up ata structures.
-    n_variables, n_x_nodes, n_y_nodes, n_z_nodes, _ = size(data)
-    distances = distances_from_single_point(nodes, point)
-    maximum_distance = maximum(distances)
+function get_value_at_point_3d_cache(u)
+    n_variables, n_x_nodes, n_y_nodes, n_z_nodes, n_elements = size(u)
+    @assert n_x_nodes == n_y_nodes == n_z_nodes
+    n_nodes = n_x_nodes
 
+    distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
     coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
-    value_tetrahedron = Array{Float64}(undef, n_variables, 4)
+    value_tetrahedron = Array{eltype(u)}(undef, n_variables, 4)
+    cache = (; distances, coordinates_tetrahedron, value_tetrahedron)
+    return cache
+end
 
-    index = argmin(distances)
+function get_value_at_point_3d!(data_on_curve_at_point, point, solution_variables,
+                                nodes, u, equations, solver;
+                                cache = get_value_at_point_3d_cache(u))
+    # Set up data structures.
+    n_variables = size(u, 1)
+    (; distances, coordinates_tetrahedron, value_tetrahedron) = cache
+
+    maximum_distance, _, index = squared_distances_from_single_point!(distances, nodes,
+                                                                      point)
+    # We could also use the following code to find the maximum distance and index:
+    #   maximum_distance = maximum(distances)
+    #   index = argmin(distances)
+    # However, it is more efficient if we do it in one pass through the memory.
 
     # If the point sits exactly on a node, no interpolation is needed.
-    if nodes[:, index[1], index[2], index[3], index[4]] == point
-        return data[1, index[1], index[2], index[3], index[4]]
+    nodes_at_index = SVector(nodes[1, index[1], index[2], index[3], index[4]],
+                             nodes[2, index[1], index[2], index[3], index[4]],
+                             nodes[3, index[1], index[2], index[3], index[4]])
+    if nodes_at_index == point
+        u_node = get_node_vars(u, equations, solver,
+                               index[1], index[2], index[3], index[4])
+        data_on_curve_at_point .= solution_variables(u_node, equations)
+        return data_on_curve_at_point
     end
-
-    @views coordinates_tetrahedron[:, 1] = nodes[:, index[1], index[2], index[3],
-                                                 index[4]]
-    @views value_tetrahedron[:, 1] = data[:, index[1], index[2], index[3], index[4]]
 
     # Restrict the interpolation to the closest element only.
     closest_element = index[4]
@@ -1108,10 +1178,16 @@ function get_value_at_point(point, nodes, data)
             index = argmin(element_distances)
             element_distances[index[1], index[2], index[3]] = maximum_distance
 
-            @views coordinates_tetrahedron[:, i] = nodes[:, index[1], index[2],
-                                                         index[3], closest_element]
-            @views value_tetrahedron[:, i] = data[:, index[1], index[2], index[3],
-                                                  closest_element]
+            for k in 1:3
+                coordinates_tetrahedron[k, i] = nodes[k,
+                                                      index[1], index[2], index[3],
+                                                      closest_element]
+            end
+            for v in 1:n_variables
+                value_tetrahedron[v, i] = u[v,
+                                            index[1], index[2], index[3],
+                                            closest_element]
+            end
 
             # Look for another point if current tetrahedron is not valid.
             if is_valid_tetrahedron(i, coordinates_tetrahedron)
@@ -1121,15 +1197,39 @@ function get_value_at_point(point, nodes, data)
     end
 
     # Interpolate from tetrahedron to given point.
-    value_at_point = Array{Float64}(undef, n_variables)
-    for v in 1:n_variables
-        value_at_point[v] = tetrahedron_interpolation(coordinates_tetrahedron[1, :],
-                                                      coordinates_tetrahedron[2, :],
-                                                      coordinates_tetrahedron[3, :],
-                                                      value_tetrahedron[v, :], point)
+    x_coordinates = SVector(coordinates_tetrahedron[1, 1],
+                            coordinates_tetrahedron[1, 2],
+                            coordinates_tetrahedron[1, 3],
+                            coordinates_tetrahedron[1, 4])
+    y_coordinates = SVector(coordinates_tetrahedron[2, 1],
+                            coordinates_tetrahedron[2, 2],
+                            coordinates_tetrahedron[2, 3],
+                            coordinates_tetrahedron[2, 4])
+    z_coordinates = SVector(coordinates_tetrahedron[3, 1],
+                            coordinates_tetrahedron[3, 2],
+                            coordinates_tetrahedron[3, 3],
+                            coordinates_tetrahedron[3, 4])
+    # We compute the solution_variables first and interpolate them.
+    u1 = get_node_vars(value_tetrahedron, equations, solver, 1)
+    u2 = get_node_vars(value_tetrahedron, equations, solver, 2)
+    u3 = get_node_vars(value_tetrahedron, equations, solver, 3)
+    u4 = get_node_vars(value_tetrahedron, equations, solver, 4)
+    val1 = solution_variables(u1, equations)
+    val2 = solution_variables(u2, equations)
+    val3 = solution_variables(u3, equations)
+    val4 = solution_variables(u4, equations)
+    for v in eachindex(val1)
+        values = SVector(val1[v],
+                         val2[v],
+                         val3[v],
+                         val4[v])
+        data_on_curve_at_point[v] = tetrahedron_interpolation(x_coordinates,
+                                                              y_coordinates,
+                                                              z_coordinates,
+                                                              values, point)
     end
 
-    return value_at_point
+    return data_on_curve_at_point
 end
 
 # Convert 3d unstructured data to 1d slice and interpolate them.
