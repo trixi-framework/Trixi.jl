@@ -339,39 +339,127 @@ end
         end
     end
 
-    @timed_testset "1D plot from 3D solution on P4estMesh" begin
+    @timed_testset "1D plot from 3D solution on P4estMesh and T8codeMesh" begin
         @trixi_testset "Create 1D plot along curve" begin
             using OrdinaryDiffEqSSPRK
 
+            @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
+                equations = CompressibleEulerEquations3D(1.4)
+                solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+                coordinates_min = (-1.0, -1.0, -1.0)
+                coordinates_max = (+1.0, +1.0, +1.0)
+                trees_per_dimension = (2, 2, 2)
+                mesh = MeshType(trees_per_dimension; polydeg = 1,
+                                coordinates_min, coordinates_max,
+                                initial_refinement_level = 0)
+
+                semi = SemidiscretizationHyperbolic(mesh, equations,
+                                                    initial_condition_constant,
+                                                    solver)
+                ode = semidiscretize(semi, (0.0, 0.1))
+                # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
+                # and Ketcheson (2021)
+                sol = solve(ode, SSPRK43();
+                            dt = 0.01, ode_default_options()...)
+
+                x = range(0, 2, length = 3) / sqrt(3)
+                curve = vcat(x', x', x')
+                # Ensure that PlotData1D is type stable
+                pd = @inferred PlotData1D(sol; curve)
+
+                # Compare with reference data
+                u_node = SVector(1.0, 0.1, -0.2, 0.7, 10.0)
+                val = cons2prim(u_node, equations)
+                for v in axes(pd.data, 2), i in axes(pd.data, 1)
+                    @test isapprox(pd.data[i, v], val[v])
+                end
+            end
+        end
+    end
+
+    @timed_testset "PlotData1D gives correct results" begin
+        @trixi_testset "TreeMesh, T8codeMesh" begin
             equations = CompressibleEulerEquations3D(1.4)
             solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
-
             coordinates_min = (-1.0, -1.0, -1.0)
             coordinates_max = (+1.0, +1.0, +1.0)
-            trees_per_dimension = (2, 2, 2)
-            mesh = P4estMesh(trees_per_dimension; polydeg = 1,
-                             coordinates_min, coordinates_max,
-                             initial_refinement_level = 0)
+            initial_refinement_level = 3
 
-            semi = SemidiscretizationHyperbolic(mesh, equations,
-                                                initial_condition_constant,
-                                                solver)
-            ode = semidiscretize(semi, (0.0, 0.1))
-            # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
-            # and Ketcheson (2021)
-            sol = solve(ode, SSPRK43();
-                        dt = 0.01, ode_default_options()...)
+            mesh_tree = TreeMesh(coordinates_min, coordinates_max;
+                                 n_cells_max = 10^6,
+                                 initial_refinement_level)
+            trees_per_dimension = (1, 1, 1)
+            mesh_t8code = T8codeMesh(trees_per_dimension; polydeg = 1,
+                                     coordinates_min, coordinates_max,
+                                     initial_refinement_level)
 
-            x = range(0, 2, length = 3) / sqrt(3)
-            curve = vcat(x', x', x')
-            # Ensure that PlotData1D is type stable
-            pd = @inferred PlotData1D(sol; curve)
+            function initial_condition_taylor_green_vortex(x, t,
+                                                           equations::CompressibleEulerEquations3D)
+                A = 1.0 # magnitude of speed
+                Ms = 0.1 # maximum Mach number
 
-            # Compare with reference data
-            u_node = SVector(1.0, 0.1, -0.2, 0.7, 10.0)
-            val = cons2prim(u_node, equations)
-            for v in axes(pd.data, 2), i in axes(pd.data, 1)
-                @test isapprox(pd.data[i, v], val[v])
+                rho = 1.0
+                v1 = A * sin(x[1]) * cos(x[2]) * cos(x[3])
+                v2 = -A * cos(x[1]) * sin(x[2]) * cos(x[3])
+                v3 = 0.0
+                p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
+                p = p +
+                    1.0 / 16.0 * A^2 * rho *
+                    (cos(2 * x[1]) * cos(2 * x[3]) + 2 * cos(2 * x[2]) + 2 * cos(2 * x[1]) +
+                    cos(2 * x[2]) * cos(2 * x[3]))
+
+                return prim2cons(SVector(rho, v1, v2, v3, p), equations)
+            end
+            ic = initial_condition_taylor_green_vortex
+
+            ode_tree = let mesh = mesh_tree
+                semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+                ode = semidiscretize(semi, (0.0, 0.1))
+            end
+
+            ode_t8code = let mesh = mesh_t8code
+                semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+                ode = semidiscretize(semi, (0.0, 0.1))
+            end
+
+            x_curve = range(0, 1, length = 1000)
+            curve = vcat(x_curve', x_curve', x_curve')
+
+            @testset "TreeMesh" begin
+                pd_tree = @inferred PlotData1D(ode_tree.u0, ode_tree.p; curve)
+                @test pd_tree.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
+
+                for i in eachindex(pd_tree.x)
+                    x = SVector(curve[1, i],
+                                curve[2, i],
+                                curve[3, i])
+                    prim = SVector(pd_tree.data[i, 1],
+                                   pd_tree.data[i, 2],
+                                   pd_tree.data[i, 3],
+                                   pd_tree.data[i, 4],
+                                   pd_tree.data[i, 5])
+                    u = initial_condition_taylor_green_vortex(x, 0.0, equations)
+                    @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
+                end
+            end
+
+            @testset "T8codeMesh" begin
+                pd_t8code = @inferred PlotData1D(ode_t8code.u0, ode_t8code.p; curve)
+                @test pd_t8code.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
+
+                for i in eachindex(pd_t8code.x)
+                    x = SVector(curve[1, i],
+                                curve[2, i],
+                                curve[3, i])
+                    prim = SVector(pd_t8code.data[i, 1],
+                                   pd_t8code.data[i, 2],
+                                   pd_t8code.data[i, 3],
+                                   pd_t8code.data[i, 4],
+                                   pd_t8code.data[i, 5])
+                    u = initial_condition_taylor_green_vortex(x, 0.0, equations)
+                    @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
+                end
             end
         end
     end
