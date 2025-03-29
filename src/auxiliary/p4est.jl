@@ -58,6 +58,16 @@ function load_pointerwrapper_sc(::Type{T}, sc_array::PointerWrapper{sc_array},
     return PointerWrapper(T, pointer(sc_array.array) + (i - 1) * sizeof(T))
 end
 
+function unsafe_load_sc(::Type{T}, sc_array::PointerOrWrapper{sc_array},
+                        i::Integer = 1) where {T}
+    return unsafe_load(Ptr{T}(pointer(sc_array.array)), i)
+end
+
+function unsafe_store_sc!(sc_array::PointerOrWrapper{sc_array}, x::T,
+                          i::Integer = 1) where {T}
+    return unsafe_store!(Ptr{T}(pointer(sc_array.array)), x, i)
+end
+
 # Create new `p4est` from a p4est_connectivity
 # 2D
 function new_p4est(connectivity::PointerOrWrapper{p4est_connectivity_t},
