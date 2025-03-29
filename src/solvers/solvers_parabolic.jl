@@ -28,4 +28,6 @@ struct ViscousFormulationLocalDG{P}
     penalty_parameter::P
 end
 
+ViscousFormulationLocalDG() = ViscousFormulationLocalDG(nothing)
+
 default_parabolic_solver() = ViscousFormulationBassiRebay1()
