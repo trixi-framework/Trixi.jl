@@ -1159,10 +1159,6 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
                                                         query_indices_ptr::Ptr{sc_array_t},
                                                         query_matches::Ptr{Cint},
                                                         num_active_queries::Csize_t)::Cvoid
-    queries = PointerWrapper(queries_ptr)
-    query_indices = PointerWrapper(query_indices_ptr)
-
-    tolerance = 1.0e-13
     # It would be nice if we could just use
     #   t8_forest_element_points_inside(forest, ltreeid, element, coords,
     #                                   num_active_queries, query_matches, tolerance)
@@ -1177,8 +1173,9 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
 
     # Get the references coordinates of the element.
     # Note: This assumes that we are in 3D and that the element is a hexahedron.
+    user_data = unsafe_load(Ptr{SearchPointsInT8codeMeshUserData}(t8_forest_get_user_data(forest)))
+    vertex = user_data.temp_vertex
     eclass_scheme = t8_forest_get_eclass_scheme(forest, T8_ECLASS_HEX)
-    vertex = zeros(Float64, 3)
     t8_element_vertex_reference_coords(eclass_scheme, element, 0, vertex)
     r000 = SVector(vertex[1], vertex[2], vertex[3])
     t8_element_vertex_reference_coords(eclass_scheme, element, 1, vertex)
@@ -1190,10 +1187,7 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
 
     # Get the bounding physical coordinates of the tree.
     # Note: This assumes additionally that the polynomial degree is 1.
-    tree_node_coordinates_ptr = Ptr{Float64}(t8_forest_get_user_data(forest))
-    number_of_trees = t8_forest_get_num_global_trees(forest)
-    tree_node_coordinates = unsafe_wrap(Array, tree_node_coordinates_ptr,
-                                        (3, 2, 2, 2, number_of_trees))
+    tree_node_coordinates = user_data.tree_node_coordinates
     t000 = SVector(tree_node_coordinates[1, 1, 1, 1, ltreeid + 1],
                    tree_node_coordinates[2, 1, 1, 1, ltreeid + 1],
                    tree_node_coordinates[3, 1, 1, 1, ltreeid + 1])
@@ -1241,6 +1235,9 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
                       a1[3], a2[3], a3[3])
     invA = inv(A)
 
+    # Loop over all points that need to be found
+    queries = PointerWrapper(queries_ptr)
+    query_indices = PointerWrapper(query_indices_ptr)
     for i in 1:num_active_queries
         # t8code uses 0-based indexing, we use 1-based ondexing in Julia.
         query_index = unsafe_load_sc(Csize_t, query_indices, i) + 1
@@ -1252,6 +1249,7 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
         coefficients = invA * (point - a0)
 
         # Check if the point is inside the parallelepiped.
+        tolerance = 1.0e-13
         is_inside = -tolerance <= coefficients[1] <= 1 + tolerance &&
                     -tolerance <= coefficients[2] <= 1 + tolerance &&
                     -tolerance <= coefficients[3] <= 1 + tolerance
@@ -1287,6 +1285,11 @@ struct SearchPointsInT8codeMesh3DHelper
     index::Int64
 end
 
+mutable struct SearchPointsInT8codeMeshUserData
+    tree_node_coordinates::Array{Float64, 5}
+    temp_vertex::Vector{Float64}
+end
+
 function search_points_in_t8code_mesh_3d(mesh::T8codeMesh, curve::Array{Float64, 2})
     element_fn = @cfunction(search_points_in_t8code_mesh_3d_callback_element,
                             Cint,
@@ -1310,9 +1313,14 @@ function search_points_in_t8code_mesh_3d(mesh::T8codeMesh, curve::Array{Float64,
                                 sizeof(eltype(data)),
                                 length(data))
 
-    t8_forest_set_user_data(pointer(mesh.forest), pointer(mesh.tree_node_coordinates))
+    user_data = SearchPointsInT8codeMeshUserData(mesh.tree_node_coordinates,
+                                                 zeros(Float64, 3))
+    GC.@preserve user_data begin
+        t8_forest_set_user_data(pointer(mesh.forest),
+                                pointer_from_objref(user_data))
 
-    t8_forest_search(pointer(mesh.forest), element_fn, query_fn, queries)
+        t8_forest_search(pointer(mesh.forest), element_fn, query_fn, queries)
+    end
 
     return data
 end
