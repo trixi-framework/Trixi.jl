@@ -863,7 +863,7 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
     # For each coordinate find the corresponding triangle with its ids.
     # The default value if no element is found is 0.
     ids_by_coordinates = get_ids_by_coordinates(input_curve, pd)
-    found_coordinates = ids_by_coordinates[:, 1] .!= 0
+    found_coordinates = view(ids_by_coordinates, :, 1) .!= 0
 
     @assert !iszero(found_coordinates) "No points of 'curve' are inside of the solutions domain."
 
