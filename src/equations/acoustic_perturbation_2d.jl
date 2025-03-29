@@ -295,7 +295,25 @@ end
     c_mean_ll = u_ll[6]
     c_mean_rr = u_rr[6]
 
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
+    return max(abs(v_ll), abs(v_rr)) + max(c_mean_ll, c_mean_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::AcousticPerturbationEquations2D)
+    # Calculate v = v_prime + v_mean
+    v_prime_ll = u_ll[orientation]
+    v_prime_rr = u_rr[orientation]
+    v_mean_ll = u_ll[orientation + 3]
+    v_mean_rr = u_rr[orientation + 3]
+
+    v_ll = v_prime_ll + v_mean_ll
+    v_rr = v_prime_rr + v_mean_rr
+
+    c_mean_ll = u_ll[6]
+    c_mean_rr = u_rr[6]
+
+    return max(abs(v_ll) + c_mean_ll, abs(v_rr) + c_mean_rr)
 end
 
 # Calculate 1D flux for a single point in the normal direction
@@ -337,8 +355,28 @@ end
     c_mean_rr = u_rr[6]
 
     # The v_normals are already scaled by the norm
-    λ_max = max(abs(v_ll), abs(v_rr)) +
-            max(c_mean_ll, c_mean_rr) * norm(normal_direction)
+    return (max(abs(v_ll), abs(v_rr)) +
+            max(c_mean_ll, c_mean_rr) * norm(normal_direction))
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::AcousticPerturbationEquations2D)
+    # Calculate v = v_prime + v_mean
+    v_prime_ll = normal_direction[1] * u_ll[1] + normal_direction[2] * u_ll[2]
+    v_prime_rr = normal_direction[1] * u_rr[1] + normal_direction[2] * u_rr[2]
+    v_mean_ll = normal_direction[1] * u_ll[4] + normal_direction[2] * u_ll[5]
+    v_mean_rr = normal_direction[1] * u_rr[4] + normal_direction[2] * u_rr[5]
+
+    v_ll = v_prime_ll + v_mean_ll
+    v_rr = v_prime_rr + v_mean_rr
+
+    c_mean_ll = u_ll[6]
+    c_mean_rr = u_rr[6]
+
+    norm_ = norm(normal_direction)
+    # The v_normals are already scaled by the norm
+    return max(abs(v_ll) + c_mean_ll * norm_, abs(v_rr) + c_mean_rr * norm_)
 end
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the mean values
