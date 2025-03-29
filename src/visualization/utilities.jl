@@ -1056,10 +1056,12 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh, equations, solver, cac
 
         nodes = cache.elements.node_coordinates
         interpolation_cache = get_value_at_point_3d_cache(view(u, :, :, :, :, 1:1))
-        for idx in eachindex(elements)
-            element = elements[idx]
-            point = SVector(curve[1, idx], curve[2, idx], curve[3, idx])
-            get_value_at_point_3d!(view(data_on_curve, idx, :), point,
+        for i in 1:n_points_curve
+            element = elements[i]
+            point = SVector(curve[1, i], curve[2, i], curve[3, i])
+            # @info "before get_value_at_point_3d!" element point' #view(nodes, :, 1, 1, 1, element) view(nodes, :, 4, 4, 4, element) # FIXME
+            # TODO: Use the DG interpolation
+            get_value_at_point_3d!(view(data_on_curve, i, :), point,
                                    solution_variables,
                                    view(nodes, :, :, :, :, element:element),
                                    view(u, :, :, :, :, element:element),
@@ -1102,32 +1104,118 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
                                                         query_indices_ptr::Ptr{sc_array_t},
                                                         query_matches_ptr::Ptr{Cint},
                                                         num_active_queries::Csize_t)::Cvoid
-    coords = Vector{Float64}(undef, 3 * num_active_queries)
-
     queries = unsafe_wrap_sc(SearchPointsInT8codeMesh3DHelper, queries_ptr)
     query_indices = unsafe_wrap_sc(Csize_t, query_indices_ptr)
     query_matches = unsafe_wrap(Array, query_matches_ptr, num_active_queries)
 
-    for i in 1:num_active_queries
-        query = queries[query_indices[i] + 1]
-        coords[3 * (i - 1) + 1] = query.x
-        coords[3 * (i - 1) + 2] = query.y
-        coords[3 * (i - 1) + 3] = query.z
-    end
-
     tolerance = 1.0e-13
-    t8_forest_element_points_inside(forest, ltreeid, element, coords,
-                                    num_active_queries, query_matches, tolerance)
+    # t8_forest_element_points_inside(forest, ltreeid, element, coords,
+    #                                 num_active_queries, query_matches, tolerance)
+    # # FIXME: This does not work since the `coords` are given in physical coordinates
+    # #        but t8code only knows reference coordinates (in [0, 1]).
+    # #        Currently, we do not store the `mapping` but only the resulting
+    # #        `tree_node_coordinates` in the mesh. Thus, we need to use them
+    # #        to convert the reference coordinates of the `element` to physical
+    # #        coordinates (assuming polydeg == 1) and then check whether the
+    # #        `coords` are inside the `element`.
+    # @info "quary callback" ltreeid tree_leaf_index element
+
+    # Get the references coordinates of the element.
+    # Note: This assumes that we are in 3D and that the element is a hexahedron.
+    eclass_scheme = t8_forest_get_eclass_scheme(forest, T8_ECLASS_HEX)
+    vertex = zeros(Float64, 3)
+    t8_element_vertex_reference_coords(eclass_scheme, element, 0, vertex)
+    r000 = SVector(vertex[1], vertex[2], vertex[3])
+    t8_element_vertex_reference_coords(eclass_scheme, element, 1, vertex)
+    r100 = SVector(vertex[1], vertex[2], vertex[3])
+    t8_element_vertex_reference_coords(eclass_scheme, element, 2, vertex)
+    r010 = SVector(vertex[1], vertex[2], vertex[3])
+    t8_element_vertex_reference_coords(eclass_scheme, element, 4, vertex)
+    r001 = SVector(vertex[1], vertex[2], vertex[3])
+    # @info "reference coordinates" r000 r100 r010 r001
+
+    # Get the bounding physical coordinates of the tree.
+    # Note: This assumes additionally that the polynomial degree is 1.
+    tree_node_coordinates_ptr = Ptr{Float64}(t8_forest_get_user_data(forest))
+    number_of_trees = t8_forest_get_num_global_trees(forest)
+    tree_node_coordinates = unsafe_wrap(Array, tree_node_coordinates_ptr,
+                                        (3, 2, 2, 2, number_of_trees))
+    t000 = SVector(tree_node_coordinates[1, 1, 1, 1, ltreeid + 1],
+                   tree_node_coordinates[2, 1, 1, 1, ltreeid + 1],
+                   tree_node_coordinates[3, 1, 1, 1, ltreeid + 1])
+    t100 = SVector(tree_node_coordinates[1, 2, 1, 1, ltreeid + 1],
+                   tree_node_coordinates[2, 2, 1, 1, ltreeid + 1],
+                   tree_node_coordinates[3, 2, 1, 1, ltreeid + 1])
+    t010 = SVector(tree_node_coordinates[1, 1, 2, 1, ltreeid + 1],
+                   tree_node_coordinates[2, 1, 2, 1, ltreeid + 1],
+                   tree_node_coordinates[3, 1, 2, 1, ltreeid + 1])
+    t001 = SVector(tree_node_coordinates[1, 1, 1, 2, ltreeid + 1],
+                   tree_node_coordinates[2, 1, 1, 2, ltreeid + 1],
+                   tree_node_coordinates[3, 1, 1, 2, ltreeid + 1])
+    # @info "tree coordinates" t000 t100 t010 t001
+
+    # Transform the reference coordinates to physical coordinates.
+    # Note: This requires the same assumptions as above.
+    p000 = t000 +
+           r000[1] * (t100 - t000) +
+           r000[2] * (t010 - t000) +
+           r000[3] * (t001 - t000)
+    p100 = t000 +
+           r100[1] * (t100 - t000) +
+           r100[2] * (t010 - t000) +
+           r100[3] * (t001 - t000)
+    p010 = t000 +
+           r010[1] * (t100 - t000) +
+           r010[2] * (t010 - t000) +
+           r010[3] * (t001 - t000)
+    p001 = t000 +
+           r001[1] * (t100 - t000) +
+           r001[2] * (t010 - t000) +
+           r001[3] * (t001 - t000)
+    # @info "physical coordinates" p000 p100 p010 p001
+
+    # Get the base point a0 and the basis vectors a1, a2, a3 spanning the
+    # parallelepiped in physical coordinates.
+    # Note: This requires the same assumptions as above.
+    a0 = p000
+    a1 = p100 - p000
+    a2 = p010 - p000
+    a3 = p001 - p000
+    # @info "base point and basis vectors" a0 a1 a2 a3
+
+    # Get the transformation matrix A and its inverse.
+    A = SMatrix{3, 3}(a1[1], a2[1], a3[1],
+                      a1[2], a2[2], a3[2],
+                      a1[3], a2[3], a3[3])
+    invA = inv(A)
 
     for i in 1:num_active_queries
-        if (is_leaf == 1) && (query_matches[i] == 1)
-            index = t8_forest_get_tree_element_offset(forest, ltreeid) +
-                    tree_leaf_index + 1
-            query_index = query_indices[i] + 1
-            query = queries[query_index]
-            new_query = SearchPointsInT8codeMesh3DHelper(query.x, query.y, query.z,
-                                                         index)
-            queries[query_index] = new_query
+        query_index = query_indices[i] + 1
+        query = queries[query_index]
+        point = SVector(query.x, query.y, query.z)
+
+        # Compute coefficients to express the `point` in the basis of the
+        # parallelepiped.
+        coefficients = invA * (point - a0)
+
+        # Check if the point is inside the parallelepiped.
+        is_inside = -tolerance <= coefficients[1] <= 1 + tolerance &&
+                    -tolerance <= coefficients[2] <= 1 + tolerance &&
+                    -tolerance <= coefficients[3] <= 1 + tolerance
+
+        if is_inside
+            query_matches[i] = 1
+
+            if is_leaf == 1
+                index = t8_forest_get_tree_element_offset(forest, ltreeid) +
+                        tree_leaf_index + 1
+                new_query = SearchPointsInT8codeMesh3DHelper(query.x, query.y, query.z,
+                                                             index)
+                queries[query_index] = new_query
+                # @info "callback, found" index query.x query.y query.z #ltreeid point a0 a1 a2 a3
+            end
+        else
+            query_matches[i] = 0
         end
     end
 
@@ -1164,6 +1252,8 @@ function search_points_in_t8code_mesh_3d(mesh::T8codeMesh, curve::Array{Float64,
     queries = sc_array_new_data(pointer(data),
                                 sizeof(eltype(data)),
                                 length(data))
+
+    t8_forest_set_user_data(pointer(mesh.forest), pointer(mesh.tree_node_coordinates))
 
     t8_forest_search(pointer(mesh.forest), element_fn, query_fn, queries)
 
