@@ -594,7 +594,7 @@ function preprocess_standard_abaqus(meshfile,
     # Adjust `sets_begin_idx` to correct line number after removing unnecessary elements
     sets_begin_idx = elements_begin_idx + preproc_element_section_lines
 
-    return meshfile_preproc, elements_begin_idx, sets_begin_idx
+    return elements_begin_idx, sets_begin_idx
 end
 
 # p4est can handle only linear elements. This function checks the `meshfile_pre_proc` 
@@ -728,22 +728,21 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     linear_hexes = r"^(C3D8).*$"
     quadratic_hexes = r"^(C3D27).*$"
 
-    meshfile_p4est_rdy = replace(meshfile, ".inp" => "_p4est_ready.inp")
+    meshfile_preproc = replace(meshfile, ".inp" => "_preproc.inp")
 
     # Define variables that are retrieved in the MPI-parallel case on root and then bcasted
-    meshfile_preproc = ""
     elements_begin_idx = -1
     sets_begin_idx = -1
     mesh_polydeg = 1
 
     if !mpi_isparallel() || (mpi_isparallel() && mpi_isroot())
         # Preprocess the meshfile to remove lower-dimensional elements
-        meshfile_preproc, elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
-                                                                                          linear_quads,
-                                                                                          linear_hexes,
-                                                                                          quadratic_quads,
-                                                                                          quadratic_hexes,
-                                                                                          n_dimensions)
+        elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
+                                                                        linear_quads,
+                                                                        linear_hexes,
+                                                                        quadratic_quads,
+                                                                        quadratic_hexes,
+                                                                        n_dimensions)
 
         # Copy of mesh for p4est with linear elements only
         mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile_preproc,
@@ -758,21 +757,10 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     # Broadcast from meshfile retrieved variables across all MPI ranks
     if mpi_isparallel()
         if mpi_isroot()
-            # Convert the String to a `Vector{UInt8}` of `bitstype` for broadcasting
-            meshfile_preproc_bytes = Vector{UInt8}(meshfile_preproc)
-            meshfile_preproc_length = length(meshfile_preproc_bytes)
-            MPI.Bcast!(Ref(meshfile_preproc_length), mpi_root(), mpi_comm())
-            MPI.Bcast!(meshfile_preproc_bytes, mpi_root(), mpi_comm())
-
             MPI.Bcast!(Ref(elements_begin_idx), mpi_root(), mpi_comm())
             MPI.Bcast!(Ref(sets_begin_idx), mpi_root(), mpi_comm())
             MPI.Bcast!(Ref(mesh_polydeg), mpi_root(), mpi_comm())
         else
-            meshfile_preproc_length = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
-            meshfile_preproc_bytes = Vector{UInt8}(undef, meshfile_preproc_length)
-            MPI.Bcast!(meshfile_preproc_bytes, mpi_root(), mpi_comm())
-            meshfile_preproc = String(meshfile_preproc_bytes)  # Reconstruct the String
-
             elements_begin_idx = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
             sets_begin_idx = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
             mesh_polydeg = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
@@ -780,6 +768,7 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     end
 
     # Create the mesh connectivity using `p4est`
+    meshfile_p4est_rdy = replace(meshfile, ".inp" => "_p4est_ready.inp")
     connectivity = read_inp_p4est(meshfile_p4est_rdy, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
 
