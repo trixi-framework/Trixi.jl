@@ -45,11 +45,11 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh{3, Float64},
 
     n_nodes = length(nodes)
     temp_data = Array{eltype(data_on_curve)}(undef,
-                                                n_nodes, n_nodes + 1,
-                                                n_variables)
+                                             n_nodes, n_nodes + 1,
+                                             n_variables)
     unstructured_data = Array{eltype(data_on_curve)}(undef,
-                                                        n_nodes, n_nodes, n_nodes,
-                                                        n_variables)
+                                                     n_nodes, n_nodes, n_nodes,
+                                                     n_variables)
 
     for idx_point in 1:n_points_curve
         query = data[idx_point]
@@ -61,11 +61,11 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh{3, Float64},
         # These Vandermonde matrices are really 1×n_nodes matrices, i.e.,
         # row vectors.
         polynomial_interpolation_matrix!(vandermonde_x, nodes,
-                                            normalized_coordinates[1], baryweights)
+                                         normalized_coordinates[1], baryweights)
         polynomial_interpolation_matrix!(vandermonde_y, nodes,
-                                            normalized_coordinates[2], baryweights)
+                                         normalized_coordinates[2], baryweights)
         polynomial_interpolation_matrix!(vandermonde_z, nodes,
-                                            normalized_coordinates[3], baryweights)
+                                         normalized_coordinates[3], baryweights)
 
         # First, we transform the conserved variables `u` to the solution variables
         # before interpolation.
@@ -84,7 +84,7 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh{3, Float64},
                     res_ii = zero(eltype(temp_data))
                     for n in 1:n_nodes
                         res_ii += vandermonde_z[n] *
-                                    unstructured_data[i, ii, n, v]
+                                  unstructured_data[i, ii, n, v]
                     end
                     temp_data[i, ii, v] = res_ii
                 end
@@ -292,7 +292,7 @@ function search_points_in_t8code_mesh_3d(mesh::T8codeMesh, curve::Array{Float64,
     temp_vertex = zeros(Float64, 3)
     GC.@preserve temp_vertex begin
         user_data = [pointer(mesh.tree_node_coordinates),
-                     pointer(temp_vertex)]
+            pointer(temp_vertex)]
 
         GC.@preserve user_data begin
             t8_forest_set_user_data(pointer(mesh.forest), pointer(user_data))
