@@ -3,7 +3,8 @@
 # elements in which the curve points are located.
 # TODO: The same could be done for the P4estMesh - but the callbacks
 #       etc. have to be implemented differently.
-function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh, equations, dg::DGSEM, cache,
+function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh{3, Float64},
+                                     equations, dg::DGSEM, cache,
                                      curve, solution_variables)
     # TODO: Currently, the efficient search functionality is only implemented
     #       for linear meshes. If the mesh is not linear, we fall back to the naive
@@ -139,8 +140,8 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
 
     # Get the references coordinates of the element.
     # Note: This assumes that we are in 3D and that the element is a hexahedron.
-    user_data = unsafe_load(Ptr{SearchPointsInT8codeMeshUserData}(t8_forest_get_user_data(forest)))
-    vertex = user_data.temp_vertex
+    user_data = Ptr{Ptr{Float64}}(t8_forest_get_user_data(forest))
+    vertex = PtrArray(unsafe_load(user_data, 2), (3,))
     eclass_scheme = t8_forest_get_eclass_scheme(forest, T8_ECLASS_HEX)
     t8_element_vertex_reference_coords(eclass_scheme, element, 0, vertex)
     r000 = SVector(vertex[1], vertex[2], vertex[3])
@@ -153,7 +154,9 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
 
     # Get the bounding physical coordinates of the tree.
     # Note: This assumes additionally that the polynomial degree is 1.
-    tree_node_coordinates = user_data.tree_node_coordinates
+    number_of_trees = t8_forest_get_num_global_trees(forest)
+    tree_node_coordinates = PtrArray(unsafe_load(user_data, 1),
+                                     (3, 2, 2, 2, number_of_trees))
     t000 = SVector(tree_node_coordinates[1, 1, 1, 1, ltreeid + 1],
                    tree_node_coordinates[2, 1, 1, 1, ltreeid + 1],
                    tree_node_coordinates[3, 1, 1, 1, ltreeid + 1])
@@ -262,11 +265,6 @@ struct SearchPointsInT8codeMesh3DHelper
     found::Bool
 end
 
-mutable struct SearchPointsInT8codeMeshUserData
-    tree_node_coordinates::Array{Float64, 5}
-    temp_vertex::Vector{Float64}
-end
-
 function search_points_in_t8code_mesh_3d(mesh::T8codeMesh, curve::Array{Float64, 2})
     element_fn = @cfunction(search_points_in_t8code_mesh_3d_callback_element,
                             Cint,
@@ -291,13 +289,15 @@ function search_points_in_t8code_mesh_3d(mesh::T8codeMesh, curve::Array{Float64,
                                 sizeof(eltype(data)),
                                 length(data))
 
-    user_data = SearchPointsInT8codeMeshUserData(mesh.tree_node_coordinates,
-                                                 zeros(Float64, 3))
-    GC.@preserve user_data begin
-        t8_forest_set_user_data(pointer(mesh.forest),
-                                pointer_from_objref(user_data))
+    temp_vertex = zeros(Float64, 3)
+    GC.@preserve temp_vertex begin
+        user_data = [pointer(mesh.tree_node_coordinates),
+                     pointer(temp_vertex)]
 
-        t8_forest_search(pointer(mesh.forest), element_fn, query_fn, queries)
+        GC.@preserve user_data begin
+            t8_forest_set_user_data(pointer(mesh.forest), pointer(user_data))
+            t8_forest_search(pointer(mesh.forest), element_fn, query_fn, queries)
+        end
     end
 
     return data
