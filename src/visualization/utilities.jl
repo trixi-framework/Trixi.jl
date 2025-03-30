@@ -1000,9 +1000,16 @@ end
 #
 # We need to loop through all the points and check in which element they are
 # located. A general implementation working for all mesh types has to perform
-# a naive loop through all nodes.
+# a naive loop through all nodes. Thus, we use this entry point for dispatching
+# on the `mesh` type.
 function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
                                      curve, solution_variables)
+    return unstructured_3d_to_1d_curve_general(u, equations, solver, cache,
+                                               curve, solution_variables)
+end
+
+function unstructured_3d_to_1d_curve_general(u, equations, solver, cache,
+                                             curve, solution_variables)
     # Set up data structure.
     @assert size(curve, 1) == 3
     n_points_curve = size(curve, 2)
