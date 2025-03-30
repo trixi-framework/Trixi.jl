@@ -54,6 +54,7 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh{3, Float64},
     for idx_point in 1:n_points_curve
         query = data[idx_point]
         element = query.index
+        @assert query.found
         # The normalization in t8code is [0, 1] but we need [-1, 1] for DGSEM.
         normalized_coordinates = 2 * SVector(query.x, query.y, query.z) .- 1
 

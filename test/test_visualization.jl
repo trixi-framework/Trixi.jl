@@ -363,7 +363,7 @@ end
                 sol = solve(ode, SSPRK43();
                             dt = 0.01, ode_default_options()...)
 
-                x = range(0, 2, length = 3) / sqrt(3)
+                x = range(0, 1, length = 100)
                 curve = vcat(x', x', x')
                 # Ensure that PlotData1D is type stable
                 pd = @inferred PlotData1D(sol; curve)
