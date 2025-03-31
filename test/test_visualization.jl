@@ -330,7 +330,7 @@ end
                 prim = SVector(pd_tree.data[i, 1],
                                pd_tree.data[i, 2],
                                pd_tree.data[i, 3],
-                               pd_tree.data[i, 4],)
+                               pd_tree.data[i, 4])
                 u = initial_condition_taylor_green_vortex(x, 0.0, equations)
                 @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
             end
@@ -346,7 +346,7 @@ end
                 prim = SVector(pd_p4est.data[i, 1],
                                pd_p4est.data[i, 2],
                                pd_p4est.data[i, 3],
-                               pd_p4est.data[i, 4],)
+                               pd_p4est.data[i, 4])
                 u = initial_condition_taylor_green_vortex(x, 0.0, equations)
                 @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
             end
@@ -362,7 +362,7 @@ end
                 prim = SVector(pd_t8code.data[i, 1],
                                pd_t8code.data[i, 2],
                                pd_t8code.data[i, 3],
-                               pd_t8code.data[i, 4],)
+                               pd_t8code.data[i, 4])
                 # Note that the T8codeMesh uses a different algorithm to
                 # compute the 1D data than the other meshes above. This is
                 # less accurate so that we need to use a larger tolerance.
@@ -382,7 +382,7 @@ end
                 prim = SVector(pd_structured.data[i, 1],
                                pd_structured.data[i, 2],
                                pd_structured.data[i, 3],
-                               pd_structured.data[i, 4],)
+                               pd_structured.data[i, 4])
                 # Note that the StructuredMesh uses a different algorithm to
                 # compute the 1D data than the other meshes above. This is
                 # less accurate so that we need to use a larger tolerance.

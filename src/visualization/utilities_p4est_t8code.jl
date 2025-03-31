@@ -294,7 +294,7 @@ function search_points_in_p4est_t8code_mesh_2d(mesh::P4estMesh,
     call_post = 0
     mesh.p4est.user_pointer = pointer(mesh.tree_node_coordinates)
     p4est_search_local(pointer(mesh.p4est), call_post, quadrant_fn, point_fn,
-                        queries)
+                       queries)
 
     return data
 end
