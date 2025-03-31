@@ -303,19 +303,19 @@ function search_points_in_p4est_t8code_mesh_3d(mesh::P4estMesh,
     # GC.@preserve temp_vertex begin
     #     user_data = [pointer(mesh.tree_node_coordinates),
     #         pointer(temp_vertex)]
-    #     @info "before p4est_search_local" quadrant_fn point_fn
+    #     @info "before p8est_search_local" quadrant_fn point_fn
 
     #     GC.@preserve user_data begin
     #         call_post = 0
     #         # mesh.p4est.user_pointer = pointer(user_data) FIXME
-    #         # p4est_search_local(pointer(mesh.p4est), call_post, quadrant_fn, point_fn, queries)
-    #         p4est_search_local(pointer(mesh.p4est), 0, quadrant_fn, C_NULL, C_NULL)
+    #         # p8est_search_local(pointer(mesh.p4est), call_post, quadrant_fn, point_fn, queries)
+    #         p8est_search_local(pointer(mesh.p4est), 0, quadrant_fn, C_NULL, C_NULL)
     #         # FIXME
     #     end
     # end
-    @info "before p4est_search_local" quadrant_fn point_fn
-    p4est_search_local(pointer(mesh.p4est), 0, quadrant_fn, C_NULL, C_NULL)
-    @info "after p4est_search_local" quadrant_fn point_fn
+    @info "before p8est_search_local" quadrant_fn point_fn
+    p8est_search_local(pointer(mesh.p4est), 0, quadrant_fn, C_NULL, C_NULL)
+    @info "after p8est_search_local" quadrant_fn point_fn
 
     return data
 end
