@@ -91,6 +91,24 @@ function Base.show(io::IO, pd::PlotData2DCartesian)
           "}(<x>, <y>, <data>, <variable_names>, <mesh_vertices_x>, <mesh_vertices_y>)")
 end
 
+# holds plotting information for contour lines for StructuredMesh2D
+struct ContourData2D{DataType, NodeType, VariableNames} <: AbstractPlotData{2}
+    x::NodeType
+    y::NodeType
+    data::DataType
+    variable_names::VariableNames
+end
+
+function Base.show(io::IO, pd::ContourData2D)
+    @nospecialize pd
+    print(io, "ContourData2D{",
+          typeof(pd.x), ",",
+          typeof(pd.y), ",",
+          typeof(pd.data), ",",
+          typeof(pd.variable_names),
+          "}(<x>, <y>, <data>, <variable_names>)")
+end
+
 # holds plotting information for UnstructuredMesh2D and DGMulti-compatible meshes
 struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
                               VariableNames, PlottingTriangulation} <:
@@ -103,12 +121,6 @@ struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
     y_face::FaceNodeType
     face_data::FaceDataType
     variable_names::VariableNames
-end
-
-struct ContourData2DCG{DataType, NodeType} <: AbstractPlotData{2}
-    x::NodeType
-    y::NodeType
-    data::DataType
 end
 
 # Show only a truncated output for convenience (the full data does not make sense)
@@ -438,20 +450,31 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
 end
 
-function ContourData2D(sol, semi)
-    @unpack mesh, solver, cache = semi
+function ContourData2D(sol::TrixiODESolution; kwargs...)
+    return ContourData2D(sol.u[end], sol.prob.p; kwargs...)
+end
+
+function ContourData2D(u, semi; kwargs...)
+    return ContourData2D(wrap_array_native(u, semi),
+                         mesh_equations_solver_cache(semi)...;
+                         kwargs...)
+end
+
+function ContourData2D(u, mesh::StructuredMesh{2}, equations, dg::DGSEM, cache;
+                       solution_variables = nothing)
     @unpack cells_per_dimension = mesh
     @unpack node_coordinates = cache.elements
     @assert ndims(mesh)==2 "Input must be two-dimensional."
-    RealT = eltype(first(sol.u[end]))
-    polydeg = Trixi.polydeg(solver)
+    RealT = eltype(first(u))
+    polydeg = Trixi.polydeg(dg)
     nx = polydeg * cells_per_dimension[1] + 1
     ny = polydeg * cells_per_dimension[2] + 1
     xcontour = zeros(RealT, ny, nx)
     ycontour = zeros(RealT, ny, nx)
-    data = zeros(RealT, ny, nx)
-    u = Trixi.wrap_array(sol.u[end], semi)
+    nvars = nvariables(equations)
+    data = zeros(RealT, nvars, ny, nx)
 
+    solution_variables_ = digest_solution_variables(equations, solution_variables)
     jstart = 1
     for j in 1:ny
         if mod(j, polydeg + 1) == 1 && j != 1
@@ -476,7 +499,9 @@ function ContourData2D(sol, semi)
                     else
                         xcontour[j, i] = node_coordinates[1, ilocal, jlocal, element]
                         ycontour[j, i] = node_coordinates[2, ilocal, jlocal, element]
-                        data[j, i] = u[1, ilocal, jlocal, element]
+
+                        uloc = u[:, ilocal, jlocal, element]
+                        data[:, j, i] .= solution_variables_(uloc, equations)
                         i += 1
                     end
                 end
@@ -484,7 +509,8 @@ function ContourData2D(sol, semi)
         end
     end
 
-    return ContourData2DCG(xcontour, ycontour, data)
+    variable_names = SVector(varnames(solution_variables_, equations))
+    return ContourData2D(xcontour, ycontour, data, variable_names)
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
