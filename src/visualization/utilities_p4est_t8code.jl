@@ -53,8 +53,7 @@ function unstructured_3d_to_1d_curve(u,
                                                      n_nodes, n_nodes, n_nodes,
                                                      n_variables)
 
-    @info "unstructured_3d_to_1d_curve" data
-    for idx_point in 1:n_points_curve
+    for idx_point in eachindex(data)
         query = data[idx_point]
         element = query.index
         @assert query.found
@@ -498,7 +497,7 @@ function search_points_in_p4est_t8code_mesh_3d(mesh::T8codeMesh,
                            Ptr{Cint}, Csize_t))
 
     data = Vector{SearchPointsInT8codeMesh3DHelper}(undef, size(curve, 2))
-    for i in 1:size(curve, 2)
+    for i in eachindex(data)
         data[i] = SearchPointsInT8codeMesh3DHelper(curve[1, i],
                                                    curve[2, i],
                                                    curve[3, i],
