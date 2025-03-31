@@ -64,8 +64,7 @@ function calc_node_coordinates!(node_coordinates,
                                          current_index += 1),
                                     matrix1, matrix2, matrix3,
                                     view(mesh.tree_node_coordinates, :, :, :, :,
-                                         global_itree + 1),
-                                    tmp1)
+                                         global_itree + 1), tmp1)
         end
     end
 

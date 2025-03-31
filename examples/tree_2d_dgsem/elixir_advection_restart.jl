@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -27,9 +26,9 @@ ode = semidiscretize(semi, tspan, restart_filename)
 # Do not overwrite the initial snapshot written by elixir_advection_extended.jl.
 save_solution.condition.save_initial_solution = false
 
-integrator = init(ode, alg,
+integrator = init(ode, alg;
                   dt = dt, # solve needs some value here but it will be overwritten by the stepsize_callback
-                  callback = callbacks;
+                  callback = callbacks,
                   ode_default_options()...); # default options because an adaptive time stepping method is used in test_mpi_tree.jl
 
 # Load saved context for adaptive time integrator
@@ -44,5 +43,3 @@ load_timestep!(integrator, restart_filename)
 # run the simulation
 
 sol = solve!(integrator)
-
-summary_callback() # print the timer summary

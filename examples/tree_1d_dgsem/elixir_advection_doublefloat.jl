@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqHighOrderRK
 using Trixi
 
 using DoubleFloats
@@ -53,11 +52,8 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, DP8(),
+sol = solve(ode, DP8();
             # Turn off adaptivity to avoid setting very small tolerances
             adaptive = false,
             dt = 42, # `dt` does not need to be in higher precision
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

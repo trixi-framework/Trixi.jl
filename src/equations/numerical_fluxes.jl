@@ -180,7 +180,7 @@ function Base.show(io::IO, d::DissipationLocalLaxFriedrichs)
 end
 
 """
-    max_abs_speed_naive(u_ll, u_rr, orientation::Integer,   equations)
+    max_abs_speed_naive(u_ll, u_rr, orientation::Integer, equations)
     max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector, equations)
 
 Simple and fast estimate of the maximal wave speed of the Riemann problem with left and right states
@@ -195,6 +195,28 @@ function max_abs_speed_naive end
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
                                      equations::AbstractEquations{1})
     return abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)
+end
+
+"""
+    max_abs_speed(u_ll, u_rr, orientation::Integer, equations)
+    max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector, equations)
+
+Simple and fast estimate of the maximal wave speed of the Riemann problem with left and right states
+`u_ll, u_rr`, based only on the local wave speeds associated to `u_ll` and `u_rr`.
+Less diffusive, i.e., overestimating than [`max_abs_speed_naive`](@ref).
+
+In particular, `max_abs_speed(u, u, i, equations)` gives the same result as `max_abs_speeds(u, equations)[i]`,
+i.e., the wave speeds used in `max_dt` which computes the maximum stable time step size through the 
+[`StepsizeCallback`](@ref).
+
+For non-integer arguments `normal_direction` in one dimension, `max_abs_speed_naive` returns
+`abs(normal_direction[1]) * max_abs_speed_naive(u_ll, u_rr, 1, equations)`.
+"""
+@inline function max_abs_speed(u_ll, u_rr,
+                               orientation_or_normal_direction,
+                               equations::AbstractEquations)
+    # Use naive version as "backup" if no specialized version for the equations at hand is available                                             
+    max_abs_speed_naive(u_ll, u_rr, orientation_or_normal_direction, equations)
 end
 
 const FluxLaxFriedrichs{MaxAbsSpeed} = FluxPlusDissipation{typeof(flux_central),
@@ -220,6 +242,94 @@ end
 See [`FluxLaxFriedrichs`](@ref).
 """
 const flux_lax_friedrichs = FluxLaxFriedrichs()
+
+@doc raw"""
+    DissipationLaxFriedrichsEntropyVariables(max_abs_speed=max_abs_speed_naive)
+
+Create a local Lax-Friedrichs-type dissipation operator that is provably entropy stable. This operator
+must be used together with an entropy-conservative two-point flux function (e.g., `flux_ec`) to yield 
+an entropy-stable surface flux. The surface flux function can be initialized as:
+```julia
+flux_es = FluxPlusDissipation(flux_ec, DissipationLaxFriedrichsEntropyVariables())
+```
+
+In particular, the numerical flux has the form
+```math
+f^{\mathrm{ES}} = f^{\mathrm{EC}} - \frac{1}{2} \lambda_{\mathrm{max}} H (w_r - w_l),
+```
+where ``f^{\mathrm{EC}}`` is the entropy-conservative two-point flux function (computed with, e.g., `flux_ec`), ``\lambda_{\mathrm{max}}`` 
+is the maximum wave speed estimated as `max_abs_speed(u_l, u_r, orientation_or_normal_direction, equations)`,
+defaulting to [`max_abs_speed_naive`](@ref), ``H`` is a symmetric positive-definite dissipation matrix that
+depends on the left and right states `u_l` and `u_r`, and ``(w_r - w_l)`` is the jump in entropy variables.
+Ideally, ``H (w_r - w_l) = (u_r - u_l)``, such that the dissipation operator is consistent with the local
+Lax-Friedrichs dissipation.
+
+The entropy-stable dissipation operator is computed with the function
+`function (dissipation::DissipationLaxFriedrichsEntropyVariables)(u_l, u_r, orientation_or_normal_direction, equations)`,
+which must be specialized for each equation.
+
+For the derivation of the dissipation matrix for the multi-ion GLM-MHD equations, see:
+- A. Rueda-Ramírez, A. Sikstel, G. Gassner, An Entropy-Stable Discontinuous Galerkin Discretization
+  of the Ideal Multi-Ion Magnetohydrodynamics System (2024). Journal of Computational Physics.
+  [DOI: 10.1016/j.jcp.2024.113655](https://doi.org/10.1016/j.jcp.2024.113655).
+"""
+struct DissipationLaxFriedrichsEntropyVariables{MaxAbsSpeed}
+    max_abs_speed::MaxAbsSpeed
+end
+
+DissipationLaxFriedrichsEntropyVariables() = DissipationLaxFriedrichsEntropyVariables(max_abs_speed_naive)
+
+function Base.show(io::IO, d::DissipationLaxFriedrichsEntropyVariables)
+    print(io, "DissipationLaxFriedrichsEntropyVariables(", d.max_abs_speed, ")")
+end
+
+@doc raw"""
+    DissipationMatrixWintersEtal()
+
+Creates the Roe-like entropy-stable matrix dissipation operator from Winters et al. (2017). This operator
+must be used together with an entropy-conservative two-point flux function 
+(e.g., [`flux_ranocha`](@ref) or [`flux_chandrashekar`](@ref)) to yield 
+an entropy-stable surface flux. The surface flux function can be initialized as:
+```julia
+flux_es = FluxPlusDissipation(flux_ec, DissipationMatrixWintersEtal())
+```
+The 1D and 2D implementations are adapted from the [Atum.jl library](https://github.com/mwarusz/Atum.jl/blob/c7ed44f2b7972ac726ef345da7b98b0bda60e2a3/src/balancelaws/euler.jl#L198).
+The 3D implementation is adapted from the [FLUXO library](https://github.com/project-fluxo/fluxo)
+
+For the derivation of the matrix dissipation operator, see:
+- A. R. Winters, D. Derigs, G. Gassner, S. Walch, A uniquely defined entropy stable matrix dissipation operator 
+  for high Mach number ideal MHD and compressible Euler simulations (2017). Journal of Computational Physics.
+  [DOI: 10.1016/j.jcp.2016.12.006](https://doi.org/10.1016/j.jcp.2016.12.006).
+"""
+struct DissipationMatrixWintersEtal end
+
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::AbstractEquations{1})
+    return dissipation(u_ll, u_rr, SVector(1), equations)
+end
+
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::AbstractEquations{2})
+    if orientation == 1
+        return dissipation(u_ll, u_rr, SVector(1, 0), equations)
+    else # orientation == 2
+        return dissipation(u_ll, u_rr, SVector(0, 1), equations)
+    end
+end
+
+@inline function (dissipation::DissipationMatrixWintersEtal)(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::AbstractEquations{3})
+    if orientation == 1
+        return dissipation(u_ll, u_rr, SVector(1, 0, 0), equations)
+    elseif orientation == 2
+        return dissipation(u_ll, u_rr, SVector(0, 1, 0), equations)
+    else # orientation == 3
+        return dissipation(u_ll, u_rr, SVector(0, 0, 1), equations)
+    end
+end
 
 """
     FluxHLL(min_max_speed=min_max_speed_davis)

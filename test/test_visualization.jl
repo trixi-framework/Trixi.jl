@@ -98,7 +98,12 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
 
         semi = sol.prob.p
         if mesh == "DGMulti"
-            scalar_data = StructArrays.component(sol.u[end], 1)
+            if sol.u[end] isa Trixi.VectorOfArray
+                u = parent(sol.u[end])
+            else
+                u = sol.u[end]
+            end
+            scalar_data = StructArrays.component(u, 1)
             @test_nowarn_mod Plots.plot(ScalarPlotData2D(scalar_data, semi))
         else
             cache = semi.cache
@@ -185,9 +190,14 @@ end
         pd = PlotData1D(sol)
 
         @test_nowarn_mod Plots.plot(sol)
+        @test_nowarn_mod Plots.plot(sol, reinterpolate = false)
         @test_nowarn_mod Plots.plot(pd)
         @test_nowarn_mod Plots.plot(pd["p"])
         @test_nowarn_mod Plots.plot(getmesh(pd))
+        initial_condition_t_end(x, equations) = initial_condition(x, last(tspan),
+                                                                  equations)
+        @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+        @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
     end
 
     # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
@@ -220,6 +230,9 @@ end
                                    tspan = (0.0, 0.0),
                                    approximation_type = Polynomial())
     @test PlotData1D(sol) isa PlotData1D
+    initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 
     @test_nowarn_mod trixi_include(@__MODULE__,
                                    joinpath(examples_dir(), "dgmulti_1d",
@@ -227,6 +240,24 @@ end
                                    tspan = (0.0, 0.0),
                                    approximation_type = SBP())
     @test PlotData1D(sol) isa PlotData1D
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
+end
+
+@timed_testset "1D plot recipes (StructuredMesh)" begin
+    @test_nowarn_mod trixi_include(@__MODULE__,
+                                   joinpath(examples_dir(), "structured_1d_dgsem",
+                                            "elixir_euler_source_terms.jl"),
+                                   tspan = (0.0, 0.0))
+
+    pd = PlotData1D(sol)
+    initial_condition_t_end(x, equations) = initial_condition(x, last(tspan), equations)
+    @test_nowarn_mod Plots.plot(sol)
+    @test_nowarn_mod Plots.plot(pd)
+    @test_nowarn_mod Plots.plot(pd["p"])
+    @test_nowarn_mod Plots.plot(sol.u[end], semi)
+    @test_nowarn_mod Plots.plot(initial_condition_t_end, semi)
+    @test_nowarn_mod Plots.plot((x, equations) -> x, semi)
 end
 
 @timed_testset "plot time series" begin
@@ -305,6 +336,186 @@ end
             @test_nowarn_mod PlotData1D(sol, curve = curve) isa PlotData1D
             pd1D = PlotData1D(sol, curve = curve)
             @test_nowarn_mod Plots.plot(pd1D)
+        end
+    end
+
+    @timed_testset "1D plot from 3D solution on P4estMesh and T8codeMesh" begin
+        @trixi_testset "Create 1D plot along curve" begin
+            using OrdinaryDiffEqSSPRK
+
+            @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
+                equations = CompressibleEulerEquations3D(1.4)
+                solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+                coordinates_min = (-1.0, -1.0, -1.0)
+                coordinates_max = (+1.0, +1.0, +1.0)
+                trees_per_dimension = (2, 2, 2)
+                mesh = MeshType(trees_per_dimension; polydeg = 1,
+                                coordinates_min, coordinates_max,
+                                initial_refinement_level = 0)
+
+                semi = SemidiscretizationHyperbolic(mesh, equations,
+                                                    initial_condition_constant,
+                                                    solver)
+                ode = semidiscretize(semi, (0.0, 0.1))
+                # SSPRK43 with optimized controller of Ranocha, Dalcin, Parsani,
+                # and Ketcheson (2021)
+                sol = solve(ode, SSPRK43();
+                            dt = 0.01, ode_default_options()...)
+
+                x = range(0, 1, length = 100)
+                curve = vcat(x', x', x')
+                # Ensure that PlotData1D is type stable
+                pd = @inferred PlotData1D(sol; curve)
+
+                # Compare with reference data
+                u_node = SVector(1.0, 0.1, -0.2, 0.7, 10.0)
+                val = cons2prim(u_node, equations)
+                for v in axes(pd.data, 2), i in axes(pd.data, 1)
+                    @test isapprox(pd.data[i, v], val[v])
+                end
+            end
+        end
+    end
+
+    @trixi_testset "PlotData1D gives correct results" begin
+        equations = CompressibleEulerEquations3D(1.4)
+        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+        coordinates_min = (-1.0, -1.0, -1.0)
+        coordinates_max = (+1.0, +1.0, +1.0)
+        initial_refinement_level = 3
+
+        mesh_tree = TreeMesh(coordinates_min, coordinates_max;
+                             n_cells_max = 10^6,
+                             initial_refinement_level)
+        trees_per_dimension = (1, 1, 1)
+        mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 1,
+                               coordinates_min, coordinates_max,
+                               initial_refinement_level)
+        mesh_t8code = T8codeMesh(trees_per_dimension; polydeg = 1,
+                                 coordinates_min, coordinates_max,
+                                 initial_refinement_level)
+        cells_per_dimension = (2, 2, 2) .^ initial_refinement_level
+        mesh_structured = StructuredMesh(cells_per_dimension,
+                                         coordinates_min, coordinates_max)
+
+        function initial_condition_taylor_green_vortex(x, t,
+                                                       equations::CompressibleEulerEquations3D)
+            A = 1.0 # magnitude of speed
+            Ms = 0.1 # maximum Mach number
+
+            rho = 1.0
+            v1 = A * sin(x[1]) * cos(x[2]) * cos(x[3])
+            v2 = -A * cos(x[1]) * sin(x[2]) * cos(x[3])
+            v3 = 0.0
+            p = (A / Ms)^2 * rho / equations.gamma # scaling to get Ms
+            p = p +
+                1.0 / 16.0 * A^2 * rho *
+                (cos(2 * x[1]) * cos(2 * x[3]) + 2 * cos(2 * x[2]) +
+                 2 * cos(2 * x[1]) +
+                 cos(2 * x[2]) * cos(2 * x[3]))
+
+            return prim2cons(SVector(rho, v1, v2, v3, p), equations)
+        end
+        ic = initial_condition_taylor_green_vortex
+
+        ode_tree = let mesh = mesh_tree
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            ode = semidiscretize(semi, (0.0, 0.1))
+        end
+
+        ode_p4est = let mesh = mesh_p4est
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            ode = semidiscretize(semi, (0.0, 0.1))
+        end
+
+        ode_t8code = let mesh = mesh_t8code
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            ode = semidiscretize(semi, (0.0, 0.1))
+        end
+
+        ode_structured = let mesh = mesh_structured
+            semi = SemidiscretizationHyperbolic(mesh, equations, ic, solver)
+            ode = semidiscretize(semi, (0.0, 0.1))
+        end
+
+        x_curve = range(0, 1, length = 1000)
+        curve = vcat(x_curve', x_curve', x_curve')
+
+        @testset "TreeMesh" begin
+            pd_tree = @inferred PlotData1D(ode_tree.u0, ode_tree.p; curve)
+            @test pd_tree.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
+
+            for i in eachindex(pd_tree.x)
+                x = SVector(curve[1, i],
+                            curve[2, i],
+                            curve[3, i])
+                prim = SVector(pd_tree.data[i, 1],
+                               pd_tree.data[i, 2],
+                               pd_tree.data[i, 3],
+                               pd_tree.data[i, 4],
+                               pd_tree.data[i, 5])
+                u = initial_condition_taylor_green_vortex(x, 0.0, equations)
+                @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
+            end
+        end
+
+        @testset "P4estMesh" begin
+            pd_p4est = @inferred PlotData1D(ode_p4est.u0, ode_p4est.p; curve)
+            @test pd_p4est.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
+
+            for i in eachindex(pd_p4est.x)
+                x = SVector(curve[1, i],
+                            curve[2, i],
+                            curve[3, i])
+                prim = SVector(pd_p4est.data[i, 1],
+                               pd_p4est.data[i, 2],
+                               pd_p4est.data[i, 3],
+                               pd_p4est.data[i, 4],
+                               pd_p4est.data[i, 5])
+                u = initial_condition_taylor_green_vortex(x, 0.0, equations)
+                @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
+            end
+        end
+
+        @testset "T8codeMesh" begin
+            pd_t8code = @inferred PlotData1D(ode_t8code.u0, ode_t8code.p; curve)
+            @test pd_t8code.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
+
+            for i in eachindex(pd_t8code.x)
+                x = SVector(curve[1, i],
+                            curve[2, i],
+                            curve[3, i])
+                prim = SVector(pd_t8code.data[i, 1],
+                               pd_t8code.data[i, 2],
+                               pd_t8code.data[i, 3],
+                               pd_t8code.data[i, 4],
+                               pd_t8code.data[i, 5])
+                u = initial_condition_taylor_green_vortex(x, 0.0, equations)
+                @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
+            end
+        end
+
+        @testset "StructuredMesh" begin
+            pd_structured = @inferred PlotData1D(ode_structured.u0, ode_structured.p;
+                                                 curve)
+            @test pd_structured.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
+
+            for i in eachindex(pd_structured.x)
+                x = SVector(curve[1, i],
+                            curve[2, i],
+                            curve[3, i])
+                prim = SVector(pd_structured.data[i, 1],
+                               pd_structured.data[i, 2],
+                               pd_structured.data[i, 3],
+                               pd_structured.data[i, 4],
+                               pd_structured.data[i, 5])
+                u = initial_condition_taylor_green_vortex(x, 0.0, equations)
+                # Note that the StructuredMesh uses a different algorithm to
+                # compute the 1D data than the other meshes. This is less accurate
+                # so that we need to use a larger tolerance.
+                @test isapprox(prim, cons2prim(u, equations), atol = 5.0e-3)
+            end
         end
     end
 end

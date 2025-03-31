@@ -174,6 +174,12 @@ end
     sqrt(equations.nu * equations.inv_Tr) * norm(normal_direction)
 end
 
+"""
+    flux_godunov(u_ll, u_rr, orientation_or_normal_direction, 
+                 equations::HyperbolicDiffusionEquations2D)
+
+Godunov (upwind) flux for the 2D hyperbolic diffusion equations.
+"""
 @inline function flux_godunov(u_ll, u_rr, orientation::Integer,
                               equations::HyperbolicDiffusionEquations2D)
     # Obtain left and right fluxes

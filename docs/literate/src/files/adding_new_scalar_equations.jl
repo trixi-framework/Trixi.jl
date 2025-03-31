@@ -33,7 +33,7 @@ Trixi.varnames(_, ::CubicEquation) = ("scalar",)
 # That's already enough to run a simple simulation with a standard DGSEM discretization
 # using the non-dissipative central flux at interfaces.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 
 ## Create a simulation setup
 equation = CubicEquation()
@@ -55,7 +55,7 @@ semi = SemidiscretizationHyperbolic(mesh, equation, initial_condition_sine, solv
 
 # Next, we create an `ODEProblem` from the SciML/DifferentialEquations ecosystem.
 # We can solve this ODE numerically using any time integration method,
-# e.g., `SSPRK43` from [OrdinaryDiffEq.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
+# e.g., `SSPRK43` from [OrdinaryDiffEqSSPRK.jl](https://github.com/SciML/OrdinaryDiffEq.jl).
 # Before, we set up a [callback](@ref callbacks-id) to summarize the simulation setup.
 
 ## Create ODE problem with given time span
@@ -173,7 +173,7 @@ end # module
 ## Create a simulation setup
 import .CubicConservationLaw
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK
 using Plots
 
 equation = CubicConservationLaw.CubicEquation()
@@ -226,5 +226,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqSSPRK", "Plots"],
            mode = PKGMODE_MANIFEST)

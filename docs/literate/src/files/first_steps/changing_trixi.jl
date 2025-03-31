@@ -26,20 +26,20 @@
 # - In the opened window, navigate to the `URL` tab and paste `trixi-framework/Trixi.jl` or
 #   `YourGitHubUserName/Trixi.jl` to clone your own fork of Trixi.jl, and choose the
 #   path to the folder where you want to save Trixi.jl. Then click `Clone` and Trixi.jl will be
-#   cloned to your computer. 
+#   cloned to your computer.
 
 # Now you cloned Trixi.jl and only need to tell Julia to use the local clone as the package sources:
 # - Open a terminal using `Win+r` and `cmd`. Navigate to the folder with the cloned Trixi.jl using `cd`.
 # - Create a new directory `run`, enter it, and start Julia with the `--project=.` flag:
 #   ```shell
-#   mkdir run 
+#   mkdir run
 #   cd run
 #   julia --project=.
 #   ```
 # - Now run the following commands to install all relevant packages:
 #   ```julia
 #   using Pkg; Pkg.develop(PackageSpec(path="..")) # Tell Julia to use the local Trixi.jl clone
-#   Pkg.add(["OrdinaryDiffEq", "Plots"])  # Install additional packages
+#   Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Plots"]) # Install additional packages
 #   ```
 
 # Now you already installed Trixi.jl from your local clone. Note that if you installed Trixi.jl
@@ -55,14 +55,14 @@
 
 # You can clone Trixi.jl to your computer by executing the following commands:
 # ```shell
-# git clone git@github.com:trixi-framework/Trixi.jl.git 
+# git clone git@github.com:trixi-framework/Trixi.jl.git
 # # If an error occurs, try the following:
 # # git clone https://github.com/trixi-framework/Trixi.jl
 # cd Trixi.jl
-# mkdir run 
+# mkdir run
 # cd run
 # julia --project=. -e 'using Pkg; Pkg.develop(PackageSpec(path=".."))' # Tell Julia to use the local Trixi.jl clone
-# julia --project=. -e 'using Pkg; Pkg.add(["OrdinaryDiffEq", "Plots"])' # Install additional packages
+# julia --project=. -e 'using Pkg; Pkg.add(["OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK", "Plots"])' # Install additional packages
 # ```
 # Alternatively, you can clone your own fork of Trixi.jl by replacing the link
 # `git@github.com:trixi-framework/Trixi.jl.git` with `git@github.com:YourGitHubUserName/Trixi.jl.git`.
@@ -103,7 +103,7 @@
 #   configurations.
 # - [Introduction to DG methods](@ref scalar_linear_advection_1d) will teach you how to set up a
 #   simple way to approximate the solution of a hyperbolic partial differential equation. It will
-#   be especially useful to learn about the 
+#   be especially useful to learn about the
 #   [Discontinuous Galerkin method](https://en.wikipedia.org/wiki/Discontinuous_Galerkin_method)
 #   and the way it is implemented in Trixi.jl.
 # - [Adding a new scalar conservation law](@ref adding_new_scalar_equations) and

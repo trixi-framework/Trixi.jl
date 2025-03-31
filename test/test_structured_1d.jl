@@ -88,7 +88,7 @@ end
     end
 
     # Test `resize!`
-    integrator = init(ode, ode_algorithm, dt = 42.0, callback = callbacks)
+    integrator = Trixi.init(ode, ode_algorithm, dt = 42.0, callback = callbacks)
     resize!(integrator, 42)
     @test length(integrator.u) == 42
     @test length(integrator.du) == 42

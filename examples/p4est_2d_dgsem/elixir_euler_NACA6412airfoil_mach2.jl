@@ -1,6 +1,5 @@
-
 using Trixi
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
@@ -100,9 +99,7 @@ callbacks = CallbackSet(summary_callback,
 
 # Run the simulation
 ###############################################################################
-sol = solve(ode, SSPRK104(; thread = OrdinaryDiffEq.True());
+sol = solve(ode, SSPRK104(; thread = Trixi.True());
             dt = 1.0, # overwritten by the `stepsize_callback`
-            save_everystep = false,
+            ode_default_options()...,
             callback = callbacks);
-
-summary_callback() # print the timer summary

@@ -88,12 +88,9 @@ end
 @inline Base.ndims(::AbstractEquations{NDIMS}) where {NDIMS} = NDIMS
 
 # Equations act like scalars in broadcasting.
-# Using `Ref(equations)` would be more convenient in some circumstances.
-# However, this does not work with Julia v1.9.3 correctly due to a (performance)
-# bug in Julia, see
-# - https://github.com/trixi-framework/Trixi.jl/pull/1618
-# - https://github.com/JuliaLang/julia/issues/51118
-# Thus, we use the workaround below.
+# The manual recommends `Ref`, but a single-argument tuple is morally equivalent.
+# For code that is allocation sensitive tuple is preferable, since `Ref` relies on the optimizer
+# to prove it non-escaping which is more precarious than just using an immutable tuple.
 Base.broadcastable(equations::AbstractEquations) = (equations,)
 
 """
@@ -184,6 +181,36 @@ end
     return flux
 end
 
+# Dirichlet-type boundary condition for use with TreeMesh or StructuredMesh
+# passing a tuple of surface flux functions for nonconservative terms
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                  orientation_or_normal,
+                                                                  direction,
+                                                                  x, t,
+                                                                  surface_flux_functions::Tuple,
+                                                                  equations)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux
+    if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal,
+                                     equations)
+        noncons_flux = nonconservative_flux_function(u_inner, u_boundary,
+                                                     orientation_or_normal,
+                                                     equations)
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal,
+                                     equations)
+        noncons_flux = nonconservative_flux_function(u_boundary, u_inner,
+                                                     orientation_or_normal,
+                                                     equations)
+    end
+
+    return flux, noncons_flux
+end
+
 # Dirichlet-type boundary condition for use with UnstructuredMesh2D
 # Note: For unstructured we lose the concept of an "absolute direction"
 @inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
@@ -198,6 +225,26 @@ end
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
 
     return flux
+end
+
+# Dirichlet-type boundary condition for equations with non-conservative terms for use with UnstructuredMesh2D
+# passing a tuple of surface flux functions for nonconservative terms
+# Note: For unstructured we lose the concept of an "absolute direction"
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_functions::Tuple,
+                                                                  equations)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
+    # get the external value of the solution
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+    noncons_flux = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
+                                                 equations)
+    return flux, noncons_flux
 end
 
 # operator types used for dispatch on parabolic boundary fluxes
@@ -407,6 +454,42 @@ of the correct length `nvariables(equations)`.
 """
 function energy_internal end
 
+"""
+    density(u, equations)
+
+Return the density associated to the conserved variables `u` for a given set of
+`equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function density end
+
+"""
+    pressure(u, equations)
+
+Return the pressure associated to the conserved variables `u` for a given set of
+`equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function pressure end
+
+"""
+    density_pressure(u, equations)
+
+Return the product of the [`density`](@ref) and the [`pressure`](@ref)
+associated to the conserved variables `u` for a given set of
+`equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
+This can be useful, e.g., as a variable for (shock-cappturing or AMR)
+indicators.
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function density_pressure end
+
 # Default implementation of gradient for `variable`. Used for subcell limiting.
 # Implementing a gradient function for a specific variable improves the performance.
 @inline function gradient_conservative(variable, u, equations)
@@ -496,6 +579,7 @@ abstract type AbstractIdealGlmMhdMultiIonEquations{NDIMS, NVARS, NCOMP} <:
               AbstractEquations{NDIMS, NVARS} end
 include("ideal_glm_mhd_multiion.jl")
 include("ideal_glm_mhd_multiion_2d.jl")
+include("ideal_glm_mhd_multiion_3d.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractIdealGlmMhdMulticomponentEquations{NDIMS, NVARS,
@@ -531,7 +615,7 @@ end
     eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractIdealGlmMhdMultiIonEquations`. 
+for the components in `AbstractIdealGlmMhdMultiIonEquations`.
 In particular, not the components themselves are returned.
 """
 @inline function eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)

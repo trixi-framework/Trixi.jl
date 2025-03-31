@@ -17,18 +17,18 @@ isdir(outdir) && rm(outdir, recursive = true)
                                  "elixir_navierstokes_convergence.jl"),
                         cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.1),
                         l2=[
-                            0.000553284711585015,
-                            0.0006592634909666629,
-                            0.0007776436127373607,
-                            0.0006592634909664286,
-                            0.0038073628897819524
+                            0.0005532846479614563,
+                            0.000659263463988067,
+                            0.0007776436003494915,
+                            0.000659263463988129,
+                            0.0038073624941206956
                         ],
                         linf=[
-                            0.0017039861523628907,
-                            0.002628561703550747,
-                            0.0035310574250866367,
-                            0.002628561703585053,
-                            0.015587829540340437
+                            0.001703986341275776,
+                            0.0026285618026252733,
+                            0.00353105737957371,
+                            0.002628561802588858,
+                            0.015587831432887
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -45,18 +45,18 @@ end
                                  "elixir_navierstokes_convergence_curved.jl"),
                         cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.1),
                         l2=[
-                            0.001402722725120774,
-                            0.0021322235533272546,
-                            0.002787374144745514,
-                            0.002458747307062751,
-                            0.009978368180191861
+                            0.0014027227340680359,
+                            0.0021322235583299425,
+                            0.002787374145873934,
+                            0.002458747307842109,
+                            0.009978368214450204
                         ],
                         linf=[
-                            0.0063417504028402405,
-                            0.010306014252245865,
-                            0.015207402509253565,
-                            0.010968264045485343,
-                            0.04745438983155026
+                            0.006341750448945582,
+                            0.010306014425485621,
+                            0.015207402553448324,
+                            0.010968264060799426,
+                            0.04745438898236998
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -73,18 +73,18 @@ end
                                  "elixir_navierstokes_taylor_green_vortex.jl"),
                         cells_per_dimension=(4, 4, 4), tspan=(0.0, 0.25),
                         l2=[
-                            0.0001825713444029892,
-                            0.015589736382772248,
-                            0.015589736382771884,
-                            0.021943924667273653,
-                            0.01927370280244222
+                            0.00018257125088549987,
+                            0.015589736346235174,
+                            0.015589736346235415,
+                            0.021943924698669025,
+                            0.019273688367502154
                         ],
                         linf=[
-                            0.0006268463584697681,
-                            0.03218881662749007,
-                            0.03218881662697948,
-                            0.053872495395614256,
-                            0.05183822000984151
+                            0.0006268461326666142,
+                            0.03218881686243058,
+                            0.03218881686357877,
+                            0.053872494644958,
+                            0.05183811394229565
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -337,9 +337,9 @@ end
                                                                      enstrophy))
     callbacks = CallbackSet(summary_callback, alive_callback, analysis_callback)
     # Use CarpenterKennedy2N54 since `RDPK3SpFSAL49` gives slightly different results on different machines
-    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+    sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
                 dt = 5e-3,
-                save_everystep = false, callback = callbacks)
+                ode_default_options()..., callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)
     @test l2_error ≈ [
         7.314319856736271e-5,
@@ -426,8 +426,12 @@ end
 @trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
                                  "elixir_advection_diffusion_amr.jl"),
-                        l2=[0.000355780485397024],
-                        linf=[0.0010810770271614256])
+                        initial_refinement_level=2,
+                        base_level=2,
+                        med_level=3,
+                        max_level=4,
+                        l2=[0.0003687746805397333],
+                        linf=[0.0015844326511498252])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -456,20 +460,22 @@ end
 @trixi_testset "P4estMesh3D: elixir_navierstokes_taylor_green_vortex_amr.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
                                  "elixir_navierstokes_taylor_green_vortex_amr.jl"),
-                        initial_refinement_level=0, tspan=(0.0, 0.5),
+                        initial_refinement_level=0,
+                        max_level=2,
+                        tspan=(0.0, 0.1),
                         l2=[
-                            0.0016588740573444188,
-                            0.03437058632045721,
-                            0.03437058632045671,
-                            0.041038898400430075,
-                            0.30978593009044153
+                            0.001106911564430018,
+                            0.013872454764036899,
+                            0.013872454764036934,
+                            0.012060120516483785,
+                            0.14491994688373158
                         ],
                         linf=[
-                            0.004173569912012121,
-                            0.09168674832979556,
-                            0.09168674832975021,
-                            0.12129218723807476,
-                            0.8433893297612087
+                            0.004408900465271981,
+                            0.05154019951528149,
+                            0.05154019951517075,
+                            0.035283556918085636,
+                            0.6804797525555557
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -520,6 +526,33 @@ end
                             2.738015991633e-15,
                             3.281831854493919e-15,
                             0.0011495231318404686
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "P4estMesh3D: elixir_navierstokes_viscous_shock_dirichlet_bc.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_3d_dgsem",
+                                 "elixir_navierstokes_viscous_shock_dirichlet_bc.jl"),
+                        l2=[
+                            0.0002576236289909761,
+                            0.00014336952925040063,
+                            1.446929414778897e-16,
+                            1.1843685819074592e-16,
+                            0.00017369912976070335
+                        ],
+                        linf=[
+                            0.0016731934566309725,
+                            0.0010638647433908188,
+                            2.9923988317619584e-15,
+                            3.501658589636682e-15,
+                            0.0011495334919645606
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

@@ -48,13 +48,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_amr.jl"),
                             # Expected errors are exactly the same as with TreeMesh!
                             l2=[1.1302812803902801e-5],
-                            linf=[0.0007889950196294793],
-                            # override values are different from the serial tests to ensure each process holds at least
-                            # one element, otherwise OrdinaryDiffEq fails during initialization
-                            coverage_override=(maxiters = 6,
-                                               initial_refinement_level = 2,
-                                               base_level = 2, med_level = 3,
-                                               max_level = 4))
+                            linf=[0.0007889950196294793],)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -71,11 +65,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
                                      "elixir_advection_amr_unstructured_curved.jl"),
                             l2=[2.0535121347526814e-5],
                             linf=[0.0010586603797777504],
-                            tspan=(0.0, 1.0),
-                            coverage_override=(maxiters = 6,
-                                               initial_refinement_level = 0,
-                                               base_level = 0, med_level = 1,
-                                               max_level = 2))
+                            tspan=(0.0, 1.0),)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -90,10 +80,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
     @trixi_testset "elixir_advection_restart.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                             l2=[0.002590388934758452],
-                            linf=[0.01840757696885409],
-                            # With the default `maxiters = 1` in coverage tests,
-                            # there would be no time steps after the restart.
-                            coverage_override=(maxiters = 100_000,))
+                            linf=[0.01840757696885409],)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
@@ -180,8 +167,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "t8code_3d_dgsem")
                                 0.45574161423218573,
                                 0.8099577682187109
                             ],
-                            tspan=(0.0, 0.2),
-                            coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                            tspan=(0.0, 0.2),)
 
         # Ensure that we do not have excessive memory allocations
         # (e.g., from type instabilities)
