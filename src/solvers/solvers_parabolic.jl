@@ -10,9 +10,9 @@ The classical BR1 flux from
 """
 struct ViscousFormulationBassiRebay1 end
 
-function flux_parabolic(u_ll, u_rr, gradient_or_divergence, mesh, equations, 
+function flux_parabolic(u_ll, u_rr, gradient_or_divergence, mesh, equations,
                         parabolic_scheme::ViscousFormulationBassiRebay1)
-  return 0.5f0 * (u_ll + u_rr)
+    return 0.5f0 * (u_ll + u_rr)
 end
 
 """
@@ -44,14 +44,14 @@ ViscousFormulationLocalDG() = ViscousFormulationLocalDG(nothing)
 # jump term should be opposite that of the sign used in the divergence flux. 
 # This is equivalent to setting the flux equal to `u_ll` for the gradient,
 # and `u_rr` for the divergence. 
-function flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations, 
+function flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations,
                         parabolic_scheme::ViscousFormulationLocalDG)
-  return u_ll # Use the upwind value for the gradient interface flux
+    return u_ll # Use the upwind value for the gradient interface flux
 end
 
-function flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations, 
+function flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations,
                         parabolic_scheme::ViscousFormulationLocalDG)
-  return u_rr # Use the downwind value for the divergence interface flux
+    return u_rr # Use the downwind value for the divergence interface flux
 end
 
 default_parabolic_solver() = ViscousFormulationBassiRebay1()
