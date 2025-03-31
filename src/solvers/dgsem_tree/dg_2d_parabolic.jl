@@ -700,58 +700,7 @@ end
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
                              equations_parabolic::AbstractEquationsParabolic,
                              surface_flux, dg::DGSEM,
-                             parabolic_scheme::ViscousFormulationBassiRebay1,
-                             u_interfaces, interface, orientation)
-    for i in eachnode(dg)
-        # Call pointwise two-point numerical flux function
-        u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i,
-                                           interface)
-
-        flux = 0.5f0 * (u_ll + u_rr) # Bassi-Rebay 1 (BR1)
-
-        # Copy flux to left and right element storage
-        set_node_vars!(destination, flux, equations_parabolic, dg, i)
-    end
-
-    return nothing
-end
-
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::TreeMesh{2},
-                           equations_parabolic::AbstractEquationsParabolic,
-                           mortar_l2::LobattoLegendreMortarL2, surface_integral,
-                           dg::DG, parabolic_scheme::ViscousFormulationLocalDG,
-                           cache)
-    @unpack surface_flux = surface_integral
-    @unpack u_lower, u_upper, orientations = cache.mortars
-    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
-
-    @threaded for mortar in eachmortar(dg, cache)
-        # Choose thread-specific pre-allocated container
-        fstar_upper = fstar_primary_upper_threaded[Threads.threadid()]
-        fstar_lower = fstar_primary_lower_threaded[Threads.threadid()]
-
-        # Calculate fluxes
-        orientation = orientations[mortar]
-        calc_fstar!(fstar_upper, equations_parabolic, surface_flux,
-                    dg, parabolic_scheme, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_lower, equations_parabolic, surface_flux,
-                    dg, parabolic_scheme, u_lower, mortar,
-                    orientation)
-
-        mortar_fluxes_to_elements!(surface_flux_values,
-                                   mesh, equations_parabolic, mortar_l2, dg, cache,
-                                   mortar, fstar_upper, fstar_lower)
-    end
-
-    return nothing
-end
-
-@inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
-                             equations_parabolic::AbstractEquationsParabolic,
-                             surface_flux, dg::DGSEM,
-                             parabolic_scheme::ViscousFormulationLocalDG,
+                             parabolic_scheme,
                              u_interfaces, interface, orientation)
     for i in eachnode(dg)
         # Call pointwise two-point numerical flux function
