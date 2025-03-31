@@ -386,8 +386,8 @@ end
         initial_refinement_level = 3
 
         mesh_tree = TreeMesh(coordinates_min, coordinates_max;
-                                n_cells_max = 10^6,
-                                initial_refinement_level)
+                             n_cells_max = 10^6,
+                             initial_refinement_level)
         trees_per_dimension = (1, 1, 1)
         mesh_p4est = P4estMesh(trees_per_dimension; polydeg = 1,
                                coordinates_min, coordinates_max,
@@ -400,7 +400,7 @@ end
                                          coordinates_min, coordinates_max)
 
         function initial_condition_taylor_green_vortex(x, t,
-                                                        equations::CompressibleEulerEquations3D)
+                                                       equations::CompressibleEulerEquations3D)
             A = 1.0 # magnitude of speed
             Ms = 0.1 # maximum Mach number
 
@@ -412,8 +412,8 @@ end
             p = p +
                 1.0 / 16.0 * A^2 * rho *
                 (cos(2 * x[1]) * cos(2 * x[3]) + 2 * cos(2 * x[2]) +
-                    2 * cos(2 * x[1]) +
-                    cos(2 * x[2]) * cos(2 * x[3]))
+                 2 * cos(2 * x[1]) +
+                 cos(2 * x[2]) * cos(2 * x[3]))
 
             return prim2cons(SVector(rho, v1, v2, v3, p), equations)
         end
@@ -451,10 +451,10 @@ end
                             curve[2, i],
                             curve[3, i])
                 prim = SVector(pd_tree.data[i, 1],
-                                pd_tree.data[i, 2],
-                                pd_tree.data[i, 3],
-                                pd_tree.data[i, 4],
-                                pd_tree.data[i, 5])
+                               pd_tree.data[i, 2],
+                               pd_tree.data[i, 3],
+                               pd_tree.data[i, 4],
+                               pd_tree.data[i, 5])
                 u = initial_condition_taylor_green_vortex(x, 0.0, equations)
                 @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
             end
@@ -469,10 +469,10 @@ end
                             curve[2, i],
                             curve[3, i])
                 prim = SVector(pd_p4est.data[i, 1],
-                                pd_p4est.data[i, 2],
-                                pd_p4est.data[i, 3],
-                                pd_p4est.data[i, 4],
-                                pd_p4est.data[i, 5])
+                               pd_p4est.data[i, 2],
+                               pd_p4est.data[i, 3],
+                               pd_p4est.data[i, 4],
+                               pd_p4est.data[i, 5])
                 u = initial_condition_taylor_green_vortex(x, 0.0, equations)
                 @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
             end
@@ -487,17 +487,18 @@ end
                             curve[2, i],
                             curve[3, i])
                 prim = SVector(pd_t8code.data[i, 1],
-                                pd_t8code.data[i, 2],
-                                pd_t8code.data[i, 3],
-                                pd_t8code.data[i, 4],
-                                pd_t8code.data[i, 5])
+                               pd_t8code.data[i, 2],
+                               pd_t8code.data[i, 3],
+                               pd_t8code.data[i, 4],
+                               pd_t8code.data[i, 5])
                 u = initial_condition_taylor_green_vortex(x, 0.0, equations)
                 @test isapprox(prim, cons2prim(u, equations), atol = 1.0e-3)
             end
         end
 
         @testset "StructuredMesh" begin
-            pd_structured = @inferred PlotData1D(ode_structured.u0, ode_structured.p; curve)
+            pd_structured = @inferred PlotData1D(ode_structured.u0, ode_structured.p;
+                                                 curve)
             @test pd_structured.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
 
             for i in eachindex(pd_structured.x)
@@ -505,10 +506,10 @@ end
                             curve[2, i],
                             curve[3, i])
                 prim = SVector(pd_structured.data[i, 1],
-                                pd_structured.data[i, 2],
-                                pd_structured.data[i, 3],
-                                pd_structured.data[i, 4],
-                                pd_structured.data[i, 5])
+                               pd_structured.data[i, 2],
+                               pd_structured.data[i, 3],
+                               pd_structured.data[i, 4],
+                               pd_structured.data[i, 5])
                 u = initial_condition_taylor_green_vortex(x, 0.0, equations)
                 # Note that the StructuredMesh uses a different algorithm to
                 # compute the 1D data than the other meshes. This is less accurate
