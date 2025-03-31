@@ -148,7 +148,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
             flux = flux_rr # Use the downwind value for the divergence interface flux
 
             # Copy flux to left and right element storage
-            for v in eachvariable(equations_parabolic)        
+            for v in eachvariable(equations_parabolic)
                 surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
                 surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
             end
