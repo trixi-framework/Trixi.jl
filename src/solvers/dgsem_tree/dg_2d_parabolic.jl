@@ -268,21 +268,21 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
                                                      equations_parabolic,
                                                      dg, i, interface)
 
-            # Compute interface flux as mean of left and right viscous fluxes
-            flux = 0.5f0 * (flux_ll + flux_rr)
-            flux_jump = 0.5f0 * (flux_rr - flux_ll)
+            # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
+            # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
+            # jump term should be opposite that of the sign used in the divergence flux. 
+            # This is equivalent to setting the flux equal to `u_ll` for the gradient,
+            # and `u_rr` for the divergence. 
+            flux = flux_rr # Use the downwind value for the divergence interface flux 
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)
                 # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
                 # which we set to  -1 on the left and +1 on the right in 1D.
-                # This is equivalent to
-                # - flux_rr for the left_direction, left_id
-                # - flux_ll for the right_direction, right_id
-                surface_flux_values[v, i, left_direction, left_id] = flux[v] +
-                                                                     flux_jump[v]
-                surface_flux_values[v, i, right_direction, right_id] = flux[v] -
-                                                                       flux_jump[v]
+                # This is equivalent to setting the flux equal to `u_ll` for the gradient,
+                # and `u_rr` for the divergence. 
+                surface_flux_values[v, i, left_direction, left_id] = flux[v]
+                surface_flux_values[v, i, right_direction, right_id] = flux[v]
             end
         end
     end
@@ -716,6 +716,57 @@ end
     return nothing
 end
 
+function calc_mortar_flux!(surface_flux_values,
+                           mesh::TreeMesh{2},
+                           equations_parabolic::AbstractEquationsParabolic,
+                           mortar_l2::LobattoLegendreMortarL2, surface_integral,
+                           dg::DG, parabolic_scheme::ViscousFormulationLocalDG,
+                           cache)
+    @unpack surface_flux = surface_integral
+    @unpack u_lower, u_upper, orientations = cache.mortars
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
+
+    @threaded for mortar in eachmortar(dg, cache)
+        # Choose thread-specific pre-allocated container
+        fstar_upper = fstar_primary_upper_threaded[Threads.threadid()]
+        fstar_lower = fstar_primary_lower_threaded[Threads.threadid()]
+
+        # Calculate fluxes
+        orientation = orientations[mortar]
+        calc_fstar!(fstar_upper, equations_parabolic, surface_flux,
+                    dg, parabolic_scheme, u_upper, mortar,
+                    orientation)
+        calc_fstar!(fstar_lower, equations_parabolic, surface_flux,
+                    dg, parabolic_scheme, u_lower, mortar,
+                    orientation)
+
+        mortar_fluxes_to_elements!(surface_flux_values,
+                                   mesh, equations_parabolic, mortar_l2, dg, cache,
+                                   mortar, fstar_upper, fstar_lower)
+    end
+
+    return nothing
+end
+
+@inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
+                             equations_parabolic::AbstractEquationsParabolic,
+                             surface_flux, dg::DGSEM,
+                             parabolic_scheme::ViscousFormulationLocalDG,
+                             u_interfaces, interface, orientation)
+    for i in eachnode(dg)
+        # Call pointwise two-point numerical flux function
+        u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i,
+                                           interface)
+
+        flux = 0.5f0 * (u_ll + u_rr) # Bassi-Rebay 1 (BR1)
+
+        # Copy flux to left and right element storage
+        set_node_vars!(destination, flux, equations_parabolic, dg, i)
+    end
+
+    return nothing
+end
+
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::TreeMesh{2},
                                             equations_parabolic::AbstractEquationsParabolic,
@@ -845,21 +896,18 @@ function calc_gradient_interface_flux!(surface_flux_values,
             u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                equations,
                                                dg, i, interface)
-            flux = 0.5f0 * (u_ll + u_rr)
-            flux_jump = 0.5f0 * (u_rr - u_ll)
+
+            # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
+            # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
+            # jump term should be opposite that of the sign used in the divergence flux. 
+            # This is equivalent to setting the flux equal to `u_ll` for the gradient,
+            # and `u_rr` for the divergence. 
+            flux = u_ll # Use the upwind value for the gradient interface flux                                                       
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
-                # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
-                # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
-                # jump term should be opposite that of the sign used in the divergence flux. 
-                # This is equivalent to
-                # - u_ll for the left_direction, left_id
-                # - u_rr for the right_direction, right_id
-                surface_flux_values[v, i, left_direction, left_id] = flux[v] -
-                                                                     flux_jump[v]
-                surface_flux_values[v, i, right_direction, right_id] = flux[v] +
-                                                                       flux_jump[v]
+                surface_flux_values[v, i, left_direction, left_id] = flux[v]
+                surface_flux_values[v, i, right_direction, right_id] = flux[v]
             end
         end
     end

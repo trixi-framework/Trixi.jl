@@ -140,11 +140,15 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{3},
                                                      equations_parabolic,
                                                      dg, i, j, interface)
 
-            # Compute interface flux as mean of left and right viscous fluxes
-            flux = 0.5f0 * (flux_ll + flux_rr)
+            # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
+            # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
+            # jump term should be opposite that of the sign used in the divergence flux. 
+            # This is equivalent to setting the flux equal to `u_ll` for the gradient,
+            # and `u_rr` for the divergence.                                 
+            flux = flux_rr # Use the downwind value for the divergence interface flux
 
             # Copy flux to left and right element storage
-            for v in eachvariable(equations_parabolic)
+            for v in eachvariable(equations_parabolic)        
                 surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
                 surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
             end
@@ -973,21 +977,17 @@ function calc_gradient_interface_flux!(surface_flux_values,
             u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                equations,
                                                dg, i, j, interface)
-            flux = 0.5f0 * (u_ll + u_rr)
-            flux_jump = 0.5f0 * (u_rr - u_ll)
+            # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
+            # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
+            # jump term should be opposite that of the sign used in the divergence flux. 
+            # This is equivalent to setting the flux equal to `u_ll` for the gradient,
+            # and `u_rr` for the divergence. 
+            flux = u_ll # Use the upwind value for the gradient interface flux                                           
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
-                # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
-                # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
-                # jump term should be opposite that of the sign used in the divergence flux. 
-                # This is equivalent to
-                # - u_ll for the left_direction, left_id
-                # - u_rr for the right_direction, right_id
-                surface_flux_values[v, i, j, left_direction, left_id] = flux[v] -
-                                                                        flux_jump[v]
-                surface_flux_values[v, i, j, right_direction, right_id] = flux[v] +
-                                                                          flux_jump[v]
+                surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
+                surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
             end
         end
     end
