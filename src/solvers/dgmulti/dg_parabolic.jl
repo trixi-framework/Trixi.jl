@@ -135,7 +135,7 @@ end
 
 function calc_gradient_interface_flux!(scalar_flux_face_values,
                                        mesh::DGMultiMesh, equations,
-                                       dg::DGMulti, 
+                                       dg::DGMulti,
                                        parabolic_scheme::ViscousFormulationBassiRebay1,
                                        cache, cache_parabolic)
     (; u_face_values) = cache_parabolic
