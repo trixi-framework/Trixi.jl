@@ -660,12 +660,12 @@ function PlotData1D(u, mesh, equations, solver, cache;
                                             variable_names)
 
     original_nodes = cache.elements.node_coordinates
-    unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
-                                              solver, cache)
 
     orientation_x = 0 # Set 'orientation' to zero on default.
 
     if ndims(mesh) == 1
+        unstructured_data = get_unstructured_data(u, solution_variables_,
+                                                  mesh, equations, solver, cache)
         x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data,
                                                nvisnodes, reinterpolate)
         orientation_x = 1
