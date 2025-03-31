@@ -1000,9 +1000,16 @@ end
 #
 # We need to loop through all the points and check in which element they are
 # located. A general implementation working for all mesh types has to perform
-# a naive loop through all nodes.
+# a naive loop through all nodes. Thus, we use this entry point for dispatching
+# on the `mesh` type.
 function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
                                      curve, solution_variables)
+    return unstructured_3d_to_1d_curve_general(u, equations, solver, cache,
+                                               curve, solution_variables)
+end
+
+function unstructured_3d_to_1d_curve_general(u, equations, solver, cache,
+                                             curve, solution_variables)
     # Set up data structure.
     @assert size(curve, 1) == 3
     n_points_curve = size(curve, 2)
@@ -1011,16 +1018,17 @@ function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
     u_node = get_node_vars(u, equations, solver, 1, 1, 1, 1)
     var_node = solution_variables(u_node, equations)
     n_variables = length(var_node)
-
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
+
     nodes = cache.elements.node_coordinates
+    interpolation_cache = get_value_at_point_3d_cache(u)
 
     # Iterate over every point on the curve and determine the solutions value at given point.
     for i in 1:n_points_curve
         point = SVector(curve[1, i], curve[2, i], curve[3, i])
         get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
                                nodes, u, equations, solver;
-                               cache = get_value_at_point_3d_cache(u))
+                               cache = interpolation_cache)
     end
 
     mesh_vertices_x = nothing
@@ -1122,6 +1130,7 @@ function get_value_at_point_3d_cache(u)
     distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
     coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
     value_tetrahedron = Array{eltype(u)}(undef, n_variables, 4)
+
     cache = (; distances, coordinates_tetrahedron, value_tetrahedron)
     return cache
 end
