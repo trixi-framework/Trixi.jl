@@ -454,7 +454,6 @@ function ContourData2D(sol, semi)
 
     jstart = 1
     for j in 1:ny
-
         if mod(j, polydeg + 1) == 1 && j != 1
             jstart += 1
         end
@@ -463,7 +462,6 @@ function ContourData2D(sol, semi)
         i = 1
         for element in iterator
             for ilocal in 1:(polydeg + 1)
-
                 jlocal = mod(j, polydeg + 1)
                 jlocal = jlocal == 0 ? polydeg + 1 : jlocal
 
