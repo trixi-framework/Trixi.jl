@@ -1,3 +1,9 @@
+# By default, Julia/LLVM does not use fused multiply-add operations (FMAs).
+# Since these FMAs can increase the performance of many numerical algorithms,
+# we need to opt-in explicitly.
+# See https://ranocha.de/blog/Optimizing_EC_Trixi for further details.
+@muladd begin
+#! format: noindent
 
 # The P4estMesh and T8codeMesh can make use of the efficient search functionality
 # based on the tree structure to speed up the process of finding the
@@ -86,20 +92,21 @@ function unstructured_3d_to_1d_curve(u,
                 for ii in 1:n_nodes
                     res_ii = zero(eltype(temp_data))
                     for n in 1:n_nodes
-                        res_ii += vandermonde_z[n] *
-                                  unstructured_data[i, ii, n, v]
+                        res_ii = res_ii +
+                                 vandermonde_z[n] *
+                                 unstructured_data[i, ii, n, v]
                     end
                     temp_data[i, ii, v] = res_ii
                 end
                 res_i = zero(eltype(temp_data))
                 for n in 1:n_nodes
-                    res_i += vandermonde_y[n] * temp_data[i, n, v]
+                    res_i = res_i + vandermonde_y[n] * temp_data[i, n, v]
                 end
                 temp_data[i, n_nodes + 1, v] = res_i
             end
             res_v = zero(eltype(temp_data))
             for n in 1:n_nodes
-                res_v += vandermonde_x[n] * temp_data[n, n_nodes + 1, v]
+                res_v = res_v + vandermonde_x[n] * temp_data[n, n_nodes + 1, v]
             end
             data_on_curve[idx_point, v] = res_v
         end
@@ -109,11 +116,11 @@ function unstructured_3d_to_1d_curve(u,
     return calc_arc_length(curve), data_on_curve, mesh_vertices_x
 end
 
-###############################################################################
-# Code specialized to the P4estMesh
-
 # This struct collects a point on the curve and the corresponding element index
-struct SearchPointsInP4estMesh3DHelper
+# We hard-code `Float64` here since these structs will be accessed from a Julia
+# function called as callback from C. Thus, we cannot use multiple dispatch
+# easily and use concrete types instead.
+struct SearchPointsInP4estT8codeMesh3DHelper
     x::Float64
     y::Float64
     z::Float64
@@ -121,6 +128,8 @@ struct SearchPointsInP4estMesh3DHelper
     found::Bool
 end
 
+###############################################################################
+# Code specialized to the P4estMesh
 function search_in_p4est_3d_quadrant_fn(p4est_ptr::Ptr{p8est_t},
                                         which_tree::p4est_topidx_t,
                                         quadrant_ptr::Ptr{p8est_quadrant_t},
@@ -163,13 +172,65 @@ function search_in_p4est_3d_point_fn(p4est_ptr::Ptr{p8est_t},
     r010 = SVector(x0, y1, z0)
     r001 = SVector(x0, y0, z1)
 
-    # Get the bounding physical coordinates of the tree.
+    # Get the bounding physical coordinates of the tree and use them to
+    # compute the affine transformation.
     # Note: This assumes additionally that the polynomial degree is 1.
     p4est = PointerWrapper(p4est_ptr)
     user_data = Ptr{Ptr{Float64}}(pointer(p4est.user_pointer))
     number_of_trees = p4est.connectivity.num_trees[]
     tree_node_coordinates = PtrArray(unsafe_load(user_data, 1),
                                      (3, 2, 2, 2, number_of_trees))
+    a0, A = get_affine_transformation(r000, r100, r010, r001,
+                                      tree_node_coordinates,
+                                      which_tree)
+
+    # Load the query data
+    query = unsafe_load(Ptr{SearchPointsInP4estT8codeMesh3DHelper}(query_ptr))
+
+    # Do nothing if the point has already been found elsewhere.
+    if query.found
+        return Cint(0)
+    end
+
+    # If the point has not already been found, we check whether it is inside
+    # the parallelepiped defined by the element.
+    point = SVector(query.x, query.y, query.z)
+
+    # Compute coefficients to express the `point` in the basis of the
+    # parallelepiped.
+    coefficients = A \ (point - a0)
+
+    # Check if the point is inside the parallelepiped.
+    tolerance = 1.0e-13
+    is_inside = -tolerance <= coefficients[1] <= 1 + tolerance &&
+                -tolerance <= coefficients[2] <= 1 + tolerance &&
+                -tolerance <= coefficients[3] <= 1 + tolerance
+
+    if is_inside
+        if local_num >= 0
+            # If we are in a valid element (leaf of the tree), we store
+            # the element id and the coefficients of the point in the
+            # query data structure.
+            index = local_num + 1
+            new_query = SearchPointsInP4estT8codeMesh3DHelper(coefficients[1],
+                                                              coefficients[2],
+                                                              coefficients[3],
+                                                              index,
+                                                              true)
+            unsafe_store!(Ptr{SearchPointsInP4estT8codeMesh3DHelper}(query_ptr),
+                          new_query)
+        end
+
+        return Cint(1)
+    else
+        return Cint(0)
+    end
+end
+
+@inline function get_affine_transformation(r000, r100, r010, r001,
+                                           tree_node_coordinates,
+                                           which_tree)
+    # Get the bounding physical coordinates of the tree
     t000 = SVector(tree_node_coordinates[1, 1, 1, 1, which_tree + 1],
                    tree_node_coordinates[2, 1, 1, 1, which_tree + 1],
                    tree_node_coordinates[3, 1, 1, 1, which_tree + 1])
@@ -184,7 +245,7 @@ function search_in_p4est_3d_point_fn(p4est_ptr::Ptr{p8est_t},
                    tree_node_coordinates[3, 1, 1, 2, which_tree + 1])
 
     # Transform the reference coordinates to physical coordinates.
-    # Note: This requires the same assumptions as above.
+    # Note: This requires the same assumptions as above (linear hex mesh in 3D)
     p000 = t000 +
            r000[1] * (t100 - t000) +
            r000[2] * (t010 - t000) +
@@ -216,47 +277,7 @@ function search_in_p4est_3d_point_fn(p4est_ptr::Ptr{p8est_t},
                       a1[2], a2[2], a3[2],
                       a1[3], a2[3], a3[3])
 
-    # Load the query data
-    query = unsafe_load(Ptr{SearchPointsInP4estMesh3DHelper}(query_ptr))
-
-    # Do nothing if the point has already been found elsewhere.
-    if query.found
-        return Cint(0)
-    end
-
-    # If the point has not already been found, we check whether it is inside
-    # the parallelepiped defined by the element.
-    point = SVector(query.x, query.y, query.z)
-
-    # Compute coefficients to express the `point` in the basis of the
-    # parallelepiped.
-    coefficients = A \ (point - a0)
-
-    # Check if the point is inside the parallelepiped.
-    tolerance = 1.0e-13
-    is_inside = -tolerance <= coefficients[1] <= 1 + tolerance &&
-                -tolerance <= coefficients[2] <= 1 + tolerance &&
-                -tolerance <= coefficients[3] <= 1 + tolerance
-
-    if is_inside
-        if local_num >= 0
-            # If we are in a valid element (leaf of the tree), we store
-            # the element id and the coefficients of the point in the
-            # query data structure.
-            index = local_num + 1
-            new_query = SearchPointsInP4estMesh3DHelper(coefficients[1],
-                                                        coefficients[2],
-                                                        coefficients[3],
-                                                        index,
-                                                        true)
-            unsafe_store!(Ptr{SearchPointsInP4estMesh3DHelper}(query_ptr),
-                          new_query)
-        end
-
-        return Cint(1)
-    else
-        return Cint(0)
-    end
+    return a0, A
 end
 
 function search_points_in_p4est_t8code_mesh_3d(mesh::P4estMesh,
@@ -272,13 +293,13 @@ function search_points_in_p4est_t8code_mesh_3d(mesh::P4estMesh,
                            Ptr{p8est_quadrant_t}, p4est_locidx_t,
                            Ptr{Cvoid}))
 
-    data = Vector{SearchPointsInP4estMesh3DHelper}(undef, size(curve, 2))
+    data = Vector{SearchPointsInP4estT8codeMesh3DHelper}(undef, size(curve, 2))
     for i in 1:size(curve, 2)
-        data[i] = SearchPointsInP4estMesh3DHelper(curve[1, i],
-                                                  curve[2, i],
-                                                  curve[3, i],
-                                                  typemin(Int64),
-                                                  false)
+        data[i] = SearchPointsInP4estT8codeMesh3DHelper(curve[1, i],
+                                                        curve[2, i],
+                                                        curve[3, i],
+                                                        typemin(Int64),
+                                                        false)
     end
     queries = sc_array_new_data(pointer(data),
                                 sizeof(eltype(data)),
@@ -302,15 +323,6 @@ end
 
 ###############################################################################
 # Code specialized to the T8codeMesh
-
-# This struct collects a point on the curve and the corresponding element index
-struct SearchPointsInT8codeMesh3DHelper
-    x::Float64
-    y::Float64
-    z::Float64
-    index::Int64
-    found::Bool
-end
 
 function search_points_in_t8code_mesh_3d_callback_element(forest::t8_forest_t,
                                                           ltreeid::t8_locidx_t,
@@ -363,51 +375,9 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
     number_of_trees = t8_forest_get_num_global_trees(forest)
     tree_node_coordinates = PtrArray(unsafe_load(user_data, 1),
                                      (3, 2, 2, 2, number_of_trees))
-    t000 = SVector(tree_node_coordinates[1, 1, 1, 1, ltreeid + 1],
-                   tree_node_coordinates[2, 1, 1, 1, ltreeid + 1],
-                   tree_node_coordinates[3, 1, 1, 1, ltreeid + 1])
-    t100 = SVector(tree_node_coordinates[1, 2, 1, 1, ltreeid + 1],
-                   tree_node_coordinates[2, 2, 1, 1, ltreeid + 1],
-                   tree_node_coordinates[3, 2, 1, 1, ltreeid + 1])
-    t010 = SVector(tree_node_coordinates[1, 1, 2, 1, ltreeid + 1],
-                   tree_node_coordinates[2, 1, 2, 1, ltreeid + 1],
-                   tree_node_coordinates[3, 1, 2, 1, ltreeid + 1])
-    t001 = SVector(tree_node_coordinates[1, 1, 1, 2, ltreeid + 1],
-                   tree_node_coordinates[2, 1, 1, 2, ltreeid + 1],
-                   tree_node_coordinates[3, 1, 1, 2, ltreeid + 1])
-
-    # Transform the reference coordinates to physical coordinates.
-    # Note: This requires the same assumptions as above.
-    p000 = t000 +
-           r000[1] * (t100 - t000) +
-           r000[2] * (t010 - t000) +
-           r000[3] * (t001 - t000)
-    p100 = t000 +
-           r100[1] * (t100 - t000) +
-           r100[2] * (t010 - t000) +
-           r100[3] * (t001 - t000)
-    p010 = t000 +
-           r010[1] * (t100 - t000) +
-           r010[2] * (t010 - t000) +
-           r010[3] * (t001 - t000)
-    p001 = t000 +
-           r001[1] * (t100 - t000) +
-           r001[2] * (t010 - t000) +
-           r001[3] * (t001 - t000)
-
-    # Get the base point a0 and the basis vectors a1, a2, a3 spanning the
-    # parallelepiped in physical coordinates.
-    # Note: This requires the same assumptions as above.
-    a0 = p000
-    a1 = p100 - p000
-    a2 = p010 - p000
-    a3 = p001 - p000
-
-    # Get the transformation matrix A and its inverse to compute
-    # the coefficients of the point in the basis of the parallelepiped.
-    A = SMatrix{3, 3}(a1[1], a2[1], a3[1],
-                      a1[2], a2[2], a3[2],
-                      a1[3], a2[3], a3[3])
+    a0, A = get_affine_transformation(r000, r100, r010, r001,
+                                      tree_node_coordinates,
+                                      ltreeid)
     invA = inv(A)
 
     # Loop over all points that need to be found
@@ -416,7 +386,8 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
     for i in 1:num_active_queries
         # t8code uses 0-based indexing, we use 1-based ondexing in Julia.
         query_index = unsafe_load_sc(Csize_t, query_indices, i) + 1
-        query = unsafe_load_sc(SearchPointsInT8codeMesh3DHelper, queries, query_index)
+        query = unsafe_load_sc(SearchPointsInP4estT8codeMesh3DHelper, queries,
+                               query_index)
 
         # Do nothing if the point has already been found elsewhere.
         if query.found
@@ -447,11 +418,11 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
                 # query data structure.
                 index = t8_forest_get_tree_element_offset(forest, ltreeid) +
                         tree_leaf_index + 1
-                new_query = SearchPointsInT8codeMesh3DHelper(coefficients[1],
-                                                             coefficients[2],
-                                                             coefficients[3],
-                                                             index,
-                                                             true)
+                new_query = SearchPointsInP4estT8codeMesh3DHelper(coefficients[1],
+                                                                  coefficients[2],
+                                                                  coefficients[3],
+                                                                  index,
+                                                                  true)
                 unsafe_store_sc!(queries, new_query, query_index)
             end
         else
@@ -475,13 +446,13 @@ function search_points_in_p4est_t8code_mesh_3d(mesh::T8codeMesh,
                            Ptr{sc_array_t}, Ptr{sc_array_t},
                            Ptr{Cint}, Csize_t))
 
-    data = Vector{SearchPointsInT8codeMesh3DHelper}(undef, size(curve, 2))
+    data = Vector{SearchPointsInP4estT8codeMesh3DHelper}(undef, size(curve, 2))
     for i in eachindex(data)
-        data[i] = SearchPointsInT8codeMesh3DHelper(curve[1, i],
-                                                   curve[2, i],
-                                                   curve[3, i],
-                                                   typemin(Int64),
-                                                   false)
+        data[i] = SearchPointsInP4estT8codeMesh3DHelper(curve[1, i],
+                                                        curve[2, i],
+                                                        curve[3, i],
+                                                        typemin(Int64),
+                                                        false)
     end
     queries = sc_array_new_data(pointer(data),
                                 sizeof(eltype(data)),
@@ -500,3 +471,4 @@ function search_points_in_p4est_t8code_mesh_3d(mesh::T8codeMesh,
 
     return data
 end
+end # @muladd
