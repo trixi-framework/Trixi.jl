@@ -49,7 +49,7 @@ function flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations,
     return u_ll # Use the upwind value for the gradient interface flux
 end
 
-function flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations,
+function flux_parabolic(u_ll, u_rr, ::Divergence, mesh::TreeMesh, equations, 
                         parabolic_scheme::ViscousFormulationLocalDG)
     return u_rr # Use the downwind value for the divergence interface flux
 end

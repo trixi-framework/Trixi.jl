@@ -864,10 +864,11 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
     @assert size(input_curve, 1)==2 "Input 'curve' must be 2xn dimensional."
 
     # For each coordinate find the corresponding triangle with its ids.
+    # The default value if no element is found is 0.
     ids_by_coordinates = get_ids_by_coordinates(input_curve, pd)
-    found_coordinates = ids_by_coordinates[:, 1] .!= nothing
+    found_coordinates = view(ids_by_coordinates, :, 1) .!= 0
 
-    @assert found_coordinates!=zeros(size(input_curve, 2)) "No points of 'curve' are inside of the solutions domain."
+    @assert !iszero(found_coordinates) "No points of 'curve' are inside of the solutions domain."
 
     # These hold the ids of the elements and triangles the points of the curve sit in.
     element_ids = @view ids_by_coordinates[found_coordinates, 1]
@@ -887,21 +888,36 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
 
     # Iterate over all points on the curve.
     for point in 1:n_points_curve
-        element = @view element_ids[point]
-        triangle = @view pd.t[triangle_ids[point], :]
-        for v in 1:n_variables
-            # Get the x and y coordinates of the corners of given triangle.
-            x_coordinates_triangle = SVector{3}(pd.x[triangle, element])
-            y_coordinates_triangle = SVector{3}(pd.y[triangle, element])
+        point_on_curve = SVector(curve[1, point], curve[2, point])
 
-            # Extract solutions values in corners of the triangle.
-            values_triangle = SVector{3}(getindex.(view(pd.data, triangle, element), v))
+        element = element_ids[point]
+        triangle_id = triangle_ids[point]
+        triangle = (pd.t[triangle_id, 1], pd.t[triangle_id, 2], pd.t[triangle_id, 3])
+
+        # Get the x and y coordinates of the corners of given triangle.
+        x_coordinates_triangle = SVector(pd.x[triangle[1], element],
+                                         pd.x[triangle[2], element],
+                                         pd.x[triangle[3], element])
+        y_coordinates_triangle = SVector(pd.y[triangle[1], element],
+                                         pd.y[triangle[2], element],
+                                         pd.y[triangle[3], element])
+
+        # Extract solution values in corners of the triangle.
+        data_in_triangle = (pd.data[triangle[1], element],
+                            pd.data[triangle[2], element],
+                            pd.data[triangle[3], element])
+
+        for v in 1:n_variables
+            # Extract solution values of variable `v` in corners of the triangle.
+            values_triangle = SVector(data_in_triangle[1][v],
+                                      data_in_triangle[2][v],
+                                      data_in_triangle[3][v])
 
             # Linear interpolation in each triangle to the points on the curve.
             data_on_curve[point, v] = triangle_interpolation(x_coordinates_triangle,
                                                              y_coordinates_triangle,
                                                              values_triangle,
-                                                             curve[:, point])
+                                                             point_on_curve)
         end
     end
 
@@ -1642,7 +1658,8 @@ function get_ids_by_coordinates!(ids, coordinates, pd)
     n_coordinates = size(coordinates, 2)
 
     for index in 1:n_coordinates
-        ids[index, :] .= find_element(coordinates[:, index], pd)
+        point = SVector(coordinates[1, index], coordinates[2, index])
+        ids[index, :] .= find_element(point, pd)
     end
 
     return ids
@@ -1650,7 +1667,7 @@ end
 
 # Find the ids of elements and triangles containing given coordinates by using the triangulation in 'pd'.
 function get_ids_by_coordinates(coordinates, pd)
-    ids = Matrix(undef, size(coordinates, 2), 2)
+    ids = Matrix{Int}(undef, size(coordinates, 2), 2)
     get_ids_by_coordinates!(ids, coordinates, pd)
     return ids
 end
@@ -1684,12 +1701,24 @@ function find_element(point, pd)
     for element in 1:n_elements
         # Iterate over all triangles in given element.
         for tri in 1:n_tri
-            if is_in_triangle(point, pd.x[pd.t[tri, :], element],
-                              pd.y[pd.t[tri, :], element])
-                return SVector(element, tri)
+            # The code below is equivalent to
+            #   x == pd.x[pd.t[tri, :], element]
+            #   y == pd.y[pd.t[tri, :], element]
+            # but avoids allocations and is thus more efficient.
+            tri_indices = (pd.t[tri, 1], pd.t[tri, 2], pd.t[tri, 3])
+            x = SVector(pd.x[tri_indices[1], element],
+                        pd.x[tri_indices[2], element],
+                        pd.x[tri_indices[3], element])
+            y = SVector(pd.y[tri_indices[1], element],
+                        pd.y[tri_indices[2], element],
+                        pd.y[tri_indices[3], element])
+            if is_in_triangle(point, x, y)
+                return (element, tri)
             end
         end
     end
+
+    return (0, 0)
 end
 
 # Interpolate from three corners of a triangle to a single point.
