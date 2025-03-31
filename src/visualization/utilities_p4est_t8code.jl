@@ -292,7 +292,8 @@ function search_points_in_p4est_t8code_mesh_3d(mesh::P4estMesh,
         GC.@preserve user_data begin
             call_post = 0
             mesh.p4est.user_pointer = pointer(user_data)
-            p8est_search_local(pointer(mesh.p4est), call_post, quadrant_fn, point_fn, queries)
+            p8est_search_local(pointer(mesh.p4est), call_post, quadrant_fn, point_fn,
+                               queries)
         end
     end
 
@@ -310,7 +311,6 @@ struct SearchPointsInT8codeMesh3DHelper
     index::Int64
     found::Bool
 end
-
 
 function search_points_in_t8code_mesh_3d_callback_element(forest::t8_forest_t,
                                                           ltreeid::t8_locidx_t,
