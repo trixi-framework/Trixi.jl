@@ -126,20 +126,9 @@ function search_in_p4est_3d_quadrant_fn(p4est_ptr::Ptr{p8est_t},
                                         quadrant_ptr::Ptr{p8est_quadrant_t},
                                         local_num::p4est_locidx_t,
                                         null_pointer::Ptr{Cvoid})::Cint
-    # quadrant = PointerWrapper(quadrant_ptr)
-    # @info "quadrant_callback" quadrant[] quadrant.level[] quadrant.x[] quadrant.y[] quadrant.z[] local_num which_tree null_pointer unsafe_load(quadrant_ptr.x) unsafe_load(quadrant_ptr.y) unsafe_load(quadrant_ptr.z) unsafe_load(quadrant_ptr.level)
-    @warn "quadrant_callback" which_tree local_num quadrant_ptr unsafe_load(quadrant_ptr) unsafe_load(quadrant_ptr.x) unsafe_load(quadrant_ptr.y) unsafe_load(quadrant_ptr.z) unsafe_load(quadrant_ptr.level)
-    return 0
-
-    # Main.callback_called += 1
-    # if Main.callback_called < 50
-    #     return 1
-    # else
-    #     return 0
-    # end
 
     # Continue the search
-    return 1
+    return Cint(1)
 end
 
 function search_in_p4est_3d_point_fn(p4est_ptr::Ptr{p8est_t},
@@ -152,7 +141,6 @@ function search_in_p4est_3d_point_fn(p4est_ptr::Ptr{p8est_t},
     # to convert the reference coordinates of the `element` to physical
     # coordinates (assuming polydeg == 1) and then check whether the
     # coordinates of the points are inside the `element`.
-    @info "point callback" which_tree local_num unsafe_load(quadrant_ptr) unsafe_load(quadrant_ptr.x) unsafe_load(quadrant_ptr.y) unsafe_load(quadrant_ptr.z) unsafe_load(quadrant_ptr.level) unsafe_load(Ptr{SearchPointsInP4estMesh3DHelper}(query_ptr))
 
     # Get the references coordinates of the element.
     # Note: This assumes that we are in 3D.
@@ -233,7 +221,7 @@ function search_in_p4est_3d_point_fn(p4est_ptr::Ptr{p8est_t},
 
     # Do nothing if the point has already been found elsewhere.
     if query.found
-        return 0
+        return Cint(0)
     end
 
     # If the point has not already been found, we check whether it is inside
@@ -263,14 +251,11 @@ function search_in_p4est_3d_point_fn(p4est_ptr::Ptr{p8est_t},
                                                         true)
             unsafe_store!(Ptr{SearchPointsInP4estMesh3DHelper}(query_ptr),
                           new_query)
-            @info "found query in leaf" query new_query
-        else
-            @info "found query" query local_num which_tree x0 y0 z0 level
         end
 
-        return 1
+        return Cint(1)
     else
-        return 0
+        return Cint(0)
     end
 end
 
@@ -295,27 +280,21 @@ function search_points_in_p4est_t8code_mesh_3d(mesh::P4estMesh,
                                                   typemin(Int64),
                                                   false)
     end
-    # queries = sc_array_new_data(pointer(data),
-    #                             sizeof(eltype(data)),
-    #                             length(data))
-    #
-    # temp_vertex = zeros(Float64, 3)
-    # GC.@preserve temp_vertex begin
-    #     user_data = [pointer(mesh.tree_node_coordinates),
-    #         pointer(temp_vertex)]
-    #     @info "before p8est_search_local" quadrant_fn point_fn
+    queries = sc_array_new_data(pointer(data),
+                                sizeof(eltype(data)),
+                                length(data))
 
-    #     GC.@preserve user_data begin
-    #         call_post = 0
-    #         # mesh.p4est.user_pointer = pointer(user_data) FIXME
-    #         # p8est_search_local(pointer(mesh.p4est), call_post, quadrant_fn, point_fn, queries)
-    #         p8est_search_local(pointer(mesh.p4est), 0, quadrant_fn, C_NULL, C_NULL)
-    #         # FIXME
-    #     end
-    # end
-    @info "before p8est_search_local" quadrant_fn point_fn
-    p8est_search_local(pointer(mesh.p4est), 0, quadrant_fn, C_NULL, C_NULL)
-    @info "after p8est_search_local" quadrant_fn point_fn
+    temp_vertex = zeros(Float64, 3)
+    GC.@preserve temp_vertex begin
+        user_data = [pointer(mesh.tree_node_coordinates),
+            pointer(temp_vertex)]
+
+        GC.@preserve user_data begin
+            call_post = 0
+            mesh.p4est.user_pointer = pointer(user_data)
+            p8est_search_local(pointer(mesh.p4est), call_post, quadrant_fn, point_fn, queries)
+        end
+    end
 
     return data
 end
@@ -340,7 +319,7 @@ function search_points_in_t8code_mesh_3d_callback_element(forest::t8_forest_t,
                                                           leaf_elements::Ptr{t8_element_array_t},
                                                           tree_leaf_index::t8_locidx_t)::Cint
     # Continue the search
-    return 1
+    return Cint(1)
 end
 
 function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
