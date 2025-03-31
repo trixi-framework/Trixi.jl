@@ -232,7 +232,7 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
 
             # Compute interface flux as mean of left and right viscous fluxes
             flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
-                                  mesh, equations, parabolic_scheme)
+                                  mesh, equations_parabolic, parabolic_scheme)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)
