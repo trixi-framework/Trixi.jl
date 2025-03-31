@@ -225,7 +225,7 @@ end
                                  "elixir_advection_diffusion.jl"),
                         solver_parabolic=ViscousFormulationLocalDG(),
                         initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
-                        l2=[9.909293615704332e-6], linf=[5.365100236320863e-5])
+                        l2=[6.193056910594806e-6], linf=[4.918855889635143e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -291,7 +291,7 @@ end
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         solver_parabolic=ViscousFormulationLocalDG(),
-                        l2=[0.008687516870210955], linf=[0.10337868536739497])
+                        l2=[0.007009146246373517], linf=[0.09535203925012649])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

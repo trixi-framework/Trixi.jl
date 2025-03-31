@@ -461,7 +461,7 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         solver_parabolic=ViscousFormulationLocalDG(),
-                        l2=[0.0033915457718602035], linf=[0.018075405951782687])
+                        l2=[0.0010499979835493316], linf=[0.017873485743892102])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
