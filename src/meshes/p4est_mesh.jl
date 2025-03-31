@@ -1908,7 +1908,6 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
     surface_curves = Array{CurvedSurfaceT}(undef, 4)
 
     # Create other work arrays to perform the mesh construction
-    element_node_ids = Array{Int}(undef, 4)
     quad_vertices = Array{RealT}(undef, (4, 2))
     curve_values = Array{RealT}(undef, (nnodes, 2))
 
@@ -1937,25 +1936,20 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 4},
 
             # Pull the vertex node IDs
             line_split = split(line, r",\s+")
-            element_nodes = parse.(Int, line_split)
+            element_nodes = parse.(Int, line_split)[2:end] # First entry is the element number, can be ignored
 
             if element_set_order == 1
-                element_node_ids[1] = element_nodes[2]
-                element_node_ids[2] = element_nodes[3]
-                element_node_ids[3] = element_nodes[4]
-                element_node_ids[4] = element_nodes[5]
-
                 # Create the node coordinates on this particular element
                 # Pull the (x,y) values of the four vertices of the current tree out of the global vertices array
                 for i in 1:4
-                    quad_vertices[i, :] .= vertices[1:2, element_node_ids[i]] # 2D => 1:2
+                    quad_vertices[i, :] .= vertices[1:2, element_nodes[i]] # 2D => 1:2
                 end
                 calc_node_coordinates!(node_coordinates, tree, nodes, quad_vertices)
             else # element_set_order == 2
                 for edge in 1:4
-                    node1 = element_nodes[edge + 1] # "Left" node
-                    node2 = element_nodes[edge + 5] # "Middle" node
-                    node3 = edge == 4 ? element_nodes[2] : element_nodes[edge + 2] # "Right" node
+                    node1 = element_nodes[edge] # "Left" node
+                    node2 = element_nodes[edge + 4] # "Middle" node
+                    node3 = edge == 4 ? element_nodes[1] : element_nodes[edge + 1] # "Right" node
 
                     node1_coords = mesh_nodes[node1]
                     node2_coords = mesh_nodes[node2]
@@ -2115,6 +2109,75 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     return file_idx
 end
 
+function face_curves_quadratic_3d!(face_curves, face_nodes, face, 
+                                   mesh_nodes, nodes, bary_weights, 
+                                   RealT, CurvedFaceT)
+    node1_coords = mesh_nodes[face_nodes[1]]
+    node2_coords = mesh_nodes[face_nodes[2]]
+    node3_coords = mesh_nodes[face_nodes[3]]
+    node4_coords = mesh_nodes[face_nodes[4]]
+    node5_coords = mesh_nodes[face_nodes[5]]
+    node6_coords = mesh_nodes[face_nodes[6]]
+    node7_coords = mesh_nodes[face_nodes[7]]
+    node8_coords = mesh_nodes[face_nodes[8]]
+    node9_coords = mesh_nodes[face_nodes[9]]
+
+    # The nodes for an Abaqus element are labeled following a closed path 
+    # around the element:
+    #
+    #             <----
+    #         7     6     5
+    #         *-----*-----*
+    #         |           |
+    #     |   |           |   ^
+    #     |  8*     9*    *4  |
+    #     v   |           |   |
+    #         |           |
+    #         *-----*-----*
+    #         1     2     3
+    #             ---->
+    # `curve_values`, however, requires to sort the nodes into a 
+    # valid coordinate system, 
+    # 
+    #        *-----*-----*
+    #        |           |
+    #        |           |
+    #        *     *     *
+    #        |           |
+    #  ^ η   |           |
+    #  |     *-----*-----*
+    #  |----> ξ
+    # thus we need to flip the node order for the second xi and eta edges met.
+
+    nnodes = length(nodes)
+    curve_values = Array{RealT}(undef, (3, nnodes, nnodes))
+
+    # TODO: Need probably to do some flips for the different faces, as for the 2D case.
+    # Maybe flip such that local coordinate system is always right handed, i.e., counter-clock-wise turning & numbered?
+    # Proceed along bottom edge
+    curve_values[:, 1, 1] = node1_coords
+    curve_values[:, 2, 1] = node2_coords
+    #curve_values[:, 2, 1] = 0.5 .* (node1_coords .+ node3_coords)
+    curve_values[:, 3, 1] = node3_coords
+
+    # Proceed along middle line
+    curve_values[:, 1, 2] = node8_coords
+    curve_values[:, 2, 2] = node9_coords
+    #curve_values[:, 2, 2] = 0.5 .* (node8_coords .+ node4_coords)
+    curve_values[:, 3, 2] = node4_coords
+
+    # Proceed along top edge
+    curve_values[:, 1, 3] = node7_coords
+    curve_values[:, 2, 3] = node6_coords
+    #curve_values[:, 2, 3] = 0.5 .* (node7_coords .+ node5_coords)
+    curve_values[:, 3, 3] = node5_coords
+
+    # Construct the curve interpolant for the current side
+    face_curves[face] = CurvedFaceT(nodes, bary_weights, copy(curve_values))
+
+    return nothing
+end
+
 # TODO: 3D version
 function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
                                      element_lines, nodes, vertices, RealT,
@@ -2126,9 +2189,7 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
     face_curves = Array{CurvedFaceT}(undef, 6)
 
     # Create other work arrays to perform the mesh construction
-    element_node_ids = Array{Int}(undef, 8)
     hex_vertices = Array{RealT}(undef, (3, 8))
-    curve_values = Array{RealT}(undef, (3, nnodes, nnodes))
     face_nodes = Array{Int}(undef, 9)
 
     # Create the barycentric weights used for the surface interpolations
@@ -2156,136 +2217,127 @@ function calc_tree_node_coordinates!(node_coordinates::AbstractArray{<:Any, 5},
 
             # Pull the vertex node IDs
             line_split = split(line, r",\s+")
-            element_nodes = parse.(Int, line_split)
+            element_nodes = parse.(Int, line_split)[2:end] # First entry is the element number, can be ignored
 
             if element_set_order == 1
-                element_node_ids[1] = element_nodes[2]
-                element_node_ids[2] = element_nodes[3]
-                element_node_ids[3] = element_nodes[4]
-                element_node_ids[4] = element_nodes[5]
-                element_node_ids[5] = element_nodes[6]
-                element_node_ids[6] = element_nodes[7]
-                element_node_ids[7] = element_nodes[8]
-                element_node_ids[8] = element_nodes[9]
-
                 # Create the node coordinates on this particular element
                 # Pull the (x,y, z) values of the four vertices of the current tree out of the global vertices array
                 for i in 1:8
-                    hex_vertices[:, i] .= vertices[:, element_node_ids[i]] # 3D => 1:3 = :
+                    hex_vertices[:, i] .= vertices[:, element_nodes[i]] # 3D => 1:3 = :
                 end
                 calc_node_coordinates!(node_coordinates, tree, nodes, quad_vertices)
             else # element_set_order == 2
-                for face in 1:6
-                    # The second-order face has the following node distribution:
-                    #    NW    N     NE
-                    #    *-----*-----*
-                    #    |           |
-                    #    |           |  
-                    #  W *    *C     * E
-                    #    |           |  
-                    #    |           |
-                    #    *-----*-----*
-                    #    SW    S     SE
+                # The second-order face has the following node distribution:
+                #    NW    N     NE
+                #    *-----*-----*
+                #    |           |
+                #    |           |  
+                #  W *    *C     * E
+                #    |           |  
+                #    |           |
+                #    *-----*-----*
+                #    SW    S     SE
 
-                    face_nodes[1] = element_nodes[face + 1]  # "SW" node
-                    face_nodes[2] = element_nodes[face + 9]  # "S"  node
-                    face_nodes[3] = element_nodes[face + 2]  # "SE" node
-                    face_nodes[4] = element_nodes[face + 18] # "E"  node
-                    face_nodes[5] = element_nodes[face + 6]  # "NE" node
-                    face_nodes[6] = element_nodes[face + 13] # "N"  node
-                    face_nodes[7] = element_nodes[face + 5]  # "NW" node
-                    face_nodes[8] = element_nodes[face + 17] # "W"  node
+                # We proceed now face by face. The handling of the first face defines the local node ordering
+                # and the other faces have to comply with this.
+                # The "names" of the faces follow from the sketch for the 27-node element presented in the doc
+                # http://130.149.89.49:2080/v2016/books/usb/default.htm?startat=pt06ch28s01ael03.html
 
-                    if face <= 4
-                        face_nodes[9] = element_nodes[face + 24] # "C" node
-                    end
+                # Face 1: "Bottom"
+                face = 1
+                face_nodes[1] = element_nodes[1]  # "SW" node
+                face_nodes[2] = element_nodes[9]  # "S"  node
+                face_nodes[3] = element_nodes[2]  # "SE" node
+                face_nodes[4] = element_nodes[10] # "E"  node
+                face_nodes[5] = element_nodes[3]  # "NE" node
+                face_nodes[6] = element_nodes[11] # "N"  node
+                face_nodes[7] = element_nodes[4]  # "NW" node
+                face_nodes[8] = element_nodes[12] # "W"  node
+                face_nodes[9] = element_nodes[22] # "C"  node
 
-                    if face == 4
-                        face_nodes[3] = element_nodes[2]
-                        face_nodes[4] = element_nodes[18]
-                        face_nodes[5] = element_nodes[6]
-                    elseif face == 5
-                        face_nodes[1] = element_nodes[2]
-                        face_nodes[2] = element_nodes[10]
-                        face_nodes[3] = element_nodes[3]
-                        face_nodes[4] = element_nodes[11]
-                        face_nodes[5] = element_nodes[4]
-                        face_nodes[6] = element_nodes[12]
-                        face_nodes[7] = element_nodes[5]
-                        face_nodes[8] = element_nodes[13]
-                        face_nodes[9] = element_nodes[23]
-                    elseif face == 6
-                        face_nodes[1] = element_nodes[6]
-                        face_nodes[2] = element_nodes[14]
-                        face_nodes[3] = element_nodes[7]
-                        face_nodes[4] = element_nodes[15]
-                        face_nodes[5] = element_nodes[8]
-                        face_nodes[6] = element_nodes[16]
-                        face_nodes[7] = element_nodes[9]
-                        face_nodes[8] = element_nodes[17]
-                        face_nodes[9] = element_nodes[24]
-                    end
+                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
+                                          mesh_nodes, nodes, bary_weights, 
+                                          RealT, CurvedFaceT)
 
-                    node1_coords = mesh_nodes[face_nodes[1]]
-                    node2_coords = mesh_nodes[face_nodes[2]]
-                    node3_coords = mesh_nodes[face_nodes[3]]
-                    node4_coords = mesh_nodes[face_nodes[4]]
-                    node5_coords = mesh_nodes[face_nodes[5]]
-                    node6_coords = mesh_nodes[face_nodes[6]]
-                    node7_coords = mesh_nodes[face_nodes[7]]
-                    node8_coords = mesh_nodes[face_nodes[8]]
-                    node9_coords = mesh_nodes[face_nodes[9]]
+                # Face 2: "Front"
+                face = 2
+                face_nodes[1] = element_nodes[1]  # "SW" node
+                face_nodes[2] = element_nodes[9]  # "S"  node
+                face_nodes[3] = element_nodes[2]  # "SE" node
+                face_nodes[4] = element_nodes[18] # "E"  node
+                face_nodes[5] = element_nodes[6]  # "NE" node
+                face_nodes[6] = element_nodes[13] # "N"  node
+                face_nodes[7] = element_nodes[5]  # "NW" node
+                face_nodes[8] = element_nodes[17] # "W"  node
+                face_nodes[9] = element_nodes[24] # "C"  node
 
-                    # The nodes for an Abaqus element are labeled following a closed path 
-                    # around the element:
-                    #
-                    #             <----
-                    #         7     6     5
-                    #         *-----*-----*
-                    #         |           |
-                    #     |   |           |   ^
-                    #     |  8*     9*    *4  |
-                    #     v   |           |   |
-                    #         |           |
-                    #         *-----*-----*
-                    #         1     2     3
-                    #             ---->
-                    # `curve_values`, however, requires to sort the nodes into a 
-                    # valid coordinate system, 
-                    # 
-                    #        *-----*-----*
-                    #        |           |
-                    #        |           |
-                    #        *     *     *
-                    #        |           |
-                    #  ^ η   |           |
-                    #  |     *-----*-----*
-                    #  |----> ξ
-                    # thus we need to flip the node order for the second xi and eta edges met.
+                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
+                                          mesh_nodes, nodes, bary_weights, 
+                                          RealT, CurvedFaceT)
 
-                    # TODO: Need probably to do some flips for the different faces, as for the 2D case
-                    # Proceed along bottom edge
-                    curve_values[:, 1, 1] = node1_coords
-                    #curve_values[:, 2, 1] = node2_coords
-                    curve_values[:, 2, 1] = 0.5 .* (node1_coords .+ node3_coords)
+                # Face 3: "Left"
+                face = 3
+                face_nodes[1] = element_nodes[1]  # "SW" node
+                face_nodes[2] = element_nodes[12] # "S"  node
+                face_nodes[3] = element_nodes[4]  # "SE" node
+                face_nodes[4] = element_nodes[20] # "E"  node
+                face_nodes[5] = element_nodes[8]  # "NE" node
+                face_nodes[6] = element_nodes[16] # "N"  node
+                face_nodes[7] = element_nodes[5]  # "NW" node
+                face_nodes[8] = element_nodes[17] # "W"  node
+                face_nodes[9] = element_nodes[27] # "C"  node
 
-                    curve_values[:, 3, 1] = node3_coords
+                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
+                mesh_nodes, nodes, bary_weights, 
+                RealT, CurvedFaceT)
 
-                    # Proceed along middle line
-                    curve_values[:, 1, 2] = node8_coords
-                    #curve_values[:, 2, 2] = node9_coords
-                    curve_values[:, 2, 2] = 0.5 .* (node8_coords .+ node4_coords)
-                    curve_values[:, 3, 2] = node4_coords
+                # Face 4: "Right"
+                face = 4
+                face_nodes[1] = element_nodes[2]  # "SW" node
+                face_nodes[2] = element_nodes[10] # "S"  node
+                face_nodes[3] = element_nodes[3]  # "SE" node
+                face_nodes[4] = element_nodes[19] # "E"  node
+                face_nodes[5] = element_nodes[7]  # "NE" node
+                face_nodes[6] = element_nodes[14] # "N"  node
+                face_nodes[7] = element_nodes[6]  # "NW" node
+                face_nodes[8] = element_nodes[18] # "W"  node
+                face_nodes[9] = element_nodes[25] # "C"  node
 
-                    # Proceed along top edge
-                    curve_values[:, 1, 3] = node7_coords
-                    #curve_values[:, 2, 3] = node6_coords
-                    curve_values[:, 2, 3] = 0.5 .* (node7_coords .+ node5_coords)
-                    curve_values[:, 3, 3] = node5_coords
+                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
+                mesh_nodes, nodes, bary_weights, 
+                RealT, CurvedFaceT)
 
-                    # Construct the curve interpolant for the current side
-                    face_curves[face] = CurvedFaceT(nodes, bary_weights, copy(curve_values))
-                end
+                # Face 5: "Top"
+                face = 5
+                face_nodes[1] = element_nodes[5]  # "SW" node
+                face_nodes[2] = element_nodes[13] # "S"  node
+                face_nodes[3] = element_nodes[6]  # "SE" node
+                face_nodes[4] = element_nodes[14] # "E"  node
+                face_nodes[5] = element_nodes[7]  # "NE" node
+                face_nodes[6] = element_nodes[15] # "N"  node
+                face_nodes[7] = element_nodes[8]  # "NW" node
+                face_nodes[8] = element_nodes[16] # "W"  node
+                face_nodes[9] = element_nodes[23] # "C"  node
+
+                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
+                mesh_nodes, nodes, bary_weights, 
+                RealT, CurvedFaceT)
+
+                # Face 6: "Back"
+                face = 6
+                face_nodes[1] = element_nodes[4]  # "SW" node
+                face_nodes[2] = element_nodes[11] # "S"  node
+                face_nodes[3] = element_nodes[3]  # "SE" node
+                face_nodes[4] = element_nodes[19] # "E"  node
+                face_nodes[5] = element_nodes[7]  # "NE" node
+                face_nodes[6] = element_nodes[15] # "N"  node
+                face_nodes[7] = element_nodes[8]  # "NW" node
+                face_nodes[8] = element_nodes[20] # "W"  node
+                face_nodes[9] = element_nodes[26] # "C"  node
+
+                face_curves_quadratic_3d!(face_curves, face_nodes, face, 
+                mesh_nodes, nodes, bary_weights, 
+                RealT, CurvedFaceT)
 
                 # Create the node coordinates on this particular element
                 calc_node_coordinates!(node_coordinates, tree, nodes, face_curves)

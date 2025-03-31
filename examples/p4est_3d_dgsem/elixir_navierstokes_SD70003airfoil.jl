@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -64,11 +64,11 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surf_flux,
 
 path = "/home/daniel/ownCloud - Döhring, Daniel (1MH1D4@rwth-aachen.de)@rwth-aachen.sciebo.de/Job/Doktorand/Content/Meshes/PERK_mesh/SD7003Turbulent/"
 mesh_file = path * "sd7003_reduced.inp"
+#mesh_file = path * "sd7003_straight_Trixi.inp"
 
 boundary_symbols = [:wall, :rieminv]
 
 mesh = P4estMesh{3}(mesh_file, boundary_symbols = boundary_symbols)
-
 boundary_conditions = Dict(:rieminv => boundary_condition_free_stream,
                            :wall => boundary_condition_slip_wall)
 
@@ -129,11 +129,13 @@ lift_coefficient = AnalysisSurfaceIntegral((:wall,),
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
+                                     #=
                                      save_analysis = true,
                                      analysis_errors = Symbol[],
                                      analysis_integrals = (drag_coefficient,
                                                            drag_coefficient_shear_force,
-                                                           lift_coefficient))
+                                                           lift_coefficient)
+                                     =#)
 
 stepsize_callback = StepsizeCallback(cfl = 2.0) # PERK_4 Multi E = 5, ..., 14
 
@@ -158,7 +160,5 @@ callbacks = CallbackSet(stepsize_callback, # For measurements: Fixed timestep (d
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false, thread = OrdinaryDiffEq.True());
-            dt = 1.0, save_everystep = false, callback = callbacks)
-
-summary_callback() # print the timer summary
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false, thread = Trixi.True());
+            dt = 1.0, save_everystep = false, callback = callbacks);
