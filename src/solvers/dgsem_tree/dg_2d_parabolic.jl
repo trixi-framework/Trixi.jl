@@ -209,7 +209,7 @@ end
 function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
                               equations_parabolic,
                               dg::DG,
-                              parabolic_scheme::ViscousFormulationBassiRebay1,
+                              parabolic_scheme,
                               cache_parabolic)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
@@ -231,56 +231,11 @@ function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
                                                      dg, i, interface)
 
             # Compute interface flux as mean of left and right viscous fluxes
-            flux = 0.5f0 * (flux_ll + flux_rr)
+            flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
+                                  mesh, equations, parabolic_scheme)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations_parabolic)
-                surface_flux_values[v, i, left_direction, left_id] = flux[v]
-                surface_flux_values[v, i, right_direction, right_id] = flux[v]
-            end
-        end
-    end
-
-    return nothing
-end
-
-# This is the version used when calculating the divergence of the viscous fluxes
-function calc_interface_flux!(surface_flux_values, mesh::TreeMesh{2},
-                              equations_parabolic,
-                              dg::DG, parabolic_scheme::ViscousFormulationLocalDG,
-                              cache_parabolic)
-    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
-
-    @threaded for interface in eachinterface(dg, cache_parabolic)
-        # Get neighboring elements
-        left_id = neighbor_ids[1, interface]
-        right_id = neighbor_ids[2, interface]
-
-        # Determine interface direction with respect to elements:
-        # orientation = 1: left -> 2, right -> 1
-        # orientation = 2: left -> 4, right -> 3
-        left_direction = 2 * orientations[interface]
-        right_direction = 2 * orientations[interface] - 1
-
-        for i in eachnode(dg)
-            # Get precomputed fluxes at interfaces
-            flux_ll, flux_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                                     equations_parabolic,
-                                                     dg, i, interface)
-
-            # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
-            # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
-            # jump term should be opposite that of the sign used in the divergence flux. 
-            # This is equivalent to setting the flux equal to `u_ll` for the gradient,
-            # and `u_rr` for the divergence. 
-            flux = flux_rr # Use the downwind value for the divergence interface flux 
-
-            # Copy flux to left and right element storage
-            for v in eachvariable(equations_parabolic)
-                # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
-                # which we set to  -1 on the left and +1 on the right in 1D.
-                # This is equivalent to setting the flux equal to `u_ll` for the gradient,
-                # and `u_rr` for the divergence. 
                 surface_flux_values[v, i, left_direction, left_id] = flux[v]
                 surface_flux_values[v, i, right_direction, right_id] = flux[v]
             end
@@ -792,7 +747,7 @@ end
 
 function calc_gradient_interface_flux!(surface_flux_values,
                                        mesh::TreeMesh{2}, equations, dg::DG,
-                                       parabolic_scheme::ViscousFormulationBassiRebay1,
+                                       parabolic_scheme,
                                        cache, cache_parabolic)
     @unpack neighbor_ids, orientations = cache_parabolic.interfaces
 
@@ -812,46 +767,9 @@ function calc_gradient_interface_flux!(surface_flux_values,
             u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
                                                equations, dg, i,
                                                interface)
-            flux = 0.5f0 * (u_ll + u_rr) # Bassi-Rebay 1 (BR1)
 
-            # Copy flux to left and right element storage
-            for v in eachvariable(equations)
-                surface_flux_values[v, i, left_direction, left_id] = flux[v]
-                surface_flux_values[v, i, right_direction, right_id] = flux[v]
-            end
-        end
-    end
-end
-
-function calc_gradient_interface_flux!(surface_flux_values,
-                                       mesh::TreeMesh{2}, equations, dg::DG,
-                                       parabolic_scheme::ViscousFormulationLocalDG,
-                                       cache, cache_parabolic)
-    @unpack neighbor_ids, orientations = cache_parabolic.interfaces
-
-    @threaded for interface in eachinterface(dg, cache_parabolic)
-        # Get neighboring elements
-        left_id = neighbor_ids[1, interface]
-        right_id = neighbor_ids[2, interface]
-
-        # Determine interface direction with respect to elements:
-        # orientation = 1: left -> 2, right -> 1
-        # orientation = 2: left -> 4, right -> 3
-        left_direction = 2 * orientations[interface]
-        right_direction = 2 * orientations[interface] - 1
-
-        for i in eachnode(dg)
-            # Call pointwise Riemann solver
-            u_ll, u_rr = get_surface_node_vars(cache_parabolic.interfaces.u,
-                                               equations,
-                                               dg, i, interface)
-
-            # Here, the flux is {{f}} + beta * [[f]], where beta is the LDG "switch", 
-            # which we set to -1 on the left and +1 on the right in 1D. The sign of the 
-            # jump term should be opposite that of the sign used in the divergence flux. 
-            # This is equivalent to setting the flux equal to `u_ll` for the gradient,
-            # and `u_rr` for the divergence. 
-            flux = u_ll # Use the upwind value for the gradient interface flux                                                       
+            flux = flux_parabolic(u_ll, u_rr, Gradient(),
+                                  mesh, equations, parabolic_scheme)
 
             # Copy flux to left and right element storage
             for v in eachvariable(equations)
