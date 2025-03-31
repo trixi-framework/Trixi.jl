@@ -1,4 +1,4 @@
-# The T8codeMesh can make use of the efficient search functionality
+# The P4estmesh/T8codeMesh can make use of the efficient search functionality
 # based on the tree structure to speed up the process of finding the
 # elements in which the curve points are located.
 # TODO: The same could be done for the P4estMesh - but the callbacks
@@ -26,7 +26,7 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh{3, Float64},
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
 
     # Iterate over every point on the curve and determine the solutions value at given point.
-    # We can use the efficient search functionality of p4est to speed up the process.
+    # We can use the efficient search functionality of p4est/t8code to speed up the process.
     # However, the logic is only implemented for linear meshes so far.
 
     # Retrieve the element in which each point on the curve is located as well as
@@ -51,7 +51,7 @@ function unstructured_3d_to_1d_curve(u, mesh::T8codeMesh{3, Float64},
                                                      n_nodes, n_nodes, n_nodes,
                                                      n_variables)
 
-    for idx_point in 1:n_points_curve
+    for idx_point in eachindex(data)
         query = data[idx_point]
         element = query.index
         @assert query.found
@@ -279,7 +279,7 @@ function search_points_in_t8code_mesh_3d(mesh::T8codeMesh, curve::Array{Float64,
                            Ptr{Cint}, Csize_t))
 
     data = Vector{SearchPointsInT8codeMesh3DHelper}(undef, size(curve, 2))
-    for i in 1:size(curve, 2)
+    for i in eachindex(data)
         data[i] = SearchPointsInT8codeMesh3DHelper(curve[1, i],
                                                    curve[2, i],
                                                    curve[3, i],
