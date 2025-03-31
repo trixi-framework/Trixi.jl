@@ -905,6 +905,15 @@ function calc_gradient_interface_flux!(surface_flux_values,
     end
 end
 
+            # Copy flux to left and right element storage
+            for v in eachvariable(equations)
+                surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
+                surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
+            end
+        end
+    end
+end
+
 # Calculate the gradient of the transformed variables
 function calc_gradient!(gradients, u_transformed, t,
                         mesh::TreeMesh{3}, equations_parabolic,
