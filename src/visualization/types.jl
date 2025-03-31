@@ -105,6 +105,12 @@ struct PlotData2DTriangulated{DataType, NodeType, FaceNodeType, FaceDataType,
     variable_names::VariableNames
 end
 
+struct ContourData2DCG{DataType, NodeType} <: AbstractPlotData{2}
+    x::NodeType
+    y::NodeType
+    data::DataType
+end
+
 # Show only a truncated output for convenience (the full data does not make sense)
 function Base.show(io::IO, pd::PlotData2DTriangulated)
     @nospecialize pd # reduce precompilation time
@@ -430,6 +436,57 @@ function PlotData2DTriangulated(u, mesh, equations, dg::DGSEM, cache;
     transform_to_solution_variables!(ufp, solution_variables_, equations)
 
     return PlotData2DTriangulated(xplot, yplot, uplot, t, xfp, yfp, ufp, variable_names)
+end
+
+function ContourData2D(sol, semi)
+    @unpack mesh, solver, cache = semi
+    @unpack cells_per_dimension = mesh
+    @unpack node_coordinates = cache.elements
+    @assert ndims(mesh)==2 "Input must be two-dimensional."
+    RealT = eltype(first(sol.u[end]))
+    polydeg = Trixi.polydeg(solver)
+    nx = polydeg * cells_per_dimension[1] + 1
+    ny = polydeg * cells_per_dimension[2] + 1
+    xcontour = zeros(RealT, ny, nx)
+    ycontour = zeros(RealT, ny, nx)
+    data = zeros(RealT, ny, nx)
+    u = Trixi.wrap_array(sol.u[end], semi)
+
+    jstart = 1
+    for j in 1:ny
+
+        if mod(j, polydeg + 1) == 1 && j != 1
+            jstart += 1
+        end
+
+        iterator = (1 + cells_per_dimension[1] * (jstart - 1)):(cells_per_dimension[1] * jstart)
+        i = 1
+        for element in iterator
+            for ilocal in 1:(polydeg + 1)
+
+                jlocal = mod(j, polydeg + 1)
+                jlocal = jlocal == 0 ? polydeg + 1 : jlocal
+
+                if (j > polydeg + 1) && (j % (polydeg + 1) != 0)
+                    jlocal += 1
+                end
+
+                if (jlocal == 1 && j == 1) || (jlocal != 1 && j != 1)
+                    if (element != 1) && (mod(element, cells_per_dimension[1]) != 1) &&
+                       (ilocal == 1)
+
+                    else
+                        xcontour[j, i] = node_coordinates[1, ilocal, jlocal, element]
+                        ycontour[j, i] = node_coordinates[2, ilocal, jlocal, element]
+                        data[j, i] = u[1, ilocal, jlocal, element]
+                        i += 1
+                    end
+                end
+            end
+        end
+    end
+
+    return ContourData2DCG(xcontour, ycontour, data)
 end
 
 # Wrapper struct to indicate that an array represents a scalar data field. Used only for dispatch.
