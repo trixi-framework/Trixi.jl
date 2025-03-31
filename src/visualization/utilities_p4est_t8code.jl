@@ -26,7 +26,7 @@ function unstructured_2d_to_1d_curve(u, mesh::P4estMesh{2, 2, Float64},
     #       but general approach.
     if length(mesh.nodes) != 2
         return unstructured_2d_to_1d_curve_general(u, mesh, equations,
-                                                   solver, cache,
+                                                   dg, cache,
                                                    curve, slice,
                                                    point, nvisnodes,
                                                    solution_variables)
