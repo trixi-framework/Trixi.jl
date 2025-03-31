@@ -134,8 +134,9 @@ function calc_gradient_volume_integral!(gradients, u, mesh::DGMultiMesh{NDIMS, <
 end
 
 function calc_gradient_interface_flux!(scalar_flux_face_values,
-                                       mesh, equations,
-                                       dg, parabolic_scheme::ViscousFormulationBassiRebay1,
+                                       mesh::DGMultiMesh, equations,
+                                       dg::DGMulti, 
+                                       parabolic_scheme::ViscousFormulationBassiRebay1,
                                        cache, cache_parabolic)
     (; u_face_values) = cache_parabolic
     (; mapM, mapP) = mesh.md
