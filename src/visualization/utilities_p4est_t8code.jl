@@ -281,7 +281,7 @@ function search_points_in_p4est_t8code_mesh_2d(mesh::P4estMesh,
                            Ptr{Cvoid}))
 
     data = Vector{SearchPointsInP4estT8codeMesh2DHelper}(undef, size(curve, 2))
-    for i in 1:size(curve, 2)
+    for i in eachindex(data)
         data[i] = SearchPointsInP4estT8codeMesh2DHelper(curve[1, i],
                                                         curve[2, i],
                                                         typemin(Int64),
