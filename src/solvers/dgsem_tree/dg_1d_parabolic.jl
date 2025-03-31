@@ -193,7 +193,7 @@ function calc_interface_flux!(surface_flux_values,
 
         # compute interface flux for the DG divergence 
         flux = flux_parabolic(flux_ll, flux_rr, Divergence(),
-                              mesh, equations, parabolic_scheme)
+                              mesh, equations_parabolic, parabolic_scheme)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
@@ -426,7 +426,7 @@ function calc_gradient_interface_flux!(surface_flux_values,
                                            equations_parabolic, dg, interface)
 
         flux = flux_parabolic(u_ll, u_rr, Gradient(),
-                              mesh, equations, parabolic_scheme)
+                              mesh, equations_parabolic, parabolic_scheme)
 
         # Copy flux to left and right element storage
         for v in eachvariable(equations_parabolic)
