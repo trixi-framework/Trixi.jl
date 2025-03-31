@@ -8,6 +8,10 @@
 # The P4estMesh and T8codeMesh can make use of the efficient search functionality
 # based on the tree structure to speed up the process of finding the
 # elements in which the curve points are located.
+# We hard-code `Float64` here since some parts will be accessed from a Julia
+# function called as callback from C. Thus, we cannot use multiple dispatch
+# easily and use concrete types instead. See the comment on
+# `SearchPointsInP4estT8codeMesh3DHelper` below.
 function unstructured_3d_to_1d_curve(u,
                                      mesh::Union{P4estMesh{3, 3, Float64},
                                                  T8codeMesh{3, Float64}},
