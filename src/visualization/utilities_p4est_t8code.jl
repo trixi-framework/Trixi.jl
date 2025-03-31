@@ -318,7 +318,7 @@ function unstructured_3d_to_1d_curve(u,
     #       for linear meshes. If the mesh is not linear, we fall back to the naive
     #       but general approach.
     if length(mesh.nodes) != 2
-        return unstructured_3d_to_1d_curve_general(u, equations, solver, cache,
+        return unstructured_3d_to_1d_curve_general(u, equations, dg, cache,
                                                    curve, solution_variables)
     end
     # From here on, we know that we only have to deal with a linear mesh.
