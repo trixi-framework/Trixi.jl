@@ -670,14 +670,14 @@ function PlotData1D(u, mesh, equations, solver, cache;
                                                nvisnodes, reinterpolate)
         orientation_x = 1
     elseif ndims(mesh) == 2
-        # Create a 'PlotData2DTriangulated' object so a triangulation can be used when extracting relevant data.
-        pd = PlotData2DTriangulated(u, mesh, equations, solver, cache;
-                                    solution_variables, nvisnodes)
-        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point,
-                                                               nvisnodes)
+        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(u, mesh, equations,
+                                                               solver, cache,
+                                                               curve, slice,
+                                                               point, nvisnodes,
+                                                               solution_variables_)
     else # ndims(mesh) == 3
         # Extract the information required to create a PlotData1D object.
-        # If no curve is defined, create a axis curve.
+        # If no curve is defined, create an axis curve.
         if curve === nothing
             curve = axis_curve(view(original_nodes, 1, :, :, :, :),
                                view(original_nodes, 2, :, :, :, :),
