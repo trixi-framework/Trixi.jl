@@ -45,7 +45,7 @@ end
     end
 end
 
-@trixi_testset "TreeMesh1D: elixir_advection_diffusion_ldg.jl convergence" begin
+@timed_testset "TreeMesh1D: elixir_advection_diffusion_ldg.jl convergence" begin
     # define initial condition here to avoid "world age" issue
     function initial_condition_pure_diffusion_convergence_test(x, t, equation)
         nu = diffusivity()
