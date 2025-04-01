@@ -6,24 +6,29 @@
 #! format: noindent
 
 """
-    StepsizeCallback(; cfl=1.0)
+    StepsizeCallback(; cfl=1.0, interval = 1)
 
 Set the time step size according to a CFL condition with CFL number `cfl`
 if the time integration method isn't adaptive itself.
 
 The supplied keyword argument `cfl` must be either a `Real` number or
 a function of time `t` returning a `Real` number.
+By default, the timestep will be adjusted at every step.
+For different values of `interval`, the timestep will be adjusted every `interval` steps.
 """
 mutable struct StepsizeCallback{CflType}
     cfl_number::CflType
+    interval::Int
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:StepsizeCallback})
     @nospecialize cb # reduce precompilation time
 
     stepsize_callback = cb.affect!
-    @unpack cfl_number = stepsize_callback
-    print(io, "StepsizeCallback(cfl_number=", cfl_number, ")")
+    @unpack cfl_number, interval = stepsize_callback
+    print(io, "StepsizeCallback(",
+          "cfl_number=", cfl_number, ", ",
+          "interval=", interval, ")")
 end
 
 function Base.show(io::IO, ::MIME"text/plain",
@@ -35,15 +40,14 @@ function Base.show(io::IO, ::MIME"text/plain",
     else
         stepsize_callback = cb.affect!
 
-        setup = [
-            "CFL number" => stepsize_callback.cfl_number
-        ]
+        setup = ["CFL number" => stepsize_callback.cfl_number
+                 "Interval" => stepsize_callback.interval]
         summary_box(io, "StepsizeCallback", setup)
     end
 end
 
-function StepsizeCallback(; cfl = 1.0)
-    stepsize_callback = StepsizeCallback{typeof(cfl)}(cfl)
+function StepsizeCallback(; cfl = 1.0, interval = 1)
+    stepsize_callback = StepsizeCallback{typeof(cfl)}(cfl, interval)
 
     DiscreteCallback(stepsize_callback, stepsize_callback, # the first one is the condition, the second the affect!
                      save_positions = (false, false),
@@ -57,7 +61,11 @@ end
 
 # this method is called to determine whether the callback should be activated
 function (stepsize_callback::StepsizeCallback)(u, t, integrator)
-    return true
+    @unpack interval = stepsize_callback
+
+    # Although the CFL-based timestep is usually not used with 
+    # adaptive time integration methods, we still check the accepted steps `naccept` here.
+    return interval > 0 && integrator.stats.naccept % interval == 0
 end
 
 # This method is called as callback during the time integration.

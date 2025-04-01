@@ -816,6 +816,33 @@ end
     end
 end
 
+@trixi_testset "elixir_navierstokes_SD7003airfoil.jl (CFL-Interval)" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_SD7003airfoil.jl"),
+                        l2=[
+                            9.292895651912815e-5,
+                            0.0001350510066877861,
+                            7.964905098170568e-5,
+                            0.00023365678706785303
+                        ],
+                        linf=[
+                            0.2845614660523972,
+                            0.29577255454711177,
+                            0.19307666048254143,
+                            0.7188872358580256
+                        ],
+                        tspan=(0.0, 5e-3),
+                        stepsize_callback=StepsizeCallback(cfl = 2.2, interval = 5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_navierstokes_vortex_street.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_vortex_street.jl"),
