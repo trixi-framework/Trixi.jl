@@ -21,26 +21,29 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 n_cells_max = 30_000, # set maximum capacity of tree data structure
                 periodicity = true)
 
-# Define initial condition
-function initial_condition_diffusive_convergence_test(x, t,
-                                                      equation::LinearScalarAdvectionEquation1D)
-    # Store translated coordinate for easy use of exact solution
-    nu = diffusivity()
-    c = 0
-    A = 1
-    omega = 1
-    scalar = c + A * sin(omega * sum(x)) * exp(-nu * omega^2 * t)
-    return SVector(scalar)
+# Define initial condition if it is not defined already.
+# For CI, the function is defined externally avoid "world age" issues that arise 
+# when running `Trixi.convergence_test`. The `isdefined` check is to allow the 
+# elixir to also be run outside of CI. 
+if !isdefined(@__MODULE__, :initial_condition_pure_diffusion_convergence_test)
+    function initial_condition_pure_diffusion_convergence_test(x, t,
+                                                        equation::LinearScalarAdvectionEquation1D)
+        nu = diffusivity()
+        c = 0
+        A = 1
+        omega = 1
+        scalar = c + A * sin(omega * sum(x)) * exp(-nu * omega^2 * t)
+        return SVector(scalar)
+    end
 end
-initial_condition = initial_condition_diffusive_convergence_test
+initial_condition = initial_condition_pure_diffusion_convergence_test
 
 # define periodic boundary conditions everywhere
 boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-penalty_parameter = 1.0
-solver_parabolic = ViscousFormulationLocalDG(penalty_parameter)
+solver_parabolic = ViscousFormulationLocalDG()
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
                                              solver;
