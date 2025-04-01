@@ -2,9 +2,9 @@ using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the linear advection diffusion equation
+# semidiscretization of the linear (advection) diffusion equation
 
-advection_velocity = 0.0
+advection_velocity = 0.0 # Note: This renders the equation mathematically purely parabolic
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 diffusivity() = 0.5
 equations_parabolic = LaplaceDiffusion1D(diffusivity(), equations)
