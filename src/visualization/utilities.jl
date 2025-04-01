@@ -778,9 +778,9 @@ function calc_arc_length(coordinates)
     return arc_length
 end
 
-# Convert 2d unstructured data to 1d data at given curve.
+# Convert 2d unstructured data to 1d data at given curve for the TreeMesh.
 function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes,
-                                     curve, mesh, solver, cache)
+                                     curve, mesh::TreeMesh, solver, cache)
     n_points_curve = size(curve)[2]
     n_nodes, _, n_elements, n_variables = size(unstructured_data)
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
@@ -853,10 +853,35 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     return arc_length, data_on_curve, nothing
 end
 
-# Convert a PlotData2DTriangulate object to a 1d data along given curve.
-function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
+# Convert 2d unstructured data from a general mesh to 1d data at given curve.
+#
+# We need to loop through all the points and check in which element they are
+# located. A general implementation working for all mesh types has to perform
+# a naive loop through all nodes. Thus, we use this entry point for dispatching
+# on the `mesh` type.
+function unstructured_2d_to_1d_curve(u, mesh, equations,
+                                     solver, cache,
+                                     curve, slice,
+                                     point, nvisnodes,
+                                     solution_variables)
+    return unstructured_2d_to_1d_curve_general(u, mesh, equations,
+                                               solver, cache,
+                                               curve, slice,
+                                               point, nvisnodes,
+                                               solution_variables)
+end
 
-    # If no curve is defined, create a axis curve.
+function unstructured_2d_to_1d_curve_general(u, mesh, equations,
+                                             solver, cache,
+                                             input_curve, slice,
+                                             point, nvisnodes,
+                                             solution_variables)
+    # Create a 'PlotData2DTriangulated' object so a triangulation
+    # can be used when extracting relevant data.
+    pd = PlotData2DTriangulated(u, mesh, equations, solver, cache;
+                                solution_variables, nvisnodes)
+
+    # If no curve is defined, create an axis curve.
     if input_curve === nothing
         input_curve = axis_curve(pd.x, pd.y, nothing, slice, point, nvisnodes)
     end
