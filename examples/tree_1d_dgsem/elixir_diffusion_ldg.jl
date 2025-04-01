@@ -27,7 +27,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # elixir to also be run outside of CI. 
 if !isdefined(@__MODULE__, :initial_condition_pure_diffusion_convergence_test)
     function initial_condition_pure_diffusion_convergence_test(x, t,
-                                                        equation::LinearScalarAdvectionEquation1D)
+                                                               equation::LinearScalarAdvectionEquation1D)
         nu = diffusivity()
         c = 0
         A = 1
