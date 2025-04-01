@@ -43,6 +43,15 @@ end
     end
 end
 
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_ldg.jl convergence" begin
+    mean_convergence = convergence_test(@__MODULE__,
+                                        joinpath(examples_dir(), "tree_1d_dgsem",
+                                                 "elixir_diffusion_ldg.jl"), 3)
+    @test isapprox(mean_convergence[:l2],
+                   [4.00162],
+                   rtol = 0.05)
+end
+
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_restart.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_restart.jl"),
