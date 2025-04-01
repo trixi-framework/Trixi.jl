@@ -34,12 +34,7 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_ldg.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
-<<<<<<< HEAD
                         l2 = [9.234438322025545e-6], linf = [5.4254945236031915e-5])
-=======
-                        time_int_tol=1.0e-11,
-                        l2=[9.23443832205815e-6], linf=[5.4254917944085435e-5])
->>>>>>> jlchan/jc/add_ldg
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
