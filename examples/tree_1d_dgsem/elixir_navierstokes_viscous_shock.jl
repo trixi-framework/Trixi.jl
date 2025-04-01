@@ -145,6 +145,11 @@ boundary_condition_parabolic = BoundaryConditionNavierStokesWall(velocity_bc, he
 boundary_conditions_parabolic = (; x_neg = boundary_condition_parabolic,
                                  x_pos = boundary_condition_parabolic)
 
+# We use by default the Bassi-Rebay 1 scheme.
+# Since this is a diffusion-dominated problem, it might be better to use the LDG scheme
+# by specifying the keyword
+# solver_parabolic = ViscousFormulationLocalDG()
+# in the semidiscretization call below.
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition, solver;
                                              boundary_conditions = (boundary_conditions,
