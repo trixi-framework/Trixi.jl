@@ -26,7 +26,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # when running `Trixi.convergence_test`. The `isdefined` check is to allow the 
 # elixir to also be run outside of CI. 
 function initial_condition_pure_diffusion_1d_convergence_test(x, t,
-                                                                equation)
+                                                              equation)
     nu = diffusivity()
     c = 0
     A = 1
