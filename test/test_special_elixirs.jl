@@ -18,6 +18,24 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples")
 #! format: noindent
 
 @testset "Convergence test" begin
+    @timed_testset "TreeMesh1D: elixir_diffusion_ldg.jl convergence" begin
+        # define initial condition here to avoid "world age" issue
+        function initial_condition_pure_diffusion_convergence_test(x, t, equation)
+            nu = diffusivity()
+            c = 0
+            A = 1
+            omega = 1
+            scalar = c + A * sin(omega * sum(x)) * exp(-nu * omega^2 * t)
+            return SVector(scalar)
+        end
+        mean_convergence = convergence_test(@__MODULE__,
+                                            joinpath(examples_dir(), "tree_1d_dgsem",
+                                                     "elixir_diffusion_ldg.jl"), 3)
+        @test isapprox(mean_convergence[:l2],
+                       [4.00162],
+                       rtol = 0.05)
+    end
+    
     @timed_testset "tree_2d_dgsem" begin
         mean_convergence = convergence_test(@__MODULE__,
                                             joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
