@@ -25,9 +25,9 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # For CI, the function is defined externally avoid "world age" issues that arise 
 # when running `Trixi.convergence_test`. The `isdefined` check is to allow the 
 # elixir to also be run outside of CI. 
-if !isdefined(@__MODULE__, :initial_condition_pure_diffusion_convergence_test)
-    function initial_condition_pure_diffusion_convergence_test(x, t,
-                                                               equation::LinearScalarAdvectionEquation1D)
+if !isdefined(@__MODULE__, :initial_condition_pure_diffusion_1d_convergence_test)
+    function initial_condition_pure_diffusion_1d_convergence_test(x, t,
+                                                               equation)
         nu = diffusivity()
         c = 0
         A = 1
@@ -36,7 +36,7 @@ if !isdefined(@__MODULE__, :initial_condition_pure_diffusion_convergence_test)
         return SVector(scalar)
     end
 end
-initial_condition = initial_condition_pure_diffusion_convergence_test
+initial_condition = initial_condition_pure_diffusion_1d_convergence_test
 
 # define periodic boundary conditions everywhere
 boundary_conditions = boundary_condition_periodic
