@@ -86,6 +86,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-time_int_tol = 1.0e-10
-sol = solve(ode, RDPK3SpFSAL35(); abstol = time_int_tol, reltol = time_int_tol,
+# For CI purposes, we use fixed time-stepping for this elixir. 
+sol = solve(ode, RDPK3SpFSAL35(); dt = 1.0e-3, adaptive = false,
             ode_default_options()..., callback = callbacks)

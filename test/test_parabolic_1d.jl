@@ -34,7 +34,7 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_ldg.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
-                        l2=[9.234438331258981e-6], linf=[5.425496787692108e-5])
+                        l2=[9.234438322146518e-6], linf=[5.425491770139068e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
