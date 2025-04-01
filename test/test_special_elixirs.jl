@@ -35,7 +35,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples")
                        [4.00162],
                        rtol = 0.05)
     end
-    
+
     @timed_testset "tree_2d_dgsem" begin
         mean_convergence = convergence_test(@__MODULE__,
                                             joinpath(EXAMPLES_DIR, "tree_2d_dgsem",
