@@ -145,7 +145,7 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
             has_changed = amr_callback(integrator,
                                        only_refine = amr_callback.adapt_initial_condition_only_refine)
             iterations = iterations + 1
-            allowed_max_iterations = max(10,  max_level(amr_callback.controller))
+            allowed_max_iterations = max(10, max_level(amr_callback.controller))
             if iterations > allowed_max_iterations
                 @warn "AMR for initial condition did not settle within $(allowed_max_iterations) iterations!\n" *
                       "Consider adjusting thresholds or setting `adapt_initial_condition_only_refine`."
