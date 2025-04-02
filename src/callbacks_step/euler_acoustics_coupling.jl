@@ -130,8 +130,10 @@ function EulerAcousticsCouplingCallback(ode_euler, mean_values, alg, cfl_acousti
 
     euler_acoustics_coupling = EulerAcousticsCouplingCallback{typeof(cfl_acoustics),
                                                               typeof(mean_values),
-                                                              typeof(integrator_euler)}(StepsizeCallback(cfl_acoustics, 1),
-                                                                                        StepsizeCallback(cfl_euler, 1),
+                                                              typeof(integrator_euler)}(StepsizeCallback(cfl_acoustics,
+                                                                                                         1),
+                                                                                        StepsizeCallback(cfl_euler,
+                                                                                                         1),
                                                                                         mean_values,
                                                                                         integrator_euler)
     condition = (u, t, integrator) -> true
