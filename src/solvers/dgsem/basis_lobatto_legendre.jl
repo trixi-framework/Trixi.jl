@@ -155,6 +155,24 @@ struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
     reverse_lower::ReverseMatrix
 end
 
+"""
+    MortarL2(basis::LobattoLegendreBasis)
+
+L2-projection based mortar tailored to the [`LobattoLegendreBasis`](@ref).
+Mortars are required to handle non-conforming interfaces. 
+Currently, Trixi.jl only supports 2h-nonconforming interfaces.
+This means that all nonconforming interfaces (lines in 2D and faces in 3D) are of a 2-1 (or 1-2) coupling, i.e.,
+side A has exactly twice the number of nodes (per dimension) of side B (or vice-versa).
+
+# References
+- David A. Kopriva, (2009). 
+  Implementing spectral methods for partial differential equations:
+  Algorithms for scientists and engineers. 
+  [DOI:10.1007/978-90-481-2261-5](https://doi.org/10.1007/978-90-481-2261-5)
+- David A. Kopriva, (1996). 
+  A Conservative Staggered-Grid Chebyshev Multidomain Method for Compressible Flows. II. A Semi-Structured Method.
+  [DOI:10.1006/jcph.1996.0225](https://doi.org/10.1006/jcph.1996.0225)
+"""
 function MortarL2(basis::LobattoLegendreBasis)
     RealT = real(basis)
     nnodes_ = nnodes(basis)
@@ -196,47 +214,82 @@ function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarL2)
           polydeg(mortar))
 end
 
-@inline Base.real(mortar::LobattoLegendreMortarL2{RealT}) where {RealT} = RealT
+abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
 
-@inline function nnodes(mortar::LobattoLegendreMortarL2{RealT, NNODES}) where {RealT,
-                                                                               NNODES}
+struct LobattoLegendreMortarEC{RealT <: Real, NNODES,
+                               ForwardMatrix <: AbstractMatrix{RealT},
+                               ReverseMatrix <: AbstractMatrix{RealT}} <:
+       AbstractMortarEC{RealT}
+    forward_upper::ForwardMatrix
+    forward_lower::ForwardMatrix
+    reverse_upper::ReverseMatrix
+    reverse_lower::ReverseMatrix
+end
+
+"""
+    MortarEC(basis::LobattoLegendreBasis)
+
+!!! warning "Experimental implementation"
+    This is an experimental feature and may change in any future releases.
+    Currently only implemented for 2D [`TreeMesh`](@ref).
+
+Flux-corrected, entropy-conservative L2-projection based mortar tailored to the [`LobattoLegendreBasis`](@ref).
+Mortars are required to handle non-conforming interfaces. 
+Currently, Trixi.jl only supports 2h-nonconforming interfaces.
+This means that all nonconforming interfaces (lines in 2D and faces in 3D) are of a 2-1 (or 1-2) coupling, i.e.,
+side A has exactly twice the number of nodes (per dimension) of side B (or vice-versa).
+
+The entropy-conservative mortar is based on the [`MortarL2`](@ref) but adds a flux correction term
+to ensure that the mortar projection/interpolation operations are entropy-conservative.
+
+# References
+- Jesse Chan, Mario J. Bencomo, and David C. Del Rey Fernández (2021).
+  Mortar-based Entropy-Stable Discontinuous Galerkin Methods on Non-conforming Quadrilateral and Hexahedral Meshes.
+  [DOI:10.1007/s10915-021-01652-3](https://doi.org/10.1007/s10915-021-01652-3)
+"""
+function MortarEC(basis::LobattoLegendreBasis)
+    RealT = real(basis)
+    nnodes_ = nnodes(basis)
+
+    forward_upper = calc_forward_upper(nnodes_, RealT)
+    forward_lower = calc_forward_lower(nnodes_, RealT)
+    reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
+    reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
+
+    LobattoLegendreMortarEC{RealT, nnodes_, typeof(forward_upper),
+                            typeof(reverse_upper)}(forward_upper, forward_lower,
+                                                   reverse_upper, reverse_lower)
+end
+
+function Base.show(io::IO, mortar::LobattoLegendreMortarEC)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarEC{", real(mortar), "}(polydeg=", polydeg(mortar),
+          ")")
+end
+function Base.show(io::IO, ::MIME"text/plain", mortar::LobattoLegendreMortarEC)
+    @nospecialize mortar # reduce precompilation time
+
+    print(io, "LobattoLegendreMortarEC{", real(mortar), "} with polynomials of degree ",
+          polydeg(mortar))
+end
+
+# Shared type alias for both mortar types to enable common functions in a compact way
+const LobattoLegendreMortar{RealT, NNODES} = Union{LobattoLegendreMortarL2{RealT,
+                                                                           NNODES},
+                                                   LobattoLegendreMortarEC{RealT,
+                                                                           NNODES}}
+
+@inline Base.real(mortar::LobattoLegendreMortar{RealT}) where {RealT} = RealT
+
+@inline function nnodes(mortar::LobattoLegendreMortar{RealT, NNODES}) where {
+                                                                             RealT,
+                                                                             NNODES
+                                                                             }
     NNODES
 end
 
-@inline polydeg(mortar::LobattoLegendreMortarL2) = nnodes(mortar) - 1
-
-# TODO: We can create EC mortars along the lines of the following implementation.
-# abstract type AbstractMortarEC{RealT} <: AbstractMortar{RealT} end
-
-# struct LobattoLegendreMortarEC{RealT<:Real, NNODES, MortarMatrix<:AbstractMatrix{RealT}, SurfaceFlux} <: AbstractMortarEC{RealT}
-#   forward_upper::MortarMatrix
-#   forward_lower::MortarMatrix
-#   reverse_upper::MortarMatrix
-#   reverse_lower::MortarMatrix
-#   surface_flux::SurfaceFlux
-# end
-
-# function MortarEC(basis::LobattoLegendreBasis{RealT}, surface_flux)
-#   forward_upper   = calc_forward_upper(n_nodes, RealT)
-#   forward_lower   = calc_forward_lower(n_nodes, RealT)
-#   l2reverse_upper = calc_reverse_upper(n_nodes, Val(:gauss_lobatto), RealT)
-#   l2reverse_lower = calc_reverse_lower(n_nodes, Val(:gauss_lobatto), RealT)
-
-#   # type conversions to make use of StaticArrays etc.
-#   nnodes_ = nnodes(basis)
-#   forward_upper   = SMatrix{nnodes_, nnodes_}(forward_upper)
-#   forward_lower   = SMatrix{nnodes_, nnodes_}(forward_lower)
-#   l2reverse_upper = SMatrix{nnodes_, nnodes_}(l2reverse_upper)
-#   l2reverse_lower = SMatrix{nnodes_, nnodes_}(l2reverse_lower)
-
-#   LobattoLegendreMortarEC{RealT, nnodes_, typeof(forward_upper), typeof(surface_flux)}(
-#     forward_upper, forward_lower,
-#     l2reverse_upper, l2reverse_lower,
-#     surface_flux
-#   )
-# end
-
-# @inline nnodes(mortar::LobattoLegendreMortarEC{RealT, NNODES}) = NNODES
+@inline polydeg(mortar::LobattoLegendreMortar) = nnodes(mortar) - 1
 
 struct LobattoLegendreAnalyzer{RealT <: Real, NNODES,
                                VectorT <: AbstractVector{RealT},

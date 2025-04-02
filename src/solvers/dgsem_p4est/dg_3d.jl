@@ -519,7 +519,7 @@ function prolong2mortars!(cache, u,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
+function calc_mortar_flux!(surface_flux_values, u,
                            mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                            nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
