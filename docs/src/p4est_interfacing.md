@@ -1,7 +1,12 @@
 # Interfacing to the `p4est` mesh backend
 
 Sometimes it is necessary to send data from the solver to the mesh backend.
-First, we go through the implementation of adaptive mesh refinement (AMR) with [`p4est`](https://www.p4est.org/).
+In the case of [`p4est`](https://www.p4est.org/) these are relatively decoupled, in contrast to the other mesh types.
+
+As a disclaimer: This is neither complete nor self-contained, and is meant as a first orientation guide.
+To implement own features, you likely need to take a look at the [`p4est`](https://github.com/cburstedde/p4est), it's Julia wrapper [`P4est.jl`](https://github.com/trixi-framework/P4est.jl) and relevant parts of the [`Trixi.jl`](https://github.com/trixi-framework/Trixi.jl) source code.
+
+First, we go through the implementation of adaptive mesh refinement (AMR) with `p4est`.
 Second, we show how a custom mesh partitioning based on a weighting function can be implemented.
 
 ## Adaptive Mesh Refinement (AMR)
