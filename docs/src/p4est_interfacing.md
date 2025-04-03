@@ -5,6 +5,7 @@ In the case of [`p4est`](https://www.p4est.org/) these are relatively decoupled,
 
 As a disclaimer: This is neither complete nor self-contained, and is meant as a first orientation guide.
 To implement own features, you likely need to take a look at the [`p4est`](https://github.com/cburstedde/p4est), it's Julia wrapper [`P4est.jl`](https://github.com/trixi-framework/P4est.jl) and relevant parts of the [`Trixi.jl`](https://github.com/trixi-framework/Trixi.jl) source code.
+Additionally, the [documentation of the Julia `C` interface](https://docs.julialang.org/en/v1/base/c/) is also helpful.
 
 First, we go through the implementation of adaptive mesh refinement (AMR) with `p4est`.
 Second, we show how a custom mesh partitioning based on a weighting function can be implemented.
