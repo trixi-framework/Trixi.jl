@@ -150,7 +150,7 @@ include("visualization/visualization.jl")
 
 # export types/functions that define the public API of Trixi.jl
 
-export AcousticPerturbationEquations2D,
+export AcousticPerturbationEquations2D, AcousticPerturbationEquations2DAuxVars,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D,
        CompressibleEulerEquations3D,
        CompressibleEulerMulticomponentEquations1D,

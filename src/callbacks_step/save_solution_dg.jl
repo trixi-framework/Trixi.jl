@@ -5,6 +5,34 @@
 @muladd begin
 #! format: noindent
 
+@inline function convert_to_solution_variables(u, solution_variables, cache,
+                                               have_auxiliary_node_vars::False,
+                                               equations)
+    # Reinterpret the solution array as an array of conservative variables,
+    # compute the solution variables via broadcasting, and reinterpret the
+    # result as a plain array of floating point numbers
+    return Array(reinterpret(eltype(u),
+                             solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                                     eltype(u)}, u),
+                                                 Ref(equations))))
+end
+
+@inline function convert_to_solution_variables(u, solution_variables, cache,
+                                               have_auxiliary_node_vars::True,
+                                               equations)
+    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    # Reinterpret the solution array as an array of conservative variables,
+    # compute the solution variables via broadcasting, and reinterpret the
+    # result as a plain array of floating point numbers
+    return Array(reinterpret(eltype(u),
+                 solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                         eltype(u)}, u),
+                                     reinterpret(SVector{n_auxiliary_node_vars(equations),
+                                                         eltype(auxiliary_node_vars)},
+                                                         auxiliary_node_vars),
+                                     Ref(equations))))
+end
+
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{SerialTreeMesh, StructuredMesh,
                                         StructuredMeshView,
@@ -30,14 +58,8 @@ function save_solution_file(u, time, dt, timestep,
         data = u
         n_vars = nvariables(equations)
     else
-        # Reinterpret the solution array as an array of conservative variables,
-        # compute the solution variables via broadcasting, and reinterpret the
-        # result as a plain array of floating point numbers
-        data = Array(reinterpret(eltype(u),
-                                 solution_variables.(reinterpret(SVector{nvariables(equations),
-                                                                         eltype(u)}, u),
-                                                     Ref(equations))))
-
+        data = convert_to_solution_variables(u, solution_variables, cache,
+                                             have_auxiliary_node_vars(equations), equations)
         # Find out variable count by looking at output from `solution_variables` function
         n_vars = size(data, 1)
     end

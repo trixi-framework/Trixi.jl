@@ -44,6 +44,18 @@ end
             dissipation(u_ll, u_rr, orientation_or_normal_direction, equations))
 end
 
+@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, aux_ll, aux_rr,
+                                                orientation_or_normal_direction,
+                                                equations)
+    @unpack numerical_flux, dissipation = numflux
+
+    return (numerical_flux(u_ll, u_rr, aux_ll, aux_rr,
+                           orientation_or_normal_direction, equations)
+            +
+            dissipation(u_ll, u_rr, aux_ll, aux_rr,
+                        orientation_or_normal_direction, equations))
+end
+
 function Base.show(io::IO, f::FluxPlusDissipation)
     print(io, "FluxPlusDissipation(", f.numerical_flux, ", ", f.dissipation, ")")
 end
