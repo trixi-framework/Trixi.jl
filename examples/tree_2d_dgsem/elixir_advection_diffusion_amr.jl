@@ -4,23 +4,23 @@ using Trixi
 ###############################################################################
 # semidiscretization of the linear advection equation
 
-advection_velocity = (0.2, -0.7, 0.5)
-equations = LinearScalarAdvectionEquation3D(advection_velocity)
+advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)
 
 diffusivity() = 5.0e-4
-equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
+equations_parabolic = LaplaceDiffusion2D(diffusivity(), equations)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
-coordinates_min = (-1.0, -1.0, -1.0)
-coordinates_max = (1.0, 1.0, 1.0)
+coordinates_min = (-1.0, -1.0)
+coordinates_max = (1.0, 1.0)
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
+                initial_refinement_level = 2,
                 n_cells_max = 80_000)
 
 # Define initial condition
 function initial_condition_diffusive_convergence_test(x, t,
-                                                      equation::LinearScalarAdvectionEquation3D)
+                                                      equation::LinearScalarAdvectionEquation2D)
     # Store translated coordinate for easy use of exact solution
     x_trans = x - equation.advection_velocity * t
 
@@ -43,7 +43,7 @@ boundary_conditions_parabolic = boundary_condition_periodic
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
-                                             solver_parabolic = ViscousFormulationBassiRebay1(),
+                                             solver_parabolic = ViscousFormulationLocalDG(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
