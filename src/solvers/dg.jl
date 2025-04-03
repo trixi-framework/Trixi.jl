@@ -560,7 +560,8 @@ end
 end
 
 # Return the auxiliary variables at a given volume node index
-@inline function get_auxiliary_node_vars(auxiliary_node_vars, equations, ::DG, indices...)
+@inline function get_auxiliary_node_vars(auxiliary_node_vars, equations, ::DG,
+                                         indices...)
     return SVector(ntuple(@inline(v->auxiliary_node_vars[v, indices...]),
                           Val(n_auxiliary_node_vars(equations))))
 end

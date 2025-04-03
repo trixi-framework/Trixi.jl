@@ -329,8 +329,7 @@ Number of auxiliary variables used by `equations`. This function needs to be spe
 only if equations has auxiliary variables.
 """
 function n_auxiliary_node_vars end
-@inline eachauxiliaryvariable(equations::AbstractEquations) =
-    Base.OneTo(n_auxiliary_node_vars(equations))
+@inline eachauxiliaryvariable(equations::AbstractEquations) = Base.OneTo(n_auxiliary_node_vars(equations))
 
 """
     default_analysis_errors(equations)

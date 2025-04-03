@@ -19,17 +19,17 @@ struct AcousticPerturbationEquations2DAuxVars{RealT <: Real} <:
 end
 
 function AcousticPerturbationEquations2DAuxVars(v_mean_global::NTuple{2, <:Real},
-                                         c_mean_global::Real,
-                                         rho_mean_global::Real)
+                                                c_mean_global::Real,
+                                                rho_mean_global::Real)
     return AcousticPerturbationEquations2DAuxVars(SVector(v_mean_global), c_mean_global,
-                                           rho_mean_global)
+                                                  rho_mean_global)
 end
 
 function AcousticPerturbationEquations2DAuxVars(; v_mean_global::NTuple{2, <:Real},
-                                         c_mean_global::Real,
-                                         rho_mean_global::Real)
+                                                c_mean_global::Real,
+                                                rho_mean_global::Real)
     return AcousticPerturbationEquations2DAuxVars(SVector(v_mean_global), c_mean_global,
-                                           rho_mean_global)
+                                                  rho_mean_global)
 end
 
 have_auxiliary_node_vars(::AcousticPerturbationEquations2DAuxVars) = True()
@@ -53,7 +53,8 @@ end
 A constant initial condition where the state variables are zero and the mean flow is constant.
 Uses the global mean values from `equations`.
 """
-function initial_condition_constant(x, t, equations::AcousticPerturbationEquations2DAuxVars)
+function initial_condition_constant(x, t,
+                                    equations::AcousticPerturbationEquations2DAuxVars)
     v1_prime = 0
     v2_prime = 0
     p_prime_scaled = 0
@@ -68,7 +69,7 @@ A smooth initial condition used for convergence tests in combination with
 [`source_terms_convergence_test`](@ref). Uses the global mean values from `equations`.
 """
 function initial_condition_convergence_test(x, t,
-    equations::AcousticPerturbationEquations2DAuxVars)
+                                            equations::AcousticPerturbationEquations2DAuxVars)
     RealT = eltype(x)
     a = 1
     c = 2
@@ -119,7 +120,8 @@ end
 
 A Gaussian pulse in a constant mean flow. Uses the global mean values from `equations`.
 """
-function initial_condition_gauss(x, t, equations::AcousticPerturbationEquations2DAuxVars)
+function initial_condition_gauss(x, t,
+                                 equations::AcousticPerturbationEquations2DAuxVars)
     v1_prime = 0
     v2_prime = 0
     p_prime = exp(-4 * (x[1]^2 + x[2]^2))
@@ -311,7 +313,8 @@ end
     return max(abs(v_ll) + c_mean_ll * norm_, abs(v_rr) + c_mean_rr * norm_)
 end
 
-@inline function flux_central(u_ll, u_rr, aux_ll, aux_rr, orientation_or_normal_direction,
+@inline function flux_central(u_ll, u_rr, aux_ll, aux_rr,
+                              orientation_or_normal_direction,
                               equations::AcousticPerturbationEquations2DAuxVars)
     # Calculate regular 1D fluxes
     f_ll = flux(u_ll, aux_ll, orientation_or_normal_direction, equations)
@@ -322,10 +325,11 @@ end
 end
 
 # Specialized `DissipationLocalLaxFriedrichs` taking into account auxiliary variables
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, aux_ll, aux_rr,
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, aux_ll,
+                                                              aux_rr,
                                                               orientation_or_normal_direction,
                                                               equations::AcousticPerturbationEquations2DAuxVars)
-    λ = dissipation.max_abs_speed(u_ll, u_rr,  aux_ll, aux_rr,
+    λ = dissipation.max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
                                   orientation_or_normal_direction, equations)
     diss = -0.5f0 * λ * (u_rr - u_ll)
     return SVector(diss[1], diss[2], diss[3])
@@ -333,7 +337,8 @@ end
 
 @inline have_constant_speed(::AcousticPerturbationEquations2DAuxVars) = False()
 
-@inline function max_abs_speeds(u, aux, equations::AcousticPerturbationEquations2DAuxVars)
+@inline function max_abs_speeds(u, aux,
+                                equations::AcousticPerturbationEquations2DAuxVars)
     v1_mean, v2_mean, c_mean, _ = aux
 
     return abs(v1_mean) + c_mean, abs(v2_mean) + c_mean

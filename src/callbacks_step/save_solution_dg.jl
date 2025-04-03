@@ -25,12 +25,12 @@ end
     # compute the solution variables via broadcasting, and reinterpret the
     # result as a plain array of floating point numbers
     return Array(reinterpret(eltype(u),
-                 solution_variables.(reinterpret(SVector{nvariables(equations),
-                                                         eltype(u)}, u),
-                                     reinterpret(SVector{n_auxiliary_node_vars(equations),
-                                                         eltype(auxiliary_node_vars)},
-                                                         auxiliary_node_vars),
-                                     Ref(equations))))
+                             solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                                     eltype(u)}, u),
+                                                 reinterpret(SVector{n_auxiliary_node_vars(equations),
+                                                                     eltype(auxiliary_node_vars)},
+                                                             auxiliary_node_vars),
+                                                 Ref(equations))))
 end
 
 function save_solution_file(u, time, dt, timestep,
@@ -59,7 +59,8 @@ function save_solution_file(u, time, dt, timestep,
         n_vars = nvariables(equations)
     else
         data = convert_to_solution_variables(u, solution_variables, cache,
-                                             have_auxiliary_node_vars(equations), equations)
+                                             have_auxiliary_node_vars(equations),
+                                             equations)
         # Find out variable count by looking at output from `solution_variables` function
         n_vars = size(data, 1)
     end

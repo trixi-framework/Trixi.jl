@@ -53,7 +53,8 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
 end
 
 # Container for storing values of auxiliary variables at volume/surface quadrature nodes
-struct AuxiliaryNodeVariablesContainer{NDIMS, uEltype <: Real, NDIMSP2, AuxiliaryVariables}
+struct AuxiliaryNodeVariablesContainer{NDIMS, uEltype <: Real, NDIMSP2,
+                                       AuxiliaryVariables}
     auxiliary_node_vars::Array{uEltype, NDIMSP2}         # [var, i, j, element]
     auxiliary_surface_node_vars::Array{uEltype, NDIMSP2} # [leftright, var, i, interface]
 
@@ -68,7 +69,7 @@ end
 # Create auxiliary node variable container
 function init_auxiliary_node_variables(mesh, equations, solver, cache,
                                        auxiliary_field)
-    @unpack  elements, interfaces = cache
+    @unpack elements, interfaces = cache
 
     n_elements = nelements(elements)
     n_interfaces = ninterfaces(interfaces)
@@ -87,16 +88,19 @@ function init_auxiliary_node_variables(mesh, equations, solver, cache,
                                         2 * n_auxiliary_node_vars(equations) *
                                         nnodes(solver)^(NDIMS - 1) *
                                         n_interfaces)
-    auxiliary_surface_node_vars = unsafe_wrap(Array, pointer(_auxiliary_surface_node_vars),
+    auxiliary_surface_node_vars = unsafe_wrap(Array,
+                                              pointer(_auxiliary_surface_node_vars),
                                               (2, n_auxiliary_node_vars(equations),
-                                               ntuple(_ -> nnodes(solver), NDIMS - 1)...,
+                                               ntuple(_ -> nnodes(solver),
+                                                      NDIMS - 1)...,
                                                n_interfaces))
 
-    auxiliary_variables =
-        AuxiliaryNodeVariablesContainer{NDIMS, uEltype, NDIMS + 2, typeof(auxiliary_field)}(
-        auxiliary_node_vars, auxiliary_surface_node_vars,
-        _auxiliary_node_vars, _auxiliary_surface_node_vars,
-        auxiliary_field)
+    auxiliary_variables = AuxiliaryNodeVariablesContainer{NDIMS, uEltype, NDIMS + 2,
+                                                          typeof(auxiliary_field)}(auxiliary_node_vars,
+                                                                                   auxiliary_surface_node_vars,
+                                                                                   _auxiliary_node_vars,
+                                                                                   _auxiliary_surface_node_vars,
+                                                                                   auxiliary_field)
 
     init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, solver, cache,
                                    auxiliary_field)

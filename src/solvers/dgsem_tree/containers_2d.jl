@@ -1455,20 +1455,28 @@ function init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equat
             # interface in x-direction
             for j in eachnode(solver)
                 for v in axes(auxiliary_surface_node_vars, 2)
-                    auxiliary_surface_node_vars[1, v, j, interface] =
-                    auxiliary_node_vars[v, nnodes(solver), j, left_element]
-                    auxiliary_surface_node_vars[2, v, j, interface] =
-                    auxiliary_node_vars[v, 1, j, right_element]
+                    auxiliary_surface_node_vars[1, v, j, interface] = auxiliary_node_vars[v,
+                                                                                          nnodes(solver),
+                                                                                          j,
+                                                                                          left_element]
+                    auxiliary_surface_node_vars[2, v, j, interface] = auxiliary_node_vars[v,
+                                                                                          1,
+                                                                                          j,
+                                                                                          right_element]
                 end
             end
         else # if orientations[interface] == 2
             # interface in y-direction
             for i in eachnode(solver)
                 for v in axes(auxiliary_surface_node_vars, 2)
-                    auxiliary_surface_node_vars[1, v, i, interface] =
-                    auxiliary_node_vars[v, i, nnodes(solver), left_element]
-                    auxiliary_surface_node_vars[2, v, i, interface] =
-                    auxiliary_node_vars[v, i, 1, right_element]
+                    auxiliary_surface_node_vars[1, v, i, interface] = auxiliary_node_vars[v,
+                                                                                          i,
+                                                                                          nnodes(solver),
+                                                                                          left_element]
+                    auxiliary_surface_node_vars[2, v, i, interface] = auxiliary_node_vars[v,
+                                                                                          i,
+                                                                                          1,
+                                                                                          right_element]
                 end
             end
         end

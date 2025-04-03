@@ -41,7 +41,8 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
 end
 
 @trixi_testset "elixir_acoustics_convergence_auxvars.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_convergence_auxvars.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_acoustics_convergence_auxvars.jl"),
                         l2=[
                             0.0019921138796370834,
                             0.002090394698052287,
@@ -143,7 +144,8 @@ end
 end
 
 @trixi_testset "elixir_acoustics_gauss_wall_auxvars.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss_wall_auxvars.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_acoustics_gauss_wall_auxvars.jl"),
                         l2=[0.019419398248465843, 0.019510701017551826,
                             0.04818246051887614],
                         linf=[0.18193631937316496, 0.1877464607867628,

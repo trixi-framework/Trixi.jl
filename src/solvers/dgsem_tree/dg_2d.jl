@@ -324,7 +324,6 @@ end
     end
 end
 
-
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{2},
                                            nonconservative_terms::False,
@@ -441,16 +440,17 @@ function calc_volume_integral!(du, u,
 
         if dg_only
             flux_differencing_kernel!(du, u, element, mesh,
-            have_nonconservative_terms(equations), equations,
+                                      have_nonconservative_terms(equations), equations,
                                       volume_flux_dg, dg, cache)
         else
             # Calculate DG volume integral contribution
             flux_differencing_kernel!(du, u, element, mesh,
-            have_nonconservative_terms(equations), equations,
+                                      have_nonconservative_terms(equations), equations,
                                       volume_flux_dg, dg, cache, 1 - alpha_element)
 
             # Calculate FV volume integral contribution
-            fv_kernel!(du, u, mesh, have_nonconservative_terms(equations), equations, volume_flux_fv,
+            fv_kernel!(du, u, mesh, have_nonconservative_terms(equations), equations,
+                       volume_flux_fv,
                        dg, cache, element, alpha_element)
         end
     end
@@ -470,7 +470,8 @@ function calc_volume_integral!(du, u,
 
     # Calculate LGL FV volume integral
     @threaded for element in eachelement(dg, cache)
-        fv_kernel!(du, u, mesh, have_nonconservative_terms(equations), equations, volume_flux_fv,
+        fv_kernel!(du, u, mesh, have_nonconservative_terms(equations), equations,
+                   volume_flux_fv,
                    dg, cache, element, true)
     end
 
@@ -711,8 +712,9 @@ function calc_interface_flux!(surface_flux_values,
         for i in eachnode(dg)
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-            aux_ll, aux_rr = get_auxiliary_surface_node_vars(
-                auxiliary_surface_node_vars, equations, dg, i, interface)
+            aux_ll, aux_rr = get_auxiliary_surface_node_vars(auxiliary_surface_node_vars,
+                                                             equations, dg, i,
+                                                             interface)
             flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr,
                                 orientations[interface], equations)
             # Copy flux to left and right element storage
