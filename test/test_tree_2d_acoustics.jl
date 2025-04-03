@@ -40,6 +40,28 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_2d_dgsem")
     end
 end
 
+@trixi_testset "elixir_acoustics_convergence_auxvars.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_convergence_auxvars.jl"),
+                        l2=[
+                            0.0019921138796370834,
+                            0.002090394698052287,
+                            0.0006091925854593805
+                        ],
+                        linf=[
+                            0.00769282588065634,
+                            0.008276649669227254,
+                            0.004196479023954813
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_acoustics_gauss.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss.jl"),
                         l2=[
@@ -110,6 +132,22 @@ end
                             1.0355388011792845,
                             2.220446049250313e-16, 0.0, 4.440892098500626e-16,
                             4.440892098500626e-16])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_acoustics_gauss_wall_auxvars.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_acoustics_gauss_wall_auxvars.jl"),
+                        l2=[0.019419398248465843, 0.019510701017551826,
+                            0.04818246051887614],
+                        linf=[0.18193631937316496, 0.1877464607867628,
+                            1.0355388011792845])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
