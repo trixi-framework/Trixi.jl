@@ -98,7 +98,7 @@ function rhs_parabolic!(du, u, t, mesh::Union{TreeMesh{2}, TreeMesh{3}},
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache_parabolic.elements.surface_flux_values,
                           mesh, equations_parabolic, dg.mortar, dg.surface_integral,
-                          dg, parabolic_scheme, cache)
+                          dg, parabolic_scheme, Divergence(), cache)
     end
 
     # Calculate surface integrals
@@ -624,7 +624,8 @@ function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
                            equations_parabolic::AbstractEquationsParabolic,
                            mortar_l2::LobattoLegendreMortarL2,
-                           surface_integral, dg::DG, parabolic_scheme,
+                           surface_integral, dg::DG,
+                           parabolic_scheme, gradient_or_divergence,
                            cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
@@ -637,12 +638,12 @@ function calc_mortar_flux!(surface_flux_values,
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_upper, equations_parabolic, surface_flux,
-                    dg, parabolic_scheme, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_lower, equations_parabolic, surface_flux,
-                    dg, parabolic_scheme, u_lower, mortar,
-                    orientation)
+        calc_fstar!(fstar_upper, mesh, equations_parabolic, surface_flux,
+                    dg, parabolic_scheme, gradient_or_divergence,
+                    u_upper, mortar, orientation)
+        calc_fstar!(fstar_lower, mesh, equations_parabolic, surface_flux,
+                    dg, parabolic_scheme, gradient_or_divergence,
+                    u_lower, mortar, orientation)
 
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations_parabolic, mortar_l2, dg, cache,
@@ -653,16 +654,17 @@ function calc_mortar_flux!(surface_flux_values,
 end
 
 @inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
-                             equations_parabolic::AbstractEquationsParabolic,
+                             mesh, equations_parabolic::AbstractEquationsParabolic,
                              surface_flux, dg::DGSEM,
-                             parabolic_scheme,
+                             parabolic_scheme, gradient_or_divergence,
                              u_interfaces, interface, orientation)
     for i in eachnode(dg)
         # Call pointwise two-point numerical flux function
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations_parabolic, dg, i,
                                            interface)
 
-        flux = 0.5f0 * (u_ll + u_rr) # Bassi-Rebay 1 (BR1)
+        flux = flux_parabolic(u_ll, u_rr, gradient_or_divergence,
+                              mesh, equations_parabolic, parabolic_scheme)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations_parabolic, dg, i)
@@ -856,8 +858,8 @@ function calc_gradient!(gradients, u_transformed, t,
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(surface_flux_values, mesh, equations_parabolic,
-                          dg.mortar, dg.surface_integral, dg, parabolic_scheme,
-                          cache)
+                          dg.mortar, dg.surface_integral, dg,
+                          parabolic_scheme, Gradient(), cache)
     end
 
     # Calculate surface integrals
