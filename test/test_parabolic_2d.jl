@@ -270,10 +270,9 @@ end
     end
 end
 
-@trixi_testset "TreeMesh2D: elixir_advection_diffusion_amr.jl (LDG)" begin
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_amr.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_advection_diffusion_amr.jl"),
-                        solver_parabolic=ViscousFormulationLocalDG(),
                         initial_refinement_level=2,
                         base_level=2,
                         med_level=3,
