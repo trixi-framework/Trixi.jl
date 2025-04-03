@@ -54,6 +54,11 @@ function StepsizeCallback(; cfl = 1.0, interval = 1)
                      initialize = initialize!)
 end
 
+# Compatibility constructor
+function StepsizeCallback(cfl)
+    StepsizeCallback{typeof(cfl)}(cfl, 1)
+end
+
 function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
                      integrator) where {Condition, Affect! <: StepsizeCallback}
     cb.affect!(integrator)
