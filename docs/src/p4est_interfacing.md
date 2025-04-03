@@ -53,7 +53,7 @@ function copy_to_quad_iter_volume(info, user_data)
     return nothing
 end
 ```
-This function is then converted to a `C` function to match the required syntax of the [`p4est_iter_volume_t`](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html) function:
+This function is then converted to a `C` function to match the required syntax of the [`p4est_iter_volume_t`](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html)/[`p8est_iter_volume_t`](https://p4est.github.io/api/p4est-latest/p8est__iterate_8h.html#a4b19423fb264c674bd4deaf5a7194758) function:
 ```C
 /** The prototype for a function that p4est_iterate will execute at every
  * quadrant local to the current process.
@@ -61,6 +61,14 @@ This function is then converted to a `C` function to match the required syntax o
  * \param [in,out] user_data the user context passed to p4est_iterate()
  */
 typedef void (*p4est_iter_volume_t) (p4est_iter_volume_info_t * info,
+                                     void *user_data);
+
+/** The prototype for a function that p8est_iterate() will execute at every
+ * quadrant local to the current process.
+ * \param [in] info          information about a quadrant provided to the user
+ * \param [in,out] user_data the user context passed to p8est_iterate()
+ */
+typedef void (*p8est_iter_volume_t) (p8est_iter_volume_info_t * info,
                                      void *user_data);
 ```
 To handle both 2D (which is the canonical `p4est`) and 3D (which is within the `p4est` library referred to as `p8est`) a dispatch on the mesh dimensionality is included:
@@ -96,7 +104,7 @@ iterate_p4est(mesh.p4est, # The p4est mesh
 ```
 
 Now, during the `refine!` or `coarsen!` calls (which eventually call [`refine_fn`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#a1a31375edfa42b5609e7656233c32cca)/[`coarsen_fn`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#ad250f4765d9778ec3940e9fabea7c853) from `p4est`) the indicator values are available in the user data of the quadrants/cells/elements.
-In particular, again a function needs to be provided that matches the signature of the [`p4est_refine_t` function](https://p4est.github.io/api/p4est-latest/p4est_8h.html#ad6f6d433abde78f20ea267e6aebea26a)
+In particular, again a function needs to be provided that matches the signature of the [`p4est_refine_t`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#ad6f6d433abde78f20ea267e6aebea26a)/[`p8est_refine_t`](https://p4est.github.io/api/p4est-latest/p8est_8h.html#a24565b65860e156a04ba8ccc6f67a936) function
 ```C
 /** Callback function prototype to decide for refinement.
  * \param [in] p4est       the forest
@@ -107,6 +115,16 @@ In particular, again a function needs to be provided that matches the signature 
 typedef int (*p4est_refine_t) (p4est_t * p4est,
                                p4est_topidx_t which_tree,
                                p4est_quadrant_t * quadrant);
+
+/** Callback function prototype to decide for refinement.
+ * \param [in] p8est       the forest
+ * \param [in] which_tree  the tree containing \a quadrant
+ * \param [in] quadrant    the quadrant that may be refined
+ * \return nonzero if the quadrant shall be refined.
+ */
+typedef int (*p8est_refine_t) (p8est_t * p8est,
+                               p4est_topidx_t which_tree,
+                               p8est_quadrant_t * quadrant);
 ```
 which is implemented as 
 ```julia
@@ -212,6 +230,18 @@ Similar to the `refine_fn` function, `p4est` requires a [weighting function with
 typedef int (*p4est_weight_t) (p4est_t * p4est,
                                p4est_topidx_t which_tree,
                                p4est_quadrant_t * quadrant);
+```
+Again, the [3D version](https://p4est.github.io/api/p4est-latest/p8est_8h.html#a065466172704df28878d8535b98965a1) is very similar:
+```C
+/** Callback function prototype to calculate weights for partitioning.
+ * \param [in] p8est       the forest
+ * \param [in] which_tree  the tree containing \a quadrant
+ * \return a 32bit integer >= 0 as the quadrant weight.
+ * \note    Global sum of weights must fit into a 64bit integer.
+ */
+typedef int (*p8est_weight_t) (p8est_t * p8est,
+                               p4est_topidx_t which_tree,
+                               p8est_quadrant_t * quadrant);
 ```
 
 The equivalent Julia function is then very simply implemented as
