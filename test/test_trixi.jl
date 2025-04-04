@@ -174,8 +174,12 @@ after execution.
 """
 macro timed_testset(name, expr)
     @assert name isa String
+    filename = string(__source__.file)
+    lineno = string(__source__.line)
     quote
         local time_start = time_ns()
+        println("::notice file=", $filename, ",line=", $lineno, ",title=", $name, "::")
+        println("::group::", $name)
         @testset $name $expr
         local time_stop = time_ns()
         if Trixi.mpi_isroot()
@@ -184,6 +188,7 @@ macro timed_testset(name, expr)
                   *string(1.0e-9 * (time_stop - time_start))*" seconds.\n")
             flush(stdout)
         end
+        println("::endgroup::")
     end
 end
 
@@ -197,6 +202,8 @@ of the testset similarly to [`timed_testset`](@ref).
 """
 macro trixi_testset(name, expr)
     @assert name isa String
+    filename = string(__source__.file)
+    lineno = string(__source__.line)
     # TODO: `@eval` is evil
     # We would like to use
     #   mod = gensym(name)
@@ -220,6 +227,8 @@ macro trixi_testset(name, expr)
         catch
             nothing
         end
+        println("::notice file=", $filename, ",line=", $lineno, ",title=", $name, "::")
+        println("::group::", $name)
         @testset $name $expr
         end
         local time_stop = time_ns()
@@ -228,6 +237,7 @@ macro trixi_testset(name, expr)
             @info("Testset "*$name*" finished in "
                   *string(1.0e-9 * (time_stop - time_start))*" seconds.\n")
         end
+        println("::endgroup::")
         nothing
     end
 end
