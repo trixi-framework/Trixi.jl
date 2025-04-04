@@ -184,7 +184,6 @@ macro timed_testset(name, expr)
         if CI_ON_GITHUB
             println("::group::>>> Running testset '", $name, "'...")
             println("Testset started at ", $filename, ":", $lineno)
-            println("::notice file=test/test_trixi.jl,line=236::Something to note")
         end
         @testset $name $expr
         local time_stop = time_ns()
@@ -239,7 +238,6 @@ macro trixi_testset(name, expr)
         if CI_ON_GITHUB
             println("::group::>>> Running testset '", $name, "'...")
             println("Testset started at ", $filename, ":", $lineno)
-            println("::notice file=test/test_trixi.jl,line=236::Something to note")
         end
         @testset $name $expr
         end
