@@ -249,6 +249,10 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                 Trixi.mpi_isroot() &&
                     println("elixir_euler_ec.jl with error-based step size control")
 
+                # Use callbacks without stepsize_callback to test error-based step size control
+                callbacks = CallbackSet(summary_callback,
+                                        analysis_callback, alive_callback,
+                                        save_solution)
                 sol = solve(ode, RDPK3SpFSAL35(); abstol = 1.0e-4, reltol = 1.0e-4,
                             ode_default_options()..., callback = callbacks)
                 summary_callback()
