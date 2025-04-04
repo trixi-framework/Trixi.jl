@@ -6,7 +6,8 @@
 #! format: noindent
 
 function max_dt(u, t, mesh::TreeMesh{2},
-                constant_speed::False, equations, dg::DG, cache)
+                constant_speed::False, have_auxiliary_node_vars::False,
+                equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
@@ -28,7 +29,34 @@ function max_dt(u, t, mesh::TreeMesh{2},
 end
 
 function max_dt(u, t, mesh::TreeMesh{2},
-                constant_speed::True, equations, dg::DG, cache)
+                constant_speed::False, have_auxiliary_node_vars::True,
+                equations, dg::DG, cache)
+    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    # to avoid a division by zero if the speed vanishes everywhere,
+    # e.g. for steady-state linear advection
+    max_scaled_speed = nextfloat(zero(t))
+
+    @batch reduction=(max, max_scaled_speed) for element in eachelement(dg, cache)
+        max_lambda1 = max_lambda2 = zero(max_scaled_speed)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            aux_node = get_auxiliary_node_vars(auxiliary_node_vars,
+                                               equations, dg, i, j, element)
+            lambda1, lambda2 = max_abs_speeds(u_node, aux_node, equations)
+            max_lambda1 = max(max_lambda1, lambda1)
+            max_lambda2 = max(max_lambda2, lambda2)
+        end
+        inv_jacobian = cache.elements.inverse_jacobian[element]
+        max_scaled_speed = max(max_scaled_speed,
+                               inv_jacobian * (max_lambda1 + max_lambda2))
+    end
+
+    return 2 / (nnodes(dg) * max_scaled_speed)
+end
+
+function max_dt(u, t, mesh::TreeMesh{2},
+                constant_speed::True, have_auxiliary_node_vars::False,
+                equations, dg::DG, cache)
     # to avoid a division by zero if the speed vanishes everywhere,
     # e.g. for steady-state linear advection
     max_scaled_speed = nextfloat(zero(t))
