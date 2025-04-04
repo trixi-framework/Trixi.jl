@@ -180,7 +180,7 @@ macro timed_testset(name, expr)
         local time_start = time_ns()
         println("::notice file=", $filename, ",line=", $lineno, ",endLine=", $lineno, "::", $name)
         println("::group::", $name)
-        println("Testset started at: ", $file, ":", $lineno)
+        println(">>> Testset started at ", $filename, ":", $lineno)
         @testset $name $expr
         local time_stop = time_ns()
         if Trixi.mpi_isroot()
@@ -231,7 +231,7 @@ macro trixi_testset(name, expr)
         println("::notice file=", $filename, ",line=", $lineno, ",endLine=", $lineno, "::", $name)
         println("::group::", $name)
         println("notice file=", $filename, ",line=", $lineno, ",endLine=", $lineno, "::", $name)
-        println("Testset started at: ", $file, ":", $lineno)
+        println(">>> Testset started at ", $filename, ":", $lineno)
         @testset $name $expr
         end
         local time_stop = time_ns()
