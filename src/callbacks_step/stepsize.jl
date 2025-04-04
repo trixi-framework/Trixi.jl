@@ -76,7 +76,7 @@ end
 # This method is called as callback during the time integration.
 @inline function (stepsize_callback::StepsizeCallback)(integrator)
     if integrator.opts.adaptive
-        error("StepsizeCallback has no effect when using an adaptive time integration scheme")
+        throw(ArgumentError("The `StepsizeCallback` has no effect when using an adaptive time integration scheme. Please remove the `StepsizeCallback` or set `adaptive = false` in `solve`."))
     end
 
     t = integrator.t

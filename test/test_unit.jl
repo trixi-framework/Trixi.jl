@@ -687,8 +687,8 @@ end
                                             "elixir_advection_diffusion.jl"),
                                    tspan = (0, 0.05))
 
-    @test_throws ErrorException solve(ode, alg; ode_default_options()...,
-                                      callback = StepsizeCallback(cfl = 1.0))
+    @test_throws ArgumentError solve(ode, alg; ode_default_options()...,
+                                     callback = StepsizeCallback(cfl = 1.0))
 end
 
 @timed_testset "TimeSeriesCallback" begin
