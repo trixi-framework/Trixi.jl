@@ -27,9 +27,11 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49
         Trixi.mpi_isroot() && println("═"^100)
         Trixi.mpi_isroot() &&
-            println(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"))
+            println(joinpath(EXAMPLES_DIR,
+                             "elixir_advection_timeintegration_adaptive.jl"))
         trixi_include(@__MODULE__,
-                      joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"),
+                      joinpath(EXAMPLES_DIR,
+                               "elixir_advection_timeintegration_adaptive.jl"),
                       alg = RDPK3SpFSAL49(), tspan = (0.0, 10.0))
         l2_expected, linf_expected = analysis_callback(sol)
 

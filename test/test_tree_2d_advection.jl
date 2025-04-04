@@ -44,7 +44,9 @@ end
     using OrdinaryDiffEqSSPRK: SSPRK43
     println("═"^100)
     println(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"))
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"),
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_advection_timeintegration_adaptive.jl"),
                   alg = SSPRK43(), tspan = (0.0, 10.0))
     l2_expected, linf_expected = analysis_callback(sol)
 
