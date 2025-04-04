@@ -3,7 +3,8 @@ import Trixi
 
 const CI_ON_GITHUB = get(ENV, "GITHUB_ACTIONS", false) == "true"
 const GITHUB_BASE_URL = get(ENV, "GITHUB_SERVER_URL", "https://github.com") *
-    "/" * get(ENV, "GITHUB_REPOSITORY", "") * "/blob/" * get(ENV, "GITHUB_SHA", "") * "/"
+                        "/" * get(ENV, "GITHUB_REPOSITORY", "") * "/blob/" *
+                        get(ENV, "GITHUB_SHA", "") * "/"
 const GITHUB_TEST_URL = GITHUB_BASE_URL * "test/"
 
 # Use a macro to avoid world age issues when defining new initial conditions etc.
