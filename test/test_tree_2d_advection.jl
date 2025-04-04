@@ -43,8 +43,8 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     using OrdinaryDiffEqSSPRK: SSPRK43
     println("═"^100)
-    println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+    println(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"))
+    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"),
                   alg = SSPRK43(), tspan = (0.0, 10.0))
     l2_expected, linf_expected = analysis_callback(sol)
 
@@ -52,7 +52,8 @@ end
     println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
     # Errors are exactly the same as in the elixir_advection_extended.jl
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-                  alg = SSPRK43())
+                  alg = SSPRK43(),
+                  base_elixir = "elixir_advection_timeintegration_adaptive.jl")
     l2_actual, linf_actual = analysis_callback(sol)
 
     @test l2_actual == l2_expected
