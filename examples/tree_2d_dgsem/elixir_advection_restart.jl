@@ -5,7 +5,8 @@ using Trixi
 # Define time integration algorithm
 alg = CarpenterKennedy2N54(williamson_condition = false)
 # Create a restart file
-trixi_include(@__MODULE__, joinpath(@__DIR__, "elixir_advection_extended.jl"), alg = alg,
+base_elixir = "elixir_advection_extended.jl"
+trixi_include(@__MODULE__, joinpath(@__DIR__, base_elixir), alg = alg,
               tspan = (0.0, 10.0))
 
 ###############################################################################
