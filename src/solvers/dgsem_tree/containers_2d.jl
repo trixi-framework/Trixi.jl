@@ -1425,8 +1425,8 @@ end
 
 # Initialize auxiliary node variables (2D implementation)
 function init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, solver,
-                                        cache, auxiliary_field)
-    @unpack auxiliary_node_vars = auxiliary_variables
+                                        cache)
+    @unpack auxiliary_node_vars, auxiliary_field = auxiliary_variables
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(solver, cache)

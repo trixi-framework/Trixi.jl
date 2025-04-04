@@ -34,6 +34,16 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
         init_mortars!(mortars, elements, mesh)
     end
 
+    # re-initialize auxiliary variables container
+    if hasproperty(cache, :auxiliary_variables)
+        @unpack auxiliary_variables = cache
+        resize!(auxiliary_variables, length(leaf_cell_ids),
+                count_required_interfaces(mesh, leaf_cell_ids))
+        init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, dg, cache)
+        init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equations, dg,
+                                               cache)
+    end
+
     if mpi_isparallel()
         # re-initialize mpi_interfaces container
         @unpack mpi_interfaces = cache
@@ -53,8 +63,8 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
 end
 
 # Container for storing values of auxiliary variables at volume/surface quadrature nodes
-struct AuxiliaryNodeVariablesContainer{NDIMS, uEltype <: Real, NDIMSP2,
-                                       AuxiliaryVariables}
+mutable struct AuxiliaryNodeVariablesContainer{NDIMS, uEltype <: Real, NDIMSP2,
+                                               AuxiliaryVariables}
     auxiliary_node_vars::Array{uEltype, NDIMSP2}         # [var, i, j, element]
     auxiliary_surface_node_vars::Array{uEltype, NDIMSP2} # [leftright, var, i, interface]
 
@@ -65,6 +75,11 @@ struct AuxiliaryNodeVariablesContainer{NDIMS, uEltype <: Real, NDIMSP2,
     # save initialization function
     auxiliary_field::AuxiliaryVariables
 end
+
+nvariables(auxiliary_variables::AuxiliaryNodeVariablesContainer) = size(auxiliary_variables.auxiliary_node_vars,
+                                                                        1)
+nnodes(auxiliary_variables::AuxiliaryNodeVariablesContainer) = size(auxiliary_variables.auxiliary_node_vars,
+                                                                    2)
 
 # Create auxiliary node variable container
 function init_auxiliary_node_variables(mesh, equations, solver, cache,
@@ -102,11 +117,41 @@ function init_auxiliary_node_variables(mesh, equations, solver, cache,
                                                                                    _auxiliary_surface_node_vars,
                                                                                    auxiliary_field)
 
-    init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, solver, cache,
-                                   auxiliary_field)
+    init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, solver, cache)
     init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equations, solver,
                                            cache)
     return auxiliary_variables
+end
+
+# Only one-dimensional `Array`s are `resize!`able in Julia.
+# Hence, we use `Vector`s as internal storage and `resize!`
+# them whenever needed. Then, we reuse the same memory by
+# `unsafe_wrap`ping multi-dimensional `Array`s around the
+# internal storage.
+function Base.resize!(auxiliary_variables::AuxiliaryNodeVariablesContainer{NDIMS},
+                      capacity_node_vars, capacity_node_surface_vars) where {NDIMS}
+    @unpack _auxiliary_node_vars, _auxiliary_surface_node_vars = auxiliary_variables
+    n_nodes = nnodes(auxiliary_variables)
+    n_variables = nvariables(auxiliary_variables)
+
+    resize!(_auxiliary_node_vars, n_variables * n_nodes^NDIMS * capacity_node_vars)
+    auxiliary_variables.auxiliary_node_vars = unsafe_wrap(Array,
+                                                          pointer(_auxiliary_node_vars),
+                                                          (n_variables,
+                                                           ntuple(_ -> n_nodes,
+                                                                  NDIMS)...,
+                                                           capacity_node_vars))
+
+    resize!(_auxiliary_surface_node_vars,
+            2 * n_variables * n_nodes^(NDIMS - 1) *
+            capacity_node_surface_vars)
+    auxiliary_variables.auxiliary_surface_node_vars = unsafe_wrap(Array,
+                                                                  pointer(_auxiliary_surface_node_vars),
+                                                                  (2, n_variables,
+                                                                   ntuple(_ -> n_nodes,
+                                                                          NDIMS - 1)...,
+                                                                   capacity_node_surface_vars))
+    return nothing
 end
 
 # Dimension-specific implementations

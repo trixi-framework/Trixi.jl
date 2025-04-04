@@ -1084,14 +1084,16 @@ function calc_mortar_flux!(surface_flux_values,
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
+        calc_fstar!(fstar_primary_upper, have_auxiliary_node_vars(equations), equations,
+                    surface_flux, dg, u_upper, mortar, orientation, cache)
+        calc_fstar!(fstar_primary_lower, have_auxiliary_node_vars(equations), equations,
+                    surface_flux, dg, u_lower, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_upper, have_auxiliary_node_vars(equations),
+                    equations,
+                    surface_flux, dg, u_upper, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_lower, have_auxiliary_node_vars(equations),
+                    equations,
+                    surface_flux, dg, u_lower, mortar, orientation, cache)
 
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache,
@@ -1121,14 +1123,16 @@ function calc_mortar_flux!(surface_flux_values,
 
         # Calculate fluxes
         orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
+        calc_fstar!(fstar_primary_upper, have_auxiliary_node_vars(equations), equations,
+                    surface_flux, dg, u_upper, mortar, orientation, cache)
+        calc_fstar!(fstar_primary_lower, have_auxiliary_node_vars(equations), equations,
+                    surface_flux, dg, u_lower, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_upper, have_auxiliary_node_vars(equations),
+                    equations,
+                    surface_flux, dg, u_upper, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_lower, have_auxiliary_node_vars(equations),
+                    equations,
+                    surface_flux, dg, u_lower, mortar, orientation, cache)
 
         # Add nonconservative fluxes.
         # These need to be adapted on the geometry (left/right) since the order of
@@ -1208,13 +1212,33 @@ function calc_mortar_flux!(surface_flux_values,
     return nothing
 end
 
-@inline function calc_fstar!(destination::AbstractArray{<:Any, 2}, equations,
+@inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
+                             have_auxiliary_node_vars::False, equations,
                              surface_flux, dg::DGSEM,
-                             u_interfaces, interface, orientation)
+                             u_interfaces, interface, orientation, cache)
     for i in eachnode(dg)
         # Call pointwise two-point numerical flux function
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations, dg, i, interface)
         flux = surface_flux(u_ll, u_rr, orientation, equations)
+
+        # Copy flux to left and right element storage
+        set_node_vars!(destination, flux, equations, dg, i)
+    end
+
+    return nothing
+end
+
+@inline function calc_fstar!(destination::AbstractArray{<:Any, 2},
+                             have_auxiliary_node_vars::True, equations,
+                             surface_flux, dg::DGSEM,
+                             u_interfaces, interface, orientation, cache)
+    @unpack auxiliary_surface_node_vars = cache.auxiliary_variables
+    for i in eachnode(dg)
+        # Call pointwise two-point numerical flux function
+        u_ll, u_rr = get_surface_node_vars(u_interfaces, equations, dg, i, interface)
+        aux_ll, aux_rr = get_auxiliary_surface_node_vars(auxiliary_surface_node_vars,
+                                                         equations, dg, i, interface)
+        flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr, orientation, equations)
 
         # Copy flux to left and right element storage
         set_node_vars!(destination, flux, equations, dg, i)
