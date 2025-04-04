@@ -680,6 +680,17 @@ end
     end
 end
 
+@timed_testset "StepsizeCallback" begin
+    # Ensure a proper error is thrown if used with adaptive time integration schemes
+    @test_nowarn_mod trixi_include(@__MODULE__,
+                                   joinpath(examples_dir(), "tree_2d_dgsem",
+                                            "elixir_advection_diffusion.jl"),
+                                   tspan = (0, 0.05))
+
+    @test_throws ErrorException solve(ode, alg; ode_default_options()...,
+                                      callback = StepsizeCallback(cfl = 1.0))
+end
+
 @timed_testset "TimeSeriesCallback" begin
     # Test the 2D TreeMesh version of the callback and some warnings
     @test_nowarn_mod trixi_include(@__MODULE__,

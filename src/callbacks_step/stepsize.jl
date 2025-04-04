@@ -75,21 +75,21 @@ end
 
 # This method is called as callback during the time integration.
 @inline function (stepsize_callback::StepsizeCallback)(integrator)
-    # TODO: Taal decide, shall we set the time step even if the integrator is adaptive?
-    if !integrator.opts.adaptive
-        t = integrator.t
-        u_ode = integrator.u
-        semi = integrator.p
-        @unpack cfl_number = stepsize_callback
-
-        # Dispatch based on semidiscretization
-        dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number,
-                                                               semi)
-
-        set_proposed_dt!(integrator, dt)
-        integrator.opts.dtmax = dt
-        integrator.dtcache = dt
+    if integrator.opts.adaptive
+        error("StepsizeCallback has no effect when using an adaptive time integration scheme")
     end
+
+    t = integrator.t
+    u_ode = integrator.u
+    semi = integrator.p
+    @unpack cfl_number = stepsize_callback
+
+    # Dispatch based on semidiscretization
+    dt = @trixi_timeit timer() "calculate dt" calculate_dt(u_ode, t, cfl_number, semi)
+
+    set_proposed_dt!(integrator, dt)
+    integrator.opts.dtmax = dt
+    integrator.dtcache = dt
 
     # avoid re-evaluating possible FSAL stages
     u_modified!(integrator, false)
