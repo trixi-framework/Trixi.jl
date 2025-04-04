@@ -82,11 +82,8 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-visualization = VisualizationCallback(interval = 5, show_mesh = true,
-                                      variable_names = ["v1_prime", "v2_prime", "p_prime"])
-
 # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
-callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, #visualization,
+callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
                         amr_callback, stepsize_callback)
 
 ###############################################################################
