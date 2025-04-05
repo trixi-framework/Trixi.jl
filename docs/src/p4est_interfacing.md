@@ -1,34 +1,35 @@
-# Interfacing to the `p4est` mesh backend
+# Interfacing with the `p4est` mesh backend
 
-Sometimes it is necessary to send data from the solver to the mesh backend.
-In the case of [`p4est`](https://www.p4est.org/) these are relatively decoupled, in contrast to the other mesh types.
+Sometimes it is necessary to exchange data between the solver and the mesh.
+In the case of the [`P4estMesh`](@ref) and its [`p4est`](https://www.p4est.org/), this is more intricate than with other mesh types, since the p4est backend
+is comparatively opaque to the rest of the code due to being a compiled C library.
 
 As a disclaimer: This is neither complete nor self-contained, and is meant as a first orientation guide.
-To implement own features, you likely need to take a look at the [`p4est`](https://github.com/cburstedde/p4est), it's Julia wrapper [`P4est.jl`](https://github.com/trixi-framework/P4est.jl) and relevant parts of the [`Trixi.jl`](https://github.com/trixi-framework/Trixi.jl) source code.
-Additionally, the [documentation of the Julia `C` interface](https://docs.julialang.org/en/v1/base/c/) is also helpful.
+To implement own features, you likely need to take a look at the documentation of [`p4est`](https://github.com/cburstedde/p4est), its Julia wrapper [P4est.jl](https://github.com/trixi-framework/P4est.jl), and relevant parts of the [Trixi.jl](https://github.com/trixi-framework/Trixi.jl) source code.
+Additionally, the [Julia manual for interfacing C code](https://docs.julialang.org/en/v1/manual/calling-c-and-fortran-code/) and the [documentation of the Julia C interface](https://docs.julialang.org/en/v1/base/c/) are also helpful.
 
 First, we go through the implementation of adaptive mesh refinement (AMR) with `p4est`.
 Second, we show how a custom mesh partitioning based on a weighting function can be implemented.
 
 ## Adaptive Mesh Refinement (AMR)
 
-For instance, in a simulation that uses adaptive mesh refinement (AMR) cells are equipped with an indicator value $I \in \{-1, 0, 1\}$ that indicates whether the cell should be coarsened ($I = -1$), kept at the current size ($I = 0$) or be refined ($I = 1$).
+In a simulation that uses adaptive mesh refinement (AMR), cells are assigned an indicator value $I \in \{-1, 0, 1\}$ that denotes whether the cell should be coarsened ($I = -1$), kept at the current level ($I = 0$), or be refined ($I = 1$).
 
-For realizing AMR there are now in principle two possibilities.
+For realizing AMR there are now in principle two possibilities:
 - First, the solver could receive the connectivity information from the mesh backend and then handle the refinement and coarsening of the mesh.
 - Second, the solver could send the indicator values to the mesh backend and let it handle the refinement and coarsening of the mesh.
 
-For the `p4est` mesh Trixi.jl uses the latter approach to benefit from the highly efficient implementation of the `p4est` library.
+For the `p4est` mesh, Trixi.jl uses the latter approach to benefit from the highly efficient implementation of the `p4est` library.
 
 The first step involves sending the indicator values to the mesh backend.
-The indicator values `lambda` are obtained in the `AMRCallback`
+The indicator values `lambda` are obtained from a "controller" in the `AMRCallback`
 ```julia
 lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
                                                       t = t, iter = iter)
 ```
 and need now to be sent to the mesh backend.
-To this end, a couple helper functions need to be implemented.
-First, a Julia function with two arguments `info, user_data` is defined that copies the indicator values from `user_data` to a field in `info`, which is a field from the `p4est` mesh (precisely `p4est_iter_volume_info_t` - for details see the [`p4est` documentation](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html)).
+To this end, a number of helper functions are required.
+First, a Julia function with two arguments `info, user_data` is defined that copies the indicator values from `user_data` to a field in `info`, which is a field from the `p4est` mesh (precisely `p4est_iter_volume_info_t` - for details see the [`p4est` documentation](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html)):
 ```julia
 # Copy controller values to p4est quad user data storage
 function copy_to_quad_iter_volume(info, user_data)
@@ -54,7 +55,7 @@ function copy_to_quad_iter_volume(info, user_data)
     return nothing
 end
 ```
-This function is then converted to a `C` function to match the required syntax of the [`p4est_iter_volume_t`](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html)/[`p8est_iter_volume_t`](https://p4est.github.io/api/p4est-latest/p8est__iterate_8h.html#a4b19423fb264c674bd4deaf5a7194758) function:
+This function is then converted to a C function to match the required syntax of the [`p4est_iter_volume_t`](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html)/[`p8est_iter_volume_t`](https://p4est.github.io/api/p4est-latest/p8est__iterate_8h.html#a4b19423fb264c674bd4deaf5a7194758) function:
 ```C
 /** The prototype for a function that p4est_iterate will execute at every
  * quadrant local to the current process.
@@ -72,7 +73,7 @@ typedef void (*p4est_iter_volume_t) (p4est_iter_volume_info_t * info,
 typedef void (*p8est_iter_volume_t) (p8est_iter_volume_info_t * info,
                                      void *user_data);
 ```
-To handle both 2D (which is the canonical `p4est`) and 3D (which is within the `p4est` library referred to as `p8est`) a dispatch on the mesh dimensionality is included:
+To handle both 2D (which is the canonical `p4est`) and 3D (which is within the `p4est` library referred to as `p8est`), we also dispatch on the number of spatial dimensions:
 ```julia
 # 2D
 function cfunction(::typeof(copy_to_quad_iter_volume), ::Val{2})
@@ -96,7 +97,7 @@ The correct function is then selected via
 ```julia
 iter_volume_c = cfunction(copy_to_quad_iter_volume, Val(ndims(mesh)))
 ```
-and by calling `iterate_p4est` the indicator values are finally copied to the quadrants/cells/elements of the mesh:
+and by calling `iterate_p4est` the indicator values are finally copied to the cells (quadrants or octants) of the mesh:
 ```julia
 iterate_p4est(mesh.p4est, # The p4est mesh
               lambda; # The indicator values
@@ -104,7 +105,7 @@ iterate_p4est(mesh.p4est, # The p4est mesh
               iter_volume_c = iter_volume_c)
 ```
 
-Now, during the `refine!` or `coarsen!` calls (which eventually call [`refine_fn`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#a1a31375edfa42b5609e7656233c32cca)/[`coarsen_fn`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#ad250f4765d9778ec3940e9fabea7c853) from `p4est`) the indicator values are available in the user data of the quadrants/cells/elements.
+Now, during the `refine!` or `coarsen!` calls (which eventually call [`refine_fn`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#a1a31375edfa42b5609e7656233c32cca)/[`coarsen_fn`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#ad250f4765d9778ec3940e9fabea7c853) from `p4est`) the indicator values are available in the user data of the mesh cells.
 In particular, again a function needs to be provided that matches the signature of the [`p4est_refine_t`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#ad6f6d433abde78f20ea267e6aebea26a)/[`p8est_refine_t`](https://p4est.github.io/api/p4est-latest/p8est_8h.html#a24565b65860e156a04ba8ccc6f67a936) function
 ```C
 /** Callback function prototype to decide for refinement.
@@ -167,15 +168,15 @@ end
 ```
 These are then handed over to `refine_p4est!` which eventually calls `refine_fn`.
 
-## Custom Mesh Partitioning
+## Custom mesh partitioning
 
-Analogous to the AMR example above, we now discuss how to implement a custom mesh partitioning based on a weighting function/array.
-This might be required for distributed memory (i.e., `MPI`-parallelized simulations) to achieve a more uniform distribution of the computational work across the different processes.
+Analogous to the AMR example above, we now discuss how to implement a custom mesh partitioning based on custom cell weighting.
+This might be required for distributed memory (i.e., MPI-parallelized simulations) to achieve a more uniform distribution of the computational work across the different processes.
 This is important to maintain scalability and to avoid load imbalance.
 
 We begin again by copying in the solver data.
-Here we assume that the weighting should be done based on the user data `rhs_per_element` which arises for instance in multirate/local time-stepping solvers where the computational work per cell is no longer uniform, but can be estimated by the number of right-hand-side (RHS) evaluations per cell.
-So the function which saves this user data could look like this:
+Here we assume that the weighting should be done based on the user data `rhs_per_element`, which arises for instance in multirate/local time-stepping solvers where the computational work per cell is no longer uniform, but can be estimated by the number of right-hand-side (RHS) evaluations per cell.
+Thus a function, which saves this user data to the mesh, could look like this:
 ```julia
 function save_rhs_evals_iter_volume(info, user_data)
     info_pw = PointerWrapper(info)
