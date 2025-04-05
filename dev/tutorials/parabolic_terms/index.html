@@ -119,47 +119,47 @@ sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
 
 Section                      ncalls     time    %tot     avg     alloc    %tot      avg
 ───────────────────────────────────────────────────────────────────────────────────────
-parabolic rhs!                1.20k    214ms   73.6%   178μs   18.1KiB   66.0%    15.5B
+parabolic rhs!                1.20k    215ms   74.1%   180μs   18.1KiB   66.0%    15.5B
   calculate gradient          1.20k   98.8ms   34.0%  82.3μs   7.34KiB   26.7%    6.27B
-    volume integral           1.20k   60.5ms   20.8%  50.4μs     0.00B    0.0%    0.00B
-    surface integral          1.20k   10.7ms    3.7%  8.91μs     0.00B    0.0%    0.00B
-    Jacobian                  1.20k   9.18ms    3.2%  7.65μs     0.00B    0.0%    0.00B
-    prolong2interfaces        1.20k   7.38ms    2.5%  6.15μs     0.00B    0.0%    0.00B
-    interface flux            1.20k   6.33ms    2.2%  5.28μs     0.00B    0.0%    0.00B
-    reset gradients           1.20k   1.54ms    0.5%  1.29μs     0.00B    0.0%    0.00B
-    ~calculate gradient~      1.20k   1.25ms    0.4%  1.04μs   7.34KiB   26.7%    6.27B
-    prolong2boundaries        1.20k    994μs    0.3%   828ns     0.00B    0.0%    0.00B
-    boundary flux             1.20k    761μs    0.3%   634ns     0.00B    0.0%    0.00B
-    prolong2mortars           1.20k   55.7μs    0.0%  46.4ns     0.00B    0.0%    0.00B
-    mortar flux               1.20k   48.6μs    0.0%  40.5ns     0.00B    0.0%    0.00B
-  volume integral             1.20k   48.7ms   16.7%  40.5μs     0.00B    0.0%    0.00B
-  calculate viscous fluxes    1.20k   36.3ms   12.5%  30.3μs     0.00B    0.0%    0.00B
-  prolong2interfaces          1.20k   7.70ms    2.7%  6.42μs     0.00B    0.0%    0.00B
-  transform variables         1.20k   6.71ms    2.3%  5.59μs     0.00B    0.0%    0.00B
-  interface flux              1.20k   6.18ms    2.1%  5.15μs     0.00B    0.0%    0.00B
-  surface integral            1.20k   4.80ms    1.7%  4.00μs     0.00B    0.0%    0.00B
-  ~parabolic rhs!~            1.20k   1.57ms    0.5%  1.31μs   10.8KiB   39.3%    9.21B
-  boundary flux               1.20k    985μs    0.3%   821ns     0.00B    0.0%    0.00B
-  prolong2boundaries          1.20k    759μs    0.3%   633ns     0.00B    0.0%    0.00B
-  Jacobian                    1.20k    687μs    0.2%   573ns     0.00B    0.0%    0.00B
-  reset ∂u/∂t                 1.20k    530μs    0.2%   442ns     0.00B    0.0%    0.00B
-  prolong2mortars             1.20k   56.0μs    0.0%  46.7ns     0.00B    0.0%    0.00B
-  mortar flux                 1.20k   48.6μs    0.0%  40.5ns     0.00B    0.0%    0.00B
-rhs!                          1.20k   76.8ms   26.4%  64.0μs   9.33KiB   34.0%    7.96B
-  volume integral             1.20k   49.0ms   16.9%  40.8μs     0.00B    0.0%    0.00B
-  interface flux              1.20k   14.2ms    4.9%  11.9μs     0.00B    0.0%    0.00B
-  surface integral            1.20k   4.82ms    1.7%  4.01μs     0.00B    0.0%    0.00B
-  prolong2interfaces          1.20k   3.87ms    1.3%  3.22μs     0.00B    0.0%    0.00B
-  boundary flux               1.20k   1.59ms    0.5%  1.33μs     0.00B    0.0%    0.00B
+    volume integral           1.20k   61.0ms   21.0%  50.8μs     0.00B    0.0%    0.00B
+    surface integral          1.20k   10.7ms    3.7%  8.90μs     0.00B    0.0%    0.00B
+    Jacobian                  1.20k   8.89ms    3.1%  7.41μs     0.00B    0.0%    0.00B
+    prolong2interfaces        1.20k   7.44ms    2.6%  6.20μs     0.00B    0.0%    0.00B
+    interface flux            1.20k   6.18ms    2.1%  5.15μs     0.00B    0.0%    0.00B
+    reset gradients           1.20k   1.45ms    0.5%  1.21μs     0.00B    0.0%    0.00B
+    ~calculate gradient~      1.20k   1.23ms    0.4%  1.02μs   7.34KiB   26.7%    6.27B
+    prolong2boundaries        1.20k    982μs    0.3%   818ns     0.00B    0.0%    0.00B
+    boundary flux             1.20k    780μs    0.3%   650ns     0.00B    0.0%    0.00B
+    prolong2mortars           1.20k   61.8μs    0.0%  51.5ns     0.00B    0.0%    0.00B
+    mortar flux               1.20k   55.3μs    0.0%  46.1ns     0.00B    0.0%    0.00B
+  volume integral             1.20k   50.2ms   17.3%  41.8μs     0.00B    0.0%    0.00B
+  calculate viscous fluxes    1.20k   36.6ms   12.6%  30.5μs     0.00B    0.0%    0.00B
+  prolong2interfaces          1.20k   7.64ms    2.6%  6.37μs     0.00B    0.0%    0.00B
+  transform variables         1.20k   6.58ms    2.3%  5.49μs     0.00B    0.0%    0.00B
+  interface flux              1.20k   6.20ms    2.1%  5.17μs     0.00B    0.0%    0.00B
+  surface integral            1.20k   4.80ms    1.6%  4.00μs     0.00B    0.0%    0.00B
+  ~parabolic rhs!~            1.20k   1.49ms    0.5%  1.25μs   10.8KiB   39.3%    9.21B
+  boundary flux               1.20k    988μs    0.3%   823ns     0.00B    0.0%    0.00B
+  prolong2boundaries          1.20k    770μs    0.3%   642ns     0.00B    0.0%    0.00B
+  Jacobian                    1.20k    738μs    0.3%   615ns     0.00B    0.0%    0.00B
+  reset ∂u/∂t                 1.20k    624μs    0.2%   520ns     0.00B    0.0%    0.00B
+  prolong2mortars             1.20k   55.4μs    0.0%  46.2ns     0.00B    0.0%    0.00B
+  mortar flux                 1.20k   51.4μs    0.0%  42.9ns     0.00B    0.0%    0.00B
+rhs!                          1.20k   75.2ms   25.9%  62.7μs   9.33KiB   34.0%    7.96B
+  volume integral             1.20k   48.3ms   16.6%  40.3μs     0.00B    0.0%    0.00B
+  interface flux              1.20k   13.2ms    4.5%  11.0μs     0.00B    0.0%    0.00B
+  surface integral            1.20k   4.69ms    1.6%  3.91μs     0.00B    0.0%    0.00B
+  prolong2interfaces          1.20k   4.07ms    1.4%  3.39μs     0.00B    0.0%    0.00B
+  boundary flux               1.20k   1.62ms    0.6%  1.35μs     0.00B    0.0%    0.00B
   ~rhs!~                      1.20k   1.33ms    0.5%  1.11μs   9.33KiB   34.0%    7.96B
-  Jacobian                    1.20k    722μs    0.2%   601ns     0.00B    0.0%    0.00B
-  reset ∂u/∂t                 1.20k    612μs    0.2%   510ns     0.00B    0.0%    0.00B
-  prolong2boundaries          1.20k    506μs    0.2%   422ns     0.00B    0.0%    0.00B
-  mortar flux                 1.20k   51.3μs    0.0%  42.7ns     0.00B    0.0%    0.00B
-  prolong2mortars             1.20k   50.6μs    0.0%  42.2ns     0.00B    0.0%    0.00B
-  source terms                1.20k   36.6μs    0.0%  30.5ns     0.00B    0.0%    0.00B
+  Jacobian                    1.20k    708μs    0.2%   590ns     0.00B    0.0%    0.00B
+  reset ∂u/∂t                 1.20k    595μs    0.2%   496ns     0.00B    0.0%    0.00B
+  prolong2boundaries          1.20k    522μs    0.2%   435ns     0.00B    0.0%    0.00B
+  prolong2mortars             1.20k   57.3μs    0.0%  47.8ns     0.00B    0.0%    0.00B
+  mortar flux                 1.20k   49.5μs    0.0%  41.3ns     0.00B    0.0%    0.00B
+  source terms                1.20k   36.9μs    0.0%  30.8ns     0.00B    0.0%    0.00B
 <span class="sgr1">───────────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>We can now visualize the solution, which develops a boundary layer at the outflow boundaries.</p><pre><code class="language-julia hljs">using Plots
-plot(sol)</code></pre><img src="91efcdc8.svg" alt="Example block output"/><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+plot(sol)</code></pre><img src="663812f3.svg" alt="Example block output"/><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
 versioninfo()
 
 using Pkg
@@ -180,4 +180,4 @@ Environment:
 <span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
   <span class="sgr90">[b0944070] </span>OrdinaryDiffEqLowStorageRK v1.3.0
   <span class="sgr90">[91a5bcdd] </span>Plots v1.40.11
-  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.10-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adding_nonconservative_equation/">« 12 Adding a non-conservative equation</a><a class="docs-footer-nextpage" href="../adding_new_parabolic_terms/">14 Adding new parabolic terms »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Saturday 5 April 2025 06:18">Saturday 5 April 2025</span>. Using Julia version 1.10.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.11.11-DEV `~/work/Trixi.jl/Trixi.jl`</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../adding_nonconservative_equation/">« 12 Adding a non-conservative equation</a><a class="docs-footer-nextpage" href="../adding_new_parabolic_terms/">14 Adding new parabolic terms »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Saturday 5 April 2025 08:09">Saturday 5 April 2025</span>. Using Julia version 1.10.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
