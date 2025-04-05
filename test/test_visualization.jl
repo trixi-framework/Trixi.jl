@@ -224,7 +224,7 @@ end
     @trixi_testset "Create 1D plot along curve" begin
         using OrdinaryDiffEqSSPRK
 
-        @timed_testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
+        @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
             equations = CompressibleEulerEquations2D(1.4)
             solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
@@ -516,7 +516,7 @@ end
         @trixi_testset "Create 1D plot along curve" begin
             using OrdinaryDiffEqSSPRK
 
-            @timed_testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
+            @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
                 equations = CompressibleEulerEquations3D(1.4)
                 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
