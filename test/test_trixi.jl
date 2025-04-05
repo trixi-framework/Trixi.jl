@@ -226,8 +226,7 @@ macro trixi_testset(name, expr)
     # module name here.
     quote
         local time_start = time_ns()
-        local tempmod = Module(gensym("TrixiTestModule"))
-        @eval module tempmod
+        @eval module TrixiTestModule
         using Test
         using Trixi
         include(@__FILE__)
