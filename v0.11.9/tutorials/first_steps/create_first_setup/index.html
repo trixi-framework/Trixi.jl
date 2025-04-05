@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>1.2 Create your first setup · Trixi.jl</title><meta name="title" content="1.2 Create your first setup · Trixi.jl"/><meta property="og:title" content="1.2 Create your first setup · Trixi.jl"/><meta property="twitter:title" content="1.2 Create your first setup · Trixi.jl"/><meta name="description" content="Documentation for Trixi.jl."/><meta property="og:description" content="Documentation for Trixi.jl."/><meta property="twitter:description" content="Documentation for Trixi.jl."/><meta property="og:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/first_steps/create_first_setup/"/><meta property="twitter:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/first_steps/create_first_setup/"/><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/first_steps/create_first_setup/"/><script data-outdated-warner src="../../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../../assets/documenter.js"></script><script src="../../../search_index.js"></script><script src="../../../siteinfo.js"></script><script src="../../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../../assets/themeswap.js"></script><link href="../../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../../">Trixi.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../../overview/">Overview</a></li><li><a class="tocitem" href="../../../visualization/">Visualization</a></li><li><a class="tocitem" href="../../../restart/">Restart simulation</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../introduction/">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox" checked/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">1 First steps in Trixi.jl</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../getting_started/">1.1 Getting started</a></li><li class="is-active"><a class="tocitem" href>1.2 Create your first setup</a><ul class="internal"><li><a class="tocitem" href="#Visualize-the-solution"><span>Visualize the solution</span></a></li></ul></li><li><a class="tocitem" href="../changing_trixi/">1.3 Changing Trixi.jl itself</a></li></ul></li><li><a class="tocitem" href="../../behind_the_scenes_simulation_setup/">2 Behind the scenes of a simulation setup</a></li><li><a class="tocitem" href="../../scalar_linear_advection_1d/">3 Introduction to DG methods</a></li><li><a class="tocitem" href="../../DGSEM_FluxDiff/">4 DGSEM with flux differencing</a></li><li><a class="tocitem" href="../../shock_capturing/">5 Shock capturing with flux differencing and stage limiter</a></li><li><a class="tocitem" href="../../subcell_shock_capturing/">6 Subcell limiting with the IDP Limiter</a></li><li><a class="tocitem" href="../../non_periodic_boundaries/">7 Non-periodic boundaries</a></li><li><a class="tocitem" href="../../DGMulti_1/">8 DG schemes via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../../upwind_fdsbp/">10 Upwind FD SBP schemes</a></li><li><a class="tocitem" href="../../adding_new_scalar_equations/">11 Adding a new scalar conservation law</a></li><li><a class="tocitem" href="../../adding_nonconservative_equation/">12 Adding a non-conservative equation</a></li><li><a class="tocitem" href="../../parabolic_terms/">13 Parabolic terms</a></li><li><a class="tocitem" href="../../adding_new_parabolic_terms/">14 Adding new parabolic terms</a></li><li><a class="tocitem" href="../../adaptive_mesh_refinement/">15 Adaptive mesh refinement</a></li><li><a class="tocitem" href="../../structured_mesh_mapping/">16 Structured mesh with curvilinear mapping</a></li><li><a class="tocitem" href="../../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl</a></li><li><a class="tocitem" href="../../p4est_from_gmsh/">18 P4est mesh from gmsh</a></li><li><a class="tocitem" href="../../time_stepping/">19 Explicit time stepping</a></li><li><a class="tocitem" href="../../differentiable_programming/">20 Differentiable programming</a></li><li><a class="tocitem" href="../../custom_semidiscretization/">21 Custom semidiscretizations</a></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox"/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../../../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../../../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li><li><a class="tocitem" href="../../../meshes/p4est_mesh/">P4est-based mesh</a></li><li><a class="tocitem" href="../../../meshes/dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../../../multi-physics_coupling/">Coupling</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../../development/">Development</a></li><li><a class="tocitem" href="../../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../../testing/">Testing</a></li><li><a class="tocitem" href="../../../performance/">Performance</a></li><li><a class="tocitem" href="../../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../../reference-trixibase/">TrixiBase.jl</a></li><li><a class="tocitem" href="../../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../../changelog/">Changelog</a></li><li><a class="tocitem" href="../../../authors/">Authors</a></li><li><a class="tocitem" href="../../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../../code_of_conduct/">Code of Conduct</a></li><li><a class="tocitem" href="../../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">1 First steps in Trixi.jl</a></li><li class="is-active"><a href>1.2 Create your first setup</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>1.2 Create your first setup</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl/blob/main/docs/literate/src/files/first_steps/create_first_setup.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="create_first_setup"><a class="docs-heading-anchor" href="#create_first_setup">1.2: First steps in Trixi.jl: Create your first setup</a><a id="create_first_setup-1"></a><a class="docs-heading-anchor-permalink" href="#create_first_setup" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=tutorials/notebooks/first_steps/create_first_setup.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/tutorials/notebooks/first_steps/create_first_setup.ipynb"><img src="https://img.shields.io/badge/render-nbviewer-f37726" alt/></a> <a href="https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/tutorials/notebooks/first_steps/create_first_setup.ipynb"><img src="https://img.shields.io/badge/raw-notebook-4cc61e" alt/></a></p><p>In this part of the introductory guide, we will create a first Trixi.jl setup as an extension of <a href="https://github.com/trixi-framework/Trixi.jl/blob/main/examples/tree_2d_dgsem/elixir_advection_basic.jl"><code>elixir_advection_basic.jl</code></a>. Since Trixi.jl has a common basic structure for the setups, you can create your own by extending and modifying the following example.</p><p>Let&#39;s consider the linear advection equation for a state <span>$u = u(x, y, t)$</span> on the two-dimensional spatial domain <span>$[-1, 1] \times [-1, 1]$</span> with a source term</p><p class="math-container">\[\frac{\partial}{\partial t}u + \frac{\partial}{\partial x} (0.2 u) - \frac{\partial}{\partial y} (0.7 u) = - 2 e^{-t}
+\sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr),\]</p><p>with the initial condition</p><p class="math-container">\[u(x, y, 0) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr),\]</p><p>and periodic boundary conditions.</p><p>The first step is to create and open a file with the .jl extension. You can do this with your favorite text editor (if you do not have one, we recommend <a href="https://code.visualstudio.com/">VS Code</a>). In this file, you will create your setup. The file can then be executed in Julia using, for example, <code>trixi_include()</code>. Alternatively, you can execute each line of the following code one by one in the Julia REPL. This will generate useful output for nearly every command and improve your comprehension of the process.</p><p>To be able to use functionalities of Trixi.jl, you always need to load Trixi.jl itself and the <a href="https://github.com/SciML/OrdinaryDiffEq.jl">OrdinaryDiffEqSSPRK.jl</a> package.</p><pre><code class="language-julia hljs">using Trixi
+using OrdinaryDiffEqSSPRK</code></pre><p>The next thing to do is to choose an equation that is suitable for your problem. To see all the currently implemented equations, take a look at <a href="https://github.com/trixi-framework/Trixi.jl/tree/main/src/equations"><code>src/equations</code></a>. If you are interested in adding a new physics model that has not yet been implemented in Trixi.jl, take a look at the tutorials <a href="../../adding_new_scalar_equations/#adding_new_scalar_equations">Adding a new scalar conservation law</a> or <a href="../../adding_nonconservative_equation/#adding_nonconservative_equation">Adding a non-conservative equation</a>.</p><p>The linear scalar advection equation in two spatial dimensions</p><p class="math-container">\[\frac{\partial}{\partial t}u + \frac{\partial}{\partial x} (a_1 u) + \frac{\partial}{\partial y} (a_2 u) = 0\]</p><p>is already implemented in Trixi.jl as <a href="../../../reference-trixi/#Trixi.LinearScalarAdvectionEquation2D"><code>LinearScalarAdvectionEquation2D</code></a>, for which we need to define a two-dimensional parameter <code>advection_velocity</code> describing the parameters <span>$a_1$</span> and <span>$a_2$</span>. Appropriate for our problem is <code>(0.2, -0.7)</code>.</p><pre><code class="language-julia hljs">advection_velocity = (0.2, -0.7)
+equations = LinearScalarAdvectionEquation2D(advection_velocity)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ LinearScalarAdvectionEquation2D                                                                  │
+│ ═══════════════════════════════                                                                  │
+│ #variables: ………………………………………………… 1                                                                │
+│ │ variable 1: …………………………………………… scalar                                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>To solve our problem numerically using Trixi.jl, we have to discretize the spatial domain, for which we set up a mesh. One of the most used meshes in Trixi.jl is the <a href="../../../reference-trixi/#Trixi.TreeMesh"><code>TreeMesh</code></a>. The spatial domain used is <span>$[-1, 1] \times [-1, 1]$</span>. We set an initial number of elements in the mesh using <code>initial_refinement_level</code>, which describes the initial number of hierarchical refinements. In this simple case, the total number of elements is <code>2^initial_refinement_level</code> throughout the simulation. The variable <code>n_cells_max</code> is used to limit the number of elements in the mesh, which cannot be exceeded when using <a href="../../../callbacks/#Adaptive-mesh-refinement">adaptive mesh refinement</a>.</p><p>All minimum and all maximum coordinates must be combined into <code>Tuples</code>.</p><pre><code class="language-julia hljs">coordinates_min = (-1.0, -1.0)
+coordinates_max = (1.0, 1.0)
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 4,
+                n_cells_max = 30_000)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ TreeMesh{2, Trixi.SerialTree{2, Float64}}                                                        │
+│ ═════════════════════════════════════════                                                        │
+│ center: …………………………………………………………… [0.0, 0.0]                                                       │
+│ length: …………………………………………………………… 2.0                                                              │
+│ periodicity: ……………………………………………… (true, true)                                                     │
+│ current #cells: ……………………………………… 341                                                              │
+│ #leaf-cells: ……………………………………………… 256                                                              │
+│ maximum #cells: ……………………………………… 30000                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>To approximate the solution of the defined model, we create a <a href="../../../reference-trixi/#Trixi.DGSEM"><code>DGSEM</code></a> solver. The solution in each of the recently defined mesh elements will be approximated by a polynomial of degree <code>polydeg</code>. For more information about discontinuous Galerkin methods, check out the <a href="../../scalar_linear_advection_1d/#scalar_linear_advection_1d">Introduction to DG methods</a> tutorial. By default, in the weak formulation <code>DGSEM</code> initializes the surface flux as <code>flux_central</code> and uses the physical flux for the volume integral.</p><pre><code class="language-julia hljs">solver = DGSEM(polydeg = 3)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DG{Float64}                                                                                      │
+│ ═══════════                                                                                      │
+│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
+│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
+│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
+│ │ surface flux: ……………………………………… flux_central                                                     │
+│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>Now we need to define an initial condition for our problem. All the already implemented initial conditions for <a href="../../../reference-trixi/#Trixi.LinearScalarAdvectionEquation2D"><code>LinearScalarAdvectionEquation2D</code></a> can be found in <a href="https://github.com/trixi-framework/Trixi.jl/blob/main/src/equations/linear_scalar_advection_2d.jl"><code>src/equations/linear_scalar_advection_2d.jl</code></a>. If you want to use, for example, a Gaussian pulse, it can be used as follows:</p><pre><code class="language-julia hljs">initial_conditions = initial_condition_gauss</code></pre><p>But to show you how an arbitrary initial condition can be implemented in a way suitable for Trixi.jl, we define our own initial conditions.</p><p class="math-container">\[u(x, y, 0) = \sin\bigl(\pi x \bigr) \sin\bigl(\pi y \bigr).\]</p><p>The initial conditions function must take spatial coordinates, time and equation as arguments and returns an initial condition as a statically sized vector <code>SVector</code>. Following the same structure, you can define your own initial conditions. The time variable <code>t</code> can be unused in the initial condition, but might also be used to describe an analytical solution if known. If you use the initial condition as analytical solution, you can analyze your numerical solution by computing the error, see also the <a href="https://trixi-framework.github.io/Trixi.jl/stable/callbacks/#Analyzing-the-numerical-solution">section about analyzing the solution</a>.</p><pre><code class="language-julia hljs">function initial_condition_sinpi(x, t, equations::LinearScalarAdvectionEquation2D)
+    u = sinpi(x[1]) * sinpi(x[2])
+    return SVector(u)
+end
+initial_condition = initial_condition_sinpi</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">initial_condition_sinpi (generic function with 1 method)</code></pre><p>The next step is to define a function of the source term corresponding to our problem.</p><p class="math-container">\[f(u, x, y, t) = - 2 e^{-t} \sin\bigl(2 \pi (x - t) \bigr) \sin\bigl(2 \pi (y - t) \bigr)\]</p><p>This function must take the state variable, the spatial coordinates, the time and the equation itself as arguments and returns the source term as a static vector <code>SVector</code>.</p><pre><code class="language-julia hljs">function source_term_exp_sinpi(u, x, t, equations::LinearScalarAdvectionEquation2D)
+    u = -2 * exp(-t) * sinpi(2 * (x[1] - t)) * sinpi(2 * (x[2] - t))
+    return SVector(u)
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">source_term_exp_sinpi (generic function with 1 method)</code></pre><p>Now we collect all the information that is necessary to define a spatial discretization,</p><pre><code class="language-julia hljs">semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
+                                    source_terms = source_term_exp_sinpi)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SemidiscretizationHyperbolic                                                                     │
+│ ════════════════════════════                                                                     │
+│ #spatial dimensions: ………………………… 2                                                                │
+│ mesh: ………………………………………………………………… TreeMesh{2, Trixi.SerialTree{2, Float64}} with length 341        │
+│ equations: …………………………………………………… LinearScalarAdvectionEquation2D                                  │
+│ initial condition: ……………………………… initial_condition_sinpi                                          │
+│ boundary conditions: ………………………… Trixi.BoundaryConditionPeriodic                                  │
+│ source terms: …………………………………………… source_term_exp_sinpi                                            │
+│ solver: …………………………………………………………… DG                                                               │
+│ total #DOFs per field: …………………… 4096                                                             │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>which leaves us with an ODE problem in time with a span from <code>0.0</code> to <code>1.0</code>. This approach is commonly referred to as the method of lines.</p><pre><code class="language-julia hljs">tspan = (0.0, 1.0)
+ode = semidiscretize(semi, tspan)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr38_2" style="color:#56b6c2">ODEProblem</span> with uType <span class="sgr38_2" style="color:#56b6c2">Vector{Float64}</span> and tType <span class="sgr38_2" style="color:#56b6c2">Float64</span>. In-place: <span class="sgr38_2" style="color:#56b6c2">true</span>
+Non-trivial mass matrix: <span class="sgr38_2" style="color:#56b6c2">false</span>
+timespan: (0.0, 1.0)
+u0: 4096-element Vector{Float64}:
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.011734602208786986
+ 0.030369402873034978
+ 0.04145470668348209
+ 0.0
+ 0.030369402873034978
+ ⋮
+ 0.0
+ 0.04145470668348209
+ 0.030369402873034978
+ 0.011734602208786986
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0</code></pre><p>At this point, our problem is defined. We will use the <code>solve</code> function defined in <a href="https://github.com/SciML/OrdinaryDiffEq.jl">OrdinaryDiffEq.jl</a> to get the solution. OrdinaryDiffEq.jl gives us the ability to customize the solver using callbacks without actually modifying it. Trixi.jl already has some implemented <a href="../../../callbacks/#callbacks-id">Callbacks</a>. The most widely used callbacks in Trixi.jl are <a href="https://docs.sciml.ai/DiffEqCallbacks/stable/step_control/">step control callbacks</a> that are activated at the end of each time step to perform some actions, e.g. to print statistics. We will show you how to use some of the common callbacks.</p><p>To print a summary of the simulation setup at the beginning and to reset timers to zero, we use the <a href="../../../reference-trixi/#Trixi.SummaryCallback"><code>SummaryCallback</code></a>.</p><pre><code class="language-julia hljs">summary_callback = SummaryCallback()</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">SummaryCallback</code></pre><p>We also want to analyze the current state of the solution in regular intervals. The <a href="../../../reference-trixi/#Trixi.AnalysisCallback"><code>AnalysisCallback</code></a> outputs some useful statistical information during the simulation every <code>interval</code> time steps.</p><pre><code class="language-julia hljs">analysis_callback = AnalysisCallback(semi, interval = 20)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ AnalysisCallback                                                                                 │
+│ ════════════════                                                                                 │
+│ interval: ……………………………………………………… 20                                                               │
+│ analyzer: ……………………………………………………… LobattoLegendreAnalyzer{Float64}(polydeg=6)                      │
+│ │ error 1: …………………………………………………… l2_error                                                         │
+│ │ error 2: …………………………………………………… linf_error                                                       │
+│ │ integral 1: …………………………………………… entropy_timederivative                                           │
+│ save analysis to file: …………………… no                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>To indicate that a simulation is still running, we utilize the inexpensive <a href="../../../reference-trixi/#Trixi.AliveCallback"><code>AliveCallback</code></a> to periodically print information to the screen, such as the current time, every <code>alive_interval</code> time steps.</p><pre><code class="language-julia hljs">alive_callback = AliveCallback(alive_interval = 10)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ AliveCallback                                                                                    │
+│ ═════════════                                                                                    │
+│ interval: ……………………………………………………… 10                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>It is also possible to control the time step size using the <a href="../../../reference-trixi/#Trixi.StepsizeCallback"><code>StepsizeCallback</code></a> if the time integration method isn&#39;t adaptive itself. To get more details, look at <a href="../../time_stepping/#CFL-based-step-size-control">CFL based step size control</a>.</p><pre><code class="language-julia hljs">stepsize_callback = StepsizeCallback(cfl = 0.9)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ StepsizeCallback                                                                                 │
+│ ════════════════                                                                                 │
+│ CFL number: ………………………………………………… 0.9                                                              │
+│ Interval: ……………………………………………………… 1.0                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>To save the current solution in regular intervals we use the <a href="../../../reference-trixi/#Trixi.SaveSolutionCallback"><code>SaveSolutionCallback</code></a>. We would like to save the initial and final solutions as well. The data will be saved as HDF5 files located in the <code>out</code> folder. Afterwards it is possible to visualize a solution from saved files using Trixi2Vtk.jl and ParaView, which is described below in the section <a href="#Visualize-the-solution">Visualize the solution</a>.</p><pre><code class="language-julia hljs">save_solution = SaveSolutionCallback(interval = 20,
+                                     save_initial_solution = true,
+                                     save_final_solution = true)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SaveSolutionCallback                                                                             │
+│ ════════════════════                                                                             │
+│ interval: ……………………………………………………… 20                                                               │
+│ solution variables: …………………………… cons2prim                                                        │
+│ save initial solution: …………………… yes                                                              │
+│ save final solution: ………………………… yes                                                              │
+│ output directory: ………………………………… /home/runner/work/Trixi.jl/Trixi.jl/docs/out                     │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>Alternatively, we have the option to print solution files at fixed time intervals.</p><pre><code class="language-julua hljs">save_solution = SaveSolutionCallback(dt = 0.1,
+                                     save_initial_solution = true,
+                                     save_final_solution = true)</code></pre><p>Another useful callback is the <a href="../../../reference-trixi/#Trixi.SaveRestartCallback"><code>SaveRestartCallback</code></a>. It saves information for restarting in regular intervals. We are interested in saving a restart file for the final solution as well. To perform a restart, you need to configure the restart setup in a special way, which is described in the section <a href="../../../restart/#restart">Restart simulation</a>.</p><pre><code class="language-julia hljs">save_restart = SaveRestartCallback(interval = 100, save_final_restart = true)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SaveRestartCallback                                                                              │
+│ ═══════════════════                                                                              │
+│ interval: ……………………………………………………… 100                                                              │
+│ save final solution: ………………………… yes                                                              │
+│ output directory: ………………………………… /home/runner/work/Trixi.jl/Trixi.jl/docs/out                     │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>Create a <code>CallbackSet</code> to collect all callbacks so that they can be passed to the <code>solve</code> function.</p><pre><code class="language-julia hljs">callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        stepsize_callback,
+                        save_solution, save_restart);</code></pre><p>The last step is to choose the time integration method. OrdinaryDiffEq.jl defines a wide range of <a href="https://docs.sciml.ai/DiffEqDocs/latest/solvers/ode_solve/">ODE solvers</a>, including the three-stage, third-order strong stability preserving Runge-Kutta method <code>SSPRK33</code>. We will pass the ODE problem, the ODE solver and the callbacks to the <code>solve</code> function. Also, to use <code>StepsizeCallback</code>, we must explicitly specify the initial trial time step <code>dt</code>, the selected value is not important, because it will be overwritten by the <code>StepsizeCallback</code>. And there is no need to save every step of the solution, as we are only interested the output provided by our callback <a href="../../../reference-trixi/#Trixi.SaveSolutionCallback"><code>SaveSolutionCallback</code></a>.</p><pre><code class="language-julia hljs">sol = solve(ode, SSPRK33(); dt = 1.0, ode_default_options()..., callback = callbacks);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+████████╗██████╗ ██╗██╗  ██╗██╗
+╚══██╔══╝██╔══██╗██║╚██╗██╔╝██║
+   ██║   ██████╔╝██║ ╚███╔╝ ██║
+   ██║   ██╔══██╗██║ ██╔██╗ ██║
+   ██║   ██║  ██║██║██╔╝ ██╗██║
+   ╚═╝   ╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SemidiscretizationHyperbolic                                                                     │
+│ ════════════════════════════                                                                     │
+│ #spatial dimensions: ………………………… 2                                                                │
+│ mesh: ………………………………………………………………… TreeMesh{2, Trixi.SerialTree{2, Float64}} with length 341        │
+│ equations: …………………………………………………… LinearScalarAdvectionEquation2D                                  │
+│ initial condition: ……………………………… initial_condition_sinpi                                          │
+│ boundary conditions: ………………………… Trixi.BoundaryConditionPeriodic                                  │
+│ source terms: …………………………………………… source_term_exp_sinpi                                            │
+│ solver: …………………………………………………………… DG                                                               │
+│ total #DOFs per field: …………………… 4096                                                             │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ TreeMesh{2, Trixi.SerialTree{2, Float64}}                                                        │
+│ ═════════════════════════════════════════                                                        │
+│ center: …………………………………………………………… [0.0, 0.0]                                                       │
+│ length: …………………………………………………………… 2.0                                                              │
+│ periodicity: ……………………………………………… (true, true)                                                     │
+│ current #cells: ……………………………………… 341                                                              │
+│ #leaf-cells: ……………………………………………… 256                                                              │
+│ maximum #cells: ……………………………………… 30000                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ LinearScalarAdvectionEquation2D                                                                  │
+│ ═══════════════════════════════                                                                  │
+│ #variables: ………………………………………………… 1                                                                │
+│ │ variable 1: …………………………………………… scalar                                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DG{Float64}                                                                                      │
+│ ═══════════                                                                                      │
+│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
+│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
+│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
+│ │ surface flux: ……………………………………… flux_central                                                     │
+│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ AnalysisCallback                                                                                 │
+│ ════════════════                                                                                 │
+│ interval: ……………………………………………………… 20                                                               │
+│ analyzer: ……………………………………………………… LobattoLegendreAnalyzer{Float64}(polydeg=6)                      │
+│ │ error 1: …………………………………………………… l2_error                                                         │
+│ │ error 2: …………………………………………………… linf_error                                                       │
+│ │ integral 1: …………………………………………… entropy_timederivative                                           │
+│ save analysis to file: …………………… no                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ AliveCallback                                                                                    │
+│ ═════════════                                                                                    │
+│ interval: ……………………………………………………… 10                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ StepsizeCallback                                                                                 │
+│ ════════════════                                                                                 │
+│ CFL number: ………………………………………………… 0.9                                                              │
+│ Interval: ……………………………………………………… 1.0                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SaveSolutionCallback                                                                             │
+│ ════════════════════                                                                             │
+│ interval: ……………………………………………………… 20                                                               │
+│ solution variables: …………………………… cons2prim                                                        │
+│ save initial solution: …………………… yes                                                              │
+│ save final solution: ………………………… yes                                                              │
+│ output directory: ………………………………… /home/runner/work/Trixi.jl/Trixi…build/tutorials/first_steps/out │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SaveRestartCallback                                                                              │
+│ ═══════════════════                                                                              │
+│ interval: ……………………………………………………… 100                                                              │
+│ save final solution: ………………………… yes                                                              │
+│ output directory: ………………………………… /home/runner/work/Trixi.jl/Trixi…build/tutorials/first_steps/out │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Time integration                                                                                 │
+│ ════════════════                                                                                 │
+│ Start time: ………………………………………………… 0.0                                                              │
+│ Final time: ………………………………………………… 1.0                                                              │
+│ time integrator: …………………………………… SSPRK33                                                          │
+│ adaptive: ……………………………………………………… false                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Environment information                                                                          │
+│ ═══════════════════════                                                                          │
+│ #threads: ……………………………………………………… 1                                                                │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                  0                run time:       1.03100000e-06 s
+ Δt:             1.00000000e+00                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      0.00000000e+00 (0.000%)       time/DOF/rhs!:         NaN s
+                                               PID:                   Inf s
+ #DOFs per field:          4096                alloc&#39;d memory:       1100.860 MiB
+ #elements:                 256
+
+ Variable:       scalar
+ L2 error:       5.57371016e-06
+ Linf error:     2.37926999e-05
+ ∑∂S/∂U ⋅ Uₜ :   4.42993996e-17
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+#timesteps:     10 │ Δt: 3.1250e-02 │ sim. time: 3.1250e-01 (31.250%)  │ run time: 5.5086e-01 s
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                 20                run time:       5.63378802e-01 s
+ Δt:             3.12500000e-02                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      6.25000000e-01 (62.500%)      time/DOF/rhs!:  3.79150070e-08 s
+                                               PID:            2.28876655e-06 s
+ #DOFs per field:          4096                alloc&#39;d memory:       1109.697 MiB
+ #elements:                 256
+
+ Variable:       scalar
+ L2 error:       6.70015343e-01
+ Linf error:     1.45520916e+00
+ ∑∂S/∂U ⋅ Uₜ :  -3.74390676e-02
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+#timesteps:     20 │ Δt: 3.1250e-02 │ sim. time: 6.2500e-01 (62.500%)  │ run time: 5.5645e-01 s
+#timesteps:     30 │ Δt: 3.1250e-02 │ sim. time: 9.3750e-01 (93.750%)  │ run time: 5.6176e-01 s
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ Simulation running &#39;LinearScalarAdvectionEquation2D&#39; with DGSEM(polydeg=3)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+ #timesteps:                 32                run time:       5.70515300e-01 s
+ Δt:             3.12500000e-02                └── GC time:    0.00000000e+00 s (0.000%)
+ sim. time:      1.00000000e+00 (100.000%)     time/DOF/rhs!:  3.73487054e-08 s
+                                               PID:            4.25388184e-08 s
+ #DOFs per field:          4096                alloc&#39;d memory:       1113.937 MiB
+ #elements:                 256
+
+ Variable:       scalar
+ L2 error:       8.65828105e-01
+ Linf error:     1.75847551e+00
+ ∑∂S/∂U ⋅ Uₜ :  -1.70590047e-02
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Trixi.jl simulation finished.  Final time: 1.0  Time steps: 32 (accepted), 32 (total)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+
+<span class="sgr1">────────────────────────────────────────────────────────────────────────────────────</span>
+<span class="sgr1">             Trixi.jl             </span>         Time                    Allocations
+                                  ───────────────────────   ────────────────────────
+        Tot / % measured:              572ms /  90.3%           18.2MiB /  88.1%
+
+Section                   ncalls     time    %tot     avg     alloc    %tot      avg
+────────────────────────────────────────────────────────────────────────────────────
+I/O                            6    499ms   96.6%  83.2ms   4.74MiB   29.5%   808KiB
+  ~I/O~                        6    409ms   79.2%  68.2ms   4.20MiB   26.2%   716KiB
+  save solution                3   90.2ms   17.5%  30.1ms    550KiB    3.4%   183KiB
+  get element variables        3    670ns    0.0%   223ns     0.00B    0.0%    0.00B
+  save mesh                    3    470ns    0.0%   157ns     0.00B    0.0%    0.00B
+  get node variables           3    200ns    0.0%  66.7ns     0.00B    0.0%    0.00B
+rhs!                          96   14.8ms    2.9%   154μs   9.33KiB    0.1%     100B
+  source terms                96   8.89ms    1.7%  92.6μs     0.00B    0.0%    0.00B
+  volume integral             96   3.83ms    0.7%  39.9μs     0.00B    0.0%    0.00B
+  interface flux              96   1.12ms    0.2%  11.6μs     0.00B    0.0%    0.00B
+  surface integral            96    381μs    0.1%  3.97μs     0.00B    0.0%    0.00B
+  prolong2interfaces          96    336μs    0.1%  3.51μs     0.00B    0.0%    0.00B
+  ~rhs!~                      96   98.5μs    0.0%  1.03μs   9.33KiB    0.1%     100B
+  Jacobian                    96   52.3μs    0.0%   544ns     0.00B    0.0%    0.00B
+  reset ∂u/∂t                 96   51.0μs    0.0%   531ns     0.00B    0.0%    0.00B
+  mortar flux                 96   4.82μs    0.0%  50.2ns     0.00B    0.0%    0.00B
+  prolong2boundaries          96   4.64μs    0.0%  48.3ns     0.00B    0.0%    0.00B
+  prolong2mortars             96   4.59μs    0.0%  47.8ns     0.00B    0.0%    0.00B
+  boundary flux               96   2.95μs    0.0%  30.8ns     0.00B    0.0%    0.00B
+analyze solution               3   2.56ms    0.5%   853μs   11.3MiB   70.4%  3.76MiB
+calculate dt                  33   4.92μs    0.0%   149ns     0.00B    0.0%    0.00B
+<span class="sgr1">────────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>Now you can plot the solution as shown below, analyze it and improve the stability, accuracy or efficiency of your setup.</p><h2 id="Visualize-the-solution"><a class="docs-heading-anchor" href="#Visualize-the-solution">Visualize the solution</a><a id="Visualize-the-solution-1"></a><a class="docs-heading-anchor-permalink" href="#Visualize-the-solution" title="Permalink"></a></h2><p>In the previous part of the tutorial, we calculated the final solution of the given problem, now we want to visualize it. A more detailed explanation of visualization methods can be found in the section <a href="../../../visualization/#visualization">Visualization</a>.</p><h3 id="Using-Plots.jl"><a class="docs-heading-anchor" href="#Using-Plots.jl">Using Plots.jl</a><a id="Using-Plots.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Using-Plots.jl" title="Permalink"></a></h3><p>The first option is to use the <a href="https://github.com/JuliaPlots/Plots.jl">Plots.jl</a> package directly after calculations, when the solution is saved in the <code>sol</code> variable.</p><pre><code class="language-julia hljs">using Plots</code></pre><p>As was shown in the <a href="../getting_started/#getting_started">Getting started</a> section, you can plot all variables from the system of equations by executing the following.</p><pre><code class="language-julia hljs">plot(sol)</code></pre><p>Alternatively, you can configure the plot more precisely. Trixi.jl provides a special data type, <a href="../../../reference-trixi/#Trixi.PlotData2D-Tuple{Any, Any}"><code>PlotData2D</code></a>, to extract the visualization data from the solution.</p><pre><code class="language-julia hljs">pd = PlotData2D(sol);</code></pre><p>You can plot specific variables from the system of equations by referring to their names. To obtain the names of all variables, execute the following.</p><pre><code class="language-julia hljs">@show pd.variable_names;</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">pd.variable_names = [&quot;scalar&quot;]</code></pre><p>Plot the variable named &quot;scalar&quot; (which is the name of the variable for the linear advection equation in Trixi.jl).</p><pre><code class="language-julia hljs">plot(pd[&quot;scalar&quot;])</code></pre><img src="85537d3c.svg" alt="Example block output"/><p>Mesh extraction is possible using the <a href="../../../reference-trixi/#Trixi.getmesh-Tuple{Trixi.AbstractPlotData}"><code>getmesh</code></a> function. Plots.jl has the <code>plot!</code> function that allows you to modify an already built graph.</p><pre><code class="language-julia hljs">plot!(getmesh(pd))</code></pre><img src="c1107589.svg" alt="Example block output"/><h3 id="Using-Trixi2Vtk.jl"><a class="docs-heading-anchor" href="#Using-Trixi2Vtk.jl">Using Trixi2Vtk.jl</a><a id="Using-Trixi2Vtk.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Using-Trixi2Vtk.jl" title="Permalink"></a></h3><p>Another way to visualize a solution is to extract it from a saved HDF5 file. After we used the <code>solve</code> function with <a href="../../../reference-trixi/#Trixi.SaveSolutionCallback"><code>SaveSolutionCallback</code></a> there is a file with the final solution. It is located in the <code>out</code> folder and is named as follows: <code>solution_index.h5</code>. The <code>index</code> is the final time step of the solution that is padded to 6 digits with zeros from the beginning. With <a href="../../../visualization/#Trixi2Vtk">Trixi2Vtk</a> you can convert the HDF5 output file generated by Trixi.jl into a VTK/VTU files. VTK/VTU are specialized formats designed to store structured data required for visualization purposes. This can be used in visualization tools such as <a href="https://www.paraview.org">ParaView</a> or <a href="https://visit.llnl.gov">VisIt</a> to plot the solution.</p><p>If you haven&#39;t added Trixi2Vtk.jl to your project yet, you can add it as follows.</p><pre><code class="language-julia hljs">import Pkg
+Pkg.add([&quot;Trixi2Vtk&quot;])</code></pre><p>Now we load the Trixi2Vtk.jl package and convert the file <code>out/solution_000000032.h5</code> with the final solution using the <a href="../../../reference-trixi2vtk/#Trixi2Vtk.trixi2vtk-Tuple{Vararg{AbstractString}}"><code>trixi2vtk</code></a> function saving the resulting file in the <code>out</code> folder.</p><pre><code class="language-julia hljs">using Trixi2Vtk
+trixi2vtk(joinpath(&quot;out&quot;, &quot;solution_000000032.h5&quot;), output_directory = &quot;out&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr1">──────────────────────────────────────────────────────────────────────────────────────────</span>
+<span class="sgr1">                                        </span>         Time                    Allocations
+                                        ───────────────────────   ────────────────────────
+           Tot / % measured:                 2.54s /  67.5%            119MiB /  70.8%
+
+Section                         ncalls     time    %tot     avg     alloc    %tot      avg
+──────────────────────────────────────────────────────────────────────────────────────────
+read mesh                            1    595ms   34.6%   595ms   28.5MiB   33.9%  28.5MiB
+read data                            1    397ms   23.1%   397ms   9.80MiB   11.7%  9.80MiB
+interpolate data                     1    318ms   18.5%   318ms   9.85MiB   11.7%  9.85MiB
+add data to VTK file                 1    278ms   16.2%   278ms   10.5MiB   12.5%  10.5MiB
+  scalar                             1    114ms    6.6%   114ms   6.12MiB    7.3%  6.12MiB
+  add data to VTK file               1    520μs    0.0%   520μs    904KiB    1.1%   904KiB
+    cell_ids                         1    264μs    0.0%   264μs    298KiB    0.3%   298KiB
+    element_ids                      1    211μs    0.0%   211μs    300KiB    0.3%   300KiB
+    levels                           1   34.2μs    0.0%  34.2μs    300KiB    0.3%   300KiB
+save VTK file                        2   69.3ms    4.0%  34.6ms   2.35MiB    2.8%  1.18MiB
+build VTK grid (node data)           1   52.0ms    3.0%  52.0ms   16.6MiB   19.8%  16.6MiB
+prepare VTK cells (node data)        1   6.97ms    0.4%  6.97ms   5.04MiB    6.0%  5.04MiB
+build VTK grid (cell data)           1    943μs    0.1%   943μs   1.37MiB    1.6%  1.37MiB
+prepare VTK cells (cell data)        1    106μs    0.0%   106μs    100KiB    0.1%   100KiB
+<span class="sgr1">──────────────────────────────────────────────────────────────────────────────────────────</span></code></pre><p>Now two files <code>solution_000000032.vtu</code> and <code>solution_000000032_celldata.vtu</code> have been generated in the <code>out</code> folder. The first one contains all the information for visualizing the solution, the second one contains all the cell-based or discretization-based information.</p><p>Now let&#39;s visualize the solution from the generated files in ParaView. Follow this short instruction to get the visualization.</p><ul><li>Download, install and open <a href="https://www.paraview.org/download/">ParaView</a>.</li><li>Press <code>Ctrl+O</code> and select the generated files <code>solution_000000032.vtu</code> and <code>solution_000000032_celldata.vtu</code> from the <code>out</code> folder.</li><li>In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near <code>solution_000000032.vtu</code>.</li><li>In the lower-left corner in the Properties window, change the Coloring from Solid Color to scalar. This already generates the visualization of the final solution.</li><li>Now let&#39;s add the mesh to the visualization. In the upper-left corner in the Pipeline Browser window, left-click on the eye-icon near <code>solution_000000032_celldata.vtu</code>.</li><li>In the lower-left corner in the Properties window, change the Representation from Surface to Wireframe. Then a white grid should appear on the visualization.</li></ul><p>Now, if you followed the instructions exactly, you should get a similar image as shown in the section <a href="#Using-Plots.jl">Using Plots.jl</a>:</p><p><img src="https://github.com/trixi-framework/Trixi.jl/assets/119304909/0c29139b-6c5d-4d5c-86e1-f4ebc95aca7e" alt="paraview_trixi2vtk_example"/></p><p>After completing this tutorial you are able to set up your own simulations with Trixi.jl. If you have an interest in contributing to Trixi.jl as a developer, refer to the third part of the introduction titled <a href="../changing_trixi/#changing_trixi">Changing Trixi.jl itself</a>.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../getting_started/">« 1.1 Getting started</a><a class="docs-footer-nextpage" href="../changing_trixi/">1.3 Changing Trixi.jl itself »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.10.1 on <span class="colophon-date" title="Friday 4 April 2025 04:28">Friday 4 April 2025</span>. Using Julia version 1.10.9.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
