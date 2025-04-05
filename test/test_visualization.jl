@@ -18,7 +18,7 @@ outdir = "out"
 isdir(outdir) && rm(outdir, recursive = true)
 
 # Run various visualization tests
-@testset "Visualization tests" begin
+@timed_testset "Visualization tests" begin
 #! format: noindent
 
 # Run 2D tests with elixirs for all mesh types
@@ -32,7 +32,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                         "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
 
-@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
+@timed_testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
     @test_nowarn_mod trixi_include(@__MODULE__,
@@ -88,7 +88,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
     @test_nowarn_mod show(stdout, getmesh(pd))
     println(stdout)
 
-    @testset "2D plot recipes" begin
+    @timed_testset "2D plot recipes" begin
         pd = PlotData2D(sol)
 
         @test_nowarn_mod Plots.plot(sol)
@@ -112,9 +112,9 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
         end
     end
 
-    @testset "1D plot from 2D solution" begin
+    @timed_testset "1D plot from 2D solution" begin
         if mesh != "DGMulti"
-            @testset "Create 1D plot as slice" begin
+            @timed_testset "Create 1D plot as slice" begin
                 @test_nowarn_mod PlotData1D(sol, slice = :y, point = (0.5, 0.0)) isa
                                  PlotData1D
                 @test_nowarn_mod PlotData1D(sol, slice = :x, point = (0.5, 0.0)) isa
@@ -122,7 +122,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                 pd1D = PlotData1D(sol, slice = :y, point = (0.5, 0.0))
                 @test_nowarn_mod Plots.plot(pd1D)
 
-                @testset "Create 1D plot along curve" begin
+                @timed_testset "Create 1D plot along curve" begin
                     curve = zeros(2, 10)
                     curve[1, :] = range(-1, 1, length = 10)
                     @test_nowarn_mod PlotData1D(sol, curve = curve) isa PlotData1D
@@ -186,7 +186,7 @@ end
     pd2 = PlotData1D(sol, nvisnodes = 2)
     @test size(pd2.data) == (128, 3)
 
-    @testset "1D plot recipes" begin
+    @timed_testset "1D plot recipes" begin
         pd = PlotData1D(sol)
 
         @test_nowarn_mod Plots.plot(sol)
@@ -202,7 +202,7 @@ end
 
     # Fake a PlotDataXD objects to test code for plotting multiple variables on at least two rows
     # with at least one plot remaining empty
-    @testset "plotting multiple variables" begin
+    @timed_testset "plotting multiple variables" begin
         x = collect(0.0:0.1:1.0)
         data1d = rand(5, 11)
         variable_names = string.('a':'e')
@@ -224,7 +224,7 @@ end
     @trixi_testset "Create 1D plot along curve" begin
         using OrdinaryDiffEqSSPRK
 
-        @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
+        @timed_testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
             equations = CompressibleEulerEquations2D(1.4)
             solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
@@ -320,7 +320,7 @@ end
         x_curve = range(0, 1, length = 1000)
         curve = vcat(x_curve', x_curve')
 
-        @testset "TreeMesh" begin
+        @timed_testset "TreeMesh" begin
             pd_tree = @inferred PlotData1D(ode_tree.u0, ode_tree.p; curve)
             @test pd_tree.x ≈ range(0, 1, length = length(x_curve)) * sqrt(2)
 
@@ -336,7 +336,7 @@ end
             end
         end
 
-        @testset "P4estMesh" begin
+        @timed_testset "P4estMesh" begin
             pd_p4est = @inferred PlotData1D(ode_p4est.u0, ode_p4est.p; curve)
             @test pd_p4est.x ≈ range(0, 1, length = length(x_curve)) * sqrt(2)
 
@@ -352,7 +352,7 @@ end
             end
         end
 
-        @testset "T8codeMesh" begin
+        @timed_testset "T8codeMesh" begin
             pd_t8code = @inferred PlotData1D(ode_t8code.u0, ode_t8code.p; curve)
             @test pd_t8code.x ≈ range(0, 1, length = length(x_curve)) * sqrt(2)
 
@@ -371,7 +371,7 @@ end
             end
         end
 
-        @testset "StructuredMesh" begin
+        @timed_testset "StructuredMesh" begin
             pd_structured = @inferred PlotData1D(ode_structured.u0, ode_structured.p;
                                                  curve)
             @test pd_structured.x ≈ range(0, 1, length = length(x_curve)) * sqrt(2)
@@ -468,8 +468,8 @@ end
     @test PlotData2D(sol, slice = :yz) isa Trixi.PlotData2DCartesian
     @test PlotData2D(sol, slice = :xz) isa Trixi.PlotData2DCartesian
 
-    @testset "1D plot from 3D solution and Tree-mesh" begin
-        @testset "Create 1D plot as slice" begin
+    @timed_testset "1D plot from 3D solution and Tree-mesh" begin
+        @timed_testset "Create 1D plot as slice" begin
             @test_nowarn_mod PlotData1D(sol) isa PlotData1D
             pd1D = PlotData1D(sol)
             @test_nowarn_mod Plots.plot(pd1D)
@@ -479,7 +479,7 @@ end
                              PlotData1D
         end
 
-        @testset "Create 1D plot along curve" begin
+        @timed_testset "Create 1D plot along curve" begin
             curve = zeros(3, 10)
             curve[1, :] = range(-1.0, -0.5, length = 10)
             @test_nowarn_mod PlotData1D(sol, curve = curve) isa PlotData1D
@@ -492,8 +492,8 @@ end
                                    joinpath(examples_dir(), "structured_3d_dgsem",
                                             "elixir_advection_basic.jl"))
 
-    @testset "1D plot from 3D solution and general mesh" begin
-        @testset "Create 1D plot as slice" begin
+    @timed_testset "1D plot from 3D solution and general mesh" begin
+        @timed_testset "Create 1D plot as slice" begin
             @test_nowarn_mod PlotData1D(sol) isa PlotData1D
             pd1D = PlotData1D(sol)
             @test_nowarn_mod Plots.plot(pd1D)
@@ -503,7 +503,7 @@ end
                              PlotData1D
         end
 
-        @testset "Create 1D plot along curve" begin
+        @timed_testset "Create 1D plot along curve" begin
             curve = zeros(3, 10)
             curve[1, :] = range(-1.0, 1.0, length = 10)
             @test_nowarn_mod PlotData1D(sol, curve = curve) isa PlotData1D
@@ -516,7 +516,7 @@ end
         @trixi_testset "Create 1D plot along curve" begin
             using OrdinaryDiffEqSSPRK
 
-            @testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
+            @timed_testset "$MeshType" for MeshType in (P4estMesh, T8codeMesh)
                 equations = CompressibleEulerEquations3D(1.4)
                 solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
 
@@ -615,7 +615,7 @@ end
         x_curve = range(0, 1, length = 1000)
         curve = vcat(x_curve', x_curve', x_curve')
 
-        @testset "TreeMesh" begin
+        @timed_testset "TreeMesh" begin
             pd_tree = @inferred PlotData1D(ode_tree.u0, ode_tree.p; curve)
             @test pd_tree.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
 
@@ -633,7 +633,7 @@ end
             end
         end
 
-        @testset "P4estMesh" begin
+        @timed_testset "P4estMesh" begin
             pd_p4est = @inferred PlotData1D(ode_p4est.u0, ode_p4est.p; curve)
             @test pd_p4est.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
 
@@ -651,7 +651,7 @@ end
             end
         end
 
-        @testset "T8codeMesh" begin
+        @timed_testset "T8codeMesh" begin
             pd_t8code = @inferred PlotData1D(ode_t8code.u0, ode_t8code.p; curve)
             @test pd_t8code.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
 
@@ -669,7 +669,7 @@ end
             end
         end
 
-        @testset "StructuredMesh" begin
+        @timed_testset "StructuredMesh" begin
             pd_structured = @inferred PlotData1D(ode_structured.u0, ode_structured.p;
                                                  curve)
             @test pd_structured.x ≈ range(0, 1, length = length(x_curve)) * sqrt(3)
@@ -718,13 +718,13 @@ end
                                                                          plot_creator = Trixi.save_plot),
                                    tspan = (0.0, 3.0))
 
-    @testset "elixir_advection_amr_visualization.jl with save_plot" begin
+    @timed_testset "elixir_advection_amr_visualization.jl with save_plot" begin
         @test isfile(joinpath(outdir, "solution_000000000.png"))
         @test isfile(joinpath(outdir, "solution_000000020.png"))
         @test isfile(joinpath(outdir, "solution_000000022.png"))
     end
 
-    @testset "show" begin
+    @timed_testset "show" begin
         @test_nowarn_mod show(stdout, visualization)
         println(stdout)
 
