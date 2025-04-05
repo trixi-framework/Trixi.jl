@@ -32,7 +32,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
                                         "elixir_euler_source_terms_nonconforming_unstructured_flag.jl"),
                         "DGMulti" => ("dgmulti_2d", "elixir_euler_weakform.jl"))
 
-@timed_testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
+@testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
     @test_nowarn_mod trixi_include(@__MODULE__,
