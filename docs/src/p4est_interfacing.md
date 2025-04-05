@@ -1,7 +1,7 @@
 # Interfacing with the `p4est` mesh backend
 
 Sometimes it is necessary to exchange data between the solver and the mesh.
-In the case of the [`P4estMesh`](@ref) and its [`p4est`](https://www.p4est.org/), this is more intricate than with other mesh types, since the p4est backend
+In the case of the [`P4estMesh`](@ref) and its [`p4est`](https://www.p4est.org/), this is more intricate than with other mesh types, since the `p4est` backend
 is comparatively opaque to the rest of the code due to being a compiled C library.
 
 As a disclaimer: This is neither complete nor self-contained, and is meant as a first orientation guide.
@@ -174,9 +174,9 @@ Analogous to the AMR example above, we now discuss how to implement a custom mes
 This might be required for distributed memory (i.e., MPI-parallelized simulations) to achieve a more uniform distribution of the computational work across the different processes.
 This is important to maintain scalability and to avoid load imbalance.
 
-We begin again by copying in the solver data.
+We begin again by copying the solver data.
 Here we assume that the weighting should be done based on the user data `rhs_per_element`, which arises for instance in multirate/local time-stepping solvers where the computational work per cell is no longer uniform, but can be estimated by the number of right-hand-side (RHS) evaluations per cell.
-Thus a function, which saves this user data to the mesh, could look like this:
+Thus, a function, which saves this user data to the mesh, could look like this:
 ```julia
 function save_rhs_evals_iter_volume(info, user_data)
     info_pw = PointerWrapper(info)
