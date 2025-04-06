@@ -166,7 +166,7 @@ function cfunction(::typeof(refine_fn), ::Val{3})
                (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
 end
 ```
-These are then handed over to `refine_p4est!` which eventually calls `refine_fn`.
+These are then handed over to `refine_p4est!`, which eventually calls `refine_fn`.
 
 ## Custom mesh partitioning
 
