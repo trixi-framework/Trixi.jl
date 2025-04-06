@@ -163,8 +163,7 @@ makedocs(
                  "Style guide" => "styleguide.md",
                  "Testing" => "testing.md",
                  "Performance" => "performance.md",
-                 "Parallelization" => "parallelization.md",
-                 "Interfacing with the p4est backend" => "p4est_interfacing.md"
+                 "Parallelization" => "parallelization.md"
              ],
              "Troubleshooting and FAQ" => "troubleshooting.md",
              "Reference" => [
