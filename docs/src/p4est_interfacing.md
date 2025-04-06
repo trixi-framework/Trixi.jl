@@ -22,14 +22,15 @@ For realizing AMR there are now in principle two possibilities:
 For the `p4est` mesh, Trixi.jl uses the latter approach to benefit from the highly efficient implementation of the `p4est` library.
 
 The first step involves sending the indicator values to the mesh backend.
-The indicator values `lambda` are obtained from a "controller" in the `AMRCallback`
+The indicator values [`lambda` are obtained from a "controller" in the `AMRCallback`](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/callbacks_step/amr.jl#L657-L658)
 ```julia
 lambda = @trixi_timeit timer() "indicator" controller(u, mesh, equations, dg, cache,
                                                       t = t, iter = iter)
 ```
 and need now to be sent to the mesh backend.
 To this end, a number of helper functions are required.
-First, a Julia function with two arguments `info, user_data` is defined that copies the indicator values from `user_data` to a field in `info`, which is a field from the `p4est` mesh (precisely `p4est_iter_volume_info_t` - for details see the [`p4est` documentation](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html)):
+First, [a Julia function with two arguments `info, user_data` is defined that copies the indicator values from `user_data` to a field in `info`](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/callbacks_step/amr.jl#L517-L539).
+The `info` is a field from the `p4est` mesh (precisely `p4est_iter_volume_info_t` - for details see the [`p4est` documentation](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html)):
 ```julia
 # Copy controller values to p4est quad user data storage
 function copy_to_quad_iter_volume(info, user_data)
@@ -55,7 +56,7 @@ function copy_to_quad_iter_volume(info, user_data)
     return nothing
 end
 ```
-This function is then converted to a C function to match the required syntax of the [`p4est_iter_volume_t`](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html)/[`p8est_iter_volume_t`](https://p4est.github.io/api/p4est-latest/p8est__iterate_8h.html#a4b19423fb264c674bd4deaf5a7194758) function:
+This function is then converted to a C function to match the required syntax of the [`p4est_iter_volume_t`](https://github.com/cburstedde/p4est/blob/2296a990d8b6b54731a63be0ba5bc17b08cd1f3d/src/p4est_iterate.h#L57-L63)/[`p8est_iter_volume_t`](https://github.com/cburstedde/p4est/blob/2296a990d8b6b54731a63be0ba5bc17b08cd1f3d/src/p8est_iterate.h#L57-L63) function:
 ```C
 /** The prototype for a function that p4est_iterate will execute at every
  * quadrant local to the current process.
@@ -73,7 +74,9 @@ typedef void (*p4est_iter_volume_t) (p4est_iter_volume_info_t * info,
 typedef void (*p8est_iter_volume_t) (p8est_iter_volume_info_t * info,
                                      void *user_data);
 ```
-To handle both 2D (which is the canonical `p4est`) and 3D (which is within the `p4est` library referred to as `p8est`), we also dispatch on the number of spatial dimensions:
+For these functions documentation is provided for both [2D](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html) and [3D](https://p4est.github.io/api/p4est-latest/p8est__iterate_8h.html).
+
+To handle both 2D (which is the canonical `p4est`) and 3D (which is within the `p4est` library referred to as `p8est`), we need to constuct [dispatching fuctions.](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/callbacks_step/amr.jl#L638-L647) The dispatiching is performed on the number of spatial dimensions:
 ```julia
 # 2D
 function cfunction(::typeof(copy_to_quad_iter_volume), ::Val{2})
@@ -93,11 +96,11 @@ function cfunction(::typeof(copy_to_quad_iter_volume), ::Val{3})
 end
 ```
 
-The correct function is then selected via
+The correct function is then [selected via](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/callbacks_step/amr.jl#L558-L559)
 ```julia
 iter_volume_c = cfunction(copy_to_quad_iter_volume, Val(ndims(mesh)))
 ```
-and by calling `iterate_p4est` the indicator values are finally copied to the cells (quadrants or octants) of the mesh:
+and [by calling `iterate_p4est` the indicator values are finally copied to the cells](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/callbacks_step/amr.jl#L667-L669) (quadrants or octants) of the mesh:
 ```julia
 iterate_p4est(mesh.p4est, # The p4est mesh
               lambda; # The indicator values
@@ -106,7 +109,7 @@ iterate_p4est(mesh.p4est, # The p4est mesh
 ```
 
 Now, during the `refine!` or `coarsen!` calls (which eventually call [`refine_fn`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#a1a31375edfa42b5609e7656233c32cca)/[`coarsen_fn`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#ad250f4765d9778ec3940e9fabea7c853) from `p4est`) the indicator values are available in the user data of the mesh cells.
-In particular, again a function needs to be provided that matches the signature of the [`p4est_refine_t`](https://p4est.github.io/api/p4est-latest/p4est_8h.html#ad6f6d433abde78f20ea267e6aebea26a)/[`p8est_refine_t`](https://p4est.github.io/api/p4est-latest/p8est_8h.html#a24565b65860e156a04ba8ccc6f67a936) function
+In particular, again a function needs to be provided that matches the signature of the `p4est_refine_t` [[Documentation](https://p4est.github.io/api/p4est-latest/p4est_8h.html#ad6f6d433abde78f20ea267e6aebea26a), [Implementation](https://github.com/cburstedde/p4est/blob/2296a990d8b6b54731a63be0ba5bc17b08cd1f3d/src/p4est.h#L221-L229)]/`p8est_refine_t`[[Documentation](https://p4est.github.io/api/p4est-latest/p8est_8h.html#a24565b65860e156a04ba8ccc6f67a936), [Implementation](https://github.com/cburstedde/p4est/blob/2296a990d8b6b54731a63be0ba5bc17b08cd1f3d/src/p8est.h#L217-L225)] function
 ```C
 /** Callback function prototype to decide for refinement.
  * \param [in] p4est       the forest
@@ -128,7 +131,7 @@ typedef int (*p8est_refine_t) (p8est_t * p8est,
                                p4est_topidx_t which_tree,
                                p8est_quadrant_t * quadrant);
 ```
-which is implemented as 
+which [is implemented as](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/meshes/p4est_mesh.jl#L2227-L2242)
 ```julia
 function refine_fn(p4est, which_tree, quadrant)
     # Controller value has been copied to the quadrant's user data storage before.
@@ -147,7 +150,7 @@ function refine_fn(p4est, which_tree, quadrant)
     end
 end
 ```
-Again, dimensional dispatching is used to handle both 2D and 3D meshes:
+Again, [dimensional dispatching](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/meshes/p4est_mesh.jl#L2244-L2253) is used to handle both 2D and 3D meshes:
 ```julia
 # 2D
 function cfunction(::typeof(refine_fn), ::Val{2})
@@ -166,7 +169,7 @@ function cfunction(::typeof(refine_fn), ::Val{3})
                (Ptr{p8est_t}, Ptr{p4est_topidx_t}, Ptr{p8est_quadrant_t}))
 end
 ```
-These are then handed over to `refine_p4est!`, which eventually calls `refine_fn`.
+These are then handed over to [`refine_p4est!`](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/auxiliary/p4est.jl#L144-L154), which eventually calls `refine_fn`.
 
 ## Custom mesh partitioning
 
@@ -221,7 +224,7 @@ function cfunction(::typeof(save_rhs_evals_iter_volume), ::Val{3})
 end
 ```
 
-Similar to the `refine_fn` function, `p4est` requires a [weighting function with the same signature](https://p4est.github.io/api/p4est-latest/p4est_8h.html#aa03358f1326e23d122ef1b155705fd4d):
+Similar to the `refine_fn` function, `p4est` requires a weighting function with the same signature [[Documentation](https://p4est.github.io/api/p4est-latest/p4est_8h.html#aa03358f1326e23d122ef1b155705fd4d), [Implementation](https://github.com/cburstedde/p4est/blob/2296a990d8b6b54731a63be0ba5bc17b08cd1f3d/src/p4est.h#L241-L249)]:
 ```C
 /** Callback function prototype to calculate weights for partitioning.
  * \param [in] p4est       the forest
@@ -233,7 +236,7 @@ typedef int (*p4est_weight_t) (p4est_t * p4est,
                                p4est_topidx_t which_tree,
                                p4est_quadrant_t * quadrant);
 ```
-Again, the [3D version](https://p4est.github.io/api/p4est-latest/p8est_8h.html#a065466172704df28878d8535b98965a1) is very similar:
+Again, the 3D version [[Documentation](https://p4est.github.io/api/p4est-latest/p8est_8h.html#a065466172704df28878d8535b98965a1), [Implementation](https://github.com/cburstedde/p4est/blob/2296a990d8b6b54731a63be0ba5bc17b08cd1f3d/src/p8est.h#L237-L245)] is very similar:
 ```C
 /** Callback function prototype to calculate weights for partitioning.
  * \param [in] p8est       the forest
@@ -312,7 +315,7 @@ end
 ```
 This redistributes the mesh among the MPI ranks.
 Now, the same needs to be done for the solver (recall that mesh and solver are quite decoupled for `p4est` meshes).
-Thus, the call to `partition!` needs to be followed by a call to `rebalance_solver!` to rebalance the solver data.
+Thus, the call to [`partition!`](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/meshes/p4est_mesh.jl#L2189-L2197) needs to be followed by a call to [`rebalance_solver!`](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/callbacks_step/amr_dg.jl#L8-L92) to rebalance the solver data.
 Overall, this non-standard partitioning can be realized as
 ```julia
 # Get cell distribution for standard partitioning
