@@ -682,7 +682,7 @@ typedef void (*p8est_iter_volume_t) (p8est_iter_volume_info_t * info,
 ```
 For these functions documentation is provided for both [2D](https://p4est.github.io/api/p4est-latest/p4est__iterate_8h.html) and [3D](https://p4est.github.io/api/p4est-latest/p8est__iterate_8h.html).
 
-To handle both 2D (which is the canonical `p4est`) and 3D (which is within the `p4est` library referred to as `p8est`), we need to constuct [dispatching fuctions.](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/callbacks_step/amr.jl#L638-L647) The dispatiching is performed on the number of spatial dimensions:
+To handle both 2D (which is the canonical `p4est`) and 3D (which is within the `p4est` library referred to as `p8est`), we need to construct [dispatching functions.](https://github.com/trixi-framework/Trixi.jl/blob/f76ccaf23a1df150f9a185f0faa770ebc1abc417/src/callbacks_step/amr.jl#L638-L647) The dispatching is performed on the number of spatial dimensions:
 ```julia
 # 2D
 function cfunction(::typeof(copy_to_quad_iter_volume), ::Val{2})
