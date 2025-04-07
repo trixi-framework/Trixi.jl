@@ -442,6 +442,26 @@ end
     end
 end
 
+@trixi_testset "TreeMesh3D: elixir_advection_diffusion_amr.jl (LDG)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
+                                 "elixir_advection_diffusion_amr.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        initial_refinement_level=2,
+                        base_level=2,
+                        med_level=3,
+                        max_level=4,
+                        l2=[0.00036862382924645736],
+                        linf=[0.0015952118405399007])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "TreeMesh3D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_3d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
