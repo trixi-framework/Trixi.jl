@@ -237,7 +237,8 @@ end
 
 # for the stepsize callback
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::False, equations, dg::DGMulti{NDIMS},
+                constant_speed::False, have_auxiliary_node_vars::False,
+                equations, dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
     @unpack md = mesh
     rd = dg.basis
@@ -260,7 +261,8 @@ function max_dt(u, t, mesh::DGMultiMesh,
 end
 
 function max_dt(u, t, mesh::DGMultiMesh,
-                constant_speed::True, equations, dg::DGMulti{NDIMS},
+                constant_speed::True, have_auxiliary_node_vars::False,
+                equations, dg::DGMulti{NDIMS},
                 cache) where {NDIMS}
     @unpack md = mesh
     rd = dg.basis

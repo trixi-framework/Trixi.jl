@@ -440,12 +440,14 @@ function calc_volume_integral!(du, u,
 
         if dg_only
             flux_differencing_kernel!(du, u, element, mesh,
-                                      have_nonconservative_terms(equations), equations,
+                                      have_nonconservative_terms(equations),
+                                      have_auxiliary_node_vars(equations), equations,
                                       volume_flux_dg, dg, cache)
         else
             # Calculate DG volume integral contribution
             flux_differencing_kernel!(du, u, element, mesh,
-                                      have_nonconservative_terms(equations), equations,
+                                      have_nonconservative_terms(equations),
+                                      have_auxiliary_node_vars(equations), equations,
                                       volume_flux_dg, dg, cache, 1 - alpha_element)
 
             # Calculate FV volume integral contribution
