@@ -59,7 +59,8 @@ function calculate_cfl(ode_algorithm::AbstractPairedExplicitRK, ode)
     u = wrap_array(u_ode, mesh, equations, solver, cache)
 
     cfl_number = dt_opt / max_dt(u, t0, mesh,
-                        have_constant_speed(equations), have_auxiliary_node_vars(equations),
+                        have_constant_speed(equations),
+                        have_auxiliary_node_vars(equations),
                         equations, solver, cache)
     return cfl_number
 end

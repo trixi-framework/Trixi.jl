@@ -479,8 +479,9 @@ end
     n_vars_in = nvariables(equations)
     n_vars_aux = n_auxiliary_node_vars(equations)
     n_vars = length(solution_variables(get_node_vars(u, equations, solver),
-        get_auxiliary_node_vars(auxiliary_node_vars, equations, solver),
-        equations))
+                                       get_auxiliary_node_vars(auxiliary_node_vars,
+                                                               equations, solver),
+                                       equations))
     raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
     reshaped_u = reshape(u, n_vars_in, :)
     reshaped_r = reshape(raw_data, n_vars, :)

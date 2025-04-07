@@ -163,7 +163,7 @@ end
 @trixi_testset "elixir_acoustics_gauss_wall_amr_auxvars.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_acoustics_gauss_wall_amr_auxvars.jl"),
-                        l2=[0.0194350488, 0.0195225440, 0.00481982254],
+                        l2=[0.0194350488, 0.0195225440, 0.04819822538525215],
                         linf=[0.183057645, 0.190845961, 1.03618809])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

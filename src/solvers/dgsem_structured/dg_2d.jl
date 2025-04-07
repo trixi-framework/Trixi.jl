@@ -42,7 +42,8 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(du, u, t, source_terms, have_auxiliary_node_vars(equations),
+                      equations, dg, cache)
     end
 
     return nothing
@@ -60,7 +61,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                                UnstructuredMesh2D, P4estMesh{2},
                                                T8codeMesh{2}},
-                                   nonconservative_terms::False, equations,
+                                   nonconservative_terms::False,
+                                   have_auxiliary_node_vars::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -103,7 +105,8 @@ end
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
-                                           nonconservative_terms::False, equations,
+                                           nonconservative_terms::False,
+                                           have_auxiliary_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -161,15 +164,16 @@ end
                                                        StructuredMeshView{2},
                                                        UnstructuredMesh2D, P4estMesh{2},
                                                        T8codeMesh{2}},
-                                           nonconservative_terms::True, equations,
+                                           nonconservative_terms::True,
+                                           have_auxiliary_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux,
-                              dg, cache, alpha)
+    flux_differencing_kernel!(du, u, element, mesh, False(), False(), equations,
+                              symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
     for j in eachnode(dg), i in eachnode(dg)

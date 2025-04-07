@@ -134,7 +134,8 @@ function max_dt(u, t, mesh::ParallelP4estMesh{3},
                 Tuple{typeof(u), typeof(t), P4estMesh{3},
                       typeof(constant_speed), typeof(have_auxiliary_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, have_auxiliary_node_vars, equations, dg, cache)
+                u, t, mesh, constant_speed, have_auxiliary_node_vars, equations, dg,
+                cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -152,7 +153,8 @@ function max_dt(u, t, mesh::ParallelP4estMesh{3},
                 Tuple{typeof(u), typeof(t), P4estMesh{3},
                       typeof(constant_speed), typeof(have_auxiliary_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, have_auxiliary_node_vars, equations, dg, cache)
+                u, t, mesh, constant_speed, have_auxiliary_node_vars, equations, dg,
+                cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -170,7 +172,8 @@ function max_dt(u, t, mesh::ParallelT8codeMesh{3},
                 Tuple{typeof(u), typeof(t), T8codeMesh{3},
                       typeof(constant_speed), typeof(have_auxiliary_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, have_auxiliary_node_vars, equations, dg, cache)
+                u, t, mesh, constant_speed, have_auxiliary_node_vars, equations, dg,
+                cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
@@ -188,7 +191,8 @@ function max_dt(u, t, mesh::ParallelT8codeMesh{3},
                 Tuple{typeof(u), typeof(t), T8codeMesh{3},
                       typeof(constant_speed), typeof(have_auxiliary_node_vars),
                       typeof(equations), typeof(dg), typeof(cache)},
-                u, t, mesh, constant_speed, have_auxiliary_node_vars, equations, dg, cache)
+                u, t, mesh, constant_speed, have_auxiliary_node_vars, equations, dg,
+                cache)
     # Base.min instead of min needed, see comment in src/auxiliary/math.jl
     dt = MPI.Allreduce!(Ref(dt), Base.min, mpi_comm())[]
 
