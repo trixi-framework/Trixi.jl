@@ -67,7 +67,7 @@ T8code.jl that can be ignored if you do not use these libraries from Trixi.jl. N
 In order to use system-provided `p4est` and `t8code` installations, [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 and [T8code.jl](https://github.com/DLR-AMR/T8code.jl) need to be configured to use the custom
 installations. Follow the steps described [here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) and
-[here]( ttps://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) for the configuration.
+[here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) for the configuration.
 The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
 the same for P4est.jl and T8code.jl. This could, e.g., be `libp4est.so` that usually can be found
 in `lib/` or `local/lib/` in the installation directory of `t8code`.
