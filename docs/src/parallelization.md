@@ -66,8 +66,8 @@ T8code.jl that can be ignored if you do not use these libraries from Trixi.jl. N
 `t8code` already comes with a `p4est` installation, so it suffices to install `t8code`.
 In order to use system-provided `p4est` and `t8code` installations, [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 and [T8code.jl](https://github.com/DLR-AMR/T8code.jl) need to be configured to use the custom
-installations. Follow the steps described [here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) and
-[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) for the configuration.
+installations. Follow the steps described [here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) and
+[here]( ttps://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) for the configuration.
 The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
 the same for P4est.jl and T8code.jl. This could, e.g., be `libp4est.so` that usually can be found
 in `lib/` or `local/lib/` in the installation directory of `t8code`.
@@ -126,6 +126,10 @@ julia> using HDF5
 julia> HDF5.API.set_libraries!("/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so", "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so")
 ```
 After the preferences are set, restart the Julia REPL again.
+
+!!! note 
+    If multiple MPI installations are present on a system (as is typically the case on a cluster), calling 
+    `MPIPreferences.use_system_binary()` may lead to an undesired selection of the MPI implementation.
 
 ### [Usage](@id parallel_usage)
 
