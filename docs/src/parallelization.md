@@ -130,7 +130,8 @@ After the preferences are set, restart the Julia REPL again.
 !!! note 
     If multiple MPI installations are present on a system (as is typically the case on a cluster), calling 
     `MPIPreferences.use_system_binary()` may lead to an undesired selection of the MPI implementation - 
-    make sure to check the `LocalPreferences.toml` in any case!
+    make sure to check the `LocalPreferences.toml` in any case. 
+    You can also check at runtime of your Julia seesion the MPI configuration with `using MPI; MPI..versioninfo()`.
 
 ### [Usage](@id parallel_usage)
 
