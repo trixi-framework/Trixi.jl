@@ -132,7 +132,7 @@ end
                      typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du, u, 1, semi.mesh,
-               nonconservative_terms, have_auxiliary_node_vars,semi.equations,
+               nonconservative_terms, have_auxiliary_node_vars, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
 
