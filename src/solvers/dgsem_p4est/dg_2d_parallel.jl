@@ -47,6 +47,7 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::Union{ParallelP4estMesh{2},
                                               ParallelT8codeMesh{2}},
                                   nonconservative_terms,
+                                  have_auxiliary_node_vars,
                                   equations, surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, node_indices, local_sides = cache.mpi_interfaces
     @unpack contravariant_vectors = cache.elements
@@ -88,7 +89,7 @@ function calc_mpi_interface_flux!(surface_flux_values,
                                                     i_element, j_element, local_element)
 
             calc_mpi_interface_flux!(surface_flux_values, mesh, nonconservative_terms,
-                                     equations,
+                                     have_auxiliary_node_vars, equations,
                                      surface_integral, dg, cache,
                                      interface, normal_direction,
                                      node, local_side,
@@ -110,7 +111,8 @@ end
 @inline function calc_mpi_interface_flux!(surface_flux_values,
                                           mesh::Union{ParallelP4estMesh{2},
                                                       ParallelT8codeMesh{2}},
-                                          nonconservative_terms::False, equations,
+                                          nonconservative_terms::False,
+                                          have_auxiliary_node_vars::False, equations,
                                           surface_integral, dg::DG, cache,
                                           interface_index, normal_direction,
                                           interface_node_index, local_side,
