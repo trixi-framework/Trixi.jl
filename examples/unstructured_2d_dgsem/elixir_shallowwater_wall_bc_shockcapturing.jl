@@ -5,7 +5,7 @@ using Trixi
 # semidiscretization of the shallow water equations with a continuous
 # bottom topography function
 
-equations = ShallowWaterEquations2D(gravity_constant = 9.812, H0 = 2.0)
+equations = ShallowWaterEquations2D(gravity = 9.812, H0 = 2.0)
 
 function initial_condition_stone_throw(x, t, equations::ShallowWaterEquations2D)
     # Set up polar coordinates

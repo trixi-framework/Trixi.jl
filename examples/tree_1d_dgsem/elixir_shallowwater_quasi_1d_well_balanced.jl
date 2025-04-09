@@ -5,7 +5,7 @@ using Trixi
 # semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function and channel width function
 
-equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81, H0 = 2.0)
+equations = ShallowWaterEquationsQuasi1D(gravity = 9.81, H0 = 2.0)
 
 # Setup a truly discontinuous bottom topography function and channel width for
 # this academic testcase of well-balancedness. The errors from the analysis

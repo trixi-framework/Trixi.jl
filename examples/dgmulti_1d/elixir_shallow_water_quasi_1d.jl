@@ -5,7 +5,7 @@ using Trixi
 # Semidiscretization of the quasi 1d shallow water equations
 # See Chan et al.  https://doi.org/10.48550/arXiv.2307.12089 for details
 
-equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81)
+equations = ShallowWaterEquationsQuasi1D(gravity = 9.81)
 
 initial_condition = initial_condition_convergence_test
 

@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquationsQuasi1D(; gravity_constant, H0 = 0)
+    ShallowWaterEquationsQuasi1D(; gravity, H0 = 0)
 
 The quasi-1D shallow water equations (SWE). The equations are given by
 ```math
@@ -17,7 +17,9 @@ The quasi-1D shallow water equations (SWE). The equations are given by
 \end{aligned}
 ```
 The unknown quantities of the Quasi-1D SWE are the water height ``h`` and the scaled velocity ``v``.
-The gravitational constant is denoted by `g`, the (possibly) variable bottom topography function ``b(x)``, and (possibly) variable channel width ``a(x)``. The water height ``h`` is measured from the bottom topography ``b``, therefore one also defines the total water height as ``H = h + b``.
+The gravitational acceleration is denoted by `g`, the (possibly) variable bottom topography function ``b(x)``,
+and (possibly) variable channel width ``a(x)``. The water height ``h`` is measured from the bottom topography ``b``,
+therefore one also defines the total water height as ``H = h + b``.
 
 The additional quantity ``H_0`` is also available to store a reference value for the total water height that
 is useful to set initial conditions or test the "lake-at-rest" well-balancedness.
@@ -32,24 +34,24 @@ on the fly during the approximation as well as computing auxiliary quantities li
 or the entropy variables.
 This affects the implementation and use of these equations in various ways:
 * The flux values corresponding to the bottom topography and channel width must be zero.
-* The bottom topography and channel width values must be included when defining initial conditions, boundary conditions or
-  source terms.
+* The bottom topography and channel width values must be included when defining initial conditions, 
+  boundary conditions or source terms.
 * [`AnalysisCallback`](@ref) analyzes this variable.
 * Trixi.jl's visualization tools will visualize the bottom topography and channel width by default.
 """
 struct ShallowWaterEquationsQuasi1D{RealT <: Real} <:
        AbstractShallowWaterEquations{1, 4}
-    gravity::RealT # gravitational constant
+    gravity::RealT # gravitational acceleration
     H0::RealT      # constant "lake-at-rest" total water height
 end
 
-# Allow for flexibility to set the gravitational constant within an elixir depending on the
-# application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
+# Allow for flexibility to set the gravitational acceleration within an elixir depending on the
+# application where `gravity=1.0` or `gravity=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases.
 # Strict default values for thresholds that performed well in many numerical experiments
-function ShallowWaterEquationsQuasi1D(; gravity_constant, H0 = zero(gravity_constant))
-    ShallowWaterEquationsQuasi1D(gravity_constant, H0)
+function ShallowWaterEquationsQuasi1D(; gravity, H0 = zero(gravity))
+    ShallowWaterEquationsQuasi1D(gravity, H0)
 end
 
 have_nonconservative_terms(::ShallowWaterEquationsQuasi1D) = True()

@@ -5,7 +5,7 @@ using Trixi
 # Semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function
 
-equations = ShallowWaterEquations1D(gravity_constant = 9.81)
+equations = ShallowWaterEquations1D(gravity = 9.81)
 
 # Initial condition with a truly discontinuous water height, velocity, and bottom
 # topography function as an academic testcase for entropy conservation.

@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations2D(; gravity_constant, H0 = 0)
+    ShallowWaterEquations2D(; gravity, H0 = 0)
 
 Shallow water equations (SWE) in two space dimensions. The equations are given by
 ```math
@@ -20,7 +20,7 @@ Shallow water equations (SWE) in two space dimensions. The equations are given b
 \end{aligned}
 ```
 The unknown quantities of the SWE are the water height ``h`` and the velocities ``\mathbf{v} = (v_1, v_2)^T``.
-The gravitational constant is denoted by `g` and the (possibly) variable bottom topography function ``b(x,y)``.
+The gravitational acceleration is denoted by `g` and the (possibly) variable bottom topography function ``b(x,y)``.
 Conservative variable water height ``h`` is measured from the bottom topography ``b``, therefore one
 also defines the total water height as ``H = h + b``.
 
@@ -48,17 +48,17 @@ References for the SWE are many but a good introduction is available in Chapter 
   [DOI: 10.1017/CBO9780511791253](https://doi.org/10.1017/CBO9780511791253)
 """
 struct ShallowWaterEquations2D{RealT <: Real} <: AbstractShallowWaterEquations{2, 4}
-    gravity::RealT # gravitational constant
+    gravity::RealT # gravitational acceleration
     H0::RealT      # constant "lake-at-rest" total water height
 end
 
-# Allow for flexibility to set the gravitational constant within an elixir depending on the
-# application where `gravity_constant=1.0` or `gravity_constant=9.81` are common values.
+# Allow for flexibility to set the gravitational acceleration within an elixir depending on the
+# application where `gravity=1.0` or `gravity=9.81` are common values.
 # The reference total water height H0 defaults to 0.0 but is used for the "lake-at-rest"
 # well-balancedness test cases.
 # Strict default values for thresholds that performed well in many numerical experiments
-function ShallowWaterEquations2D(; gravity_constant, H0 = zero(gravity_constant))
-    ShallowWaterEquations2D(gravity_constant, H0)
+function ShallowWaterEquations2D(; gravity, H0 = zero(gravity))
+    ShallowWaterEquations2D(gravity, H0)
 end
 
 have_nonconservative_terms(::ShallowWaterEquations2D) = True()

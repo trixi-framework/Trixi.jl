@@ -588,7 +588,7 @@ end
 @timed_testset "Shallow water conversion between conservative/entropy variables" begin
     H, v1, v2, b, a = 3.5, 0.25, 0.1, 0.4, 0.3
 
-    let equations = ShallowWaterEquations1D(gravity_constant = 9.8)
+    let equations = ShallowWaterEquations1D(gravity = 9.8)
         cons_vars = prim2cons(SVector(H, v1, b), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
@@ -602,7 +602,7 @@ end
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 
-    let equations = ShallowWaterEquations2D(gravity_constant = 9.8)
+    let equations = ShallowWaterEquations2D(gravity = 9.8)
         cons_vars = prim2cons(SVector(H, v1, v2, b), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
@@ -616,7 +616,7 @@ end
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 
-    let equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.8)
+    let equations = ShallowWaterEquationsQuasi1D(gravity = 9.8)
         cons_vars = prim2cons(SVector(H, v1, b, a), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
 
@@ -789,7 +789,7 @@ end
 @timed_testset "Consistency check for HLL flux (naive): SWE" begin
     flux_hll = FluxHLL(min_max_speed_naive)
 
-    equations = ShallowWaterEquations1D(gravity_constant = 9.81)
+    equations = ShallowWaterEquations1D(gravity = 9.81)
     u = SVector(1, 0.5, 0.0)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
 
@@ -801,7 +801,7 @@ end
     u_rr = SVector(0.1, -1.0, 0.0)
     @test flux_hll(u_ll, u_rr, 1, equations) ≈ flux(u_rr, 1, equations)
 
-    equations = ShallowWaterEquations2D(gravity_constant = 9.81)
+    equations = ShallowWaterEquations2D(gravity = 9.81)
     normal_directions = [SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
@@ -1022,11 +1022,11 @@ end
 @timed_testset "Consistency check for HLL flux with Davis wave speed estimates: SWE" begin
     flux_hll = FluxHLL(min_max_speed_davis)
 
-    equations = ShallowWaterEquations1D(gravity_constant = 9.81)
+    equations = ShallowWaterEquations1D(gravity = 9.81)
     u = SVector(1, 0.5, 0.0)
     @test flux_hll(u, u, 1, equations) ≈ flux(u, 1, equations)
 
-    equations = ShallowWaterEquations2D(gravity_constant = 9.81)
+    equations = ShallowWaterEquations2D(gravity = 9.81)
     normal_directions = [SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
@@ -1143,11 +1143,11 @@ end
 end
 
 @timed_testset "Consistency check for HLLE flux: SWE" begin
-    equations = ShallowWaterEquations1D(gravity_constant = 9.81)
+    equations = ShallowWaterEquations1D(gravity = 9.81)
     u = SVector(1, 0.5, 0.0)
     @test flux_hlle(u, u, 1, equations) ≈ flux(u, 1, equations)
 
-    equations = ShallowWaterEquations2D(gravity_constant = 9.81)
+    equations = ShallowWaterEquations2D(gravity = 9.81)
     normal_directions = [SVector(1.0, 0.0),
         SVector(0.0, 1.0),
         SVector(0.5, -0.5),
@@ -1583,7 +1583,7 @@ end
     end
 
     @timed_testset "ShallowWaterEquations2D" begin
-        equations = ShallowWaterEquations2D(gravity_constant = 9.81)
+        equations = ShallowWaterEquations2D(gravity = 9.81)
         normal_directions = [SVector(1.0, 0.0),
             SVector(0.0, 1.0),
             SVector(0.5, -0.5),
@@ -2280,7 +2280,7 @@ end
     end
 
     @timed_testset "ShallowWaterEquations1D" begin
-        equations = ShallowWaterEquations1D(gravity_constant = 9.81)
+        equations = ShallowWaterEquations1D(gravity = 9.81)
 
         h_ll_rr = SVector(12.0, 12.0)
         hv_ll_rr = SVector(42.0, 24.0)
@@ -2294,7 +2294,7 @@ end
     end
 
     @timed_testset "ShallowWaterEquations2D" begin
-        equations = ShallowWaterEquations2D(gravity_constant = 9.81)
+        equations = ShallowWaterEquations2D(gravity = 9.81)
 
         h_ll_rr = SVector(12.0, 12.0)
         hv1_ll_rr = SVector(42.0, 24.0)
@@ -2321,7 +2321,7 @@ end
     end
 
     @timed_testset "ShallowWaterEquationsQuasi1D" begin
-        equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81)
+        equations = ShallowWaterEquationsQuasi1D(gravity = 9.81)
 
         ah_ll_rr = SVector(12.0, 12.0)
         ahv_ll_rr = SVector(42.0, 24.0)
@@ -2608,12 +2608,12 @@ end
     end
 
     H, b = exp(pi), exp(pi^2)
-    gravity_constant, H0 = 9.91, 0.1 # Standard numbers + 0.1
-    shallow_water_1d = ShallowWaterEquations1D(; gravity_constant, H0)
+    gravity, H0 = 9.91, 0.1 # Standard numbers + 0.1
+    shallow_water_1d = ShallowWaterEquations1D(; gravity, H0)
     u = prim2cons(SVector(H, v1, b), shallow_water_1d)
     @test isapprox(velocity(u, shallow_water_1d), v1)
 
-    shallow_water_2d = ShallowWaterEquations2D(; gravity_constant, H0)
+    shallow_water_2d = ShallowWaterEquations2D(; gravity, H0)
     u = prim2cons(SVector(H, v1, v2, b), shallow_water_2d)
     @test isapprox(velocity(u, shallow_water_2d), SVector(v1, v2))
     @test isapprox(velocity(u, normal_direction_2d, shallow_water_2d), v_normal_2d)
