@@ -132,7 +132,7 @@ After the preferences are set, restart the Julia REPL again.
     `MPIPreferences.use_system_binary()` may lead to an undesired selection of the MPI implementation - 
     make sure to check the `LocalPreferences.toml` in any case. 
     You can also check at runtime of your Julia session the MPI configuration with 
-    `using MPI; MPI..versioninfo()`.
+    `using MPI; MPI.versioninfo()`.
 
 ### [Usage](@id parallel_usage)
 
