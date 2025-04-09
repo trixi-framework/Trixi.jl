@@ -221,6 +221,37 @@ function boundary_condition_wall(u_inner, orientation, direction, x, t,
     return flux
 end
 
+"""
+    boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
+                                 equations::AcousticPerturbationEquations2D)
+
+Use an orthogonal projection of the perturbed velocities to zero out the normal velocity
+while retaining the possibility of a tangential velocity in the boundary state.
+Further details are available in the paper:
+- Marcus Bauer, Jürgen Dierke and Roland Ewert (2011)
+  Application of a discontinuous Galerkin method to discretize acoustic perturbation equations
+  [DOI: 10.2514/1.J050333](https://doi.org/10.2514/1.J050333)
+"""
+function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector, x, t,
+                                      surface_flux_function,
+                                      equations::AcousticPerturbationEquations2D)
+    # normalize the outward pointing direction
+    normal = normal_direction / norm(normal_direction)
+
+    # compute the normal perturbed velocity
+    u_normal = normal[1] * u_inner[1] + normal[2] * u_inner[2]
+
+    # create the "external" boundary solution state
+    u_boundary = SVector(u_inner[1] - 2 * u_normal * normal[1],
+                         u_inner[2] - 2 * u_normal * normal[2],
+                         u_inner[3], cons2mean(u_inner, equations)...)
+
+    # calculate the boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+
+    return flux
+end
+
 # Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::AcousticPerturbationEquations2D)
