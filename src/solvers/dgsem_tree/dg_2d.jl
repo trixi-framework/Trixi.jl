@@ -1091,11 +1091,9 @@ function calc_mortar_flux!(surface_flux_values,
         calc_fstar!(fstar_primary_lower, have_auxiliary_node_vars(equations), equations,
                     surface_flux, dg, u_lower, mortar, orientation, cache)
         calc_fstar!(fstar_secondary_upper, have_auxiliary_node_vars(equations),
-                    equations,
-                    surface_flux, dg, u_upper, mortar, orientation, cache)
+                    equations, surface_flux, dg, u_upper, mortar, orientation, cache)
         calc_fstar!(fstar_secondary_lower, have_auxiliary_node_vars(equations),
-                    equations,
-                    surface_flux, dg, u_lower, mortar, orientation, cache)
+                    equations, surface_flux, dg, u_lower, mortar, orientation, cache)
 
         mortar_fluxes_to_elements!(surface_flux_values,
                                    mesh, equations, mortar_l2, dg, cache,

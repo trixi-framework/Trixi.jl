@@ -476,8 +476,7 @@ function rhs!(du, u, t,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-        calc_volume_integral!(du, u, mesh,
-                              have_nonconservative_terms(equations), equations,
+        calc_volume_integral!(du, u, mesh, equations,
                               dg.volume_integral, dg, cache)
     end
 
@@ -491,7 +490,8 @@ function rhs!(du, u, t,
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                             have_nonconservative_terms(equations), equations,
+                             have_nonconservative_terms(equations),
+                             have_auxiliary_node_vars(equations), equations,
                              dg.surface_integral, dg, cache)
     end
 
@@ -528,7 +528,8 @@ function rhs!(du, u, t,
     # Calculate MPI interface fluxes
     @trixi_timeit timer() "MPI interface flux" begin
         calc_mpi_interface_flux!(cache.elements.surface_flux_values, mesh,
-                                 have_nonconservative_terms(equations), equations,
+                                 have_nonconservative_terms(equations),
+                                 have_auxiliary_node_vars(equations), equations,
                                  dg.surface_integral, dg, cache)
     end
 
@@ -550,7 +551,8 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(du, u, t, source_terms, have_auxiliary_node_vars(equations),
+                      equations, dg, cache)
     end
 
     # Finish to send MPI data
@@ -723,7 +725,8 @@ end
 
 function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
-                                  nonconservative_terms::False, equations,
+                                  nonconservative_terms::False,
+                                  have_auxiliary_node_vars::False, equations,
                                   surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
@@ -762,6 +765,53 @@ function calc_mpi_interface_flux!(surface_flux_values,
     return nothing
 end
 
+function calc_mpi_interface_flux!(surface_flux_values,
+                                  mesh::ParallelTreeMesh{2},
+                                  nonconservative_terms::False,
+                                  have_auxiliary_node_vars::True, equations,
+                                  surface_integral, dg::DG, cache)
+    @unpack surface_flux = surface_integral
+    @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
+    @unpack auxiliary_surface_node_vars = cache.auxiliary_variables
+
+    @threaded for interface in eachmpiinterface(dg, cache)
+        # Get local neighboring element
+        element = local_neighbor_ids[interface]
+
+        # Determine interface direction with respect to element:
+        if orientations[interface] == 1 # interface in x-direction
+            if remote_sides[interface] == 1 # local element in positive direction
+                direction = 1
+            else # local element in negative direction
+                direction = 2
+            end
+        else # interface in y-direction
+            if remote_sides[interface] == 1 # local element in positive direction
+                direction = 3
+            else # local element in negative direction
+                direction = 4
+            end
+        end
+
+        for i in eachnode(dg)
+            # Call pointwise Riemann solver
+            u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
+            aux_ll, aux_rr = get_auxiliary_surface_node_vars(auxiliary_surface_node_vars,
+                                                             equations, dg, i,
+                                                             interface)
+            flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr,
+                                orientations[interface], equations)
+
+            # Copy flux to local element storage
+            for v in eachvariable(equations)
+                surface_flux_values[v, i, direction, element] = flux[v]
+            end
+        end
+    end
+
+    return nothing
+end
+
 function calc_mpi_mortar_flux!(surface_flux_values,
                                mesh::ParallelTreeMesh{2},
                                nonconservative_terms::False, equations,
@@ -781,14 +831,14 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         # Because `nonconservative_terms` is `False` the primary and secondary fluxes
         # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
-                    orientation)
-        calc_fstar!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
-                    orientation)
+        calc_fstar!(fstar_primary_upper, have_auxiliary_node_vars(equations), equations,
+                    surface_flux, dg, u_upper, mortar, orientation, cache)
+        calc_fstar!(fstar_primary_lower, have_auxiliary_node_vars(equations), equations,
+                    surface_flux, dg, u_lower, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_upper, have_auxiliary_node_vars(equations), equations,
+                    surface_flux, dg, u_upper, mortar, orientation, cache)
+        calc_fstar!(fstar_secondary_lower, have_auxiliary_node_vars(equations), equations,
+                    surface_flux, dg, u_lower, mortar, orientation, cache)
 
         mpi_mortar_fluxes_to_elements!(surface_flux_values,
                                        mesh, equations, mortar_l2, dg, cache,
