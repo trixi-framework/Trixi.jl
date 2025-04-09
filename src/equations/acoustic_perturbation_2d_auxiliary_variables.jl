@@ -313,28 +313,6 @@ end
     return max(abs(v_ll) + c_mean_ll * norm_, abs(v_rr) + c_mean_rr * norm_)
 end
 
-@inline function flux_central(u_ll, u_rr, aux_ll, aux_rr,
-                              orientation_or_normal_direction,
-                              equations::AcousticPerturbationEquations2DAuxVars)
-    # Calculate regular 1D fluxes
-    f_ll = flux(u_ll, aux_ll, orientation_or_normal_direction, equations)
-    f_rr = flux(u_rr, aux_rr, orientation_or_normal_direction, equations)
-
-    # Average regular fluxes
-    return 0.5f0 * (f_ll + f_rr)
-end
-
-# Specialized `DissipationLocalLaxFriedrichs` taking into account auxiliary variables
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, aux_ll,
-                                                              aux_rr,
-                                                              orientation_or_normal_direction,
-                                                              equations::AcousticPerturbationEquations2DAuxVars)
-    λ = dissipation.max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
-                                  orientation_or_normal_direction, equations)
-    diss = -0.5f0 * λ * (u_rr - u_ll)
-    return SVector(diss[1], diss[2], diss[3])
-end
-
 @inline have_constant_speed(::AcousticPerturbationEquations2DAuxVars) = False()
 
 @inline function max_abs_speeds(u, aux,
