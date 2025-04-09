@@ -941,3 +941,4 @@ balance_p4est_multirate!(mesh, dg, cache, level_info_elements, alg.stages)
 rebalance_solver!(u0, mesh, equations, dg, cache, old_global_first_quadrant)
 reinitialize_boundaries!(semi.boundary_conditions, cache) # Needs to be called after `rebalance_solver!`
 ```
+This code could then be placed in the [`resize!`](https://github.com/trixi-framework/Trixi.jl/blob/eaeb04113523500ed831e3ab459694f12f7a49ea/src/time_integration/methods_2N.jl#L251-L255) function of a corresponding multirate integrator to ensure load-balancing for simulations involving AMR.
