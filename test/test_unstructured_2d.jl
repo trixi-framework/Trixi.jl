@@ -141,7 +141,7 @@ end
                                                           boundary_conditions = boundary_conditions),
                         # NOTE: Normally we would also need to exchange the `AnalysisCallback` when changing the 
                         # semidiscretization. This, however, leads in the test environment to a confusing error 
-                        # report, as the error report from the simulation is different from the one used here.
+                        # report, as the error report from the simulation is different from the one from the test environment.
                         # Thus, we do not exchange the `AnalysisCallback` here.
                         l2=[
                             0.0009176725767375231,
