@@ -396,7 +396,6 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
             end
 
             # Read variable
-            println("Reading variables_$v ($name)...")
             sendbuf = MPI.VBuffer(read(file["variables_$v"]), node_counts)
             MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
         end
