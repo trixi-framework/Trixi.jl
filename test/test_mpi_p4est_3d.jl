@@ -95,6 +95,28 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
         end
     end
 
+    @trixi_testset "elixir_advection_restart.jl (Interpolation 3 -> 4)" begin
+        @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
+                            semi=SemidiscretizationHyperbolic(mesh, equations,
+                                                              initial_condition_convergence_test,
+                                                              DGSEM(polydeg = 4,
+                                                                    surface_flux = flux_lax_friedrichs)),
+                            # NOTE: Normally we would also need to exchange the `AnalysisCallback` when changing the 
+                            # semidiscretization. This, however, leads in the test environment to a confusing error 
+                            # report, as the error report from the simulation is different from the one used here.
+                            # Thus, we do not exchange the `AnalysisCallback` here.
+                            l2=[0.0054186392447211915],
+                            linf=[0.01787574217842658],)
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+
     @trixi_testset "elixir_advection_cubed_sphere.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_cubed_sphere.jl"),
                             l2=[0.002006918015656413],

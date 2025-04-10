@@ -76,7 +76,8 @@ function interpolate_restart_file!(u, file, slice,
                            nelements(dg, cache)))
     for v in eachvariable(equations)
         var = file["variables_$v"]
-        all_variables[v, .., :] = reshape(read(var)[slice], size(@view u[v, .., :]))
+        all_variables[v, .., :] = reshape(read(var)[slice],
+                                          size(@view all_variables[v, .., :]))
     end
 
     # Perform interpolation
@@ -269,14 +270,6 @@ end
 function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                                 ParallelT8codeMesh},
                                     equations, dg::DG, cache, restart_file)
-
-    # Calculate element and node counts by MPI rank
-    element_size = nnodes(dg)^ndims(mesh)
-    element_counts = convert(Vector{Cint}, collect(cache.mpi_cache.n_elements_by_rank))
-    node_counts = element_counts * Cint(element_size)
-    # Cumulative sum of nodes per rank starting with an additional 0
-    cum_node_counts = append!(zeros(eltype(node_counts), 1), cumsum(node_counts))
-
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
@@ -303,8 +296,8 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
         end
 
         ### Read variable data ###
-        # Read data of each process in slices (ranks start with 0)
-        slice = (cum_node_counts[mpi_rank() + 1] + 1):cum_node_counts[mpi_rank() + 2]
+        element_counts = convert(Vector{Cint},
+                                 collect(cache.mpi_cache.n_elements_by_rank))
         if read(attributes(file)["polydeg"]) != polydeg(dg) # Interpolation is necessary
             polydeg_file = read(attributes(file)["polydeg"])
             nnodes_file = polydeg_file + 1
@@ -313,9 +306,29 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
             interpolation_matrix = polynomial_interpolation_matrix(nodes_file,
                                                                    nodes_solver)
+
+            # Calculate element and node counts by MPI rank                                                                   
+            element_size_file = nnodes_file^ndims(mesh)
+            node_counts_file = element_counts * Cint(element_size_file)
+            # Cumulative sum of nodes per rank starting with an additional 0
+            cum_node_counts_file = append!(zeros(eltype(node_counts_file), 1),
+                                           cumsum(node_counts_file))
+
+            # Read data of each process in slices (ranks start with 0)
+            slice = (cum_node_counts_file[mpi_rank() + 1] + 1):cum_node_counts_file[mpi_rank() + 2]
+
             interpolate_restart_file!(u, file, slice, mesh, equations, dg, cache,
                                       nnodes_file, interpolation_matrix)
         else # Read in variables separately
+            # Calculate element and node counts by MPI rank
+            element_size = nnodes(dg)^ndims(mesh)
+            node_counts = element_counts * Cint(element_size)
+            # Cumulative sum of nodes per rank starting with an additional 0
+            cum_node_counts = append!(zeros(eltype(node_counts), 1),
+                                      cumsum(node_counts))
+            # Read data of each process in slices (ranks start with 0)
+            slice = (cum_node_counts[mpi_rank() + 1] + 1):cum_node_counts[mpi_rank() + 2]
+
             for v in eachvariable(equations)
                 var = file["variables_$v"]
                 # Convert 1D array back to actual size of `u`
@@ -366,9 +379,14 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
         if read(attributes(file)["equations"]) != get_name(equations)
             error("restart mismatch: equations differ from value in restart file")
         end
+        if read(attributes(file)["polydeg"]) != polydeg(dg)
+            error("restart mismatch: polynomial degree in solver differs from value in restart file")
+        end
         if read(attributes(file)["n_elements"]) != nelements(dg, cache)
             error("restart mismatch: number of elements in solver differs from value in restart file")
         end
+
+        # Read data
         for v in eachvariable(equations)
             # Check if variable name matches
             var = file["variables_$v"]
@@ -376,21 +394,9 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
                varnames(cons2cons, equations)[v]
                 error("mismatch: variables_$v should be '$(varnames(cons2cons, equations)[v])', but found '$name'")
             end
-        end
 
-        ### Read variable data ###
-        if read(attributes(file)["polydeg"]) != polydeg(dg) # Interpolation is necessary
-            polydeg_file = read(attributes(file)["polydeg"])
-            nnodes_file = polydeg_file + 1
-            nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
-
-            nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            interpolation_matrix = polynomial_interpolation_matrix(nodes_file,
-                                                                   nodes_solver)
-            interpolate_restart_file!(u, file, mesh, equations, dg, cache,
-                                      nnodes_file, interpolation_matrix)
-        end
-        for v in eachvariable(equations)
+            # Read variable
+            println("Reading variables_$v ($name)...")
             sendbuf = MPI.VBuffer(read(file["variables_$v"]), node_counts)
             MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
         end
