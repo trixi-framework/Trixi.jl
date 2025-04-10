@@ -25,7 +25,8 @@ DG method (except floating point errors).
 end
 
 # central flux for equations with auxiliary variables
-@inline function flux_central(u_ll, u_rr, aux_ll, aux_rr, orientation_or_normal_direction,
+@inline function flux_central(u_ll, u_rr, aux_ll, aux_rr,
+                              orientation_or_normal_direction,
                               equations::AbstractEquations)
     # Calculate regular 1D fluxes
     f_ll = flux(u_ll, aux_ll, orientation_or_normal_direction, equations)
@@ -199,7 +200,8 @@ DissipationLocalLaxFriedrichs() = DissipationLocalLaxFriedrichs(max_abs_speed_na
 end
 
 # same as above for equations with auxiliary variables
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, aux_ll, aux_rr,
+@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, aux_ll,
+                                                              aux_rr,
                                                               orientation_or_normal_direction,
                                                               equations)
     λ = dissipation.max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
