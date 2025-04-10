@@ -103,7 +103,7 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_3d_dgsem")
                                                                     surface_flux = flux_lax_friedrichs)),
                             # NOTE: Normally we would also need to exchange the `AnalysisCallback` when changing the 
                             # semidiscretization. This, however, leads in the test environment to a confusing error 
-                            # report, as the error report from the simulation is different from the one used here.
+                            # report, as the error report from the simulation is different from the one from the test environment.
                             # Thus, we do not exchange the `AnalysisCallback` here.
                             l2=[0.0054186392447211915],
                             linf=[0.01787574217842658],)
