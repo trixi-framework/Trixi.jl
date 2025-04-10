@@ -15,14 +15,14 @@ const D = 1 # Diameter of the cylinder as in the mesh file
 
 # Parameters that can be freely chosen
 const v_in = 1
-const p_in = 1
+const rho_in = 1
 
 # Parameters that follow from Reynolds and Mach number + adiabatic index gamma
 const nu = v_in * D / Re
 
 const c = v_in / Ma
 const p_over_rho = c^2 / gamma
-const rho_in = p_in / p_over_rho
+const p_in = rho_in * p_over_rho
 const mu = rho_in * nu
 
 # Equations for this configuration
