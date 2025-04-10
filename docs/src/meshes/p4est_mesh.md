@@ -388,9 +388,7 @@ Also for a mesh in standard Abaqus format there are no qualitative changes when 
 The most notable difference is that boundaries are formed in 3D by faces defined by four nodes while in 2D boundaries are edges consisting of two elements.
 Note that standard Abaqus also defines quadratic element types. In Trixi.jl, these higher-order elements are currently only supported in 2D, i.e., 8-node quadrilaterals.
 A simple mesh file, which is used also in `examples/p4est_3d_dgsem/elixir_euler_free_stream_boundaries.jl`, is given below:
-<details>
-<summary>Click for full mesh</summary>
-<pre>
+```
 *Heading
 ### SOMETHING DIFFERENT FROM "File created by HOHQMesh" ###
 *NODE
@@ -601,8 +599,7 @@ A simple mesh file, which is used also in `examples/p4est_3d_dgsem/elixir_euler_
 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 
 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 
 94, 95, 96, 97, 98, 
-</pre>
-</details>
+```
 
 ## Interfacing with the `p4est` mesh backend
 
