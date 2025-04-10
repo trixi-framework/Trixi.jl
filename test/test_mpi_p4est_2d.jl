@@ -24,6 +24,8 @@ const EXAMPLES_DIR = pkgdir(Trixi, "examples", "p4est_2d_dgsem")
             Trixi.mpi_isroot() &&
                 println("elixir_advection_basic.jl with error-based step size control")
 
+            # Use callbacks without stepsize_callback to test error-based step size control
+            callbacks = CallbackSet(summary_callback, analysis_callback, save_solution)
             sol = solve(ode, RDPK3SpFSAL35(); abstol = 1.0e-4, reltol = 1.0e-4,
                         ode_default_options()..., callback = callbacks)
             summary_callback()
