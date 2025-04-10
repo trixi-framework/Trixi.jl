@@ -353,8 +353,7 @@ function PlotData2D(u::StructArray, mesh, equations, dg::DGMulti, cache;
                                   view(u, :, e))
 
         # transform nodal values of the solution according to `solution_variables`
-        transform_to_solution_variables!(view(u_plot, :, e), solution_variables_,
-                                         equations)
+        transform_to_solution_variables!(view(u_plot, :, e), solution_variables_, equations)
     end
 
     # interpolate nodal coordinates to plotting points

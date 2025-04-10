@@ -1442,7 +1442,7 @@ function init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, so
 end
 
 # Initialize auxiliary surface node variables (2D implementation)
-function init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equations,
+function init_auxiliary_surface_node_variables!(auxiliary_variables, mesh::TreeMesh2D, equations,
                                                 solver, cache)
     @unpack auxiliary_node_vars, auxiliary_surface_node_vars = auxiliary_variables
     @unpack orientations, neighbor_ids = cache.interfaces

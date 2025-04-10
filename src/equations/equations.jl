@@ -235,6 +235,21 @@ end
     return flux
 end
 
+# As above but including auxiliary variables
+@inline function (boundary_condition::BoundaryConditionDirichlet)(u_inner, aux_inner,
+                                                                  normal_direction::AbstractVector,
+                                                                  x, t,
+                                                                  surface_flux_function,
+                                                                  equations)
+    # get the external value of the solution
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    # Calculate boundary flux
+    flux = surface_flux_function(u_inner, u_boundary, aux_inner, aux_inner,
+                                 normal_direction, equations)
+    return flux
+end
+
 # Dirichlet-type boundary condition for equations with non-conservative terms for use with UnstructuredMesh2D
 # passing a tuple of surface flux functions for nonconservative terms
 # Note: For unstructured we lose the concept of an "absolute direction"
@@ -330,6 +345,10 @@ only if equations has auxiliary variables.
 """
 function n_auxiliary_node_vars end
 @inline eachauxiliaryvariable(equations::AbstractEquations) = Base.OneTo(n_auxiliary_node_vars(equations))
+
+function cons2aux(u, aux, equations::AbstractEquations)
+    return aux
+end
 
 """
     default_analysis_errors(equations)
@@ -532,6 +551,7 @@ abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <:
 include("linear_scalar_advection_1d.jl")
 include("linear_scalar_advection_2d.jl")
 include("linear_scalar_advection_3d.jl")
+include("linear_variable_scalar_advection_2d.jl")
 
 # Inviscid Burgers
 abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:

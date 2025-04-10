@@ -116,7 +116,6 @@ function init_auxiliary_node_variables(mesh, equations, solver, cache,
                                                                                    _auxiliary_node_vars,
                                                                                    _auxiliary_surface_node_vars,
                                                                                    auxiliary_field)
-
     init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, solver, cache)
     init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equations, solver,
                                            cache)

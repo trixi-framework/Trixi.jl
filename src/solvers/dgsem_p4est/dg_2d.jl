@@ -167,7 +167,7 @@ function calc_interface_flux!(surface_flux_values,
                                                     primary_element)
 
             calc_interface_flux!(surface_flux_values, mesh, nonconservative_terms,
-                                 equations,
+                                 have_auxiliary_node_vars, equations,
                                  surface_integral, dg, cache,
                                  interface, normal_direction,
                                  node, primary_direction, primary_element,
@@ -187,7 +187,8 @@ end
 # Inlined version of the interface flux computation for conservation laws
 @inline function calc_interface_flux!(surface_flux_values,
                                       mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                      nonconservative_terms::False, equations,
+                                      nonconservative_terms::False,
+                                      have_auxiliary_node_vars::False, equations,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
                                       primary_node_index, primary_direction_index,
@@ -208,10 +209,38 @@ end
     end
 end
 
+# Inlined version of the interface flux computation for conservation laws
+@inline function calc_interface_flux!(surface_flux_values,
+                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                      nonconservative_terms::False,
+                                      have_auxiliary_node_vars::True, equations,
+                                      surface_integral, dg::DG, cache,
+                                      interface_index, normal_direction,
+                                      primary_node_index, primary_direction_index,
+                                      primary_element_index,
+                                      secondary_node_index, secondary_direction_index,
+                                      secondary_element_index)
+    @unpack u = cache.interfaces
+    @unpack surface_flux = surface_integral
+    @unpack auxiliary_surface_node_vars = cache.auxiliary_variables
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_node_index,
+                                       interface_index)
+    aux_ll, aux_rr = get_auxiliary_surface_node_vars(auxiliary_surface_node_vars,
+                                                     equations, dg, primary_node_index, interface_index)
+    flux_ = surface_flux(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+
+    for v in eachvariable(equations)
+        surface_flux_values[v, primary_node_index, primary_direction_index, primary_element_index] = flux_[v]
+        surface_flux_values[v, secondary_node_index, secondary_direction_index, secondary_element_index] = -flux_[v]
+    end
+end
+
 # Inlined version of the interface flux computation for equations with conservative and nonconservative terms
 @inline function calc_interface_flux!(surface_flux_values,
                                       mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                      nonconservative_terms::True, equations,
+                                      nonconservative_terms::True,
+                                      have_auxiliary_node_vars::False, equations,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
                                       primary_node_index, primary_direction_index,
@@ -298,6 +327,7 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
         for node in eachnode(dg)
             calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                 mesh, have_nonconservative_terms(equations),
+                                have_auxiliary_node_vars(equations),
                                 equations, surface_integral, dg, cache,
                                 i_node, j_node,
                                 node, direction, element, boundary)
@@ -311,7 +341,8 @@ end
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                     nonconservative_terms::False, equations,
+                                     nonconservative_terms::False,
+                                     have_auxiliary_node_vars::False, equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
@@ -339,10 +370,55 @@ end
     end
 end
 
+# inlined version of the boundary flux calculation along a physical interface
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                     nonconservative_terms::False,
+                                     have_auxiliary_node_vars::True, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
+    @unpack boundaries = cache
+    @unpack node_coordinates, contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+    @unpack auxiliary_surface_node_vars = cache.auxiliary_variables
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+    # Get auxiliary variables at corresponding interface
+    aux_ll, aux_rr = get_auxiliary_surface_node_vars(auxiliary_surface_node_vars, equations, dg, node_index, boundary_index)
+
+    # TODO: HELP!
+    # See commment for BoundaryConditionDirichlet
+    if iseven(direction_index) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        aux_inner = aux_ll
+    else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        aux_inner = aux_rr
+    end
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    # Coordinates at boundary node
+    x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
+                        element_index)
+
+    flux_ = boundary_condition(u_inner, aux_inner, normal_direction, x, t, surface_flux, equations)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+end
+
 # inlined version of the boundary flux with nonconservative terms calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
-                                     nonconservative_terms::True, equations,
+                                     nonconservative_terms::True,
+                                     have_auxiliary_node_vars::False, equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
@@ -670,6 +746,68 @@ function calc_surface_integral!(du, u,
         end
     end
 
+    return nothing
+end
+
+# Initialize auxiliary surface node variables (2D implementation)
+# follows prolong2interfaces
+function init_auxiliary_surface_node_variables!(auxiliary_variables, mesh::P4estMesh{2},
+                                                equations,
+                                                solver, cache)
+    @unpack auxiliary_node_vars, auxiliary_surface_node_vars = auxiliary_variables
+    @unpack interfaces = cache
+    index_range = eachnode(solver)
+
+    @threaded for interface in eachinterface(solver, cache)
+        # Copy solution data from the primary element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the index of the primary side
+        # will always run forwards.
+        primary_element = interfaces.neighbor_ids[1, interface]
+        primary_indices = interfaces.node_indices[1, interface]
+
+        i_primary_start, i_primary_step = index_to_start_step_2d(primary_indices[1],
+                                                                 index_range)
+        j_primary_start, j_primary_step = index_to_start_step_2d(primary_indices[2],
+                                                                 index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        for i in index_range
+            for v in axes(auxiliary_surface_node_vars, 2)
+                auxiliary_surface_node_vars[1, v, i, interface] = auxiliary_node_vars[v,
+                                                                                      i_primary,
+                                                                                      j_primary,
+                                                                                      primary_element]
+            end
+            i_primary += i_primary_step
+            j_primary += j_primary_step
+        end
+
+        # Copy solution data from the secondary element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        secondary_element = interfaces.neighbor_ids[2, interface]
+        secondary_indices = interfaces.node_indices[2, interface]
+
+        i_secondary_start, i_secondary_step = index_to_start_step_2d(secondary_indices[1],
+                                                                     index_range)
+        j_secondary_start, j_secondary_step = index_to_start_step_2d(secondary_indices[2],
+                                                                     index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        for i in index_range
+            for v in axes(auxiliary_surface_node_vars, 2)
+                auxiliary_surface_node_vars[2, v, i, interface] = auxiliary_node_vars[v,
+                                                                                      i_secondary,
+                                                                                      j_secondary,
+                                                                                      secondary_element]
+            end
+            i_secondary += i_secondary_step
+            j_secondary += j_secondary_step
+        end
+    end
     return nothing
 end
 end # @muladd

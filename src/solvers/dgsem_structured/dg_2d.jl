@@ -99,6 +99,52 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
     return nothing
 end
 
+@inline function weak_form_kernel!(du, u,
+                                   element,
+                                   mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
+                                               UnstructuredMesh2D, P4estMesh{2},
+                                               T8codeMesh{2}},
+                                   nonconservative_terms::False,
+                                   have_auxiliary_node_vars::True, equations,
+                                   dg::DGSEM, cache, alpha = true)
+    # true * [some floating point value] == [exactly the same floating point value]
+    # This can (hopefully) be optimized away due to constant propagation.
+    @unpack derivative_dhat = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    @unpack auxiliary_node_vars = cache.auxiliary_variables
+
+    for j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, element)
+        aux_node = get_auxiliary_node_vars(auxiliary_node_vars,
+                                           equations, dg, i, j, element)
+
+        flux1 = flux(u_node, aux_node, 1, equations)
+        flux2 = flux(u_node, aux_node, 2, equations)
+
+        # Compute the contravariant flux by taking the scalar product of the
+        # first contravariant vector Ja^1 and the flux vector
+        Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j, element)
+        contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
+        for ii in eachnode(dg)
+            multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
+                                       contravariant_flux1, equations, dg, ii, j,
+                                       element)
+        end
+
+        # Compute the contravariant flux by taking the scalar product of the
+        # second contravariant vector Ja^2 and the flux vector
+        Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j, element)
+        contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
+        for jj in eachnode(dg)
+            multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
+                                       contravariant_flux2, equations, dg, i, jj,
+                                       element)
+        end
+    end
+
+    return nothing
+end
+
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{StructuredMesh{2},
