@@ -32,14 +32,14 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 callbacks = CallbackSet(summary_callback, # Re-used
                         alive_callback, # Re-used
                         analysis_callback, # Re-initialized
-                        stepsize_callback)
+                        stepsize_callback) # Re-initialized
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);
 
 ###############################################################################
-# Interpolate original solution to lower order (3 -> 2)
+# Interpolate original solution to LOWER order (3 -> 2)
 
 solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
 
@@ -58,7 +58,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 callbacks = CallbackSet(summary_callback, # Re-used
                         alive_callback, # Re-used
                         analysis_callback, # Re-initialized
-                        stepsize_callback)
+                        stepsize_callback) # Re-initialized
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
