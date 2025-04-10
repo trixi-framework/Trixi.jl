@@ -32,8 +32,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 callbacks = CallbackSet(summary_callback, # Re-used
                         alive_callback, # Re-used
                         analysis_callback, # Re-initialized
-                        stepsize_callback # Re-initialized
-                        )
+                        stepsize_callback)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
@@ -59,8 +58,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 callbacks = CallbackSet(summary_callback, # Re-used
                         alive_callback, # Re-used
                         analysis_callback, # Re-initialized
-                        stepsize_callback # Re-initialized
-                        )
+                        stepsize_callback)
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
