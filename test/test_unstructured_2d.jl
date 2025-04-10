@@ -131,6 +131,40 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_restart.jl (Interpolation 8 -> 9)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_restart.jl"),
+                        semi=SemidiscretizationHyperbolic(mesh, equations,
+                                                          initial_condition,
+                                                          DGSEM(polydeg = 9,
+                                                                surface_flux = flux_lax_friedrichs),
+                                                          source_terms = source_terms,
+                                                          boundary_conditions = boundary_conditions),
+                        # NOTE: Normally we would also need to exchange the `AnalysisCallback` when changing the 
+                        # semidiscretization. This, however, leads in the test environment to a confusing error 
+                        # report, as the error report from the simulation is different from the one used here.
+                        # Thus, we do not exchange the `AnalysisCallback` here.
+                        l2=[
+                            0.0009176725767375231,
+                            0.0008372573129939656,
+                            0.0008737313332592571,
+                            0.0025200523850636924
+                        ],
+                        linf=[
+                            0.0035175269957474775,
+                            0.003834735777443754,
+                            0.0038532228516379163,
+                            0.012228066588492403
+                        ],)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
