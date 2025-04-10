@@ -809,9 +809,9 @@ function calc_arc_length(coordinates)
     return arc_length
 end
 
-# Convert 2d unstructured data to 1d data at given curve.
+# Convert 2d unstructured data to 1d data at given curve for the TreeMesh.
 function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnodes,
-                                     curve, mesh, solver, cache)
+                                     curve, mesh::TreeMesh, solver, cache)
     n_points_curve = size(curve)[2]
     n_nodes, _, n_elements, n_variables = size(unstructured_data)
     nodes_in, _ = gauss_lobatto_nodes_weights(n_nodes)
@@ -884,10 +884,35 @@ function unstructured_2d_to_1d_curve(original_nodes, unstructured_data, nvisnode
     return arc_length, data_on_curve, nothing
 end
 
-# Convert a PlotData2DTriangulate object to a 1d data along given curve.
-function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
+# Convert 2d unstructured data from a general mesh to 1d data at given curve.
+#
+# We need to loop through all the points and check in which element they are
+# located. A general implementation working for all mesh types has to perform
+# a naive loop through all nodes. Thus, we use this entry point for dispatching
+# on the `mesh` type.
+function unstructured_2d_to_1d_curve(u, mesh, equations,
+                                     solver, cache,
+                                     curve, slice,
+                                     point, nvisnodes,
+                                     solution_variables)
+    return unstructured_2d_to_1d_curve_general(u, mesh, equations,
+                                               solver, cache,
+                                               curve, slice,
+                                               point, nvisnodes,
+                                               solution_variables)
+end
 
-    # If no curve is defined, create a axis curve.
+function unstructured_2d_to_1d_curve_general(u, mesh, equations,
+                                             solver, cache,
+                                             input_curve, slice,
+                                             point, nvisnodes,
+                                             solution_variables)
+    # Create a 'PlotData2DTriangulated' object so a triangulation
+    # can be used when extracting relevant data.
+    pd = PlotData2DTriangulated(u, mesh, equations, solver, cache;
+                                solution_variables, nvisnodes)
+
+    # If no curve is defined, create an axis curve.
     if input_curve === nothing
         input_curve = axis_curve(pd.x, pd.y, nothing, slice, point, nvisnodes)
     end
@@ -895,10 +920,11 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
     @assert size(input_curve, 1)==2 "Input 'curve' must be 2xn dimensional."
 
     # For each coordinate find the corresponding triangle with its ids.
+    # The default value if no element is found is 0.
     ids_by_coordinates = get_ids_by_coordinates(input_curve, pd)
-    found_coordinates = ids_by_coordinates[:, 1] .!= nothing
+    found_coordinates = view(ids_by_coordinates, :, 1) .!= 0
 
-    @assert found_coordinates!=zeros(size(input_curve, 2)) "No points of 'curve' are inside of the solutions domain."
+    @assert !iszero(found_coordinates) "No points of 'curve' are inside of the solutions domain."
 
     # These hold the ids of the elements and triangles the points of the curve sit in.
     element_ids = @view ids_by_coordinates[found_coordinates, 1]
@@ -918,21 +944,36 @@ function unstructured_2d_to_1d_curve(pd, input_curve, slice, point, nvisnodes)
 
     # Iterate over all points on the curve.
     for point in 1:n_points_curve
-        element = @view element_ids[point]
-        triangle = @view pd.t[triangle_ids[point], :]
-        for v in 1:n_variables
-            # Get the x and y coordinates of the corners of given triangle.
-            x_coordinates_triangle = SVector{3}(pd.x[triangle, element])
-            y_coordinates_triangle = SVector{3}(pd.y[triangle, element])
+        point_on_curve = SVector(curve[1, point], curve[2, point])
 
-            # Extract solutions values in corners of the triangle.
-            values_triangle = SVector{3}(getindex.(view(pd.data, triangle, element), v))
+        element = element_ids[point]
+        triangle_id = triangle_ids[point]
+        triangle = (pd.t[triangle_id, 1], pd.t[triangle_id, 2], pd.t[triangle_id, 3])
+
+        # Get the x and y coordinates of the corners of given triangle.
+        x_coordinates_triangle = SVector(pd.x[triangle[1], element],
+                                         pd.x[triangle[2], element],
+                                         pd.x[triangle[3], element])
+        y_coordinates_triangle = SVector(pd.y[triangle[1], element],
+                                         pd.y[triangle[2], element],
+                                         pd.y[triangle[3], element])
+
+        # Extract solution values in corners of the triangle.
+        data_in_triangle = (pd.data[triangle[1], element],
+                            pd.data[triangle[2], element],
+                            pd.data[triangle[3], element])
+
+        for v in 1:n_variables
+            # Extract solution values of variable `v` in corners of the triangle.
+            values_triangle = SVector(data_in_triangle[1][v],
+                                      data_in_triangle[2][v],
+                                      data_in_triangle[3][v])
 
             # Linear interpolation in each triangle to the points on the curve.
             data_on_curve[point, v] = triangle_interpolation(x_coordinates_triangle,
                                                              y_coordinates_triangle,
                                                              values_triangle,
-                                                             curve[:, point])
+                                                             point_on_curve)
         end
     end
 
@@ -1031,9 +1072,16 @@ end
 #
 # We need to loop through all the points and check in which element they are
 # located. A general implementation working for all mesh types has to perform
-# a naive loop through all nodes.
+# a naive loop through all nodes. Thus, we use this entry point for dispatching
+# on the `mesh` type.
 function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
                                      curve, solution_variables)
+    return unstructured_3d_to_1d_curve_general(u, equations, solver, cache,
+                                               curve, solution_variables)
+end
+
+function unstructured_3d_to_1d_curve_general(u, equations, solver, cache,
+                                             curve, solution_variables)
     # Set up data structure.
     @assert size(curve, 1) == 3
     n_points_curve = size(curve, 2)
@@ -1042,16 +1090,17 @@ function unstructured_3d_to_1d_curve(u, mesh, equations, solver, cache,
     u_node = get_node_vars(u, equations, solver, 1, 1, 1, 1)
     var_node = solution_variables(u_node, equations)
     n_variables = length(var_node)
-
     data_on_curve = Array{eltype(var_node)}(undef, n_points_curve, n_variables)
+
     nodes = cache.elements.node_coordinates
+    interpolation_cache = get_value_at_point_3d_cache(u)
 
     # Iterate over every point on the curve and determine the solutions value at given point.
     for i in 1:n_points_curve
         point = SVector(curve[1, i], curve[2, i], curve[3, i])
         get_value_at_point_3d!(view(data_on_curve, i, :), point, solution_variables,
                                nodes, u, equations, solver;
-                               cache = get_value_at_point_3d_cache(u))
+                               cache = interpolation_cache)
     end
 
     mesh_vertices_x = nothing
@@ -1153,6 +1202,7 @@ function get_value_at_point_3d_cache(u)
     distances = zeros(n_nodes, n_nodes, n_nodes, n_elements)
     coordinates_tetrahedron = Array{Float64, 2}(undef, 3, 4)
     value_tetrahedron = Array{eltype(u)}(undef, n_variables, 4)
+
     cache = (; distances, coordinates_tetrahedron, value_tetrahedron)
     return cache
 end
@@ -1664,7 +1714,8 @@ function get_ids_by_coordinates!(ids, coordinates, pd)
     n_coordinates = size(coordinates, 2)
 
     for index in 1:n_coordinates
-        ids[index, :] .= find_element(coordinates[:, index], pd)
+        point = SVector(coordinates[1, index], coordinates[2, index])
+        ids[index, :] .= find_element(point, pd)
     end
 
     return ids
@@ -1672,7 +1723,7 @@ end
 
 # Find the ids of elements and triangles containing given coordinates by using the triangulation in 'pd'.
 function get_ids_by_coordinates(coordinates, pd)
-    ids = Matrix(undef, size(coordinates, 2), 2)
+    ids = Matrix{Int}(undef, size(coordinates, 2), 2)
     get_ids_by_coordinates!(ids, coordinates, pd)
     return ids
 end
@@ -1706,12 +1757,24 @@ function find_element(point, pd)
     for element in 1:n_elements
         # Iterate over all triangles in given element.
         for tri in 1:n_tri
-            if is_in_triangle(point, pd.x[pd.t[tri, :], element],
-                              pd.y[pd.t[tri, :], element])
-                return SVector(element, tri)
+            # The code below is equivalent to
+            #   x == pd.x[pd.t[tri, :], element]
+            #   y == pd.y[pd.t[tri, :], element]
+            # but avoids allocations and is thus more efficient.
+            tri_indices = (pd.t[tri, 1], pd.t[tri, 2], pd.t[tri, 3])
+            x = SVector(pd.x[tri_indices[1], element],
+                        pd.x[tri_indices[2], element],
+                        pd.x[tri_indices[3], element])
+            y = SVector(pd.y[tri_indices[1], element],
+                        pd.y[tri_indices[2], element],
+                        pd.y[tri_indices[3], element])
+            if is_in_triangle(point, x, y)
+                return (element, tri)
             end
         end
     end
+
+    return (0, 0)
 end
 
 # Interpolate from three corners of a triangle to a single point.
