@@ -380,7 +380,9 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
             error("restart mismatch: equations differ from value in restart file")
         end
         if read(attributes(file)["polydeg"]) != polydeg(dg)
-            error("restart mismatch: polynomial degree in solver differs from value in restart file")
+            error("restart mismatch: polynomial degree in solver differs from value in restart file\n
+                  Re-using a simulation run with different polynomial degree is currently only supported for 
+                  parallel I/O or completely serial simulations.")
         end
         if read(attributes(file)["n_elements"]) != nelements(dg, cache)
             error("restart mismatch: number of elements in solver differs from value in restart file")
