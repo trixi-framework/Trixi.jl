@@ -143,6 +143,17 @@ lift_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_names,
                                                                                   u_inf(equations),
                                                                                   l_inf()))
 
+friction_coefficient = AnalysisSurfacePointwise(force_boundary_names,
+                                                SurfaceFrictionCoefficient(rho_inf(),
+                                                                           u_inf(equations),
+                                                                           l_inf()))
+
+pressure_coefficient = AnalysisSurfacePointwise(force_boundary_names,
+                                                SurfacePressureCoefficient(p_inf(),
+                                                                           rho_inf(),
+                                                                           u_inf(equations),
+                                                                           l_inf()))
+
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
                                      save_analysis = true,
@@ -150,7 +161,9 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_integrals = (drag_coefficient,
                                                            lift_coefficient,
                                                            drag_coefficient_shear_force,
-                                                           lift_coefficient_shear_force))
+                                                           lift_coefficient_shear_force),
+                                     analysis_pointwise = (friction_coefficient,
+                                                           pressure_coefficient))
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
