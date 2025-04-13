@@ -141,7 +141,8 @@ end
                                           surface_integral, dg::DG, cache,
                                           interface_index, normal_direction,
                                           interface_node_index, local_side,
-                                          surface_node_index, local_direction_index, local_element_index)
+                                          surface_node_index, local_direction_index,
+                                          local_element_index)
     @unpack u = cache.mpi_interfaces
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 

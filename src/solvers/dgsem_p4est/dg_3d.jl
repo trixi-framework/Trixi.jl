@@ -403,7 +403,8 @@ end
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                      nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache, i_index, j_index,
-                                     k_index, i_node_index, j_node_index, direction_index,
+                                     k_index, i_node_index, j_node_index,
+                                     direction_index,
                                      element_index, boundary_index)
     @unpack boundaries = cache
     @unpack node_coordinates, contravariant_vectors = cache.elements
@@ -427,17 +428,17 @@ end
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
         surface_flux_values[v, i_node_index, j_node_index,
-                            direction_index, element_index] = flux_[v]
+        direction_index, element_index] = flux_[v]
     end
 end
-
 
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
                                      nonconservative_terms::True, equations,
                                      surface_integral, dg::DG, cache, i_index, j_index,
-                                     k_index, i_node_index, j_node_index, direction_index,
+                                     k_index, i_node_index, j_node_index,
+                                     direction_index,
                                      element_index, boundary_index)
     @unpack boundaries = cache
     @unpack node_coordinates, contravariant_vectors = cache.elements
@@ -466,8 +467,8 @@ end
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
         surface_flux_values[v, i_node_index, j_node_index,
-                            direction_index, element_index] = flux[v] + 0.5f0 *
-                                                              noncons_flux[v]
+        direction_index, element_index] = flux[v] + 0.5f0 *
+                                                    noncons_flux[v]
     end
 end
 
