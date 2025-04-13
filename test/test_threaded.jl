@@ -138,6 +138,32 @@ Trixi.MPI.Barrier(Trixi.mpi_comm())
         end
     end
 
+    @trixi_testset "elixir_euler_positivity.jl" begin
+        @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                     "elixir_euler_positivity.jl"),
+                            l2=[
+                                0.48862067511841695,
+                                0.16787541578869494,
+                                0.16787541578869422,
+                                0.6184319933114926
+                            ],
+                            linf=[
+                                2.6766520821013002,
+                                1.2910938760258996,
+                                1.2910938760258899,
+                                6.473385481404865
+                            ],
+                            tspan=(0.0, 1.0),)
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 5000
+        end
+    end
+
     @trixi_testset "elixir_advection_diffusion.jl" begin
         @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                      "elixir_advection_diffusion.jl"),
