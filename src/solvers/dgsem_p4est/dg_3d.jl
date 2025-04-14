@@ -415,7 +415,7 @@ end
                             boundary_index)
 
     # Outward-pointing normal direction (not normalized)
-    normal_direction = get_normal_direction(direction, contravariant_vectors,
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
                                             i_index, j_index, k_index, element_index)
 
     # Coordinates at boundary node
