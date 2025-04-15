@@ -220,6 +220,22 @@ end
     end
 end
 
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (LDG)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_diffusion.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
+                        l2=[6.193056910594806e-6], linf=[4.918855889635143e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (Refined mesh)" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_advection_diffusion.jl"),
@@ -254,12 +270,47 @@ end
     end
 end
 
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_amr.jl"),
+                        initial_refinement_level=2,
+                        base_level=2,
+                        med_level=3,
+                        max_level=4,
+                        l2=[0.0009662045510830027],
+                        linf=[0.006121646998993091])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         l2=[0.007646800618485118],
                         linf=[0.10067621050468958])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        l2=[0.007009146246373517], linf=[0.09535203925012649])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -806,6 +857,33 @@ end
                             0.7188927326929244
                         ],
                         tspan=(0.0, 5e-3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_SD7003airfoil.jl (CFL-Interval)" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_SD7003airfoil.jl"),
+                        l2=[
+                            9.292895651912815e-5,
+                            0.0001350510066877861,
+                            7.964905098170568e-5,
+                            0.00023365678706785303
+                        ],
+                        linf=[
+                            0.2845614660523972,
+                            0.29577255454711177,
+                            0.19307666048254143,
+                            0.7188872358580256
+                        ],
+                        tspan=(0.0, 5e-3),
+                        stepsize_callback=StepsizeCallback(cfl = 2.2, interval = 5))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
