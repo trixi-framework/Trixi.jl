@@ -74,7 +74,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     end
     interfaces = deepcopy(interfaces_parent)
     resize!(interfaces, sum(mask))
-    interfaces.u = interfaces_parent.u[.., mask]
+    @views interfaces.u .= interfaces_parent.u[.., mask]
     interfaces.node_indices = interfaces_parent.node_indices[.., mask]
     neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
     # Transform the global (parent) indices into local (view) indices.
