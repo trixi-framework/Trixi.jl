@@ -229,14 +229,13 @@ with the help of Trixi.jl, please cite the following articles:
 
 In addition, you can also refer to Trixi.jl directly as
 ```bibtex
-@misc{schlottkelakemper2020trixi,
+@misc{schlottkelakemper2025trixi,
   title={{T}rixi.jl: {A}daptive high-order numerical simulations
          of hyperbolic {PDE}s in {J}ulia},
   author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
           Ranocha, Hendrik and Winters, Andrew R and Chan, Jesse
           and Rueda-Ramírez, Andrés},
-  year={2021},
-  month={09},
+  year={2025},
   howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
   doi={10.5281/zenodo.3996439}
 }
