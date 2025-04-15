@@ -180,8 +180,10 @@ For details see Section 9.2.5 of the book:
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t,
-                                              surface_flux_function,
+                                              surface_flux_functions,
                                               equations::ShallowWaterEquations2D)
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
+
     # normalize the outward pointing direction
     normal = normal_direction / norm(normal_direction)
 
@@ -196,8 +198,10 @@ For details see Section 9.2.5 of the book:
 
     # calculate the boundary flux
     flux = surface_flux_function(u_inner, u_boundary, normal_direction, equations)
+    noncons_flux = nonconservative_flux_function(u_inner, u_boundary, normal_direction,
+                                                 equations)
 
-    return flux
+    return flux, noncons_flux
 end
 
 """
@@ -208,8 +212,11 @@ Should be used together with [`TreeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation,
                                               direction, x, t,
-                                              surface_flux_function,
+                                              surface_flux_functions,
                                               equations::ShallowWaterEquations2D)
+    # The boundary conditions for the non-conservative term are identically 0 here.
+    # Bottom topography is assumed to be continuous at the boundary.
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
     ## get the appropriate normal vector from the orientation
     if orientation == 1
         u_boundary = SVector(u_inner[1], -u_inner[2], u_inner[3], u_inner[4])
@@ -220,11 +227,15 @@ Should be used together with [`TreeMesh`](@ref).
     # Calculate boundary flux
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
+        noncons_flux = nonconservative_flux_function(u_inner, u_boundary, orientation,
+                                                     equations)
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+        noncons_flux = nonconservative_flux_function(u_boundary, u_inner, orientation,
+                                                     equations)
     end
 
-    return flux
+    return flux, noncons_flux
 end
 
 # Calculate 1D flux for a single point
@@ -657,6 +668,47 @@ end
 
     # The normal velocities are already scaled by the norm
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr) * norm(normal_direction)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::ShallowWaterEquations2D)
+    # Get the velocity quantities in the appropriate direction
+    if orientation == 1
+        v_ll, _ = velocity(u_ll, equations)
+        v_rr, _ = velocity(u_rr, equations)
+    else
+        _, v_ll = velocity(u_ll, equations)
+        _, v_rr = velocity(u_rr, equations)
+    end
+
+    # Calculate the wave celerity on the left and right
+    h_ll = waterheight(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::ShallowWaterEquations2D)
+    # Extract and compute the velocities in the normal direction
+    v1_ll, v2_ll = velocity(u_ll, equations)
+    v1_rr, v2_rr = velocity(u_rr, equations)
+    v_ll = v1_ll * normal_direction[1] + v2_ll * normal_direction[2]
+    v_rr = v1_rr * normal_direction[1] + v2_rr * normal_direction[2]
+
+    # Compute the wave celerity on the left and right
+    h_ll = waterheight(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    norm_ = norm(normal_direction)
+    # The normal velocities are already scaled by the norm
+    return max(abs(v_ll) + c_ll * norm_, abs(v_rr) + c_rr * norm_)
 end
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography

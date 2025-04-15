@@ -1,4 +1,5 @@
-using Trixi, OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using Trixi
 
 dg = DGMulti(polydeg = 4, element_type = Quad(), approximation_type = Polynomial(),
              surface_integral = SurfaceIntegralWeakForm(FluxLaxFriedrichs()),
@@ -51,5 +52,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 tol = 1.0e-8
 sol = solve(ode, RDPK3SpFSAL49(); abstol = tol, reltol = tol,
             ode_default_options()..., callback = callbacks);
-
-summary_callback() # print the timer summary
