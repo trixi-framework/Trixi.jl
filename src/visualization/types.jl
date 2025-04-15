@@ -660,24 +660,24 @@ function PlotData1D(u, mesh, equations, solver, cache;
                                             variable_names)
 
     original_nodes = cache.elements.node_coordinates
-    unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
-                                              solver, cache)
 
     orientation_x = 0 # Set 'orientation' to zero on default.
 
     if ndims(mesh) == 1
+        unstructured_data = get_unstructured_data(u, solution_variables_,
+                                                  mesh, equations, solver, cache)
         x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data,
                                                nvisnodes, reinterpolate)
         orientation_x = 1
     elseif ndims(mesh) == 2
-        # Create a 'PlotData2DTriangulated' object so a triangulation can be used when extracting relevant data.
-        pd = PlotData2DTriangulated(u, mesh, equations, solver, cache;
-                                    solution_variables, nvisnodes)
-        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point,
-                                                               nvisnodes)
+        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(u, mesh, equations,
+                                                               solver, cache,
+                                                               curve, slice,
+                                                               point, nvisnodes,
+                                                               solution_variables_)
     else # ndims(mesh) == 3
         # Extract the information required to create a PlotData1D object.
-        # If no curve is defined, create a axis curve.
+        # If no curve is defined, create an axis curve.
         if curve === nothing
             curve = axis_curve(view(original_nodes, 1, :, :, :, :),
                                view(original_nodes, 2, :, :, :, :),
@@ -687,9 +687,9 @@ function PlotData1D(u, mesh, equations, solver, cache;
 
         # We need to loop through all the points and check in which element they are
         # located. A general implementation working for all mesh types has to perform
-        # a naive loop through all nodes. However, the P4estMesh can make use of the
-        # efficient search functionality of p4est to speed up the process. Thus, we
-        # pass the mesh, too.
+        # a naive loop through all nodes. However, the P4estMesh and the T8codeMesh
+        # can make use of the efficient search functionality of p4est/t8code
+        # to speed up the process. Thus, we pass the mesh, too.
         x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(u, mesh, equations,
                                                                solver, cache,
                                                                curve,
