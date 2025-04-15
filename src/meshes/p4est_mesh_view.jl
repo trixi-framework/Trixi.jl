@@ -88,11 +88,6 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
                                                         mesh.cell_ids)[1]
     end
 
-    # Flatten the arrays.
-    interfaces._u = vec(interfaces.u)
-    interfaces._node_indices = vec(interfaces.node_indices)
-    interfaces._neighbor_ids = vec(interfaces.neighbor_ids)
-
     return interfaces
 end
 
