@@ -1,0 +1,108 @@
+<!DOCTYPE html><HTML lang="en"><head><meta charset="UTF-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><title>Home · Trixi.jl</title><link href="https://trixi-framework.github.io/Trixi.jl/stable/" rel="canonical"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script data-main="assets/documenter.js" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" data-theme-name="documenter-dark" href="assets/themes/documenter-dark.css" rel="stylesheet" type="text/css"/><link class="docs-theme-link" data-theme-name="documenter-light" data-theme-primary="" href="assets/themes/documenter-light.css" rel="stylesheet" type="text/css"/><script src="assets/themeswap.js"></script><link href="assets/favicon.ico" rel="icon" type="image/x-icon"/><script data-outdated-warner="">function maybeAddWarning () {
+    const head = document.getElementsByTagName('head')[0];
+
+    // Add a noindex meta tag (unless one exists) so that search engines don't index this version of the docs.
+    if (document.body.querySelector('meta[name="robots"]') === null) {
+        const meta = document.createElement('meta');
+        meta.name = 'robots';
+        meta.content = 'noindex';
+
+        head.appendChild(meta);
+    };
+
+    // Add a stylesheet to avoid inline styling
+    const style = document.createElement('style');
+    style.type = 'text/css';
+    style.appendChild(document.createTextNode('.outdated-warning-overlay {  position: fixed;  top: 0;  left: 0;  right: 0;  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);  z-index: 999;  background-color: #ffaba7;  color: rgba(0, 0, 0, 0.7);  border-bottom: 3px solid #da0b00;  padding: 10px 35px;  text-align: center;  font-size: 15px; }  .outdated-warning-overlay .outdated-warning-closer {    position: absolute;    top: calc(50% - 10px);    right: 18px;    cursor: pointer;    width: 12px; }  .outdated-warning-overlay a {    color: #2e63b8; }    .outdated-warning-overlay a:hover {      color: #363636; }'));
+    head.appendChild(style);
+
+    const div = document.createElement('div');
+    div.classList.add('outdated-warning-overlay');
+    const closer = document.createElement('div');
+    closer.classList.add('outdated-warning-closer');
+
+    // Icon by font-awesome (license: https://fontawesome.com/license, link: https://fontawesome.com/icons/times?style=solid)
+    closer.innerHTML = '<svg aria-hidden="true" focusable="false" data-prefix="fas" data-icon="times" class="svg-inline--fa fa-times fa-w-11" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 352 512"><path fill="currentColor" d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"></path></svg>';
+    closer.addEventListener('click', function () {
+        document.body.removeChild(div);
+    });
+    let href = '/stable';
+    if (window.documenterBaseURL) {
+        href = window.documenterBaseURL + '/../stable';
+    }
+    div.innerHTML = 'This is an old version of the documentation. <br> <a href="' + href + '">Go to the newest version</a>.';
+    div.appendChild(closer);
+    document.body.appendChild(div);
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', maybeAddWarning);
+} else {
+    maybeAddWarning();
+};
+</script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href=""><img alt="Trixi.jl logo" src="assets/logo.png"/></a><div class="docs-package-name"><span class="docs-autofit">Trixi.jl</span></div><form action="search/" class="docs-search"><input class="docs-search-query" id="documenter-search-query" name="q" placeholder="Search docs" type="text"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href="">Home</a><ul class="internal"><li><a class="tocitem" href="#Installation"><span>Installation</span></a></li><li><a class="tocitem" href="#Usage"><span>Usage</span></a></li><li><a class="tocitem" href="#Referencing"><span>Referencing</span></a></li><li><a class="tocitem" href="#authors-index-md"><span>Authors</span></a></li><li><a class="tocitem" href="#License-and-contributing"><span>License and contributing</span></a></li></ul></li><li><a class="tocitem" href="development/">Development</a></li><li><a class="tocitem" href="visualization/">Visualization</a></li><li><a class="tocitem" href="styleguide/">Style guide</a></li><li><a class="tocitem" href="github-git/">GitHub &amp; Git</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="reference-trixi2vtk/">Trixi2Vtk.jl</a></li><li><a class="tocitem" href="reference-trixi2img/">Trixi2Img.jl</a></li></ul></li><li><a class="tocitem" href="authors/">Authors</a></li><li><a class="tocitem" href="contributing/">Contributing</a></li><li><a class="tocitem" href="license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href="">Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href="">Home</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/trixi-framework/Trixi.jl/blob/master/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" href="#" id="documenter-settings-button" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" href="#" id="documenter-sidebar-button"></a></div></header><article class="content" id="documenter-page"><h1 id="Trixi.jl"><a class="docs-heading-anchor" href="#Trixi.jl">Trixi.jl</a><a id="Trixi.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Trixi.jl" title="Permalink"></a></h1><p><strong>Trixi.jl</strong> is a numerical simulation framework for hyperbolic conservation laws written in <a href="https://julialang.org">Julia</a>. A key objective for the framework is to be useful to both scientists and students. Therefore, next to having an extensible design with a fast implementation, Trixi is focused on being easy to use for new or inexperienced users, including the installation and postprocessing procedures. Its features include:</p><ul><li>Hierarchical quadtree/octree grid with adaptive mesh refinement</li><li>Native support for 2D and 3D simulations</li><li>High-order accuracy in space in time</li><li>Nodal discontinuous Galerkin spectral element methods<ul><li>Kinetic energy-preserving and entropy-stable split forms</li><li>Entropy-stable shock capturing</li></ul></li><li>Explicit low-storage Runge-Kutta time integration</li><li>Square/cubic domains with periodic and Dirichlet boundary conditions</li><li>Multiple governing equations:<ul><li>Compressible Euler equations</li><li>Magnetohydrodynamics equations</li><li>Hyperbolic diffusion equations for elliptic problems</li><li>Scalar advection</li></ul></li><li>Multi-physics simulations<ul><li><a href="https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics">Self-gravitating gas dynamics</a></li></ul></li><li>Shared-memory parallelization via multithreading</li><li>Visualization of results with Julia-only tools (2D) or ParaView/VisIt (2D/3D)</li></ul><h2 id="Installation"><a class="docs-heading-anchor" href="#Installation">Installation</a><a id="Installation-1"></a><a class="docs-heading-anchor-permalink" href="#Installation" title="Permalink"></a></h2><p>If you have not yet installed Julia, please <a href="https://julialang.org/downloads/platform/">follow the instructions for your operating system</a>. Trixi works with Julia v1.5.</p><h3 id="For-users"><a class="docs-heading-anchor" href="#For-users">For users</a><a id="For-users-1"></a><a class="docs-heading-anchor-permalink" href="#For-users" title="Permalink"></a></h3><p>Trixi and related postprocessing tools are registered Julia packages. Hence, you can install Trixi, <a href="https://github.com/trixi-framework/Trixi2Vtk.jl">Trixi2Vtk</a>, and <a href="https://github.com/trixi-framework/Trixi2Img.jl">Trixi2Img</a> by executing the following commands in the Julia REPL:</p><pre><code class="language-julia">julia&gt; import Pkg
+
+julia&gt; Pkg.add("Trixi"); Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")</code></pre><p>Note that you can copy and paste all commands to the REPL <em>including</em> the leading <code>julia&gt;</code> prompts - they will automatically be stripped away by Julia.</p><h3 id="for-developers"><a class="docs-heading-anchor" href="#for-developers">For developers</a><a id="for-developers-1"></a><a class="docs-heading-anchor-permalink" href="#for-developers" title="Permalink"></a></h3><p>If you plan on editing Trixi itself, you have two options: installing it as a <code>dev</code> package or cloning it to a local folder.</p><ol><li><p><strong>Install Trixi as a <code>dev</code> package</strong>: You can install Trixi as a <code>dev</code> package by running</p><pre><code class="language-julia">julia&gt; import Pkg
+
+julia&gt; Pkg.dev("Trixi")</code></pre><p>This will download and install Trixi to a designated package development directory (usually <code>.julia/dev</code>, but you can determine the path on your system with <code>Pkg.devdir()</code>). As opposed to using the <code>Pkg.add</code> method as described above, packages installed via <code>Pkg.dev</code> may have their files edited locally.</p></li><li><p><strong>Install Trixi in a local folder</strong>: Alternatively, you can download Trixi locally and use it from within the cloned directory:</p><pre><code class="language-bash">git clone git@github.com:trixi-framework/Trixi.jl.git
+cd Trixi.jl
+julia --project=. -e 'import Pkg; Pkg.instantiate()' # Install Trixi's dependencies</code></pre><p>The last line can also be used to <em>update</em> the dependencies if they have changed since you first installed Trixi.</p><p>If you installed Trixi this way, you always have to start Julia with the <code>--project</code> flag set to your local Trixi clone, e.g.,</p><pre><code class="language-bash">julia --project=.</code></pre></li></ol><p>Either way, since the postprocessing tools typically do not need to be modified, it is recommended to install them as normal packages by executing</p><pre><code class="language-julia">julia&gt; import Pkg
+
+julia&gt; Pkg.add("Trixi2Vtk"); Pkg.add("Trixi2Img")</code></pre><p>in the Julia REPL.</p><h3 id="Example:-Installing-Trixi-as-a-package"><a class="docs-heading-anchor" href="#Example:-Installing-Trixi-as-a-package">Example: Installing Trixi as a package</a><a id="Example:-Installing-Trixi-as-a-package-1"></a><a class="docs-heading-anchor-permalink" href="#Example:-Installing-Trixi-as-a-package" title="Permalink"></a></h3><script async="" data-cols="90" data-rows="20" data-speed="3" id="asciicast-356938" src="https://asciinema.org/a/356938.js"></script><p>Please note that the playback speed is set to 3x, thus the entire installation procedure lasts around 1.5 minutes  in real time (depending on the performance of your computer and on how many dependencies had already been installed before).</p><h2 id="Usage"><a class="docs-heading-anchor" href="#Usage">Usage</a><a id="Usage-1"></a><a class="docs-heading-anchor-permalink" href="#Usage" title="Permalink"></a></h2><p>In the Julia REPL, first load the package Trixi</p><pre><code class="language-julia">julia&gt; using Trixi</code></pre><p>Then start a simulation by executing</p><pre><code class="language-julia">julia&gt; Trixi.run(default_example())</code></pre><p>To visualize the results, load the package Trixi2Img</p><pre><code class="language-julia">julia&gt; using Trixi2Img</code></pre><p>and generate a contour plot of the results with</p><pre><code class="language-julia">julia&gt; trixi2img(joinpath("out", "solution_000040.h5"), output_directory="out", grid_lines=true)</code></pre><p>This will create a file <code>solution_000040_scalar.png</code> in the <code>out/</code> subdirectory that can be opened with any image viewer:</p><p><img alt="&quot;solution_000040_scalar_resized&quot;" src="assets/solution_000040_scalar_resized.png"/></p><p>The method <code>Trixi.run(...)</code> expects a single string argument with the path to a Trixi parameter file. To quickly see Trixi in action, <code>default_example()</code> returns the path to an example parameter file with a short, two-dimensional problem setup. A list of all example parameter files packaged with Trixi can be obtained by running <code>get_examples()</code>. Alternatively, you can also browse the <a href="https://github.com/trixi-framework/Trixi.jl/examples/"><code>examples/</code></a> subdirectory. If you want to modify one of the parameter files to set up your own simulation, download it to your machine, edit the configuration, and pass the file path to <code>Trixi.run(...)</code>.</p><h3 id="Example:-Running-a-simulation-with-Trixi"><a class="docs-heading-anchor" href="#Example:-Running-a-simulation-with-Trixi">Example: Running a simulation with Trixi</a><a id="Example:-Running-a-simulation-with-Trixi-1"></a><a class="docs-heading-anchor-permalink" href="#Example:-Running-a-simulation-with-Trixi" title="Permalink"></a></h3><script async="" data-cols="90" data-rows="48" id="asciicast-356942" src="https://asciinema.org/a/356942.js"></script><p><em>Note on performance:</em> Julia uses just-in-time compilation to transform its source code to native, optimized machine code at the <em>time of execution</em> and caches the compiled methods for further use. That means that the first execution of a Julia method is typically slow, with subsequent runs being much faster. For instance, in the example above the first execution of <code>Trixi.run</code> takes about 15 seconds, while subsequent runs require less than 50 <em>milli</em>seconds.</p><h3 id="Performing-a-convergence-analysis"><a class="docs-heading-anchor" href="#Performing-a-convergence-analysis">Performing a convergence analysis</a><a id="Performing-a-convergence-analysis-1"></a><a class="docs-heading-anchor-permalink" href="#Performing-a-convergence-analysis" title="Permalink"></a></h3><p>To automatically determine the experimental order of convergence (EOC) for a given setup, execute</p><pre><code class="language-julia">Trixi.convtest("examples/2d/parameters.toml", 4)</code></pre><p>This will run a convergence test with the parameters file <code>examples/2d/parameters.toml</code>, using four iterations with different initial refinement levels. The initial iteration will use the parameters file unchanged, while for each subsequent iteration the <code>initial_refinement_level</code> parameter is incremented by one. Finally, the measured <span>$L^2$</span> and <span>$L^\infty$</span> errors and the determined EOCs will be displayed like this:</p><pre><code class="language-none">[...]
+L2
+scalar
+error     EOC
+9.14e-06  -
+5.69e-07  4.01
+3.55e-08  4.00
+2.22e-09  4.00
+
+mean      4.00
+--------------------------------------------------------------------------------
+Linf
+scalar
+error     EOC
+6.44e-05  -
+4.11e-06  3.97
+2.58e-07  3.99
+1.62e-08  4.00
+
+mean      3.99
+--------------------------------------------------------------------------------</code></pre><p>An example with multiple variables looks like this:</p><pre><code class="language-julia">julia&gt; Trixi.convtest("examples/2d/parameters_source_terms.toml", 3)</code></pre><pre><code class="language-none">[...]
+L2
+rho                 rho_v1              rho_v2              rho_e
+error     EOC       error     EOC       error     EOC       error     EOC
+8.52e-07  -         1.24e-06  -         1.24e-06  -         4.28e-06  -
+6.49e-08  3.71      8.38e-08  3.88      8.38e-08  3.88      2.96e-07  3.85
+4.33e-09  3.91      5.39e-09  3.96      5.39e-09  3.96      1.93e-08  3.94
+
+mean      3.81      mean      3.92      mean      3.92      mean      3.90
+--------------------------------------------------------------------------------
+Linf
+rho                 rho_v1              rho_v2              rho_e
+error     EOC       error     EOC       error     EOC       error     EOC
+8.36e-06  -         1.03e-05  -         1.03e-05  -         4.50e-05  -
+5.58e-07  3.90      6.58e-07  3.97      6.58e-07  3.97      2.92e-06  3.94
+3.77e-08  3.89      4.42e-08  3.90      4.42e-08  3.90      1.91e-07  3.93
+
+mean      3.90      mean      3.93      mean      3.93      mean      3.94
+--------------------------------------------------------------------------------</code></pre><h2 id="Referencing"><a class="docs-heading-anchor" href="#Referencing">Referencing</a><a id="Referencing-1"></a><a class="docs-heading-anchor-permalink" href="#Referencing" title="Permalink"></a></h2><p>If you use Trixi in your own research or write a paper using results obtained with the help of Trixi, please cite the following <a href="https://arxiv.org/abs/2008.10593">reference</a>:</p><pre><code class="language-bibtex">@online{schlottkelakemper2020purely,
+  title={A purely hyperbolic discontinuous {G}alerkin approach for
+         self-gravitating gas dynamics},
+  author={Schlottke-Lakemper, Michael and Winters, Andrew R and
+          Ranocha, Hendrik and Gassner, Gregor J},
+  year={2020},
+  month={08},
+  eprint={2008.10593},
+  eprinttype={arXiv},
+  eprintclass={math.NA}
+}</code></pre><p>In addition, you can also refer to Trixi directly as</p><pre><code class="language-bibtex">@misc{schlottkelakemper2020trixi,
+  title={{T}rixi.jl: A tree-based numerical simulation framework
+         for hyperbolic {PDE}s written in {J}ulia},
+  author={Schlottke-Lakemper, Michael and Gassner, Gregor J and
+          Ranocha, Hendrik and Winters, Andrew R},
+  year={2020},
+  month={08},
+  howpublished={\url{https://github.com/trixi-framework/Trixi.jl}},
+  doi={10.5281/zenodo.3996439}
+}</code></pre><h2 id="authors-index-md"><a class="docs-heading-anchor" href="#authors-index-md">Authors</a><a id="authors-index-md-1"></a><a class="docs-heading-anchor-permalink" href="#authors-index-md" title="Permalink"></a></h2><p>Trixi was initiated by <a href="https://www.mi.uni-koeln.de/NumSim/schlottke-lakemper">Michael Schlottke-Lakemper</a> and <a href="https://www.mi.uni-koeln.de/NumSim/gregor-gassner">Gregor Gassner</a> (both University of Cologne, Germany). Together with <a href="https://ranocha.de">Hendrik Ranocha</a> (KAUST, Saudi Arabia) and <a href="https://liu.se/en/employee/andwi94">Andrew Winters</a> (Linköping University, Sweden), they are the principal developers of Trixi. The full list of contributors can be found under <a href="authors/#Authors">Authors</a>.</p><h2 id="License-and-contributing"><a class="docs-heading-anchor" href="#License-and-contributing">License and contributing</a><a id="License-and-contributing-1"></a><a class="docs-heading-anchor-permalink" href="#License-and-contributing" title="Permalink"></a></h2><p>Trixi is licensed under the MIT license (see <a href="license/#License">License</a>). Since Trixi is an open-source project, we are very happy to accept contributions from the community. Please refer to <a href="contributing/#Contributing">Contributing</a> for more details.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="development/">Development »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label></p><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div><p></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 8 September 2020 16:37">Tuesday 8 September 2020</span>. Using Julia version 1.5.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></HTML>

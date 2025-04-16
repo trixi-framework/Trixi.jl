@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>3 Introduction to DG methods · Trixi.jl</title><meta name="title" content="3 Introduction to DG methods · Trixi.jl"/><meta property="og:title" content="3 Introduction to DG methods · Trixi.jl"/><meta property="twitter:title" content="3 Introduction to DG methods · Trixi.jl"/><meta name="description" content="Documentation for Trixi.jl."/><meta property="og:description" content="Documentation for Trixi.jl."/><meta property="twitter:description" content="Documentation for Trixi.jl."/><meta property="og:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/scalar_linear_advection_1d/"/><meta property="twitter:url" content="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/scalar_linear_advection_1d/"/><link rel="canonical" href="https://trixi-framework.github.io/Trixi.jl/stable/tutorials/scalar_linear_advection_1d/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">Trixi.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../../overview/">Overview</a></li><li><a class="tocitem" href="../../visualization/">Visualization</a></li><li><a class="tocitem" href="../../restart/">Restart simulation</a></li></ul></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../introduction/">Introduction</a></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox"/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">1 First steps in Trixi.jl</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../first_steps/getting_started/">1.1 Getting started</a></li><li><a class="tocitem" href="../first_steps/create_first_setup/">1.2 Create your first setup</a></li><li><a class="tocitem" href="../first_steps/changing_trixi/">1.3 Changing Trixi.jl itself</a></li></ul></li><li><a class="tocitem" href="../behind_the_scenes_simulation_setup/">2 Behind the scenes of a simulation setup</a></li><li class="is-active"><a class="tocitem" href>3 Introduction to DG methods</a><ul class="internal"><li><a class="tocitem" href="#The-discontinuous-Galerkin-collocation-spectral-element-method-(DGSEM)"><span>The discontinuous Galerkin collocation spectral element method (DGSEM)</span></a></li><li><a class="tocitem" href="#Alternative-Implementation-based-on-Trixi.jl"><span>Alternative Implementation based on Trixi.jl</span></a></li><li><a class="tocitem" href="#Summary-of-the-code"><span>Summary of the code</span></a></li><li><a class="tocitem" href="#Package-versions"><span>Package versions</span></a></li></ul></li><li><a class="tocitem" href="../DGSEM_FluxDiff/">4 DGSEM with flux differencing</a></li><li><a class="tocitem" href="../shock_capturing/">5 Shock capturing with flux differencing and stage limiter</a></li><li><a class="tocitem" href="../subcell_shock_capturing/">6 Subcell limiting with the IDP Limiter</a></li><li><a class="tocitem" href="../non_periodic_boundaries/">7 Non-periodic boundaries</a></li><li><a class="tocitem" href="../DGMulti_1/">8 DG schemes via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../DGMulti_2/">9 Other SBP schemes (FD, CGSEM) via <code>DGMulti</code> solver</a></li><li><a class="tocitem" href="../upwind_fdsbp/">10 Upwind FD SBP schemes</a></li><li><a class="tocitem" href="../adding_new_scalar_equations/">11 Adding a new scalar conservation law</a></li><li><a class="tocitem" href="../adding_nonconservative_equation/">12 Adding a non-conservative equation</a></li><li><a class="tocitem" href="../parabolic_terms/">13 Parabolic terms</a></li><li><a class="tocitem" href="../adding_new_parabolic_terms/">14 Adding new parabolic terms</a></li><li><a class="tocitem" href="../adaptive_mesh_refinement/">15 Adaptive mesh refinement</a></li><li><a class="tocitem" href="../structured_mesh_mapping/">16 Structured mesh with curvilinear mapping</a></li><li><a class="tocitem" href="../hohqmesh_tutorial/">17 Unstructured meshes with HOHQMesh.jl</a></li><li><a class="tocitem" href="../p4est_from_gmsh/">18 P4est mesh from gmsh</a></li><li><a class="tocitem" href="../time_stepping/">19 Explicit time stepping</a></li><li><a class="tocitem" href="../differentiable_programming/">20 Differentiable programming</a></li><li><a class="tocitem" href="../custom_semidiscretization/">21 Custom semidiscretizations</a></li></ul></li><li><span class="tocitem">Basic building blocks</span><ul><li><input class="collapse-toggle" id="menuitem-4-1" type="checkbox"/><label class="tocitem" for="menuitem-4-1"><span class="docs-label">Meshes</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../meshes/tree_mesh/">Tree mesh</a></li><li><a class="tocitem" href="../../meshes/structured_mesh/">Structured mesh</a></li><li><a class="tocitem" href="../../meshes/unstructured_quad_mesh/">Unstructured mesh</a></li><li><a class="tocitem" href="../../meshes/p4est_mesh/">P4est-based mesh</a></li><li><a class="tocitem" href="../../meshes/dgmulti_mesh/">DGMulti mesh</a></li></ul></li><li><a class="tocitem" href="../../time_integration/">Time integration</a></li><li><a class="tocitem" href="../../callbacks/">Callbacks</a></li><li><a class="tocitem" href="../../multi-physics_coupling/">Coupling</a></li></ul></li><li><span class="tocitem">Advanced topics &amp; developers</span><ul><li><a class="tocitem" href="../../conventions/">Conventions</a></li><li><a class="tocitem" href="../../development/">Development</a></li><li><a class="tocitem" href="../../github-git/">GitHub &amp; Git</a></li><li><a class="tocitem" href="../../styleguide/">Style guide</a></li><li><a class="tocitem" href="../../testing/">Testing</a></li><li><a class="tocitem" href="../../performance/">Performance</a></li><li><a class="tocitem" href="../../parallelization/">Parallelization</a></li></ul></li><li><a class="tocitem" href="../../troubleshooting/">Troubleshooting and FAQ</a></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference-trixi/">Trixi.jl</a></li><li><a class="tocitem" href="../../reference-trixibase/">TrixiBase.jl</a></li><li><a class="tocitem" href="../../reference-trixi2vtk/">Trixi2Vtk.jl</a></li></ul></li><li><a class="tocitem" href="../../changelog/">Changelog</a></li><li><a class="tocitem" href="../../authors/">Authors</a></li><li><a class="tocitem" href="../../contributing/">Contributing</a></li><li><a class="tocitem" href="../../code_of_conduct/">Code of Conduct</a></li><li><a class="tocitem" href="../../license/">License</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>3 Introduction to DG methods</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>3 Introduction to DG methods</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/trixi-framework/Trixi.jl/blob/main/docs/literate/src/files/scalar_linear_advection_1d.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="scalar_linear_advection_1d"><a class="docs-heading-anchor" href="#scalar_linear_advection_1d">3: Introduction to DG methods</a><a id="scalar_linear_advection_1d-1"></a><a class="docs-heading-anchor-permalink" href="#scalar_linear_advection_1d" title="Permalink"></a></h1><p><a href="https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=tutorials/notebooks/scalar_linear_advection_1d.ipynb"><img src="https://mybinder.org/badge_logo.svg" alt/></a> <a href="https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/tutorials/notebooks/scalar_linear_advection_1d.ipynb"><img src="https://img.shields.io/badge/render-nbviewer-f37726" alt/></a> <a href="https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/tutorials/notebooks/scalar_linear_advection_1d.ipynb"><img src="https://img.shields.io/badge/raw-notebook-4cc61e" alt/></a></p><p>This tutorial is about how to set up a simple way to approximate the solution of a hyperbolic partial differential equation. First, we will implement a basic and naive algorithm. Then, we will use predefined features from <a href="https://github.com/trixi-framework/Trixi.jl">Trixi.jl</a> to show how you can use Trixi.jl on your own.</p><p>We will implement the scalar linear advection equation in 1D with the advection velocity <span>$1$</span>.</p><p class="math-container">\[u_t + u_x = 0,\; \text{for} \;t\in \mathbb{R}^+, x\in\Omega=[-1,1]\]</p><p>We define the domain <span>$\Omega$</span> by setting the boundaries.</p><pre><code class="language-julia hljs">coordinates_min = -1.0 # minimum coordinate
+coordinates_max = 1.0  # maximum coordinate</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.0</code></pre><p>We assume periodic boundaries and the following initial condition.</p><pre><code class="language-julia hljs">initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">initial_condition_sine_wave (generic function with 1 method)</code></pre><h2 id="The-discontinuous-Galerkin-collocation-spectral-element-method-(DGSEM)"><a class="docs-heading-anchor" href="#The-discontinuous-Galerkin-collocation-spectral-element-method-(DGSEM)">The discontinuous Galerkin collocation spectral element method (DGSEM)</a><a id="The-discontinuous-Galerkin-collocation-spectral-element-method-(DGSEM)-1"></a><a class="docs-heading-anchor-permalink" href="#The-discontinuous-Galerkin-collocation-spectral-element-method-(DGSEM)" title="Permalink"></a></h2><h3 id="i.-Discretization-of-the-physical-domain"><a class="docs-heading-anchor" href="#i.-Discretization-of-the-physical-domain">i. Discretization of the physical domain</a><a id="i.-Discretization-of-the-physical-domain-1"></a><a class="docs-heading-anchor-permalink" href="#i.-Discretization-of-the-physical-domain" title="Permalink"></a></h3><p>To improve precision we want to approximate the solution on small parts of the physical domain. So, we split the domain <span>$\Omega=[-1, 1]$</span> into elements <span>$Q_l$</span> of length <span>$dx$</span>.</p><pre><code class="language-julia hljs">n_elements = 16 # number of elements
+
+dx = (coordinates_max - coordinates_min) / n_elements # length of one element</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.125</code></pre><p>To make the calculation more efficient and storing less information, we transform each element <span>$Q_l$</span> with center point <span>$x_l$</span> to a reference element <span>$E=[-1, 1]$</span></p><p class="math-container">\[Q_l=\Big[x_l-\frac{dx}{2}, x_l+\frac{dx}{2}\Big] \underset{x(\xi)}{\overset{\xi(x)}{\rightleftarrows}} [-1, 1].\]</p><p>So, for every element the transformation from the reference domain to the physical domain is defined by</p><p class="math-container">\[x(\xi) = x_l + \frac{dx}{2} \xi,\; \xi\in[-1, 1]\]</p><p>Therefore,</p><p class="math-container">\[\begin{align*}
+u &amp;= u(x(\xi), t) \\
+u_x &amp;= u_\xi \frac{d\xi}{dx} \\[3pt]
+\frac{d\xi}{dx} &amp;= (x_\xi)^{-1} = \frac{2}{dx} =: J^{-1}. \\
+\end{align*}\]</p><p>Here, <span>$J$</span> is the Jacobian determinant of the transformation.</p><p>Using this transformation, we can transform our equation for each element <span>$Q_l$</span>.</p><p class="math-container">\[\frac{dx}{2} u_t^{Q_l} + u_\xi^{Q_l} = 0 \text{, for }t\in\mathbb{R}^+,\; \xi\in[-1, 1]\]</p><p>Here, <span>$u_t^{Q_l}$</span> and <span>$u_\xi^{Q_l}$</span> denote the time and spatial derivatives of the solution on the element <span>$Q_l$</span>.</p><h3 id="ii.-Polynomial-approach"><a class="docs-heading-anchor" href="#ii.-Polynomial-approach">ii. Polynomial approach</a><a id="ii.-Polynomial-approach-1"></a><a class="docs-heading-anchor-permalink" href="#ii.-Polynomial-approach" title="Permalink"></a></h3><p>Now, we want to approximate the solution in each element <span>$Q_l$</span> by a polynomial of degree <span>$N$</span>. Since we transformed the equation, we can use the same polynomial approach for the reference coordinate <span>$\xi\in[-1, 1]$</span> in every physical element <span>$Q_l$</span>. This saves a lot of resources by reducing the amount of calculations needed and storing less information.</p><p>For DGSEM we choose <a href="https://en.wikipedia.org/wiki/Lagrange_polynomial">Lagrange basis functions</a> <span>$\{l_j\}_{j=0}^N$</span> as our polynomial basis of degree <span>$N$</span> in <span>$[-1, 1]$</span>. The solution in element <span>$Q_l$</span> can be approximated by</p><p class="math-container">\[u(x(\xi), t)\big|_{Q_l} \approx u^{Q_l}(\xi, t) = \sum_{j=0}^N u_j^{Q_l}(t) l_j(\xi)\]</p><p>with <span>$N+1$</span> coefficients <span>$\{u_j^{Q_l}\}_{j=0}^N$</span>. By construction the Lagrange basis has some useful advantages. This basis is defined by <span>$N+1$</span> nodes, which fulfill a Kronecker property at the exact same nodes. Let <span>$\{\xi_i\}_{i=0}^N$</span> be these nodes.</p><p class="math-container">\[l_j(\xi_i) = \delta_{i,j} =
+\begin{cases}
+1, &amp; \text{if } i=j \\
+0, &amp; \text{else.}
+\end{cases}\]</p><p>Because of this property, the polynomial coefficients are exact the values of <span>$u^{Q_l}$</span> at the nodes</p><p class="math-container">\[u^{Q_l}(\xi_i, t) = \sum_{j=0}^N u_j^{Q_l}(t) \underbrace{l_j(\xi_i)}_{=\delta_{ij}} = u_i^{Q_l}(t).\]</p><p>Next, we want to select the nodes <span>$\{\xi_i\}_{i=0}^N$</span>, which we use for the construction of the Lagrange polynomials. We choose the <span>$N+1$</span> Gauss-Lobatto nodes, which are used for the <a href="https://mathworld.wolfram.com/LobattoQuadrature.html">Gaussian-Lobatto quadrature</a>. These always contain the boundary points at <span>$-1$</span> and <span>$+1$</span> and are well suited as interpolation nodes. The corresponding weights will be referred to as <span>$\{w_j\}_{j=0}^N$</span>. In Trixi.jl the basis with Lagrange polynomials on Gauss-Lobatto nodes is already defined.</p><pre><code class="language-julia hljs">using Trixi
+polydeg = 3 #= polynomial degree = N =#
+basis = LobattoLegendreBasis(polydeg)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">LobattoLegendreBasis{Float64} with polynomials of degree 3</code></pre><p>The Gauss-Lobatto nodes are</p><pre><code class="language-julia hljs">nodes = basis.nodes</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4-element SVector{4, Float64} with indices SOneTo(4):
+ -1.0
+ -0.4472135954999579
+  0.4472135954999579
+  1.0</code></pre><p>with the corresponding weights</p><pre><code class="language-julia hljs">weights = basis.weights</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4-element SVector{4, Float64} with indices SOneTo(4):
+ 0.16666666666666666
+ 0.8333333333333334
+ 0.8333333333333334
+ 0.16666666666666666</code></pre><p>To illustrate how you can integrate using numerical quadrature with this Legendre-Gauss-Lobatto nodes, we give an example for <span>$f(x)=x^3$</span>. Since <span>$f$</span> is of degree <span>$3$</span>, a polynomial interpolation with <span>$N=3$</span> is exact. Therefore, the integral on <span>$[-1, 1]$</span> can be calculated by</p><p class="math-container">\[\begin{align*}
+\int_{-1}^1 f(x) dx &amp;= \int_{-1}^1 \Big( \sum_{j=0}^3 f(\xi_j)l_j(x) \Big) dx
+= \sum_{j=0}^3 f(\xi_j) \int_{-1}^1 l_j(x)dx \\
+&amp;=: \sum_{j=0}^3 f(\xi_j) w_j
+= \sum_{j=0}^3 \xi_j^3 w_j
+\end{align*}\]</p><p>Let&#39;s use our nodes and weights for <span>$N=3$</span> and plug in</p><pre><code class="language-julia hljs">integral = sum(nodes .^ 3 .* weights)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.0</code></pre><p>Using this polynomial approach leads to the equation</p><p class="math-container">\[\frac{dx}{2} \dot{u}^{Q_l}(\xi, t) + u^{Q_l}(\xi, t)&#39; = 0\]</p><p>with <span>$\dot{u}=\frac{\partial}{\partial t}u$</span> and <span>$u&#39;=\frac{\partial}{\partial x}u$</span>. To approximate the solution, we need to get the polynomial coefficients <span>$\{u_j^{Q_l}\}_{j=0}^N$</span> for every element <span>$Q_l$</span>.</p><p>After defining all nodes, we can implement the spatial coordinate <span>$x$</span> and its initial value <span>$u0 = u(t_0)$</span> for every node.</p><pre><code class="language-julia hljs">x = Matrix{Float64}(undef, length(nodes), n_elements)
+for element in 1:n_elements
+    x_l = coordinates_min + (element - 1) * dx + dx / 2
+    for i in eachindex(nodes)
+        ξ = nodes[i] # nodes in [-1, 1]
+        x[i, element] = x_l + dx / 2 * ξ
+    end
+end
+
+u0 = initial_condition_sine_wave.(x)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4×16 Matrix{Float64}:
+ 1.0       0.808658  0.646447  …  1.5      1.46194  1.35355  1.19134
+ 0.945837  0.759744  0.610228     1.49706  1.43849  1.31317  1.14018
+ 0.859825  0.686826  0.561506     1.47995  1.38977  1.24026  1.05416
+ 0.808658  0.646447  0.53806      1.46194  1.35355  1.19134  1.0</code></pre><p>To have a look at the initial sinus curve, we plot it.</p><pre><code class="language-julia hljs">using Plots
+plot(vec(x), vec(u0), label = &quot;initial condition&quot;, legend = :topleft)</code></pre><img src="41f868e8.svg" alt="Example block output"/><h3 id="iii.-Variational-formulation"><a class="docs-heading-anchor" href="#iii.-Variational-formulation">iii. Variational formulation</a><a id="iii.-Variational-formulation-1"></a><a class="docs-heading-anchor-permalink" href="#iii.-Variational-formulation" title="Permalink"></a></h3><p>After defining the equation and initial condition, we want to implement an algorithm to approximate the solution.</p><p>From now on, we only write <span>$u$</span> instead of <span>$u^{Q_l}$</span> for simplicity, but consider that all the following calculation only concern one element. Multiplying the new equation with the smooth Lagrange polynomials <span>$\{l_i\}_{i=0}^N$</span> (test functions) and integrating over the reference element <span>$E=[-1,1]$</span>, we get the variational formulation of our transformed partial differential equation for <span>$i=0,...,N$</span>:</p><p class="math-container">\[\begin{align*}
+\int_{-1}^1 \Big( \frac{dx}{2} \dot{u}(\xi, t) + u&#39;(\xi, t) \Big) l_i(\xi)d\xi
+  &amp;= \underbrace{\frac{dx}{2} \int_{-1}^1 \dot{u}(\xi, t) l_i(\xi)d\xi}_{\text{Term I}} + \underbrace{\int_{-1}^1 u&#39;(\xi, t) l_i(\xi)d\xi}_{\text{Term II}} = 0
+\end{align*}\]</p><p>We deal with the two terms separately. We write <span>$\int_{-1, N}^1 \;\cdot\; d\xi$</span> for the approximation of the integral using numerical quadrature with <span>$N+1$</span> basis points. We use the Gauss-Lobatto nodes again. The numerical scalar product <span>$\langle\cdot, \cdot\rangle_N$</span> is defined by <span>$\langle f, g\rangle_N := \int_{-1, N}^1 f(\xi) g(\xi) d\xi$</span>.</p><h4 id="Term-I:"><a class="docs-heading-anchor" href="#Term-I:">Term I:</a><a id="Term-I:-1"></a><a class="docs-heading-anchor-permalink" href="#Term-I:" title="Permalink"></a></h4><p>In the following calculation we approximate the integral numerically with quadrature on the Gauss-Lobatto nodes <span>$\{\xi_i\}_{i=0}^N$</span> and then use the Kronecker property of the Lagrange polynomials. This approach of using the same nodes for the interpolation and quadrature is called collocation.</p><p class="math-container">\[\begin{align*}
+\frac{dx}{2} \int_{-1}^1 \dot{u}(\xi, t) l_i(\xi)d\xi
+&amp;\approx \frac{dx}{2} \int_{-1, N}^1 \dot{u}(\xi, t) l_i(\xi)d\xi \\
+&amp;= \frac{dx}{2} \sum_{k=0}^N \underbrace{\dot{u}(\xi_k, t)}_{=\dot{u}_k(t)} \underbrace{l_i(\xi_k)}_{=\delta_{k,i}}w_k \\
+&amp;= \frac{dx}{2} \dot{u}_i(t) w_i
+\end{align*}\]</p><p>We define the Legendre-Gauss-Lobatto (LGL) mass matrix <span>$M$</span> and by the Kronecker property follows:</p><p class="math-container">\[M_{ij} = \langle l_j, l_i\rangle_N = \delta_{ij} w_j,\; i,j=0,...,N.\]</p><pre><code class="language-julia hljs">using LinearAlgebra
+M = diagm(weights)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4×4 StaticArraysCore.SMatrix{4, 4, Float64, 16} with indices SOneTo(4)×SOneTo(4):
+ 0.166667  0.0       0.0       0.0
+ 0.0       0.833333  0.0       0.0
+ 0.0       0.0       0.833333  0.0
+ 0.0       0.0       0.0       0.166667</code></pre><p>Now, we can write the integral with this new matrix.</p><p class="math-container">\[\frac{dx}{2} \int_{-1, N}^1 \dot{u}(\xi, t) \underline{l}(\xi)d\xi = \frac{dx}{2} M \underline{\dot{u}}(t),\]</p><p>where <span>$\underline{\dot{u}} = (\dot{u}_0, ..., \dot{u}_N)^T$</span> and <span>$\underline{l}$</span> respectively.</p><p><strong>Note:</strong> Since the LGL quadrature with <span>$N+1$</span> nodes is exact up to functions of degree <span>$2N-1$</span> and <span>$\dot{u}(\xi, t) l_i(\xi)$</span> is of degree <span>$2N$</span>, in general the following holds</p><p class="math-container">\[\int_{-1}^1 \dot{u}(\xi, t) l_i(\xi) d\xi \neq \int_{-1, N}^1 \dot{u}(\xi, t) l_i(\xi) d\xi.\]</p><p>With an exact integration the mass matrix would be dense. Choosing numerical integrating and quadrature with the exact same nodes (collocation) leads to the sparse and diagonal mass matrix <span>$M$</span>. This is called mass lumping and has the big advantage of an easy inversion of the matrix.</p><h4 id="Term-II:"><a class="docs-heading-anchor" href="#Term-II:">Term II:</a><a id="Term-II:-1"></a><a class="docs-heading-anchor-permalink" href="#Term-II:" title="Permalink"></a></h4><p>We use spatial partial integration for the second term:</p><p class="math-container">\[\int_{-1}^1 u&#39;(\xi, t) l_i(\xi) d\xi = [u l_i]_{-1}^1 - \int_{-1}^1 u l_i&#39;d\xi\]</p><p>The resulting integral can be solved exactly with LGL quadrature since the polynomial is now of degree <span>$2N-1$</span>.</p><p>Again, we split the calculation in two steps.</p><h4 id="Surface-term"><a class="docs-heading-anchor" href="#Surface-term">Surface term</a><a id="Surface-term-1"></a><a class="docs-heading-anchor-permalink" href="#Surface-term" title="Permalink"></a></h4><p>As mentioned before, we approximate the solution with a polynomial in every element. Therefore, in general the value of this approximation at the interfaces between two elements is not unique. To solve this problem we introduce the idea of the numerical flux <span>$u^*$</span>, which will give an exact value at the interfaces. One of many different approaches and definitions for the calculation of the numerical flux we will deal with in <a href="#numerical_flux">4. Numerical flux</a>.</p><p class="math-container">\[[u l_i]_{-1}^1 = u^*\big|^1 l_i(+1) - u^*\big|_{-1} l_i(-1)\]</p><p>Since the Gauss-Lobatto nodes contain the element boundaries <span>$-1$</span> and <span>$+1$</span>, we can use the Kronecker property of <span>$l_i$</span> for the calculation of <span>$l_i(-1)$</span> and <span>$l_i(+1)$</span>.</p><p class="math-container">\[[u \underline{l}]_{-1}^1 = u^*\big|^1 \left(\begin{array}{c} 0 \\ \vdots \\ 0 \\ 1 \end{array}\right)
+- u^*\big|_{-1} \left(\begin{array}{c} 1 \\ 0 \\ \vdots \\ 0\end{array}\right)
+= B \underline{u}^*(t)\]</p><p>with the boundary matrix</p><p class="math-container">\[B = \begin{pmatrix}
+-1 &amp; 0 &amp; \cdots &amp; 0\\
+0 &amp; 0 &amp; \cdots &amp; 0\\
+\vdots &amp; \vdots &amp; 0 &amp; 0\\
+0 &amp; \cdots &amp; 0 &amp; 1
+\end{pmatrix}
+\qquad\text{and}\qquad
+\underline{u}^*(t) = \left(\begin{array}{c} u^*\big|_{-1} \\ 0 \\ \vdots \\ 0 \\ u^*\big|^1\end{array}\right).\]</p><pre><code class="language-julia hljs">B = diagm([-1; zeros(polydeg - 1); 1])</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4×4 Matrix{Float64}:
+ -1.0  0.0  0.0  0.0
+  0.0  0.0  0.0  0.0
+  0.0  0.0  0.0  0.0
+  0.0  0.0  0.0  1.0</code></pre><h4 id="Volume-term"><a class="docs-heading-anchor" href="#Volume-term">Volume term</a><a id="Volume-term-1"></a><a class="docs-heading-anchor-permalink" href="#Volume-term" title="Permalink"></a></h4><p>As mentioned before, the new integral can be solved exact since the function inside is of degree <span>$2N-1$</span>.</p><p class="math-container">\[- \int_{-1}^1 u l_i&#39;d\xi = - \int_{-1, N}^1 u l_i&#39; d\xi
+= - \sum_{k=0}^N u(\xi_k, t) l_i&#39;(\xi_k) w_k
+= - \sum_{k=0}^N u_k(t) D_{ki} w_k\]</p><p>where <span>$D$</span> is the derivative matrix defined by <span>$D_{ki} = l_i&#39;(\xi_k)$</span> for <span>$i,k=0,...,N$</span>.</p><pre><code class="language-julia hljs">D = basis.derivative_matrix</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4×4 Matrix{Float64}:
+ -3.0        4.04508  -1.54508   0.5
+ -0.809017   0.0       1.11803  -0.309017
+  0.309017  -1.11803   0.0       0.809017
+ -0.5        1.54508  -4.04508   3.0</code></pre><p>To show why this matrix is called the derivative matrix, we go back to our example <span>$f(x)=x^3$</span>. We calculate the derivation of <span>$f$</span> at the Gauss-Lobatto nodes <span>$\{\xi_k\}_{k=0}^N$</span> with <span>$N=8$</span>.</p><p class="math-container">\[f&#39;|_{x=\xi_k} = \Big( \sum_{j=0}^8 f(\xi_j) l_j(x) \Big)&#39;|_{x=\xi_k} = \sum_{j=0}^8 f(\xi_j) l_j&#39;(\xi_k)
+= \sum_{j=0}^8 f(\xi_j) D_{kj}\]</p><p>for <span>$k=0,...,N$</span> and therefore, <span>$\underline{f}&#39; = D \underline{f}$</span>.</p><pre><code class="language-julia hljs">basis_N8 = LobattoLegendreBasis(8)
+plot(vec(x), x -&gt; 3 * x^2, label = &quot;f&#39;&quot;, lw = 2)
+scatter!(basis_N8.nodes, basis_N8.derivative_matrix * basis_N8.nodes .^ 3, label = &quot;Df&quot;,
+         lw = 3)</code></pre><img src="17a4ebea.svg" alt="Example block output"/><p>Combining the volume term for every <span>$i=0,...,N$</span> results in</p><p class="math-container">\[\int_{-1}^1 u \underline{l&#39;} d\xi = - D^T M \underline{u}(t)\]</p><p>Putting all parts together we get the following equation for the element <span>$Q_l$</span></p><p class="math-container">\[\frac{dx}{2} M \underline{\dot{u}}(t) = - B \underline{u}^*(t) + D^T M \underline{u}(t)\]</p><p>or equivalent</p><p class="math-container">\[\underline{\dot{u}}^{Q_l}(t) = \frac{2}{dx} \Big[ - M^{-1} B \underline{u}^{{Q_l}^*}(t) + M^{-1} D^T M \underline{u}^{Q_l}(t)\Big].\]</p><p>This is called the weak form of the DGSEM.</p><p><strong>Note:</strong> For every element <span>$Q_l$</span> we get a system of <span>$N+1$</span> ordinary differential equations to calculate <span>$N+1$</span> coefficients. Since the numerical flux <span>$u^*$</span> is depending on extern values at the interfaces, the equation systems of adjacent elements are weakly linked.</p><h3 id="numerical_flux"><a class="docs-heading-anchor" href="#numerical_flux">iv. Numerical flux</a><a id="numerical_flux-1"></a><a class="docs-heading-anchor-permalink" href="#numerical_flux" title="Permalink"></a></h3><p>As mentioned above, we still have to handle the problem of different values at the same point at the interfaces. This happens with the ideas of the numerical flux <span>$f^*(u)=u^*$</span>. The role of <span>$f^*$</span> might seem minor in this simple example, but is important for more complicated problems. There are two values at the same spatial coordinate. Let&#39;s say we are looking at the interface between the elements <span>$Q_l$</span> and <span>$Q_{l+1}$</span>, while both elements got <span>$N+1$</span> nodes as defined before. We call the first value of the right element <span>$u_R=u_0^{Q_{l+1}}$</span> and the last one of the left element <span>$u_L=u_N^{Q_l}$</span>. So, for the value of the numerical flux on that interface the following holds</p><p class="math-container">\[u^* = u^*(u_L, u_R).\]</p><p>These values are interpreted as start values of a so-called Riemann problem. There are many different (approximate) Riemann solvers available and useful for different problems. We will use the local Lax-Friedrichs flux.</p><pre><code class="language-julia hljs">surface_flux = flux_lax_friedrichs</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">FluxLaxFriedrichs(max_abs_speed_naive)</code></pre><p>The only missing ingredient is the flux calculation at the boundaries <span>$-1$</span> and <span>$+1$</span>.</p><p class="math-container">\[u^{{Q_{first}}^*}\big|_{-1} = u^{{Q_{first}}^*}\big|_{-1}(u^{bound}(-1), u_R)
+\quad\text{and}\quad
+u^{{Q_{last}}^*}\big|^1 = u^{{Q_{last}}^*}\big|^1(u_L, u^{bound}(1))\]</p><p>The boundaries are periodic, which means that the last value of the last element <span>$u^{Q_{last}}_N$</span> is used as <span>$u_L$</span> at the first interface and accordingly for the other boundary.</p><p>Now, we implement a function, that calculates <span>$\underline{\dot{u}}^{Q_l}$</span> for the given matrices, <span>$\underline{u}$</span> and <span>$\underline{u}^*$</span>.</p><pre><code class="language-julia hljs">function rhs!(du, u, x, t)
+    # Reset du and flux matrix
+    du .= zero(eltype(du))
+    flux_numerical = copy(du)
+
+    # Calculate interface and boundary fluxes, $u^* = (u^*|_{-1}, 0, ..., 0, u^*|^1)^T$
+    # Since we use the flux Lax-Friedrichs from Trixi.jl, we have to pass some extra arguments.
+    # Trixi.jl needs the equation we are dealing with and an additional `1`, that indicates the
+    # first coordinate direction.
+    equations = LinearScalarAdvectionEquation1D(1.0)
+    for element in 2:(n_elements - 1)
+        # left interface
+        flux_numerical[1, element] = surface_flux(u[end, element - 1], u[1, element], 1,
+                                                  equations)
+        flux_numerical[end, element - 1] = flux_numerical[1, element]
+        # right interface
+        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element + 1], 1,
+                                                    equations)
+        flux_numerical[1, element + 1] = flux_numerical[end, element]
+    end
+    # boundary flux
+    flux_numerical[1, 1] = surface_flux(u[end, end], u[1, 1], 1, equations)
+    flux_numerical[end, end] = flux_numerical[1, 1]
+
+    # Calculate surface integrals, $- M^{-1} * B * u^*$
+    for element in 1:n_elements
+        du[:, element] -= (M \ B) * flux_numerical[:, element]
+    end
+
+    # Calculate volume integral, $+ M^{-1} * D^T * M * u$
+    for element in 1:n_elements
+        flux = u[:, element]
+        du[:, element] += (M \ transpose(D)) * M * flux
+    end
+
+    # Apply Jacobian from mapping to reference element
+    for element in 1:n_elements
+        du[:, element] *= 2 / dx
+    end
+
+    return nothing
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">rhs! (generic function with 1 method)</code></pre><p>Combining all definitions and the function that calculates the right-hand side, we define the ODE and solve it until <code>t=2</code> with OrdinaryDiffEq&#39;s <code>solve</code> function and the Runge-Kutta method <code>RDPK3SpFSAL49()</code>, which is optimized for discontinuous Galerkin methods and hyperbolic PDEs. We set some common error tolerances <code>abstol=1.0e-6, reltol=1.0e-6</code> and pass <code>save_everystep=false</code> to avoid saving intermediate solution vectors in memory.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq
+tspan = (0.0, 2.0)
+ode = ODEProblem(rhs!, u0, tspan, x)
+
+sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+            ode_default_options()...)
+
+plot(vec(x), vec(sol.u[end]), label = &quot;solution at t=$(tspan[2])&quot;, legend = :topleft,
+     lw = 3)</code></pre><img src="dcb39c01.svg" alt="Example block output"/><h2 id="Alternative-Implementation-based-on-Trixi.jl"><a class="docs-heading-anchor" href="#Alternative-Implementation-based-on-Trixi.jl">Alternative Implementation based on Trixi.jl</a><a id="Alternative-Implementation-based-on-Trixi.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Alternative-Implementation-based-on-Trixi.jl" title="Permalink"></a></h2><p>Now, we implement the same example. But this time, we directly use the functionality that Trixi.jl provides.</p><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq, Plots</code></pre><p>First, define the equation with a advection_velocity of <code>1</code>.</p><pre><code class="language-julia hljs">advection_velocity = 1.0
+equations = LinearScalarAdvectionEquation1D(advection_velocity)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ LinearScalarAdvectionEquation1D                                                                  │
+│ ═══════════════════════════════                                                                  │
+│ #variables: ………………………………………………… 1                                                                │
+│ │ variable 1: …………………………………………… scalar                                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>Then, create a DG solver with polynomial degree = 3 and (local) Lax-Friedrichs/Rusanov flux as surface flux. The implementation of the basis and the numerical flux is now already done.</p><pre><code class="language-julia hljs">solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ DG{Float64}                                                                                      │
+│ ═══════════                                                                                      │
+│ basis: ……………………………………………………………… LobattoLegendreBasis{Float64}(polydeg=3)                         │
+│ mortar: …………………………………………………………… LobattoLegendreMortarL2{Float64}(polydeg=3)                      │
+│ surface integral: ………………………………… SurfaceIntegralWeakForm                                          │
+│ │ surface flux: ……………………………………… FluxLaxFriedrichs(max_abs_speed_naive)                           │
+│ volume integral: …………………………………… VolumeIntegralWeakForm                                           │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>We will now create a mesh with 16 elements for the physical domain <code>[-1, 1]</code> with periodic boundaries. We use Trixi.jl&#39;s standard mesh <a href="../../reference-trixi/#Trixi.TreeMesh"><code>TreeMesh</code></a>. Since it&#39;s limited to hypercube domains, we choose <code>2^4=16</code> elements. The mesh type supports AMR, that&#39; why <code>n_cells_max</code> has to be set, even if we don&#39;t need AMR here.</p><pre><code class="language-julia hljs">coordinates_min = -1.0 # minimum coordinate
+coordinates_max = 1.0  # maximum coordinate
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 4, # number of elements = 2^4
+                n_cells_max = 30_000) # set maximum capacity of tree data structure (only needed for AMR)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ TreeMesh{1, Trixi.SerialTree{1}}                                                                 │
+│ ════════════════════════════════                                                                 │
+│ center: …………………………………………………………… [0.0]                                                            │
+│ length: …………………………………………………………… 2.0                                                              │
+│ periodicity: ……………………………………………… (true,)                                                          │
+│ current #cells: ……………………………………… 31                                                               │
+│ #leaf-cells: ……………………………………………… 16                                                               │
+│ maximum #cells: ……………………………………… 30000                                                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>A semidiscretization collects data structures and functions for the spatial discretization. In Trixi.jl, an initial condition has the following parameter structure and is of the type <code>SVector</code>.</p><pre><code class="language-julia hljs">function initial_condition_sine_wave(x, t, equations)
+    SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+end
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ SemidiscretizationHyperbolic                                                                     │
+│ ════════════════════════════                                                                     │
+│ #spatial dimensions: ………………………… 1                                                                │
+│ mesh: ………………………………………………………………… TreeMesh{1, Trixi.SerialTree{1}} with length 31                  │
+│ equations: …………………………………………………… LinearScalarAdvectionEquation1D                                  │
+│ initial condition: ……………………………… initial_condition_sine_wave                                      │
+│ boundary conditions: ………………………… Trixi.BoundaryConditionPeriodic                                  │
+│ source terms: …………………………………………… nothing                                                          │
+│ solver: …………………………………………………………… DG                                                               │
+│ total #DOFs per field: …………………… 64                                                               │
+└──────────────────────────────────────────────────────────────────────────────────────────────────┘</code></pre><p>Again, combining all definitions and the function that calculates the right-hand side, we define the ODE and solve it until <code>t=2</code> with OrdinaryDiffEq&#39;s <code>solve</code> function and the Runge-Kutta method <code>RDPK3SpFSAL49()</code>.</p><pre><code class="language-julia hljs">tspan = (0.0, 2.0)
+ode_trixi = semidiscretize(semi, tspan)
+
+sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+                  ode_default_options()...);</code></pre><p>We add a plot of the new approximated solution to the one calculated before.</p><pre><code class="language-julia hljs">plot!(sol_trixi, label = &quot;solution at t=$(tspan[2]) with Trixi.jl&quot;, legend = :topleft,
+      linestyle = :dash, lw = 2)</code></pre><img src="e068e959.svg" alt="Example block output"/><h2 id="Summary-of-the-code"><a class="docs-heading-anchor" href="#Summary-of-the-code">Summary of the code</a><a id="Summary-of-the-code-1"></a><a class="docs-heading-anchor-permalink" href="#Summary-of-the-code" title="Permalink"></a></h2><p>To sum up, here is the complete code that we used.</p><h3 id="Raw-implementation"><a class="docs-heading-anchor" href="#Raw-implementation">Raw implementation</a><a id="Raw-implementation-1"></a><a class="docs-heading-anchor-permalink" href="#Raw-implementation" title="Permalink"></a></h3><pre><code class="language-julia hljs"># basis: Legendre-Gauss-Lobatto
+using Trixi, LinearAlgebra, OrdinaryDiffEq, Plots
+polydeg = 3 #= polynomial degree =#
+basis = LobattoLegendreBasis(polydeg)
+nodes = basis.nodes # Gauss-Lobatto nodes in [-1, 1]
+D = basis.derivative_matrix
+M = diagm(basis.weights) # mass matrix
+B = diagm([-1; zeros(polydeg - 1); 1])
+
+# mesh
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max = 1.0  # maximum coordinate
+n_elements = 16   # number of elements
+
+dx = (coordinates_max - coordinates_min) / n_elements # length of one element
+
+x = Matrix{Float64}(undef, length(nodes), n_elements)
+for element in 1:n_elements
+    x_l = -1 + (element - 1) * dx + dx / 2
+    for i in eachindex(nodes) # basis points in [-1, 1]
+        ξ = nodes[i]
+        x[i, element] = x_l + dx / 2 * ξ
+    end
+end
+
+# initial condition
+initial_condition_sine_wave(x) = 1.0 + 0.5 * sin(pi * x)
+u0 = initial_condition_sine_wave.(x)
+
+plot(vec(x), vec(u0), label = &quot;initial condition&quot;, legend = :topleft)
+
+# flux Lax-Friedrichs
+surface_flux = flux_lax_friedrichs
+
+# rhs! method
+function rhs!(du, u, x, t)
+    # reset du
+    du .= zero(eltype(du))
+    flux_numerical = copy(du)
+
+    # calculate interface and boundary fluxes
+    equations = LinearScalarAdvectionEquation1D(1.0)
+    for element in 2:(n_elements - 1)
+        # left interface
+        flux_numerical[1, element] = surface_flux(u[end, element - 1], u[1, element], 1,
+                                                  equations)
+        flux_numerical[end, element - 1] = flux_numerical[1, element]
+        # right interface
+        flux_numerical[end, element] = surface_flux(u[end, element], u[1, element + 1], 1,
+                                                    equations)
+        flux_numerical[1, element + 1] = flux_numerical[end, element]
+    end
+    # boundary flux
+    flux_numerical[1, 1] = surface_flux(u[end, end], u[1, 1], 1, equations)
+    flux_numerical[end, end] = flux_numerical[1, 1]
+
+    # calculate surface integrals
+    for element in 1:n_elements
+        du[:, element] -= (M \ B) * flux_numerical[:, element]
+    end
+
+    # calculate volume integral
+    for element in 1:n_elements
+        flux = u[:, element]
+        du[:, element] += (M \ transpose(D)) * M * flux
+    end
+
+    # apply Jacobian from mapping to reference element
+    for element in 1:n_elements
+        du[:, element] *= 2 / dx
+    end
+
+    return nothing
+end
+
+# create ODE problem
+tspan = (0.0, 2.0)
+ode = ODEProblem(rhs!, u0, tspan, x)
+
+# solve
+sol = solve(ode, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+            ode_default_options()...)
+
+plot(vec(x), vec(sol.u[end]), label = &quot;solution at t=$(tspan[2])&quot;, legend = :topleft,
+     lw = 3)</code></pre><img src="2fb004c2.svg" alt="Example block output"/><h3 id="Alternative-Implementation-based-on-Trixi.jl-2"><a class="docs-heading-anchor" href="#Alternative-Implementation-based-on-Trixi.jl-2">Alternative Implementation based on Trixi.jl</a><a class="docs-heading-anchor-permalink" href="#Alternative-Implementation-based-on-Trixi.jl-2" title="Permalink"></a></h3><pre><code class="language-julia hljs">using Trixi, OrdinaryDiffEq, Plots
+
+# equation with a advection_velocity of `1`.
+advection_velocity = 1.0
+equations = LinearScalarAdvectionEquation1D(advection_velocity)
+
+# create DG solver with flux lax friedrichs and LGL basis
+solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+
+# distretize domain with `TreeMesh`
+coordinates_min = -1.0 # minimum coordinate
+coordinates_max = 1.0 # maximum coordinate
+mesh = TreeMesh(coordinates_min, coordinates_max,
+                initial_refinement_level = 4, # number of elements = 2^4
+                n_cells_max = 30_000)
+
+# create initial condition and semidiscretization
+function initial_condition_sine_wave(x, t, equations)
+    SVector(1.0 + 0.5 * sin(pi * sum(x - equations.advection_velocity * t)))
+end
+
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_sine_wave, solver)
+
+# solve
+tspan = (0.0, 2.0)
+ode_trixi = semidiscretize(semi, tspan)
+sol_trixi = solve(ode_trixi, RDPK3SpFSAL49(); abstol = 1.0e-6, reltol = 1.0e-6,
+                  ode_default_options()...);
+
+plot!(sol_trixi, label = &quot;solution at t=$(tspan[2]) with Trixi.jl&quot;, legend = :topleft,
+      linestyle = :dash, lw = 2)</code></pre><img src="e7d02758.svg" alt="Example block output"/><h2 id="Package-versions"><a class="docs-heading-anchor" href="#Package-versions">Package versions</a><a id="Package-versions-1"></a><a class="docs-heading-anchor-permalink" href="#Package-versions" title="Permalink"></a></h2><p>These results were obtained using the following versions.</p><pre><code class="language-julia hljs">using InteractiveUtils
+versioninfo()
+
+using Pkg
+Pkg.status([&quot;Trixi&quot;, &quot;OrdinaryDiffEq&quot;, &quot;Plots&quot;],
+           mode = PKGMODE_MANIFEST)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Julia Version 1.10.7
+Commit 4976d05258e (2024-11-26 15:57 UTC)
+Build Info:
+  Official https://julialang.org/ release
+Platform Info:
+  OS: Linux (x86_64-linux-gnu)
+  CPU: 4 × AMD EPYC 7763 64-Core Processor
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-15.0.7 (ORCJIT, znver3)
+Threads: 1 default, 0 interactive, 1 GC (on 4 virtual cores)
+Environment:
+  JULIA_PKG_SERVER_REGISTRY_PREFERENCE = eager
+<span class="sgr32"><span class="sgr1">Status</span></span> `~/work/Trixi.jl/Trixi.jl/docs/Manifest.toml`
+<span class="sgr32">⌃</span> <span class="sgr90">[1dea7af3] </span>OrdinaryDiffEq v6.66.0
+  <span class="sgr90">[91a5bcdd] </span>Plots v1.40.9
+  <span class="sgr90">[a7f1ee26] </span>Trixi v0.9.9 `~/work/Trixi.jl/Trixi.jl`
+<span class="sgr36"><span class="sgr1">Info</span></span> Packages marked with <span class="sgr32">⌃</span> have new versions available and may be upgradable.</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../behind_the_scenes_simulation_setup/">« 2 Behind the scenes of a simulation setup</a><a class="docs-footer-nextpage" href="../DGSEM_FluxDiff/">4 DGSEM with flux differencing »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Wednesday 11 December 2024 08:39">Wednesday 11 December 2024</span>. Using Julia version 1.10.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
