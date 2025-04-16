@@ -233,6 +233,7 @@ function calc_gradient!(gradients, u_transformed, t,
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache_parabolic.elements.surface_flux_values,
                              mesh, False(), # False() = no nonconservative terms
+                             False(), # False() = no auxiliary variables
                              equations_parabolic, dg.surface_integral, dg,
                              cache_parabolic)
     end
