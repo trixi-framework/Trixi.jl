@@ -56,6 +56,7 @@ isdir(outdir) && rm(outdir, recursive = true)
     include("test_tree_1d_maxwell.jl")
 
     # Passive tracers
+    include("test_tree_1d_passive_tracers.jl")
 end
 
 # Coverage test for all initial conditions
