@@ -112,7 +112,7 @@ function save_solution_file(u, time, dt, timestep,
         data = u
         n_vars = nvariables(equations)
     else
-        data = solution_variables.(u, equations)
+        data = map(u_node -> solution_variables(u_node, equations), u)
         # Find out variable count by looking at output from `solution_variables` function.
         n_vars = length(data[1])
     end
@@ -143,8 +143,8 @@ function save_solution_file(u, time, dt, timestep,
 
         # Store each variable of the solution data.
         for v in 1:n_vars
-            temp = zeros(size(u))
-            n_nodes, n_elems = size(u)
+            temp = zeros(size(u.u))
+            n_nodes, n_elems = size(u.u)
             for i_elem in 1:n_elems
                 for i_node in 1:n_nodes
                     temp[i_node, i_elem] = data[i_node, i_elem][v]
