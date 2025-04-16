@@ -45,9 +45,11 @@ function extract_p4est_mesh_view(elements_parent,
                                  equations,
                                  dg,
                                  ::Type{uEltype}) where {uEltype <: Real}
+    # Create deepcopy to get completely independent elements container
     elements = deepcopy(elements_parent)
     resize!(elements, length(mesh.cell_ids))
 
+    # Copy relevant entries from parent mesh
     @views elements.inverse_jacobian .= elements_parent.inverse_jacobian[..,
                                                                          mesh.cell_ids]
     @views elements.jacobian_matrix .= elements_parent.jacobian_matrix[..,
@@ -58,6 +60,7 @@ function extract_p4est_mesh_view(elements_parent,
                                                                                    mesh.cell_ids]
     @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
                                                                                mesh.cell_ids]
+    # Extract interfaces that belong to mesh view
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
     return elements, interfaces, boundaries_parent, mortars_parent
@@ -66,14 +69,18 @@ end
 # Remove all interfaces that have a tuple of neighbor_ids where at least one is
 # not part of this meshview, i.e. mesh.cell_ids, and return the new interface container
 function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
-
+    # Identify interfaces that need to be retained
     mask = BitArray(undef, ninterfaces(interfaces_parent))
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
         mask[interface] = (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
                           (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
     end
+
+    # Create deepcopy to get completely independent interfaces container
     interfaces = deepcopy(interfaces_parent)
     resize!(interfaces, sum(mask))
+
+    # Copy relevant entries from parent mesh
     @views interfaces.u .= interfaces_parent.u[.., mask]
     @views interfaces.node_indices .= interfaces_parent.node_indices[.., mask]
     @views neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
