@@ -39,8 +39,8 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
-      - name: Install Trixi and OrdinaryDiffEq in main environment
-        run: julia -e 'using Pkg; Pkg.add("OrdinaryDiffEq"); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+      - name: Install Trixi and OrdinaryDiffEq sub-packages in main environment
+        run: julia -e 'using Pkg; Pkg.add(["OrdinaryDiffEqLowOrderRK", "OrdinaryDiffEqLowStorageRK", "OrdinaryDiffEqSSPRK"]); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Install dependencies
         run: julia --project=benchmark/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Run benchmarks

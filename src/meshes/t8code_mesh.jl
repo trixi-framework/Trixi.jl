@@ -792,9 +792,8 @@ Construct a cubed spherical shell of given inner radius and thickness as `T8code
 `:inside` and `:outside`.
 
 # Arguments
-- `lat_lon_levels_per_face_dimension::Integer`: number of trees per patch in longitudinal
-                                                and latitudinal direction given as level of
-                                                refinement.
+- `trees_per_face_dimension::Integer`: number of trees per patch in longitudinal
+                                       and latitudinal direction.
 - `layers::Integer`: the number of trees in the third local dimension of each face, i.e.,
                      the number of layers of the shell.
 - `inner_radius::Float64`: Radius of the inner side of the shell.
@@ -807,12 +806,12 @@ Construct a cubed spherical shell of given inner radius and thickness as `T8code
 - `initial_refinement_level::Integer`: refine the mesh uniformly to this level before the
                                        simulation starts.
 """
-function T8codeMeshCubedSphere(lat_lon_levels_per_face_dimension, layers, inner_radius,
+function T8codeMeshCubedSphere(trees_per_face_dimension, layers, inner_radius,
                                thickness;
                                polydeg, RealT = Float64, initial_refinement_level = 0)
     NDIMS = 3
     cmesh = t8_cmesh_new_cubed_spherical_shell(inner_radius, thickness,
-                                               lat_lon_levels_per_face_dimension,
+                                               trees_per_face_dimension,
                                                layers, mpi_comm())
     do_face_ghost = mpi_isparallel()
     scheme = t8_scheme_new_default_cxx()

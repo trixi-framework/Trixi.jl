@@ -33,7 +33,8 @@ using Reexport: @reexport
 # as long as HDF5.jl uses Requires.jl to enable parallel HDF5 with MPI
 using MPI: MPI
 
-using SciMLBase: CallbackSet, DiscreteCallback,
+@reexport using SciMLBase: CallbackSet
+using SciMLBase: DiscreteCallback,
                  ODEProblem, ODESolution,
                  SplitODEProblem
 import SciMLBase: get_du, get_tmp_cache, u_modified!,
@@ -45,6 +46,7 @@ using DelimitedFiles: readdlm
 using Downloads: Downloads
 using CodeTracking: CodeTracking
 using ConstructionBase: ConstructionBase
+using DiffEqBase: DiffEqBase, get_tstops, get_tstops_array
 using DiffEqCallbacks: PeriodicCallback, PeriodicCallbackAffect
 @reexport using EllipsisNotation # ..
 using FillArrays: Ones, Zeros
@@ -60,6 +62,7 @@ using OffsetArrays: OffsetArray, OffsetVector
 using P4est
 using T8code
 using RecipesBase: RecipesBase
+using RecursiveArrayTools: VectorOfArray
 using Requires: @require
 using Static: Static, One, True, False
 @reexport using StaticArrays: SVector
@@ -155,7 +158,7 @@ export AcousticPerturbationEquations2D,
        CompressibleEulerEquationsQuasi1D,
        IdealGlmMhdEquations1D, IdealGlmMhdEquations2D, IdealGlmMhdEquations3D,
        IdealGlmMhdMulticomponentEquations1D, IdealGlmMhdMulticomponentEquations2D,
-       IdealGlmMhdMultiIonEquations2D,
+       IdealGlmMhdMultiIonEquations2D, IdealGlmMhdMultiIonEquations3D,
        HyperbolicDiffusionEquations1D, HyperbolicDiffusionEquations2D,
        HyperbolicDiffusionEquations3D,
        LinearScalarAdvectionEquation1D, LinearScalarAdvectionEquation2D,
@@ -187,8 +190,8 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        flux_chan_etal, flux_nonconservative_chan_etal, flux_winters_etal,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
-       DissipationLaxFriedrichsEntropyVariables,
-       FluxLaxFriedrichs, max_abs_speed_naive,
+       DissipationLaxFriedrichsEntropyVariables, DissipationMatrixWintersEtal,
+       FluxLaxFriedrichs, max_abs_speed_naive, max_abs_speed,
        FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
        FluxLMARS,
        FluxRotated,
@@ -216,7 +219,8 @@ export boundary_condition_do_nothing,
        BoundaryConditionCoupled
 
 export initial_condition_convergence_test, source_terms_convergence_test,
-       source_terms_lorentz
+       source_terms_lorentz, source_terms_collision_ion_electron,
+       source_terms_collision_ion_ion
 export source_terms_harmonic
 export initial_condition_poisson_nonperiodic, source_terms_poisson_nonperiodic,
        boundary_condition_poisson_nonperiodic
@@ -226,7 +230,7 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity, global_mean_vars,
-       equilibrium_distribution, waterheight_pressure
+       equilibrium_distribution, waterheight, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
        cross_helicity,
        enstrophy, magnetic_field, divergence_cleaning_field

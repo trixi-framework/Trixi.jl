@@ -3,6 +3,7 @@ module TestUnit
 using Test
 using Trixi
 
+using LinearAlgebra: norm, dot
 using DelimitedFiles: readdlm
 
 # Use Convex and ECOS to load the extension that extends functions for testing
@@ -646,6 +647,50 @@ end
     end
 end
 
+@timed_testset "boundary_condition_do_nothing_non_conservative" begin
+    rho, v1, v2, v3, p, B1, B2, B3, psi = 1.0, 0.1, 0.2, 0.3, 1.0, 0.0,
+                                          40.0 / sqrt(4.0 * pi), 0.0, 0.0
+
+    let equations = IdealGlmMhdEquations2D(1.4, initial_c_h = 1.0)
+        u = prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3, psi), equations)
+        x = SVector(1.0, 2.0)
+        t = 0.5
+        surface_fluxes = (flux_lax_friedrichs, flux_nonconservative_powell)
+
+        outward_direction = SVector(0.2, 0.3)
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(ntuple(i -> surface_fluxes[i](u, u,
+                                                                  outward_direction,
+                                                                  equations), 2),
+                                    boundary_condition_do_nothing(u, outward_direction,
+                                                                  x, t, surface_fluxes,
+                                                                  equations)))
+
+        orientation = 2
+        direction = 4
+
+        @test all(isapprox(x, y)
+                  for (x, y) in zip(ntuple(i -> surface_fluxes[i](u, u, orientation,
+                                                                  equations), 2),
+                                    boundary_condition_do_nothing(u, orientation,
+                                                                  direction, x, t,
+                                                                  surface_fluxes,
+                                                                  equations)))
+    end
+end
+
+@timed_testset "StepsizeCallback" begin
+    # Ensure a proper error is thrown if used with adaptive time integration schemes
+    @test_nowarn_mod trixi_include(@__MODULE__,
+                                   joinpath(examples_dir(), "tree_2d_dgsem",
+                                            "elixir_advection_diffusion.jl"),
+                                   tspan = (0, 0.05))
+
+    @test_throws ArgumentError solve(ode, alg; ode_default_options()...,
+                                     callback = StepsizeCallback(cfl = 1.0))
+end
+
 @timed_testset "TimeSeriesCallback" begin
     # Test the 2D TreeMesh version of the callback and some warnings
     @test_nowarn_mod trixi_include(@__MODULE__,
@@ -1191,6 +1236,25 @@ end
               flux(u, normal_direction, equations)
     end
 
+    # check consistency between 1D and 2D HLLC fluxes
+    u_1d = SVector(1.1, -0.5, 5.5)
+    u_2d = SVector(u_1d[1], u_1d[2], 0.0, u_1d[3])
+    normal_1d = SVector(-0.3)
+    normal_2d = SVector(normal_1d[1], 0.0)
+    equations_1d = CompressibleEulerEquations1D(1.4)
+    equations_2d = CompressibleEulerEquations2D(1.4)
+    flux_1d = flux_hllc(u_1d, u_1d, normal_1d, equations_1d)
+    flux_2d = flux_hllc(u_2d, u_2d, normal_2d, equations_2d)
+    @test flux_1d ≈ flux(u_1d, normal_1d, equations_1d)
+    @test flux_1d ≈ flux_2d[[1, 2, 4]]
+
+    # test when u_ll is not the same as u_rr
+    u_rr_1d = SVector(2.1, 0.3, 0.1)
+    u_rr_2d = SVector(u_rr_1d[1], u_rr_1d[2], 0.0, u_rr_1d[3])
+    flux_1d = flux_hllc(u_1d, u_rr_1d, normal_1d, equations_1d)
+    flux_2d = flux_hllc(u_2d, u_rr_2d, normal_2d, equations_2d)
+    @test flux_1d ≈ flux_2d[[1, 2, 4]]
+
     equations = CompressibleEulerEquations3D(1.4)
     u = SVector(1.1, -0.5, 2.34, 2.4, 5.5)
 
@@ -1585,6 +1649,105 @@ end
     end
 end
 
+@timed_testset "DissipationMatrixWintersEtal entropy dissipation and consistency tests" begin
+    equations = CompressibleEulerEquations1D(1.4)
+    dissipation_matrix_winters_etal = DissipationMatrixWintersEtal()
+
+    # test constant preservation and entropy dissipation vector
+    u_ll = prim2cons(SVector(1, 0, 2.0), equations)
+    u_rr = prim2cons(SVector(1.1, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    @test norm(dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)) <
+          100 * eps()
+    @test dot(v_ll - v_rr,
+              dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)) ≥ 0
+
+    # test non-unit vector
+    u_ll = prim2cons(SVector(rand(), randn(), rand()), equations)
+    u_rr = prim2cons(SVector(rand(), randn(), rand()), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    @test dot(v_ll - v_rr,
+              dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)) ≥ 0
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, SVector(0.1), equations) ≈
+          0.1 * dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0), equations)
+
+    equations = CompressibleEulerEquations2D(1.4)
+
+    # test that 2D flux is consistent with 1D matrix flux
+    u_ll = prim2cons(SVector(1, 0.1, 0, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    normal = SVector(1.0, 0.0)
+    ids = [1, 2, 4] # indices of 1D variables/fluxes within the 2D solution
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, normal, equations)[ids] ≈
+          dissipation_matrix_winters_etal(u_ll[ids], u_rr[ids],
+                                          SVector(1.0),
+                                          CompressibleEulerEquations1D(1.4))
+
+    # test 2D entropy dissipation
+    u_ll = prim2cons(SVector(1, 1, -3, 100.0), equations)
+    u_rr = prim2cons(SVector(100, -2, 4, 1.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0),
+                                                  equations)
+    @test dot(v_ll - v_rr, dissipation) ≥ 0
+
+    # test non-unit vector
+    normal_direction = SVector(1.0, 2.0)
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, normal_direction, equations) ≈
+          norm(normal_direction) * dissipation_matrix_winters_etal(u_ll, u_rr,
+                                          normal_direction / norm(normal_direction),
+                                          equations)
+
+    # test that 3D flux is consistent with 1D and 2D versions
+    equations = CompressibleEulerEquations3D(1.4)
+    dissipation_matrix_winters_etal = DissipationMatrixWintersEtal()
+
+    # test for consistency with 1D and 2D flux
+    u_ll = prim2cons(SVector(1, 0.1, 0, 0, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, 0, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 0.0, 0.0),
+                                                     equations)
+    dissipation_1d = dissipation_matrix_winters_etal(u_ll[[1, 2, 5]], u_rr[[1, 2, 5]],
+                                                     SVector(1.0),
+                                                     CompressibleEulerEquations1D(1.4))
+    @test dissipation_3d[[1, 2, 5]] ≈ dissipation_1d
+
+    u_ll = prim2cons(SVector(1, 0.1, 0.2, 0, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, -0.3, 0, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 1.0, 0.0),
+                                                     equations)
+    dissipation_2d = dissipation_matrix_winters_etal(u_ll[[1, 2, 3, 5]],
+                                                     u_rr[[1, 2, 3, 5]],
+                                                     SVector(1.0, 1.0),
+                                                     CompressibleEulerEquations2D(1.4))
+    @test dissipation_3d[[1, 2, 3, 5]] ≈ dissipation_2d
+
+    # test 3D entropy dissipation
+    u_ll = prim2cons(SVector(1, 0.1, 0.2, 0.3, 1.0), equations)
+    u_rr = prim2cons(SVector(1.1, -0.2, -0.3, 0.4, 2.0), equations)
+    v_ll = cons2entropy(u_ll, equations)
+    v_rr = cons2entropy(u_rr, equations)
+    dissipation_3d = dissipation_matrix_winters_etal(u_ll, u_rr, SVector(1.0, 2.0, 3.0),
+                                                     equations)
+    @test dot(v_ll - v_rr, dissipation_3d) ≥ 0
+
+    # test non-unit vector
+    normal_direction = SVector(1.0, 2.0, 3.0)
+    @test dissipation_matrix_winters_etal(u_ll, u_rr, normal_direction, equations) ≈
+          norm(normal_direction) * dissipation_matrix_winters_etal(u_ll, u_rr,
+                                          normal_direction / norm(normal_direction),
+                                          equations)
+end
+
 @testset "Equivalent Wave Speed Estimates" begin
     @timed_testset "Linearized Euler 3D" begin
         equations = LinearizedEulerEquations3D(v_mean_global = (0.42, 0.37, 0.7),
@@ -1655,6 +1818,521 @@ end
                       for (x, y) in zip(min_max_speed_naive(u_ll, u_rr, 1, equations),
                                         min_max_speed_davis(u_ll, u_rr, 1, equations)))
         end
+    end
+end
+
+@testset "Equivalent Wave Speed Estimates: max_abs_speed(naive)" begin
+    @timed_testset "AcousticPerturbationEquations2D" begin
+        equations = AcousticPerturbationEquations2D(v_mean_global = (0.5, 0.3),
+                                                    c_mean_global = 2.0,
+                                                    rho_mean_global = 0.9)
+
+        v1_prime_ll_rr = SVector(0.1, 0.2)
+        v2_prime_ll_rr = SVector(0.3, 0.4)
+        p_prime_scaled_ll_rr = SVector(0.5, 0.6)
+        v1_mean_ll_rr = SVector(-0.2, -0.1)
+        v2_mean_ll_rr = SVector(-0.9, -1.2)
+        c_mean = 2.0 # Same for both to get same wave speed estimates
+        rho_mean_ll_rr = SVector(1.3, 1.4)
+
+        u_ll = SVector(v1_prime_ll_rr[1], v2_prime_ll_rr[1], p_prime_scaled_ll_rr[1],
+                       v1_mean_ll_rr[1], v2_mean_ll_rr[1], c_mean, rho_mean_ll_rr[1])
+
+        u_rr = SVector(v1_prime_ll_rr[2], v2_prime_ll_rr[2], p_prime_scaled_ll_rr[2],
+                       v1_mean_ll_rr[2], v2_mean_ll_rr[2], c_mean, rho_mean_ll_rr[2])
+
+        for orientation in [1, 2]
+            @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                  max_abs_speed(u_ll, u_rr, orientation, equations)
+        end
+
+        normal_directions = [SVector(1.0, 0.0, 0.0),
+            SVector(0.0, 1.0, 0.0),
+            SVector(0.0, 0.0, 1.0),
+            SVector(0.5, -0.5, 0.2),
+            SVector(-1.2, 0.3, 1.4)]
+
+        for normal_direction in normal_directions
+            @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                  max_abs_speed(u_ll, u_rr, normal_direction, equations)
+        end
+    end
+
+    @timed_testset "CompressibleEulerEquations1D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = CompressibleEulerEquations1D(gamma)
+
+            p_rho_ratio = 42.0
+
+            rho_ll_rr = SVector(2.0, 1.0)
+            v_ll_rr = SVector(0.1, 0.2)
+            p_ll_rr = SVector(p_rho_ratio * rho_ll_rr[1], p_rho_ratio * rho_ll_rr[2])
+
+            u_ll = prim2cons(SVector(rho_ll_rr[1], v_ll_rr[1], p_ll_rr[1]), equations)
+            u_rr = prim2cons(SVector(rho_ll_rr[2], v_ll_rr[2], p_ll_rr[2]), equations)
+
+            @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed(u_ll, u_rr, 1, equations)
+        end
+    end
+
+    @timed_testset "CompressibleEulerEquations2D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = CompressibleEulerEquations2D(gamma)
+
+            p_rho_ratio = 27.0
+
+            rho_ll_rr = SVector(2.0, 1.0)
+            v1_ll_rr = SVector(0.1, 0.2)
+            v2_ll_rr = SVector(0.4, 0.3)
+            p_ll_rr = SVector(p_rho_ratio * rho_ll_rr[1], p_rho_ratio * rho_ll_rr[2])
+
+            u_ll = prim2cons(SVector(rho_ll_rr[1], v1_ll_rr[1], v2_ll_rr[1],
+                                     p_ll_rr[1]), equations)
+            u_rr = prim2cons(SVector(rho_ll_rr[2], v1_ll_rr[2], v2_ll_rr[2],
+                                     p_ll_rr[2]), equations)
+
+            for orientation in [1, 2]
+                @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                      max_abs_speed(u_ll, u_rr, orientation, equations)
+            end
+
+            normal_directions = [SVector(1.0, 0.0),
+                SVector(0.0, 1.0),
+                SVector(0.5, -0.5),
+                SVector(-1.2, 0.3)]
+
+            for normal_direction in normal_directions
+                @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                      max_abs_speed(u_ll, u_rr, normal_direction, equations)
+            end
+        end
+    end
+
+    @timed_testset "CompressibleEulerEquations3D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = CompressibleEulerEquations3D(gamma)
+
+            p_rho_ratio = 11.0
+
+            rho_ll_rr = SVector(1.0, 2.0)
+            v1_ll_rr = SVector(0.1, 0.2)
+            v2_ll_rr = SVector(0.4, 0.3)
+            v3_ll_rr = SVector(0.9, 0.8)
+            p_ll_rr = SVector(p_rho_ratio * rho_ll_rr[1], p_rho_ratio * rho_ll_rr[2])
+
+            u_ll = prim2cons(SVector(rho_ll_rr[1],
+                                     v1_ll_rr[1], v2_ll_rr[1], v3_ll_rr[1],
+                                     p_ll_rr[1]), equations)
+            u_rr = prim2cons(SVector(rho_ll_rr[2],
+                                     v1_ll_rr[2], v2_ll_rr[2], v3_ll_rr[2],
+                                     p_ll_rr[2]), equations)
+
+            for orientation in [1, 2, 3]
+                @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                      max_abs_speed(u_ll, u_rr, orientation, equations)
+            end
+
+            normal_directions = [SVector(1.0, 0.0, 0.0),
+                SVector(0.0, 1.0, 0.0),
+                SVector(0.0, 0.0, 1.0),
+                SVector(0.5, -0.5, 0.2),
+                SVector(-1.2, 0.3, 1.4)]
+
+            for normal_direction in normal_directions
+                @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                      max_abs_speed(u_ll, u_rr, normal_direction, equations)
+            end
+        end
+    end
+
+    @timed_testset "CompressibleEulerMulticomponentEquations1D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = CompressibleEulerMulticomponentEquations1D(gammas = (gamma,
+                                                                             gamma),
+                                                                   gas_constants = (0.5,
+                                                                                    0.4))
+
+            p_rho_ratio = 42.0
+
+            rho1_ll_rr = SVector(2.0, 1.0)
+            rho2_ll_rr = SVector(2.0, 1.0)
+            v_ll_rr = SVector(0.1, 0.2)
+            p_ll_rr = SVector(p_rho_ratio * rho1_ll_rr[1], p_rho_ratio * rho1_ll_rr[2])
+
+            u_ll = prim2cons(SVector(v_ll_rr[1], p_ll_rr[1], rho1_ll_rr[1],
+                                     rho2_ll_rr[1]), equations)
+            u_rr = prim2cons(SVector(v_ll_rr[2], p_ll_rr[2], rho1_ll_rr[2],
+                                     rho2_ll_rr[2]), equations)
+
+            @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed(u_ll, u_rr, 1, equations)
+        end
+    end
+
+    @timed_testset "CompressibleEulerMulticomponentEquations2D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = CompressibleEulerMulticomponentEquations2D(gammas = (gamma,
+                                                                             gamma),
+                                                                   gas_constants = (0.5,
+                                                                                    0.6))
+
+            p_rho_ratio = 27.0
+
+            rho1_ll_rr = SVector(2.0, 1.0)
+            rho2_ll_rr = SVector(2.0, 1.0)
+            v1_ll_rr = SVector(0.1, 0.2)
+            v2_ll_rr = SVector(0.4, 0.3)
+            p_ll_rr = SVector(p_rho_ratio * rho1_ll_rr[1], p_rho_ratio * rho1_ll_rr[2])
+
+            u_ll = prim2cons(SVector(v1_ll_rr[1], v2_ll_rr[1], p_ll_rr[1],
+                                     rho1_ll_rr[1], rho2_ll_rr[1]), equations)
+            u_rr = prim2cons(SVector(v1_ll_rr[2], v2_ll_rr[2], p_ll_rr[2],
+                                     rho1_ll_rr[2], rho2_ll_rr[2]), equations)
+
+            for orientation in [1, 2]
+                @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                      max_abs_speed(u_ll, u_rr, orientation, equations)
+            end
+        end
+    end
+
+    @timed_testset "CompressibleEulerEquationsQuasi1D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = CompressibleEulerEquationsQuasi1D(gamma)
+
+            p_rho_ratio = 11.0
+
+            rho_ll_rr = SVector(1.0, 2.0)
+            v_ll_rr = SVector(0.1, 0.2)
+            a_ll_rr = SVector(0.3, 0.4)
+            p_ll_rr = SVector(p_rho_ratio * rho_ll_rr[1], p_rho_ratio * rho_ll_rr[2])
+
+            u_ll = prim2cons(SVector(rho_ll_rr[1], v_ll_rr[1], p_ll_rr[1], a_ll_rr[1]),
+                             equations)
+            u_rr = prim2cons(SVector(rho_ll_rr[2], v_ll_rr[2], p_ll_rr[2], a_ll_rr[2]),
+                             equations)
+
+            @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed(u_ll, u_rr, 1, equations)
+        end
+    end
+
+    @timed_testset "IdealGlmMhdEquations1D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = IdealGlmMhdEquations1D(gamma)
+
+            rho = 42.0
+            v1_ll_rr = SVector(0.1, 0.2)
+            v2_ll_rr = SVector(0.2, 0.1)
+            v3 = 0.0
+            p = 0.4
+            B1 = 1.01
+            B2 = -0.3
+            B3 = 0.5
+
+            u_ll = prim2cons(SVector(rho, v1_ll_rr[1], v2_ll_rr[1], v3, p, B1, B2, B3),
+                             equations)
+
+            u_rr = prim2cons(SVector(rho, v1_ll_rr[2], v2_ll_rr[2], v3, p, B1, B2, B3),
+                             equations)
+
+            @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed(u_ll, u_rr, 1, equations)
+        end
+    end
+
+    @timed_testset "IdealGlmMhdEquations2D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = IdealGlmMhdEquations2D(gamma)
+
+            rho = 42.0
+            v1_ll_rr = SVector(0.1, 0.2)
+            v2_ll_rr = SVector(0.2, 0.1)
+            v3 = 0.0
+            p = 0.4
+            B1 = 1.01
+            B2 = -0.3
+            B3 = 0.5
+            psi = 0.1
+
+            u_ll = prim2cons(SVector(rho, v1_ll_rr[1], v2_ll_rr[1], v3, p, B1, B2, B3,
+                                     psi), equations)
+
+            u_rr = prim2cons(SVector(rho, v1_ll_rr[2], v2_ll_rr[2], v3, p, B1, B2, B3,
+                                     psi), equations)
+
+            for orientation in [1, 2]
+                @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                      max_abs_speed(u_ll, u_rr, orientation, equations)
+            end
+
+            normal_directions = [SVector(1.0, 0.0),
+                SVector(0.0, 1.0),
+                SVector(0.5, -0.5),
+                SVector(-1.2, 0.3)]
+
+            for normal_direction in normal_directions
+                @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                      max_abs_speed(u_ll, u_rr, normal_direction, equations)
+            end
+        end
+    end
+
+    @timed_testset "IdealGlmMhdEquations3D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = IdealGlmMhdEquations3D(gamma)
+
+            rho = 42.0
+            v1 = 0.0
+            v2_ll_rr = SVector(0.2, 0.1)
+            v3_ll_rr = SVector(0.1, 0.2)
+            p = 0.4
+            B1 = 1.01
+            B2 = -0.3
+            B3 = 0.5
+            psi = 0.1
+
+            u_ll = prim2cons(SVector(rho, v1, v2_ll_rr[1], v3_ll_rr[1], p, B1, B2, B3,
+                                     psi), equations)
+
+            u_rr = prim2cons(SVector(rho, v1, v2_ll_rr[2], v3_ll_rr[2], p, B1, B2, B3,
+                                     psi), equations)
+
+            for orientation in [1, 2, 3]
+                @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                      max_abs_speed(u_ll, u_rr, orientation, equations)
+            end
+
+            normal_directions = [SVector(1.0, 0.0, 0.0),
+                SVector(0.0, 1.0, 0.0),
+                SVector(0.0, 0.0, 1.0),
+                SVector(0.5, -0.5, 0.2),
+                SVector(-1.2, 0.3, 1.4)]
+
+            for normal_direction in normal_directions
+                @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                      max_abs_speed(u_ll, u_rr, normal_direction, equations)
+            end
+        end
+    end
+
+    @timed_testset "IdealGlmMhdMulticomponentEquations1D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = IdealGlmMhdMulticomponentEquations1D(gammas = (gamma,
+                                                                       gamma),
+                                                             gas_constants = (0.5,
+                                                                              0.4))
+
+            rho1_ll_rr = SVector(2.0, 1.0)
+            rho2_ll_rr = SVector(2.0, 1.0)
+            v1_ll_rr = SVector(0.1, 0.2)
+            v2_ll_rr = SVector(0.2, 0.1)
+            v3 = 0.0
+            p = 0.4
+            B1 = 1.01
+            B2 = -0.3
+            B3 = 0.5
+
+            u_ll = prim2cons(SVector(v1_ll_rr[1], v2_ll_rr[1], v3, p, B1, B2, B3,
+                                     rho1_ll_rr[1], rho2_ll_rr[1]), equations)
+            u_rr = prim2cons(SVector(v1_ll_rr[2], v2_ll_rr[2], v3, p, B1, B2, B3,
+                                     rho1_ll_rr[2], rho2_ll_rr[2]), equations)
+
+            @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed(u_ll, u_rr, 1, equations)
+        end
+    end
+
+    @timed_testset "IdealGlmMhdMulticomponentEquations2D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = IdealGlmMhdMulticomponentEquations2D(gammas = (gamma,
+                                                                       gamma),
+                                                             gas_constants = (0.5,
+                                                                              0.4))
+
+            rho1_ll_rr = SVector(0.5, 0.5)
+            rho2_ll_rr = SVector(0.5, 0.5)
+            v1_ll_rr = SVector(0.1, 0.2)
+            v2_ll_rr = SVector(0.2, 0.1)
+            v3 = 0.0
+            p = 0.4
+            B1 = 1.1
+            B2 = -0.3
+            B3 = 0.4
+            psi = 0.1
+
+            u_ll = prim2cons(SVector(v1_ll_rr[1], v2_ll_rr[1], v3, p, B1, B2, B3, psi,
+                                     rho1_ll_rr[1], rho2_ll_rr[1]), equations)
+            u_rr = prim2cons(SVector(v1_ll_rr[2], v2_ll_rr[2], v3, p, B1, B2, B3, psi,
+                                     rho1_ll_rr[2], rho2_ll_rr[2]), equations)
+
+            for orientation in [1, 2]
+                @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                      max_abs_speed(u_ll, u_rr, orientation, equations)
+            end
+        end
+    end
+
+    @timed_testset "IdealGlmMhdMultiIonEquations2D" begin
+        equations = IdealGlmMhdMultiIonEquations2D(gammas = (1.4, 1.667),
+                                                   charge_to_mass = (1.0, 2.0))
+
+        B1 = 1.1
+        B2 = -0.3
+        B3 = 0.4
+        rho1_ll_rr = SVector(0.5, 0.5)
+        rho2_ll_rr = SVector(0.5, 0.5)
+        vx1_ll_rr = SVector(0.1, 0.1)
+        vx2_ll_rr = SVector(0.2, 0.2)
+        vy1_ll_rr = SVector(0.3, 0.3)
+        vy2_ll_rr = SVector(0.4, 0.4)
+        vz1 = 0.0
+        vz2 = 0.0
+        p1 = 0.4
+        p2 = 0.4
+        psi = 0.1
+
+        u_ll = prim2cons(SVector(B1, B2, B3, rho1_ll_rr[1], rho2_ll_rr[1],
+                                 vx1_ll_rr[1], vy1_ll_rr[1], vx2_ll_rr[1], vy2_ll_rr[1],
+                                 vz1, vz2, p1, p2, psi), equations)
+
+        u_rr = prim2cons(SVector(B1, B2, B3, rho1_ll_rr[2], rho2_ll_rr[2],
+                                 vx1_ll_rr[2], vy1_ll_rr[2], vx2_ll_rr[2], vy2_ll_rr[2],
+                                 vz1, vz2, p1, p2, psi), equations)
+
+        for orientation in [1, 2]
+            @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                  max_abs_speed(u_ll, u_rr, orientation, equations)
+        end
+    end
+
+    @timed_testset "IdealGlmMhdMultiIonEquations3D" begin
+        equations = IdealGlmMhdMultiIonEquations3D(gammas = (1.4, 1.667),
+                                                   charge_to_mass = (1.0, 2.0))
+
+        B1 = 1.1
+        B2 = -0.3
+        B3 = 0.4
+        rho1_ll_rr = SVector(0.5, 0.5)
+        rho2_ll_rr = SVector(0.5, 0.5)
+        vx1_ll_rr = SVector(0.1, 0.1)
+        vx2_ll_rr = SVector(0.2, 0.2)
+        vy1_ll_rr = SVector(0.3, 0.3)
+        vy2_ll_rr = SVector(0.4, 0.4)
+        vz1_ll_rr = SVector(0.5, 0.5)
+        vz2_ll_rr = SVector(0.6, 0.6)
+        p1 = 0.4
+        p2 = 0.4
+        psi = 0.1
+
+        u_ll = prim2cons(SVector(B1, B2, B3, rho1_ll_rr[1], rho2_ll_rr[1],
+                                 vx1_ll_rr[1], vy1_ll_rr[1], vx2_ll_rr[1], vy2_ll_rr[1],
+                                 vz1_ll_rr[1], vz2_ll_rr[1], p1, p2, psi), equations)
+
+        u_rr = prim2cons(SVector(B1, B2, B3, rho1_ll_rr[2], rho2_ll_rr[2],
+                                 vx1_ll_rr[2], vy1_ll_rr[2], vx2_ll_rr[2], vy2_ll_rr[2],
+                                 vz1_ll_rr[2], vz2_ll_rr[2], p1, p2, psi), equations)
+
+        for orientation in [1, 2, 3]
+            @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                  max_abs_speed(u_ll, u_rr, orientation, equations)
+        end
+
+        normal_directions = [SVector(1.0, 0.0, 0.0),
+            SVector(0.0, 1.0, 0.0),
+            SVector(0.0, 0.0, 1.0),
+            SVector(0.5, -0.5, 0.2),
+            SVector(-1.2, 0.3, 1.4)]
+
+        for normal_direction in normal_directions
+            @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                  max_abs_speed(u_ll, u_rr, normal_direction, equations)
+        end
+    end
+
+    @timed_testset "PolytropicEulerEquations2D" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            equations = PolytropicEulerEquations2D(gamma, gamma * 0.72)
+
+            rho_ll_rr = SVector(2.0, 2.0)
+            v1_ll_rr = SVector(0.1, 0.2)
+            v2_ll_rr = SVector(0.4, 0.3)
+
+            u_ll = prim2cons(SVector(rho_ll_rr[1], v1_ll_rr[1], v2_ll_rr[1]), equations)
+            u_rr = prim2cons(SVector(rho_ll_rr[2], v1_ll_rr[2], v2_ll_rr[2]), equations)
+
+            for orientation in [1, 2]
+                @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                      max_abs_speed(u_ll, u_rr, orientation, equations)
+            end
+
+            normal_directions = [SVector(1.0, 0.0),
+                SVector(0.0, 1.0),
+                SVector(0.5, -0.5),
+                SVector(-1.2, 0.3)]
+
+            for normal_direction in normal_directions
+                @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                      max_abs_speed(u_ll, u_rr, normal_direction, equations)
+            end
+        end
+    end
+
+    @timed_testset "ShallowWaterEquations1D" begin
+        equations = ShallowWaterEquations1D(gravity_constant = 9.81)
+
+        h_ll_rr = SVector(12.0, 12.0)
+        hv_ll_rr = SVector(42.0, 24.0)
+        b_ll_rr = SVector(pi, pi)
+
+        u_ll = SVector(h_ll_rr[1], hv_ll_rr[1], b_ll_rr[1])
+        u_rr = SVector(h_ll_rr[2], hv_ll_rr[2], b_ll_rr[2])
+
+        @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+              max_abs_speed(u_ll, u_rr, 1, equations)
+    end
+
+    @timed_testset "ShallowWaterEquations2D" begin
+        equations = ShallowWaterEquations2D(gravity_constant = 9.81)
+
+        h_ll_rr = SVector(12.0, 12.0)
+        hv1_ll_rr = SVector(42.0, 24.0)
+        hv2_ll_rr = SVector(24.0, 42.0)
+        b_ll_rr = SVector(pi, pi)
+
+        u_ll = SVector(h_ll_rr[1], hv1_ll_rr[1], hv2_ll_rr[1], b_ll_rr[1])
+        u_rr = SVector(h_ll_rr[2], hv1_ll_rr[2], hv2_ll_rr[2], b_ll_rr[2])
+
+        for orientation in [1, 2]
+            @test max_abs_speed_naive(u_ll, u_rr, orientation, equations) ≈
+                  max_abs_speed(u_ll, u_rr, orientation, equations)
+        end
+
+        normal_directions = [SVector(1.0, 0.0),
+            SVector(0.0, 1.0),
+            SVector(0.5, -0.5),
+            SVector(-1.2, 0.3)]
+
+        for normal_direction in normal_directions
+            @test max_abs_speed_naive(u_ll, u_rr, normal_direction, equations) ≈
+                  max_abs_speed(u_ll, u_rr, normal_direction, equations)
+        end
+    end
+
+    @timed_testset "ShallowWaterEquationsQuasi1D" begin
+        equations = ShallowWaterEquationsQuasi1D(gravity_constant = 9.81)
+
+        ah_ll_rr = SVector(12.0, 12.0)
+        ahv_ll_rr = SVector(42.0, 24.0)
+        b_ll_rr = SVector(pi, pi)
+        a_ll_rr = SVector(0.1, 0.1)
+
+        u_ll = SVector(ah_ll_rr[1], ahv_ll_rr[1], b_ll_rr[1], a_ll_rr[1])
+        u_rr = SVector(ah_ll_rr[2], ahv_ll_rr[2], b_ll_rr[2], a_ll_rr[2])
+
+        @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+              max_abs_speed(u_ll, u_rr, 1, equations)
     end
 end
 
@@ -1766,6 +2444,27 @@ end
                     0.8161315324169078 0.1838684675830921
                     0.7532704453316061 0.2467295546683939
                     0.31168238866709846 0.18831761133290154], atol = 1e-13)
+end
+
+@testset "PERK Single p4 Constructors" begin
+    path_coeff_file = mktempdir()
+    Trixi.download("https://gist.githubusercontent.com/warisa-r/8d93f6a3ae0635e13b9f51ee32ab7fff/raw/54dc5b14be9288e186b745facb5bbcb04d1476f8/EigenvalueList_Refined2.txt",
+                   joinpath(path_coeff_file, "spectrum.txt"))
+
+    eig_vals = readdlm(joinpath(path_coeff_file, "spectrum.txt"), ComplexF64)
+    tspan = (0.0, 1.0)
+    ode_algorithm = Trixi.PairedExplicitRK4(14, tspan, vec(eig_vals))
+
+    @test isapprox(transpose(ode_algorithm.a_matrix),
+                   [0.9935765040401348 0.0064234959598652
+                    0.9849926812139576 0.0150073187860425
+                    0.9731978940975923 0.0268021059024077
+                    0.9564664284695985 0.0435335715304015
+                    0.9319632992510594 0.0680367007489407
+                    0.8955171743167522 0.1044828256832478
+                    0.8443975130657495 0.1556024869342504
+                    0.7922561745278265 0.2077438254721735
+                    0.7722324105428290 0.2277675894571710], atol = 1e-13)
 end
 
 @testset "Sutherlands Law" begin
