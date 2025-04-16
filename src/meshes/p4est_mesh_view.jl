@@ -63,9 +63,9 @@ function extract_p4est_mesh_view(elements_parent,
     return elements, interfaces, boundaries_parent, mortars_parent
 end
 
+# Remove all interfaces that have a tuple of neighbor_ids where at least one is
+# not part of this meshview, i.e. mesh.cell_ids, and return the new interface container
 function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
-    # Remove all interfaces that have a tuple of neighbor_ids where at least one is
-    # not part of this meshview, i.e. mesh.cell_ids.
 
     mask = BitArray(undef, ninterfaces(interfaces_parent))
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
