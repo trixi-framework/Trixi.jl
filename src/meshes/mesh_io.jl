@@ -6,7 +6,8 @@
 #! format: noindent
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, P4estMeshView, T8codeMesh, DGMultiMesh},
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, P4estMeshView, T8codeMesh,
+                                    DGMultiMesh},
                         output_directory,
                         timestep = 0)
     save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
