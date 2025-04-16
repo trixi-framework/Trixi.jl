@@ -1,6 +1,12 @@
 using Test: @test
 import Trixi
 
+const CI_ON_GITHUB = get(ENV, "GITHUB_ACTIONS", false) == "true"
+const GITHUB_BASE_URL = get(ENV, "GITHUB_SERVER_URL", "https://github.com") *
+                        "/" * get(ENV, "GITHUB_REPOSITORY", "") * "/blob/" *
+                        get(ENV, "GITHUB_SHA", "") * "/"
+const GITHUB_TEST_URL = GITHUB_BASE_URL * "test/"
+
 # Use a macro to avoid world age issues when defining new initial conditions etc.
 # inside an elixir.
 """
@@ -174,8 +180,15 @@ after execution.
 """
 macro timed_testset(name, expr)
     @assert name isa String
+    filename = basename(string(__source__.file))
+    lineno = string(__source__.line)
     quote
         local time_start = time_ns()
+        # Use GitHub workflow commands for improved CI logs
+        if CI_ON_GITHUB
+            println("::group::>>> Running testset '", $name, "'...")
+            println("Testset started at ", $GITHUB_TEST_URL, $filename, "#L", $lineno)
+        end
         @testset $name $expr
         local time_stop = time_ns()
         if Trixi.mpi_isroot()
@@ -183,6 +196,9 @@ macro timed_testset(name, expr)
             @info("Testset "*$name*" finished in "
                   *string(1.0e-9 * (time_stop - time_start))*" seconds.\n")
             flush(stdout)
+        end
+        if CI_ON_GITHUB
+            println("::endgroup::")
         end
     end
 end
@@ -197,6 +213,8 @@ of the testset similarly to [`timed_testset`](@ref).
 """
 macro trixi_testset(name, expr)
     @assert name isa String
+    filename = basename(string(__source__.file))
+    lineno = string(__source__.line)
     # TODO: `@eval` is evil
     # We would like to use
     #   mod = gensym(name)
@@ -220,6 +238,11 @@ macro trixi_testset(name, expr)
         catch
             nothing
         end
+        # Use GitHub workflow commands for improved CI logs
+        if CI_ON_GITHUB
+            println("::group::>>> Running testset '", $name, "'...")
+            println("Testset started at ", $GITHUB_TEST_URL, $filename, "#L", $lineno)
+        end
         @testset $name $expr
         end
         local time_stop = time_ns()
@@ -227,6 +250,9 @@ macro trixi_testset(name, expr)
             flush(stdout)
             @info("Testset "*$name*" finished in "
                   *string(1.0e-9 * (time_stop - time_start))*" seconds.\n")
+        end
+        if CI_ON_GITHUB
+            println("::endgroup::")
         end
         nothing
     end
