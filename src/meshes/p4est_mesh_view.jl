@@ -142,6 +142,8 @@ function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
 end
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes
+# Note: This is a copy of the corresponding function in src/solvers/dgsem_p4est/containers_2d.jl,
+#       with modifications to skip cells not part of the mesh view
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMeshView{2, NDIMS_AMBIENT},
                                 nodes::AbstractVector) where {NDIMS_AMBIENT}
