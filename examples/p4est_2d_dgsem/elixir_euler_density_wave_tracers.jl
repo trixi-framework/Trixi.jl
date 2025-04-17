@@ -4,17 +4,21 @@ using Trixi
 ###############################################################################
 # semidiscretization of the compressible Euler equations
 gamma = 1.4
-equations = CompressibleEulerEquations2D(gamma)
+flow_equations = CompressibleEulerEquations2D(gamma)
+equations = PassiveTracerEquations(flow_equations, 2)
 
 initial_condition = initial_condition_density_wave
 
-solver = DGSEM(polydeg = 5, surface_flux = flux_lax_friedrichs)
+volume_flux = FluxTracerEquationsCentral(flux_ranocha)
+solver = DGSEM(polydeg = 5, surface_flux = FluxTracerEquationsCentral(flux_ranocha))
 
 coordinates_min = (-1.0, -1.0)
 coordinates_max = (1.0, 1.0)
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 2,
-                n_cells_max = 30_000)
+trees_per_dimension = (4, 4)
+
+mesh = P4estMesh(trees_per_dimension, polydeg = 3,
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 initial_refinement_level = 0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
@@ -36,7 +40,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
-stepsize_callback = StepsizeCallback(cfl = 0.8)
+stepsize_callback = StepsizeCallback(cfl = 1.6)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
