@@ -78,9 +78,10 @@ function initial_condition_density_wave(x, t,
     # Obtain u_tracers by translating u_flow
     xc = SVector(ntuple(_ -> 0.1 * one(eltype(x)), Val(ndims(equations))))
 
-    u_tracers = SVector((initial_condition_density_wave(x + i * xc, t,
-                                                        equations.flow_equations)[1] for i in 1:ntracers(equations))...)
+    tracers = SVector((initial_condition_density_wave(x + i * xc, t,
+                                                      equations.flow_equations)[1] for i in 1:ntracers(equations))...)
 
+    u_tracers = u_flow[1] * tracers
     return SVector(u_flow..., u_tracers...)
 end
 
@@ -206,9 +207,9 @@ end
     flux_rho = density(flux_flow, flow_equations)
     tracers_ll = tracers(u_ll, tracer_equations)
     tracers_rr = tracers(u_rr, tracer_equations)
-    flux_tracer = SVector(ntuple(@inline(v->tracers_ll[v] + tracers_rr[v]),
+    flux_tracer = 0.5 * SVector(ntuple(@inline(v->tracers_ll[v] + tracers_rr[v]),
                                  Val(ntracers(tracer_equations))))
-    flux_tracer = flux_rho * 0.5f0 * flux_tracer
+    flux_tracer = flux_rho * flux_tracer
     return SVector(flux_flow..., flux_tracer...)
 end
 end # muladd
