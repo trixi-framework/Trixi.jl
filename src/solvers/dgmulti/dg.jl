@@ -506,17 +506,19 @@ function calc_single_boundary_flux!(cache, t, boundary_condition, boundary_key, 
         nxyzJ, xyzf = reshape_by_face.(nxyzJ), reshape_by_face.(xyzf) # broadcast over nxyzJ::NTuple{NDIMS,Matrix}
 
         # loop through boundary faces, which correspond to columns of reshaped u_face_values, ...
-        for i in mesh.boundary_faces[boundary_key]
+        for f in mesh.boundary_faces[boundary_key]
             for i in Base.OneTo(num_pts_per_face)
-                face_normal = SVector{NDIMS}(getindex.(nxyzJ, i)) / Jf[i]
-                face_coordinates = SVector{NDIMS}(getindex.(xyzf, i))
-                flux_face_values[i] = boundary_condition(u_face_values[i],
-                                                         face_normal, face_coordinates,
-                                                         t,
-                                                         surface_flux, equations) *
-                                      Jf[i]
+                face_normal = SVector{NDIMS}(getindex.(nxyzJ, i, f)) / Jf[i, f]
+                face_coordinates = SVector{NDIMS}(getindex.(xyzf, i, f))
+                flux_face_values[i, f] = boundary_condition(u_face_values[i, f],
+                                                            face_normal,
+                                                            face_coordinates,
+                                                            t,
+                                                            surface_flux, equations) *
+                                         Jf[i, f]
             end
         end
+
     elseif mesh.boundary_faces_type == :nodes
         for i in mesh.boundary_faces[boundary_key]
             face_normal = SVector{NDIMS}(getindex.(nxyzJ, i)) / Jf[i]
