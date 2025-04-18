@@ -439,8 +439,7 @@ end
                         ],
                         tspan=(0.0, 1e2),
                         # Decrease tolerance of adaptive time stepping to get similar results across different systems
-                        abstol=1.0e-9, reltol=1.0e-9,
-                        coverage_override=(trees_per_cube_face = (1, 1), polydeg = 3)) # Prevent long compile time in CI
+                        abstol=1.0e-9, reltol=1.0e-9,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
