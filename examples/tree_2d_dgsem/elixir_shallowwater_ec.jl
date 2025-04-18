@@ -5,7 +5,7 @@ using Trixi
 # semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function
 
-equations = ShallowWaterEquations2D(gravity_constant = 9.81)
+equations = ShallowWaterEquations2D(gravity = 9.81)
 
 # Note, this initial condition is used to compute errors in the analysis callback but the initialization is
 # overwritten by `initial_condition_ec_discontinuous_bottom` below.

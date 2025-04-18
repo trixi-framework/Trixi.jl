@@ -2320,7 +2320,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @timed_testset "Shallow Water 1D" begin
         for RealT in (Float32, Float64)
-            equations = @inferred ShallowWaterEquations1D(gravity_constant = RealT(9.81))
+            equations = @inferred ShallowWaterEquations1D(gravity = RealT(9.81))
 
             x = SVector(zero(RealT))
             t = zero(RealT)
@@ -2410,7 +2410,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @timed_testset "Shallow Water 2D" begin
         for RealT in (Float32, Float64)
-            equations = @inferred ShallowWaterEquations2D(gravity_constant = RealT(9.81))
+            equations = @inferred ShallowWaterEquations2D(gravity = RealT(9.81))
 
             x = SVector(zero(RealT), zero(RealT))
             t = zero(RealT)
@@ -2541,7 +2541,7 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     @timed_testset "Shallow Water Quasi 1D" begin
         for RealT in (Float32, Float64)
-            equations = @inferred ShallowWaterEquationsQuasi1D(gravity_constant = RealT(9.81))
+            equations = @inferred ShallowWaterEquationsQuasi1D(gravity = RealT(9.81))
 
             x = SVector(zero(RealT))
             t = zero(RealT)
