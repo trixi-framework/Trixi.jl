@@ -1,0 +1,29 @@
+env:
+
+steps:
+  - label: "CUDA Julia {{matrix.version}}"
+    matrix:
+      setup:
+        version:
+          - "1.10"
+    plugins:
+      - JuliaCI/julia#v1:
+          version: "{{matrix.version}}"
+    command: |
+      julia -e 'println("--- :julia: Instantiating project")
+                using Pkg
+                Pkg.develop(; path=pwd())
+                Pkg.add(; name="CUDA")' || exit 3
+
+      julia -e 'println("+++ :julia: Running tests")
+                using Pkg
+                Pkg.test("Trixi")'
+    env:
+      TRIXI_TEST: "CUDA"
+    agents:
+      queue: "juliagpu"
+      cuda: "*"
+    if: build.message !~ /\[skip ci\]/
+    timeout_in_minutes: 60
+    soft_fail:
+      - exit_status: 3
