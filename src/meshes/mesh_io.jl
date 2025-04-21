@@ -6,8 +6,7 @@
 #! format: noindent
 
 # Save current mesh with some context information as an HDF5 file.
-function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, P4estMeshView, T8codeMesh,
-                                    DGMultiMesh},
+function save_mesh_file(mesh::Union{TreeMesh, P4estMesh, P4estMeshView, T8codeMesh},
                         output_directory,
                         timestep = 0)
     save_mesh_file(mesh, output_directory, timestep, mpi_parallel(mesh))
@@ -97,7 +96,7 @@ end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
-# Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructured from
+# Then, within Trixi2Vtk, the StructuredMesh and its node coordinates are reconstructed from
 # these attributes for plotting purposes
 # Note: the `timestep` argument is needed for compatibility with the method for
 # `StructuredMeshView`
@@ -126,7 +125,7 @@ end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the corresponding `.mesh` file used to construct the mesh.
-# Then, within Trixi2Vtk, the UnstructuredMesh2D and its node coordinates are reconstructured
+# Then, within Trixi2Vtk, the UnstructuredMesh2D and its node coordinates are reconstructed
 # from these attributes for plotting purposes
 function save_mesh_file(mesh::UnstructuredMesh2D, output_directory)
     # Create output directory (if it does not exist)
@@ -149,7 +148,7 @@ end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
-# Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructured from
+# Then, within Trixi2Vtk, the P4estMesh and its node coordinates are reconstructed from
 # these attributes for plotting purposes
 function save_mesh_file(mesh::P4estMesh, output_directory, timestep,
                         mpi_parallel::False)
@@ -322,8 +321,9 @@ end
 @inline get_EToV(mesh_type::StartUpDG.CurvedMesh) = get_EToV(mesh_type.original_mesh_type)
 @inline get_EToV(mesh_type::StartUpDG.HOHQMeshType) = mesh_type.hmd.EToV
 
-function save_mesh_file(mesh::DGMultiMesh, output_directory, timestep,
-                        mpi_parallel::False)
+# To save the data needed to reconstruct a DGMultiMesh object, we must include additional 
+# information contained within `dg.basis` such as the element shape and polynomial degree.
+function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0)
 
     # Create output directory (if it does not exist).
     mkpath(output_directory)
@@ -342,23 +342,23 @@ function save_mesh_file(mesh::DGMultiMesh, output_directory, timestep,
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["nelements"] = ncells(mesh)
 
-        if mesh.rd.element_type isa Wedge
-            attributes(file)["polydeg_tri"] = mesh.rd.N[2]
-            attributes(file)["polydeg_line"] = mesh.rd.N[1]
+        if basis.element_type isa Wedge
+            attributes(file)["polydeg_tri"] = basis.N[2]
+            attributes(file)["polydeg_line"] = basis.N[1]
         else
-            attributes(file)["polydeg"] = mesh.rd.N
+            attributes(file)["polydeg"] = basis.N
         end
 
-        attributes(file)["element_type"] = mesh.rd.element_type |> typeof |> nameof |>
+        attributes(file)["element_type"] = basis.element_type |> typeof |> nameof |>
                                            string
 
         ## TODO: Is this useful to reconstruct `RefElemData` from this?
         ## # Store quad rule.
         ## for idim = 1:ndims(mesh)
         ##   # ASCII: Char(114) => 'r'
-        ##   file[(113 + idim |> Char |> string) * "q"] = mesh.rd.rstq[idim]
+        ##   file[(113 + idim |> Char |> string) * "q"] = dg.basis.rstq[idim]
         ## end
-        ## file["wq"] = mesh.rd.wq
+        ## file["wq"] = dg.basis.wq
 
         # Mesh-coordinates per element.
         for idim in 1:ndims(mesh)
@@ -591,7 +591,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
             md = MeshData(rd, MeshData(vxyz, EToV, rd), xyz...)
         end
 
-        mesh = DGMultiMesh(md, rd, [])
+        mesh = DGMultiMesh(md, [])
     else
         error("Unknown mesh type!")
     end

@@ -124,18 +124,18 @@ function save_solution_file(u, time, dt, timestep,
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["equations"] = get_name(equations)
 
-        if mesh.rd.element_type isa Wedge
-            attributes(file)["polydeg_tri"] = mesh.rd.N[2]
-            attributes(file)["polydeg_line"] = mesh.rd.N[1]
+        if dg.basis.element_type isa Wedge
+            attributes(file)["polydeg_tri"] = dg.basis.N[2]
+            attributes(file)["polydeg_line"] = dg.basis.N[1]
         else
-            attributes(file)["polydeg"] = mesh.rd.N
+            attributes(file)["polydeg"] = dg.basis.N
         end
 
-        attributes(file)["element_type"] = mesh.rd.element_type |> typeof |> nameof |>
+        attributes(file)["element_type"] = dg.basis.element_type |> typeof |> nameof |>
                                            string
         attributes(file)["n_vars"] = n_vars
         attributes(file)["n_elements"] = nelements(dg, cache)
-        attributes(file)["dof_per_elem"] = length(mesh.rd.r)
+        attributes(file)["dof_per_elem"] = length(dg.basis.r)
         attributes(file)["mesh_type"] = get_name(mesh)
         attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
         attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar.
