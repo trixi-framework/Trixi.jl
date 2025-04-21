@@ -9,15 +9,7 @@ steps:
     plugins:
       - JuliaCI/julia#v1:
           version: "{{matrix.version}}"
-    command: |
-      julia -e 'println("--- :julia: Instantiating project")
-                using Pkg
-                Pkg.develop(; path=pwd())
-                Pkg.add(; name="CUDA")' || exit 3
-
-      julia -e 'println("+++ :julia: Running tests")
-                using Pkg
-                Pkg.test("Trixi")'
+      - JuliaCI/julia-test#v1: ~
     env:
       TRIXI_TEST: "CUDA"
     agents:
