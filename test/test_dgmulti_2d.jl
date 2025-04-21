@@ -39,6 +39,9 @@ isdir(outdir) && rm(outdir, recursive = true)
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+    
+    # Load the mesh file for code coverage
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"))
 end
 
 @trixi_testset "elixir_euler_weakform.jl (SBP)" begin

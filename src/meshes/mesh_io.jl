@@ -591,7 +591,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
             md = MeshData(rd, MeshData(vxyz, EToV, rd), xyz...)
         end
 
-        mesh = DGMultiMesh(md, [])
+        mesh = DGMultiMesh{}(md, [])
     else
         error("Unknown mesh type!")
     end
