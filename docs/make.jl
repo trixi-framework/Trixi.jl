@@ -163,7 +163,8 @@ makedocs(
                  "Style guide" => "styleguide.md",
                  "Testing" => "testing.md",
                  "Performance" => "performance.md",
-                 "Parallelization" => "parallelization.md"
+                 "Parallelization" => "parallelization.md",
+                 "Heterogeneous" => "heterogeneous.md"
              ],
              "Troubleshooting and FAQ" => "troubleshooting.md",
              "Reference" => [
