@@ -392,7 +392,7 @@ end
     end
 
     # Load the mesh file for code coverage.
-    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"), 
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
                                          n_cells_max = 0,
                                          RealT = Float64)
 end
