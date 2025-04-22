@@ -76,7 +76,7 @@ function initial_condition_density_wave(x, t,
     # Store translated coordinate for easy use of exact solution
     u_flow = initial_condition_density_wave(x, t, equations.flow_equations)
     # Obtain u_tracers by translating u_flow
-    xc = SVector(ntuple(_ -> 0.1 * one(eltype(x)), Val(ndims(equations))))
+    xc = SVector(ntuple(_ -> 0.1f0 * one(eltype(x)), Val(ndims(equations))))
 
     tracers = SVector((initial_condition_density_wave(x + i * xc, t,
                                                       equations.flow_equations)[1] for i in 1:ntracers(equations))...)
@@ -150,6 +150,13 @@ end
 end
 
 # Works if the method exists for flow equations
+@inline function velocity(u, orientation_or_normal,
+                          tracer_equations::PassiveTracerEquations)
+    return velocity(flow_variables(u, tracer_equations), orientation_or_normal,
+                    tracer_equations.flow_equations)
+end
+
+# Works if the method exists for flow equations
 @inline function density(u, tracer_equations::PassiveTracerEquations)
     return density(flow_variables(u, tracer_equations), tracer_equations.flow_equations)
 end
@@ -207,7 +214,7 @@ end
     flux_rho = density(flux_flow, flow_equations)
     tracers_ll = tracers(u_ll, tracer_equations)
     tracers_rr = tracers(u_rr, tracer_equations)
-    flux_tracer = 0.5 * SVector(ntuple(@inline(v->tracers_ll[v] + tracers_rr[v]),
+    flux_tracer = 0.5f0 * SVector(ntuple(@inline(v->tracers_ll[v] + tracers_rr[v]),
                                  Val(ntracers(tracer_equations))))
     flux_tracer = flux_rho * flux_tracer
     return SVector(flux_flow..., flux_tracer...)
