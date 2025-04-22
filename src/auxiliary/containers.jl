@@ -388,6 +388,13 @@ function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
     adapt(Storage{StaticArrays.similar_type(T, Real)}, x)
 end
 
+# Our threaded cache contains MArray, it is unlikely that we would want to adapt those
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
+                             x::Array{T}) where {Storage, Real,
+                                                 T <: StaticArrays.MArray}
+    adapt(Array{StaticArrays.similar_type(T, Real)}, x)
+end
+
 function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
                              x::AbstractArray) where {Storage, Real}
     adapt(Storage, x)
