@@ -19,7 +19,7 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
                         # Expected errors are exactly the same as with TreeMesh!
                         l2=[8.311947673061856e-6],
                         linf=[6.627000273229378e-5],
-                        real_type=Float32,
+                        real_type=Float64,
                         storage_type=CuArray)
     # # Ensure that we do not have excessive memory allocations
     # # (e.g., from type instabilities)
@@ -34,6 +34,17 @@ EXAMPLES_DIR = joinpath(examples_dir(), "p4est_2d_dgsem")
     @test real(ode.p.solver.mortar) == Float32
     # TODO: remake ignores the mesh itself as well
     @test real(ode.p.mesh) == Float64
+
+    @test_broken ode.u0 isa CuArray
+    @test ode.p.basis.boundary_interpolations isa CuArray
+    @test ode.p.basis.derivative_matrix isa CuArray
+
+    @test ode.p.basis.forward_upper isa CuArray
+
+    @test Trixi.storage_type(ode.p.cache.elements) === CuArray
+    @test Trixi.storage_type(ode.p.cache.interfaces) === CuArray
+    @test Trixi.storage_type(ode.p.cache.boundaries) === CuArray
+    @test Trixi.storage_type(ode.p.cache.mortrar) === CuArray
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
