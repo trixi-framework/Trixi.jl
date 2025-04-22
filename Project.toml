@@ -68,7 +68,7 @@ TrixiCUDAExt = "CUDA"
 [compat]
 Accessors = "0.1.36"
 Adapt = "4"
-CUDA = "5"
+CUDA = "5.2"
 CodeTracking = "1.0.5"
 ConstructionBase = "1.5"
 Convex = "0.16"
