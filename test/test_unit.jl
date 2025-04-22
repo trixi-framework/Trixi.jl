@@ -562,6 +562,7 @@ end
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 
+    # Test PassiveTracerEquations
     let flow_equations = CompressibleEulerEquations1D(1.4)
         equations = PassiveTracerEquations(flow_equations, 2)
         xi1, xi2 = 0.4, 0.5
@@ -571,12 +572,21 @@ end
         @test cons_test ≈ cons_ref
         prim_test = cons2prim(cons_test, equations)
         @test prim_test ≈ SVector(rho, v1, p, xi1, xi2)
+        flow_entropy = cons2entropy(cons_ref, flow_equations)
 
-        # Also test density, pressure and density_pressure here because there is currently
-        # no specific test for them for other equations
+        entropy_ref = SVector(flow_entropy[1] - (xi1^2 + xi2^2),
+                              (flow_entropy[i] for i in 2:nvariables(flow_equations))...,
+                              2.0 * xi1, 2.0 * xi2)
+        entropy_test = cons2entropy(cons_test, equations)
+        @test entropy_test ≈ entropy_ref
+
+        # Also test density, pressure, density_pressure and entropy here because there is currently
+        # no specific space for testing them (e.g., in the other equations)
         @test density(cons_test, equations) ≈ rho
         @test pressure(cons_test, equations) ≈ p
         @test density_pressure(cons_test, equations) ≈ rho * p
+        @test entropy(cons_test, equations) ≈
+              entropy(cons_ref, flow_equations) + rho * (xi1^2 + xi2^2)
     end
 
     let equations = CompressibleEulerEquations2D(1.4)

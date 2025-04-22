@@ -145,7 +145,7 @@ end
 
     variables = SVector(flow_entropy[1] - sum(tracers_ .^ 2),
                         (flow_entropy[i] for i in 2:nvariables(flow_equations))...,
-                        2 * tracers_...)
+                        2.0f0 * tracers_...)
     return variables
 end
 
