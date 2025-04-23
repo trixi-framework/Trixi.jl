@@ -81,7 +81,7 @@ end
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    λ_max = max(abs(u_L), abs(u_R))
+    return max(abs(u_L), abs(u_R))
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes

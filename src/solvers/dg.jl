@@ -447,7 +447,7 @@ end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
                           UnstructuredMesh2D,
-                          P4estMesh, T8codeMesh}
+                          P4estMesh, P4estMeshView, T8codeMesh}
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
     nelements(cache.elements) * nnodes(dg)^ndims(mesh)

@@ -27,9 +27,11 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         using OrdinaryDiffEqLowStorageRK: RDPK3SpFSAL49
         Trixi.mpi_isroot() && println("═"^100)
         Trixi.mpi_isroot() &&
-            println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
+            println(joinpath(EXAMPLES_DIR,
+                             "elixir_advection_timeintegration_adaptive.jl"))
         trixi_include(@__MODULE__,
-                      joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+                      joinpath(EXAMPLES_DIR,
+                               "elixir_advection_timeintegration_adaptive.jl"),
                       alg = RDPK3SpFSAL49(), tspan = (0.0, 10.0))
         l2_expected, linf_expected = analysis_callback(sol)
 
@@ -39,7 +41,8 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
         # Errors are exactly the same as in the elixir_advection_extended.jl
         trixi_include(@__MODULE__,
                       joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-                      alg = RDPK3SpFSAL49())
+                      alg = RDPK3SpFSAL49(),
+                      base_elixir = "elixir_advection_timeintegration_adaptive.jl")
         l2_actual, linf_actual = analysis_callback(sol)
 
         Trixi.mpi_isroot() && @test l2_actual == l2_expected
@@ -246,6 +249,10 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                 Trixi.mpi_isroot() &&
                     println("elixir_euler_ec.jl with error-based step size control")
 
+                # Use callbacks without stepsize_callback to test error-based step size control
+                callbacks = CallbackSet(summary_callback,
+                                        analysis_callback, alive_callback,
+                                        save_solution)
                 sol = solve(ode, RDPK3SpFSAL35(); abstol = 1.0e-4, reltol = 1.0e-4,
                             ode_default_options()..., callback = callbacks)
                 summary_callback()
