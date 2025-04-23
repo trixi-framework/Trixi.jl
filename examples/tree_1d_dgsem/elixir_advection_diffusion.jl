@@ -51,11 +51,38 @@ boundary_conditions = boundary_condition_periodic
 boundary_conditions_parabolic = boundary_condition_periodic
 
 # A semidiscretization collects data structures and functions for the spatial discretization
-semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
+semi_ = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
                                              initial_condition,
                                              solver;
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
+
+import DiffEqBase, ForwardDiff
+DiffEqBase.anyeltypedual(p::SemidiscretizationHyperbolic) = Any
+function DiffEqBase.anyeltypedual(p::SemidiscretizationHyperbolic,
+                                  ::Type{Val{counter}}) where {counter}
+    Any
+end
+
+T = typeof(ForwardDiff.Tag(DiffEqBase.OrdinaryDiffEqTag(), Float64))
+dual_type = ForwardDiff.Dual{T, Float64, 1}
+semi_dual = Trixi.remake(semi_, uEltype = dual_type)
+
+dual_type11 = ForwardDiff.Dual{T, Float64, 11}
+semi_dual11 = Trixi.remake(semi_, uEltype = dual_type11)
+# semi = Trixi.remake(semi_, cache = (; semi_.cache..., semi_dual))
+new_cache = (; semi_.cache..., semi_dual, semi_dual11)
+semi = SemidiscretizationHyperbolic{typeof(semi_.mesh), typeof(semi_.equations),
+                                    typeof(semi_.initial_condition),
+                                    typeof(semi_.boundary_conditions),
+                                    typeof(semi_.source_terms),
+                                    typeof(semi_.solver), typeof(new_cache)}(semi_.mesh,
+                                                                             semi_.equations,
+                                                                             semi_.initial_condition,
+                                                                             semi_.boundary_conditions,
+                                                                             semi_.source_terms,
+                                                                             semi_.solver,
+                                                                             new_cache)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
@@ -87,6 +114,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, sav
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
 time_int_tol = 1.0e-10
 time_abs_tol = 1.0e-10
-sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff());
+sol = solve(ode, KenCarp4(autodiff = AutoForwardDiff());
             abstol = time_abs_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
