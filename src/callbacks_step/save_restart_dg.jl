@@ -47,6 +47,8 @@ function save_restart_file(u, time, dt, timestep,
     return filename
 end
 
+# Load solution variables from restart file and convert them to a different
+# polynomial degree
 # Version for serial I/O
 function interpolate_restart_file!(u, file,
                                    mesh, equations, dg, cache,
