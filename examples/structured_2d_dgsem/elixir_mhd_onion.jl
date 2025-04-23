@@ -14,8 +14,8 @@ function initial_condition_onion(x, t, equations::IdealGlmMhdEquations2D)
     v2 = 0.0
     v3 = 0.0
     p = rho^equations.gamma
-    B1 = -2*x[1]*x[2]*exp(-x[1]^2-x[2]^2)
-    B2 = (2*x[1]^2-1)*exp(-x[1]^2-x[2]^2) + 1
+    B1 = -2 * x[1] * x[2] * exp(-x[1]^2 - x[2]^2)
+    B2 = (2 * x[1]^2 - 1) * exp(-x[1]^2 - x[2]^2) + 1
     B3 = 0.0
     psi = 0.0
 
