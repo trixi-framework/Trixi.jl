@@ -40,10 +40,10 @@ solver = DGSEM(polydeg = 3,
                surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell),
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-boundary_conditions = (x_neg=BoundaryConditionDirichlet(initial_condition),
-                       x_pos=BoundaryConditionDirichlet(initial_condition),
-                       y_neg=BoundaryConditionDirichlet(initial_condition),
-                       y_pos=BoundaryConditionDirichlet(initial_condition))
+boundary_conditions = (x_neg = BoundaryConditionDirichlet(initial_condition),
+                       x_pos = BoundaryConditionDirichlet(initial_condition),
+                       y_neg = BoundaryConditionDirichlet(initial_condition),
+                       y_pos = BoundaryConditionDirichlet(initial_condition))
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
