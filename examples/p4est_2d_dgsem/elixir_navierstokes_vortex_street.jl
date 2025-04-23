@@ -5,24 +5,25 @@ using Trixi
 # Semidiscretization of the compressible Euler equations
 
 # Fluid parameters
-const gamma = 5 / 3
+const gamma = 1.4
 const prandtl_number = 0.72
 
 # Parameters for compressible von-Karman vortex street
-const Re = 500
+const Re = 200
 const Ma = 0.5f0
 const D = 1 # Diameter of the cylinder as in the mesh file
 
 # Parameters that can be freely chosen
 const v_in = 1
-const p_in = 1
+const rho_in = 1
 
 # Parameters that follow from Reynolds and Mach number + adiabatic index gamma
-const mu = v_in * D / Re
+const nu = v_in * D / Re
 
 const c = v_in / Ma
 const p_over_rho = c^2 / gamma
-const rho_in = p_in / p_over_rho
+const p_in = rho_in * p_over_rho
+const mu = rho_in * nu
 
 # Equations for this configuration
 equations = CompressibleEulerEquations2D(gamma)
@@ -101,7 +102,7 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = analysis_interval,
+save_solution = SaveSolutionCallback(dt = 1.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
