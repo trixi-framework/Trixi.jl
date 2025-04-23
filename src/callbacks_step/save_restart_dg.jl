@@ -51,7 +51,7 @@ end
 # polynomial degree
 # Version for serial I/O
 function interpolate_restart_file!(u, file,
-                                   mesh, equations, dg, cache,
+                                   mesh, equations, dg::DGSEM, cache,
                                    nnodes_file, interpolation_matrix)
     all_variables = zeros(eltype(u),
                           (nvariables(equations),
@@ -71,8 +71,8 @@ end
 # Version for MPI-parallel I/O with serial I/O, i.e., HDF5.has_parallel() == false
 function interpolate_restart_file!(u, file,
                                    mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                               ParallelT8codeMesh}, equations, dg,
-                                   cache,
+                                               ParallelT8codeMesh}, equations,
+                                   dg::DGSEM, cache,
                                    nnodes_file, interpolation_matrix)
     n_elements_global = nelementsglobal(mesh, dg, cache)
     all_variables = zeros(eltype(u),
@@ -92,7 +92,7 @@ end
 
 # Version for MPI-parallel I/O
 function interpolate_restart_file!(u, file, slice,
-                                   mesh, equations, dg, cache,
+                                   mesh, equations, dg::DGSEM, cache,
                                    nnodes_file, interpolation_matrix)
     all_variables = zeros(eltype(u),
                           (nvariables(equations),
