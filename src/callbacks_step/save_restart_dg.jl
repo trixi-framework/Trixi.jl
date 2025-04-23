@@ -66,6 +66,28 @@ function interpolate_restart_file!(u, file,
     end
 end
 
+# Version for MPI-parallel I/O with serial I/O, i.e., HDF5.has_parallel() == false
+function interpolate_restart_file!(u, file,
+                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                               ParallelT8codeMesh}, equations, dg,
+                                   cache,
+                                   nnodes_file, interpolation_matrix)
+    n_elements_global = nelementsglobal(mesh, dg, cache)
+    all_variables = zeros(eltype(u),
+                          (nvariables(equations),
+                           ntuple(_ -> nnodes_file, ndims(mesh))...,
+                           n_elements_global))
+    for v in eachvariable(equations)
+        all_variables[v, .., :] = read(file["variables_$v"])
+    end
+
+    # Perform interpolation
+    for element in 1:n_elements_global
+        u[.., element] = multiply_dimensionwise(interpolation_matrix,
+                                                all_variables[.., element])
+    end
+end
+
 # Version for MPI-parallel I/O
 function interpolate_restart_file!(u, file, slice,
                                    mesh, equations, dg, cache,
@@ -379,27 +401,45 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
         if read(attributes(file)["equations"]) != get_name(equations)
             error("restart mismatch: equations differ from value in restart file")
         end
-        if read(attributes(file)["polydeg"]) != polydeg(dg)
-            error("restart mismatch: polynomial degree in solver differs from value in restart file\n
-                  Re-using a simulation run with different polynomial degree is currently only supported for 
-                  parallel I/O or completely serial simulations.")
-        end
         if read(attributes(file)["n_elements"]) != nelements(dg, cache)
             error("restart mismatch: number of elements in solver differs from value in restart file")
         end
 
-        # Read data
-        for v in eachvariable(equations)
-            # Check if variable name matches
-            var = file["variables_$v"]
-            if (name = read(attributes(var)["name"])) !=
-               varnames(cons2cons, equations)[v]
-                error("mismatch: variables_$v should be '$(varnames(cons2cons, equations)[v])', but found '$name'")
-            end
+        ### Read variable data ###
+        if read(attributes(file)["polydeg"]) != polydeg(dg) # Interpolation is necessary
+            polydeg_file = read(attributes(file)["polydeg"])
+            nnodes_file = polydeg_file + 1
+            nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
-            # Read variable
-            sendbuf = MPI.VBuffer(read(file["variables_$v"]), node_counts)
-            MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
+            nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
+            interpolation_matrix = polynomial_interpolation_matrix(nodes_file,
+                                                                   nodes_solver)
+
+            # We perform the interpolation of all elements on the root rank.
+            # Thus we need the allocate the global array
+            u_all = zeros(eltype(u),
+                          (nvariables(equations),
+                           ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                           nelementsglobal(mesh, dg, cache)))
+
+            interpolate_restart_file!(u_all, file, mesh, equations, dg, cache,
+                                      nnodes_file, interpolation_matrix)
+            for v in eachvariable(equations)
+                sendbuf = MPI.VBuffer(@view(u_all[v, .., :]), node_counts)
+                MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
+            end
+        else # Read in variables separately
+            for v in eachvariable(equations)
+                # Check if variable name matches
+                var = file["variables_$v"]
+                if (name = read(attributes(var)["name"])) !=
+                   varnames(cons2cons, equations)[v]
+                    error("mismatch: variables_$v should be '$(varnames(cons2cons, equations)[v])', but found '$name'")
+                end
+
+                sendbuf = MPI.VBuffer(read(file["variables_$v"]), node_counts)
+                MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
+            end
         end
     end
 
