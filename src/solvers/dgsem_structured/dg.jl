@@ -33,7 +33,20 @@ end
                                                   boundary_condition::BoundaryConditionPeriodic,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms,
+                                                  nonconservative_terms::False,
+                                                  equations,
+                                                  surface_integral, dg::DG, cache,
+                                                  direction, node_indices,
+                                                  surface_node_indices, element)
+    @assert isperiodic(mesh, orientation)
+end
+
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+                                                  orientation,
+                                                  boundary_condition::BoundaryConditionPeriodic,
+                                                  mesh::Union{StructuredMesh,
+                                                              StructuredMeshView},
+                                                  nonconservative_terms::True,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
