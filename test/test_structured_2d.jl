@@ -1004,7 +1004,7 @@ end
                               0.055979197375423013, 0.0,
                               0.14115256348718286, 0.01995761261479112,
                               0.038667260744994936, 0.0,
-                              3.3767778019495598e-6],
+                              3.3767778019495598e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
