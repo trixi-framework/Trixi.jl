@@ -657,6 +657,7 @@ end
                                                   boundary_condition::BoundaryConditionCoupled,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
+                                                  nonconservative_terms::False,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
@@ -686,6 +687,45 @@ end
 
     for v in eachvariable(equations)
         surface_flux_values[v, surface_node_indices..., direction, element] = flux[v]
+    end
+end
+
+@inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
+                                                  orientation,
+                                                  boundary_condition::BoundaryConditionCoupled,
+                                                  mesh::Union{StructuredMesh,
+                                                              StructuredMeshView},
+                                                  nonconservative_terms::True,
+                                                  equations,
+                                                  surface_integral, dg::DG, cache,
+                                                  direction, node_indices,
+                                                  surface_node_indices, element)
+    @unpack node_coordinates, contravariant_vectors, inverse_jacobian = cache.elements
+    @unpack surface_flux = surface_integral
+
+    cell_indices = get_boundary_indices(element, orientation, mesh)
+
+    u_inner = get_node_vars(u, equations, dg, node_indices..., element)
+
+    # If the mapping is orientation-reversing, the contravariant vectors' orientation
+    # is reversed as well. The normal vector must be oriented in the direction
+    # from `left_element` to `right_element`, or the numerical flux will be computed
+    # incorrectly (downwind direction).
+    sign_jacobian = sign(inverse_jacobian[node_indices..., element])
+
+    # Contravariant vector Ja^i is the normal vector
+    normal = sign_jacobian *
+             get_contravariant_vector(orientation, contravariant_vectors,
+                                      node_indices..., element)
+
+    @autoinfiltrate
+    # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
+    # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
+    flux, noncons_flux = boundary_condition(u_inner, normal, direction, cell_indices,
+                                                            surface_node_indices, surface_flux, equations)
+
+    for v in eachvariable(equations)
+        surface_flux_values[v, surface_node_indices..., direction, element] = sign_jacobian * (flux[v] + 0.5f0 * noncons_flux[v])
     end
 end
 
