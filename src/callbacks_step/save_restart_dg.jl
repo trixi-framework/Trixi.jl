@@ -75,18 +75,18 @@ function convert_restart_file_polydeg!(u, file,
                                        dg::DGSEM, cache,
                                        nnodes_file, conversion_matrix)
     n_elements_global = nelementsglobal(mesh, dg, cache)
-    all_variables = zeros(eltype(u),
-                          (nvariables(equations),
-                           ntuple(_ -> nnodes_file, ndims(mesh))...,
-                           n_elements_global))
+    all_variables_global = zeros(eltype(u),
+                                 (nvariables(equations),
+                                  ntuple(_ -> nnodes_file, ndims(mesh))...,
+                                  n_elements_global))
     for v in eachvariable(equations)
-        all_variables[v, .., :] = read(file["variables_$v"])
+        all_variables_global[v, .., :] = read(file["variables_$v"])
     end
 
     # Perform interpolation/projection to new polynomial degree
     for element in 1:n_elements_global
         u[.., element] = multiply_dimensionwise(conversion_matrix,
-                                                all_variables[.., element])
+                                                all_variables_global[.., element])
     end
 end
 
@@ -100,6 +100,7 @@ function convert_restart_file_polydeg!(u, file, slice,
                            nelements(dg, cache)))
     for v in eachvariable(equations)
         var = file["variables_$v"]
+        # Read in only data slice of this process
         all_variables[v, .., :] = reshape(read(var)[slice],
                                           size(@view all_variables[v, .., :]))
     end
@@ -329,8 +330,8 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
         ### Read variable data ###
         element_counts = convert(Vector{Cint},
                                  collect(cache.mpi_cache.n_elements_by_rank))
-        if read(attributes(file)["polydeg"]) != polydeg(dg) # Conversion is necessary
-            polydeg_file = read(attributes(file)["polydeg"])
+        polydeg_file = read(attributes(file)["polydeg"])
+        if polydeg_file != polydeg(dg) # Conversion is necessary
             nnodes_file = polydeg_file + 1
             nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
@@ -423,8 +424,8 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
         end
 
         ### Read variable data ###
-        if read(attributes(file)["polydeg"]) != polydeg(dg) # Conversion is necessary
-            polydeg_file = read(attributes(file)["polydeg"])
+        polydeg_file = read(attributes(file)["polydeg"])
+        if polydeg_file != polydeg(dg) # Conversion is necessary
             nnodes_file = polydeg_file + 1
             nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
@@ -441,7 +442,7 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
                                           nnodes_file, conversion_matrix)
 
             # We perform the interpolation of all elements on the root rank.
-            # Thus we need the allocate the global array
+            # Thus, we need the allocate the global array
             u_all = zeros(eltype(u),
                           (nvariables(equations),
                            ntuple(_ -> nnodes(dg), ndims(mesh))...,
