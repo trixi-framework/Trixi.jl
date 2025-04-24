@@ -722,7 +722,10 @@ end
                                                             surface_node_indices, surface_flux, equations)
 
     for v in eachvariable(equations)
-        surface_flux_values[v, surface_node_indices..., direction, element] = sign_jacobian * (flux[v] + 0.5f0 * noncons_flux[v])
+        surface_flux_values[v, surface_node_indices..., direction, element] = sign_jacobian *
+                                                                              (flux[v] +
+                                                                               0.5f0 *
+                                                                               noncons_flux[v])
     end
 end
 
