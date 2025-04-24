@@ -79,7 +79,7 @@ function calc_reverse_upper(n_nodes, ::Val{:gauss}, RealT = Float64)
         end
     end
 
-    # Calculate Vandermondes
+    # Calculate Vandermondes for quadrature-interpolation basis transform
     lobatto_nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
     gauss2lobatto = polynomial_interpolation_matrix(gauss_nodes, lobatto_nodes)
     lobatto2gauss = polynomial_interpolation_matrix(lobatto_nodes, gauss_nodes)
@@ -106,7 +106,7 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss}, RealT = Float64)
         end
     end
 
-    # Calculate Vandermondes
+    # Calculate Vandermondes for quadrature-interpolation basis transform
     lobatto_nodes, _ = gauss_lobatto_nodes_weights(n_nodes, RealT)
     gauss2lobatto = polynomial_interpolation_matrix(gauss_nodes, lobatto_nodes)
     lobatto2gauss = polynomial_interpolation_matrix(lobatto_nodes, gauss_nodes)
@@ -150,5 +150,89 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
     end
 
     return operator
+end
+
+#=
+Compute the L2 projection matrix for projecting polynomials 
+from a higher degree to a lower degree.
+
+# Arguments
+- `nodes_high`: GLL/LGL nodes of the higher-degree polynomial
+- `nodes_low`: GLL/LGL nodes of the lower-degree polynomial
+- `::Val{:gauss_lobatto}`: Use Gauss-Lobatto-Legendre quadrature (accuracy 2N - 3)
+- `RealT`: Type of the output matrix (default: Float64)
+
+# Returns
+The projection matrix such that multiplying which projects 
+a higher degree Lagrange interpolation/solution polynomial
+to a lower degree Lagrange interpolation/solution polynomial.
+=#
+function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss_lobatto},
+                                        RealT = Float64)
+    n_high = length(nodes_high)
+    n_low = length(nodes_low)
+
+    weights_high = gauss_lobatto_nodes_weights(n_high, RealT)[2]
+    weights_low = gauss_lobatto_nodes_weights(n_low, RealT)[2]
+    wbary_low = barycentric_weights(nodes_low)
+
+    projection_matrix = zeros(RealT, n_low, n_high)
+    for j in 1:n_high
+        # Evaluate the lower degree polynomial at the higher degree nodes
+        poly = lagrange_interpolating_polynomials(nodes_high[j], nodes_low, wbary_low)
+        for i in 1:n_low
+            # The first product corresponds to building the RHS
+            # The division correponds to "solving" the diagonal "mass-matrix" system 
+            projection_matrix[i, j] = poly[i] * weights_high[j] / weights_low[i]
+        end
+    end
+
+    return projection_matrix
+end
+
+#=
+Compute the L2 projection matrix for projecting polynomials 
+from a higher degree to a lower degree.
+
+# Arguments
+- `nodes_high`: GLL/LGL nodes of the higher-degree polynomial
+- `nodes_low`: GLL/LGL nodes of the lower-degree polynomial
+- `::Val{:gauss}`: Use Gauss-Legendre quadrature (accuracy 2N -1)
+- `RealT`: Type of the output matrix (default: Float64)
+
+# Returns
+The projection matrix such that multiplying which projects 
+a higher degree Lagrange interpolation/solution polynomial
+to a lower degree Lagrange interpolation/solution polynomial.
+=#
+function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss},
+                                        RealT = Float64)
+    n_high = length(nodes_high)
+    n_low = length(nodes_low)
+
+    gauss_nodes_high, gauss_weights_high = gauss_nodes_weights(n_high, RealT)
+    gauss_nodes_low, gauss_weights_low = gauss_nodes_weights(n_low, RealT)
+    gauss_wbary_low = barycentric_weights(gauss_nodes_low)
+
+    projection_matrix = zeros(RealT, n_low, n_high)
+    for j in 1:n_high
+        # Evaluate the lower degree polynomial at the higher degree nodes
+        poly = lagrange_interpolating_polynomials(gauss_nodes_high[j], gauss_nodes_low,
+                                                  gauss_wbary_low)
+        for i in 1:n_low
+            # The first product corresponds to building the RHS
+            # The division correponds to "solving" the diagonal "mass-matrix" system 
+            projection_matrix[i, j] = poly[i] * gauss_weights_high[j] /
+                                      gauss_weights_low[i]
+        end
+    end
+
+    #return projection_matrix
+
+    # Calculate Vandermondes for quadrature-interpolation basis transform
+    gauss2lobatto = polynomial_interpolation_matrix(gauss_nodes_low, nodes_low)
+    lobatto2gauss = polynomial_interpolation_matrix(nodes_low, gauss_nodes_high)
+
+    return gauss2lobatto * projection_matrix * lobatto2gauss
 end
 end # @muladd

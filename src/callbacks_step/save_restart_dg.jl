@@ -47,12 +47,12 @@ function save_restart_file(u, time, dt, timestep,
     return filename
 end
 
-# Load solution variables from restart file and convert them to a different
-# polynomial degree
+# Load solution variables from restart file and 
+# convert them to a different polynomial degree.
 # Version for serial I/O
-function interpolate_restart_file!(u, file,
-                                   mesh, equations, dg::DGSEM, cache,
-                                   nnodes_file, interpolation_matrix)
+function convert_restart_file_polydeg!(u, file,
+                                       mesh, equations, dg::DGSEM, cache,
+                                       nnodes_file, conversion_matrix)
     all_variables = zeros(eltype(u),
                           (nvariables(equations),
                            ntuple(_ -> nnodes_file, ndims(mesh))...,
@@ -61,19 +61,19 @@ function interpolate_restart_file!(u, file,
         all_variables[v, .., :] = read(file["variables_$v"])
     end
 
-    # Perform interpolation
+    # Perform interpolation/projection to new polynomial degree
     for element in eachelement(dg, cache)
-        u[.., element] = multiply_dimensionwise(interpolation_matrix,
+        u[.., element] = multiply_dimensionwise(conversion_matrix,
                                                 all_variables[.., element])
     end
 end
 
-# Version for MPI-parallel I/O with serial I/O, i.e., HDF5.has_parallel() == false
-function interpolate_restart_file!(u, file,
-                                   mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
-                                               ParallelT8codeMesh}, equations,
-                                   dg::DGSEM, cache,
-                                   nnodes_file, interpolation_matrix)
+# Version for MPI-parallel I/O with serial I/O, i.e., `HDF5.has_parallel() == false`
+function convert_restart_file_polydeg!(u, file,
+                                       mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
+                                                   ParallelT8codeMesh}, equations,
+                                       dg::DGSEM, cache,
+                                       nnodes_file, conversion_matrix)
     n_elements_global = nelementsglobal(mesh, dg, cache)
     all_variables = zeros(eltype(u),
                           (nvariables(equations),
@@ -83,17 +83,17 @@ function interpolate_restart_file!(u, file,
         all_variables[v, .., :] = read(file["variables_$v"])
     end
 
-    # Perform interpolation
+    # Perform interpolation/projection to new polynomial degree
     for element in 1:n_elements_global
-        u[.., element] = multiply_dimensionwise(interpolation_matrix,
+        u[.., element] = multiply_dimensionwise(conversion_matrix,
                                                 all_variables[.., element])
     end
 end
 
-# Version for MPI-parallel I/O
-function interpolate_restart_file!(u, file, slice,
-                                   mesh, equations, dg::DGSEM, cache,
-                                   nnodes_file, interpolation_matrix)
+# Version for MPI-parallel I/O with MPI-parallel I/O, i.e., `HDF5.has_parallel() == true`
+function convert_restart_file_polydeg!(u, file, slice,
+                                       mesh, equations, dg::DGSEM, cache,
+                                       nnodes_file, conversion_matrix)
     all_variables = zeros(eltype(u),
                           (nvariables(equations),
                            ntuple(_ -> nnodes_file, ndims(mesh))...,
@@ -104,9 +104,9 @@ function interpolate_restart_file!(u, file, slice,
                                           size(@view all_variables[v, .., :]))
     end
 
-    # Perform interpolation
+    # Perform interpolation/projection to new polynomial degree
     for element in eachelement(dg, cache)
-        u[.., element] = multiply_dimensionwise(interpolation_matrix,
+        u[.., element] = multiply_dimensionwise(conversion_matrix,
                                                 all_variables[.., element])
     end
 end
@@ -141,16 +141,24 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
         end
 
         ### Read variable data ###
-        if read(attributes(file)["polydeg"]) != polydeg(dg) # Interpolation is necessary
-            polydeg_file = read(attributes(file)["polydeg"])
+        polydeg_file = read(attributes(file)["polydeg"])
+        if polydeg_file != polydeg(dg) # Conversion is necessary
             nnodes_file = polydeg_file + 1
             nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            interpolation_matrix = polynomial_interpolation_matrix(nodes_file,
-                                                                   nodes_solver)
-            interpolate_restart_file!(u, file, mesh, equations, dg, cache,
-                                      nnodes_file, interpolation_matrix)
+
+            if polydeg_file < polydeg(dg) # Interpolation from lower to higher
+                conversion_matrix = polynomial_interpolation_matrix(nodes_file,
+                                                                    nodes_solver)
+            else # Projection from higher to lower
+                conversion_matrix = polynomial_l2projection_matrix(nodes_file,
+                                                                   nodes_solver,
+                                                                   #Val(:gauss_lobatto))
+                                                                   Val(:gauss))
+            end
+            convert_restart_file_polydeg!(u, file, mesh, equations, dg, cache,
+                                          nnodes_file, conversion_matrix)
         else # Read in variables separately
             for v in eachvariable(equations)
                 u[v, .., :] = read(file["variables_$v"])
@@ -322,14 +330,22 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
         ### Read variable data ###
         element_counts = convert(Vector{Cint},
                                  collect(cache.mpi_cache.n_elements_by_rank))
-        if read(attributes(file)["polydeg"]) != polydeg(dg) # Interpolation is necessary
+        if read(attributes(file)["polydeg"]) != polydeg(dg) # Conversion is necessary
             polydeg_file = read(attributes(file)["polydeg"])
             nnodes_file = polydeg_file + 1
             nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            interpolation_matrix = polynomial_interpolation_matrix(nodes_file,
-                                                                   nodes_solver)
+            if polydeg_file < polydeg(dg) # Interpolation from lower to higher
+                conversion_matrix = polynomial_interpolation_matrix(nodes_file,
+                                                                    nodes_solver)
+            else # Projection from higher to lower
+                conversion_matrix = polynomial_l2projection_matrix(nodes_file,
+                                                                   nodes_solver,
+                                                                   Val(:gauss_lobatto))
+            end
+            convert_restart_file_polydeg!(u, file, mesh, equations, dg, cache,
+                                          nnodes_file, conversion_matrix)
 
             # Calculate element and node counts by MPI rank                                                                   
             element_size_file = nnodes_file^ndims(mesh)
@@ -341,8 +357,8 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
             # Read data of each process in slices (ranks start with 0)
             slice = (cum_node_counts_file[mpi_rank() + 1] + 1):cum_node_counts_file[mpi_rank() + 2]
 
-            interpolate_restart_file!(u, file, slice, mesh, equations, dg, cache,
-                                      nnodes_file, interpolation_matrix)
+            convert_restart_file_polydeg!(u, file, slice, mesh, equations, dg, cache,
+                                          nnodes_file, conversion_matrix)
         else # Read in variables separately
             # Calculate element and node counts by MPI rank
             element_size = nnodes(dg)^ndims(mesh)
@@ -408,14 +424,22 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
         end
 
         ### Read variable data ###
-        if read(attributes(file)["polydeg"]) != polydeg(dg) # Interpolation is necessary
+        if read(attributes(file)["polydeg"]) != polydeg(dg) # Conversion is necessary
             polydeg_file = read(attributes(file)["polydeg"])
             nnodes_file = polydeg_file + 1
             nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            interpolation_matrix = polynomial_interpolation_matrix(nodes_file,
-                                                                   nodes_solver)
+            if polydeg_file < polydeg(dg) # Interpolation from lower to higher
+                conversion_matrix = polynomial_interpolation_matrix(nodes_file,
+                                                                    nodes_solver)
+            else # Projection from higher to lower
+                conversion_matrix = polynomial_l2projection_matrix(nodes_file,
+                                                                   nodes_solver,
+                                                                   Val(:gauss_lobatto))
+            end
+            convert_restart_file_polydeg!(u, file, mesh, equations, dg, cache,
+                                          nnodes_file, conversion_matrix)
 
             # We perform the interpolation of all elements on the root rank.
             # Thus we need the allocate the global array
@@ -424,8 +448,8 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
                            ntuple(_ -> nnodes(dg), ndims(mesh))...,
                            nelementsglobal(mesh, dg, cache)))
 
-            interpolate_restart_file!(u_all, file, mesh, equations, dg, cache,
-                                      nnodes_file, interpolation_matrix)
+            convert_restart_file_polydeg!(u_all, file, mesh, equations, dg, cache,
+                                          nnodes_file, conversion_matrix)
             for v in eachvariable(equations)
                 sendbuf = MPI.VBuffer(@view(u_all[v, .., :]), node_counts)
                 MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
