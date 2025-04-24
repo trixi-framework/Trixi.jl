@@ -39,7 +39,7 @@ sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             ode_default_options()..., callback = callbacks);
 
 ###############################################################################
-# Interpolate original solution to LOWER order (3 -> 2)
+# Project original solution to LOWER order (3 -> 2)
 
 solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
 
