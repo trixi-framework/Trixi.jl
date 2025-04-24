@@ -154,8 +154,7 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
             else # Projection from higher to lower
                 conversion_matrix = polynomial_l2projection_matrix(nodes_file,
                                                                    nodes_solver,
-                                                                   #Val(:gauss_lobatto))
-                                                                   Val(:gauss))
+                                                                   Val(:gauss_lobatto))
             end
             convert_restart_file_polydeg!(u, file, mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
