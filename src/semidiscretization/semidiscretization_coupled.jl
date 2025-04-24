@@ -719,10 +719,14 @@ end
     # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
     # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
     flux, noncons_flux = boundary_condition(u_inner, normal, direction, cell_indices,
-                                                            surface_node_indices, surface_flux, equations)
+                                            surface_node_indices, surface_flux,
+                                            equations)
 
     for v in eachvariable(equations)
-        surface_flux_values[v, surface_node_indices..., direction, element] = sign_jacobian * (flux[v] + 0.5f0 * noncons_flux[v])
+        surface_flux_values[v, surface_node_indices..., direction, element] = sign_jacobian *
+                                                                              (flux[v] +
+                                                                               0.5f0 *
+                                                                               noncons_flux[v])
     end
 end
 
