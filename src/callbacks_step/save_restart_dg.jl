@@ -49,7 +49,7 @@ end
 
 # Load solution variables from restart file and 
 # convert them to a different polynomial degree.
-# Version for serial I/O
+# Version for non-MPI-parallel run
 function convert_restart_file_polydeg!(u, file,
                                        mesh, equations, dg::DGSEM, cache,
                                        nnodes_file, conversion_matrix)
@@ -68,7 +68,7 @@ function convert_restart_file_polydeg!(u, file,
     end
 end
 
-# Version for MPI-parallel I/O with serial I/O, i.e., `HDF5.has_parallel() == false`
+# Version for MPI-parallel run with serial I/O, i.e., `HDF5.has_parallel() == false`
 function convert_restart_file_polydeg!(u, file,
                                        mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                                    ParallelT8codeMesh}, equations,
@@ -90,7 +90,7 @@ function convert_restart_file_polydeg!(u, file,
     end
 end
 
-# Version for MPI-parallel I/O with MPI-parallel I/O, i.e., `HDF5.has_parallel() == true`
+# Version for MPI-parallel run with MPI-parallel I/O, i.e., `HDF5.has_parallel() == true`
 function convert_restart_file_polydeg!(u, file, slice,
                                        mesh, equations, dg::DGSEM, cache,
                                        nnodes_file, conversion_matrix)
