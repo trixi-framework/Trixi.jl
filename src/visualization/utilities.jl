@@ -531,18 +531,21 @@ function cell2node(cell_centered_data)
         tmp[2:(end - 1), 2:(end - 1)] .= cell_data
 
         # Linear extrapolation of top and bottom rows
-        tmp[1, 2:end-1] .= cell_data[1, :] .+ (cell_data[1, :] .- cell_data[2, :])
-        tmp[end, 2:end-1] .= cell_data[end, :] .+ (cell_data[end, :] .- cell_data[end-1, :])
+        tmp[1, 2:(end - 1)] .= cell_data[1, :] .+ (cell_data[1, :] .- cell_data[2, :])
+        tmp[end, 2:(end - 1)] .= (cell_data[end, :] .+
+                                  (cell_data[end, :] .- cell_data[end - 1, :]))
 
         # Linear extrapolatation of left and right columns
-        tmp[2:end-1, 1] .= cell_data[:, 1] .+ (cell_data[:, 1] .- cell_data[:, 2])
-        tmp[2:end-1, end] .= cell_data[:, end] .+ (cell_data[:, end] .- cell_data[:, end-1])
+        tmp[2:(end - 1), 1] .= cell_data[:, 1] .+ (cell_data[:, 1] .- cell_data[:, 2])
+        tmp[2:(end - 1), end] .= (cell_data[:, end] .+
+                                  (cell_data[:, end] .- cell_data[:, end - 1]))
 
         # Corners perform the linear extrapolatation along diagonals
-        tmp[1, 1]     = tmp[2, 1] + (tmp[2, 1] - tmp[3, 1])
-        tmp[1, end]   = tmp[2, end] + (tmp[2, end] - tmp[3, end])
-        tmp[end, 1]   = tmp[end-1, 1] + (tmp[end-1, 1] - tmp[end-2, 1])
-        tmp[end, end] = tmp[end-1, end] + (tmp[end-1, end] - tmp[end-2, end])
+        tmp[1, 1] = tmp[2, 2] + (tmp[2, 2] - tmp[3, 3])
+        tmp[1, end] = tmp[2, end - 1] + (tmp[2, end - 1] - tmp[3, end - 2])
+        tmp[end, 1] = tmp[end - 1, 2] + (tmp[end - 1, 2] - tmp[end - 2, 3])
+        tmp[end, end] = (tmp[end - 1, end - 1] +
+                         (tmp[end - 1, end - 1] - tmp[end - 2, end - 2]))
 
         # Obtain node-centered value by averaging over neighboring cell-centered values
         for j in 1:resolution_out
