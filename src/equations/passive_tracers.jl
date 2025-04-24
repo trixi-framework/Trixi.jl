@@ -22,6 +22,9 @@ struct PassiveTracerEquations{NDIMS, NVARS, NTracers,
     flow_equations::FlowEquations
 end
 
+have_nonconservative_terms(equations::PassiveTracerEquations) =
+    have_nonconservative_terms(equations.flow_equations)
+
 function PassiveTracerEquations(flow_equations::AbstractEquations, n_tracers::Int)
     return PassiveTracerEquations{ndims(flow_equations),
                                   nvariables(flow_equations) + n_tracers, n_tracers,
