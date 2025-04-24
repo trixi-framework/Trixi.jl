@@ -564,7 +564,7 @@ end
 
     # Test PassiveTracerEquations
     let flow_equations = CompressibleEulerEquations1D(1.4)
-        equations = PassiveTracerEquations(flow_equations, 2)
+        equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
         xi1, xi2 = 0.4, 0.5
         cons_ref = SVector(rho, rho * v1, p / 0.4 + 0.5 * (rho * v1 * v1), rho * xi1,
                            rho * xi2)
@@ -587,6 +587,11 @@ end
         @test density_pressure(cons_test, equations) ≈ rho * p
         @test entropy(cons_test, equations) ≈
               entropy(cons_ref, flow_equations) + rho * (xi1^2 + xi2^2)
+
+        tracers_ = Trixi.tracers(cons_test, equations)
+        @test tracers_ ≈ SVector(xi1, xi2)
+        rho_tracers_ = Trixi.rho_tracers(cons_test, equations)
+        @test rho_tracers_ ≈ SVector(rho * xi1, rho * xi2)
     end
 
     let equations = CompressibleEulerEquations2D(1.4)
@@ -1906,7 +1911,7 @@ end
     @timed_testset "Passive tracer equations" begin
         for gamma in [1.4, 5 / 3, 7 / 5]
             flow_equations = CompressibleEulerEquations1D(gamma)
-            equations = PassiveTracerEquations(flow_equations, 2)
+            equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
 
             p_rho_ratio = 42.0
             xi1_ll, xi1_rr = 0.1, 0.2

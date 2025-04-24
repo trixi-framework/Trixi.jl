@@ -6,7 +6,7 @@ using Trixi
 # with two additional passive tracer variables
 gamma = 1.4
 flow_equations = CompressibleEulerEquations2D(gamma)
-equations = PassiveTracerEquations(flow_equations, 2)
+equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
 
 initial_condition = initial_condition_density_wave
 

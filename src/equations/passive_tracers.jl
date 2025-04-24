@@ -6,14 +6,14 @@
 #! format: noindent
 
 @doc raw"""
-    PassiveTracerEquations(flow_equations)
+    PassiveTracerEquations(flow_equations; n_tracers)
 
 Adds passive tracers to the `flow_equations`. The tracers are advected by the flow velocity.
 These work for arbitrary NDIMS with arbitrary numbers of tracers NTracers. For one dimension, with 
-one tracer ``\xi`` and flow with density and velocity ``\rho, v`` respectively, the equation of the
+one tracer ``\chi`` and flow with density and velocity ``\rho, v`` respectively, the equation of the
 passive tracer is
 ```math
-\frac{\partial \rho \xi}{\partial t} + \frac{\partial}{\partial x} \left( \rho v \xi \right) = 0
+\frac{\partial \rho \chi}{\partial t} + \frac{\partial}{\partial x} \left( \rho v \chi \right) = 0
 ```
 """
 struct PassiveTracerEquations{NDIMS, NVARS, NTracers,
@@ -22,7 +22,7 @@ struct PassiveTracerEquations{NDIMS, NVARS, NTracers,
     flow_equations::FlowEquations
 end
 
-function PassiveTracerEquations(flow_equations::AbstractEquations, n_tracers::Int)
+function PassiveTracerEquations(flow_equations::AbstractEquations; n_tracers::Int)
     return PassiveTracerEquations{ndims(flow_equations),
                                   nvariables(flow_equations) + n_tracers, n_tracers,
                                   typeof(flow_equations)}(flow_equations)
@@ -68,7 +68,7 @@ end
 """
     initial_condition_density_wave(x, t, equations::PassiveTracerEquations)
 
-Takes the [`initial_condition_density_wave function`](@ref) for the flow equations and
+Takes the [`initial_condition_density_wave`](@ref) for the flow equations and
 takes its translated first coordinates as the initial condition for the tracers.
 """
 function initial_condition_density_wave(x, t,
@@ -93,6 +93,7 @@ end
 # Obtain the flow variables from the conservative variables. The tracers are not included.
 @inline function flow_variables(u, tracer_equations::PassiveTracerEquations)
     n_flow_variables = nvariables_flow(tracer_equations)
+    flux_tracer = SVector(ntuple(@inline(v->u[v]), Val(n_flow_variables)))
     return SVector((u[i] for i in 1:n_flow_variables)...)
 end
 
@@ -103,7 +104,17 @@ function tracers(u, tracer_equations::PassiveTracerEquations)
     n_tracers = ntracers(tracer_equations)
 
     rho = density(u, tracer_equations)
-    return SVector((u[n_flow_variables + i] / rho for i in 1:n_tracers)...)
+    return SVector(ntuple(@inline(v->u[v + n_flow_variables] / rho),
+                          Val(ntracers(tracer_equations))))
+end
+
+# Obtain rho * tracers which are the conservative variables for the tracer equations.
+function rho_tracers(u, tracer_equations::PassiveTracerEquations)
+    n_flow_variables = nvariables_flow(tracer_equations)
+    n_tracers = ntracers(tracer_equations)
+
+    return SVector(ntuple(@inline(v->u[v + n_flow_variables]),
+                          Val(ntracers(tracer_equations))))
 end
 
 # Primitives for the flow equations and tracers. For a tracer, the primitive variable is obtained
@@ -124,8 +135,10 @@ end
     n_tracers = ntracers(tracer_equations)
 
     rho = density(u, tracer_equations)
-    return SVector(prim2cons(u_flow, flow_equations)...,
-                   (rho * u[n_flow_variables + i] for i in 1:n_tracers)...)
+    cons_flow = prim2cons(u_flow, flow_equations)
+    cons_tracer = SVector(ntuple(@inline(v->rho * u[v + n_flow_variables]),
+                                 Val(ntracers(tracer_equations))))
+    return SVector(cons_flow..., cons_tracer...)
 end
 
 # Entropy for tracers is the L2 norm of the tracers
@@ -143,9 +156,12 @@ end
     flow_entropy = cons2entropy(flow_variables(u, tracer_equations), flow_equations)
     tracers_ = tracers(u, tracer_equations)
 
+    flow_entropy_after_density = SVector(ntuple(@inline(v->flow_entropy[v + 1]),
+                                                Val(nvariables_flow(tracer_equations) -
+                                                    1)))
     variables = SVector(flow_entropy[1] - sum(tracers_ .^ 2),
-                        (flow_entropy[i] for i in 2:nvariables(flow_equations))...,
-                        2 * tracers_...)
+                        flow_entropy_after_density...,
+                        2 * tracers_...) # factor of 2 because of the L2 norm
     return variables
 end
 
@@ -219,6 +235,26 @@ end
     flux_tracer = 0.5f0 * SVector(ntuple(@inline(v->tracers_ll[v] + tracers_rr[v]),
                                  Val(ntracers(tracer_equations))))
     flux_tracer = flux_rho * flux_tracer
+    return SVector(flux_flow..., flux_tracer...)
+end
+
+# Upwind flux using the splitting for the flow equations, and the natural upwind flux for the tracers
+@inline function (numflux::FluxUpwind)(u_ll, u_rr, orientation::Int,
+                                       equations::PassiveTracerEquations)
+    @unpack flow_equations = equations
+    u_flow_ll = flow_variables(u_ll, equations)
+    u_flow_rr = flow_variables(u_rr, equations)
+    flux_flow = numflux(u_flow_ll, u_flow_rr, orientation, flow_equations)
+    rho_tracers_ll = rho_tracers(u_ll, equations)
+    rho_tracers_rr = rho_tracers(u_rr, equations)
+    vel_ll = velocity(u_flow_ll, orientation, flow_equations)
+    vel_rr = velocity(u_flow_rr, orientation, flow_equations)
+    vel = 0.5f0 * (vel_ll + vel_rr)
+    if vel > 0.0
+        flux_tracer = rho_tracers_ll * vel
+    else
+        flux_tracer = rho_tracers_rr * vel
+    end
     return SVector(flux_flow..., flux_tracer...)
 end
 end # muladd

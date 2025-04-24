@@ -5,12 +5,18 @@ using Trixi
 # semidiscretization of the compressible Euler equations
 # with two additional passive tracer variables
 flow_equations = CompressibleEulerEquations1D(1.4)
-equations = PassiveTracerEquations(flow_equations, 2)
+equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
 
 initial_condition = initial_condition_density_wave
 
 volume_flux = FluxTracerEquationsCentral(flux_ranocha)
-solver = DGSEM(polydeg = 3, surface_flux = FluxTracerEquationsCentral(flux_lax_friedrichs),
+
+# FluxUpwind used just for illustration. flux_lax_friedrichs can be used and gives
+# better accuracy in this test.
+surface_flux = FluxUpwind(splitting_steger_warming)
+
+solver = DGSEM(polydeg = 3,
+               surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = -1.0

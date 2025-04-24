@@ -2654,6 +2654,8 @@ isdir(outdir) && rm(outdir, recursive = true)
 
             @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
             @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred Trixi.tracers(u, equations)) == RealT
+            @test eltype(@inferred Trixi.rho_tracers(u, equations)) == RealT
             @test eltype(@inferred cons2entropy(u, equations)) == RealT
             @test eltype(@inferred prim2cons(u, equations)) == RealT
             @test typeof(@inferred density(u, equations)) == RealT
