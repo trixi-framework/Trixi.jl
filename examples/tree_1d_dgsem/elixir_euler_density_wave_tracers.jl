@@ -3,6 +3,7 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+# with two additional passive tracer variables
 flow_equations = CompressibleEulerEquations1D(1.4)
 equations = PassiveTracerEquations(flow_equations, 2)
 

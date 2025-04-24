@@ -68,14 +68,14 @@ end
 """
     initial_condition_density_wave(x, t, equations::PassiveTracerEquations)
 
-Takes the initial_condition_density_wave function for the flow equations and
+Takes the [`initial_condition_density_wave function`](@ref) for the flow equations and
 takes its translated first coordinates as the initial condition for the tracers.
 """
 function initial_condition_density_wave(x, t,
                                         equations::PassiveTracerEquations)
     # Store translated coordinate for easy use of exact solution
     u_flow = initial_condition_density_wave(x, t, equations.flow_equations)
-    # Obtain u_tracers by translating u_flow
+    # Obtain `u_tracers` by translating `u_flow`
     xc = SVector(ntuple(_ -> 0.1f0 * one(eltype(x)), Val(ndims(equations))))
 
     tracers = SVector((initial_condition_density_wave(x + i * xc, t,
@@ -145,7 +145,7 @@ end
 
     variables = SVector(flow_entropy[1] - sum(tracers_ .^ 2),
                         (flow_entropy[i] for i in 2:nvariables(flow_equations))...,
-                        2.0f0 * tracers_...)
+                        2 * tracers_...)
     return variables
 end
 
@@ -175,6 +175,8 @@ end
 end
 
 # Used for local Lax-Friedrichs type dissipation, and uses only the flow equations
+# This assumes that the `velocity` is always bounded by the estimate of the
+# wave speed for the wrapped equations.
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation_or_normal,
                                      tracer_equations::PassiveTracerEquations)
     u_flow_ll = flow_variables(u_ll, tracer_equations)

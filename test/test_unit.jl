@@ -576,7 +576,7 @@ end
 
         entropy_ref = SVector(flow_entropy[1] - (xi1^2 + xi2^2),
                               (flow_entropy[i] for i in 2:nvariables(flow_equations))...,
-                              2.0 * xi1, 2.0 * xi2)
+                              2 * xi1, 2 * xi2)
         entropy_test = cons2entropy(cons_test, equations)
         @test entropy_test ≈ entropy_ref
 
