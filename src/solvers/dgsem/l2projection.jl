@@ -182,7 +182,7 @@ function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss_loba
         poly = lagrange_interpolating_polynomials(nodes_high[j], nodes_low, wbary_low)
         for i in 1:n_low
             # The first product corresponds to building the RHS
-            # The division correponds to "solving" the diagonal "mass-matrix" system 
+            # The division corresponds to "solving" the diagonal "mass-matrix" system 
             projection_matrix[i, j] = poly[i] * weights_high[j] / weights_low[i]
         end
     end
