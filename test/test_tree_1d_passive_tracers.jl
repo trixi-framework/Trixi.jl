@@ -12,16 +12,16 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 
 @trixi_testset "elixir_euler_density_wave_tracers.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_tracers.jl"),
-                        l2=[0.08669107435673355,
-                            0.004236725669262482,
-                            0.057607568740408406,
-                            0.12726407019846442,
-                            0.1462440384519044],
-                        linf=[0.2662334305441576,
-                            0.008269815069427132,
-                            0.15504600837093108,
-                            0.32585227702025543,
-                            0.28091670567569604])
+                        l2=[0.07817688029733633,
+                            0.007817688029733637,
+                            0.0003908844014910887,
+                            0.11826401699443158,
+                            0.09888629862239204],
+                        linf=[0.23661504279664292,
+                            0.023661504279667844,
+                            0.0011830752140795653,
+                            0.2751965175624824,
+                            0.16065446067022204])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

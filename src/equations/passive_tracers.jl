@@ -237,24 +237,4 @@ end
     flux_tracer = flux_rho * flux_tracer
     return SVector(flux_flow..., flux_tracer...)
 end
-
-# Upwind flux using the splitting for the flow equations, and the natural upwind flux for the tracers
-@inline function (numflux::FluxUpwind)(u_ll, u_rr, orientation::Int,
-                                       equations::PassiveTracerEquations)
-    @unpack flow_equations = equations
-    u_flow_ll = flow_variables(u_ll, equations)
-    u_flow_rr = flow_variables(u_rr, equations)
-    flux_flow = numflux(u_flow_ll, u_flow_rr, orientation, flow_equations)
-    rho_tracers_ll = rho_tracers(u_ll, equations)
-    rho_tracers_rr = rho_tracers(u_rr, equations)
-    vel_ll = velocity(u_flow_ll, orientation, flow_equations)
-    vel_rr = velocity(u_flow_rr, orientation, flow_equations)
-    vel = 0.5f0 * (vel_ll + vel_rr)
-    if vel > 0.0
-        flux_tracer = rho_tracers_ll * vel
-    else
-        flux_tracer = rho_tracers_rr * vel
-    end
-    return SVector(flux_flow..., flux_tracer...)
-end
 end # muladd
