@@ -69,13 +69,13 @@ function convert_restart_file_polydeg!(u, file,
 end
 
 # Version for MPI-parallel run with serial I/O, i.e., `HDF5.has_parallel() == false`
-function convert_restart_file_polydeg!(u, file,
+function convert_restart_file_polydeg!(u_global, file,
                                        mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                                    ParallelT8codeMesh}, equations,
                                        dg::DGSEM, cache,
                                        nnodes_file, conversion_matrix)
     n_elements_global = nelementsglobal(mesh, dg, cache)
-    all_variables_global = zeros(eltype(u),
+    all_variables_global = zeros(eltype(u_global),
                                  (nvariables(equations),
                                   ntuple(_ -> nnodes_file, ndims(mesh))...,
                                   n_elements_global))
@@ -85,8 +85,9 @@ function convert_restart_file_polydeg!(u, file,
 
     # Perform interpolation/projection to new polynomial degree
     for element in 1:n_elements_global
-        u[.., element] = multiply_dimensionwise(conversion_matrix,
-                                                all_variables_global[.., element])
+        u_global[.., element] = multiply_dimensionwise(conversion_matrix,
+                                                       all_variables_global[..,
+                                                                            element])
     end
 end
 
@@ -344,8 +345,6 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
                                                                    nodes_solver,
                                                                    Val(:gauss_lobatto))
             end
-            convert_restart_file_polydeg!(u, file, mesh, equations, dg, cache,
-                                          nnodes_file, conversion_matrix)
 
             # Calculate element and node counts by MPI rank                                                                   
             element_size_file = nnodes_file^ndims(mesh)
@@ -438,20 +437,18 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
                                                                    nodes_solver,
                                                                    Val(:gauss_lobatto))
             end
-            convert_restart_file_polydeg!(u, file, mesh, equations, dg, cache,
-                                          nnodes_file, conversion_matrix)
 
             # We perform the interpolation of all elements on the root rank.
             # Thus, we need the allocate the global array
-            u_all = zeros(eltype(u),
-                          (nvariables(equations),
-                           ntuple(_ -> nnodes(dg), ndims(mesh))...,
-                           nelementsglobal(mesh, dg, cache)))
+            u_global = zeros(eltype(u),
+                             (nvariables(equations),
+                              ntuple(_ -> nnodes(dg), ndims(mesh))...,
+                              nelementsglobal(mesh, dg, cache)))
 
-            convert_restart_file_polydeg!(u_all, file, mesh, equations, dg, cache,
+            convert_restart_file_polydeg!(u_global, file, mesh, equations, dg, cache,
                                           nnodes_file, conversion_matrix)
             for v in eachvariable(equations)
-                sendbuf = MPI.VBuffer(@view(u_all[v, .., :]), node_counts)
+                sendbuf = MPI.VBuffer(@view(u_global[v, .., :]), node_counts)
                 MPI.Scatterv!(sendbuf, @view(u[v, .., :]), mpi_root(), mpi_comm())
             end
         else # Read in variables separately
