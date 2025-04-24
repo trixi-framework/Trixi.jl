@@ -505,14 +505,12 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
         # add the non-conservative one with a factor of 1/2.
         if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
             flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
-                                             equations) +
-                    0.5f0 *
+                                             equations),
                     surface_flux_function[2](u_inner, u_boundary, orientation,
                                              equations))
         else # u_boundary is "left" of boundary, u_inner is "right" of boundary
             flux = (surface_flux_function[1](u_boundary, u_inner, orientation,
-                                             equations) +
-                    0.5f0 *
+                                             equations),
                     surface_flux_function[2](u_boundary, u_inner, orientation,
                                              equations))
         end
@@ -718,7 +716,6 @@ end
              get_contravariant_vector(orientation, contravariant_vectors,
                                       node_indices..., element)
 
-    @autoinfiltrate
     # If the mapping is orientation-reversing, the normal vector will be reversed (see above).
     # However, the flux now has the wrong sign, since we need the physical flux in normal direction.
     flux, noncons_flux = boundary_condition(u_inner, normal, direction, cell_indices,
