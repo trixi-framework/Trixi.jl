@@ -116,7 +116,8 @@ end
 function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
                                        UnstructuredMesh2D, SerialP4estMesh,
                                        SerialT8codeMesh},
-                           equations, dg::DG, cache, restart_file)
+                           equations, dg::DG, cache,
+                           restart_file, interpolate_high2low)
 
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
@@ -150,7 +151,7 @@ function load_restart_file(mesh::Union{SerialTreeMesh, StructuredMesh,
 
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
 
-            if polydeg_file < polydeg(dg) # Interpolation from lower to higher
+            if polydeg_file < polydeg(dg) || interpolate_high2low # Interpolation from lower to higher
                 conversion_matrix = polynomial_interpolation_matrix(nodes_file,
                                                                     nodes_solver)
             else # Projection from higher to lower
@@ -292,17 +293,20 @@ end
 
 function load_restart_file(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                        ParallelT8codeMesh}, equations,
-                           dg::DG, cache, restart_file)
+                           dg::DG, cache, restart_file, interpolate_high2low)
     if HDF5.has_parallel()
-        load_restart_file_parallel(mesh, equations, dg, cache, restart_file)
+        load_restart_file_parallel(mesh, equations, dg, cache,
+                                   restart_file, interpolate_high2low)
     else
-        load_restart_file_on_root(mesh, equations, dg, cache, restart_file)
+        load_restart_file_on_root(mesh, equations, dg, cache,
+                                  restart_file, interpolate_high2low)
     end
 end
 
 function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                                 ParallelT8codeMesh},
-                                    equations, dg::DG, cache, restart_file)
+                                    equations, dg::DG, cache,
+                                    restart_file, interpolate_high2low)
     # allocate memory
     u_ode = allocate_coefficients(mesh, equations, dg, cache)
     u = wrap_array_native(u_ode, mesh, equations, dg, cache)
@@ -337,7 +341,7 @@ function load_restart_file_parallel(mesh::Union{ParallelTreeMesh, ParallelP4estM
             nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            if polydeg_file < polydeg(dg) # Interpolation from lower to higher
+            if polydeg_file < polydeg(dg) || interpolate_high2low # Interpolation from lower to higher
                 conversion_matrix = polynomial_interpolation_matrix(nodes_file,
                                                                     nodes_solver)
             else # Projection from higher to lower
@@ -381,7 +385,8 @@ end
 
 function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                                ParallelT8codeMesh},
-                                   equations, dg::DG, cache, restart_file)
+                                   equations, dg::DG, cache,
+                                   restart_file, interpolate_high2low)
 
     # Calculate element and node counts by MPI rank
     element_size = nnodes(dg)^ndims(mesh)
@@ -429,7 +434,7 @@ function load_restart_file_on_root(mesh::Union{ParallelTreeMesh, ParallelP4estMe
             nodes_file = gauss_lobatto_nodes_weights(nnodes_file)[1]
 
             nodes_solver = gauss_lobatto_nodes_weights(nnodes(dg))[1]
-            if polydeg_file < polydeg(dg) # Interpolation from lower to higher
+            if polydeg_file < polydeg(dg) || interpolate_high2low # Interpolation from lower to higher
                 conversion_matrix = polynomial_interpolation_matrix(nodes_file,
                                                                     nodes_solver)
             else # Projection from higher to lower

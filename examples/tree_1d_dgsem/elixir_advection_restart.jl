@@ -17,7 +17,6 @@ tspan = (load_time(restart_filename), 2.0)
 
 solver = DGSEM(polydeg = 4, surface_flux = flux_lax_friedrichs)
 
-# A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 
@@ -35,18 +34,19 @@ callbacks = CallbackSet(summary_callback, # Re-used
                         stepsize_callback) # Re-initialized
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            ode_default_options()..., callback = callbacks);
+            dt = 1.0, ode_default_options()..., callback = callbacks);
 
 ###############################################################################
-# Project original solution to LOWER order (3 -> 2)
+# Interpolate original solution to LOWER order (3 -> 2)
 
 solver = DGSEM(polydeg = 2, surface_flux = flux_lax_friedrichs)
 
-# A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 
+# By default, the higher-degree polynomial is interpolated to the lower degree polynomial,
+# thereby preserving continuity across cell interfaces.
+# Set `interpolate_high2low = false` to avoid interpolation in favor of L2-projection.
 ode = semidiscretize(semi, tspan, restart_filename)
 
 # We can increase the CFL number compared to the k = 3 case
@@ -61,5 +61,4 @@ callbacks = CallbackSet(summary_callback, # Re-used
                         stepsize_callback) # Re-initialized
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            ode_default_options()..., callback = callbacks);
+            dt = 1.0, ode_default_options()..., callback = callbacks);

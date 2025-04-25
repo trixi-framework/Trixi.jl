@@ -297,7 +297,8 @@ end
 
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
-                   restart_file::AbstractString)
+                   restart_file::AbstractString;
+                   interpolate_high2low = true)
 
 Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
@@ -306,18 +307,29 @@ will be used by default by the implicit part of IMEX methods from the
 SciML ecosystem.
 
 The initial condition etc. is taken from the `restart_file`.
+
+The optional keyword `interpolate_high2low` applies only to the case when a simulation is restarted with a 
+smaller polynomial degree than the one used in the original simulation.
+In that case, the solution is either interpolated (default) from the higher-degree polynomial
+to the lower-degree polynomial.
+This preserves the values at the cell interfaces, thus a formerly continuous solution
+is still continuous after the interpolation.
+For `interpolate_high2low = false`, the solution is projected with minimal L2-error onto the
+lower-degree polynomial.
+This results in overall smaller L2-errors, but does not preserve continuity at the cell interfaces.
 """
 function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
                         restart_file::AbstractString;
+                        interpolate_high2low = true,
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
-    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30                       
     if reset_threads
         Polyester.reset_threads!()
     end
 
-    u0_ode = load_restart_file(semi, restart_file)
+    u0_ode = load_restart_file(semi, restart_file, interpolate_high2low)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328

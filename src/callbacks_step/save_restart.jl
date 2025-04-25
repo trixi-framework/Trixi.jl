@@ -168,8 +168,10 @@ function load_dt(restart_file::AbstractString)
     end
 end
 
-function load_restart_file(semi::AbstractSemidiscretization, restart_file)
-    load_restart_file(mesh_equations_solver_cache(semi)..., restart_file)
+function load_restart_file(semi::AbstractSemidiscretization,
+                           restart_file, interpolate_low2high)
+    load_restart_file(mesh_equations_solver_cache(semi)...,
+                      restart_file, interpolate_low2high)
 end
 
 """
