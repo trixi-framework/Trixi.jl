@@ -7,6 +7,10 @@
 
 # This file contains callbacks that are performed on the surface like computation of
 # surface forces
+struct AnalysisSurfaceIntegral{Variable, NBoundaries}
+    variable::Variable # Quantity of interest, like lift or drag
+    boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
+end
 
 """
     AnalysisSurfaceIntegral{Variable, NBoundaries}(semi,
@@ -14,24 +18,39 @@
                                                    variable)
 
 This struct is used to compute the surface integral of a quantity of interest `variable` alongside
-the boundary/boundaries associated with particular name(s) given in `boundary_symbol`
-or `boundary_symbols`.
-For instance, this can be used to compute the lift [`LiftCoefficientPressure`](@ref) or
-drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil with the boundary
-name `:Airfoil` in 2D.
+the boundaries associated with particular names given in `boundary_symbols`.
+For instance, this can be used to compute the lift [`LiftCoefficientPressure2D`](@ref) or
+drag coefficient [`DragCoefficientPressure2D`](@ref) of e.g. an 2D airfoil with the boundary
+names `:AirfoilTop`, `:AirfoilBottom` which would be supplied as 
+`boundary_symbols = (:AirfoilTop, :AirfoilBottom)`.
 
-- `boundary_symbols::NTuple{NBoundaries, Symbol}`: Name(s) of the boundary/boundaries
+- `boundary_symbols::NTuple{NBoundaries, Symbol}`: Names of the boundaries
   where the quantity of interest is computed
 - `variable::Variable`: Quantity of interest, like lift or drag
 """
-struct AnalysisSurfaceIntegral{Variable, NBoundaries}
-    variable::Variable # Quantity of interest, like lift or drag
-    boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
+function AnalysisSurfaceIntegral(boundary_symbols::NTuple{NBoundaries, Symbol},
+                                 variable) where {NBoundaries}
+    return new{typeof(variable), NBoundaries}(variable, boundary_symbols)
+end
 
-    function AnalysisSurfaceIntegral(boundary_symbols::NTuple{NBoundaries, Symbol},
-                                     variable) where {NBoundaries}
-        return new{typeof(variable), NBoundaries}(variable, boundary_symbols)
-    end
+"""
+    AnalysisSurfaceIntegral{Variable, NBoundaries}(semi,
+                                                   boundary_symbol::Symbol,
+                                                   variable)
+
+This struct is used to compute the surface integral of a quantity of interest `variable` alongside
+the boundary associated with particular name given in `boundary_symbol`.
+For instance, this can be used to compute the lift [`LiftCoefficientPressure2D`](@ref) or
+drag coefficient [`DragCoefficientPressure2D`](@ref) of e.g. an 2D airfoil with the boundary
+name `:Airfoil` which would be supplied as 
+`boundary_symbol = :AirfoilTop, :AirfoilBottom`.
+
+- `boundary_symbols::Symbol`: Name of the boundary 
+  where the quantity of interest is computed
+- `variable::Variable`: Quantity of interest, like lift or drag
+"""
+function AnalysisSurfaceIntegral(boundary_symbol::Symbol, variable)
+    return new{typeof(variable), 1}(variable, (boundary_symbol,))
 end
 
 # This returns the boundary indices of a given iterable datastructure of boundary symbols.

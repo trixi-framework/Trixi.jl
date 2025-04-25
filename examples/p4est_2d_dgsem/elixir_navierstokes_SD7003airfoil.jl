@@ -94,17 +94,18 @@ f_rho_inf() = rho_inf
 f_U_inf() = U_inf
 f_linf() = airfoil_cord_length
 
-drag_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
+force_boundary_symbol = :Airfoil
+drag_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
                                            DragCoefficientPressure2D(f_aoa(), f_rho_inf(),
                                                                      f_U_inf(), f_linf()))
 
-drag_coefficient_shear_force = AnalysisSurfaceIntegral((:Airfoil,),
+drag_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_symbol,
                                                        DragCoefficientShearStress2D(f_aoa(),
                                                                                     f_rho_inf(),
                                                                                     f_U_inf(),
                                                                                     f_linf()))
 
-lift_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
+lift_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
                                            LiftCoefficientPressure2D(f_aoa(), f_rho_inf(),
                                                                      f_U_inf(), f_linf()))
 
