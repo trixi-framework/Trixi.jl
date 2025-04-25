@@ -324,7 +324,7 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
                         reset_threads = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
-    # https://github.com/JuliaSIMD/Polyester.jl/issues/30                       
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
     if reset_threads
         Polyester.reset_threads!()
     end
