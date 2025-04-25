@@ -95,8 +95,7 @@ end
 # Obtain the flow variables from the conservative variables. The tracers are not included.
 @inline function flow_variables(u, tracer_equations::PassiveTracerEquations)
     n_flow_variables = nvariables_flow(tracer_equations)
-    flux_tracer = SVector(ntuple(@inline(v->u[v]), Val(n_flow_variables)))
-    return SVector((u[i] for i in 1:n_flow_variables)...)
+    return SVector(ntuple(@inline(v->u[v]), Val(n_flow_variables)))
 end
 
 # Obtain the tracers which advect by the flow velocity by dividing the respective conservative
