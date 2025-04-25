@@ -390,6 +390,11 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
+                                         n_cells_max = 0,
+                                         RealT = Float64)
 end
 
 @trixi_testset "elixir_advection_cubed_sphere.jl" begin

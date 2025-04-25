@@ -12,10 +12,8 @@
 dispatchable type. This is intended to store geometric data and connectivities for any type of
 mesh (Cartesian, affine, curved, structured/unstructured).
 """
-mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS},
-                           RefElemDataT <: RefElemData, BoundaryFaceT}
+mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, BoundaryFaceT}
     md::MeshDataT
-    rd::RefElemDataT
 
     boundary_faces::BoundaryFaceT
 
@@ -25,17 +23,13 @@ mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS},
     boundary_faces_type::Symbol # If `:nodes` `boundary_faces` consists of
     # boundary nodes instead of just faces.
 
-    function DGMultiMesh{NDIMS, MeshType, MeshDataT, RefElemDataT, BoundaryFaceT}(md,
-                                                                                  rd,
-                                                                                  bd) where {
-                                                                                             NDIMS,
-                                                                                             MeshType,
-                                                                                             MeshDataT,
-                                                                                             RefElemDataT,
-                                                                                             BoundaryFaceT
-                                                                                             }
-        return new{NDIMS, MeshType, MeshDataT, RefElemDataT, BoundaryFaceT}(md, rd, bd,
-                                                                            "", true,
+    function DGMultiMesh{NDIMS, MeshType, MeshDataT, BoundaryFaceT}(md,
+                                                                    bd) where {NDIMS,
+                                                                               MeshType,
+                                                                               MeshDataT,
+                                                                               BoundaryFaceT
+                                                                               }
+        return new{NDIMS, MeshType, MeshDataT, BoundaryFaceT}(md, bd, "", true,
                                                                             :faces)
     end
 end
@@ -70,14 +64,13 @@ const SerialDGMultiMesh{NDIMS} = DGMultiMesh{NDIMS}
 @inline mpi_parallel(mesh::SerialDGMultiMesh) = False()
 
 # enable use of @set and setproperties(...) for DGMultiMesh
-function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4, T5}}) where {
-                                                                                        T1,
-                                                                                        T2,
-                                                                                        T3,
-                                                                                        T4,
-                                                                                        T5
-                                                                                        }
-    DGMultiMesh{T1, T2, T3, T4, T5}
+function ConstructionBase.constructorof(::Type{DGMultiMesh{T1, T2, T3, T4}}) where {
+                                                                                    T1,
+                                                                                    T2,
+                                                                                    T3,
+                                                                                    T4
+                                                                                    }
+    DGMultiMesh{T1, T2, T3, T4}
 end
 
 function Base.show(io::IO, mesh::DGMultiMesh{NDIMS, MeshType}) where {NDIMS, MeshType}
@@ -102,9 +95,10 @@ function Base.show(io::IO, ::MIME"text/plain",
     end
 end
 
-function DGMultiMesh(md::MeshData{NDIMS}, rd::RefElemData,
-                     boundary_names = []) where {NDIMS}
-    return DGMultiMesh{NDIMS, rd.element_type, typeof(md), typeof(rd),
-                       typeof(boundary_names)}(md, rd, boundary_names)
+# This constructor is called by load_mesh_serial. Note that constructing the mesh this way 
+# doesn't specify whether the mesh is affine. We assume the more general case (non-affine).
+function DGMultiMesh(md::MeshData{NDIMS}, boundary_names = []) where {NDIMS}
+    return DGMultiMesh{NDIMS, NonAffine, typeof(md), typeof(boundary_names)}(md,
+                                                                             boundary_names)
 end
 end # @muladd
