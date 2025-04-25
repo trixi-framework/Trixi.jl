@@ -5,9 +5,7 @@ using Trixi
 # Vertical magnetic streamlines with a bend in the center.
 # This makes the streamlines look like a section of an onion.
 
-"""
-Define the initial condition as a vertical field with a bend in the center.
-"""
+# Define the initial condition as a vertical field with a bend in the center.
 function initial_condition_onion(x, t, equations::IdealGlmMhdEquations2D)
     rho = 1.0
     v1 = 0.0
