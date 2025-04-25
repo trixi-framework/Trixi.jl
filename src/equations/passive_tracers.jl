@@ -32,6 +32,8 @@ end
 @inline ntracers(::PassiveTracerEquations{NDIMS, NVARS, NTracers, FlowEquations}) where {NDIMS, NVARS,
 NTracers, FlowEquations} = NTracers
 
+have_nonconservative_terms(equations::PassiveTracerEquations) = have_nonconservative_terms(equations.flow_equations)
+
 function varnames(variables::typeof(cons2cons),
                   tracer_equations::PassiveTracerEquations)
     @unpack flow_equations = tracer_equations
