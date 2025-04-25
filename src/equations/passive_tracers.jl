@@ -103,7 +103,6 @@ end
 # variable by the density.
 function tracers(u, tracer_equations::PassiveTracerEquations)
     n_flow_variables = nvariables_flow(tracer_equations)
-    n_tracers = ntracers(tracer_equations)
 
     rho = density(u, tracer_equations)
     return SVector(ntuple(@inline(v->u[v + n_flow_variables] / rho),
@@ -113,7 +112,6 @@ end
 # Obtain rho * tracers which are the conservative variables for the tracer equations.
 function rho_tracers(u, tracer_equations::PassiveTracerEquations)
     n_flow_variables = nvariables_flow(tracer_equations)
-    n_tracers = ntracers(tracer_equations)
 
     return SVector(ntuple(@inline(v->u[v + n_flow_variables]),
                           Val(ntracers(tracer_equations))))
@@ -134,7 +132,6 @@ end
     u_flow = flow_variables(u, tracer_equations)
 
     n_flow_variables = nvariables_flow(tracer_equations)
-    n_tracers = ntracers(tracer_equations)
 
     rho = density(u, tracer_equations)
     cons_flow = prim2cons(u_flow, flow_equations)
