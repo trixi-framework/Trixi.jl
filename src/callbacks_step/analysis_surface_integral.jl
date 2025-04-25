@@ -8,8 +8,8 @@
 # This file contains callbacks that are performed on the surface like computation of
 # surface forces
 struct AnalysisSurfaceIntegral{Variable, NBoundaries}
-    variable::Variable # Quantity of interest, like lift or drag
     boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
+    variable::Variable # Quantity of interest, like lift or drag
 end
 
 """
@@ -30,7 +30,8 @@ names `:AirfoilTop`, `:AirfoilBottom` which would be supplied as
 """
 function AnalysisSurfaceIntegral(boundary_symbols::NTuple{NBoundaries, Symbol},
                                  variable) where {NBoundaries}
-    return new{typeof(variable), NBoundaries}(variable, boundary_symbols)
+    return AnalysisSurfaceIntegral{typeof(variable), NBoundaries}(boundary_symbols,
+                                                                  variable)
 end
 
 """
@@ -50,7 +51,8 @@ name `:Airfoil` which would be supplied as
 - `variable::Variable`: Quantity of interest, like lift or drag
 """
 function AnalysisSurfaceIntegral(boundary_symbol::Symbol, variable)
-    return new{typeof(variable), 1}(variable, (boundary_symbol,))
+    return AnalysisSurfaceIntegral{typeof(variable), 1}((boundary_symbol,),
+                                                        variable)
 end
 
 # This returns the boundary indices of a given iterable datastructure of boundary symbols.
