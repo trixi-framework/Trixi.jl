@@ -37,7 +37,7 @@ function varnames(variables::typeof(cons2cons),
     @unpack flow_equations = tracer_equations
     flow_varnames = varnames(variables, flow_equations)
     n_tracers = ntracers(tracer_equations)
-    return (flow_varnames..., ntuple(i -> "rho_xi_$i", Val(n_tracers))...)
+    return (flow_varnames..., ntuple(i -> "rho_chi_$i", Val(n_tracers))...)
 end
 
 function varnames(variables::typeof(cons2prim),
@@ -45,7 +45,7 @@ function varnames(variables::typeof(cons2prim),
     @unpack flow_equations = tracer_equations
     flow_varnames = varnames(variables, flow_equations)
     n_tracers = ntracers(tracer_equations)
-    return (flow_varnames..., ntuple(i -> "xi_$i", Val(n_tracers))...)
+    return (flow_varnames..., ntuple(i -> "chi_$i", Val(n_tracers))...)
 end
 
 # Calculate flux for a single point
