@@ -5,71 +5,20 @@
 @muladd begin
 #! format: noindent
 
-# This file contains callbacks that are performed on the surface like computation of
-# surface forces
-
-"""
-    AnalysisSurfaceIntegral{Variable, NBoundaries}(semi,
-                                                   boundary_symbols::NTuple{NBoundaries, Symbol},
-                                                   variable)
-
-This struct is used to compute the surface integral of a quantity of interest `variable` alongside
-the boundary/boundaries associated with particular name(s) given in `boundary_symbol`
-or `boundary_symbols`.
-For instance, this can be used to compute the lift [`LiftCoefficientPressure`](@ref) or
-drag coefficient [`DragCoefficientPressure`](@ref) of e.g. an airfoil with the boundary
-name `:Airfoil` in 2D.
-
-- `boundary_symbols::NTuple{NBoundaries, Symbol}`: Name(s) of the boundary/boundaries
-  where the quantity of interest is computed
-- `variable::Variable`: Quantity of interest, like lift or drag
-"""
-struct AnalysisSurfaceIntegral{Variable, NBoundaries}
-    variable::Variable # Quantity of interest, like lift or drag
-    boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
-
-    function AnalysisSurfaceIntegral(boundary_symbols::NTuple{NBoundaries, Symbol},
-                                     variable) where {NBoundaries}
-        return new{typeof(variable), NBoundaries}(variable, boundary_symbols)
-    end
-end
-
-struct ForceState{RealT <: Real}
-    psi::Tuple{RealT, RealT} # Unit vector normal or parallel to freestream
-    rhoinf::RealT
-    uinf::RealT
-    linf::RealT
-end
-
-struct LiftCoefficientPressure{RealT <: Real}
-    force_state::ForceState{RealT}
-end
-
-struct DragCoefficientPressure{RealT <: Real}
-    force_state::ForceState{RealT}
-end
-
-# Abstract base type used for dispatch of `analyze` for quantities
-# requiring gradients of the velocity field.
-abstract type VariableViscous end
-
-struct LiftCoefficientShearStress{RealT <: Real} <: VariableViscous
-    force_state::ForceState{RealT}
-end
-
-struct DragCoefficientShearStress{RealT <: Real} <: VariableViscous
-    force_state::ForceState{RealT}
-end
-
-"""
-    LiftCoefficientPressure(aoa, rhoinf, uinf, linf)
+@doc raw"""
+    LiftCoefficientPressure2D(aoa, rhoinf, uinf, linf)
 
 Compute the lift coefficient
 ```math
-C_{L,p} \\coloneqq \\frac{\\oint_{\\partial \\Omega} p \\boldsymbol n \\cdot \\psi_L \\, \\mathrm{d} S}
-                        {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
+C_{L,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_L \, \mathrm{d} S}
+                        {0.5 \rho_{\infty} U_{\infty}^2 L_{\infty}}
 ```
 based on the pressure distribution along a boundary.
+In 2D, the freestream-normal unit vector ``\psi_L`` is given by
+```math
+\psi_L \coloneqq \begin{pmatrix} -\sin(\alpha) \\ \cos(\alpha) \end{pmatrix}
+```
+where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
 which stores the boundary information and semidiscretization.
 
@@ -78,7 +27,7 @@ which stores the boundary information and semidiscretization.
 - `uinf::Real`: Free-stream velocity
 - `linf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
-function LiftCoefficientPressure(aoa, rhoinf, uinf, linf)
+function LiftCoefficientPressure2D(aoa, rhoinf, uinf, linf)
     # psi_lift is the normal unit vector to the freestream direction.
     # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa))
     # leads to positive lift coefficients for positive angles of attack for airfoils.
@@ -88,15 +37,21 @@ function LiftCoefficientPressure(aoa, rhoinf, uinf, linf)
     return LiftCoefficientPressure(ForceState(psi_lift, rhoinf, uinf, linf))
 end
 
-"""
-    DragCoefficientPressure(aoa, rhoinf, uinf, linf)
+@doc raw"""
+    DragCoefficientPressure2D(aoa, rhoinf, uinf, linf)
 
 Compute the drag coefficient
 ```math
-C_{D,p} \\coloneqq \\frac{\\oint_{\\partial \\Omega} p \\boldsymbol n \\cdot \\psi_D \\, \\mathrm{d} S}
-                        {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
+C_{D,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_D \, \mathrm{d} S}
+                        {0.5 \rho_{\infty} U_{\infty}^2 L_{\infty}}
 ```
 based on the pressure distribution along a boundary.
+In 2D, the freestream-tangent unit vector ``\psi_D`` is given by
+```math
+\psi_D \coloneqq \begin{pmatrix} \cos(\alpha) \\ \sin(\alpha) \end{pmatrix}
+```
+where ``\alpha`` is the angle of attack.
+
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
 which stores the boundary information and semidiscretization.
 
@@ -105,21 +60,26 @@ which stores the boundary information and semidiscretization.
 - `uinf::Real`: Free-stream velocity
 - `linf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
-function DragCoefficientPressure(aoa, rhoinf, uinf, linf)
+function DragCoefficientPressure2D(aoa, rhoinf, uinf, linf)
     # `psi_drag` is the unit vector tangent to the freestream direction
     psi_drag = (cos(aoa), sin(aoa))
     return DragCoefficientPressure(ForceState(psi_drag, rhoinf, uinf, linf))
 end
 
-"""
-    LiftCoefficientShearStress(aoa, rhoinf, uinf, linf)
+@doc raw"""
+    LiftCoefficientShearStress2D(aoa, rhoinf, uinf, linf)
 
 Compute the lift coefficient
 ```math
-C_{L,f} \\coloneqq \\frac{\\oint_{\\partial \\Omega} \\boldsymbol \\tau_w \\cdot \\psi_L \\, \\mathrm{d} S}
-                        {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
+C_{L,f} \coloneqq \frac{\oint_{\partial \Omega} \boldsymbol \tau_w \cdot \psi_L \, \mathrm{d} S}
+                        {0.5 \rho_{\infty} U_{\infty}^2 L_{\infty}}
 ```
-based on the wall shear stress vector ``\\tau_w`` along a boundary.
+based on the wall shear stress vector ``\tau_w`` along a boundary.
+In 2D, the freestream-normal unit vector ``\psi_L`` is given by
+```math
+\psi_L \coloneqq \begin{pmatrix} -\sin(\alpha) \\ \cos(\alpha) \end{pmatrix}
+```
+where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
 which stores the boundary information and semidiscretization.
 
@@ -128,7 +88,7 @@ which stores the boundary information and semidiscretization.
 - `uinf::Real`: Free-stream velocity
 - `linf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
-function LiftCoefficientShearStress(aoa, rhoinf, uinf, linf)
+function LiftCoefficientShearStress2D(aoa, rhoinf, uinf, linf)
     # psi_lift is the normal unit vector to the freestream direction.
     # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa))
     # leads to negative lift coefficients for airfoils.
@@ -138,15 +98,20 @@ function LiftCoefficientShearStress(aoa, rhoinf, uinf, linf)
     return LiftCoefficientShearStress(ForceState(psi_lift, rhoinf, uinf, linf))
 end
 
-"""
-    DragCoefficientShearStress(aoa, rhoinf, uinf, linf)
+@doc raw"""
+    DragCoefficientShearStress2D(aoa, rhoinf, uinf, linf)
 
 Compute the drag coefficient
 ```math
-C_{D,f} \\coloneqq \\frac{\\oint_{\\partial \\Omega} \\boldsymbol \\tau_w \\cdot \\psi_D \\, \\mathrm{d} S}
-                        {0.5 \\rho_{\\infty} U_{\\infty}^2 L_{\\infty}}
+C_{D,f} \coloneqq \frac{\oint_{\partial \Omega} \boldsymbol \tau_w \cdot \psi_D \, \mathrm{d} S}
+                        {0.5 \rho_{\infty} U_{\infty}^2 L_{\infty}}
 ```
-based on the wall shear stress vector ``\\tau_w`` along a boundary.
+based on the wall shear stress vector ``\tau_w`` along a boundary.
+In 2D, the freestream-tangent unit vector ``\psi_D`` is given by
+```math
+\psi_D \coloneqq \begin{pmatrix} \cos(\alpha) \\ \sin(\alpha) \end{pmatrix}
+```
+where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
 which stores the boundary information and semidiscretization.
 
@@ -155,31 +120,13 @@ which stores the boundary information and semidiscretization.
 - `uinf::Real`: Free-stream velocity
 - `linf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
-function DragCoefficientShearStress(aoa, rhoinf, uinf, linf)
+function DragCoefficientShearStress2D(aoa, rhoinf, uinf, linf)
     # `psi_drag` is the unit vector tangent to the freestream direction
     psi_drag = (cos(aoa), sin(aoa))
     return DragCoefficientShearStress(ForceState(psi_drag, rhoinf, uinf, linf))
 end
 
-function (lift_coefficient::LiftCoefficientPressure)(u, normal_direction, x, t,
-                                                     equations)
-    p = pressure(u, equations)
-    @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
-    # Normalize as `normal_direction` is not necessarily a unit vector
-    n = dot(normal_direction, psi) / norm(normal_direction)
-    return p * n / (0.5 * rhoinf * uinf^2 * linf)
-end
-
-function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, x, t,
-                                                     equations)
-    p = pressure(u, equations)
-    @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
-    # Normalize as `normal_direction` is not necessarily a unit vector
-    n = dot(normal_direction, psi) / norm(normal_direction)
-    return p * n / (0.5 * rhoinf * uinf^2 * linf)
-end
-
-# Compute the three components of the symmetric viscous stress tensor
+# Compute the three components of the 2D symmetric viscous stress tensor
 # (tau_11, tau_12, tau_22) based on the gradients of the velocity field.
 # This is required for drag and lift coefficients based on shear stress,
 # as well as for the non-integrated quantities such as
@@ -205,6 +152,8 @@ function viscous_stress_tensor(u, normal_direction, equations_parabolic,
     return mu .* (tau_11, tau_12, tau_22)
 end
 
+# 2D viscous stress vector based on contracting the viscous stress tensor
+# with the normalized `normal_direction` vector.
 function viscous_stress_vector(u, normal_direction, equations_parabolic,
                                gradients_1, gradients_2)
     #  Normalize normal direction, should point *into* the fluid => *(-1)
@@ -221,9 +170,12 @@ function viscous_stress_vector(u, normal_direction, equations_parabolic,
     return (visc_stress_vector_1, visc_stress_vector_2)
 end
 
-function (lift_coefficient::LiftCoefficientShearStress)(u, normal_direction, x, t,
-                                                        equations_parabolic,
-                                                        gradients_1, gradients_2)
+function (lift_coefficient::LiftCoefficientShearStress{RealT, 2})(u, normal_direction,
+                                                                  x, t,
+                                                                  equations_parabolic,
+                                                                  gradients_1,
+                                                                  gradients_2) where {RealT <:
+                                                                                      Real}
     visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                gradients_1, gradients_2)
     @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
@@ -231,24 +183,17 @@ function (lift_coefficient::LiftCoefficientShearStress)(u, normal_direction, x, 
            (0.5 * rhoinf * uinf^2 * linf)
 end
 
-function (drag_coefficient::DragCoefficientShearStress)(u, normal_direction, x, t,
-                                                        equations_parabolic,
-                                                        gradients_1, gradients_2)
+function (drag_coefficient::DragCoefficientShearStress{RealT, 2})(u, normal_direction,
+                                                                  x, t,
+                                                                  equations_parabolic,
+                                                                  gradients_1,
+                                                                  gradients_2) where {RealT <:
+                                                                                      Real}
     visc_stress_vector = viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                gradients_1, gradients_2)
     @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
     return (visc_stress_vector[1] * psi[1] + visc_stress_vector[2] * psi[2]) /
            (0.5 * rhoinf * uinf^2 * linf)
-end
-
-function get_boundary_indices(boundary_symbols, boundary_symbol_indices)
-    indices = Int[]
-    for name in boundary_symbols
-        append!(indices, boundary_symbol_indices[name])
-    end
-    sort!(indices) # Try to achieve some data locality by sorting
-
-    return indices
 end
 
 function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
@@ -368,33 +313,5 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
         end
     end
     return surface_integral
-end
-
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any}})
-    "CL_p"
-end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any}})
-    "CL_p"
-end
-
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any}})
-    "CD_p"
-end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any}})
-    "CD_p"
-end
-
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any}})
-    "CL_f"
-end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any}})
-    "CL_f"
-end
-
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any}})
-    "CD_f"
-end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any}})
-    "CD_f"
 end
 end # muladd

@@ -89,12 +89,12 @@ u_inf = 0.38
 l_inf = 1.0 # Diameter of circle
 
 drag_coefficient = AnalysisSurfaceIntegral((:x_neg,),
-                                           DragCoefficientPressure(aoa, rho_inf, u_inf,
-                                                                   l_inf))
+                                           DragCoefficientPressure2D(aoa, rho_inf, u_inf,
+                                                                     l_inf))
 
 lift_coefficient = AnalysisSurfaceIntegral((:x_neg,),
-                                           LiftCoefficientPressure(aoa, rho_inf, u_inf,
-                                                                   l_inf))
+                                           LiftCoefficientPressure2D(aoa, rho_inf, u_inf,
+                                                                     l_inf))
 
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",

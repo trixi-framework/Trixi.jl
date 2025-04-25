@@ -95,18 +95,18 @@ f_U_inf() = U_inf
 f_linf() = airfoil_cord_length
 
 drag_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
-                                           DragCoefficientPressure(f_aoa(), f_rho_inf(),
-                                                                   f_U_inf(), f_linf()))
+                                           DragCoefficientPressure2D(f_aoa(), f_rho_inf(),
+                                                                     f_U_inf(), f_linf()))
 
 drag_coefficient_shear_force = AnalysisSurfaceIntegral((:Airfoil,),
-                                                       DragCoefficientShearStress(f_aoa(),
-                                                                                  f_rho_inf(),
-                                                                                  f_U_inf(),
-                                                                                  f_linf()))
+                                                       DragCoefficientShearStress2D(f_aoa(),
+                                                                                    f_rho_inf(),
+                                                                                    f_U_inf(),
+                                                                                    f_linf()))
 
 lift_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
-                                           LiftCoefficientPressure(f_aoa(), f_rho_inf(),
-                                                                   f_U_inf(), f_linf()))
+                                           LiftCoefficientPressure2D(f_aoa(), f_rho_inf(),
+                                                                     f_U_inf(), f_linf()))
 
 # For long simulation run, use a large interval.
 # For measurements once the simulation has settled in, one should use a
