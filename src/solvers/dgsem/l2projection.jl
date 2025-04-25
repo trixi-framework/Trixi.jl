@@ -163,7 +163,7 @@ from a higher degree to a lower degree.
 - `RealT`: Type of the output matrix (default: Float64)
 
 # Returns
-The projection matrix such that multiplying which projects 
+The projection matrix such that multiplying with it projects 
 a higher degree Lagrange interpolation/solution polynomial
 to a lower degree Lagrange interpolation/solution polynomial.
 =#
