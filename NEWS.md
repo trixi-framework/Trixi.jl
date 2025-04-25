@@ -12,12 +12,12 @@ for human readability.
 
 - Added the three-dimensional multi-ion magneto-hydrodynamics (MHD) equations with a
   generalized Lagrange multipliers (GLM) divergence cleaning technique ([#2215]).
-- New time integrator `PairedExplicitRK4`, implementing the fourth-order 
+- New time integrator `PairedExplicitRK4`, implementing the fourth-order
   paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
+- Passive tracers for arbitrary equations with density and flow variables ([#2364])
 - Simulations can now be restarted from other runs with different polynomial degrees, i.e.,
   the solution variables are correctly converted via interpolation or L2 projection ([#2358]).
-
 
 ## Changes when updating to v0.11 from v0.10.x
 
@@ -31,9 +31,9 @@ for human readability.
   instructions for Trixi.jl have been updated accordingly.
 - The output of the `SummaryCallback` will automatically be printed after the simulation
   is finished. Therefore, manually calling `summary_callback()` is not necessary anymore ([#2275]).
-- The two performance numbers (local `time/DOF/rhs!` and performance index `PID`) 
-  are now computed taking into account the number of threads ([#2292]). This allows 
-  for a better comparison of shared memory (threads) and hybrid (MPI + threads) simulations 
+- The two performance numbers (local `time/DOF/rhs!` and performance index `PID`)
+  are now computed taking into account the number of threads ([#2292]). This allows
+  for a better comparison of shared memory (threads) and hybrid (MPI + threads) simulations
   with serial simulations.
 
 #### Deprecated
