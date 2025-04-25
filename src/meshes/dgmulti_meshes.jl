@@ -29,8 +29,7 @@ mutable struct DGMultiMesh{NDIMS, MeshType, MeshDataT <: MeshData{NDIMS}, Bounda
                                                                                MeshDataT,
                                                                                BoundaryFaceT
                                                                                }
-        return new{NDIMS, MeshType, MeshDataT, BoundaryFaceT}(md, bd, "", true,
-                                                                            :faces)
+        return new{NDIMS, MeshType, MeshDataT, BoundaryFaceT}(md, bd, "", true, :faces)
     end
 end
 
