@@ -682,9 +682,9 @@ end
                                                 0.5f0 *
                                                 noncons_left[v]
             surface_flux_values[v, i, j, left_direction,
-                                right_element] = flux[v] +
-                                                 0.5f0 *
-                                                 noncons_right[v]
+            right_element] = flux[v] +
+                             0.5f0 *
+                             noncons_right[v]
         end
     end
 
