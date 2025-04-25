@@ -204,6 +204,7 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test eltype(@inferred entropy2cons(u, equations)) == RealT
             @test typeof(@inferred density(u, equations)) == RealT
             @test typeof(@inferred velocity(u, equations)) == RealT
+            @test typeof(@inferred velocity(u, orientation, equations)) == RealT
             @test typeof(@inferred pressure(u, equations)) == RealT
             @test typeof(@inferred density_pressure(u, equations)) == RealT
             @test typeof(@inferred entropy(cons, equations)) == RealT
@@ -2621,6 +2622,47 @@ isdir(outdir) && rm(outdir, recursive = true)
             @test typeof(@inferred entropy(u, equations)) == RealT
             @test typeof(@inferred energy_total(c, equations)) == RealT
             @test typeof(@inferred energy_total(u, equations)) == RealT
+        end
+    end
+
+    @timed_testset "Passive tracer equations" begin
+        for RealT in (Float32, Float64)
+            # set gamma = 2 for the coupling convergence test
+            flow_equations = @inferred CompressibleEulerEquations1D(RealT(2))
+            equations = @inferred PassiveTracerEquations{1, 5, 2, typeof(flow_equations)}(flow_equations)
+
+            x = SVector(zero(RealT))
+            t = zero(RealT)
+            u = u_ll = u_rr = u_inner = cons = SVector(one(RealT), one(RealT), one(RealT),
+                                                       one(RealT), one(RealT))
+            orientation = 1
+            directions = [1, 2]
+
+            surface_flux_function = flux_lax_friedrichs
+            @test eltype(@inferred initial_condition_density_wave(x, t, equations)) == RealT
+
+            @test eltype(@inferred flux(u, orientation, equations)) == RealT
+
+            flux_central = FluxTracerEquationsCentral(flux_ranocha)
+
+            @test eltype(@inferred flux_central(u_ll, u_rr, orientation,
+                                                equations)) ==
+                  RealT
+
+            @test typeof(@inferred max_abs_speed_naive(u_ll, u_rr, orientation, equations)) ==
+                  RealT
+
+            @test eltype(@inferred Trixi.max_abs_speeds(u, equations)) == RealT
+            @test eltype(@inferred cons2prim(u, equations)) == RealT
+            @test eltype(@inferred Trixi.tracers(u, equations)) == RealT
+            @test eltype(@inferred Trixi.rho_tracers(u, equations)) == RealT
+            @test eltype(@inferred cons2entropy(u, equations)) == RealT
+            @test eltype(@inferred prim2cons(u, equations)) == RealT
+            @test typeof(@inferred density(u, equations)) == RealT
+            @test typeof(@inferred velocity(u, orientation, equations)) == RealT
+            @test typeof(@inferred pressure(u, equations)) == RealT
+            @test typeof(@inferred density_pressure(u, equations)) == RealT
+            @test typeof(@inferred entropy(cons, equations)) == RealT
         end
     end
 end
