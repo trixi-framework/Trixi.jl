@@ -78,9 +78,9 @@ CI_ON_WINDOWS = (get(ENV, "GITHUB_ACTIONS", false) == "true") && Sys.iswindows()
                             linf=[0.0007307237754662355])
     end
 
-    @trixi_testset "elixir_advection_restart_var_polydeg.jl" begin
+    @trixi_testset "elixir_advection_restart_lower_polydeg.jl" begin
         @test_trixi_include(joinpath(EXAMPLES_DIR,
-                                     "elixir_advection_restart_var_polydeg.jl"),
+                                     "elixir_advection_restart_lower_polydeg.jl"),
                             l2=[0.12275352753800094],
                             linf=[0.17508942195301092])
     end

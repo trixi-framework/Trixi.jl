@@ -61,10 +61,15 @@ save_solution = SaveSolutionCallback(interval = 100,
 # time step.
 stepsize_callback = StepsizeCallback(cfl = 1.4)
 
+# The SaveRestartCallback allows to save a file from which a Trixi.jl simulation can be restarted,
+# possibly with a different polynomial degree.
+save_restart = SaveRestartCallback(interval = 100,
+                                   save_final_restart = true)
+
 # Create a CallbackSet to collect all callbacks such that they can be passed to
 # the ODE solver.
 callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback)
+                        stepsize_callback, save_restart)
 
 ###############################################################################
 # Run the simulation.
