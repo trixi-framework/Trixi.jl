@@ -678,9 +678,9 @@ end
             # the interpretation of global SBP operators coupled discontinuously via
             # central fluxes/SATs
             surface_flux_values[v, i, j, right_direction,
-                                left_element] = flux[v] +
-                                                0.5f0 *
-                                                noncons_left[v]
+            left_element] = flux[v] +
+                            0.5f0 *
+                            noncons_left[v]
             surface_flux_values[v, i, j, left_direction,
             right_element] = flux[v] +
                              0.5f0 *
