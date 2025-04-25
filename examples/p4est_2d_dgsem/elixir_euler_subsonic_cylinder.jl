@@ -88,7 +88,7 @@ rho_inf = 1.4
 u_inf = 0.38
 l_inf = 1.0 # Diameter of circle
 
-force_boundary_symbol = :x_neg
+force_boundary_symbol = (:x_neg,)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
                                            DragCoefficientPressure2D(aoa, rho_inf, u_inf,
                                                                      l_inf))

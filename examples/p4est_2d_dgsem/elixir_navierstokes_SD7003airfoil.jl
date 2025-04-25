@@ -94,7 +94,7 @@ f_rho_inf() = rho_inf
 f_U_inf() = U_inf
 f_linf() = airfoil_cord_length
 
-force_boundary_symbol = :Airfoil
+force_boundary_symbol = (:Airfoil,)
 drag_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
                                            DragCoefficientPressure2D(f_aoa(), f_rho_inf(),
                                                                      f_U_inf(), f_linf()))
