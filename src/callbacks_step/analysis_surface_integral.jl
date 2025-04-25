@@ -90,31 +90,39 @@ function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, x, t,
     return p * n / (0.5 * rhoinf * uinf^2 * linf)
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any, <:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any,
+                                                                               <:Any}})
     "CL_p"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any, <:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any,
+                                                                             <:Any}})
     "CL_p"
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any, <:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any,
+                                                                               <:Any}})
     "CD_p"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any, <:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientPressure{<:Any,
+                                                                             <:Any}})
     "CD_p"
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any, <:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any,
+                                                                                  <:Any}})
     "CL_f"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any, <:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:LiftCoefficientShearStress{<:Any,
+                                                                                <:Any}})
     "CL_f"
 end
 
-function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any, <:Any}})
+function pretty_form_ascii(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any,
+                                                                                  <:Any}})
     "CD_f"
 end
-function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any, <:Any}})
+function pretty_form_utf(::AnalysisSurfaceIntegral{<:DragCoefficientShearStress{<:Any,
+                                                                                <:Any}})
     "CD_f"
 end
 
