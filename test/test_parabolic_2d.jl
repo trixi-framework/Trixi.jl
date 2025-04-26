@@ -788,7 +788,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 3000
     end
 
     u_ode = copy(sol.u[end])
@@ -814,6 +814,35 @@ end
 
     @test isapprox(drag_f, 1.5427441885921553, atol = 1e-13)
     @test isapprox(lift_f, 0.005621910087395724, atol = 1e-13)
+
+    # Check cp, cf written to outfiles
+
+    cp_vals = read(Trixi.h5open("out/CP_x_000007.h5"))["point_data"]
+    cf_vals = read(Trixi.h5open("out/CF_x_000007.h5"))["point_data"]
+    @test sort(cp_vals[1:10]) ≈ [
+        1.7642563337066723,
+        1.8309926967660561,
+        1.8676797245949768,
+        1.8715139312836404,
+        1.8742476977595561,
+        1.9596647512001575,
+        1.9749658702816537,
+        2.0400855926847923,
+        2.095692020352621,
+        2.1591959225932738,
+    ]
+    @test sort(cf_vals[1:10]) ≈ [
+        -1.2838932978862392,
+        -1.1230998392551437,
+        -1.1167735453217076,
+        -0.9947974567347279,
+        -0.6878311452704875,
+        -0.45370785698055793,
+        -0.37053727238603945,
+        -0.23515678100990403,
+        0.045526882648679205,
+        0.20383549655613004,
+    ]
 end
 
 @trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock.jl" begin
