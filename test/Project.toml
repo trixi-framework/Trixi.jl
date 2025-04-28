@@ -57,3 +57,6 @@ Quadmath = "0.5.10"
 Random = "1"
 StableRNGs = "1.0.2"
 Test = "1"
+
+[sources]
+CUDA = {url = "https://github.com/JuliaGPU/CUDA.jl", rev = "vc/unsafe_wrap_symbols"}
