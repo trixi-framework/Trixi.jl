@@ -178,6 +178,6 @@ makedocs(
              "License" => "license.md"
          ])
 
-deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
+deploydocs(repo = "github.com/trixi-framework/TrixiDocumentation",
            devbranch = "main",
            push_preview = true)
