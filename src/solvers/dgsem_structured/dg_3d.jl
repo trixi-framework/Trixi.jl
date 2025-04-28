@@ -76,9 +76,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 
         # Compute the contravariant flux by taking the scalar product of the
         # first contravariant vector Ja^1 and the flux vector
-        Ja11, Ja12,
-        Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j, k,
-                                        element)
+        Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors,
+                                                    i, j, k, element)
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
         for ii in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
