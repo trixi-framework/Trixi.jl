@@ -178,10 +178,7 @@ makedocs(
              "License" => "license.md"
          ])
 
-repo = "github.com/trixi-framework/TrixiDocumentation"
-
-withenv("GITHUB_REPOSITORY" => repo) do
-    deploydocs(repo = repo,
-               devbranch = "main",
-               push_preview = true)
-end
+deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
+           deploy_repo = "github.com/trixi-framework/TrixiDocumentation",
+           devbranch = "main",
+           push_preview = true)
