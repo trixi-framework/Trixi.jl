@@ -9,7 +9,7 @@
 # such as aerodynamic coefficients.
 
 """
-    AnalysisSurfaceIntegral{NBoundaries, Variable}(boundary_symbols::NTuple{NBoundaries, Symbol},
+    AnalysisSurfaceIntegral{Variable, NBoundaries}(boundary_symbols::NTuple{NBoundaries, Symbol},
                                                    variable)
 
 This struct is used to compute the surface integral of a quantity of interest `variable` alongside
@@ -24,13 +24,13 @@ A single boundary name can also be supplied, e.g. `boundary_symbols = (:AirfoilT
   where the quantity of interest is computed
 - `variable::Variable`: Quantity of interest, like lift or drag
 """
-struct AnalysisSurfaceIntegral{NBoundaries, Variable}
-    boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
+struct AnalysisSurfaceIntegral{Variable, NBoundaries}
     variable::Variable # Quantity of interest, like lift or drag
+    boundary_symbols::NTuple{NBoundaries, Symbol} # Name(s) of the boundary/boundaries
 
     function AnalysisSurfaceIntegral(boundary_symbols::NTuple{NBoundaries, Symbol},
                                      variable) where {NBoundaries}
-        return new{NBoundaries, typeof(variable)}(boundary_symbols, variable)
+        return new{typeof(variable), NBoundaries}(boundary_symbols, variable)
     end
 end
 
