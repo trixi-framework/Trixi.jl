@@ -225,12 +225,11 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
-                                                    i_node, j_node,
-                                                    element)
+                                                    i_node, j_node, element)
 
             # Coordinates at a boundary node
-            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
-                                element)
+            x = get_node_coords(node_coordinates, equations, dg, 
+                                i_node, j_node, element)
 
             # L2 norm of normal direction (contravariant_vector) is the surface element
             dS = weights[node_index] * norm(normal_direction)
@@ -285,20 +284,19 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
-                                                    i_node, j_node,
-                                                    element)
+                                                    i_node, j_node, element)
 
             # Coordinates at a boundary node
-            x = get_node_coords(node_coordinates, equations, dg, i_node, j_node,
-                                element)
+            x = get_node_coords(node_coordinates, equations, dg, 
+                                i_node, j_node, element)
 
             # L2 norm of normal direction (contravariant_vector) is the surface element
             dS = weights[node_index] * norm(normal_direction)
 
-            gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg, i_node,
-                                        j_node, element)
-            gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg, i_node,
-                                        j_node, element)
+            gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg, 
+                                        i_node, j_node, element)
+            gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg, 
+                                        i_node, j_node, element)
 
             # Integral over whole boundary surface. Note, it is assumed that the
             # `normal_direction` is normalized to be a normal vector within the
