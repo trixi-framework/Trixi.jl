@@ -13,7 +13,7 @@ for human readability.
 #### Changed
 
 - The (2D) aerodynamic coefficients 
-  `DragCoefficientPressure, LiftCoefficientPressure, DragCoefficientShearStress, LiftCoefficientShearStress` have been relabeled to 
+  `DragCoefficientPressure, LiftCoefficientPressure, DragCoefficientShearStress, LiftCoefficientShearStress` have been renamed to 
   `DragCoefficientPressure2D, LiftCoefficientPressure2D, DragCoefficientShearStress2D, LiftCoefficientShearStress2D`. ([#2375])
 
 #### Deprecated
