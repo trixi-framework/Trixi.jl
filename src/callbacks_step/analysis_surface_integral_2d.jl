@@ -228,7 +228,7 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                                                     i_node, j_node, element)
 
             # Coordinates at a boundary node
-            x = get_node_coords(node_coordinates, equations, dg, 
+            x = get_node_coords(node_coordinates, equations, dg,
                                 i_node, j_node, element)
 
             # L2 norm of normal direction (contravariant_vector) is the surface element
@@ -287,15 +287,15 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
                                                     i_node, j_node, element)
 
             # Coordinates at a boundary node
-            x = get_node_coords(node_coordinates, equations, dg, 
+            x = get_node_coords(node_coordinates, equations, dg,
                                 i_node, j_node, element)
 
             # L2 norm of normal direction (contravariant_vector) is the surface element
             dS = weights[node_index] * norm(normal_direction)
 
-            gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg, 
+            gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg,
                                         i_node, j_node, element)
-            gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg, 
+            gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg,
                                         i_node, j_node, element)
 
             # Integral over whole boundary surface. Note, it is assumed that the
