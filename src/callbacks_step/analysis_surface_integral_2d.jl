@@ -193,7 +193,7 @@ function (drag_coefficient::DragCoefficientShearStress{RealT, 2})(u, normal_dire
                                                gradients_1, gradients_2)
     @unpack psi, rho_inf, u_inf, l_inf = drag_coefficient.force_state
     return (visc_stress_vector[1] * psi[1] + visc_stress_vector[2] * psi[2]) /
-           (0.5 * rho_inf * u_inf^2 * l_inf)
+           (0.5f0 * rho_inf * u_inf^2 * l_inf)
 end
 
 function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
