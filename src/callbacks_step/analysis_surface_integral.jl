@@ -47,9 +47,9 @@ end
 
 struct ForceState{RealT <: Real, NDIMS}
     psi::NTuple{NDIMS, RealT} # Unit vector normal or parallel to freestream
-    rhoinf::RealT
-    uinf::RealT
-    linf::RealT
+    rho_inf::RealT
+    u_inf::RealT
+    l_inf::RealT
 end
 
 # Abstract base type used for dispatch of `analyze` for quantities
@@ -75,19 +75,19 @@ end
 function (lift_coefficient::LiftCoefficientPressure)(u, normal_direction, x, t,
                                                      equations)
     p = pressure(u, equations)
-    @unpack psi, rhoinf, uinf, linf = lift_coefficient.force_state
+    @unpack psi, rho_inf, u_inf, l_inf = lift_coefficient.force_state
     # Normalize as `normal_direction` is not necessarily a unit vector
     n = dot(normal_direction, psi) / norm(normal_direction)
-    return p * n / (0.5 * rhoinf * uinf^2 * linf)
+    return p * n / (0.5 * rho_inf * u_inf^2 * l_inf)
 end
 
 function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, x, t,
                                                      equations)
     p = pressure(u, equations)
-    @unpack psi, rhoinf, uinf, linf = drag_coefficient.force_state
+    @unpack psi, rho_inf, u_inf, l_inf = drag_coefficient.force_state
     # Normalize as `normal_direction` is not necessarily a unit vector
     n = dot(normal_direction, psi) / norm(normal_direction)
-    return p * n / (0.5 * rhoinf * uinf^2 * linf)
+    return p * n / (0.5 * rho_inf * u_inf^2 * l_inf)
 end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any,
