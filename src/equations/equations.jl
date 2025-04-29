@@ -292,8 +292,7 @@ struct NonConservativeSymmetric end
 Trait function determining whether `equations` represent a conservation law
 with or without nonconservative terms. Classical conservation laws such as the
 [`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
-[`ShallowWaterEquations2D`](@ref) with non-constant bottom topography are an
-example of equations with nonconservative terms.
+[`IdealGlmMhdEquations2D`] are an example of equations with nonconservative terms.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = False()
@@ -490,6 +489,7 @@ of the correct length `nvariables(equations)`.
 """
 function density_pressure end
 
+# TODO: SWE docstring need to be changed if SWE are moved.
 """
     waterheight(u, equations)
 
@@ -501,6 +501,7 @@ of the correct length `nvariables(equations)`.
 """
 function waterheight end
 
+# TODO: SWE docstring need to be changed if SWE are moved.
 """
     waterheight_pressure(u, equations)
 
@@ -512,6 +513,16 @@ associated to the conserved variables `u` for a given set of
 of the correct length `nvariables(equations)`.
 """
 function waterheight_pressure end
+
+# TODO: SWE function that might be moved
+function flux_wintermeyer_etal end
+function flux_nonconservative_wintermeyer_etal end
+function flux_fjordholm_etal end
+function flux_nonconservative_fjordholm_etal end
+function lake_at_rest_error end
+# waterheight
+# waterheight_pressure
+# AbstractShallowWaterEquations
 
 # Default implementation of gradient for `variable`. Used for subcell limiting.
 # Implementing a gradient function for a specific variable improves the performance.
@@ -537,12 +548,10 @@ abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("inviscid_burgers_1d.jl")
 
+# TODO: SWE move the abstract type?
 # Shallow water equations
 abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
-include("shallow_water_1d.jl")
-include("shallow_water_2d.jl")
-include("shallow_water_quasi_1d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
