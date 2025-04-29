@@ -78,7 +78,7 @@ function (lift_coefficient::LiftCoefficientPressure)(u, normal_direction, x, t,
     @unpack psi, rho_inf, u_inf, l_inf = lift_coefficient.force_state
     # Normalize as `normal_direction` is not necessarily a unit vector
     n = dot(normal_direction, psi) / norm(normal_direction)
-    return p * n / (0.5 * rho_inf * u_inf^2 * l_inf)
+    return p * n / (0.5f0 * rho_inf * u_inf^2 * l_inf)
 end
 
 function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, x, t,
@@ -87,7 +87,7 @@ function (drag_coefficient::DragCoefficientPressure)(u, normal_direction, x, t,
     @unpack psi, rho_inf, u_inf, l_inf = drag_coefficient.force_state
     # Normalize as `normal_direction` is not necessarily a unit vector
     n = dot(normal_direction, psi) / norm(normal_direction)
-    return p * n / (0.5 * rho_inf * u_inf^2 * l_inf)
+    return p * n / (0.5f0 * rho_inf * u_inf^2 * l_inf)
 end
 
 function pretty_form_ascii(::AnalysisSurfaceIntegral{<:LiftCoefficientPressure{<:Any,
