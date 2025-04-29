@@ -30,7 +30,7 @@ struct AnalysisSurfaceIntegral{Variable, NBoundaries}
 
     function AnalysisSurfaceIntegral(boundary_symbols::NTuple{NBoundaries, Symbol},
                                      variable) where {NBoundaries}
-        return new{typeof(variable), NBoundaries}(boundary_symbols, variable)
+        return new{typeof(variable), NBoundaries}(variable, boundary_symbols)
     end
 end
 
