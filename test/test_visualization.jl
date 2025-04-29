@@ -691,6 +691,64 @@ end
             end
         end
     end
+
+    @trixi_testset "PlotData2D gives correct results" begin
+        equations = LinearScalarAdvectionEquation3D((0.2, -0.7, 0.5))
+        solver = DGSEM(polydeg = 3, surface_flux = flux_lax_friedrichs)
+        ode_solver = CarpenterKennedy2N54(williamson_condition = false)
+        coordinates_min = (-1.0, -1.0, -1.0)
+        coordinates_max = (+1.0, +1.0, +1.0)
+        diffusivity() = 5.0e-4
+        equations_parabolic = LaplaceDiffusion3D(diffusivity(), equations)
+        solver_parabolic = ViscousFormulationBassiRebay1()
+        boundary_conditions = boundary_condition_periodic
+        boundary_conditions_parabolic = boundary_condition_periodic
+        initial_refinement_level=3
+
+        function initial_condition_diffusive_convergence_test(x, t,
+                                                                      equation::LinearScalarAdvectionEquation3D)
+            # Store translated coordinate for easy use of exact solution
+            x_trans = x - equation.advection_velocity * t
+            nu = diffusivity()
+            c = 1.0; A = 0.5; L = 2; f = 1 / L; omega = 2 * pi * f
+            scalar = c + A * sin(omega * sum(x_trans)) * exp(-2 * nu * omega^2 * t)
+            return SVector(scalar)
+        end
+        ic = initial_condition_diffusive_convergence_test
+
+        @testset "Mesh Type: $mesh_type" for (mesh_type, mesh_fn) in [
+                ("TreeMesh",    () -> TreeMesh(coordinates_min, coordinates_max;
+                                               n_cells_max = 10^4,
+                                               initial_refinement_level=initial_refinement_level)),
+                                                     coordinates_min, coordinates_max))
+        ]
+            mesh = mesh_fn()
+            semi = SemidiscretizationHyperbolicParabolic(mesh,
+                                                         (equations, equations_parabolic),
+                                                         initial_condition, solver;
+                                                         solver_parabolic = solver_parabolic,
+                                                         boundary_conditions = (boundary_conditions,
+                                                                                boundary_conditions_parabolic))
+            ode = semidiscretize(semi, (0.0, 0.1))
+            sol = solve(ode, ode_solver; dt=1.0, adaptive=false, save_everystep=false)
+
+            pd = @inferred PlotData2D(sol)
+            @test length(pd.data) == 1
+
+            for i in eachindex(pd.x)
+                x = SVector(pd.x[i], pd.y[i], 0.0)
+                u = ic(x, 0.1, equations)[1]
+                @test isapprox(pd.data[1][i], u, atol=0.9)
+            end
+
+            pd = @inferred PlotData1D(ode.u0, ode.p, slice = :z)
+            for i in eachindex(pd.x)
+                x = SVector(0, 0, pd.x[i])
+                u = ic(x, 0.1, equations)[1]
+                @test isapprox(pd.data[1], u, atol=0.5)
+            end
+        end
+    end
 end
 
 @timed_testset "plotting TimeIntegratorSolution" begin
