@@ -164,10 +164,10 @@ function viscous_stress_vector(u, normal_direction, equations_parabolic,
                                                    gradients_1, gradients_2)
 
     # Viscous stress vector: Stress tensor * normal vector
-    visc_stress_vector_1 = tau_11 * n_normal[1] + tau_12 * n_normal[2]
-    visc_stress_vector_2 = tau_12 * n_normal[1] + tau_22 * n_normal[2]
+    viscous_stress_vector_1 = tau_11 * n_normal[1] + tau_12 * n_normal[2]
+    viscous_stress_vector_2 = tau_12 * n_normal[1] + tau_22 * n_normal[2]
 
-    return (visc_stress_vector_1, visc_stress_vector_2)
+    return (viscous_stress_vector_1, viscous_stress_vector_2)
 end
 
 function (lift_coefficient::LiftCoefficientShearStress{RealT, 2})(u, normal_direction,
