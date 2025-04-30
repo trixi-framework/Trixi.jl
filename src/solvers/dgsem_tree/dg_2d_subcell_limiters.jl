@@ -78,6 +78,182 @@ function create_cache(mesh::TreeMesh{2},
      fstar_secondary_upper_threaded, fstar_secondary_lower_threaded)
 end
 
+function calc_mortar_weights(basis, RealT; first_order = true)
+    n_nodes = nnodes(basis)
+    # Saving the sum over row/column in entries with last index.
+    weights = zeros(RealT, n_nodes + 1, 2 * n_nodes + 1)
+
+    if first_order
+        calc_mortar_weights_first_order!(weights, n_nodes, RealT)
+    else
+        calc_mortar_weights_second_order!(weights, basis)
+    end
+
+    for i in 1:n_nodes
+        for j in 1:n_nodes
+            # Row
+            weights[i, end] += weights[i, j]
+            weights[i, end] += weights[i, j + n_nodes]
+            # Columns
+            weights[end, i] += weights[j, i]
+            weights[end, i + n_nodes] += weights[j, i + n_nodes]
+        end
+    end
+
+    return weights
+end
+
+function calc_mortar_weights_first_order!(mortar_weights, n_nodes, RealT)
+    _, weights = gauss_lobatto_nodes_weights(n_nodes, RealT)
+    cum_weights = [zero(RealT); cumsum(weights)] .- 1.0
+
+    cum_weights_lower = 0.5f0 * cum_weights .- 0.5f0
+    cum_weights_upper = cum_weights_lower .+ 1.0
+
+    for i in 1:n_nodes
+        for j in 1:n_nodes
+            # basis function of left element
+            interval_left = max(cum_weights[i], cum_weights_lower[j])
+            interval_right = min(cum_weights[i + 1], cum_weights_lower[j + 1])
+            mortar_weights[i, j] = max(zero(RealT), interval_right - interval_left)
+
+            # basis function of right element
+            interval_left = max(cum_weights[i], cum_weights_upper[j])
+            interval_right = min(cum_weights[i + 1], cum_weights_upper[j + 1])
+            mortar_weights[i, n_nodes + j] = max(zero(RealT),
+                                                 interval_right - interval_left)
+        end
+    end
+
+    return mortar_weights
+end
+
+function calc_mortar_weights_second_order!(weights, basis)
+    (; nodes) = basis
+    n_nodes = nnodes(basis)
+    nodes_lower = 0.5f0 * nodes .- 0.5f0
+    nodes_upper = nodes_lower .+ 1.0f0
+
+    function_product(xi, ii, i, jj, j, nodes_u_l) = (xi^3 / 3 -
+                                                     xi^2 / 2 *
+                                                     (nodes[ii] + nodes_u_l[jj]) +
+                                                     nodes[ii] * nodes_u_l[jj] * xi) /
+                                                    ((nodes[ii] - nodes[i]) *
+                                                     (nodes_u_l[jj] - nodes_u_l[j]))
+    for i in eachnode(basis)
+        for j in eachnode(basis)
+            # left part of large element function
+            if i > 1
+                # left part of small element function
+                if j > 1
+                    # basis function of left element
+                    interval_left = max(nodes[i - 1], nodes_lower[j - 1])
+                    interval_right = min(nodes[i], nodes_lower[j])
+                    if interval_left < interval_right
+                        weights[i, j] += function_product(interval_right,
+                                                          i - 1, i, j - 1, j,
+                                                          nodes_lower) -
+                                         function_product(interval_left,
+                                                          i - 1, i, j - 1, j,
+                                                          nodes_lower)
+                    end
+                    # basis function of right element
+                    interval_left = max(nodes[i - 1], nodes_upper[j - 1])
+                    interval_right = min(nodes[i], nodes_upper[j])
+                    if interval_left < interval_right
+                        weights[i, n_nodes + j] += function_product(interval_right,
+                                                                    i - 1, i, j - 1, j,
+                                                                    nodes_upper) -
+                                                   function_product(interval_left,
+                                                                    i - 1, i, j - 1, j,
+                                                                    nodes_upper)
+                    end
+                end
+                # right part of small element function
+                if j < n_nodes
+                    # basis function of left element
+                    interval_left = max(nodes[i - 1], nodes_lower[j])
+                    interval_right = min(nodes[i], nodes_lower[j + 1])
+                    if interval_left < interval_right
+                        weights[i, j] += function_product(interval_right,
+                                                          i - 1, i, j + 1, j,
+                                                          nodes_lower) -
+                                         function_product(interval_left,
+                                                          i - 1, i, j + 1, j,
+                                                          nodes_lower)
+                    end
+                    # basis function of right element
+                    interval_left = max(nodes[i - 1], nodes_upper[j])
+                    interval_right = min(nodes[i], nodes_upper[j + 1])
+                    if interval_left < interval_right
+                        weights[i, n_nodes + j] += function_product(interval_right,
+                                                                    i - 1, i, j + 1, j,
+                                                                    nodes_upper) -
+                                                   function_product(interval_left,
+                                                                    i - 1, i, j + 1, j,
+                                                                    nodes_upper)
+                    end
+                end
+            end
+            # right part of large element function
+            if i < n_nodes
+                # left part of small element function
+                if j > 1
+                    # basis function of left element
+                    interval_left = max(nodes[i], nodes_lower[j - 1])
+                    interval_right = min(nodes[i + 1], nodes_lower[j])
+                    if interval_left < interval_right
+                        weights[i, j] += function_product(interval_right,
+                                                          i + 1, i, j - 1, j,
+                                                          nodes_lower) -
+                                         function_product(interval_left,
+                                                          i + 1, i, j - 1, j,
+                                                          nodes_lower)
+                    end
+                    # basis function of right element
+                    interval_left = max(nodes[i], nodes_upper[j - 1])
+                    interval_right = min(nodes[i + 1], nodes_upper[j])
+                    if interval_left < interval_right
+                        weights[i, n_nodes + j] += function_product(interval_right,
+                                                                    i + 1, i, j - 1, j,
+                                                                    nodes_upper) -
+                                                   function_product(interval_left,
+                                                                    i + 1, i, j - 1, j,
+                                                                    nodes_upper)
+                    end
+                end
+                # right part of small element function
+                if j < n_nodes
+                    # basis function of left element
+                    interval_left = max(nodes[i], nodes_lower[j])
+                    interval_right = min(nodes[i + 1], nodes_lower[j + 1])
+                    if interval_left < interval_right
+                        weights[i, j] += function_product(interval_right,
+                                                          i + 1, i, j + 1, j,
+                                                          nodes_lower) -
+                                         function_product(interval_left,
+                                                          i + 1, i, j + 1, j,
+                                                          nodes_lower)
+                    end
+                    # basis function of right element
+                    interval_left = max(nodes[i], nodes_upper[j])
+                    interval_right = min(nodes[i + 1], nodes_upper[j + 1])
+                    if interval_left < interval_right
+                        weights[i, n_nodes + j] += function_product(interval_right,
+                                                                    i + 1, i, j + 1, j,
+                                                                    nodes_upper) -
+                                                   function_product(interval_left,
+                                                                    i + 1, i, j + 1, j,
+                                                                    nodes_upper)
+                    end
+                end
+            end
+        end
+    end
+
+    return weights
+end
+
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                            P4estMesh{2}},
@@ -493,10 +669,10 @@ end
     return nothing
 end
 
-function prolong2mortars!(cache, u,
-                          mesh::TreeMesh{2}, equations,
-                          mortar_l2::LobattoLegendreMortarIDP,
-                          dg::DGSEM)
+function prolong2mortars_alternative!(cache, u,
+                                      mesh::TreeMesh{2}, equations,
+                                      mortar_l2::LobattoLegendreMortarIDP,
+                                      dg::DGSEM)
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
@@ -555,27 +731,22 @@ function prolong2mortars!(cache, u,
     return nothing
 end
 
-function calc_mortar_flux!(surface_flux_values,
-                           mesh::TreeMesh{2},
-                           nonconservative_terms::False, equations,
-                           mortar_idp::LobattoLegendreMortarIDP,
-                           surface_integral, dg::DG, cache)
+function calc_mortar_flux_alternative!(surface_flux_values,
+                                       mesh::TreeMesh{2},
+                                       nonconservative_terms::False, equations,
+                                       mortar_idp::LobattoLegendreMortarIDP,
+                                       surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, u_large, orientations = cache.mortars
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
     fstar_secondary_upper_threaded, fstar_secondary_lower_threaded) = cache
     (; weights) = dg.basis
+    (; local_mortar_weights, local_factor) = mortar_idp
 
     for mortar in eachmortar(dg, cache)    #=@threaded =#
         large_element = cache.mortars.neighbor_ids[3, mortar]
         upper_element = cache.mortars.neighbor_ids[2, mortar]
         lower_element = cache.mortars.neighbor_ids[1, mortar]
-
-        # Choose thread-specific pre-allocated container
-        # fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
-        # fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
-        # fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
-        # fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
 
         # Calculate fluxes
         orientation = orientations[mortar]
@@ -596,6 +767,7 @@ function calc_mortar_flux!(surface_flux_values,
             surface_flux_values[:, :, direction_large, large_element] .= zero(eltype(surface_flux_values))
             # Lower element
             for i in eachnode(dg)
+                # TODO: Efficiency: Calculate flux only once.
                 u_lower_local = get_node_vars(u_lower, equations, dg, i, mortar) # u_rr
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
@@ -603,8 +775,20 @@ function calc_mortar_flux!(surface_flux_values,
                     flux = surface_flux(u_large_local, u_lower_local, orientation,
                                         equations)
 
-                    add_to_node_vars!(surface_flux_values, 0.5f0 * weights[j] * flux,
-                                      equations, dg, i, direction_small, lower_element)
+                    if local_factor
+                        factor = local_mortar_weights[j, i]
+                        if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / local_mortar_weights[end, i]
+                            multiply_add_to_node_vars!(surface_flux_values, factor,
+                                                       flux, equations, dg, i,
+                                                       direction_small, lower_element)
+                        end
+                    else
+                        multiply_add_to_node_vars!(surface_flux_values,
+                                                   0.5f0 * weights[j], flux,
+                                                   equations, dg, i, direction_small,
+                                                   lower_element)
+                    end
                 end
             end
             # Upper element
@@ -616,8 +800,20 @@ function calc_mortar_flux!(surface_flux_values,
                     flux = surface_flux(u_large_local, u_upper_local, orientation,
                                         equations)
 
-                    add_to_node_vars!(surface_flux_values, 0.5f0 * weights[j] * flux,
-                                      equations, dg, i, direction_small, upper_element)
+                    if local_factor
+                        factor = local_mortar_weights[j, i + nnodes(dg)]
+                        if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / local_mortar_weights[end, i + nnodes(dg)]
+                            multiply_add_to_node_vars!(surface_flux_values, factor,
+                                                       flux, equations, dg, i,
+                                                       direction_small, upper_element)
+                        end
+                    else
+                        multiply_add_to_node_vars!(surface_flux_values,
+                                                   0.5f0 * weights[j], flux,
+                                                   equations, dg, i, direction_small,
+                                                   upper_element)
+                    end
                 end
             end
             # Large element
@@ -630,8 +826,20 @@ function calc_mortar_flux!(surface_flux_values,
                     flux = surface_flux(u_large_local, u_lower_local, orientation,
                                         equations)
 
-                    add_to_node_vars!(surface_flux_values, 0.25f0 * weights[j] * flux,
-                                      equations, dg, i, direction_large, large_element)
+                    if local_factor
+                        factor = local_mortar_weights[i, j]
+                        if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / local_mortar_weights[i, end]
+                            multiply_add_to_node_vars!(surface_flux_values, factor,
+                                                       flux, equations, dg, i,
+                                                       direction_large, large_element)
+                        end
+                    else
+                        multiply_add_to_node_vars!(surface_flux_values,
+                                                   0.25f0 * weights[j], flux,
+                                                   equations, dg, i, direction_large,
+                                                   large_element)
+                    end
 
                     # upper
                     u_upper_local = get_node_vars(u_upper, equations, dg, j, mortar) # u_rr
@@ -639,8 +847,20 @@ function calc_mortar_flux!(surface_flux_values,
                     flux = surface_flux(u_large_local, u_upper_local, orientation,
                                         equations)
 
-                    add_to_node_vars!(surface_flux_values, 0.25f0 * weights[j] * flux,
-                                      equations, dg, i, direction_large, large_element)
+                    if local_factor
+                        factor = local_mortar_weights[i, j + nnodes(dg)]
+                        if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / local_mortar_weights[i, end]
+                            multiply_add_to_node_vars!(surface_flux_values, factor,
+                                                       flux, equations, dg, i,
+                                                       direction_large, large_element)
+                        end
+                    else
+                        multiply_add_to_node_vars!(surface_flux_values,
+                                                   0.25f0 * weights[j], flux,
+                                                   equations, dg, i, direction_large,
+                                                   large_element)
+                    end
                 end
             end
         else # large_sides[mortar] == 2 -> small elements on left side
@@ -666,8 +886,20 @@ function calc_mortar_flux!(surface_flux_values,
                     flux = surface_flux(u_lower_local, u_large_local, orientation,
                                         equations)
 
-                    add_to_node_vars!(surface_flux_values, 0.5f0 * weights[j] * flux,
-                                      equations, dg, i, direction_small, lower_element)
+                    if local_factor
+                        factor = local_mortar_weights[j, i]
+                        if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / local_mortar_weights[end, i]
+                            multiply_add_to_node_vars!(surface_flux_values, factor,
+                                                       flux, equations, dg, i,
+                                                       direction_small, lower_element)
+                        end
+                    else
+                        multiply_add_to_node_vars!(surface_flux_values,
+                                                   0.5f0 * weights[j], flux,
+                                                   equations, dg, i, direction_small,
+                                                   lower_element)
+                    end
                 end
             end
             # Upper element
@@ -679,8 +911,20 @@ function calc_mortar_flux!(surface_flux_values,
                     flux = surface_flux(u_upper_local, u_large_local, orientation,
                                         equations)
 
-                    add_to_node_vars!(surface_flux_values, 0.5f0 * weights[j] * flux,
-                                      equations, dg, i, direction_small, upper_element)
+                    if local_factor
+                        factor = local_mortar_weights[j, i + nnodes(dg)]
+                        if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / local_mortar_weights[end, i + nnodes(dg)]
+                            multiply_add_to_node_vars!(surface_flux_values, factor,
+                                                       flux, equations, dg, i,
+                                                       direction_small, upper_element)
+                        end
+                    else
+                        multiply_add_to_node_vars!(surface_flux_values,
+                                                   0.5f0 * weights[j], flux,
+                                                   equations, dg, i, direction_small,
+                                                   upper_element)
+                    end
                 end
             end
             # Large element
@@ -693,8 +937,20 @@ function calc_mortar_flux!(surface_flux_values,
                     flux = surface_flux(u_lower_local, u_large_local, orientation,
                                         equations)
 
-                    add_to_node_vars!(surface_flux_values, 0.25f0 * weights[j] * flux,
-                                      equations, dg, i, direction_large, large_element)
+                    if local_factor
+                        factor = local_mortar_weights[i, j]
+                        if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / local_mortar_weights[i, end]
+                            multiply_add_to_node_vars!(surface_flux_values, factor,
+                                                       flux, equations, dg, i,
+                                                       direction_large, large_element)
+                        end
+                    else
+                        multiply_add_to_node_vars!(surface_flux_values,
+                                                   0.25f0 * weights[j], flux,
+                                                   equations, dg, i, direction_large,
+                                                   large_element)
+                    end
 
                     # upper
                     u_upper_local = get_node_vars(u_upper, equations, dg, j, mortar) # u_ll
@@ -702,37 +958,36 @@ function calc_mortar_flux!(surface_flux_values,
                     flux = surface_flux(u_upper_local, u_large_local, orientation,
                                         equations)
 
-                    add_to_node_vars!(surface_flux_values, 0.25f0 * weights[j] * flux,
-                                      equations, dg, i, direction_large, large_element)
+                    if local_factor
+                        factor = local_mortar_weights[i, j + nnodes(dg)]
+                        if !isapprox(factor, zero(typeof(factor)))
+                            factor = factor / local_mortar_weights[i, end]
+                            multiply_add_to_node_vars!(surface_flux_values, factor,
+                                                       flux, equations, dg, i,
+                                                       direction_large, large_element)
+                        end
+                    else
+                        multiply_add_to_node_vars!(surface_flux_values,
+                                                   0.25f0 * weights[j], flux,
+                                                   equations, dg, i, direction_large,
+                                                   large_element)
+                    end
                 end
             end
         end
     end
 
-    # #=@threaded =#for mortar in eachmortar(dg, cache)
-    #     # Choose thread-specific pre-allocated container
-    #     # fstar_primary_upper = fstar_primary_upper_threaded[Threads.threadid()]
-    #     # fstar_primary_lower = fstar_primary_lower_threaded[Threads.threadid()]
-    #     # fstar_secondary_upper = fstar_secondary_upper_threaded[Threads.threadid()]
-    #     # fstar_secondary_lower = fstar_secondary_lower_threaded[Threads.threadid()]
+    return nothing
+end
 
-    #     # Calculate fluxes
-    #     orientation = orientations[mortar]
-    #     calc_fstar_IDP_AMR!(surface_flux_values, equations, surface_flux, dg, u_lower, u_upper, u_large, mortar,
-    #                 orientation)
-    #     # calc_fstar_IDP_AMR!(fstar_primary_lower, equations, surface_flux, dg, u_lower, mortar,
-    #     #             orientation)
-    #     # calc_fstar_IDP_AMR!(fstar_secondary_upper, equations, surface_flux, dg, u_upper, mortar,
-    #     #             orientation)
-    #     # calc_fstar_IDP_AMR!(fstar_secondary_lower, equations, surface_flux, dg, u_lower, mortar,
-    #     #             orientation)
-
-    #     # mortar_fluxes_to_elements!(surface_flux_values,
-    #     #                            mesh, equations, mortar_idp, dg, cache,
-    #     #                            mortar, fstar_primary_upper, fstar_primary_lower,
-    #     #                            fstar_secondary_upper, fstar_secondary_lower)
-    # end
-
+@inline function element_solutions_to_mortars!(mortars,
+                                               mortar_idp::LobattoLegendreMortarIDP,
+                                               leftright, mortar,
+                                               u_large::AbstractArray{<:Any, 2})
+    multiply_dimensionwise!(view(mortars.u_upper, leftright, :, :, mortar),
+                            mortar_idp.forward_upper_low_order, u_large)
+    multiply_dimensionwise!(view(mortars.u_lower, leftright, :, :, mortar),
+                            mortar_idp.forward_lower_low_order, u_large)
     return nothing
 end
 

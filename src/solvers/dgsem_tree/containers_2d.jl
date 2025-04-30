@@ -726,11 +726,17 @@ end
 # Create mortar container and initialize mortar data in `elements`.
 function init_mortars(cell_ids, mesh::TreeMesh2D,
                       elements::ElementContainer2D,
-                      ::LobattoLegendreMortarIDP)
+                      mortar::LobattoLegendreMortarIDP)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
-    mortars = IDPMortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
-                                                     nnodes(elements))
+    if mortar.alternative
+        mortars = IDPMortarContainer2D{eltype(elements)}(n_mortars,
+                                                         nvariables(elements),
+                                                         nnodes(elements))
+    else
+        mortars = L2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
+                                                        nnodes(elements))
+    end
 
     # Connect elements with mortars
     init_mortars!(mortars, elements, mesh)
