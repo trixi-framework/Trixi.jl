@@ -454,6 +454,65 @@ of the correct length `nvariables(equations)`.
 """
 function energy_internal end
 
+"""
+    density(u, equations)
+
+Return the density associated to the conserved variables `u` for a given set of
+`equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function density end
+
+"""
+    pressure(u, equations)
+
+Return the pressure associated to the conserved variables `u` for a given set of
+`equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function pressure end
+
+"""
+    density_pressure(u, equations)
+
+Return the product of the [`density`](@ref) and the [`pressure`](@ref)
+associated to the conserved variables `u` for a given set of
+`equations`, e.g., the [`CompressibleEulerEquations2D`](@ref).
+This can be useful, e.g., as a variable for (shock-cappturing or AMR)
+indicators.
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function density_pressure end
+
+"""
+    waterheight(u, equations)
+
+Return the water height associated to the conserved variables `u` for a given set of
+`equations`, e.g., the [`ShallowWaterEquations2D`](@ref).
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function waterheight end
+
+"""
+    waterheight_pressure(u, equations)
+
+Return the product of the [`waterheight`](@ref) and the [`pressure`](@ref)
+associated to the conserved variables `u` for a given set of
+`equations`, e.g., the [`ShallowWaterEquations2D`](@ref).
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+"""
+function waterheight_pressure end
+
 # Default implementation of gradient for `variable`. Used for subcell limiting.
 # Implementing a gradient function for a specific variable improves the performance.
 @inline function gradient_conservative(variable, u, equations)
@@ -503,6 +562,9 @@ include("compressible_euler_multicomponent_2d.jl")
 abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("polytropic_euler_2d.jl")
+
+# Passive tracer equations
+include("passive_tracers.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,
@@ -579,7 +641,7 @@ end
     eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)
 
 Return an iterator over the indices that specify the location in relevant data structures
-for the components in `AbstractIdealGlmMhdMultiIonEquations`. 
+for the components in `AbstractIdealGlmMhdMultiIonEquations`.
 In particular, not the components themselves are returned.
 """
 @inline function eachcomponent(equations::AbstractIdealGlmMhdMultiIonEquations)

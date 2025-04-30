@@ -76,8 +76,8 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equations::TrafficFlowLWREquations1D)
-    λ_max = max(abs(equations.v_max * (1 - 2 * u_ll[1])),
-                abs(equations.v_max * (1 - 2 * u_rr[1])))
+    return max(abs(equations.v_max * (1 - 2 * u_ll[1])),
+               abs(equations.v_max * (1 - 2 * u_rr[1])))
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
