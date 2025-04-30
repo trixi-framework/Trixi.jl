@@ -198,7 +198,7 @@ function rhs!(du, u, u_global, t,
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, u, mesh, equations,
-                        dg.surface_integral, dg)
+                            dg.surface_integral, dg)
     end
 
     # Calculate interface fluxes
