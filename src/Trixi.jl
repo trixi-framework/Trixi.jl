@@ -285,9 +285,9 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
 
 # TODO: deprecation introduced in v0.11
 @deprecate DragCoefficientPressure DragCoefficientPressure2D
-@deprecate LiftCoefficientPressure2D LiftCoefficientPressure
-@deprecate DragCoefficientShearStress2D DragCoefficientShearStress
-@deprecate LiftCoefficientShearStress2D LiftCoefficientShearStress
+@deprecate LiftCoefficientPressure LiftCoefficientPressure2D
+@deprecate DragCoefficientShearStress DragCoefficientShearStress2D
+@deprecate LiftCoefficientShearStress LiftCoefficientShearStress2D
 
 export load_mesh, load_time, load_timestep, load_timestep!, load_dt,
        load_adaptive_time_integrator!
