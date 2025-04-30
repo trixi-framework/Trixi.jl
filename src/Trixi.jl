@@ -171,7 +171,8 @@ export AcousticPerturbationEquations2D,
        LinearizedEulerEquations1D, LinearizedEulerEquations2D, LinearizedEulerEquations3D,
        PolytropicEulerEquations2D,
        TrafficFlowLWREquations1D,
-       MaxwellEquations1D
+       MaxwellEquations1D,
+       PassiveTracerEquations
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
@@ -192,13 +193,14 @@ export flux, flux_central, flux_lax_friedrichs, flux_hll, flux_hllc, flux_hlle,
        hydrostatic_reconstruction_audusse_etal, flux_nonconservative_audusse_etal,
        FluxPlusDissipation, DissipationGlobalLaxFriedrichs, DissipationLocalLaxFriedrichs,
        DissipationLaxFriedrichsEntropyVariables, DissipationMatrixWintersEtal,
-       FluxLaxFriedrichs, max_abs_speed_naive,
+       FluxLaxFriedrichs, max_abs_speed_naive, max_abs_speed,
        FluxHLL, min_max_speed_naive, min_max_speed_davis, min_max_speed_einfeldt,
        FluxLMARS,
        FluxRotated,
        flux_shima_etal_turbo, flux_ranocha_turbo,
        FluxHydrostaticReconstruction,
-       FluxUpwind
+       FluxUpwind,
+       FluxTracerEquationsCentral
 
 export splitting_steger_warming, splitting_vanleer_haenel,
        splitting_coirier_vanleer, splitting_lax_friedrichs,
@@ -231,7 +233,7 @@ export initial_condition_eoc_test_coupled_euler_gravity,
 export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity, global_mean_vars,
-       equilibrium_distribution, waterheight_pressure
+       equilibrium_distribution, waterheight, waterheight_pressure
 export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
        cross_helicity,
        enstrophy, magnetic_field, divergence_cleaning_field

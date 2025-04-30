@@ -168,7 +168,7 @@ function Base.resize!(interfaces::P4estInterfaceContainer, capacity)
 end
 
 # Create interface container and initialize interface data.
-function init_interfaces(mesh::Union{P4estMesh, T8codeMesh}, equations,
+function init_interfaces(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
                          basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)
@@ -244,7 +244,7 @@ function Base.resize!(boundaries::P4estBoundaryContainer, capacity)
 end
 
 # Create interface container and initialize interface data in `elements`.
-function init_boundaries(mesh::Union{P4estMesh, T8codeMesh}, equations,
+function init_boundaries(mesh::Union{P4estMesh, P4estMeshView, T8codeMesh}, equations,
                          basis, elements)
     NDIMS = ndims(elements)
     uEltype = eltype(elements)

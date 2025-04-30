@@ -45,9 +45,11 @@ function extract_p4est_mesh_view(elements_parent,
                                  equations,
                                  dg,
                                  ::Type{uEltype}) where {uEltype <: Real}
+    # Create deepcopy to get completely independent elements container
     elements = deepcopy(elements_parent)
     resize!(elements, length(mesh.cell_ids))
 
+    # Copy relevant entries from parent mesh
     @views elements.inverse_jacobian .= elements_parent.inverse_jacobian[..,
                                                                          mesh.cell_ids]
     @views elements.jacobian_matrix .= elements_parent.jacobian_matrix[..,
@@ -58,49 +60,31 @@ function extract_p4est_mesh_view(elements_parent,
                                                                                    mesh.cell_ids]
     @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
                                                                                mesh.cell_ids]
-    interfaces, neighbor_ids_global = extract_interfaces(mesh, interfaces_parent)
-
-    boundaries = extract_boundaries(mesh, boundaries_parent, interfaces, interfaces_parent, neighbor_ids_global)
+    # Extract interfaces that belong to mesh view
+    interfaces = extract_interfaces(mesh, interfaces_parent)
 
     return elements, interfaces, boundaries_parent, mortars_parent
 end
 
+# Remove all interfaces that have a tuple of neighbor_ids where at least one is
+# not part of this meshview, i.e. mesh.cell_ids, and return the new interface container
 function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
-    # Remove all interfaces that have a tuple of neighbor_ids where at least one is
-    # not part of this meshview, i.e. mesh.cell_ids.
-    # For the p4est mesh view, the neighbor ids change.
-    # Here we make sure that they get updated correctly.
+    # Identify interfaces that need to be retained
     mask = BitArray(undef, ninterfaces(interfaces_parent))
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
         mask[interface] = (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
                           (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
-        # Elements can interface in the x and y-directions.
-        # Find out by looking at the node_indices.
-        if ~mask[interface] &&
-            (interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids ||
-             interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)
-            if interfaces_parent.node_indices[1, interface] == (:end, :i_forward)
-                # x-interface
-                left_idx = minimum(interfaces_parent.neighbor_ids[:, interface])
-                right_idx = maximum(interfaces_parent.neighbor_ids[:, interface])
-                mesh.parent.boundary_names[2, left_idx] = :x_pos
-                mesh.parent.boundary_names[1, right_idx] = :x_neg
-            else
-                # y-interface
-                down_idx = minimum(interfaces_parent.neighbor_ids[:, interface])
-                up_idx = maximum(interfaces_parent.neighbor_ids[:, interface])
-                mesh.parent.boundary_names[4, down_idx] = :y_pos
-                mesh.parent.boundary_names[3, up_idx] = :y_neg
-            end
-        end
-
-        interfaces_parent.neighbor_ids[1, interface]
-        interfaces_parent.neighbor_ids[2, interface]
     end
+
+    # Create deepcopy to get completely independent interfaces container
     interfaces = deepcopy(interfaces_parent)
-    interfaces.u = interfaces_parent.u[.., mask]
-    interfaces.node_indices = interfaces_parent.node_indices[.., mask]
-    neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
+    resize!(interfaces, sum(mask))
+
+    # Copy relevant entries from parent mesh
+    @views interfaces.u .= interfaces_parent.u[.., mask]
+    @views interfaces.node_indices .= interfaces_parent.node_indices[.., mask]
+    @views neighbor_ids = interfaces_parent.neighbor_ids[.., mask]
+
     # Transform the global (parent) indices into local (view) indices.
     interfaces.neighbor_ids = zeros(Int, size(neighbor_ids))
     for interface in 1:size(neighbor_ids)[2]
@@ -112,58 +96,7 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
                                                         mesh.cell_ids)[1]
     end
 
-    # Flatten the arrays.
-    interfaces._u = vec(interfaces.u)
-    interfaces._node_indices = vec(interfaces.node_indices)
-    interfaces._neighbor_ids = vec(interfaces.neighbor_ids)
-
-    return interfaces, interfaces_parent.neighbor_ids[.., mask]
-end
-
-function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces, interfaces_parent, neighbor_ids_global)
-    @autoinfiltrate
-
-    boundaries = deepcopy(boundaries_parent)
-    boundaries.neighbor_ids = Vector{typeof(boundaries_parent.neighbor_ids)}()
-
-    inner_outer_tuples = Vector{Tuple{Int, Int}}()
-    _neighbor_ids_global = [Tuple(col) for col in eachcol(neighbor_ids_global)]
-
-    # Add all parent interfaces that are shared between views to the view boundaries.
-    for idx in 1:size(neighbor_ids_global)[2]
-        for idx_parent in 1:size(interfaces_parent.neighbor_ids)[2]
-            if (neighbor_ids_global[1, idx] in interfaces_parent.neighbor_ids[:, idx_parent]) ⊻
-                (neighbor_ids_global[2, idx] in interfaces_parent.neighbor_ids[:, idx_parent])
-                if !(Tuple(interfaces_parent.neighbor_ids[:, idx_parent]) in _neighbor_ids_global)
-                    push!(inner_outer_tuples, Tuple(interfaces_parent.neighbor_ids[:, idx_parent]))
-                end
-            end
-        end
-    end
-    inner_outer_tuples = Set(inner_outer_tuples)
-
-    for inner_outer_tuple in inner_outer_tuples
-        if inner_outer_tuple[1] in _neighbor_ids_global
-            outside_idx = inner_outer_tuple[2]
-        else
-            outside_idx = inner_outer_tuple[1]
-        end
-        push!(boundaries.neighbor_ids, outside_idx)
-    end
-
-    # Add parent boundaries to view boundaries.
-    for parent_id in boundaries_parent.neighbor_ids
-        if parent_id in mesh.cell_ids
-            push!(boundaries.neighbor_ids, parent_id)
-        end
-    end
-
-    # boundaries.name
-    # boundaries.neighbor_ids
-    # boundaries.node_indices
-    # boundaries.u
-
-    return nothing
+    return interfaces
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
@@ -171,20 +104,18 @@ end
 # Then, within Trixi2Vtk, the P4estMeshView and its node coordinates are reconstructured from
 # these attributes for plotting purposes
 # | Warning: This overwrites any existing mesh file, either for a mesh view or parent mesh.
-function save_mesh_file(mesh::P4estMeshView, output_directory;
-                        timestep = 0, system = "")
+function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
+                        mpi_parallel::False)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
-        filename = joinpath(output_directory, @sprintf("mesh_%s_%09d.h5", system, timestep))
-
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%s_%09d.h5", system, timestep))
-        p4est_filename = @sprintf("p4est_%s_data_%09d", system, timestep)
+        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
+        p4est_filename = @sprintf("p4est_data_%09d", timestep)
     else
-        filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system))
-        p4est_filename = @sprintf("p4est_data_%s", system)
+        filename = joinpath(output_directory, "mesh.h5")
+        p4est_filename = "p4est_data"
     end
 
     p4est_file = joinpath(output_directory, p4est_filename)
@@ -211,6 +142,8 @@ function save_mesh_file(mesh::P4estMeshView, output_directory;
 end
 
 # Interpolate tree_node_coordinates to each quadrant at the specified nodes
+# Note: This is a copy of the corresponding function in src/solvers/dgsem_p4est/containers_2d.jl,
+#       with modifications to skip cells not part of the mesh view
 function calc_node_coordinates!(node_coordinates,
                                 mesh::P4estMeshView{2, NDIMS_AMBIENT},
                                 nodes::AbstractVector) where {NDIMS_AMBIENT}

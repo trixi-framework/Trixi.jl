@@ -682,18 +682,18 @@ end
 @trixi_testset "elixir_euler_weak_blast_wave_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_amr.jl"),
                         l2=[
-                            0.011345993108796831,
-                            0.018525073963833696,
-                            0.019102348105917946,
-                            0.01920515438943838,
-                            0.15060493968460148
+                            0.012046270976464931,
+                            0.01894521652831441,
+                            0.01951983946363743,
+                            0.019748755875702628,
+                            0.15017285006198244
                         ],
                         linf=[
-                            0.2994949779783401,
-                            0.5530175050084679,
-                            0.5335803757792128,
-                            0.5647252867336123,
-                            3.6462732329242566
+                            0.3156585581400839,
+                            0.6653806948576124,
+                            0.5451454769741236,
+                            0.558669830478818,
+                            3.6406796982784635
                         ],
                         tspan=(0.0, 0.025),)
     # Ensure that we do not have excessive memory allocations
@@ -714,6 +714,9 @@ end
     @test isapprox(state_integrals[4], initial_state_integrals[4], atol = 1e-13)
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
+
+# Multi-ion MHD tests
+include("test_p4est_3d_mhdmultiion.jl")
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

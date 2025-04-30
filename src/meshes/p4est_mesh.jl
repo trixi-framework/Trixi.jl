@@ -594,7 +594,7 @@ function preprocess_standard_abaqus(meshfile,
     # Adjust `sets_begin_idx` to correct line number after removing unnecessary elements
     sets_begin_idx = elements_begin_idx + preproc_element_section_lines
 
-    return meshfile_preproc, elements_begin_idx, sets_begin_idx
+    return elements_begin_idx, sets_begin_idx
 end
 
 # p4est can handle only linear elements. This function checks the `meshfile_pre_proc` 
@@ -728,16 +728,21 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
     linear_hexes = r"^(C3D8).*$"
     quadratic_hexes = r"^(C3D27).*$"
 
-    meshfile_p4est_rdy = replace(meshfile, ".inp" => "_p4est_ready.inp")
+    meshfile_preproc = replace(meshfile, ".inp" => "_preproc.inp")
+
+    # Define variables that are retrieved in the MPI-parallel case on root and then bcasted
+    elements_begin_idx = -1
+    sets_begin_idx = -1
     mesh_polydeg = 1
+
     if !mpi_isparallel() || (mpi_isparallel() && mpi_isroot())
         # Preprocess the meshfile to remove lower-dimensional elements
-        meshfile_preproc, elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
-                                                                                          linear_quads,
-                                                                                          linear_hexes,
-                                                                                          quadratic_quads,
-                                                                                          quadratic_hexes,
-                                                                                          n_dimensions)
+        elements_begin_idx, sets_begin_idx = preprocess_standard_abaqus(meshfile,
+                                                                        linear_quads,
+                                                                        linear_hexes,
+                                                                        quadratic_quads,
+                                                                        quadratic_hexes,
+                                                                        n_dimensions)
 
         # Copy of mesh for p4est with linear elements only
         mesh_polydeg = preprocess_standard_abaqus_for_p4est(meshfile_preproc,
@@ -749,16 +754,21 @@ function p4est_connectivity_from_standard_abaqus(meshfile, mapping, polydeg,
                                                             sets_begin_idx)
     end
 
-    # Broadcast mesh_polydeg across all MPI ranks
+    # Broadcast from meshfile retrieved variables across all MPI ranks
     if mpi_isparallel()
         if mpi_isroot()
+            MPI.Bcast!(Ref(elements_begin_idx), mpi_root(), mpi_comm())
+            MPI.Bcast!(Ref(sets_begin_idx), mpi_root(), mpi_comm())
             MPI.Bcast!(Ref(mesh_polydeg), mpi_root(), mpi_comm())
         else
+            elements_begin_idx = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
+            sets_begin_idx = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
             mesh_polydeg = MPI.Bcast!(Ref(0), mpi_root(), mpi_comm())[]
         end
     end
 
     # Create the mesh connectivity using `p4est`
+    meshfile_p4est_rdy = replace(meshfile, ".inp" => "_p4est_ready.inp")
     connectivity = read_inp_p4est(meshfile_p4est_rdy, Val(n_dimensions))
     connectivity_pw = PointerWrapper(connectivity)
 
@@ -872,7 +882,7 @@ function parse_elements(meshfile, n_trees, n_dims,
 end
 
 function parse_node_sets(meshfile, boundary_symbols)
-    nodes_dict = Dict{Symbol, Vector{Int64}}()
+    nodes_dict = Dict{Symbol, Set{Int64}}()
     current_symbol = nothing
     current_nodes = Int64[]
 
@@ -888,14 +898,14 @@ function parse_node_sets(meshfile, boundary_symbols)
                 current_symbol = Symbol(split(line, "=")[2])
                 if current_symbol in boundary_symbols
                     # New nodeset
-                    current_nodes = Int64[]
+                    current_nodes = Set{Int64}()
                 else # Read only boundary node sets
                     current_symbol = nothing
                 end
             elseif current_symbol !== nothing # Read only if there was already a nodeset specified
                 try # Check if line contains nodes
                     # There is always a trailing comma, remove the corresponding empty string
-                    append!(current_nodes, parse.(Int64, split(line, ",")[1:(end - 1)]))
+                    union!(current_nodes, parse.(Int64, split(line, ",")[1:(end - 1)]))
                 catch # Something different, stop reading in nodes
                     # If parsing fails, set current_symbol to nothing
                     nodes_dict[current_symbol] = current_nodes
@@ -923,7 +933,7 @@ end
 function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             element_node_matrix, node_set_dict,
                                             ::Val{2}) # 2D version
-    for tree in 1:n_trees
+    @threaded for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
         # For node labeling, see
         # https://docs.software.vt.edu/abaqusv2022/English/SIMACAEELMRefMap/simaelm-r-2delem.htm#simaelm-r-2delem-t-nodedef1
@@ -964,7 +974,7 @@ end
 function assign_boundaries_standard_abaqus!(boundary_names, n_trees,
                                             element_node_matrix, node_set_dict,
                                             ::Val{3}) # 3D version
-    for tree in 1:n_trees
+    @threaded for tree in 1:n_trees
         tree_nodes = element_node_matrix[tree, :]
         # For node labeling, see
         # https://web.mit.edu/calculix_v2.7/CalculiX/ccx_2.7/doc/ccx/node26.html
