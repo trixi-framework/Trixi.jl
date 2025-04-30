@@ -38,11 +38,13 @@ function SemidiscretizationCoupled(semis...)
         n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
     end
 
-    # Compute range of coefficients associated with each semidiscretization.
+    # Compute range of coefficients associated with each semidiscretization and allocate coupled BCs
     u_indices = Vector{UnitRange{Int}}(undef, length(semis))
     for i in 1:length(semis)
         offset = sum(n_coefficients[1:(i - 1)]) + 1
         u_indices[i] = range(offset, length = n_coefficients[i])
+
+        allocate_coupled_boundary_conditions(semis[i])
     end
 
     performance_counter = PerformanceCounter()
@@ -521,6 +523,41 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
     end
 
     return flux
+end
+
+function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
+    n_boundaries = 2 * ndims(semi)
+    mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
+
+    for direction in 1:n_boundaries
+        boundary_condition = semi.boundary_conditions[direction]
+
+        allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
+                                            equations,
+                                            solver)
+    end
+end
+
+# Don't do anything for other BCs than BoundaryConditionCoupled
+function allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
+                                             equations,
+                                             solver)
+    return nothing
+end
+
+# In 2D
+function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
+                                             direction, mesh, equations, dg::DGSEM)
+    if direction in (1, 2)
+        cell_size = size(mesh, 2)
+    else
+        cell_size = size(mesh, 1)
+    end
+
+    uEltype = eltype(boundary_condition)
+    boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
+                                                      nnodes(dg),
+                                                      cell_size)
 end
 
 # Don't do anything for other BCs than BoundaryConditionCoupled
