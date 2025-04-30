@@ -133,7 +133,7 @@ makedocs(
                                   # Explicitly add favicon as asset
                                   assets = ["assets/favicon.ico"],
                                   # Set canonical URL to GitHub pages URL
-                                  canonical = "https://trixi-framework.github.io/Trixi.jl/stable",
+                                  canonical = "https://trixi-framework.github.io/TrixiDocumentation/stable",
                                   size_threshold_ignore = ["reference-trixi.md"]),
          # Explicitly specify documentation structure
          pages = [
