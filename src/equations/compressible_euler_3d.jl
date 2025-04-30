@@ -216,8 +216,7 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
     C_grav = -4 * G / (3 * convert(RealT, pi)) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
 
     x1, x2, x3 = x
-    # TODO: sincospi
-    si, co = sincos(convert(RealT, pi) * (x1 + x2 + x3 - t))
+    si, co = sincospi(x1 + x2 + x3 - t)
     rhox = A * convert(RealT, pi) * co
     rho = c + A * si
 
@@ -254,8 +253,7 @@ function source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquati
     C_grav = -4 * G / (3 * convert(RealT, pi)) # "3" is the number of spatial dimensions
 
     x1, x2, x3 = x
-    # TODO: sincospi
-    si, co = sincos(convert(RealT, pi) * (x1 + x2 + x3 - t))
+    si, co = sincospi(convert(RealT, pi) * (x1 + x2 + x3 - t))
     rhox = A * convert(RealT, pi) * co
     rho = c + A * si
 
