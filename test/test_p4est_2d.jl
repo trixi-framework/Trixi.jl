@@ -667,7 +667,8 @@ end
 end
 
 @trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave_nonconforming.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_nonconforming.jl"),
                         l2=[0.032257043714485005,
                             0.0698809831015213,
                             0.07024507293378073,
