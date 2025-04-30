@@ -666,6 +666,37 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_alfven_wave_nonconforming.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_alfven_wave.jl"),
+                        l2=[3.38758785e-02,
+                            6.54708863e-02,
+                            6.55081539e-02,
+                            9.39987020e-02,
+                            3.20752613e-02,
+                            6.25274591e-02,
+                            6.31233765e-02,
+                            9.38424858e-02,
+                            6.07692750e-03],
+                        linf=[1.54320019e-01,
+                              1.78585014e-01,
+                              1.68814372e-01,
+                              2.13456044e-01,
+                              1.16827292e-01,
+                              1.75370136e-01,
+                              1.70111319e-01,
+                              2.15608452e-01,
+                              6.11730941e-02],
+                        tspan=(0.0, 0.25))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_rotor.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_rotor.jl"),
                         l2=[0.4551839744017604, 0.8917986079085971, 0.832474072904728,
