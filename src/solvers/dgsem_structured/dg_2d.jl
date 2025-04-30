@@ -572,7 +572,9 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
         for j in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
                                              boundary_conditions[direction],
-                                             mesh, equations, surface_integral, dg,
+                                             mesh,
+                                             have_nonconservative_terms(equations),
+                                             equations, surface_integral, dg,
                                              cache,
                                              direction, (1, j), (j,), element)
         end
@@ -584,7 +586,9 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
         for j in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, u, t, 1,
                                              boundary_conditions[direction],
-                                             mesh, equations, surface_integral, dg,
+                                             mesh,
+                                             have_nonconservative_terms(equations),
+                                             equations, surface_integral, dg,
                                              cache,
                                              direction, (nnodes(dg), j), (j,), element)
         end
@@ -598,7 +602,9 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
         for i in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
                                              boundary_conditions[direction],
-                                             mesh, equations, surface_integral, dg,
+                                             mesh,
+                                             have_nonconservative_terms(equations),
+                                             equations, surface_integral, dg,
                                              cache,
                                              direction, (i, 1), (i,), element)
         end
@@ -610,7 +616,9 @@ function calc_boundary_flux!(cache, u, t, boundary_conditions::NamedTuple,
         for i in eachnode(dg)
             calc_boundary_flux_by_direction!(surface_flux_values, u, t, 2,
                                              boundary_conditions[direction],
-                                             mesh, equations, surface_integral, dg,
+                                             mesh,
+                                             have_nonconservative_terms(equations),
+                                             equations, surface_integral, dg,
                                              cache,
                                              direction, (i, nnodes(dg)), (i,), element)
         end

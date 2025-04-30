@@ -3,18 +3,22 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+# with two additional passive tracer variables
 flow_equations = CompressibleEulerEquations1D(1.4)
-equations = PassiveTracerEquations(flow_equations, 2)
+equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
 
 initial_condition = initial_condition_density_wave
 
 volume_flux = FluxTracerEquationsCentral(flux_ranocha)
-solver = DGSEM(polydeg = 3, surface_flux = FluxTracerEquationsCentral(flux_ranocha))
+
+solver = DGSEM(polydeg = 3,
+               surface_flux = flux_lax_friedrichs,
+               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
 coordinates_min = -1.0
 coordinates_max = 1.0
 mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 5,
+                initial_refinement_level = 2,
                 n_cells_max = 30_000)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
@@ -47,6 +51,7 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
+sol = solve(ode,
+            CarpenterKennedy2N54(williamson_condition = false);
             dt = stepsize_callback(ode), # solve needs some value here but it will be overwritten by the stepsize_callback
             ode_default_options()..., callback = callbacks);

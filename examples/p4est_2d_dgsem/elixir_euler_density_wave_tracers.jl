@@ -3,13 +3,13 @@ using Trixi
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
+# with two additional passive tracer variables
 gamma = 1.4
 flow_equations = CompressibleEulerEquations2D(gamma)
-equations = PassiveTracerEquations(flow_equations, 2)
+equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
 
 initial_condition = initial_condition_density_wave
 
-volume_flux = FluxTracerEquationsCentral(flux_ranocha)
 solver = DGSEM(polydeg = 5, surface_flux = FluxTracerEquationsCentral(flux_ranocha))
 
 coordinates_min = (-1.0, -1.0)
