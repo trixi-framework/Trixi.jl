@@ -190,22 +190,22 @@ function rhs!(du, u, t, u_global,
 
     # Calculate volume integral
     @trixi_timeit timer() "volume integral" begin
-    calc_volume_integral!(du, u, mesh,
-                        have_nonconservative_terms(equations), equations,
-                        dg.volume_integral, dg, cache)
+        calc_volume_integral!(du, u, mesh,
+                              have_nonconservative_terms(equations), equations,
+                              dg.volume_integral, dg, cache)
     end
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache, u, mesh, equations,
-                        dg.surface_integral, dg)
+                            dg.surface_integral, dg)
     end
 
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                        have_nonconservative_terms(equations), equations,
-                        dg.surface_integral, dg, cache)
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg, cache)
     end
 
     # # Extract the boundaries for this mesh view.
@@ -219,29 +219,29 @@ function rhs!(du, u, t, u_global,
                             dg.surface_integral, dg)
     end
 
-#         # Calculate boundary fluxes
-#         @trixi_timeit timer() "boundary flux" begin
-#             calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-#                                 dg.surface_integral, dg)
-#         end
+    #         # Calculate boundary fluxes
+    #         @trixi_timeit timer() "boundary flux" begin
+    #             calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+    #                                 dg.surface_integral, dg)
+    #         end
 
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
         prolong2mortars!(cache, u, mesh, equations,
-                    dg.mortar, dg)
+                         dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                        have_nonconservative_terms(equations), equations,
-                        dg.mortar, dg.surface_integral, dg, cache)
+                          have_nonconservative_terms(equations), equations,
+                          dg.mortar, dg.surface_integral, dg, cache)
     end
 
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations,
-                            dg.surface_integral, dg, cache)
+                               dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element

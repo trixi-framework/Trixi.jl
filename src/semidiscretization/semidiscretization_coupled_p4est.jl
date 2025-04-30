@@ -700,4 +700,3 @@ function get_boundary_indices(element, orientation,
     return cell_indices
 end
 end # @muladd
-
