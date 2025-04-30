@@ -111,7 +111,7 @@ end
 # TODO: Taal discuss/refactor timer, allowing users to pass a custom timer?
 
 function rhs!(du, u, t,
-              mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+              mesh::Union{TreeMesh{2}, P4estMesh{2}, T8codeMesh{2}},
               equations,
               boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
@@ -144,11 +144,11 @@ function rhs!(du, u, t,
                             dg.surface_integral, dg)
     end
 
-    #     # Calculate boundary fluxes
-    #     @trixi_timeit timer() "boundary flux" begin
-    #         calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-    #                             dg.surface_integral, dg)
-    #     end
+    # Calculate boundary fluxes
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+                            dg.surface_integral, dg)
+    end
 
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
@@ -180,7 +180,7 @@ function rhs!(du, u, t,
     return nothing
 end
 
-function rhs!(du, u, u_global, t,
+function rhs!(du, u, t, u_global,
               mesh::P4estMeshView{2},
               equations,
               boundary_conditions, source_terms::Source,
@@ -208,10 +208,10 @@ function rhs!(du, u, u_global, t,
                         dg.surface_integral, dg, cache)
     end
 
-    # Extract the boundaries for this mesh view.
-    @trixi_timeit timer() "restrict_boundaries_to_view" begin
-        restrict_boundaries_to_view!(cache, mesh)
-    end
+    # # Extract the boundaries for this mesh view.
+    # @trixi_timeit timer() "restrict_boundaries_to_view" begin
+    #     restrict_boundaries_to_view!(cache, mesh)
+    # end
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
