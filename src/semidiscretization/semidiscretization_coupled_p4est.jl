@@ -171,11 +171,11 @@ end
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
-    @trixi_timeit timer() "copy to coupled boundaries" begin
-        foreach(semi.semis) do semi_
-            copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
-        end
-    end
+    # @trixi_timeit timer() "copy to coupled boundaries" begin
+    #     foreach(semi.semis) do semi_
+    #         copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
+    #     end
+    # end
 
     # Call rhs! for each semidiscretization
     foreach_enumerate(semi.semis) do (i, semi_)
@@ -559,91 +559,91 @@ function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditi
                                                       cell_size)
 end
 
-# Don't do anything for other BCs than BoundaryConditionCoupled
-function copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi)
-    return nothing
-end
+# # Don't do anything for other BCs than BoundaryConditionCoupled
+# function copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi)
+#     return nothing
+# end
 
-function copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i, n_boundaries,
-                                   boundary_condition, boundary_conditions...)
-    copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi)
-    if i < n_boundaries
-        copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i + 1, n_boundaries,
-                                  boundary_conditions...)
-    end
-end
+# function copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i, n_boundaries,
+#                                    boundary_condition, boundary_conditions...)
+#     copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi)
+#     if i < n_boundaries
+#         copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i + 1, n_boundaries,
+#                                   boundary_conditions...)
+#     end
+# end
 
-function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode,
-                                   semi_coupled, semi)
-    copy_to_coupled_boundary!(u_ode, semi_coupled, semi, 1, length(boundary_conditions),
-                              boundary_conditions...)
-end
+# function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode,
+#                                    semi_coupled, semi)
+#     copy_to_coupled_boundary!(u_ode, semi_coupled, semi, 1, length(boundary_conditions),
+#                               boundary_conditions...)
+# end
 
-# In 2D
-function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2,
-                                                                                other_semi_index},
-                                   u_ode, semi_coupled, semi) where {other_semi_index}
-    @unpack u_indices = semi_coupled
-    @unpack other_orientation, indices = boundary_condition
-    @unpack coupling_converter, u_boundary = boundary_condition
+# # In 2D
+# function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2,
+#                                                                                 other_semi_index},
+#                                    u_ode, semi_coupled, semi) where {other_semi_index}
+#     @unpack u_indices = semi_coupled
+#     @unpack other_orientation, indices = boundary_condition
+#     @unpack coupling_converter, u_boundary = boundary_condition
 
-    mesh_own, equations_own, solver_own, cache_own = mesh_equations_solver_cache(semi)
-    other_semi = semi_coupled.semis[other_semi_index]
-    mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(other_semi)
+#     mesh_own, equations_own, solver_own, cache_own = mesh_equations_solver_cache(semi)
+#     other_semi = semi_coupled.semis[other_semi_index]
+#     mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(other_semi)
 
-    node_coordinates_other = cache_other.elements.node_coordinates
-    u_ode_other = get_system_u_ode(u_ode, other_semi_index, semi_coupled)
-    u_other = wrap_array(u_ode_other, mesh_other, equations_other, solver_other,
-                         cache_other)
+#     node_coordinates_other = cache_other.elements.node_coordinates
+#     u_ode_other = get_system_u_ode(u_ode, other_semi_index, semi_coupled)
+#     u_other = wrap_array(u_ode_other, mesh_other, equations_other, solver_other,
+#                          cache_other)
 
-    linear_indices = LinearIndices(size(mesh_other))
+#     linear_indices = LinearIndices(size(mesh_other))
 
-    if other_orientation == 1
-        cells = axes(mesh_other, 2)
-    else # other_orientation == 2
-        cells = axes(mesh_other, 1)
-    end
+#     if other_orientation == 1
+#         cells = axes(mesh_other, 2)
+#     else # other_orientation == 2
+#         cells = axes(mesh_other, 1)
+#     end
 
-    # Copy solution data to the coupled boundary using "delayed indexing" with
-    # a start value and a step size to get the correct face and orientation.
-    node_index_range = eachnode(solver_other)
-    i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
-    j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
+#     # Copy solution data to the coupled boundary using "delayed indexing" with
+#     # a start value and a step size to get the correct face and orientation.
+#     node_index_range = eachnode(solver_other)
+#     i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
+#     j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
 
-    i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
-    j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
+#     i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
+#     j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
 
-    # We need indices starting at 1 for the handling of `i_cell` etc.
-    Base.require_one_based_indexing(cells)
+#     # We need indices starting at 1 for the handling of `i_cell` etc.
+#     Base.require_one_based_indexing(cells)
 
-    @threaded for i in eachindex(cells)
-        cell = cells[i]
-        i_cell = i_cell_start + (i - 1) * i_cell_step
-        j_cell = j_cell_start + (i - 1) * j_cell_step
+#     @threaded for i in eachindex(cells)
+#         cell = cells[i]
+#         i_cell = i_cell_start + (i - 1) * i_cell_step
+#         j_cell = j_cell_start + (i - 1) * j_cell_step
 
-        i_node = i_node_start
-        j_node = j_node_start
-        element_id = linear_indices[i_cell, j_cell]
+#         i_node = i_node_start
+#         j_node = j_node_start
+#         element_id = linear_indices[i_cell, j_cell]
 
-        for element_id in eachnode(solver_other)
-            x_other = get_node_coords(node_coordinates_other, equations_other,
-                                      solver_other,
-                                      i_node, j_node, linear_indices[i_cell, j_cell])
-            u_node_other = get_node_vars(u_other, equations_other, solver_other, i_node,
-                                         j_node, linear_indices[i_cell, j_cell])
-            u_node_converted = coupling_converter(x_other, u_node_other,
-                                                  equations_other,
-                                                  equations_own)
+#         for element_id in eachnode(solver_other)
+#             x_other = get_node_coords(node_coordinates_other, equations_other,
+#                                       solver_other,
+#                                       i_node, j_node, linear_indices[i_cell, j_cell])
+#             u_node_other = get_node_vars(u_other, equations_other, solver_other, i_node,
+#                                          j_node, linear_indices[i_cell, j_cell])
+#             u_node_converted = coupling_converter(x_other, u_node_other,
+#                                                   equations_other,
+#                                                   equations_own)
 
-            for i in eachindex(u_node_converted)
-                u_boundary[i, element_id, cell] = u_node_converted[i]
-            end
+#             for i in eachindex(u_node_converted)
+#                 u_boundary[i, element_id, cell] = u_node_converted[i]
+#             end
 
-            i_node += i_node_step
-            j_node += j_node_step
-        end
-    end
-end
+#             i_node += i_node_step
+#             j_node += j_node_step
+#         end
+#     end
+# end
 
 ################################################################################
 ### DGSEM/structured
