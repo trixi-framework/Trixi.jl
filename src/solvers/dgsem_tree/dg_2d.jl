@@ -204,8 +204,8 @@ function rhs!(du, u, u_global, t,
     # Calculate interface fluxes
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
-                        have_nonconservative_terms(equations), equations,
-                        dg.surface_integral, dg, cache)
+                             have_nonconservative_terms(equations), equations,
+                             dg.surface_integral, dg, cache)
     end
 
     # Extract the boundaries for this mesh view.
