@@ -85,8 +85,6 @@ end
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-        # TODO: `view()` within `prolong2mortars` and `mortar flux` creates allocations
-        # This also happens for standard DG simulations with AMR.
     end
 end
 
@@ -602,7 +600,7 @@ end
                         alternative=true, local_factor=false,
                         l2=[
                             0.5597349371368964,
-                            0.23236224182845033,
+                            0.23236224656270477,
                             0.23140311168434288,
                             0.7034630477001529
                         ],
@@ -632,16 +630,16 @@ end
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
                         alternative=false,
                         l2=[
-                            0.5661809201412991,
-                            0.23414173977241073,
-                            0.23448622905595354,
-                            0.7049402156739262
+                            0.5661811293770421,
+                            0.23414189161032448,
+                            0.234486278634814,
+                            0.7049405559250281
                         ],
                         linf=[
-                            2.323103591026165,
-                            1.191484161047329,
-                            1.1977284286748358,
-                            2.9758435679082553
+                            2.3231040236059366,
+                            1.1914843441075436,
+                            1.1977285198376395,
+                            2.9758323627646512
                         ],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
@@ -655,8 +653,6 @@ end
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
-        # TODO: `view()` within `prolong2mortars` and `mortar flux` creates allocations
-        # This also happens for standard DG simulations with AMR.
     end
 end
 
