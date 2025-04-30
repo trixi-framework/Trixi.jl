@@ -181,10 +181,10 @@ function rhs!(du, u, t,
 end
 
 function rhs!(du, u, u_global, t,
-    mesh::P4estMeshView{2},
-    equations,
-    boundary_conditions, source_terms::Source,
-    dg::DG, cache) where {Source}
+              mesh::P4estMeshView{2},
+              equations,
+              boundary_conditions, source_terms::Source,
+              dg::DG, cache) where {Source}
     # Reset du
     @trixi_timeit timer() "reset ∂u/∂t" reset_du!(du, dg, cache)
 
