@@ -253,7 +253,7 @@ function source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquati
     C_grav = -4 * G / (3 * convert(RealT, pi)) # "3" is the number of spatial dimensions
 
     x1, x2, x3 = x
-    si, co = sincospi(convert(RealT, pi) * (x1 + x2 + x3 - t))
+    si, co = sincospi(x1 + x2 + x3 - t)
     rhox = A * convert(RealT, pi) * co
     rho = c + A * si
 
