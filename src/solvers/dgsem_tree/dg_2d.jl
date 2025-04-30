@@ -241,7 +241,7 @@ function rhs!(du, u, u_global, t,
     # Calculate surface integrals
     @trixi_timeit timer() "surface integral" begin
         calc_surface_integral!(du, u, mesh, equations,
-                            dg.surface_integral, dg, cache)
+                               dg.surface_integral, dg, cache)
     end
 
     # Apply Jacobian from mapping to reference element
