@@ -275,7 +275,6 @@ function prolong2boundaries!(cache, u,
 
     return nothing
 end
-    
 function prolong2boundaries!(cache, u, u_global,
                              mesh::P4estMeshView{2},
                              equations, surface_integral, dg::DG)
