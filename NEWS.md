@@ -17,6 +17,11 @@ for human readability.
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 - Passive tracers for arbitrary equations with density and flow variables ([#2364])
 
+#### Deprecated
+
+- The (2D) aerodynamic coefficients 
+  `DragCoefficientPressure, LiftCoefficientPressure, DragCoefficientShearStress, LiftCoefficientShearStress` have been renamed to 
+  `DragCoefficientPressure2D, LiftCoefficientPressure2D, DragCoefficientShearStress2D, LiftCoefficientShearStress2D`. ([#2375])
 
 ## Changes when updating to v0.11 from v0.10.x
 
