@@ -994,6 +994,27 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_onion.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_onion.jl"),
+                        l2=[0.006145639992956197, 0.042989758089762846,
+                            0.009442309049940338, 0.0,
+                            0.02346607486955775, 0.003700847949592663,
+                            0.006939946054722184, 0.0, 5.379622479061923e-7],
+                        linf=[0.04033992113717777, 0.2507389500590965,
+                            0.055979197375423013, 0.0,
+                            0.14115256348718286, 0.01995761261479112,
+                            0.038667260744994936, 0.0,
+                            3.3767778019495598e-6])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
                         l2=[0.03641928087745194, 0.04266672246194787,
