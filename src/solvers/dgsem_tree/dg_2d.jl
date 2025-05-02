@@ -208,11 +208,6 @@ function rhs!(du, u, t, u_global,
                              dg.surface_integral, dg, cache)
     end
 
-    # # Extract the boundaries for this mesh view.
-    # @trixi_timeit timer() "restrict_boundaries_to_view" begin
-    #     restrict_boundaries_to_view!(cache, mesh)
-    # end
-
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
         prolong2boundaries!(cache, u, u_global, mesh, equations,

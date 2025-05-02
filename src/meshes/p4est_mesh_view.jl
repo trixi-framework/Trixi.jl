@@ -60,8 +60,11 @@ function extract_p4est_mesh_view(elements_parent,
                                                                                    mesh.cell_ids]
     @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
                                                                                mesh.cell_ids]
-    # Extract interfaces that belong to mesh view
+    # Extract interfaces that belong to mesh view.
     interfaces = extract_interfaces(mesh, interfaces_parent)
+
+    # Extract boundaries of this mesh view.
+    boundaries = extract_boundaries!(mesh, boundaries_parent, interfaces_parent, interfaces)
 
     return elements, interfaces, boundaries_parent, mortars_parent
 end
@@ -97,6 +100,56 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     end
 
     return interfaces
+end
+
+# Remove all boundaries that are not part of this p4est mesh view and add new boundaries
+# that were interfaces of the parent mesh.
+function extract_boundaries!(mesh::P4estMeshView, boundaries_parent, interfaces_parent, interfaces)
+    # Remove all boundaries that are not part of this p4est mesh view.
+    boundaries = deepcopy(boundaries_parent)
+    mask = BitArray(undef, nboundaries(boundaries_parent))
+    for boundary in 1:size(boundaries_parent.neighbor_ids)[1]
+        mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
+    end
+    boundaries.neighbor_ids = boundaries_parent.neighbor_ids[mask]
+    boundaries.name = boundaries_parent.name[mask]
+    boundaries.node_indices = boundaries_parent.node_indices[mask]
+    # boundaries.u = boundaries_parent.u[:, :, mask]
+
+    # Add new boundaries that were interfaces of the parent mesh.
+    for interface in 1:size(interfaces_parent.neighbor_ids)[2]
+        if ((interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
+            !(interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)) ||
+            ((interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids) &&
+            !(interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids))
+            if interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids
+                neighbor_id = interfaces_parent.neighbor_ids[1, interface]
+                view_idx = 1
+            else
+                neighbor_id = interfaces_parent.neighbor_ids[2, interface]
+                view_idx = 2
+            end
+
+            push!(boundaries.neighbor_ids, neighbor_id)
+            if interfaces_parent.node_indices[view_idx, interface] == (:end, :i_forward)
+                push!(boundaries.name, :x_pos)
+            elseif interfaces_parent.node_indices[view_idx, interface] == (:begin, :i_forward)
+                push!(boundaries.name, :x_neg)
+            elseif interfaces_parent.node_indices[view_idx, interface] == (:i_forward, :end)
+                push!(boundaries.name, :y_pos)
+            else
+                push!(boundaries.name, :y_neg)
+            end
+
+            push!(boundaries.node_indices, interfaces_parent.node_indices[view_idx, interface])
+
+        end
+    end
+
+    boundaries.u = zeros(typeof(boundaries_parent.u).parameters[1],
+                         (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2], size(boundaries.node_indices)[end]))
+
+    @autoinfiltrate
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
