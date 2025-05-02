@@ -282,6 +282,7 @@ function prolong2boundaries!(cache, u, u_global,
     @unpack interfaces, boundaries = cache
     index_range = eachnode(dg)
 
+    @autoinfiltrate
     @threaded for boundary in eachboundary(dg, cache)
         # Copy solution data from the element using "delayed indexing" with
         # a start value and a step size to get the correct face and orientation.

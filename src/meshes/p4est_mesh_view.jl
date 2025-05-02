@@ -64,9 +64,9 @@ function extract_p4est_mesh_view(elements_parent,
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
     # Extract boundaries of this mesh view.
-    boundaries = extract_boundaries!(mesh, boundaries_parent, interfaces_parent, interfaces)
+    boundaries = extract_boundaries(mesh, boundaries_parent, interfaces_parent, interfaces)
 
-    return elements, interfaces, boundaries_parent, mortars_parent
+    return elements, interfaces, boundaries, mortars_parent
 end
 
 # Remove all interfaces that have a tuple of neighbor_ids where at least one is
@@ -104,7 +104,7 @@ end
 
 # Remove all boundaries that are not part of this p4est mesh view and add new boundaries
 # that were interfaces of the parent mesh.
-function extract_boundaries!(mesh::P4estMeshView, boundaries_parent, interfaces_parent, interfaces)
+function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_parent, interfaces)
     # Remove all boundaries that are not part of this p4est mesh view.
     boundaries = deepcopy(boundaries_parent)
     mask = BitArray(undef, nboundaries(boundaries_parent))
@@ -114,7 +114,6 @@ function extract_boundaries!(mesh::P4estMeshView, boundaries_parent, interfaces_
     boundaries.neighbor_ids = boundaries_parent.neighbor_ids[mask]
     boundaries.name = boundaries_parent.name[mask]
     boundaries.node_indices = boundaries_parent.node_indices[mask]
-    # boundaries.u = boundaries_parent.u[:, :, mask]
 
     # Add new boundaries that were interfaces of the parent mesh.
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
@@ -148,8 +147,8 @@ function extract_boundaries!(mesh::P4estMeshView, boundaries_parent, interfaces_
 
     boundaries.u = zeros(typeof(boundaries_parent.u).parameters[1],
                          (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2], size(boundaries.node_indices)[end]))
-
-    @autoinfiltrate
+    
+    return boundaries
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
