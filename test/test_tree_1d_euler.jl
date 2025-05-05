@@ -448,6 +448,59 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_quasi_1d_source_terms_dirichlet.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_quasi_1d_source_terms_dirichlet.jl"),
+                        l2=[
+                            4.872024234552286e-7,
+                            3.130367137655672e-7,
+                            3.769970598394213e-7,
+                            5.271698341013997e-8
+                        ],
+                        linf=[
+                            3.2661405451328562e-6,
+                            1.7577543389712957e-6,
+                            2.5106918934980627e-6,
+                            1.1166012159335992e-7
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_quasi_1d_source_terms_dirichlet.jl with LLF-dissipation" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_quasi_1d_source_terms_dirichlet.jl"),
+                        l2=[
+                            9.186083331399549e-7,
+                            4.6021844470935155e-7,
+                            6.652256237473482e-7,
+                            5.271698341013997e-8
+                        ],
+                        linf=[
+                            3.425473511065036e-6,
+                            2.1611905385299224e-6,
+                            2.7957639341380514e-6,
+                            1.1166012159335992e-7
+                        ],
+                        surface_flux=(FluxPlusDissipation(flux_chan_etal,
+                                                          DissipationLocalLaxFriedrichs()),
+                                      flux_nonconservative_chan_etal))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_quasi_1d_discontinuous.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_quasi_1d_discontinuous.jl"),
