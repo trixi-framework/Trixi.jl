@@ -489,40 +489,108 @@ of the correct length `nvariables(equations)`.
 """
 function density_pressure end
 
-# TODO: SWE docstring need to be changed if SWE are moved.
 """
     waterheight(u, equations)
 
 Return the water height associated to the conserved variables `u` for a given set of
-`equations`, e.g., the [`ShallowWaterEquations2D`](@ref).
+`equations`.
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
 """
 function waterheight end
 
-# TODO: SWE docstring need to be changed if SWE are moved.
 """
     waterheight_pressure(u, equations)
 
 Return the product of the [`waterheight`](@ref) and the [`pressure`](@ref)
 associated to the conserved variables `u` for a given set of
-`equations`, e.g., the [`ShallowWaterEquations2D`](@ref).
+`equations`.
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
 """
 function waterheight_pressure end
 
-# TODO: SWE function that might be moved
+"""
+    flux_wintermeyer_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Total energy conservative (mathematical entropy for shallow water equations) split form.
+When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
+For the `surface_flux` either [`flux_wintermeyer_etal`](@ref) or [`flux_fjordholm_etal`](@ref) can
+be used to ensure well-balancedness and entropy conservation.
+
+Further details are available in Theorem 1 of the paper:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
+  An entropy stable nodal discontinuous Galerkin method for the two dimensional
+  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
+  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+"""
 function flux_wintermeyer_etal end
+
+"""
+    flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Non-symmetric two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography for the shallow water equations.
+
+Gives entropy conservation and well-balancedness on both the volume and surface when combined with
+[`flux_wintermeyer_etal`](@ref).
+
+Further details are available in the papers:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
+  An entropy stable nodal discontinuous Galerkin method for the two dimensional
+  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
+  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+- Patrick Ersing, Andrew R. Winters (2023)
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on
+  curvilinear meshes
+  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
+"""
 function flux_nonconservative_wintermeyer_etal end
+
+"""
+    flux_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Total energy conservative (mathematical entropy for shallow water equations). When the bottom topography
+is nonzero this should only be used as a surface flux otherwise the scheme will not be well-balanced.
+For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
+
+Details are available in Eq. (4.1) in the paper:
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
+  Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
+  [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
+"""
 function flux_fjordholm_etal end
+
+"""
+    flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
+that contains the gradient of the bottom topography for the shallow water equations.
+
+This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces to ensure entropy
+conservation and well-balancedness.
+
+Further details for the original finite volume formulation are available in
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
+  Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
+  [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
+and for curvilinear 2D case in the paper:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
+  An entropy stable nodal discontinuous Galerkin method for the two dimensional
+  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
+  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+"""
 function flux_nonconservative_fjordholm_etal end
+
+# TODO: will this be used for TrixiAtmo? Right now it is not used anywhere.
+"""
+    lake_at_rest_error(u, equations)
+    
+Calculate the point-wise error for the lake-at-rest steady state solution.
+"""
 function lake_at_rest_error end
-# waterheight
-# waterheight_pressure
-# AbstractShallowWaterEquations
 
 # Default implementation of gradient for `variable`. Used for subcell limiting.
 # Implementing a gradient function for a specific variable improves the performance.
@@ -548,7 +616,6 @@ abstract type AbstractInviscidBurgersEquation{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("inviscid_burgers_1d.jl")
 
-# TODO: SWE move the abstract type?
 # Shallow water equations
 abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
