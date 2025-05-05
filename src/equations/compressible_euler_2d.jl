@@ -201,7 +201,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     RealT = eltype(x)
     c = 2
     A = convert(RealT, 0.1)
-    ini = c + A * sin(convert(RealT, pi) * (x[1] + x[2] - t))
+    ini = c + A * sinpi(x[1] + x[2] - t)
     G = 1 # gravitational constant
 
     rho = ini
@@ -231,7 +231,7 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
     C_grav = -2 * G / convert(RealT, pi) # 2 == 4 / ndims
 
     x1, x2 = x
-    si, co = sincos(convert(RealT, pi) * (x1 + x2 - t))
+    si, co = sincospi(x1 + x2 - t)
     rhox = A * convert(RealT, pi) * co
     rho = c + A * si
 
@@ -262,7 +262,7 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
     C_grav = -2 * G / convert(RealT, pi) # 2 == 4 / ndims
 
     x1, x2 = x
-    si, co = sincos(convert(RealT, pi) * (x1 + x2 - t))
+    si, co = sincospi(x1 + x2 - t)
     rhox = A * convert(RealT, pi) * co
     rho = c + A * si
 
