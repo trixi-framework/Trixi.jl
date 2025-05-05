@@ -293,6 +293,40 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_onion.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_onion.jl"),
+                        l2=[
+                            0.00614548405794654,
+                            0.042989380442325725,
+                            0.009442063870517561,
+                            0.0,
+                            0.02346706930065182,
+                            0.0037020915953143024,
+                            0.006940582944202888,
+                            0.0,
+                            4.214503033596325e-5
+                        ],
+                        linf=[
+                            0.04031356958647381,
+                            0.25093375101952786,
+                            0.05637253778069729,
+                            0.0,
+                            0.14104797024837445,
+                            0.019993258475708875,
+                            0.038589467408206346,
+                            0.0,
+                            0.0008480375327884082
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 # TODO: FD; for now put the unstructured tests for the 2D FDSBP here.
 @trixi_testset "FDSBP (central): elixir_advection_basic.jl" begin
     @test_trixi_include(joinpath(pkgdir(Trixi, "examples", "unstructured_2d_fdsbp"),
