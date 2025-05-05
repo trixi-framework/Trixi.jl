@@ -63,7 +63,7 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surf_flux,
 #path = "/storage/home/daniel/PERK4/SD7003/"
 
 path = "/home/daniel/ownCloud - Döhring, Daniel (1MH1D4@rwth-aachen.de)@rwth-aachen.sciebo.de/Job/Doktorand/Content/Meshes/PERK_mesh/SD7003Turbulent/"
-mesh_file = path * "sd7003_reduced.inp"
+mesh_file = path * "sd7003_reduced_relabeled.inp"
 #mesh_file = path * "sd7003_straight_Trixi.inp"
 
 boundary_symbols = [:wall, :rieminv]
