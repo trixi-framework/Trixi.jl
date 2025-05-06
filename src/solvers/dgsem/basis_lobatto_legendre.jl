@@ -145,32 +145,30 @@ end
 left_boundary_weight(basis::LobattoLegendreBasis) = first(basis.weights)
 right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
-struct LobattoLegendreMortarIDP{RealT <: Real, NNODES,
-                                ForwardMatrix <: AbstractMatrix{RealT},
-                                ReverseMatrix <: AbstractMatrix{RealT}} <:
+struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
        AbstractMortarL2{RealT}
-    alternative::Bool
     local_factor::Bool
-    forward_upper::ForwardMatrix
-    forward_lower::ForwardMatrix
-    reverse_upper::ReverseMatrix
-    reverse_lower::ReverseMatrix
+    mortar_l2::Mortar
     local_mortar_weights::Matrix{RealT}
+end
+
+struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES, Mortar,
+                                           ForwardMatrix <: AbstractMatrix{RealT},
+                                           ReverseMatrix <: AbstractMatrix{RealT}} <:
+       AbstractMortarL2{RealT}
+    mortar_l2::Mortar
     forward_upper_low_order::ForwardMatrix
     forward_lower_low_order::ForwardMatrix
     reverse_upper_low_order::ReverseMatrix
     reverse_lower_low_order::ReverseMatrix
 end
 
-function MortarIDP(basis::LobattoLegendreBasis; local_factor = false,
-                   alternative = false, first_order = true)
+function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
+                   local_factor = true, first_order = true)
     RealT = real(basis)
     nnodes_ = nnodes(basis)
 
-    forward_upper = calc_forward_upper(nnodes_, RealT)
-    forward_lower = calc_forward_lower(nnodes_, RealT)
-    reverse_upper = calc_reverse_upper(nnodes_, Val(:gauss), RealT)
-    reverse_lower = calc_reverse_lower(nnodes_, Val(:gauss), RealT)
+    mortar_l2 = MortarL2(basis)
 
     local_mortar_weights = calc_mortar_weights(basis, RealT; first_order = first_order)
 
@@ -181,15 +179,19 @@ function MortarIDP(basis::LobattoLegendreBasis; local_factor = false,
     reverse_lower_low_order = calc_reverse_lower_low_order(nnodes_, Val(:gauss_lobatto),
                                                            RealT)
 
-    LobattoLegendreMortarIDP{RealT, nnodes_, typeof(forward_upper),
-                             typeof(reverse_upper)}(alternative, local_factor,
-                                                    forward_upper, forward_lower,
-                                                    reverse_upper, reverse_lower,
-                                                    local_mortar_weights,
-                                                    forward_upper_low_order,
-                                                    forward_lower_low_order,
-                                                    reverse_upper_low_order,
-                                                    reverse_lower_low_order)
+    if alternative
+        LobattoLegendreMortarIDPAlternative{RealT, nnodes_, typeof(mortar_l2),
+                                            typeof(forward_upper_low_order),
+                                            typeof(reverse_upper_low_order)}(mortar_l2,
+                                                                             forward_upper_low_order,
+                                                                             forward_lower_low_order,
+                                                                             reverse_upper_low_order,
+                                                                             reverse_lower_low_order)
+    else
+        LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(local_factor,
+                                                                    mortar_l2,
+                                                                    local_mortar_weights)
+    end
 end
 
 function Base.show(io::IO, mortar::LobattoLegendreMortarIDP)
@@ -213,7 +215,15 @@ end
     NNODES
 end
 
+@inline function nnodes(mortar::LobattoLegendreMortarIDPAlternative{RealT, NNODES}) where {
+                                                                                           RealT,
+                                                                                           NNODES
+                                                                                           }
+    NNODES
+end
+
 @inline polydeg(mortar::LobattoLegendreMortarIDP) = nnodes(mortar) - 1
+@inline polydeg(mortar::LobattoLegendreMortarIDPAlternative) = nnodes(mortar) - 1
 
 struct LobattoLegendreMortarL2{RealT <: Real, NNODES,
                                ForwardMatrix <: AbstractMatrix{RealT},

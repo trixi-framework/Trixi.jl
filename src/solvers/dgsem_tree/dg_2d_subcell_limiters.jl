@@ -59,7 +59,9 @@ end
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
 function create_cache(mesh::TreeMesh{2},
-                      equations, mortar_idp::LobattoLegendreMortarIDP, uEltype)
+                      equations,
+                      mortar_idp::Union{LobattoLegendreMortarIDP,
+                                        LobattoLegendreMortarIDPAlternative}, uEltype)
     # TODO: Taal performance using different types
 
     # TODO: What do I really need?
@@ -669,14 +671,14 @@ end
     return nothing
 end
 
-function prolong2mortars_alternative!(cache, u,
-                                      mesh::TreeMesh{2}, equations,
-                                      mortar_l2::LobattoLegendreMortarIDP,
-                                      dg::DGSEM)
+function prolong2mortars!(cache, u, mesh::TreeMesh{2}, equations,
+                          mortar_idp::LobattoLegendreMortarIDP, dg::DGSEM)
+    prolong2mortars!(cache, u, mesh, equations, mortar_idp.mortar_l2, dg)
+
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
-        upper_element = cache.mortars.neighbor_ids[2, mortar]
-        lower_element = cache.mortars.neighbor_ids[1, mortar]
+        # upper_element = cache.mortars.neighbor_ids[2, mortar]
+        # lower_element = cache.mortars.neighbor_ids[1, mortar]
 
         # Copy solutions
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
@@ -684,8 +686,8 @@ function prolong2mortars_alternative!(cache, u,
                 # IDP mortars in x-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        cache.mortars.u_upper[v, l, mortar] = u[v, 1, l, upper_element]
-                        cache.mortars.u_lower[v, l, mortar] = u[v, 1, l, lower_element]
+                        # cache.mortars.u_upper[v, l, mortar] = u[v, 1, l, upper_element]
+                        # cache.mortars.u_lower[v, l, mortar] = u[v, 1, l, lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, nnodes(dg), l,
                                                                 large_element]
                     end
@@ -694,8 +696,8 @@ function prolong2mortars_alternative!(cache, u,
                 # IDP mortars in y-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        cache.mortars.u_upper[v, l, mortar] = u[v, l, 1, upper_element]
-                        cache.mortars.u_lower[v, l, mortar] = u[v, l, 1, lower_element]
+                        # cache.mortars.u_upper[v, l, mortar] = u[v, l, 1, upper_element]
+                        # cache.mortars.u_lower[v, l, mortar] = u[v, l, 1, lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, l, nnodes(dg),
                                                                 large_element]
                     end
@@ -706,10 +708,10 @@ function prolong2mortars_alternative!(cache, u,
                 # IDP mortars in x-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        cache.mortars.u_upper[v, l, mortar] = u[v, nnodes(dg), l,
-                                                                upper_element]
-                        cache.mortars.u_lower[v, l, mortar] = u[v, nnodes(dg), l,
-                                                                lower_element]
+                        # cache.mortars.u_upper[v, l, mortar] = u[v, nnodes(dg), l,
+                        #                                         upper_element]
+                        # cache.mortars.u_lower[v, l, mortar] = u[v, nnodes(dg), l,
+                        #                                         lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, 1, l, large_element]
                     end
                 end
@@ -717,10 +719,10 @@ function prolong2mortars_alternative!(cache, u,
                 # IDP mortars in y-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        cache.mortars.u_upper[v, l, mortar] = u[v, l, nnodes(dg),
-                                                                upper_element]
-                        cache.mortars.u_lower[v, l, mortar] = u[v, l, nnodes(dg),
-                                                                lower_element]
+                        # cache.mortars.u_upper[v, l, mortar] = u[v, l, nnodes(dg),
+                        #                                         upper_element]
+                        # cache.mortars.u_lower[v, l, mortar] = u[v, l, nnodes(dg),
+                        #                                         lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, l, 1, large_element]
                     end
                 end
@@ -731,11 +733,164 @@ function prolong2mortars_alternative!(cache, u,
     return nothing
 end
 
-function calc_mortar_flux_alternative!(surface_flux_values,
-                                       mesh::TreeMesh{2},
-                                       nonconservative_terms::False, equations,
-                                       mortar_idp::LobattoLegendreMortarIDP,
-                                       surface_integral, dg::DG, cache)
+function calc_mortar_flux!(surface_flux_values, mesh,
+                           nonconservative_terms, equations,
+                           mortar_idp::LobattoLegendreMortarIDP, surface_integral,
+                           dg::DG, cache)
+    # Compute blending factor
+    (; limiting_factor) = cache.mortars
+    limiting_factor .= zeros(eltype(limiting_factor)) # 0 => full FV
+
+    # low order fluxes
+    @trixi_timeit timer() "calc_mortar_flux_low_order!" calc_mortar_flux_low_order!(surface_flux_values,
+                                                                                    mesh,
+                                                                                    nonconservative_terms,
+                                                                                    equations,
+                                                                                    mortar_idp,
+                                                                                    surface_integral,
+                                                                                    dg,
+                                                                                    cache)
+
+    (; surface_flux_values_high_order) = cache.elements
+    @trixi_timeit timer() "calc_mortar_flux!" calc_mortar_flux!(surface_flux_values_high_order,
+                                                                mesh,
+                                                                nonconservative_terms,
+                                                                equations,
+                                                                mortar_idp.mortar_l2,
+                                                                dg.surface_integral, dg,
+                                                                cache)
+
+    @trixi_timeit timer() "blend_mortar_flux!" blend_mortar_flux!(surface_flux_values,
+                                                                  surface_flux_values_high_order,
+                                                                  limiting_factor,
+                                                                  equations, dg, cache)
+
+    return nothing
+end
+
+@inline function blend_mortar_flux!(surface_flux_values, surface_flux_values_high_order,
+                                    limiting_factor, equations, dg, cache)
+    @unpack orientations = cache.mortars
+
+    for mortar in eachmortar(dg, cache)
+        if isapprox(limiting_factor[mortar], zero(eltype(limiting_factor)))
+            continue
+        end
+        large_element = cache.mortars.neighbor_ids[3, mortar]
+        upper_element = cache.mortars.neighbor_ids[2, mortar]
+        lower_element = cache.mortars.neighbor_ids[1, mortar]
+
+        # Calculate fluxes
+        orientation = orientations[mortar]
+
+        if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
+            if orientation == 1
+                # L2 mortars in x-direction
+                direction_small = 1
+                direction_large = 2
+            else
+                # L2 mortars in y-direction
+                direction_small = 3
+                direction_large = 4
+            end
+
+            for i in eachnode(dg)
+                flux_local_high_order = view(surface_flux_values_high_order, :, i,
+                                             direction_small, lower_element)
+                flux_local_low_order = view(surface_flux_values, :, i, direction_small,
+                                            lower_element)
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           -limiting_factor[mortar],
+                                           flux_local_low_order, equations, dg, i,
+                                           direction_small, lower_element)
+                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
+                                           flux_local_high_order, equations, dg, i,
+                                           direction_small, lower_element)
+
+                flux_local_high_order = view(surface_flux_values_high_order, :, i,
+                                             direction_small, upper_element)
+                flux_local_low_order = view(surface_flux_values, :, i, direction_small,
+                                            upper_element)
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           -limiting_factor[mortar],
+                                           flux_local_low_order, equations, dg, i,
+                                           direction_small, upper_element)
+                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
+                                           flux_local_high_order, equations, dg, i,
+                                           direction_small, upper_element)
+
+                flux_local_high_order = view(surface_flux_values_high_order, :, i,
+                                             direction_large, large_element)
+                flux_local_low_order = view(surface_flux_values, :, i, direction_large,
+                                            large_element)
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           -limiting_factor[mortar],
+                                           flux_local_low_order, equations, dg, i,
+                                           direction_large, large_element)
+                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
+                                           flux_local_high_order, equations, dg, i,
+                                           direction_large, large_element)
+            end
+        else # large_sides[mortar] == 2 -> small elements on left side
+            if orientation == 1
+                # L2 mortars in x-direction
+                direction_small = 2
+                direction_large = 1
+            else
+                # L2 mortars in y-direction
+                direction_small = 4
+                direction_large = 3
+            end
+
+            for i in eachnode(dg)
+                # @info "" flux_difference_local
+                flux_local_high_order = view(surface_flux_values_high_order, :, i,
+                                             direction_small, lower_element)
+                flux_local_low_order = view(surface_flux_values, :, i, direction_small,
+                                            lower_element)
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           -limiting_factor[mortar],
+                                           flux_local_low_order, equations, dg, i,
+                                           direction_small, lower_element)
+                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
+                                           flux_local_high_order, equations, dg, i,
+                                           direction_small, lower_element)
+
+                flux_local_high_order = view(surface_flux_values_high_order, :, i,
+                                             direction_small, upper_element)
+                flux_local_low_order = view(surface_flux_values, :, i, direction_small,
+                                            upper_element)
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           -limiting_factor[mortar],
+                                           flux_local_low_order, equations, dg, i,
+                                           direction_small, upper_element)
+                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
+                                           flux_local_high_order, equations, dg, i,
+                                           direction_small, upper_element)
+
+                flux_local_high_order = view(surface_flux_values_high_order, :, i,
+                                             direction_large, large_element)
+                flux_local_low_order = view(surface_flux_values_high_order, :, i,
+                                            direction_large, large_element)
+                multiply_add_to_node_vars!(surface_flux_values,
+                                           -limiting_factor[mortar],
+                                           flux_local_low_order, equations, dg, i,
+                                           direction_large, large_element)
+                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
+                                           flux_local_high_order, equations, dg, i,
+                                           direction_large, large_element)
+            end
+        end
+    end
+
+    return nothing
+end
+
+function calc_mortar_flux_low_order!(surface_flux_values,
+                                     mesh::TreeMesh{2},
+                                     nonconservative_terms::False, equations,
+                                     mortar_idp::LobattoLegendreMortarIDP,
+                                     surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, u_large, orientations = cache.mortars
     @unpack (fstar_primary_upper_threaded, fstar_primary_lower_threaded,
@@ -767,7 +922,8 @@ function calc_mortar_flux_alternative!(surface_flux_values,
             surface_flux_values[:, :, direction_large, large_element] .= zero(eltype(surface_flux_values))
             # Lower element
             for i in eachnode(dg)
-                u_lower_local = get_node_vars(u_lower, equations, dg, i, mortar) # u_rr
+                _, u_lower_local = get_surface_node_vars(u_lower, equations, dg, i,
+                                                         mortar) # u_rr
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
 
@@ -806,7 +962,8 @@ function calc_mortar_flux_alternative!(surface_flux_values,
             end
             # Upper element
             for i in eachnode(dg)
-                u_upper_local = get_node_vars(u_upper, equations, dg, i, mortar) # u_rr
+                _, u_upper_local = get_surface_node_vars(u_upper, equations, dg, i,
+                                                         mortar) # u_rr
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_ll
 
@@ -860,7 +1017,8 @@ function calc_mortar_flux_alternative!(surface_flux_values,
             surface_flux_values[:, :, direction_large, large_element] .= zero(eltype(surface_flux_values))
             # Lower element
             for i in eachnode(dg)
-                u_lower_local = get_node_vars(u_lower, equations, dg, i, mortar) # u_ll
+                u_lower_local, _ = get_surface_node_vars(u_lower, equations, dg, i,
+                                                         mortar) # u_ll
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
 
@@ -899,7 +1057,8 @@ function calc_mortar_flux_alternative!(surface_flux_values,
             end
             # Upper element
             for i in eachnode(dg)
-                u_upper_local = get_node_vars(u_upper, equations, dg, i, mortar) # u_ll
+                u_upper_local, _ = get_surface_node_vars(u_upper, equations, dg, i,
+                                                         mortar) # u_ll
                 for j in eachnode(dg)
                     u_large_local = get_node_vars(u_large, equations, dg, j, mortar) # u_rr
 
@@ -944,7 +1103,7 @@ function calc_mortar_flux_alternative!(surface_flux_values,
 end
 
 @inline function element_solutions_to_mortars!(mortars,
-                                               mortar_idp::LobattoLegendreMortarIDP,
+                                               mortar_idp::LobattoLegendreMortarIDPAlternative,
                                                leftright, mortar,
                                                u_large::AbstractArray{<:Any, 2})
     multiply_dimensionwise!(view(mortars.u_upper, leftright, :, :, mortar),

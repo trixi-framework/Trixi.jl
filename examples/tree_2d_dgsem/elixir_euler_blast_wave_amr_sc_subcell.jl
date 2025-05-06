@@ -51,7 +51,8 @@ limiter_idp = SubcellLimiterIDP(equations, basis;
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
                                                 volume_flux_fv = surface_flux)
-mortar = Trixi.MortarIDP(basis, alternative = true, local_factor = true, first_order = true)
+mortar = Trixi.MortarIDP(basis, alternative = false, local_factor = true,
+                         first_order = true)
 solver = DGSEM(basis, surface_flux, volume_integral, mortar)
 
 coordinates_min = (-2.0, -2.0)

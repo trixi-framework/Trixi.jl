@@ -93,7 +93,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, UnstructuredMe
                                   P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                       equations,
                       mortar_l2::Union{LobattoLegendreMortarL2,
-                                       LobattoLegendreMortarIDP}, uEltype)
+                                       LobattoLegendreMortarIDP,
+                                       LobattoLegendreMortarIDPAlternative}, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)}, uEltype, 2,
                   nvariables(equations) * nnodes(mortar_l2)}
@@ -153,32 +154,16 @@ function rhs!(du, u, t,
     end
 
     # Prolong solution to mortars
-    if dg.mortar isa LobattoLegendreMortarIDP && dg.mortar.alternative
-        @trixi_timeit timer() "prolong2mortars_alternative" begin
-            prolong2mortars_alternative!(cache, u, mesh, equations,
-                                         dg.mortar, dg)
-        end
-    else
-        @trixi_timeit timer() "prolong2mortars" begin
-            prolong2mortars!(cache, u, mesh, equations,
-                             dg.mortar, dg)
-        end
+    @trixi_timeit timer() "prolong2mortars" begin
+        prolong2mortars!(cache, u, mesh, equations,
+                         dg.mortar, dg)
     end
 
     # Calculate mortar fluxes
-    if dg.mortar isa LobattoLegendreMortarIDP && dg.mortar.alternative
-        @trixi_timeit timer() "mortar flux alternative" begin
-            calc_mortar_flux_alternative!(cache.elements.surface_flux_values, mesh,
-                                          have_nonconservative_terms(equations),
-                                          equations,
-                                          dg.mortar, dg.surface_integral, dg, cache)
-        end
-    else
-        @trixi_timeit timer() "mortar flux" begin
-            calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                              have_nonconservative_terms(equations), equations,
-                              dg.mortar, dg.surface_integral, dg, cache)
-        end
+    @trixi_timeit timer() "mortar flux" begin
+        calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
+                          have_nonconservative_terms(equations), equations,
+                          dg.mortar, dg.surface_integral, dg, cache)
     end
 
     # Calculate surface integrals
@@ -816,7 +801,7 @@ end
 function prolong2mortars!(cache, u,
                           mesh::TreeMesh{2}, equations,
                           mortar_l2::Union{LobattoLegendreMortarL2,
-                                           LobattoLegendreMortarIDP},
+                                           LobattoLegendreMortarIDPAlternative},
                           dg::DGSEM)
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -918,7 +903,7 @@ function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{2},
                            nonconservative_terms::False, equations,
                            mortar_l2::Union{LobattoLegendreMortarL2,
-                                            LobattoLegendreMortarIDP},
+                                            LobattoLegendreMortarIDPAlternative},
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u_lower, u_upper, orientations = cache.mortars
@@ -1151,7 +1136,7 @@ end
 
 @inline function mortar_fluxes_to_elements!(surface_flux_values,
                                             mesh::TreeMesh{2}, equations,
-                                            mortar_l2::LobattoLegendreMortarIDP,
+                                            mortar_l2::LobattoLegendreMortarIDPAlternative,
                                             dg::DGSEM, cache,
                                             mortar, fstar_primary_upper,
                                             fstar_primary_lower,

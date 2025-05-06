@@ -10,10 +10,12 @@ mutable struct ElementContainer2D{RealT <: Real, uEltype <: Real} <: AbstractCon
     inverse_jacobian::Vector{RealT}        # [elements]
     node_coordinates::Array{RealT, 4}      # [orientation, i, j, elements]
     surface_flux_values::Array{uEltype, 4} # [variables, i, direction, elements]
+    surface_flux_values_high_order::Array{uEltype, 4} # [variables, i, direction, elements]
     cell_ids::Vector{Int}                  # [elements]
     # internal `resize!`able storage
     _node_coordinates::Vector{RealT}
     _surface_flux_values::Vector{uEltype}
+    _surface_flux_values_high_order::Vector{uEltype}
 end
 
 nvariables(elements::ElementContainer2D) = size(elements.surface_flux_values, 1)
@@ -28,7 +30,7 @@ Base.eltype(elements::ElementContainer2D) = eltype(elements.surface_flux_values)
 function Base.resize!(elements::ElementContainer2D, capacity)
     n_nodes = nnodes(elements)
     n_variables = nvariables(elements)
-    @unpack _node_coordinates, _surface_flux_values,
+    @unpack _node_coordinates, _surface_flux_values, _surface_flux_values_high_order,
     inverse_jacobian, cell_ids = elements
 
     resize!(inverse_jacobian, capacity)
@@ -40,6 +42,12 @@ function Base.resize!(elements::ElementContainer2D, capacity)
     resize!(_surface_flux_values, n_variables * n_nodes * 2 * 2 * capacity)
     elements.surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
                                                (n_variables, n_nodes, 2 * 2, capacity))
+
+    resize!(_surface_flux_values_high_order, n_variables * n_nodes * 2 * 2 * capacity)
+    elements.surface_flux_values_high_order = unsafe_wrap(Array,
+                                                          pointer(_surface_flux_values_high_order),
+                                                          (n_variables, n_nodes, 2 * 2,
+                                                           capacity))
 
     resize!(cell_ids, capacity)
 
@@ -63,11 +71,21 @@ function ElementContainer2D{RealT, uEltype}(capacity::Integer, n_variables,
     surface_flux_values = unsafe_wrap(Array, pointer(_surface_flux_values),
                                       (n_variables, n_nodes, 2 * 2, capacity))
 
+    _surface_flux_values_high_order = fill(nan_uEltype,
+                                           n_variables * n_nodes * 2 * 2 * capacity)
+    surface_flux_values_high_order = unsafe_wrap(Array,
+                                                 pointer(_surface_flux_values_high_order),
+                                                 (n_variables, n_nodes, 2 * 2,
+                                                  capacity))
+
     cell_ids = fill(typemin(Int), capacity)
 
     return ElementContainer2D{RealT, uEltype}(inverse_jacobian, node_coordinates,
-                                              surface_flux_values, cell_ids,
-                                              _node_coordinates, _surface_flux_values)
+                                              surface_flux_values,
+                                              surface_flux_values_high_order,
+                                              cell_ids,
+                                              _node_coordinates, _surface_flux_values,
+                                              _surface_flux_values_high_order)
 end
 
 # Return number of elements
@@ -622,13 +640,14 @@ end
 # lower = 1 |    |
 #           |    |
 mutable struct IDPMortarContainer2D{uEltype <: Real} <: AbstractContainer
-    u_upper::Array{uEltype, 3}  # [variables, i, mortars]
-    u_lower::Array{uEltype, 3}  # [variables, i, mortars]
+    u_upper::Array{uEltype, 4}  # [leftright, variables, i, mortars]
+    u_lower::Array{uEltype, 4}  # [leftright, variables, i, mortars]
     u_large::Array{uEltype, 3}  # [variables, i, mortars]
     neighbor_ids::Array{Int, 2} # [position, mortars]
     # Large sides: left -> 1, right -> 2
     large_sides::Vector{Int}  # [mortars]
     orientations::Vector{Int} # [mortars]
+    limiting_factor::Vector{uEltype} # [mortars]
     # internal `resize!`able storage
     _u_upper::Vector{uEltype}
     _u_lower::Vector{uEltype}
@@ -636,8 +655,8 @@ mutable struct IDPMortarContainer2D{uEltype <: Real} <: AbstractContainer
     _neighbor_ids::Vector{Int}
 end
 
-nvariables(mortars::IDPMortarContainer2D) = size(mortars.u_upper, 1)
-nnodes(mortars::IDPMortarContainer2D) = size(mortars.u_upper, 2)
+nvariables(mortars::IDPMortarContainer2D) = size(mortars.u_upper, 2)
+nnodes(mortars::IDPMortarContainer2D) = size(mortars.u_upper, 3)
 Base.eltype(mortars::IDPMortarContainer2D) = eltype(mortars.u_upper)
 
 # See explanation of Base.resize! for the element container
@@ -645,13 +664,13 @@ function Base.resize!(mortars::IDPMortarContainer2D, capacity)
     n_nodes = nnodes(mortars)
     n_variables = nvariables(mortars)
     @unpack _u_upper, _u_lower, _u_large, _neighbor_ids,
-    large_sides, orientations = mortars
+    large_sides, orientations, limiting_factor = mortars
 
-    resize!(_u_upper, n_variables * n_nodes * capacity)
+    resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
     mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
                                   (n_variables, n_nodes, capacity))
 
-    resize!(_u_lower, n_variables * n_nodes * capacity)
+    resize!(_u_lower, 2 * n_variables * n_nodes * capacity)
     mortars.u_lower = unsafe_wrap(Array, pointer(_u_lower),
                                   (n_variables, n_nodes, capacity))
 
@@ -667,6 +686,8 @@ function Base.resize!(mortars::IDPMortarContainer2D, capacity)
 
     resize!(orientations, capacity)
 
+    resize!(limiting_factor, capacity)
+
     return nothing
 end
 
@@ -675,13 +696,13 @@ function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
     nan = convert(uEltype, NaN)
 
     # Initialize fields with defaults
-    _u_upper = fill(nan, n_variables * n_nodes * capacity)
+    _u_upper = fill(nan, 2 * n_variables * n_nodes * capacity)
     u_upper = unsafe_wrap(Array, pointer(_u_upper),
-                          (n_variables, n_nodes, capacity))
+                          (2, n_variables, n_nodes, capacity))
 
-    _u_lower = fill(nan, n_variables * n_nodes * capacity)
+    _u_lower = fill(nan, 2 * n_variables * n_nodes * capacity)
     u_lower = unsafe_wrap(Array, pointer(_u_lower),
-                          (n_variables, n_nodes, capacity))
+                          (2, n_variables, n_nodes, capacity))
 
     _u_large = fill(nan, n_variables * n_nodes * capacity)
     u_large = unsafe_wrap(Array, pointer(_u_large),
@@ -695,8 +716,10 @@ function IDPMortarContainer2D{uEltype}(capacity::Integer, n_variables,
 
     orientations = fill(typemin(Int), capacity)
 
+    limiting_factor = fill(typemin(Int), capacity)
+
     return IDPMortarContainer2D{uEltype}(u_upper, u_lower, u_large, neighbor_ids,
-                                         large_sides, orientations,
+                                         large_sides, orientations, limiting_factor,
                                          _u_upper, _u_lower, _u_large, _neighbor_ids)
 end
 
@@ -729,14 +752,23 @@ function init_mortars(cell_ids, mesh::TreeMesh2D,
                       mortar::LobattoLegendreMortarIDP)
     # Initialize containers
     n_mortars = count_required_mortars(mesh, cell_ids)
-    if mortar.alternative
-        mortars = IDPMortarContainer2D{eltype(elements)}(n_mortars,
-                                                         nvariables(elements),
-                                                         nnodes(elements))
-    else
-        mortars = L2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
-                                                        nnodes(elements))
-    end
+    mortars = IDPMortarContainer2D{eltype(elements)}(n_mortars,
+                                                     nvariables(elements),
+                                                     nnodes(elements))
+
+    # Connect elements with mortars
+    init_mortars!(mortars, elements, mesh)
+    return mortars
+end
+
+# Create mortar container and initialize mortar data in `elements`.
+function init_mortars(cell_ids, mesh::TreeMesh2D,
+                      elements::ElementContainer2D,
+                      mortar::LobattoLegendreMortarIDPAlternative)
+    # Initialize containers
+    n_mortars = count_required_mortars(mesh, cell_ids)
+    mortars = L2MortarContainer2D{eltype(elements)}(n_mortars, nvariables(elements),
+                                                    nnodes(elements))
 
     # Connect elements with mortars
     init_mortars!(mortars, elements, mesh)

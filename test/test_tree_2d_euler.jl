@@ -58,10 +58,10 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (alternative implementation)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_amr_sc_subcell.jl"),
-                        alternative=false,
+                        alternative=true,
                         l2=[
                             6.792436492682374e-5,
                             6.120716506968713e-5,
@@ -88,10 +88,10 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl - alternative: global factor" begin
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (global factor)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_amr_sc_subcell.jl"),
-                        alternative=true, local_factor=false,
+                        alternative=false, local_factor=false,
                         l2=[
                             0.006254682457071628,
                             0.004999416955608761,
@@ -118,10 +118,10 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl - alternative: local factor, first order" begin
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (local factor, first order)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_amr_sc_subcell.jl"),
-                        alternative=true, local_factor=true, first_order=true,
+                        alternative=false, local_factor=true, first_order=true,
                         l2=[
                             0.001058120516341185,
                             0.0009133976065639385,
@@ -148,10 +148,10 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl - alternative: local factor, second order" begin
+@trixi_testset "elixir_euler_convergence_amr_sc_subcell.jl (local factor, second order)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_convergence_amr_sc_subcell.jl"),
-                        alternative=true, local_factor=true, first_order=false,
+                        alternative=false, local_factor=true, first_order=false,
                         # Note: Not conservative
                         l2=[
                             0.001315104732325498,
@@ -531,10 +531,10 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (alternative implementation - local factor, first order)" begin
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (local factor, first order)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
-                        alternative=true, local_factor=true, first_order=true,
+                        alternative=false, local_factor=true, first_order=true,
                         l2=[
                             0.5658115528437391,
                             0.23410168927488026,
@@ -562,10 +562,10 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (alternative implementation - local factor, second order)" begin
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (local factor, second order)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
-                        alternative=true, local_factor=true, first_order=false,
+                        alternative=false, local_factor=true, first_order=false,
                         # Note: Not conservative
                         l2=[
                             0.5656993054935289,
@@ -594,10 +594,10 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (alternative implementation - global factor)" begin
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (global factor)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
-                        alternative=true, local_factor=false,
+                        alternative=false, local_factor=false,
                         l2=[
                             0.5597349371368964,
                             0.2323622389350034,
@@ -625,10 +625,10 @@ end
     end
 end
 
-@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl" begin
+@trixi_testset "elixir_euler_blast_wave_amr_sc_subcell.jl (alternative implementation)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_blast_wave_amr_sc_subcell.jl"),
-                        alternative=false,
+                        alternative=true,
                         l2=[
                             0.5661811293770421,
                             0.23414189161032448,
