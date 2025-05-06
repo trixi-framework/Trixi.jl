@@ -431,7 +431,7 @@ end
 
 # For traditional SBP operators on triangles, the operators are fully dense. We avoid using
 # sum factorization here, which is slower for fully dense matrices.
-@inline function has_sparse_operators(::Union{Tri, Tet},
+@inline function has_sparse_operators(::Union{Line, Tri, Tet},
                                       approx_type::AT) where {AT <: SBP}
     False()
 end
