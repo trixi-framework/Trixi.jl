@@ -92,7 +92,7 @@ solver = DGSEM(polydeg = 3)
 # condition, but might also be used to describe an analytical solution if known. If you use the
 # initial condition as analytical solution, you can analyze your numerical solution by computing
 # the error, see also the
-# [section about analyzing the solution](https://trixi-framework.github.io/Trixi.jl/stable/callbacks/#Analyzing-the-numerical-solution).
+# [section about analyzing the solution](https://trixi-framework.github.io/TrixiDocumentation/stable/callbacks/#Analyzing-the-numerical-solution).
 
 function initial_condition_sinpi(x, t, equations::LinearScalarAdvectionEquation2D)
     u = sinpi(x[1]) * sinpi(x[2])

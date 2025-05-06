@@ -562,6 +562,38 @@ end
         @test cons_vars ≈ entropy2cons(entropy_vars, equations)
     end
 
+    # Test PassiveTracerEquations
+    let flow_equations = CompressibleEulerEquations1D(1.4)
+        equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
+        xi1, xi2 = 0.4, 0.5
+        cons_ref = SVector(rho, rho * v1, p / 0.4 + 0.5 * (rho * v1 * v1), rho * xi1,
+                           rho * xi2)
+        cons_test = prim2cons(SVector(rho, v1, p, xi1, xi2), equations)
+        @test cons_test ≈ cons_ref
+        prim_test = cons2prim(cons_test, equations)
+        @test prim_test ≈ SVector(rho, v1, p, xi1, xi2)
+        flow_entropy = cons2entropy(cons_ref, flow_equations)
+
+        entropy_ref = SVector(flow_entropy[1] - (xi1^2 + xi2^2),
+                              (flow_entropy[i] for i in 2:nvariables(flow_equations))...,
+                              2 * xi1, 2 * xi2)
+        entropy_test = cons2entropy(cons_test, equations)
+        @test entropy_test ≈ entropy_ref
+
+        # Also test density, pressure, density_pressure and entropy here because there is currently
+        # no specific space for testing them (e.g., in the other equations)
+        @test density(cons_test, equations) ≈ rho
+        @test pressure(cons_test, equations) ≈ p
+        @test density_pressure(cons_test, equations) ≈ rho * p
+        @test entropy(cons_test, equations) ≈
+              entropy(cons_ref, flow_equations) + rho * (xi1^2 + xi2^2)
+
+        tracers_ = Trixi.tracers(cons_test, equations)
+        @test tracers_ ≈ SVector(xi1, xi2)
+        rho_tracers_ = Trixi.rho_tracers(cons_test, equations)
+        @test rho_tracers_ ≈ SVector(rho * xi1, rho * xi2)
+    end
+
     let equations = CompressibleEulerEquations2D(1.4)
         cons_vars = prim2cons(SVector(rho, v1, v2, p), equations)
         entropy_vars = cons2entropy(cons_vars, equations)
@@ -678,6 +710,17 @@ end
                                                                   surface_fluxes,
                                                                   equations)))
     end
+end
+
+@timed_testset "StepsizeCallback" begin
+    # Ensure a proper error is thrown if used with adaptive time integration schemes
+    @test_nowarn_mod trixi_include(@__MODULE__,
+                                   joinpath(examples_dir(), "tree_2d_dgsem",
+                                            "elixir_advection_diffusion.jl"),
+                                   tspan = (0, 0.05))
+
+    @test_throws ArgumentError solve(ode, alg; ode_default_options()...,
+                                     callback = StepsizeCallback(cfl = 1.0))
 end
 
 @timed_testset "TimeSeriesCallback" begin
@@ -1865,6 +1908,29 @@ end
         end
     end
 
+    @timed_testset "Passive tracer equations" begin
+        for gamma in [1.4, 5 / 3, 7 / 5]
+            flow_equations = CompressibleEulerEquations1D(gamma)
+            equations = PassiveTracerEquations(flow_equations, n_tracers = 2)
+
+            p_rho_ratio = 42.0
+            xi1_ll, xi1_rr = 0.1, 0.2
+            xi2_ll, xi2_rr = 0.3, 0.4
+
+            rho_ll_rr = SVector(2.0, 1.0)
+            v_ll_rr = SVector(0.1, 0.2)
+            p_ll_rr = SVector(p_rho_ratio * rho_ll_rr[1], p_rho_ratio * rho_ll_rr[2])
+
+            u_ll = prim2cons(SVector(rho_ll_rr[1], v_ll_rr[1], p_ll_rr[1], xi1_ll,
+                                     xi2_ll), equations)
+            u_rr = prim2cons(SVector(rho_ll_rr[2], v_ll_rr[2], p_ll_rr[2], xi1_rr,
+                                     xi2_rr), equations)
+
+            @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
+                  max_abs_speed_naive(u_ll, u_rr, 1, flow_equations)
+        end
+    end
+
     @timed_testset "CompressibleEulerEquations2D" begin
         for gamma in [1.4, 5 / 3, 7 / 5]
             equations = CompressibleEulerEquations2D(gamma)
@@ -2511,6 +2577,8 @@ end
     equations_euler_1d = CompressibleEulerEquations1D(gamma)
     u = prim2cons(SVector(rho, v1, pres), equations_euler_1d)
     @test isapprox(velocity(u, equations_euler_1d), v1)
+    orientation = 1 # 1D only has one orientation
+    @test isapprox(velocity(u, orientation, equations_euler_1d), v1)
 
     equations_euler_2d = CompressibleEulerEquations2D(gamma)
     u = prim2cons(SVector(rho, v1, v2, pres), equations_euler_2d)

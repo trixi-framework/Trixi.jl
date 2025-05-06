@@ -95,8 +95,7 @@ function initial_condition_convergence_test(x, t,
                                                                  2^ncomponents(equations))
                                                                 for i in eachcomponent(equations))
     v1 = 0
-    # TODO: sincospi
-    si, co = sincos(2 * convert(RealT, pi) * x[1])
+    si, co = sincospi(2 * x[1])
     v2 = convert(RealT, 0.1) * si
     v3 = convert(RealT, 0.1) * co
     p = convert(RealT, 0.1)
