@@ -249,8 +249,7 @@ end
 end
 
 @trixi_testset "elixir_euler_quasi_1d.jl (SBP) " begin
-    @test_trixi_include(joinpath(joinpath(examples_dir(), "dgmulti_1d"),
-                                 "elixir_euler_quasi_1d.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d.jl"),
                         cells_per_dimension=(8,),
                         approximation_type=SBP(),
                         l2=[
@@ -276,8 +275,7 @@ end
 end
 
 @trixi_testset "elixir_euler_quasi_1d.jl (Polynomial) " begin
-    @test_trixi_include(joinpath(joinpath(examples_dir(), "dgmulti_1d"),
-                                 "elixir_euler_quasi_1d.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d.jl"),
                         cells_per_dimension=(8,),
                         approximation_type=Polynomial(),
                         l2=[
