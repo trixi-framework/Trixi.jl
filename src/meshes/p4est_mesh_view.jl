@@ -111,7 +111,7 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
     for boundary in 1:size(boundaries_parent.neighbor_ids)[1]
         mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
     end
-    boundaries.neighbor_ids = boundaries_parent.neighbor_ids[mask]
+    boundaries.neighbor_ids = global_element_id_to_local(boundaries_parent.neighbor_ids[mask], mesh)
     boundaries.name = boundaries_parent.name[mask]
     boundaries.node_indices = boundaries_parent.node_indices[mask]
 
@@ -129,7 +129,7 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
                 view_idx = 2
             end
 
-            push!(boundaries.neighbor_ids, neighbor_id)
+            push!(boundaries.neighbor_ids, global_element_id_to_local(neighbor_id, mesh))
             if interfaces_parent.node_indices[view_idx, interface] == (:end, :i_forward)
                 push!(boundaries.name, :x_pos)
             elseif interfaces_parent.node_indices[view_idx, interface] == (:begin, :i_forward)
@@ -141,7 +141,6 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
             end
 
             push!(boundaries.node_indices, interfaces_parent.node_indices[view_idx, interface])
-
         end
     end
 
@@ -149,6 +148,25 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
                          (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2], size(boundaries.node_indices)[end]))
     
     return boundaries
+end
+
+# Convert a global cell id to a local cell id in the mesh view.
+function global_element_id_to_local(id::Int, mesh::P4estMeshView)
+    # Find the index of the cell id in the mesh view
+    local_id = findfirst(==(id), mesh.cell_ids)
+
+    return local_id
+end
+
+# Convert a global cell id to a local cell id in the mesh view.
+function global_element_id_to_local(id::AbstractArray, mesh::P4estMeshView)
+    # Find the index of the cell id in the mesh view
+    local_id = zeros(Int, length(id))
+    for i in eachindex(id)
+        local_id[i] = global_element_id_to_local(id[i], mesh)
+    end
+
+    return local_id
 end
 
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
