@@ -1931,6 +1931,8 @@ end
 
             @test max_abs_speed_naive(u_ll, u_rr, 1, equations) ≈
                   max_abs_speed(u_ll, u_rr, 1, equations)
+
+            @test u_ll ≈ entropy2cons(cons2entropy(u_ll, equations), equations)
         end
     end
 
