@@ -327,7 +327,7 @@ have_aux_node_vars(::AbstractEquations) = False()
     n_aux_node_vars(equations)
 
 Number of auxiliary variables used by `equations`. This function needs to be specialized
-only if equations has auxiliary variables.
+only if `equations` has auxiliary variables.
 """
 function n_aux_node_vars end
 @inline eachauxvariable(equations::AbstractEquations) = Base.OneTo(n_aux_node_vars(equations))
