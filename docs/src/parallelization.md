@@ -74,7 +74,7 @@ in `lib/` or `local/lib/` in the installation directory of `t8code`.
 The preferences for [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) always need to be set, even if you
 do not want to use `HDF5` from Trixi.jl, see also [issue #1079 in HDF5.jl](https://github.com/JuliaIO/HDF5.jl/issues/1079).
 To set the preferences for HDF5.jl, follow the instructions described
-[here](https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#Using-parallel-input-and-output).
+[here](https://trixi-framework.github.io/TrixiDocumentation/stable/parallelization/#Using-parallel-input-and-output).
 
 In total, in your active Julia project you should have a `LocalPreferences.toml` file with sections
 `[MPIPreferences]`, `[T8code]` (only needed if `T8codeMesh` is used), `[P4est]` (only needed if

@@ -236,6 +236,7 @@ end
 
 # No checks for these meshes yet available
 function check_periodicity_mesh_boundary_conditions(mesh::Union{P4estMesh,
+                                                                P4estMeshView,
                                                                 UnstructuredMesh2D,
                                                                 T8codeMesh,
                                                                 DGMultiMesh},

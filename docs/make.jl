@@ -133,7 +133,7 @@ makedocs(
                                   # Explicitly add favicon as asset
                                   assets = ["assets/favicon.ico"],
                                   # Set canonical URL to GitHub pages URL
-                                  canonical = "https://trixi-framework.github.io/Trixi.jl/stable",
+                                  canonical = "https://trixi-framework.github.io/TrixiDocumentation/stable",
                                   size_threshold_ignore = ["reference-trixi.md"]),
          # Explicitly specify documentation structure
          pages = [
@@ -178,6 +178,19 @@ makedocs(
              "License" => "license.md"
          ])
 
-deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
-           devbranch = "main",
-           push_preview = true)
+# Replace with below once https://github.com/JuliaDocs/Documenter.jl/pull/2692 is merged and available.
+#  deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
+#    deploy_repo = "github.com/trixi-framework/TrixiDocumentation",
+#    devbranch = "main",
+#    push_preview = true)
+if get(ENV, "GITHUB_EVENT_NAME", "") == "pull_request"
+    deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
+               repo_previews = "github.com/trixi-framework/TrixiDocumentation",
+               devbranch = "main",
+               push_preview = true)
+else
+    repo = "github.com/trixi-framework/TrixiDocumentation"
+    withenv("GITHUB_REPOSITORY" => repo) do
+        deploydocs(repo = repo, devbranch = "main")
+    end
+end
