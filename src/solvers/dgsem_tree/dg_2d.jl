@@ -184,7 +184,8 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                            StructuredMeshView{2}, UnstructuredMesh2D,
-                                           P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                                           P4estMesh{2}, P4estMeshView{2},
+                                           T8codeMesh{2}},
                                equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
@@ -248,7 +249,7 @@ end
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         aux_node = get_aux_node_vars(aux_node_vars,
-                                           equations, dg, i, j, element)
+                                     equations, dg, i, j, element)
 
         flux1 = flux(u_node, aux_node, 1, equations)
         for ii in eachnode(dg)
@@ -339,7 +340,7 @@ end
     for j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, element)
         aux_node = get_aux_node_vars(aux_node_vars, equations, dg,
-                                           i, j, element)
+                                     i, j, element)
 
         # All diagonal entries of `derivative_split` are zero. Thus, we can skip
         # the computation of the diagonal terms. In addition, we use the symmetry
@@ -350,7 +351,7 @@ end
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
             aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg,
-                                                  ii, j, element)
+                                            ii, j, element)
             flux1 = volume_flux(u_node, u_node_ii, aux_node, aux_node_ii, 1, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[i, ii], flux1,
                                        equations, dg, i, j, element)
@@ -362,7 +363,7 @@ end
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
             aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg,
-                                                  i, jj, element)
+                                            i, jj, element)
             flux2 = volume_flux(u_node, u_node_jj, aux_node, aux_node_jj, 2, equations)
             multiply_add_to_node_vars!(du, alpha * derivative_split[j, jj], flux2,
                                        equations, dg, i, j, element)
@@ -716,8 +717,8 @@ function calc_interface_flux!(surface_flux_values,
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
             aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
-                                                             equations, dg, i,
-                                                             interface)
+                                                       equations, dg, i,
+                                                       interface)
             flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr,
                                 orientations[interface], equations)
             # Copy flux to left and right element storage
@@ -908,7 +909,7 @@ function calc_boundary_flux_by_direction!(t, boundary_condition,
             # Get boundary flux
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, boundary)
             aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
-                                                             equations, dg, i, boundary)
+                                                       equations, dg, i, boundary)
             if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
                 u_inner = u_ll
                 aux_inner = aux_ll
@@ -1238,7 +1239,7 @@ end
         # Call pointwise two-point numerical flux function
         u_ll, u_rr = get_surface_node_vars(u_interfaces, equations, dg, i, interface)
         aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
-                                                         equations, dg, i, interface)
+                                                   equations, dg, i, interface)
         flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr, orientation, equations)
 
         # Copy flux to left and right element storage
@@ -1421,7 +1422,7 @@ function calc_sources!(du, u, t, source_terms, have_aux_node_vars::True,
         for j in eachnode(dg), i in eachnode(dg)
             u_local = get_node_vars(u, equations, dg, i, j, element)
             aux_local = get_aux_node_vars(aux_node_vars, equations, dg,
-                                                i, j, element)
+                                          i, j, element)
             x_local = get_node_coords(node_coordinates, equations, dg,
                                       i, j, element)
             du_local = source_terms(u_local, aux_local, x_local, t, equations)

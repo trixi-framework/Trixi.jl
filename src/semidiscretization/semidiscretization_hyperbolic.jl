@@ -115,7 +115,7 @@ end
 function create_cache_auxiliary(mesh, equations, solver, cache,
                                 have_aux_node_vars::True, auxiliary_field)
     aux_vars = init_aux_node_vars(mesh, equations, solver, cache,
-                                                        auxiliary_field)
+                                  auxiliary_field)
     return (; aux_vars)
 end
 

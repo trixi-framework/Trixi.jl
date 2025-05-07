@@ -797,8 +797,8 @@ function calc_mpi_interface_flux!(surface_flux_values,
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
             aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
-                                                             equations, dg, i,
-                                                             interface)
+                                                       equations, dg, i,
+                                                       interface)
             flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr,
                                 orientations[interface], equations)
 

@@ -1425,7 +1425,7 @@ end
 
 # Initialize auxiliary node variables (2D implementation)
 function init_aux_node_vars!(aux_vars, mesh, equations, solver,
-                                        cache)
+                             cache)
     @unpack aux_node_vars, auxiliary_field = aux_vars
     @unpack node_coordinates = cache.elements
 
@@ -1434,8 +1434,8 @@ function init_aux_node_vars!(aux_vars, mesh, equations, solver,
             x_local = get_node_coords(node_coordinates, equations, solver,
                                       i, j, element)
             set_aux_node_vars!(aux_node_vars,
-                                     auxiliary_field(x_local, equations),
-                                     equations, solver, i, j, element)
+                               auxiliary_field(x_local, equations),
+                               equations, solver, i, j, element)
         end
     end
     return nothing
@@ -1456,13 +1456,13 @@ function init_auxiliary_surface_node_variables!(aux_vars, mesh, equations,
             for j in eachnode(solver)
                 for v in axes(aux_surface_node_vars, 2)
                     aux_surface_node_vars[1, v, j, interface] = aux_node_vars[v,
-                                                                                          nnodes(solver),
-                                                                                          j,
-                                                                                          left_element]
+                                                                              nnodes(solver),
+                                                                              j,
+                                                                              left_element]
                     aux_surface_node_vars[2, v, j, interface] = aux_node_vars[v,
-                                                                                          1,
-                                                                                          j,
-                                                                                          right_element]
+                                                                              1,
+                                                                              j,
+                                                                              right_element]
                 end
             end
         else # if orientations[interface] == 2
@@ -1470,13 +1470,13 @@ function init_auxiliary_surface_node_variables!(aux_vars, mesh, equations,
             for i in eachnode(solver)
                 for v in axes(aux_surface_node_vars, 2)
                     aux_surface_node_vars[1, v, i, interface] = aux_node_vars[v,
-                                                                                          i,
-                                                                                          nnodes(solver),
-                                                                                          left_element]
+                                                                              i,
+                                                                              nnodes(solver),
+                                                                              left_element]
                     aux_surface_node_vars[2, v, i, interface] = aux_node_vars[v,
-                                                                                          i,
-                                                                                          1,
-                                                                                          right_element]
+                                                                              i,
+                                                                              1,
+                                                                              right_element]
                 end
             end
         end

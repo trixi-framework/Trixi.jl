@@ -77,13 +77,13 @@ mutable struct AuxiliaryNodeVariablesContainer{NDIMS, uEltype <: Real, NDIMSP2,
 end
 
 nvariables(aux_vars::AuxiliaryNodeVariablesContainer) = size(aux_vars.aux_node_vars,
-                                                                        1)
+                                                             1)
 nnodes(aux_vars::AuxiliaryNodeVariablesContainer) = size(aux_vars.aux_node_vars,
-                                                                    2)
+                                                         2)
 
 # Create auxiliary node variable container
 function init_aux_node_vars(mesh, equations, solver, cache,
-                                       auxiliary_field)
+                            auxiliary_field)
     @unpack elements, interfaces = cache
 
     n_elements = nelements(elements)
@@ -93,29 +93,29 @@ function init_aux_node_vars(mesh, equations, solver, cache,
     nan_uEltype = convert(uEltype, NaN)
 
     _aux_node_vars = fill(nan_uEltype,
-                                n_aux_node_vars(equations) *
-                                nnodes(solver)^NDIMS * n_elements)
+                          n_aux_node_vars(equations) *
+                          nnodes(solver)^NDIMS * n_elements)
     aux_node_vars = unsafe_wrap(Array, pointer(_aux_node_vars),
-                                      (n_aux_node_vars(equations),
-                                       ntuple(_ -> nnodes(solver), NDIMS)...,
-                                       n_elements))
+                                (n_aux_node_vars(equations),
+                                 ntuple(_ -> nnodes(solver), NDIMS)...,
+                                 n_elements))
     _aux_surface_node_vars = fill(nan_uEltype,
-                                        2 * n_aux_node_vars(equations) *
-                                        nnodes(solver)^(NDIMS - 1) *
-                                        n_interfaces)
+                                  2 * n_aux_node_vars(equations) *
+                                  nnodes(solver)^(NDIMS - 1) *
+                                  n_interfaces)
     aux_surface_node_vars = unsafe_wrap(Array,
-                                              pointer(_aux_surface_node_vars),
-                                              (2, n_aux_node_vars(equations),
-                                               ntuple(_ -> nnodes(solver),
-                                                      NDIMS - 1)...,
-                                               n_interfaces))
+                                        pointer(_aux_surface_node_vars),
+                                        (2, n_aux_node_vars(equations),
+                                         ntuple(_ -> nnodes(solver),
+                                                NDIMS - 1)...,
+                                         n_interfaces))
 
     aux_vars = AuxiliaryNodeVariablesContainer{NDIMS, uEltype, NDIMS + 2,
-                                                          typeof(auxiliary_field)}(aux_node_vars,
-                                                                                   aux_surface_node_vars,
-                                                                                   _aux_node_vars,
-                                                                                   _aux_surface_node_vars,
-                                                                                   auxiliary_field)
+                                               typeof(auxiliary_field)}(aux_node_vars,
+                                                                        aux_surface_node_vars,
+                                                                        _aux_node_vars,
+                                                                        _aux_surface_node_vars,
+                                                                        auxiliary_field)
 
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
     init_auxiliary_surface_node_variables!(aux_vars, mesh, equations, solver,
@@ -136,21 +136,21 @@ function Base.resize!(aux_vars::AuxiliaryNodeVariablesContainer{NDIMS},
 
     resize!(_aux_node_vars, n_variables * n_nodes^NDIMS * capacity_node_vars)
     aux_vars.aux_node_vars = unsafe_wrap(Array,
-                                                          pointer(_aux_node_vars),
-                                                          (n_variables,
-                                                           ntuple(_ -> n_nodes,
-                                                                  NDIMS)...,
-                                                           capacity_node_vars))
+                                         pointer(_aux_node_vars),
+                                         (n_variables,
+                                          ntuple(_ -> n_nodes,
+                                                 NDIMS)...,
+                                          capacity_node_vars))
 
     resize!(_aux_surface_node_vars,
             2 * n_variables * n_nodes^(NDIMS - 1) *
             capacity_node_surface_vars)
     aux_vars.aux_surface_node_vars = unsafe_wrap(Array,
-                                                                  pointer(_aux_surface_node_vars),
-                                                                  (2, n_variables,
-                                                                   ntuple(_ -> n_nodes,
-                                                                          NDIMS - 1)...,
-                                                                   capacity_node_surface_vars))
+                                                 pointer(_aux_surface_node_vars),
+                                                 (2, n_variables,
+                                                  ntuple(_ -> n_nodes,
+                                                         NDIMS - 1)...,
+                                                  capacity_node_surface_vars))
     return nothing
 end
 
