@@ -320,6 +320,7 @@ have_constant_speed(::AbstractEquations) = False()
 Trait function determining whether `equations` need to access additional auxiliary
 variables.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
+Currently, only TreeMesh in 2D is supported.
 """
 have_aux_node_vars(::AbstractEquations) = False()
 """
