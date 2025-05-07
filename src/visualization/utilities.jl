@@ -465,25 +465,15 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
         raw_data = u
         n_vars = size(raw_data, 1)
     else
-        # FIXME: Remove this comment once the implementation following it has been verified
         # Reinterpret the solution array as an array of conservative variables,
         # compute the solution variables via broadcasting, and reinterpret the
         # result as a plain array of floating point numbers
-        # raw_data = Array(reinterpret(eltype(u),
-        #        solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
-        #                   Ref(equations))))
-        # n_vars = size(raw_data, 1)
-        n_vars_in = nvariables(equations)
-        n_vars = length(solution_variables(get_node_vars(u, equations, solver),
-                                           equations))
-        raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
-        reshaped_u = reshape(u, n_vars_in, :)
-        reshaped_r = reshape(raw_data, n_vars, :)
-        for idx in axes(reshaped_u, 2)
-            reshaped_r[:, idx] = solution_variables(get_node_vars(reshaped_u, equations,
-                                                                  solver, idx),
-                                                    equations)
-        end
+        raw_data = Array(reinterpret(eltype(u),
+                                     solution_variables.(reinterpret(SVector{nvariables(equations),
+                                                                             eltype(u)},
+                                                                     u),
+                                                         Ref(equations))))
+        n_vars = size(raw_data, 1)
     end
 
     unstructured_data = Array{eltype(raw_data)}(undef,
