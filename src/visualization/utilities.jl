@@ -456,6 +456,7 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes, reinterpolate
            vcat(original_nodes[1, 1, :], original_nodes[1, end, end])
 end
 
+# Apply the `solution_variables` function to all node values stored in `u`.
 @inline function apply_solution_variables(u, solution_variables,
                                           have_auxiliary_node_vars::False, equations,
                                           solver, cache)
@@ -472,6 +473,8 @@ end
     return raw_data
 end
 
+# Apply the `solution_variables` function to all node values stored in `u`.
+# Dispatch on `have_auxiliary_node_vars` to take into account auxiliary variables.
 @inline function apply_solution_variables(u, solution_variables,
                                           have_auxiliary_node_vars::True, equations,
                                           solver, cache)
