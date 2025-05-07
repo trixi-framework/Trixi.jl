@@ -215,7 +215,7 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{2},
                               nonconservative_terms::False,
-                              have_auxiliary_node_vars::False, equations,
+                              have_aux_node_vars::False, equations,
                               surface_integral::SurfaceIntegralUpwind,
                               dg::FDSBP, cache)
     @unpack splitting = surface_integral

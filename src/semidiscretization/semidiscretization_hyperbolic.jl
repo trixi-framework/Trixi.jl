@@ -74,7 +74,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
     # Add specialized parts of the cache for auxiliary node variables
     cache = (; cache...,
              create_cache_auxiliary(mesh, equations, solver, cache,
-                                    have_auxiliary_node_vars(equations),
+                                    have_aux_node_vars(equations),
                                     auxiliary_field)...)
 
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
@@ -113,15 +113,15 @@ end
 
 # If there are auxiliary variables, initialize them
 function create_cache_auxiliary(mesh, equations, solver, cache,
-                                have_auxiliary_node_vars::True, auxiliary_field)
-    auxiliary_variables = init_auxiliary_node_variables(mesh, equations, solver, cache,
+                                have_aux_node_vars::True, auxiliary_field)
+    aux_vars = init_aux_node_vars(mesh, equations, solver, cache,
                                                         auxiliary_field)
-    return (; auxiliary_variables)
+    return (; aux_vars)
 end
 
 # Do nothing if there are no auxiliary variables
 function create_cache_auxiliary(mesh, equations, solver, cache,
-                                have_auxiliary_node_vars::False, auxiliary_field)
+                                have_aux_node_vars::False, auxiliary_field)
     return NamedTuple()
 end
 
@@ -338,9 +338,9 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
         print_boundary_conditions(io, semi)
 
         summary_line(io, "source terms", semi.source_terms)
-        if have_auxiliary_node_vars(semi.equations) == Trixi.True()
+        if have_aux_node_vars(semi.equations) == Trixi.True()
             summary_line(io, "auxiliary variables",
-                         semi.cache.auxiliary_variables.auxiliary_field)
+                         semi.cache.aux_vars.auxiliary_field)
         end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))

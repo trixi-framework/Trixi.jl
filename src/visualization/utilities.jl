@@ -458,7 +458,7 @@ end
 
 # Apply the `solution_variables` function to all node values stored in `u`.
 @inline function apply_solution_variables(u, solution_variables,
-                                          have_auxiliary_node_vars::False, equations,
+                                          have_aux_node_vars::False, equations,
                                           solver, cache)
     n_vars_in = nvariables(equations)
     n_vars = length(solution_variables(get_node_vars(u, equations, solver),
@@ -474,24 +474,24 @@ end
 end
 
 # Apply the `solution_variables` function to all node values stored in `u`.
-# Dispatch on `have_auxiliary_node_vars` to take into account auxiliary variables.
+# Dispatch on `have_aux_node_vars` to take into account auxiliary variables.
 @inline function apply_solution_variables(u, solution_variables,
-                                          have_auxiliary_node_vars::True, equations,
+                                          have_aux_node_vars::True, equations,
                                           solver, cache)
-    @unpack auxiliary_node_vars = cache.auxiliary_variables
+    @unpack aux_node_vars = cache.aux_vars
     n_vars_in = nvariables(equations)
-    n_vars_aux = n_auxiliary_node_vars(equations)
+    n_vars_aux = n_aux_node_vars(equations)
     n_vars = length(solution_variables(get_node_vars(u, equations, solver),
-                                       get_auxiliary_node_vars(auxiliary_node_vars,
+                                       get_aux_node_vars(aux_node_vars,
                                                                equations, solver),
                                        equations))
     raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
     reshaped_u = reshape(u, n_vars_in, :)
     reshaped_r = reshape(raw_data, n_vars, :)
-    reshaped_aux = reshape(auxiliary_node_vars, n_vars_aux, :)
+    reshaped_aux = reshape(aux_node_vars, n_vars_aux, :)
     for idx in axes(reshaped_u, 2)
         u_node = get_node_vars(reshaped_u, equations, solver, idx)
-        aux_node = get_auxiliary_node_vars(reshaped_aux, equations, solver, idx)
+        aux_node = get_aux_node_vars(reshaped_aux, equations, solver, idx)
         reshaped_r[:, idx] = solution_variables(u_node, aux_node, equations)
     end
     return raw_data
@@ -515,7 +515,7 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
         #                   Ref(equations))))
         # n_vars = size(raw_data, 1)
         raw_data = apply_solution_variables(u, solution_variables,
-                                            have_auxiliary_node_vars(equations),
+                                            have_aux_node_vars(equations),
                                             equations, solver, cache)
         n_vars = size(raw_data, 1)
     end

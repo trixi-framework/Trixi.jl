@@ -491,7 +491,7 @@ function rhs!(du, u, t,
     @trixi_timeit timer() "interface flux" begin
         calc_interface_flux!(cache.elements.surface_flux_values, mesh,
                              have_nonconservative_terms(equations),
-                             have_auxiliary_node_vars(equations), equations,
+                             have_aux_node_vars(equations), equations,
                              dg.surface_integral, dg, cache)
     end
 
@@ -529,7 +529,7 @@ function rhs!(du, u, t,
     @trixi_timeit timer() "MPI interface flux" begin
         calc_mpi_interface_flux!(cache.elements.surface_flux_values, mesh,
                                  have_nonconservative_terms(equations),
-                                 have_auxiliary_node_vars(equations), equations,
+                                 have_aux_node_vars(equations), equations,
                                  dg.surface_integral, dg, cache)
     end
 
@@ -551,7 +551,7 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, have_auxiliary_node_vars(equations),
+        calc_sources!(du, u, t, source_terms, have_aux_node_vars(equations),
                       equations, dg, cache)
     end
 
@@ -726,7 +726,7 @@ end
 function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
                                   nonconservative_terms::False,
-                                  have_auxiliary_node_vars::False, equations,
+                                  have_aux_node_vars::False, equations,
                                   surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
@@ -768,11 +768,11 @@ end
 function calc_mpi_interface_flux!(surface_flux_values,
                                   mesh::ParallelTreeMesh{2},
                                   nonconservative_terms::False,
-                                  have_auxiliary_node_vars::True, equations,
+                                  have_aux_node_vars::True, equations,
                                   surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, local_neighbor_ids, orientations, remote_sides = cache.mpi_interfaces
-    @unpack auxiliary_surface_node_vars = cache.auxiliary_variables
+    @unpack aux_surface_node_vars = cache.aux_vars
 
     @threaded for interface in eachmpiinterface(dg, cache)
         # Get local neighboring element
@@ -796,7 +796,7 @@ function calc_mpi_interface_flux!(surface_flux_values,
         for i in eachnode(dg)
             # Call pointwise Riemann solver
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, interface)
-            aux_ll, aux_rr = get_auxiliary_surface_node_vars(auxiliary_surface_node_vars,
+            aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
                                                              equations, dg, i,
                                                              interface)
             flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr,
@@ -831,14 +831,14 @@ function calc_mpi_mortar_flux!(surface_flux_values,
         # Because `nonconservative_terms` is `False` the primary and secondary fluxes
         # are identical. So, we could possibly save on computation and just pass two copies later.
         orientation = orientations[mortar]
-        calc_fstar!(fstar_primary_upper, have_auxiliary_node_vars(equations), equations,
+        calc_fstar!(fstar_primary_upper, have_aux_node_vars(equations), equations,
                     surface_flux, dg, u_upper, mortar, orientation, cache)
-        calc_fstar!(fstar_primary_lower, have_auxiliary_node_vars(equations), equations,
+        calc_fstar!(fstar_primary_lower, have_aux_node_vars(equations), equations,
                     surface_flux, dg, u_lower, mortar, orientation, cache)
-        calc_fstar!(fstar_secondary_upper, have_auxiliary_node_vars(equations),
+        calc_fstar!(fstar_secondary_upper, have_aux_node_vars(equations),
                     equations,
                     surface_flux, dg, u_upper, mortar, orientation, cache)
-        calc_fstar!(fstar_secondary_lower, have_auxiliary_node_vars(equations),
+        calc_fstar!(fstar_secondary_lower, have_aux_node_vars(equations),
                     equations,
                     surface_flux, dg, u_lower, mortar, orientation, cache)
 

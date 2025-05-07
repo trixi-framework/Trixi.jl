@@ -120,7 +120,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-                              nonconservative_terms, have_auxiliary_node_vars,
+                              nonconservative_terms, have_aux_node_vars,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
     @unpack contravariant_vectors = cache.elements

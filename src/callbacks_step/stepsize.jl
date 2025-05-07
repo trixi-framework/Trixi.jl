@@ -121,7 +121,7 @@ function calculate_dt(u_ode, t, cfl_number::Real, semi::AbstractSemidiscretizati
 
     dt = cfl_number * max_dt(u, t, mesh,
                 have_constant_speed(equations),
-                have_auxiliary_node_vars(equations), equations,
+                have_aux_node_vars(equations), equations,
                 solver, cache)
 end
 # Case for `cfl_number` as a function of time `t`.
@@ -131,7 +131,7 @@ function calculate_dt(u_ode, t, cfl_number, semi::AbstractSemidiscretization)
 
     dt = cfl_number(t) * max_dt(u, t, mesh,
                 have_constant_speed(equations),
-                have_auxiliary_node_vars(equations), equations,
+                have_aux_node_vars(equations), equations,
                 solver, cache)
 end
 

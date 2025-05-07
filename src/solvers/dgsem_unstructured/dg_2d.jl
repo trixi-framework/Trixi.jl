@@ -84,7 +84,7 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, have_auxiliary_node_vars(equations),
+        calc_sources!(du, u, t, source_terms, have_aux_node_vars(equations),
                       equations, dg, cache)
     end
 

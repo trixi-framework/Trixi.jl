@@ -1424,16 +1424,16 @@ function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
 end
 
 # Initialize auxiliary node variables (2D implementation)
-function init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, solver,
+function init_aux_node_vars!(aux_vars, mesh, equations, solver,
                                         cache)
-    @unpack auxiliary_node_vars, auxiliary_field = auxiliary_variables
+    @unpack aux_node_vars, auxiliary_field = aux_vars
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(solver, cache)
         for j in eachnode(solver), i in eachnode(solver)
             x_local = get_node_coords(node_coordinates, equations, solver,
                                       i, j, element)
-            set_auxiliary_node_vars!(auxiliary_node_vars,
+            set_aux_node_vars!(aux_node_vars,
                                      auxiliary_field(x_local, equations),
                                      equations, solver, i, j, element)
         end
@@ -1442,9 +1442,9 @@ function init_auxiliary_node_variables!(auxiliary_variables, mesh, equations, so
 end
 
 # Initialize auxiliary surface node variables (2D implementation)
-function init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equations,
+function init_auxiliary_surface_node_variables!(aux_vars, mesh, equations,
                                                 solver, cache)
-    @unpack auxiliary_node_vars, auxiliary_surface_node_vars = auxiliary_variables
+    @unpack aux_node_vars, aux_surface_node_vars = aux_vars
     @unpack orientations, neighbor_ids = cache.interfaces
 
     @threaded for interface in eachinterface(solver, cache)
@@ -1454,12 +1454,12 @@ function init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equat
         if orientations[interface] == 1
             # interface in x-direction
             for j in eachnode(solver)
-                for v in axes(auxiliary_surface_node_vars, 2)
-                    auxiliary_surface_node_vars[1, v, j, interface] = auxiliary_node_vars[v,
+                for v in axes(aux_surface_node_vars, 2)
+                    aux_surface_node_vars[1, v, j, interface] = aux_node_vars[v,
                                                                                           nnodes(solver),
                                                                                           j,
                                                                                           left_element]
-                    auxiliary_surface_node_vars[2, v, j, interface] = auxiliary_node_vars[v,
+                    aux_surface_node_vars[2, v, j, interface] = aux_node_vars[v,
                                                                                           1,
                                                                                           j,
                                                                                           right_element]
@@ -1468,12 +1468,12 @@ function init_auxiliary_surface_node_variables!(auxiliary_variables, mesh, equat
         else # if orientations[interface] == 2
             # interface in y-direction
             for i in eachnode(solver)
-                for v in axes(auxiliary_surface_node_vars, 2)
-                    auxiliary_surface_node_vars[1, v, i, interface] = auxiliary_node_vars[v,
+                for v in axes(aux_surface_node_vars, 2)
+                    aux_surface_node_vars[1, v, i, interface] = aux_node_vars[v,
                                                                                           i,
                                                                                           nnodes(solver),
                                                                                           left_element]
-                    auxiliary_surface_node_vars[2, v, i, interface] = auxiliary_node_vars[v,
+                    aux_surface_node_vars[2, v, i, interface] = aux_node_vars[v,
                                                                                           i,
                                                                                           1,
                                                                                           right_element]
