@@ -2471,6 +2471,11 @@ end
                        v_vector[orientation])
     end
 end
+
+@testset "Pretty_form output for lake_at_rest_error" begin
+    @test Trixi.pretty_form_utf(lake_at_rest_error) == "∑|H₀-(h+b)|"
+    @test Trixi.pretty_form_ascii(lake_at_rest_error) == "|H0-(h+b)|"
+end
 end
 
 end #module
