@@ -22,6 +22,9 @@ mutable struct SemidiscretizationCoupledP4est{S, Indices, EquationList} <:
     semis::S
     u_indices::Indices # u_ode[u_indices[i]] is the part of u_ode corresponding to semis[i]
     performance_counter::PerformanceCounter
+    global_element_ids::Vector{Int}
+    local_element_ids::Vector{Int}
+    mesh_ids::Vector{Int}
 end
 
 """
@@ -46,11 +49,23 @@ function SemidiscretizationCoupledP4est(semis...)
         u_indices[i] = range(offset, length = n_coefficients[i])
     end
 
+    # Create correspondence between global cell IDs and local cell IDs.
+    global_element_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
+    local_element_ids = zeros(Int, size(global_element_ids))
+    mesh_ids = zeros(Int, size(global_element_ids))
+    for i in 1:length(semis)
+        local_element_ids[semis[i].mesh.cell_ids] = global_element_id_to_local(global_element_ids[semis[i].mesh.cell_ids], semis[i].mesh)
+        mesh_ids[semis[i].mesh.cell_ids] .= i
+    end
+
     performance_counter = PerformanceCounter()
 
     SemidiscretizationCoupledP4est{typeof(semis), typeof(u_indices),
                                    typeof(performance_counter)}(semis, u_indices,
-                                                                performance_counter)
+                                                                performance_counter,
+                                                                global_element_ids,
+                                                                local_element_ids,
+                                                                mesh_ids)
 end
 
 function Base.show(io::IO, semi::SemidiscretizationCoupledP4est)
@@ -181,7 +196,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, semi_, t, u_ode)
+        rhs!(du_loc, u_loc, semi, semi_, t, u_ode)
     end
 
     runtime = time_ns() - time_start

@@ -180,7 +180,7 @@ function rhs!(du, u, t,
     return nothing
 end
 
-function rhs!(du, u, t, u_global,
+function rhs!(du, u, t, u_global, semis,
               mesh::P4estMeshView{2},
               equations,
               boundary_conditions, source_terms::Source,
@@ -210,7 +210,7 @@ function rhs!(du, u, t, u_global,
 
     # Prolong solution to boundaries
     @trixi_timeit timer() "prolong2boundaries" begin
-        prolong2boundaries!(cache, u, u_global, mesh, equations,
+        prolong2boundaries!(cache, u, u_global, semis, mesh, equations,
                             dg.surface_integral, dg)
     end
 
