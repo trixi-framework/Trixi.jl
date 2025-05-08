@@ -512,7 +512,6 @@ of the correct length `nvariables(equations)`.
 """
 function waterheight_pressure end
 
-# TODO: will this be used for TrixiAtmo? Right now it is not used anywhere.
 """
     lake_at_rest_error(u, equations)
     
