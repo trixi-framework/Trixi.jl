@@ -294,7 +294,7 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 
-Should be used together with [`UnstructuredMesh2D`](@ref).
+Should be used together with [`UnstructuredMesh2D`](@ref) or [`P4estMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t,
