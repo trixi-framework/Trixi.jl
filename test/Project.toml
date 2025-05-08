@@ -61,4 +61,4 @@ Test = "1"
 TrixiTest = "0.1"
 
 [sources]
-CUDA = {url = "https://github.com/JuliaGPU/CUDA.jl", rev = "vc/unsafe_wrap_symbols"}
+CUDA = {url = "https://github.com/JuliaGPU/CUDA.jl", rev = "master"}
