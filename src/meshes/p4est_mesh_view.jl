@@ -36,6 +36,7 @@ end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
+@inline ncells(mesh::P4estMeshView) = length(mesh.cell_ids)
 
 function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
@@ -174,18 +175,17 @@ end
 # Then, within Trixi2Vtk, the P4estMeshView and its node coordinates are reconstructured from
 # these attributes for plotting purposes
 # | Warning: This overwrites any existing mesh file, either for a mesh view or parent mesh.
-function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
-                        mpi_parallel::False)
+function save_mesh_file(mesh::P4estMeshView, output_directory; system = "", timestep = 0)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%09d", timestep)
+        filename = joinpath(output_directory, @sprintf("mesh_%s_%09d.h5", system, timestep))
+        p4est_filename = @sprintf("p4est_%s_data_%09d", system, timestep)
     else
-        filename = joinpath(output_directory, "mesh.h5")
-        p4est_filename = "p4est_data"
+        filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system))
+        p4est_filename = @sprintf("p4est_%s_data", system)
     end
 
     p4est_file = joinpath(output_directory, p4est_filename)
