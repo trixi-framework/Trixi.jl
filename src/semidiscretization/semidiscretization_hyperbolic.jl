@@ -426,7 +426,8 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
     return nothing
 end
 
-function rhs!(du_ode, u_ode, semis::SemidiscretizationCoupledP4est, semi::SemidiscretizationHyperbolic, t, u_global)
+function rhs!(du_ode, u_ode, semis::SemidiscretizationCoupledP4est,
+              semi::SemidiscretizationHyperbolic, t, u_global)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
