@@ -107,7 +107,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             @test_nowarn_mod Plots.plot(ScalarPlotData2D(scalar_data, semi))
         else
             cache = semi.cache
-            x = view(cache.elements.node_coordinates,1, :, :, :)
+            x = view(cache.elements.node_coordinates, 1, :, :, :)
             @test_nowarn_mod Plots.plot(ScalarPlotData2D(x, semi))
         end
     end
