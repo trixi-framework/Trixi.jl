@@ -751,6 +751,7 @@ function calc_mortar_flux!(surface_flux_values, mesh,
                                                                                     dg,
                                                                                     cache)
 
+    # high order fluxes
     (; surface_flux_values_high_order) = cache.elements
     @trixi_timeit timer() "calc_mortar_flux!" calc_mortar_flux!(surface_flux_values_high_order,
                                                                 mesh,
@@ -806,7 +807,6 @@ end
         end
 
         for i in eachnode(dg)
-            # @info "" flux_difference_local
             flux_local_high_order = view(surface_flux_values_high_order, :, i,
                                          direction_small, lower_element)
             flux_local_low_order = view(surface_flux_values, :, i, direction_small,
@@ -833,8 +833,8 @@ end
 
             flux_local_high_order = view(surface_flux_values_high_order, :, i,
                                          direction_large, large_element)
-            flux_local_low_order = view(surface_flux_values_high_order, :, i,
-                                        direction_large, large_element)
+            flux_local_low_order = view(surface_flux_values, :, i, direction_large,
+                                        large_element)
             multiply_add_to_node_vars!(surface_flux_values,
                                        -limiting_factor[mortar],
                                        flux_local_low_order, equations, dg, i,
