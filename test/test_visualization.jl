@@ -703,7 +703,7 @@ end
         solver_parabolic = ViscousFormulationBassiRebay1()
         boundary_conditions = boundary_condition_periodic
         boundary_conditions_parabolic = boundary_condition_periodic
-        initial_refinement_level=3
+        initial_refinement_level = 3
 
         function initial_condition_diffusive_convergence_test(x, t,
                                                               equation::LinearScalarAdvectionEquation3D)
