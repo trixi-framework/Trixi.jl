@@ -563,6 +563,9 @@ abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("polytropic_euler_2d.jl")
 
+# Passive tracer equations
+include("passive_tracers.jl")
+
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,
                                                                                 NVARS,
