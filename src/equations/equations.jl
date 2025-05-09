@@ -46,6 +46,9 @@ function varnames end
 # Otherwise, throw an error.
 function get_variable_index(varname, equations;
                             solution_variables = cons2cons)
+    if varname == "first"
+        return 1
+    end
     index = findfirst(==(varname), varnames(solution_variables, equations))
     if isnothing(index)
         throw(ArgumentError("$varname is no valid variable."))

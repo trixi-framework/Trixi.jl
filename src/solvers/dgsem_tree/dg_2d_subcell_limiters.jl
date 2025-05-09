@@ -793,44 +793,6 @@ end
                 direction_small = 3
                 direction_large = 4
             end
-
-            for i in eachnode(dg)
-                flux_local_high_order = view(surface_flux_values_high_order, :, i,
-                                             direction_small, lower_element)
-                flux_local_low_order = view(surface_flux_values, :, i, direction_small,
-                                            lower_element)
-                multiply_add_to_node_vars!(surface_flux_values,
-                                           -limiting_factor[mortar],
-                                           flux_local_low_order, equations, dg, i,
-                                           direction_small, lower_element)
-                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
-                                           flux_local_high_order, equations, dg, i,
-                                           direction_small, lower_element)
-
-                flux_local_high_order = view(surface_flux_values_high_order, :, i,
-                                             direction_small, upper_element)
-                flux_local_low_order = view(surface_flux_values, :, i, direction_small,
-                                            upper_element)
-                multiply_add_to_node_vars!(surface_flux_values,
-                                           -limiting_factor[mortar],
-                                           flux_local_low_order, equations, dg, i,
-                                           direction_small, upper_element)
-                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
-                                           flux_local_high_order, equations, dg, i,
-                                           direction_small, upper_element)
-
-                flux_local_high_order = view(surface_flux_values_high_order, :, i,
-                                             direction_large, large_element)
-                flux_local_low_order = view(surface_flux_values, :, i, direction_large,
-                                            large_element)
-                multiply_add_to_node_vars!(surface_flux_values,
-                                           -limiting_factor[mortar],
-                                           flux_local_low_order, equations, dg, i,
-                                           direction_large, large_element)
-                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
-                                           flux_local_high_order, equations, dg, i,
-                                           direction_large, large_element)
-            end
         else # large_sides[mortar] == 2 -> small elements on left side
             if orientation == 1
                 # L2 mortars in x-direction
@@ -841,45 +803,45 @@ end
                 direction_small = 4
                 direction_large = 3
             end
+        end
 
-            for i in eachnode(dg)
-                # @info "" flux_difference_local
-                flux_local_high_order = view(surface_flux_values_high_order, :, i,
-                                             direction_small, lower_element)
-                flux_local_low_order = view(surface_flux_values, :, i, direction_small,
-                                            lower_element)
-                multiply_add_to_node_vars!(surface_flux_values,
-                                           -limiting_factor[mortar],
-                                           flux_local_low_order, equations, dg, i,
-                                           direction_small, lower_element)
-                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
-                                           flux_local_high_order, equations, dg, i,
-                                           direction_small, lower_element)
+        for i in eachnode(dg)
+            # @info "" flux_difference_local
+            flux_local_high_order = view(surface_flux_values_high_order, :, i,
+                                         direction_small, lower_element)
+            flux_local_low_order = view(surface_flux_values, :, i, direction_small,
+                                        lower_element)
+            multiply_add_to_node_vars!(surface_flux_values,
+                                       -limiting_factor[mortar],
+                                       flux_local_low_order, equations, dg, i,
+                                       direction_small, lower_element)
+            multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
+                                       flux_local_high_order, equations, dg, i,
+                                       direction_small, lower_element)
 
-                flux_local_high_order = view(surface_flux_values_high_order, :, i,
-                                             direction_small, upper_element)
-                flux_local_low_order = view(surface_flux_values, :, i, direction_small,
-                                            upper_element)
-                multiply_add_to_node_vars!(surface_flux_values,
-                                           -limiting_factor[mortar],
-                                           flux_local_low_order, equations, dg, i,
-                                           direction_small, upper_element)
-                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
-                                           flux_local_high_order, equations, dg, i,
-                                           direction_small, upper_element)
+            flux_local_high_order = view(surface_flux_values_high_order, :, i,
+                                         direction_small, upper_element)
+            flux_local_low_order = view(surface_flux_values, :, i, direction_small,
+                                        upper_element)
+            multiply_add_to_node_vars!(surface_flux_values,
+                                       -limiting_factor[mortar],
+                                       flux_local_low_order, equations, dg, i,
+                                       direction_small, upper_element)
+            multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
+                                       flux_local_high_order, equations, dg, i,
+                                       direction_small, upper_element)
 
-                flux_local_high_order = view(surface_flux_values_high_order, :, i,
-                                             direction_large, large_element)
-                flux_local_low_order = view(surface_flux_values_high_order, :, i,
-                                            direction_large, large_element)
-                multiply_add_to_node_vars!(surface_flux_values,
-                                           -limiting_factor[mortar],
-                                           flux_local_low_order, equations, dg, i,
-                                           direction_large, large_element)
-                multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
-                                           flux_local_high_order, equations, dg, i,
-                                           direction_large, large_element)
-            end
+            flux_local_high_order = view(surface_flux_values_high_order, :, i,
+                                         direction_large, large_element)
+            flux_local_low_order = view(surface_flux_values_high_order, :, i,
+                                        direction_large, large_element)
+            multiply_add_to_node_vars!(surface_flux_values,
+                                       -limiting_factor[mortar],
+                                       flux_local_low_order, equations, dg, i,
+                                       direction_large, large_element)
+            multiply_add_to_node_vars!(surface_flux_values, limiting_factor[mortar],
+                                       flux_local_high_order, equations, dg, i,
+                                       direction_large, large_element)
         end
     end
 
