@@ -810,8 +810,8 @@ end
 
     # test interactive ScalarPlotData2D plotting
     semi = sol.prob.p
-    x = view(semi.cache.elements.node_coordinates,1, :, :, :) # extracts the node x coordinates
-    y = view(semi.cache.elements.node_coordinates,2, :, :, :) # extracts the node x coordinates
+    x = view(semi.cache.elements.node_coordinates, 1, :, :, :) # extracts the node x coordinates
+    y = view(semi.cache.elements.node_coordinates, 2, :, :, :) # extracts the node x coordinates
     @test_nowarn_mod iplot(ScalarPlotData2D(x .+ y, semi), plot_mesh = true)
 
     # test heatmap plot
