@@ -733,14 +733,14 @@ end
 
             for i in eachindex(pd.x)
                 x = SVector(pd.x[i], pd.y[i], 0.0)
-                u = ic(x, 0.1, equations)[1]
+                u = initial_condition(x, 0.1, equations)[1]
                 @test isapprox(pd.data[1][i], u, atol = 0.9)
             end
 
             pd = @inferred PlotData1D(ode.u0, ode.p, slice = :z)
             for i in eachindex(pd.x)
                 x = SVector(0, 0, pd.x[i])
-                u = ic(x, 0.1, equations)[1]
+                u = initial_condition(x, 0.1, equations)[1]
                 @test isapprox(pd.data[1], u, atol = 0.5)
             end
         end
