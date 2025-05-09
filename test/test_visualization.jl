@@ -108,7 +108,7 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
             @test_nowarn_mod Plots.plot(ScalarPlotData2D(scalar_data, semi))
         else
             cache = semi.cache
-            x = view(cache.elements.node_coordinates,1,:,:,:)
+            x = view(cache.elements.node_coordinates,1, :, :, :)
             @test_nowarn_mod Plots.plot(ScalarPlotData2D(x, semi))
         end
     end
@@ -810,8 +810,8 @@ end
 
     # test interactive ScalarPlotData2D plotting
     semi = sol.prob.p
-    x = view(semi.cache.elements.node_coordinates,1,:,:,:) # extracts the node x coordinates
-    y = view(semi.cache.elements.node_coordinates,2,:,:,:) # extracts the node x coordinates
+    x = view(semi.cache.elements.node_coordinates,1, :, :, :) # extracts the node x coordinates
+    y = view(semi.cache.elements.node_coordinates,2, :, :, :) # extracts the node x coordinates
     @test_nowarn_mod iplot(ScalarPlotData2D(x .+ y, semi), plot_mesh = true)
 
     # test heatmap plot
