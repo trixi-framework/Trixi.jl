@@ -38,6 +38,13 @@ function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator,
     end
 end
 
+# Version used by the AMR callback
+function (limiter!::PositivityPreservingLimiterZhangShu)(u, mesh, equations, solver,
+                                                         cache)
+    limiter_zhang_shu!(u, limiter!.thresholds, limiter!.variables, mesh, equations,
+                       solver, cache)
+end
+
 # Iterate over tuples in a type-stable way using "lispy tuple programming",
 # similar to https://stackoverflow.com/a/55849398:
 # Iterating over tuples of different functions isn't type-stable in general

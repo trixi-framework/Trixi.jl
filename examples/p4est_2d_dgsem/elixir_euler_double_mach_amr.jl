@@ -124,6 +124,11 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+# positivity limiter necessary for this example with strong shocks
+positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
+                                                         variables = (Trixi.density,
+                                                                      pressure))
+
 amr_indicator = IndicatorLöhner(semi, variable = Trixi.density)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
@@ -134,18 +139,15 @@ amr_controller = ControllerThreeLevel(semi, amr_indicator,
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = positivity_limiter)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         save_solution,
                         amr_callback)
 
-# positivity limiter necessary for this example with strong shocks
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
-                                                     variables = (Trixi.density, pressure))
-
 ###############################################################################
 # run the simulation
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode, SSPRK43(stage_limiter! = positivity_limiter);
             ode_default_options()..., callback = callbacks);
