@@ -1,5 +1,5 @@
 using OrdinaryDiffEqSSPRK
-using OrdinaryDiffEqLowStorageRK
+using Trixi
 
 gamma_gas = 1.4
 equations = CompressibleEulerEquations1D(gamma_gas)
