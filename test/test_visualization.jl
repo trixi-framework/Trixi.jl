@@ -35,9 +35,9 @@ test_examples_2d = Dict("TreeMesh" => ("tree_2d_dgsem",
 @testset "PlotData2D, PlotDataSeries, PlotMesh with $mesh" for mesh in keys(test_examples_2d)
     # Run Trixi.jl
     directory, elixir = test_examples_2d[mesh]
+    path = joinpath(examples_dir(), directory, elixir)
     @test_nowarn_mod trixi_include(@__MODULE__,
-                                   joinpath(examples_dir(), directory, elixir),
-                                   tspan = (0, 0.1))
+                                   path, tspan = (0, 0.1))
 
     # Constructor tests
     if mesh == "TreeMesh"
