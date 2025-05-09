@@ -1,4 +1,5 @@
 using Test: @test
+using TrixiTest: @trixi_test_nowarn
 import Trixi
 
 # Use a macro to avoid world age issues when defining new initial conditions etc.
@@ -109,60 +110,22 @@ function expr_to_named_tuple(expr)
     return result
 end
 
-# Modified version of `@test_nowarn` that prints the content of `stderr` when
-# it is not empty and ignores module replacements.
 macro test_nowarn_mod(expr, additional_ignore_content = String[])
     quote
-        let fname = tempname()
-            try
-                ret = open(fname, "w") do f
-                    redirect_stderr(f) do
-                        $(esc(expr))
-                    end
-                end
-                stderr_content = read(fname, String)
-                if !isempty(stderr_content)
-                    println("Content of `stderr`:\n", stderr_content)
-                end
-
-                # Patterns matching the following ones will be ignored. Additional patterns
-                # passed as arguments can also be regular expressions, so we just use the
-                # type `Any` for `ignore_content`.
-                ignore_content = Any[
-                                     # We need to ignore steady state information reported by our callbacks
-                                     r"┌ Info:   Steady state tolerance reached\n│   steady_state_callback .+\n└   t = .+\n",
-                                     # We also ignore our own compilation messages
-                                     "[ Info: You just called `trixi_include`. Julia may now compile the code, please be patient.\n",
-                                     # TODO: Upstream (PlotUtils). This should be removed again once the
-                                     #       deprecated stuff is fixed upstream.
-                                     "WARNING: importing deprecated binding Colors.RGB1 into Plots.\n",
-                                     "WARNING: importing deprecated binding Colors.RGB4 into Plots.\n",
-                                     r"┌ Warning: Keyword argument letter not supported with Plots.+\n└ @ Plots.+\n",
-                                     r"┌ Warning: `parse\(::Type, ::Coloarant\)` is deprecated.+\n│.+\n│.+\n└ @ Plots.+\n",
-                                     # TODO: Silence warning introduced by Flux v0.13.13. Should be properly fixed.
-                                     r"┌ Warning: Layer with Float32 parameters got Float64 input.+\n│.+\n│.+\n│.+\n└ @ Flux.+\n",
-                                     # NOTE: These warnings arose from Julia 1.10 onwards
-                                     r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
-                                     # Warnings from third party packages
-                                     r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
-                                     r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
-                                     # Warnings for higher-precision floating data types
-                                     r"┌ Warning: #= /home/runner/work/Trixi.jl/Trixi.jl/src/solvers/dgsem/interpolation.jl:118 =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi ~/.julia/packages/LoopVectorization/.*\n",
-                                     r"┌ Warning: #= /home/runner/work/Trixi.jl/Trixi.jl/src/solvers/dgsem/interpolation.jl:136 =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi ~/.julia/packages/LoopVectorization/.*\n"]
-                append!(ignore_content, $additional_ignore_content)
-                for pattern in ignore_content
-                    stderr_content = replace(stderr_content, pattern => "")
-                end
-
-                # We also ignore simple module redefinitions for convenience. Thus, we
-                # check whether every line of `stderr_content` is of the form of a
-                # module replacement warning.
-                @test occursin(r"^(WARNING: replacing module .+\.\n)*$", stderr_content)
-                ret
-            finally
-                rm(fname, force = true)
-            end
-        end
+        add_to_additional_ignore_content = [
+            # We need to ignore steady state information reported by our callbacks
+            r"┌ Info:   Steady state tolerance reached\n│   steady_state_callback .+\n└   t = .+\n",
+            # NOTE: These warnings arose from Julia 1.10 onwards
+            r"WARNING: Method definition .* in module .* at .* overwritten .*.\n",
+            # Warnings from third party packages
+            r"┌ Warning: Problem status ALMOST_INFEASIBLE; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
+            r"┌ Warning: Problem status ALMOST_OPTIMAL; solution may be inaccurate.\n└ @ Convex ~/.julia/packages/Convex/.*\n",
+            # Warnings for higher-precision floating data types
+            r"┌ Warning: #= /home/runner/work/Trixi.jl/Trixi.jl/src/solvers/dgsem/interpolation.jl:118 =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi ~/.julia/packages/LoopVectorization/.*\n",
+            r"┌ Warning: #= /home/runner/work/Trixi.jl/Trixi.jl/src/solvers/dgsem/interpolation.jl:136 =#:\n│ `LoopVectorization.check_args` on your inputs failed; running fallback `@inbounds @fastmath` loop instead.\n│ Use `warn_check_args=false`, e.g. `@turbo warn_check_args=false ...`, to disable this warning.\n└ @ Trixi ~/.julia/packages/LoopVectorization/.*\n"
+        ]
+        append!($additional_ignore_content, add_to_additional_ignore_content)
+        @trixi_test_nowarn $expr $additional_ignore_content
     end
 end
 
