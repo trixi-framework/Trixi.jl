@@ -437,6 +437,59 @@ end
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4])
 end
 
+# Computes the mirror velocity across a symmetry plane which enforces
+# a tangential velocity that is aligned with the symmetry plane, i.e.,
+# which is normal to the `normal_direction`.
+@inline function velocity_symmetry_plane(normal_direction::AbstractVector, v1, v2)
+    norm_ = norm(normal_direction)
+    normal = normal_direction / norm_
+
+    # Compute alignment of velocity with normal direction
+    v_normal = v1 * normal[1] + v2 * normal[2]
+
+    v1_outer = v1 - 2 * v_normal * normal[1]
+    v2_outer = v2 - 2 * v_normal * normal[2]
+
+    return v1_outer, v2_outer
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:SlipWall,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Gradient,
+                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+    v1_outer, v2_outer = velocity_symmetry_plane(normal,
+                                                 u_inner[2],
+                                                 u_inner[3])
+
+    return SVector(u_inner[1], v1_outer, v2_outer, u_inner[4])
+end
+
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:SlipWall,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Divergence,
+                                                                                      equations::CompressibleNavierStokesDiffusion2D{GradientVariablesPrimitive})
+    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
+                                                                                                           t,
+                                                                                                           equations)
+    v1_outer, v2_outer = velocity_symmetry_plane(normal,
+                                                 u_inner[2],
+                                                 u_inner[3])
+
+    _, tau_1n, tau_2n, _ = flux_inner # extract fluxes for 2nd and 3rd equations
+    normal_energy_flux = v1_outer * tau_1n + v2_outer * tau_2n +
+                         normal_heat_flux
+    return SVector(flux_inner[1], flux_inner[2], flux_inner[3],
+                   normal_energy_flux)
+end
+
 # Dirichlet Boundary Condition for e.g. P4est mesh
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
                                                                   u_inner,
