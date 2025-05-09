@@ -367,5 +367,5 @@ end
 end
 
 # Convert conservative variables to entropy variables
-@inline cons2entropy(u, equations::AcousticPerturbationEquations2DAuxVars) = u
+@inline cons2entropy(u, aux, equations::AcousticPerturbationEquations2DAuxVars) = u
 end # @muladd
