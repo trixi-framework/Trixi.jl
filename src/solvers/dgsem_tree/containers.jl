@@ -40,8 +40,7 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
         resize!(aux_vars, length(leaf_cell_ids),
                 count_required_interfaces(mesh, leaf_cell_ids))
         init_aux_node_vars!(aux_vars, mesh, equations, dg, cache)
-        init_auxiliary_surface_node_variables!(aux_vars, mesh, equations, dg,
-                                               cache)
+        init_aux_surface_node_vars!(aux_vars, mesh, equations, dg, cache)
     end
 
     if mpi_isparallel()
@@ -118,8 +117,7 @@ function init_aux_node_vars(mesh, equations, solver, cache,
                                                                         auxiliary_field)
 
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
-    init_auxiliary_surface_node_variables!(aux_vars, mesh, equations, solver,
-                                           cache)
+    init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     return aux_vars
 end
 

@@ -1442,8 +1442,7 @@ function init_aux_node_vars!(aux_vars, mesh, equations, solver,
 end
 
 # Initialize auxiliary surface node variables (2D implementation)
-function init_auxiliary_surface_node_variables!(aux_vars, mesh, equations,
-                                                solver, cache)
+function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     @unpack aux_node_vars, aux_surface_node_vars = aux_vars
     @unpack orientations, neighbor_ids = cache.interfaces
 
