@@ -207,16 +207,8 @@ end
     @trixi_timeit timer() "get element variables" begin
         get_element_variables!(element_variables, u_ode, semi)
         callbacks = integrator.opts.callback
-        if callbacks isa CallbackSet
-            foreach(callbacks.continuous_callbacks) do cb
-                get_element_variables!(element_variables, u_ode, semi, cb;
-                                       t = integrator.t, iter = iter)
-            end
-            foreach(callbacks.discrete_callbacks) do cb
-                get_element_variables!(element_variables, u_ode, semi, cb;
-                                       t = integrator.t, iter = iter)
-            end
-        end
+        get_element_variables_callbacks!(element_variables, u_ode, semi, callbacks;
+                                         t = integrator.t, iter = iter)
     end
 
     node_variables = Dict{Symbol, Any}()
