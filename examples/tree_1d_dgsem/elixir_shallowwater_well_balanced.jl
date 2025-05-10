@@ -5,7 +5,7 @@ using Trixi
 # semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function
 
-equations = ShallowWaterEquations1D(gravity_constant = 9.81, H0 = 3.25)
+equations = ShallowWaterEquations1D(gravity = 9.81, H0 = 3.25)
 
 # Setup a truly discontinuous bottom topography function for this academic
 # testcase of well-balancedness. The errors from the analysis callback are
