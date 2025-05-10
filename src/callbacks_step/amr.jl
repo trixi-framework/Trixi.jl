@@ -14,7 +14,7 @@
                 limiter! = nothing)
 
 Performs adaptive mesh refinement (AMR) every `interval` time steps for a given semidiscretization 
-`semi` using the chosen `controller`. If specified a positivity-preserving limiter `limiter!` is
+`semi` using the chosen `controller`. If specified, a positivity-preserving limiter `limiter!` is
 applied to the solution after refinement and coarsening.
 """
 struct AMRCallback{Controller, Adaptor, Cache, Limiter}
