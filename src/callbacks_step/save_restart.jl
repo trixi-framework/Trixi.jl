@@ -62,13 +62,9 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
     mpi_isroot() && mkpath(restart_callback.output_directory)
 
     semi = integrator.p
-    mesh, _, _, _ = mesh_equations_solver_cache(semi)
+
     @trixi_timeit timer() "I/O" begin
-        if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh,
-                                                   restart_callback.output_directory)
-            mesh.unsaved_changes = false
-        end
+        save_mesh(semi, restart_callback.output_directory)
     end
 
     return nothing
@@ -93,16 +89,9 @@ function (restart_callback::SaveRestartCallback)(integrator)
     @unpack t, dt = integrator
     iter = integrator.stats.naccept
     semi = integrator.p
-    mesh, _, _, _ = mesh_equations_solver_cache(semi)
 
     @trixi_timeit timer() "I/O" begin
-        if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh,
-                                                   restart_callback.output_directory,
-                                                   iter)
-            mesh.unsaved_changes = false
-        end
-
+        save_mesh(semi, restart_callback.output_directory, iter)
         save_restart_file(u_ode, t, dt, iter, semi, restart_callback)
         # If using an adaptive time stepping scheme, store controller values for restart
         if integrator.opts.adaptive
