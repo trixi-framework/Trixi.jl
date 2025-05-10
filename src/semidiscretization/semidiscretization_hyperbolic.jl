@@ -413,6 +413,13 @@ end
 function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 
+    if du_ode isa AbstractArray{<:ForwardDiff.Dual{<:Any, <:Any, 1}} && haskey(cache, :semi_dual)
+        return rhs!(du_ode, u_ode, semi.cache.semi_dual, t)
+    end
+    if du_ode isa AbstractArray{<:ForwardDiff.Dual{<:Any, <:Any, 11}} && haskey(cache, :semi_dual11)
+        return rhs!(du_ode, u_ode, semi.cache.semi_dual11, t)
+    end
+
     u = wrap_array(u_ode, mesh, equations, solver, cache)
     du = wrap_array(du_ode, mesh, equations, solver, cache)
 
