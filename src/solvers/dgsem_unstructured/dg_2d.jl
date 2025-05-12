@@ -110,25 +110,30 @@ function prolong2interfaces!(cache, u,
 
         if primary_side == 1
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, i, interface] = u[v, i, 1, primary_element]
+                interfaces_u[1, v, i, interface] = u[v, i, 1,
+                                                     primary_element]
             end
         elseif primary_side == 2
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, i, interface] = u[v, nnodes(dg), i, primary_element]
+                interfaces_u[1, v, i, interface] = u[v, nnodes(dg), i,
+                                                     primary_element]
             end
         elseif primary_side == 3
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg), primary_element]
+                interfaces_u[1, v, i, interface] = u[v, i, nnodes(dg),
+                                                     primary_element]
             end
         else # primary_side == 4
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[1, v, i, interface] = u[v, 1, i, primary_element]
+                interfaces_u[1, v, i, interface] = u[v, 1, i,
+                                                     primary_element]
             end
         end
 
         if secondary_side == 1
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[2, v, i, interface] = u[v, i, 1, secondary_element]
+                interfaces_u[2, v, i, interface] = u[v, i, 1,
+                                                     secondary_element]
             end
         elseif secondary_side == 2
             for i in eachnode(dg), v in eachvariable(equations)
@@ -142,7 +147,8 @@ function prolong2interfaces!(cache, u,
             end
         else # secondary_side == 4
             for i in eachnode(dg), v in eachvariable(equations)
-                interfaces_u[2, v, i, interface] = u[v, 1, i, secondary_element]
+                interfaces_u[2, v, i, interface] = u[v, 1, i,
+                                                     secondary_element]
             end
         end
     end
@@ -184,8 +190,7 @@ function calc_interface_flux!(surface_flux_values,
             #   Note! this assumes a conforming approximation, more must be done in terms of the normals
             #         for hanging nodes and other non-conforming approximation spaces
             outward_direction = get_surface_normal(normal_directions, primary_index,
-                                                   primary_side,
-                                                   primary_element)
+                                                   primary_side, primary_element)
 
             # Call pointwise numerical flux with rotation. Direction is normalized inside this function
             flux = surface_flux(u_ll, u_rr, outward_direction, equations)
@@ -238,8 +243,7 @@ function calc_interface_flux!(surface_flux_values,
             # Note! This assumes a conforming approximation, more must be done in terms
             # of the normals for hanging nodes and other non-conforming approximation spaces
             outward_direction = get_surface_normal(normal_directions, primary_index,
-                                                   primary_side,
-                                                   primary_element)
+                                                   primary_side, primary_element)
 
             # Calculate the conservative portion of the numerical flux
             # Call pointwise numerical flux with rotation. Direction is normalized
