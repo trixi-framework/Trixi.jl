@@ -29,7 +29,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 # A semidiscretization collects data structures and functions for the spatial discretization
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_convergence_test,
-                                    auxiliary_field = auxiliary_variables_mean_values)
+                                    aux_field = auxiliary_variables_mean_values)
 
 ###############################################################################
 # ODE solvers, callbacks etc.

@@ -65,7 +65,7 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
                                       # while `uEltype` is used as element type of solutions etc.
                                       RealT = real(solver), uEltype = RealT,
                                       initial_cache = NamedTuple(),
-                                      auxiliary_field = nothing)
+                                      aux_field = nothing)
     @assert ndims(mesh) == ndims(equations)
 
     cache = (; create_cache(mesh, equations, solver, RealT, uEltype)...,
@@ -73,9 +73,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
 
     # Add specialized parts of the cache for auxiliary node variables
     cache = (; cache...,
-             create_cache_auxiliary(mesh, equations, solver, cache,
-                                    have_aux_node_vars(equations),
-                                    auxiliary_field)...)
+             create_cache_aux(mesh, equations, solver, cache, have_aux_node_vars(equations),
+                              aux_field)...)
 
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
@@ -112,16 +111,16 @@ function remake(semi::SemidiscretizationHyperbolic; uEltype = real(semi.solver),
 end
 
 # If there are auxiliary variables, initialize them
-function create_cache_auxiliary(mesh, equations, solver, cache,
-                                have_aux_node_vars::True, auxiliary_field)
+function create_cache_aux(mesh, equations, solver, cache, have_aux_node_vars::True,
+                          aux_field)
     aux_vars = init_aux_node_vars(mesh, equations, solver, cache,
-                                  auxiliary_field)
+                                  aux_field)
     return (; aux_vars)
 end
 
 # Do nothing if there are no auxiliary variables
-function create_cache_auxiliary(mesh, equations, solver, cache,
-                                have_aux_node_vars::False, auxiliary_field)
+function create_cache_aux(mesh, equations, solver, cache, have_aux_node_vars::False,
+                          aux_field)
     return NamedTuple()
 end
 
@@ -340,7 +339,7 @@ function Base.show(io::IO, ::MIME"text/plain", semi::SemidiscretizationHyperboli
         summary_line(io, "source terms", semi.source_terms)
         if have_aux_node_vars(semi.equations) == Trixi.True()
             summary_line(io, "auxiliary variables",
-                         semi.cache.aux_vars.auxiliary_field)
+                         semi.cache.aux_vars.aux_field)
         end
         summary_line(io, "solver", semi.solver |> typeof |> nameof)
         summary_line(io, "total #DOFs per field", ndofsglobal(semi))
