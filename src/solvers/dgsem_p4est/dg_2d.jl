@@ -364,6 +364,7 @@ end
     x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
                         element_index)
 
+    @autoinfiltrate
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
     # Copy flux to element storage in the correct orientation

@@ -426,7 +426,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationHyperbolic, t)
     return nothing
 end
 
-function rhs!(du_ode, u_ode, semis::SemidiscretizationCoupledP4est,
+function rhs!(du_ode, u_ode, semis,
               semi::SemidiscretizationHyperbolic, t, u_global)
     @unpack mesh, equations, boundary_conditions, source_terms, solver, cache = semi
 

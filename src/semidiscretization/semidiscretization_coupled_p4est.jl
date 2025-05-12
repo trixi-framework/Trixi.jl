@@ -461,45 +461,19 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
 !!! warning "Experimental code"
     This is an experimental feature and can change any time.
 """
-mutable struct BoundaryConditionCoupled{NDIMS,
-                                        # Store the other semi index as type parameter,
-                                        # so that retrieving the other semidiscretization
-                                        # is type-stable.
-                                        # x-ref: https://github.com/trixi-framework/Trixi.jl/pull/1979
-                                        other_semi_index, NDIMST2M1,
-                                        uEltype <: Real, Indices, CouplingConverter}
-    # NDIMST2M1 == NDIMS * 2 - 1
-    # Buffer for boundary values: [variable, nodes_i, nodes_j, cell_i, cell_j]
-    u_boundary         :: Array{uEltype, NDIMST2M1} # NDIMS * 2 - 1
-    other_orientation  :: Int
-    indices            :: Indices
+mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
     coupling_converter :: CouplingConverter
 
-    function BoundaryConditionCoupled(other_semi_index, indices, uEltype,
-                                      coupling_converter)
-        NDIMS = length(indices)
-        u_boundary = Array{uEltype, NDIMS * 2 - 1}(undef, ntuple(_ -> 0, NDIMS * 2 - 1))
-
-        if indices[1] in (:begin, :end)
-            other_orientation = 1
-        elseif indices[2] in (:begin, :end)
-            other_orientation = 2
-        else # indices[3] in (:begin, :end)
-            other_orientation = 3
-        end
-
-        new{NDIMS, other_semi_index, NDIMS * 2 - 1, uEltype, typeof(indices),
-            typeof(coupling_converter)}(u_boundary,
-                                        other_orientation,
-                                        indices, coupling_converter)
+    function BoundaryConditionCoupledP4est(coupling_converter)
+        new{typeof(coupling_converter)}(coupling_converter)
     end
 end
 
-function Base.eltype(boundary_condition::BoundaryConditionCoupled)
+function Base.eltype(boundary_condition::BoundaryConditionCoupledP4est)
     eltype(boundary_condition.u_boundary)
 end
 
-function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, direction,
+function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, orientation, direction,
                                                         cell_indices,
                                                         surface_node_indices,
                                                         surface_flux_function,
@@ -539,39 +513,11 @@ function (boundary_condition::BoundaryConditionCoupled)(u_inner, orientation, di
     return flux
 end
 
-function allocate_coupled_boundary_conditions(semi::AbstractSemidiscretization)
-    n_boundaries = 2 * ndims(semi)
-    mesh, equations, solver, _ = mesh_equations_solver_cache(semi)
-
-    for direction in 1:n_boundaries
-        boundary_condition = semi.boundary_conditions[direction]
-
-        allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
-                                            equations,
-                                            solver)
-    end
-end
-
 # Don't do anything for other BCs than BoundaryConditionCoupled
 function allocate_coupled_boundary_condition(boundary_condition, direction, mesh,
                                              equations,
                                              solver)
     return nothing
-end
-
-# In 2D
-function allocate_coupled_boundary_condition(boundary_condition::BoundaryConditionCoupled{2},
-                                             direction, mesh, equations, dg::DGSEM)
-    if direction in (1, 2)
-        cell_size = size(mesh, 2)
-    else
-        cell_size = size(mesh, 1)
-    end
-
-    uEltype = eltype(boundary_condition)
-    boundary_condition.u_boundary = Array{uEltype, 3}(undef, nvariables(equations),
-                                                      nnodes(dg),
-                                                      cell_size)
 end
 
 # # Don't do anything for other BCs than BoundaryConditionCoupled
@@ -666,7 +612,7 @@ end
 
 @inline function calc_boundary_flux_by_direction!(surface_flux_values, u, t,
                                                   orientation,
-                                                  boundary_condition::BoundaryConditionCoupled,
+                                                  boundary_condition::BoundaryConditionCoupledP4est,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
                                                   equations,

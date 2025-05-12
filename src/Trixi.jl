@@ -219,7 +219,7 @@ export boundary_condition_do_nothing,
        boundary_condition_slip_wall,
        boundary_condition_wall,
        BoundaryConditionNavierStokesWall, NoSlip, Adiabatic, Isothermal,
-       BoundaryConditionCoupled, BoundaryConditionCoupledP4Est
+       BoundaryConditionCoupled, BoundaryConditionCoupledP4est
 
 export initial_condition_convergence_test, source_terms_convergence_test,
        source_terms_lorentz, source_terms_collision_ion_electron,

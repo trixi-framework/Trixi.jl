@@ -214,11 +214,11 @@ function rhs!(du, u, t, u_global, semis,
                             dg.surface_integral, dg)
     end
 
-    #         # Calculate boundary fluxes
-    #         @trixi_timeit timer() "boundary flux" begin
-    #             calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
-    #                                 dg.surface_integral, dg)
-    #         end
+    # Calculate boundary fluxes
+    @trixi_timeit timer() "boundary flux" begin
+        calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
+                            dg.surface_integral, dg)
+    end
 
     # Prolong solution to mortars
     @trixi_timeit timer() "prolong2mortars" begin
