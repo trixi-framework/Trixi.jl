@@ -473,11 +473,9 @@ function Base.eltype(boundary_condition::BoundaryConditionCoupledP4est)
     eltype(boundary_condition.u_boundary)
 end
 
-function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, orientation, direction,
-                                                        cell_indices,
-                                                        surface_node_indices,
-                                                        surface_flux_function,
-                                                        equations)
+function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equations, cache,
+                                                             i_index, j_index, element_index,
+                                                             normal_direction, surface_flux)
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
     u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,

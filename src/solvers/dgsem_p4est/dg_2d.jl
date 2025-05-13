@@ -342,8 +342,7 @@ end
 
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                                     mesh::Union{P4estMesh{2}, P4estMeshView{2},
-                                                 T8codeMesh{2}},
+                                     mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                                      nonconservative_terms::False, equations,
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
@@ -364,8 +363,35 @@ end
     x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
                         element_index)
 
-    @autoinfiltrate
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+end
+
+# inlined version of the boundary flux calculation along a physical interface
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::P4estMeshView{2},
+                                     nonconservative_terms::False, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
+    @unpack boundaries = cache
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    # flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index, element_index, normal_direction, surface_flux)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)
