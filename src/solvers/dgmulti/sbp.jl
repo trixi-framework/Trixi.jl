@@ -206,7 +206,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
             #       `= ∑_j (1 / M[i,i] * Q[i,j]) * volume_flux(u[i], u[j])`
             #       `= ∑_j        D[i,j]         * volume_flux(u[i], u[j])`
             # TODO: DGMulti.
-            # This would have to be changed if `has_nonconservative_terms = False()`
+            # This would have to be changed if `have_nonconservative_terms = False()`
             # because then `volume_flux` is non-symmetric.
             A = dg.basis.Drst[dim]
 
@@ -243,7 +243,7 @@ function calc_volume_integral!(du, u, mesh::DGMultiMesh,
 
             A = dg.basis.Drst[dim]
 
-            # since has_nonconservative_terms::False,
+            # since have_nonconservative_terms::False,
             # the volume flux is symmetric.
             flux_is_symmetric = True()
             hadamard_sum!(du, A, flux_is_symmetric, volume_flux,

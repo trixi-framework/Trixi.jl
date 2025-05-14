@@ -26,12 +26,12 @@ isdir(outdir) && rm(outdir, recursive = true)
     GC.@preserve u_ode du_ode begin
         u = Trixi.wrap_array(u_ode, semi)
         du = Trixi.wrap_array(du_ode, semi)
-        nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
         # Call the optimized default version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, semi.mesh,
-                                        nonconservative_terms, semi.equations,
+                                        have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
         du_specialized = du[:, :, :, 1]
@@ -41,10 +41,10 @@ isdir(outdir) && rm(outdir, recursive = true)
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
                Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
-                     typeof(nonconservative_terms), typeof(semi.equations),
+                     typeof(have_nonconservative_terms), typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du, u, 1, semi.mesh,
-               nonconservative_terms, semi.equations,
+               have_nonconservative_terms, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
 
@@ -65,12 +65,12 @@ end
     GC.@preserve u_ode du_ode begin
         u = Trixi.wrap_array(u_ode, semi)
         du = Trixi.wrap_array(du_ode, semi)
-        nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
         # Call the optimized default version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, semi.mesh,
-                                        nonconservative_terms, semi.equations,
+                                        have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
         du_specialized = du[:, :, :, 1]
@@ -80,10 +80,10 @@ end
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
                Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
-                     typeof(nonconservative_terms), typeof(semi.equations),
+                     typeof(have_nonconservative_terms), typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du, u, 1, semi.mesh,
-               nonconservative_terms, semi.equations,
+               have_nonconservative_terms, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
 
@@ -105,12 +105,12 @@ end
     GC.@preserve u_ode du_ode begin
         u = Trixi.wrap_array(u_ode, semi)
         du = Trixi.wrap_array(du_ode, semi)
-        nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
         # Call the optimized default version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, semi.mesh,
-                                        nonconservative_terms, semi.equations,
+                                        have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
         du_specialized = du[:, :, :, 1]
@@ -120,10 +120,10 @@ end
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
                Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
-                     typeof(nonconservative_terms), typeof(semi.equations),
+                     typeof(have_nonconservative_terms), typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du, u, 1, semi.mesh,
-               nonconservative_terms, semi.equations,
+               have_nonconservative_terms, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
 
@@ -144,12 +144,12 @@ end
     GC.@preserve u_ode du_ode begin
         u = Trixi.wrap_array(u_ode, semi)
         du = Trixi.wrap_array(du_ode, semi)
-        nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
+        have_nonconservative_terms = Trixi.have_nonconservative_terms(semi.equations)
 
         # Call the optimized default version
         du .= 0
         Trixi.flux_differencing_kernel!(du, u, 1, semi.mesh,
-                                        nonconservative_terms, semi.equations,
+                                        have_nonconservative_terms, semi.equations,
                                         semi.solver.volume_integral.volume_flux,
                                         semi.solver, semi.cache, true)
         du_specialized = du[:, :, :, 1]
@@ -159,10 +159,10 @@ end
         du .= 0
         invoke(Trixi.flux_differencing_kernel!,
                Tuple{typeof(du), typeof(u), Integer, typeof(semi.mesh),
-                     typeof(nonconservative_terms), typeof(semi.equations),
+                     typeof(have_nonconservative_terms), typeof(semi.equations),
                      Function, typeof(semi.solver), typeof(semi.cache), Bool},
                du, u, 1, semi.mesh,
-               nonconservative_terms, semi.equations,
+               have_nonconservative_terms, semi.equations,
                semi.solver.volume_integral.volume_flux, semi.solver, semi.cache, true)
         du_baseline = du[:, :, :, 1]
 

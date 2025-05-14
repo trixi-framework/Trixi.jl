@@ -59,14 +59,14 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                            P4estMesh{2}},
-                               nonconservative_terms, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralSubcellLimiting,
                                dg::DGSEM, cache)
     @unpack limiter = volume_integral
 
     @threaded for element in eachelement(dg, cache)
         subcell_limiting_kernel!(du, u, element, mesh,
-                                 nonconservative_terms, equations,
+                                 have_nonconservative_terms, equations,
                                  volume_integral, limiter,
                                  dg, cache)
     end
@@ -75,7 +75,7 @@ end
 @inline function subcell_limiting_kernel!(du, u, element,
                                           mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                                       P4estMesh{2}},
-                                          nonconservative_terms, equations,
+                                          have_nonconservative_terms, equations,
                                           volume_integral, limiter::SubcellLimiterIDP,
                                           dg::DGSEM, cache)
     @unpack inverse_weights = dg.basis
@@ -89,7 +89,7 @@ end
     fhat2_L = fhat2_L_threaded[Threads.threadid()]
     fhat2_R = fhat2_R_threaded[Threads.threadid()]
     calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u, mesh,
-                   nonconservative_terms, equations, volume_flux_dg, dg, element,
+                   have_nonconservative_terms, equations, volume_flux_dg, dg, element,
                    cache)
 
     # low-order FV fluxes
@@ -100,13 +100,13 @@ end
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
     fstar2_R = fstar2_R_threaded[Threads.threadid()]
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, u, mesh,
-                 nonconservative_terms, equations, volume_flux_fv, dg, element,
+                 have_nonconservative_terms, equations, volume_flux_fv, dg, element,
                  cache)
 
     # antidiffusive flux
     calcflux_antidiffusive!(fhat1_L, fhat1_R, fhat2_L, fhat2_R,
                             fstar1_L, fstar1_R, fstar2_L, fstar2_R,
-                            u, mesh, nonconservative_terms, equations, limiter, dg,
+                            u, mesh, have_nonconservative_terms, equations, limiter, dg,
                             element, cache)
 
     # Calculate volume integral contribution of low-order FV flux
@@ -127,7 +127,7 @@ end
 #
 # See also `flux_differencing_kernel!`.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::TreeMesh{2}, nonconservative_terms::False,
+                                mesh::TreeMesh{2}, have_nonconservative_terms::False,
                                 equations,
                                 volume_flux, dg::DGSEM, element, cache)
     @unpack weights, derivative_split = dg.basis
@@ -216,7 +216,7 @@ end
 #   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 #
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                mesh::TreeMesh{2}, nonconservative_terms::True,
+                                mesh::TreeMesh{2}, have_nonconservative_terms::True,
                                 equations,
                                 volume_flux, dg::DGSEM, element, cache)
     @unpack weights, derivative_split = dg.basis
@@ -259,7 +259,7 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[ii, i], flux1,
                                        equations, dg, ii, j)
-            for noncons in 1:n_nonconservative_terms(equations)
+            for noncons in 1:n_have_nonconservative_terms(equations)
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations,
                                                     NonConservativeSymmetric(), noncons)
@@ -287,7 +287,7 @@ end
     # Compute local contribution to non-conservative flux
     for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
-        for noncons in 1:n_nonconservative_terms(equations)
+        for noncons in 1:n_have_nonconservative_terms(equations)
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 1, equations,
                                                NonConservativeLocal(), noncons),
@@ -304,7 +304,7 @@ end
             fhat1_R[v, i + 1, j] = value
         end
         # Nonconservative part
-        for noncons in 1:n_nonconservative_terms(equations),
+        for noncons in 1:n_have_nonconservative_terms(equations),
             v in eachvariable(equations)
 
             value = fhat_noncons_temp[v, noncons, i, j] +
@@ -330,7 +330,7 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[jj, j], flux2,
                                        equations, dg, i, jj)
-            for noncons in 1:n_nonconservative_terms(equations)
+            for noncons in 1:n_have_nonconservative_terms(equations)
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux2_noncons = volume_flux_noncons(u_node, u_node_jj, 2, equations,
                                                     NonConservativeSymmetric(), noncons)
@@ -358,7 +358,7 @@ end
     # Compute local contribution to non-conservative flux
     for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
-        for noncons in 1:n_nonconservative_terms(equations)
+        for noncons in 1:n_have_nonconservative_terms(equations)
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 2, equations,
                                                NonConservativeLocal(), noncons),
@@ -375,7 +375,7 @@ end
             fhat2_R[v, i, j + 1] = value
         end
         # Nonconservative part
-        for noncons in 1:n_nonconservative_terms(equations),
+        for noncons in 1:n_have_nonconservative_terms(equations),
             v in eachvariable(equations)
 
             value = fhat_noncons_temp[v, noncons, i, j] +
@@ -397,7 +397,7 @@ end
                                          u,
                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                                      P4estMesh{2}},
-                                         nonconservative_terms::False, equations,
+                                         have_nonconservative_terms::False, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
 
@@ -437,7 +437,7 @@ end
                                          u,
                                          mesh::Union{TreeMesh{2}, StructuredMesh{2},
                                                      P4estMesh{2}},
-                                         nonconservative_terms::True, equations,
+                                         have_nonconservative_terms::True, equations,
                                          limiter::SubcellLimiterIDP, dg, element, cache)
     @unpack antidiffusive_flux1_L, antidiffusive_flux2_L, antidiffusive_flux1_R, antidiffusive_flux2_R = cache.antidiffusive_fluxes
 

@@ -125,12 +125,12 @@ end
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                               nonconservative_terms, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralWeakForm,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         weak_form_kernel!(du, u, element, mesh,
-                          nonconservative_terms, equations,
+                          have_nonconservative_terms, equations,
                           dg, cache)
     end
 
@@ -146,7 +146,7 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
 =#
 @inline function weak_form_kernel!(du, u,
                                    element, mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                                   nonconservative_terms::False, equations,
+                                   have_nonconservative_terms::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -167,11 +167,11 @@ end
 
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                               nonconservative_terms, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
-        flux_differencing_kernel!(du, u, element, mesh, nonconservative_terms,
+        flux_differencing_kernel!(du, u, element, mesh, have_nonconservative_terms,
                                   equations,
                                   volume_integral.volume_flux, dg, cache)
     end
@@ -180,7 +180,7 @@ end
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                                           nonconservative_terms::False, equations,
+                                           have_nonconservative_terms::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -210,7 +210,7 @@ end
 @inline function flux_differencing_kernel!(du, u,
                                            element,
                                            mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                                           nonconservative_terms::True, equations,
+                                           have_nonconservative_terms::True, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -246,7 +246,7 @@ end
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                               nonconservative_terms, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
@@ -266,16 +266,17 @@ function calc_volume_integral!(du, u,
 
         if dg_only
             flux_differencing_kernel!(du, u, element, mesh,
-                                      nonconservative_terms, equations,
+                                      have_nonconservative_terms, equations,
                                       volume_flux_dg, dg, cache)
         else
             # Calculate DG volume integral contribution
             flux_differencing_kernel!(du, u, element, mesh,
-                                      nonconservative_terms, equations,
+                                      have_nonconservative_terms, equations,
                                       volume_flux_dg, dg, cache, 1 - alpha_element)
 
             # Calculate FV volume integral contribution
-            fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
+            fv_kernel!(du, u, mesh, have_nonconservative_terms, equations,
+                       volume_flux_fv,
                        dg, cache, element, alpha_element)
         end
     end
@@ -286,14 +287,14 @@ end
 # TODO: Taal dimension agnostic
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                               nonconservative_terms, equations,
+                               have_nonconservative_terms, equations,
                                volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)
     @unpack volume_flux_fv = volume_integral
 
     # Calculate LGL FV volume integral
     @threaded for element in eachelement(dg, cache)
-        fv_kernel!(du, u, mesh, nonconservative_terms, equations, volume_flux_fv,
+        fv_kernel!(du, u, mesh, have_nonconservative_terms, equations, volume_flux_fv,
                    dg, cache, element, true)
     end
 
@@ -302,7 +303,7 @@ end
 
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                            nonconservative_terms, equations,
+                            have_nonconservative_terms, equations,
                             volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded = cache
     @unpack inverse_weights = dg.basis
@@ -310,7 +311,7 @@ end
     # Calculate FV two-point fluxes
     fstar1_L = fstar1_L_threaded[Threads.threadid()]
     fstar1_R = fstar1_R_threaded[Threads.threadid()]
-    calcflux_fv!(fstar1_L, fstar1_R, u, mesh, nonconservative_terms, equations,
+    calcflux_fv!(fstar1_L, fstar1_R, u, mesh, have_nonconservative_terms, equations,
                  volume_flux_fv,
                  dg, element, cache)
 
@@ -328,7 +329,7 @@ end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u::AbstractArray{<:Any, 3},
                               mesh::Union{TreeMesh{1}, StructuredMesh{1}},
-                              nonconservative_terms::False,
+                              have_nonconservative_terms::False,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     fstar1_L[:, 1] .= zero(eltype(fstar1_L))
     fstar1_L[:, nnodes(dg) + 1] .= zero(eltype(fstar1_L))
@@ -348,7 +349,7 @@ end
 
 @inline function calcflux_fv!(fstar1_L, fstar1_R, u::AbstractArray{<:Any, 3},
                               mesh::TreeMesh{1},
-                              nonconservative_terms::True,
+                              have_nonconservative_terms::True,
                               equations, volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
@@ -402,7 +403,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
-                              nonconservative_terms::False, equations,
+                              have_nonconservative_terms::False, equations,
                               surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -431,7 +432,7 @@ end
 
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{1},
-                              nonconservative_terms::True, equations,
+                              have_nonconservative_terms::True, equations,
                               surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux
     @unpack u, neighbor_ids, orientations = cache.interfaces
@@ -524,7 +525,7 @@ end
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 3},
                                           t,
                                           boundary_condition,
-                                          nonconservative_terms::False, equations,
+                                          have_nonconservative_terms::False, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
     @unpack surface_flux = surface_integral
@@ -557,7 +558,7 @@ end
 function calc_boundary_flux_by_direction!(surface_flux_values::AbstractArray{<:Any, 3},
                                           t,
                                           boundary_condition,
-                                          nonconservative_terms::True, equations,
+                                          have_nonconservative_terms::True, equations,
                                           surface_integral, dg::DG, cache,
                                           direction, first_boundary, last_boundary)
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
