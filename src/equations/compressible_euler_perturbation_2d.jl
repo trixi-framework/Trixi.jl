@@ -8,70 +8,75 @@
 @doc raw"""
     CompressibleEulerEquationsPerturbation2D(gamma)
 
-The compressible Euler equations [`CompressibleEulerEquationsPerturbation2D`](@ref), formulated using a steady background state and perturbations in ``\rho`` and ``p``.
+The compressible Euler equations [`CompressibleEulerEquationsPerturbation2D`](@ref), formulated using a steady background state and perturbations.
+
+Given a state in primitive variables
+(``\bar{\rho}``, ``\bar{v}_1``, ``\bar{v}_2``, and ``\bar{p}``),
+or conservative variables
+(``\bar{\rho}``, ``\bar{\rho} \bar{v}_1``, ``\bar{\rho} \bar{v}_2``, and ``\bar{rho} \bar{e}``),
+with ``\bar{rho} \bar{e} = (\gamma -1)^{-1} \bar{p} + 0.5 \bar{rho} |\bar(v)|^2``,
+respectively, auxiliary variables are used to store the conservative variables as assumed
+steady background state. The equations will then be solved for the perturbations
+(``\rho'``, ``(\rho v_1)'``, ``(\rho v_2)'``, and ``(\rho e)'``)
 """
 struct CompressibleEulerEquationsPerturbation2D{RealT <: Real} <:
        AbstractCompressibleEulerEquations{2, 4}
-    gamma::RealT               # ratio of specific heats
-    inv_gamma_minus_one::RealT # = inv(gamma - 1); can be used to write slow divisions as fast multiplications
+    equations_total::CompressibleEulerEquations2D{RealT}
 
     function CompressibleEulerEquationsPerturbation2D(gamma)
         γ, inv_gamma_minus_one = promote(gamma, inv(gamma - 1))
-        new{typeof(γ)}(γ, inv_gamma_minus_one)
+        new{typeof(γ)}(CompressibleEulerEquations2D(gamma))
     end
 end
 
-have_auxiliary_node_vars(::CompressibleEulerEquationsPerturbation2D) = True()
-n_auxiliary_node_vars(::CompressibleEulerEquationsPerturbation2D) = 2
+have_aux_node_vars(::CompressibleEulerEquationsPerturbation2D) = True()
+n_aux_node_vars(::CompressibleEulerEquationsPerturbation2D) = 4
 
-# Convert conservative variables to primitive
-@inline function cons2prim_pert(u, equations::CompressibleEulerEquationsPerturbation2D)
-    rho, rho_v1, rho_v2, rho_e = u
+function cons2aux(u, aux, equations::CompressibleEulerEquationsPerturbation2D)
+    return SVector(aux[1], aux[2], aux[3], aux[4])
+end
 
-    # TODO does not work for rho ~ 0
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbation2D) =
+    ("rho_steady", "rho_v1_steady", "rho_v2_steady", "rho_e_steady")
 
-    return SVector(rho, v1, v2, p)
+# Add steady state to current perturbations (in conserved variables)
+@inline function cons2cons_total(u, aux,
+                                 equations::CompressibleEulerEquationsPerturbation2D)
+    return u + SVector(aux[1], aux[2], aux[3], aux[4])
+end
+
+# Convert total conservative variables to total primitive variables
+@inline function cons2prim_total(u, aux,
+                                 equations::CompressibleEulerEquationsPerturbation2D)
+    u_cons_total = cons2cons_total(u, aux, equations)
+    return cons2prim(u_cons_total, equations.equations_total)
+end
+
+varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbation2D) =
+    ("rho_total", "v1_total", "v2_total", "p_total")
+
+# Convert perturbation in conservative variables to perturbation in primitive variables
+# cons2prim applied to perturbations might fail when rho ~ 0
+# this will likewise fail when steady rho ~ 0
+@inline function cons2prim_pert(u, aux, equations::CompressibleEulerEquationsPerturbation2D)
+    u_prim_total = cons2prim_total(u, aux, equations)
+    u_prim_steady = cons2prim(aux, equations.equations_total)
+    return u_prim_total - u_prim_steady
 end
 
 varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbation2D) =
-    ("rho_pert", "v1", "v2", "p_pert")
-
-@inline function cons2prim_total(u, aux,
-                                 equations::CompressibleEulerEquationsPerturbation2D)
-    rho, rho_v1, rho_v2, rho_e = cons2cons_total(u, aux, equations)
-
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
-
-    return SVector(rho, v1, v2, p)
-end
-
-@inline function cons2cons_total(u, aux,
-                                 equations::CompressibleEulerEquationsPerturbation2D)
-    # rho and rho_e are perturbations
-    return SVector(u[1] + aux[1], u[2], u[3], u[4] + aux[2])
-end
+    ("rho_pert", "v1_pert", "v2_pert", "p_pert")
 
 # Convert conservative variables to entropy
-@inline function cons2entropy(u, equations::CompressibleEulerEquationsPerturbation2D)
-    # TODO: based on total quantities?
-    #rho, v1, v2, p = cons2prim_total
-
-    rho, rho_v1, rho_v2, rho_e = u
-
-    v1 = rho_v1 / rho
-    v2 = rho_v2 / rho
+@inline function cons2entropy(u, aux, equations::CompressibleEulerEquationsPerturbation2D)
+    @unpack gamma, inv_gamma_minus_one = equations.equations_total
+    # based on total quantities
+    rho, v1, v2, p = cons2prim_total(u, aux, equations)
     v_square = v1^2 + v2^2
-    p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho * v_square)
-    s = log(p) - equations.gamma * log(rho)
+    s = log(p) - gamma * log(rho)
     rho_p = rho / p
 
-    w1 = (equations.gamma - s) * equations.inv_gamma_minus_one -
-         0.5f0 * rho_p * v_square
+    w1 = (gamma - s) * inv_gamma_minus_one - 0.5f0 * rho_p * v_square
     w2 = rho_p * v1
     w3 = rho_p * v2
     w4 = -rho_p
@@ -80,90 +85,37 @@ end
 end
 
 @inline function max_abs_speeds(u, aux, equations::CompressibleEulerEquationsPerturbation2D)
-    rho, v1, v2, p = cons2prim_total(u, aux, equations)
-
-    # TODO: calculate speed of sound based on total temperature ?
-    c = sqrt(equations.gamma * p / rho)
-
-    return abs(v1) + c, abs(v2) + c
+    u_cons_total = cons2cons_total(u, aux, equations)
+    return max_abs_speeds(u_cons_total, equations.equations_total)
 end
 
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
                                      equations::CompressibleEulerEquationsPerturbation2D)
-    rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
-    rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
-
-    # Get the velocity value in the appropriate direction
-    if orientation == 1
-        v_ll = v1_ll
-        v_rr = v1_rr
-    else # orientation == 2
-        v_ll = v2_ll
-        v_rr = v2_rr
-    end
-    # Calculate sound speeds
-    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
-    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
-
-    λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+    u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
+    u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
+    return max_abs_speed_naive(u_ll_total, u_rr_total, orientation,
+                               equations.equations_total)
 end
 
 # Calculate 2D flux for a single point
+# This is special: only p_pert appears
 @inline function flux(u, aux, orientation::Integer,
                       equations::CompressibleEulerEquationsPerturbation2D)
-    _, rho_v1, rho_v2, rho_e = u
-    rho_total, _, _, rho_e_total = cons2cons_total(u, aux, equations)
-    v1 = rho_v1 / rho_total
-    v2 = rho_v2 / rho_total
-    p_total = (equations.gamma - 1) * (rho_e_total - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
-    p_pert  = (equations.gamma - 1) * (rho_e       - 0.5f0 * (rho_v1 * v1 + rho_v2 * v2))
+    u_total = cons2cons_total(u, aux, equations)
+    _flux = flux(u_total, orientation, equations.equations_total)
 
+    # now substract the steady part of p in the momentum equations
+    p_steady = pressure(aux, equations.equations_total)
     if orientation == 1
-        f1 = rho_v1
-        f2 = rho_v1 * v1 + p_pert
-        f3 = rho_v1 * v2
-        f4 = (rho_e_total + p_total) * v1
-    else
-        f1 = rho_v2
-        f2 = rho_v2 * v1
-        f3 = rho_v2 * v2 + p_pert
-        f4 = (rho_e_total + p_total) * v2
+        f2 = p_steady
+        f3 = 0
+    else # orientation == 2
+        f2 = 0
+        f3 = p_steady
     end
-    return SVector(f1, f2, f3, f4)
-end
-
-@inline function flux_central(u_ll, u_rr, aux_ll, aux_rr, orientation_or_normal_direction,
-                              equations::CompressibleEulerEquationsPerturbation2D)
-    # Calculate regular 1D fluxes
-    f_ll = flux(u_ll, aux_ll, orientation_or_normal_direction, equations)
-    f_rr = flux(u_rr, aux_rr, orientation_or_normal_direction, equations)
-
-    # Average regular fluxes
-    return 0.5f0 * (f_ll + f_rr)
-end
-
-@inline function (numflux::FluxPlusDissipation)(u_ll, u_rr, aux_ll, aux_rr,
-                                                orientation_or_normal_direction,
-                                                equations)
-    @unpack numerical_flux, dissipation = numflux
-
-    return (numerical_flux(u_ll, u_rr, aux_ll, aux_rr,
-                           orientation_or_normal_direction, equations)
-            +
-            dissipation(u_ll, u_rr, aux_ll, aux_rr,
-                        orientation_or_normal_direction, equations))
-end
-
-@inline function (dissipation::DissipationLocalLaxFriedrichs)(u_ll, u_rr, aux_ll, aux_rr,
-                                                              orientation_or_normal_direction,
-                                                              equations)
-    λ = dissipation.max_abs_speed(u_ll, u_rr, aux_ll, aux_rr,
-                                  orientation_or_normal_direction, equations)
-    u_total_ll = cons2cons_total(u_ll, aux_ll, equations)
-    u_total_rr = cons2cons_total(u_rr, aux_rr, equations)
-    return -0.5f0 * λ * (u_total_rr - u_total_ll)
+    return _flux - SVector(0, f2, f3, 0)
 end
 
 """
@@ -178,64 +130,24 @@ Kinetic energy preserving two-point flux by
 """
 @inline function flux_kennedy_gruber(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
                                      equations::CompressibleEulerEquationsPerturbation2D)
-    
-    # TODO: only perturbed p?
+    u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
+    u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
+    flux = flux_kennedy_gruber(u_ll_total, u_rr_total, orientation,
+                               equations.equations_total)
 
-    # Unpack left and right state
-    rho_e_ll = last(u_ll) + aux_ll[2]
-    rho_e_rr = last(u_rr) + aux_rr[2]
-    rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
-    rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
-
-    # Average each factor of products in flux
-    rho_avg = 0.5f0 * (rho_ll + rho_rr)
-    v1_avg = 0.5f0 * (v1_ll + v1_rr)
-    v2_avg = 0.5f0 * (v2_ll + v2_rr)
-    p_avg = 0.5f0 * (p_ll + p_rr)
-    e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
-
-    # Calculate fluxes depending on orientation
+    # now substract the steady part of p in the momentum equations
+    p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
+                            pressure(aux_rr, equations.equations_total))
     if orientation == 1
-        f1 = rho_avg * v1_avg
-        f2 = rho_avg * v1_avg * v1_avg + p_avg
-        f3 = rho_avg * v1_avg * v2_avg
-        f4 = (rho_avg * e_avg + p_avg) * v1_avg
-    else
-        f1 = rho_avg * v2_avg
-        f2 = rho_avg * v2_avg * v1_avg
-        f3 = rho_avg * v2_avg * v2_avg + p_avg
-        f4 = (rho_avg * e_avg + p_avg) * v2_avg
+        f2 = p_steady_avg
+        f3 = 0
+    else # orientation == 2
+        f2 = 0
+        f3 = p_steady_avg
     end
-
-    return SVector(f1, f2, f3, f4)
+    return flux - SVector(0, f2, f3, 0)
 end
 
-#=
-@inline function flux_kennedy_gruber(u_ll, u_rr, normal_direction::AbstractVector,
-                                     equations::CompressibleEulerEquationsPerturbation2D)
-    # Unpack left and right state
-    rho_e_ll = last(u_ll)
-    rho_e_rr = last(u_rr)
-    rho_ll, v1_ll, v2_ll, p_ll = cons2prim(u_ll, equations)
-    rho_rr, v1_rr, v2_rr, p_rr = cons2prim(u_rr, equations)
-
-    # Average each factor of products in flux
-    rho_avg = 0.5f0 * (rho_ll + rho_rr)
-    v1_avg = 0.5f0 * (v1_ll + v1_rr)
-    v2_avg = 0.5f0 * (v2_ll + v2_rr)
-    v_dot_n_avg = v1_avg * normal_direction[1] + v2_avg * normal_direction[2]
-    p_avg = 0.5f0 * (p_ll + p_rr)
-    e_avg = 0.5f0 * (rho_e_ll / rho_ll + rho_e_rr / rho_rr)
-
-    # Calculate fluxes depending on normal_direction
-    f1 = rho_avg * v_dot_n_avg
-    f2 = f1 * v1_avg + p_avg * normal_direction[1]
-    f3 = f1 * v2_avg + p_avg * normal_direction[2]
-    f4 = f1 * e_avg + p_avg * v_dot_n_avg
-
-    return SVector(f1, f2, f3, f4)
-end
-=#
 """
     FluxLMARS(c)(u_ll, u_rr, orientation_or_normal_direction,
                  equations::CompressibleEulerEquations2D)
@@ -251,41 +163,90 @@ References:
 """
 @inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
                                          equations::CompressibleEulerEquationsPerturbation2D)
-    c = flux_lmars.speed_of_sound
-# TODO: only perturbed p?
-    # Unpack left and right state
-    rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
-    rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
+    u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
+    u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
+    flux = flux_lmars(u_ll_total, u_rr_total, orientation, equations.equations_total)
 
+    # now substract the steady part of p in the momentum equations
+    p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
+                            pressure(aux_rr, equations.equations_total))
     if orientation == 1
-        v_ll = v1_ll
-        v_rr = v1_rr
+        f2 = p_steady_avg
+        f3 = 0
     else # orientation == 2
-        v_ll = v2_ll
-        v_rr = v2_rr
+        f2 = 0
+        f3 = p_steady_avg
     end
+    return flux - SVector(0, f2, f3, 0)
+end
 
-    rho = 0.5f0 * (rho_ll + rho_rr)
-    p = 0.5f0 * (p_ll + p_rr) - 0.5f0 * c * rho * (v_rr - v_ll)
-    v = 0.5f0 * (v_ll + v_rr) - 1 / (2 * c * rho) * (p_rr - p_ll)
+"""
+    flux_shima_etal(u_ll, u_rr, orientation_or_normal_direction,
+                    equations::CompressibleEulerEquations2D)
 
-    # We treat the energy term analogous to the potential temperature term in the paper by
-    # Chen et al., i.e. we use p_ll and p_rr, and not p
-    if v >= 0
-        f1, f2, f3, f4 = v * u_ll
-        f4 = f4 + p_ll * v
-    else
-        f1, f2, f3, f4 = v * u_rr
-        f4 = f4 + p_rr * v
-    end
+This flux is is a modification of the original kinetic energy preserving two-point flux by
+- Yuichi Kuya, Kosuke Totani and Soshi Kawai (2018)
+  Kinetic energy and entropy preserving schemes for compressible flows
+  by split convective forms
+  [DOI: 10.1016/j.jcp.2018.08.058](https://doi.org/10.1016/j.jcp.2018.08.058)
 
+The modification is in the energy flux to guarantee pressure equilibrium and was developed by
+- Nao Shima, Yuichi Kuya, Yoshiharu Tamaki, Soshi Kawai (JCP 2020)
+  Preventing spurious pressure oscillations in split convective form discretizations for
+  compressible flows
+  [DOI: 10.1016/j.jcp.2020.110060](https://doi.org/10.1016/j.jcp.2020.110060)
+"""
+@inline function flux_shima_etal(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
+                                 equations::CompressibleEulerEquationsPerturbation2D)
+    u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
+    u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
+    flux = flux_shima_etal(u_ll_total, u_rr_total, orientation, equations.equations_total)
+
+    # now substract the steady part of p in the momentum equations
+    p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
+                            pressure(aux_rr, equations.equations_total))
     if orientation == 1
-        f2 = f2 + p
+        f2 = p_steady_avg
+        f3 = 0
     else # orientation == 2
-        f3 = f3 + p
+        f2 = 0
+        f3 = p_steady_avg
     end
+    return flux - SVector(0, f2, f3, 0)
+end
 
-    return SVector(f1, f2, f3, f4)
+"""
+    flux_ranocha(u_ll, u_rr, orientation_or_normal_direction,
+                 equations::CompressibleEulerEquations2D)
+
+Entropy conserving and kinetic energy preserving two-point flux by
+- Hendrik Ranocha (2018)
+  Generalised Summation-by-Parts Operators and Entropy Stability of Numerical Methods
+  for Hyperbolic Balance Laws
+  [PhD thesis, TU Braunschweig](https://cuvillier.de/en/shop/publications/7743)
+See also
+- Hendrik Ranocha (2020)
+  Entropy Conserving and Kinetic Energy Preserving Numerical Methods for
+  the Euler Equations Using Summation-by-Parts Operators
+  [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
+"""
+@inline function flux_ranocha(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
+                              equations::CompressibleEulerEquationsPerturbation2D)
+    u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
+    u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
+    flux = flux_ranocha(u_ll_total, u_rr_total, orientation, equations.equations_total)
+
+    # now substract the steady part of p in the momentum equations
+    p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
+                            pressure(aux_rr, equations.equations_total))
+    if orientation == 1
+        f2 = p_steady_avg
+        f3 = 0
+    else # orientation == 2
+        f2 = 0
+        f3 = p_steady_avg
+    end
+    return flux - SVector(0, f2, f3, 0)
 end
 
 """
@@ -315,78 +276,15 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
                                               x, t,
                                               surface_flux_function,
                                               equations::CompressibleEulerEquationsPerturbation2D)
-                                              norm_ = norm(normal_direction)
-    # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
-    normal = normal_direction / norm_
-
-    # TODO !!! rotate only acts on velocities, anyway
-    u_total = cons2cons_total(u_inner, aux_inner, equations)
-
-    # rotate the internal solution state
-    u_local = rotate_to_x(u_total, normal, equations)
-
-    # compute the primitive variables
-    rho_local, v_normal, v_tangent, p_local = cons2prim(u_local, equations)
-
-    # TODO !!! speed of sound now based on total quantities
-
-    # Get the solution of the pressure Riemann problem
-    # See Section 6.3.3 of
-    # Eleuterio F. Toro (2009)
-    # Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
-    # [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
-    if v_normal <= 0
-        sound_speed = sqrt(equations.gamma * p_local / rho_local) # local sound speed
-        p_star = p_local *
-                 (1 + 0.5f0 * (equations.gamma - 1) * v_normal / sound_speed)^(2 *
-                                                                               equations.gamma *
-                                                                               equations.inv_gamma_minus_one)
-    else # v_normal > 0
-        A = 2 / ((equations.gamma + 1) * rho_local)
-        B = p_local * (equations.gamma - 1) / (equations.gamma + 1)
-        p_star = p_local +
-                 0.5f0 * v_normal / A *
-                 (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
-    end
-
-    # For the slip wall we directly set the flux as the normal velocity is zero
-    return SVector(0,
-                   p_star * normal[1],
-                   p_star * normal[2],
-                   0) * norm_
-end
-
-
-@inline function boundary_condition_slip_wall_simple(u_inner, aux_inner,
-                                                     orientation, direction,
-                                                     x, t,
-                                                     surface_flux_function,
-                                                     equations::CompressibleEulerEquationsPerturbation2D)
-    # create the "external" boundary solution state
-    # independent on normal, only x or y relevant
-    if orientation == 1
-        u2 = -u_inner[2]
-        u3 = u_inner[3]
-    else
-        u2 = u_inner[2]
-        u3 = -u_inner[3]
-    end
-
-    u_boundary = SVector(u_inner[1],
-                         u2,
-                         u3,
-                         u_inner[4])
-
-    # direction?
-    if isodd(direction)
-        flux = flux_central(u_inner, u_boundary, aux_inner, aux_inner,
-                             orientation, equations)
-    else
-        flux = flux_central(u_inner, u_boundary, aux_inner, aux_inner,
-                            orientation, equations)
-    end
-
-    return flux
+    u_inner_total = cons2cons_total(u_inner, aux_inner, equations)
+    boundary_flux = boundary_condition_slip_wall(u_inner_total, normal_direction, x, t,
+                                                 surface_flux_function,
+                                                 equations.equations_total)
+    # This is (0, p_star * normal[1], p_star * normal[2], 0) * norm_
+    # now substract the steady part of p
+    p_steady = pressure(aux_inner, equations.equations_total)
+    return boundary_flux -
+           SVector(0, p_steady * normal_direction[1], p_steady * normal_direction[2], 0)
 end
 
 """

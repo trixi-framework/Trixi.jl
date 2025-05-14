@@ -67,17 +67,21 @@ function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquationsPer
     rho_ref = p_ref / (R * T_ref)
 
     v1 = 20.0
-    v2 = 0
+    v2 = 0.0
+    v1_ref = 20.0
+    v2_ref =  0.0
 
     E = c_v * T + 0.5f0 * (v1^2 + v2^2)
     E_ref = c_v * T_ref
 
-    return SVector(rho - rho_ref, rho * v1, rho * v2, rho * E - rho_ref * E_ref)
-    #return SVector(rho, rho * v1, rho * v2, rho * E)
+    return SVector(rho - rho_ref,
+                   rho * v1 - rho_ref * v1_ref,
+                   rho * v2 - rho_ref * v2_ref,
+                   rho * E - rho_ref * E_ref)
 end
 
 # Steady state
-function (setup::WarmBubbleSetup)(x)
+function (setup::WarmBubbleSetup)(x, ::CompressibleEulerEquationsPerturbation2D)
     @unpack g, c_p, c_v = setup
 
     potential_temperature_ref = 300
@@ -96,20 +100,20 @@ function (setup::WarmBubbleSetup)(x)
     rho_ref = p_ref / (R * T_ref)
     E_ref = c_v * T_ref
 
-    return SVector(rho_ref, rho_ref * E_ref)
-    #return SVector(0, 0)
+    v1_ref = 20.0
+    v2_ref = 0.0
+
+    return SVector(rho_ref, rho_ref * v1_ref, rho_ref * v2_ref, rho_ref * E_ref)
 end
 
 # Source terms
 @inline function (setup::WarmBubbleSetup)(u, aux, x, t,
                                           ::CompressibleEulerEquationsPerturbation2D)
     @unpack g = setup
-    rho_pert, _, rho_v2, _ = u
+    rho_pert, _, rho_v2_pert, _ = u
+    rho_v2_total = rho_v2_pert + aux[3]
 
-    # TODO: use perturbation
-    rho_total = rho_pert + aux[1]
-
-    return SVector(zero(eltype(u)), zero(eltype(u)), -g * rho_pert, -g * rho_v2)
+    return SVector(zero(eltype(u)), zero(eltype(u)), -g * rho_pert, -g * rho_v2_total)
 end
 
 ###############################################################################
@@ -120,21 +124,23 @@ equations = CompressibleEulerEquationsPerturbation2D(warm_bubble_setup.gamma)
 
 boundary_conditions = (x_neg = boundary_condition_periodic,
                        x_pos = boundary_condition_periodic,
-                       y_neg = boundary_condition_slip_wall_simple,
-                       y_pos = boundary_condition_slip_wall_simple)
+                       y_neg = boundary_condition_slip_wall,
+                       y_pos = boundary_condition_slip_wall)
 
 polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 
 # This is a good estimate for the speed of sound in this example.
 # Other values between 300 and 400 should work as well.
-#surface_flux = FluxLMARS(340.0)
-surface_flux = flux_lax_friedrichs
+surface_flux = FluxLMARS(340.0)
+#surface_flux = flux_lax_friedrichs
 
 #volume_flux = flux_kennedy_gruber
-#volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+volume_flux = flux_ranocha
+#volume_flux = flux_shima_etal
+volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 
-solver = DGSEM(basis, surface_flux) #, volume_integral)
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 coordinates_min = (0.0, -5000.0)
 coordinates_max = (20_000.0, 15_000.0)
@@ -152,7 +158,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, warm_bubble_setup, solver,
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 150.0)  # 1000 seconds final time
+tspan = (0.0, 1000.0)  # 1000 seconds final time
 
 ode = semidiscretize(semi, tspan)
 
@@ -175,8 +181,8 @@ stepsize_callback = StepsizeCallback(cfl = 1.0)
 visualization = VisualizationCallback(interval = 100, show_mesh = false,
                                       suspend = true,
                                       #plot_creator = Trixi.show_plot_makie,
-                                      solution_variables = cons2prim_pert,
-                                      variable_names = ["rho_pert"],
+                                      solution_variables = cons2prim_total,
+                                      #variable_names = ["v1_total"],
                                       #aspect_ratio = 4
                                       )
 
@@ -184,8 +190,8 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback,
                         visualization,
-                        save_solution)
-                        #stepsize_callback)
+                        save_solution,
+                        stepsize_callback)
 
 ###############################################################################
 # run the simulation
