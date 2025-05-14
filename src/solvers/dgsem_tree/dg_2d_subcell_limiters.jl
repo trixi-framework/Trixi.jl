@@ -259,7 +259,7 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[ii, i], flux1,
                                        equations, dg, ii, j)
-            for noncons in 1:n_have_nonconservative_terms(equations)
+            for noncons in 1:n_nonconservative_terms(equations)
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations,
                                                     NonConservativeSymmetric(), noncons)
@@ -287,7 +287,7 @@ end
     # Compute local contribution to non-conservative flux
     for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
-        for noncons in 1:n_have_nonconservative_terms(equations)
+        for noncons in 1:n_nonconservative_terms(equations)
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 1, equations,
                                                NonConservativeLocal(), noncons),
@@ -304,7 +304,7 @@ end
             fhat1_R[v, i + 1, j] = value
         end
         # Nonconservative part
-        for noncons in 1:n_have_nonconservative_terms(equations),
+        for noncons in 1:n_nonconservative_terms(equations),
             v in eachvariable(equations)
 
             value = fhat_noncons_temp[v, noncons, i, j] +
@@ -330,7 +330,7 @@ end
                                        equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[jj, j], flux2,
                                        equations, dg, i, jj)
-            for noncons in 1:n_have_nonconservative_terms(equations)
+            for noncons in 1:n_nonconservative_terms(equations)
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux2_noncons = volume_flux_noncons(u_node, u_node_jj, 2, equations,
                                                     NonConservativeSymmetric(), noncons)
@@ -358,7 +358,7 @@ end
     # Compute local contribution to non-conservative flux
     for j in eachnode(dg), i in eachnode(dg)
         u_local = get_node_vars(u, equations, dg, i, j, element)
-        for noncons in 1:n_have_nonconservative_terms(equations)
+        for noncons in 1:n_nonconservative_terms(equations)
             set_node_vars!(phi,
                            volume_flux_noncons(u_local, 2, equations,
                                                NonConservativeLocal(), noncons),
@@ -375,7 +375,7 @@ end
             fhat2_R[v, i, j + 1] = value
         end
         # Nonconservative part
-        for noncons in 1:n_have_nonconservative_terms(equations),
+        for noncons in 1:n_nonconservative_terms(equations),
             v in eachvariable(equations)
 
             value = fhat_noncons_temp[v, noncons, i, j] +
