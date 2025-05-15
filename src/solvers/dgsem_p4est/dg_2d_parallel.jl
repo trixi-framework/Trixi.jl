@@ -210,11 +210,9 @@ function prolong2mpimortars!(cache, u,
 
                 # Interpolate large element face data from buffer to small face locations
                 multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 1, :, mortar),
-                                        mortar_l2.forward_lower,
-                                        u_buffer)
+                                        mortar_l2.forward_lower, u_buffer)
                 multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 2, :, mortar),
-                                        mortar_l2.forward_upper,
-                                        u_buffer)
+                                        mortar_l2.forward_upper, u_buffer)
             else # position in (1, 2) -> small element
                 # Copy solution data from the small elements
                 i_small = i_small_start
@@ -272,8 +270,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                 calc_mpi_mortar_flux!(fstar_primary, fstar_secondary, mesh,
                                       nonconservative_terms, equations,
                                       surface_integral, dg, cache,
-                                      mortar, position, normal_direction,
-                                      node)
+                                      mortar, position, normal_direction, node)
 
                 i_small += i_small_step
                 j_small += j_small_step

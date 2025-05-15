@@ -677,7 +677,7 @@ function gauss_nodes_weights(n_nodes::Integer, RealT = Float64)
         # Use symmetry property of the roots of the Legendre polynomials
         for i in 0:(div(N + 1, 2) - 1)
             # Starting guess for Newton method
-            nodes[i + 1] = -cos(convert(RealT, pi) / (2 * N + 2) * (2 * i + 1))
+            nodes[i + 1] = -cospi(one(RealT) / (2 * N + 2) * (2 * i + 1))
 
             # Newton iteration to find root of Legendre polynomial (= integration node)
             for k in 0:n_iterations
