@@ -14,7 +14,7 @@ for human readability.
 #### Deprecated
 
 #### Removed
-- The Shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and `ShallowWaterEquationsQuasi1D` have been removed from `Trixi.jl` and are now available via [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl/). This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
+- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/). This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
 
 ## Changes in the v0.11 lifecycle
 
