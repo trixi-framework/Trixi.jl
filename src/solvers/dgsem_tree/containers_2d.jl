@@ -1426,7 +1426,7 @@ end
 # Initialize auxiliary node variables (2D implementation)
 function init_aux_node_vars!(aux_vars, mesh, equations, solver,
                              cache)
-    @unpack aux_node_vars, auxiliary_field = aux_vars
+    @unpack aux_node_vars, aux_field = aux_vars
     @unpack node_coordinates = cache.elements
 
     @threaded for element in eachelement(solver, cache)
@@ -1434,7 +1434,7 @@ function init_aux_node_vars!(aux_vars, mesh, equations, solver,
             x_local = get_node_coords(node_coordinates, equations, solver,
                                       i, j, element)
             set_aux_node_vars!(aux_node_vars,
-                               auxiliary_field(x_local, equations),
+                               aux_field(x_local, equations),
                                equations, solver, i, j, element)
         end
     end
@@ -1442,8 +1442,7 @@ function init_aux_node_vars!(aux_vars, mesh, equations, solver,
 end
 
 # Initialize auxiliary surface node variables (2D implementation)
-function init_auxiliary_surface_node_variables!(aux_vars, mesh, equations,
-                                                solver, cache)
+function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     @unpack aux_node_vars, aux_surface_node_vars = aux_vars
     @unpack orientations, neighbor_ids = cache.interfaces
 

@@ -40,8 +40,7 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
         resize!(aux_vars, length(leaf_cell_ids),
                 count_required_interfaces(mesh, leaf_cell_ids))
         init_aux_node_vars!(aux_vars, mesh, equations, dg, cache)
-        init_auxiliary_surface_node_variables!(aux_vars, mesh, equations, dg,
-                                               cache)
+        init_aux_surface_node_vars!(aux_vars, mesh, equations, dg, cache)
     end
 
     if mpi_isparallel()
@@ -63,8 +62,7 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
 end
 
 # Container for storing values of auxiliary variables at volume/surface quadrature nodes
-mutable struct AuxiliaryNodeVariablesContainer{NDIMS, uEltype <: Real, NDIMSP2,
-                                               AuxiliaryVariables}
+mutable struct AuxNodeVarsContainer{NDIMS, uEltype <: Real, NDIMSP2, AuxField}
     aux_node_vars::Array{uEltype, NDIMSP2}         # [var, i, j, element]
     aux_surface_node_vars::Array{uEltype, NDIMSP2} # [leftright, var, i, interface]
 
@@ -73,17 +71,15 @@ mutable struct AuxiliaryNodeVariablesContainer{NDIMS, uEltype <: Real, NDIMSP2,
     _aux_surface_node_vars::Vector{uEltype}
 
     # save initialization function
-    auxiliary_field::AuxiliaryVariables
+    aux_field::AuxField
 end
 
-nvariables(aux_vars::AuxiliaryNodeVariablesContainer) = size(aux_vars.aux_node_vars,
-                                                             1)
-nnodes(aux_vars::AuxiliaryNodeVariablesContainer) = size(aux_vars.aux_node_vars,
-                                                         2)
+nvariables(aux_vars::AuxNodeVarsContainer) = size(aux_vars.aux_node_vars, 1)
+nnodes(aux_vars::AuxNodeVarsContainer) = size(aux_vars.aux_node_vars, 2)
 
 # Create auxiliary node variable container
 function init_aux_node_vars(mesh, equations, solver, cache,
-                            auxiliary_field)
+                            aux_field)
     @unpack elements, interfaces = cache
 
     n_elements = nelements(elements)
@@ -110,16 +106,13 @@ function init_aux_node_vars(mesh, equations, solver, cache,
                                                 NDIMS - 1)...,
                                          n_interfaces))
 
-    aux_vars = AuxiliaryNodeVariablesContainer{NDIMS, uEltype, NDIMS + 2,
-                                               typeof(auxiliary_field)}(aux_node_vars,
-                                                                        aux_surface_node_vars,
-                                                                        _aux_node_vars,
-                                                                        _aux_surface_node_vars,
-                                                                        auxiliary_field)
+    aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, NDIMS + 2, typeof(aux_field)}
+                                    (aux_node_vars, aux_surface_node_vars,
+                                    _aux_node_vars,_aux_surface_node_vars,
+                                     aux_field)
 
     init_aux_node_vars!(aux_vars, mesh, equations, solver, cache)
-    init_auxiliary_surface_node_variables!(aux_vars, mesh, equations, solver,
-                                           cache)
+    init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
     return aux_vars
 end
 
@@ -128,7 +121,7 @@ end
 # them whenever needed. Then, we reuse the same memory by
 # `unsafe_wrap`ping multi-dimensional `Array`s around the
 # internal storage.
-function Base.resize!(aux_vars::AuxiliaryNodeVariablesContainer{NDIMS},
+function Base.resize!(aux_vars::AuxNodeVarsContainer{NDIMS},
                       capacity_node_vars, capacity_node_surface_vars) where {NDIMS}
     @unpack _aux_node_vars, _aux_surface_node_vars = aux_vars
     n_nodes = nnodes(aux_vars)
