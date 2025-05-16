@@ -16,6 +16,8 @@ for human readability.
   paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 - Passive tracers for arbitrary equations with density and flow variables ([#2364])
+- Auxiliary variables, which can, e.g., be used to store a steady state and solve
+  for perturbations only ([#2348])
 
 #### Deprecated
 
