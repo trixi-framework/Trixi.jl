@@ -1423,26 +1423,9 @@ function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
     return nothing
 end
 
-# Initialize auxiliary node variables (2D implementation)
-function init_aux_node_vars!(aux_vars, mesh, equations, solver,
-                             cache)
-    @unpack aux_node_vars, aux_field = aux_vars
-    @unpack node_coordinates = cache.elements
-
-    @threaded for element in eachelement(solver, cache)
-        for j in eachnode(solver), i in eachnode(solver)
-            x_local = get_node_coords(node_coordinates, equations, solver,
-                                      i, j, element)
-            set_aux_node_vars!(aux_node_vars,
-                               aux_field(x_local, equations),
-                               equations, solver, i, j, element)
-        end
-    end
-    return nothing
-end
-
-# Initialize auxiliary surface node variables (2D implementation)
-function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
+# Initialize auxiliary surface node variables
+# 2D TreeMesh implementation, similar to prolong2interfaces
+function init_aux_surface_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver, cache)
     @unpack aux_node_vars, aux_surface_node_vars = aux_vars
     @unpack orientations, neighbor_ids = cache.interfaces
 
@@ -1476,6 +1459,44 @@ function init_aux_surface_node_vars!(aux_vars, mesh, equations, solver, cache)
                                                                               i,
                                                                               1,
                                                                               right_element]
+                end
+            end
+        end
+    end
+    return nothing
+end
+
+# Initialize auxiliary boundary node variables
+# 2D TreeMesh implementation, similar to prolong2boundaries
+function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver, cache)
+    @unpack aux_node_vars, aux_boundary_node_vars = aux_vars
+    @unpack orientations, neighbor_ids, neighbor_sides = cache.boundaries
+
+    @threaded for boundary in eachboundary(dg, cache)
+        element = boundaries.neighbor_ids[boundary]
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations)
+                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v, nnodes(dg), l, element]
+                end
+            else # Element in +x direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations)
+                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, 1, l, element]
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations)
+                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v, l, nnodes(dg), element]
+                end
+            else
+                # element in +y direction of boundary
+                for l in eachnode(dg), v in eachvariable(equations)
+                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, l, 1, element]
                 end
             end
         end

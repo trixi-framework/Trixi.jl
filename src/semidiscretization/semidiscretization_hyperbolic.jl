@@ -113,8 +113,7 @@ end
 # If there are auxiliary variables, initialize them
 function create_cache_aux(mesh, equations, solver, cache, have_aux_node_vars::True,
                           aux_field)
-    aux_vars = init_aux_node_vars(mesh, equations, solver, cache,
-                                  aux_field)
+    aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
     return (; aux_vars)
 end
 
