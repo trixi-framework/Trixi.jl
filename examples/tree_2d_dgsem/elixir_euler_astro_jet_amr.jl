@@ -80,6 +80,11 @@ save_solution = SaveSolutionCallback(interval = 5000,
                                      save_final_solution = true,
                                      solution_variables = cons2prim)
 
+# positivity limiter necessary for this tough example
+positivity_limiter = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
+                                                         variables = (Trixi.density,
+                                                                      pressure))
+
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max = 1.0,
                                           alpha_min = 0.0001,
@@ -95,18 +100,15 @@ amr_controller = ControllerThreeLevelCombined(semi, amr_indicator, indicator_sc,
 amr_callback = AMRCallback(semi, amr_controller,
                            interval = 1,
                            adapt_initial_condition = true,
-                           adapt_initial_condition_only_refine = true)
+                           adapt_initial_condition_only_refine = true,
+                           limiter! = positivity_limiter)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
                         amr_callback, save_solution)
 
-# positivity limiter necessary for this tough example
-stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-6),
-                                                     variables = (Trixi.density, pressure))
-
 ###############################################################################
 # run the simulation
 # use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
-sol = solve(ode, SSPRK43(stage_limiter!);
+sol = solve(ode, SSPRK43(stage_limiter! = positivity_limiter);
             ode_default_options()..., callback = callbacks);
