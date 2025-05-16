@@ -325,7 +325,6 @@ end
     end
 end
 
-
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{2},
                                            nonconservative_terms::False,

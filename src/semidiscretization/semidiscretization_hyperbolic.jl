@@ -81,7 +81,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
 
     # Add specialized parts of the cache for auxiliary node variables
     cache = (; cache...,
-             create_cache_aux(mesh, equations, solver, cache, have_aux_node_vars(equations),
+             create_cache_aux(mesh, equations, solver, cache,
+                              have_aux_node_vars(equations),
                               aux_field)...)
 
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,

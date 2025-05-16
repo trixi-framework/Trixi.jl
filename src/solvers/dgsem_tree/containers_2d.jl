@@ -1425,7 +1425,8 @@ end
 
 # Initialize auxiliary surface node variables
 # 2D TreeMesh implementation, similar to prolong2interfaces
-function init_aux_surface_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver, cache)
+function init_aux_surface_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
+                                     cache)
     @unpack aux_node_vars, aux_surface_node_vars = aux_vars
     @unpack orientations, neighbor_ids = cache.interfaces
 
@@ -1468,7 +1469,8 @@ end
 
 # Initialize auxiliary boundary node variables
 # 2D TreeMesh implementation, similar to prolong2boundaries
-function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver, cache)
+function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
+                                      cache)
     @unpack aux_node_vars, aux_boundary_node_vars = aux_vars
     @unpack orientations, neighbor_ids, neighbor_sides = cache.boundaries
 
@@ -1479,11 +1481,15 @@ function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, sol
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations)
-                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v, nnodes(dg), l, element]
+                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v,
+                                                                              nnodes(dg),
+                                                                              l,
+                                                                              element]
                 end
             else # Element in +x direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations)
-                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, 1, l, element]
+                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, 1, l,
+                                                                              element]
                 end
             end
         else # if orientations[boundary] == 2
@@ -1491,12 +1497,15 @@ function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, sol
             if neighbor_sides[boundary] == 1
                 # element in -y direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations)
-                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v, l, nnodes(dg), element]
+                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v, l,
+                                                                              nnodes(dg),
+                                                                              element]
                 end
             else
                 # element in +y direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations)
-                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, l, 1, element]
+                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, l, 1,
+                                                                              element]
                 end
             end
         end
