@@ -349,9 +349,8 @@ end
     w = cons2entropy(SVector(a_rho, a_rho_v1, a_e) / a,
                      CompressibleEulerEquations1D(equations.gamma))
 
-    # we follow the convention for other spatially-varying equations such as
-    # `ShallowWaterEquations1D` and return the spatially varying coefficient 
-    # `a` as the final entropy variable.
+    # we follow the convention for other spatially-varying equations and return the spatially 
+    # varying coefficient `a` as the final entropy variable.
     return SVector(w[1], w[2], w[3], a)
 end
 

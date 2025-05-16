@@ -473,49 +473,76 @@ increase runtime efficiency on modern hardware.
 end
 
 """
-    FluxHydrostaticReconstruction(numerical_flux, hydrostatic_reconstruction)
+    flux_wintermeyer_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
 
-!!! warning "Experimental code"
-    This numerical flux is experimental and may change in any future release.
+Total energy conservative (mathematical entropy for shallow water equations) split form.
+When the bottom topography is nonzero this scheme will be well-balanced when used as a `volume_flux`.
+For the `surface_flux` either [`flux_wintermeyer_etal`](@ref) or [`flux_fjordholm_etal`](@ref) can
+be used to ensure well-balancedness and entropy conservation.
 
-Allow for some kind of hydrostatic reconstruction of the solution state prior to the
-surface flux computation. This is a particular strategy to ensure that the method remains
-well-balanced for the shallow water equations, see [`ShallowWaterEquations1D`](@ref)
-or [`ShallowWaterEquations2D`](@ref).
-
-For example, the hydrostatic reconstruction from Audusse et al. is implemented
-in one and two spatial dimensions, see [`hydrostatic_reconstruction_audusse_etal`](@ref) or
-the original paper
-- Emmanuel Audusse, François Bouchut, Marie-Odile Bristeau, Rupert Klein, and Benoit Perthame (2004)
-  A fast and stable well-balanced scheme with hydrostatic reconstruction for shallow water flows
-  [DOI: 10.1137/S1064827503431090](https://doi.org/10.1137/S1064827503431090)
-
-Other hydrostatic reconstruction techniques are available, particularly to handle wet / dry
-fronts. A good overview of the development and application of hydrostatic reconstruction can be found in
-- Guoxian Chen and Sebastian Noelle
-  A unified surface-gradient and hydrostatic reconstruction scheme for the shallow water equations (2021)
-  [RWTH Aachen preprint](https://www.igpm.rwth-aachen.de/forschung/preprints/517)
-- Andreas Buttinger-Kreuzhuber, Zsolt Horváth, Sebastian Noelle, Günter Blöschl and Jürgen Waser (2019)
-  A fast second-order shallow water scheme on two-dimensional structured grids over abrupt topography
-  [DOI: 10.1016/j.advwatres.2019.03.010](https://doi.org/10.1016/j.advwatres.2019.03.010)
+Further details are available in Theorem 1 of the paper:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
+  An entropy stable nodal discontinuous Galerkin method for the two dimensional
+  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
+  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
 """
-struct FluxHydrostaticReconstruction{NumericalFlux, HydrostaticReconstruction}
-    numerical_flux::NumericalFlux
-    hydrostatic_reconstruction::HydrostaticReconstruction
-end
+function flux_wintermeyer_etal end
 
-@inline function (numflux::FluxHydrostaticReconstruction)(u_ll, u_rr,
-                                                          orientation_or_normal_direction,
-                                                          equations::AbstractEquations)
-    @unpack numerical_flux, hydrostatic_reconstruction = numflux
+"""
+    flux_nonconservative_wintermeyer_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
 
-    # Create the reconstructed left/right solution states in conservative form
-    u_ll_star, u_rr_star = hydrostatic_reconstruction(u_ll, u_rr, equations)
+Non-symmetric two-point volume flux discretizing the nonconservative (source) term
+that contains the gradient of the bottom topography for the shallow water equations.
 
-    # Use the reconstructed states to compute the numerical surface flux
-    return numerical_flux(u_ll_star, u_rr_star, orientation_or_normal_direction,
-                          equations)
-end
+Gives entropy conservation and well-balancedness on both the volume and surface when combined with
+[`flux_wintermeyer_etal`](@ref).
+
+Further details are available in the papers:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
+  An entropy stable nodal discontinuous Galerkin method for the two dimensional
+  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
+  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+- Patrick Ersing, Andrew R. Winters (2023)
+  An entropy stable discontinuous Galerkin method for the two-layer shallow water equations on
+  curvilinear meshes
+  [DOI: 10.48550/arXiv.2306.12699](https://doi.org/10.48550/arXiv.2306.12699)
+"""
+function flux_nonconservative_wintermeyer_etal end
+
+"""
+    flux_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Total energy conservative (mathematical entropy for shallow water equations). When the bottom topography
+is nonzero this should only be used as a surface flux otherwise the scheme will not be well-balanced.
+For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
+
+Details are available in Eq. (4.1) in the paper:
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
+  Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
+  [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
+"""
+function flux_fjordholm_etal end
+
+"""
+    flux_nonconservative_fjordholm_etal(u_ll, u_rr, orientation_or_normal_direction, equations)
+
+Non-symmetric two-point surface flux discretizing the nonconservative (source) term of
+that contains the gradient of the bottom topography for the shallow water equations.
+
+This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces to ensure entropy
+conservation and well-balancedness.
+
+Further details for the original finite volume formulation are available in
+- Ulrik S. Fjordholm, Siddhartha Mishra and Eitan Tadmor (2011)
+  Well-balanced and energy stable schemes for the shallow water equations with discontinuous topography
+  [DOI: 10.1016/j.jcp.2011.03.042](https://doi.org/10.1016/j.jcp.2011.03.042)
+and for curvilinear 2D case in the paper:
+- Niklas Wintermeyer, Andrew R. Winters, Gregor J. Gassner and David A. Kopriva (2017)
+  An entropy stable nodal discontinuous Galerkin method for the two dimensional
+  shallow water equations on unstructured curvilinear meshes with discontinuous bathymetry
+  [DOI: 10.1016/j.jcp.2017.03.036](https://doi.org/10.1016/j.jcp.2017.03.036)
+"""
+function flux_nonconservative_fjordholm_etal end
 
 """
     FluxUpwind(splitting)

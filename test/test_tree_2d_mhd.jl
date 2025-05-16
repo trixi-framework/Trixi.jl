@@ -396,6 +396,40 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
 end
+
+@trixi_testset "elixir_mhd_onion.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_onion.jl"),
+                        l2=[
+                            0.006145640006695229,
+                            0.04298975807664192,
+                            0.009442308964500174,
+                            0.0,
+                            0.02346607469023923,
+                            0.003700848117140891,
+                            0.006939946296076548,
+                            0.0,
+                            2.6525346114387833e-6
+                        ],
+                        linf=[
+                            0.04034000344526789,
+                            0.25073951149407847,
+                            0.05597857594719315,
+                            0.0,
+                            0.14115800038105397,
+                            0.019956735193905284,
+                            0.03867389126521381,
+                            0.0,
+                            2.1686817834633456e-5
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 end # module
