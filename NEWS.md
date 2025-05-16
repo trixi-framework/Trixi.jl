@@ -6,6 +6,19 @@ used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
 
+## Changes when updating to v0.12 from v0.11.x
+
+#### Added
+
+#### Changed
+
+- The keyword argument `gravity_constant` has been changed to `gravity` for the `ShallowWaterEquations1D`,
+  `ShallowWaterEquations2D`, and `ShallowWaterEquationsQuasi1D`.
+
+#### Deprecated
+
+#### Removed
+
 ## Changes in the v0.11 lifecycle
 
 #### Added

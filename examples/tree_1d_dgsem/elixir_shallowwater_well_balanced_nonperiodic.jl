@@ -4,7 +4,7 @@ using Trixi
 ###############################################################################
 # Semidiscretization of the shallow water equations
 
-equations = ShallowWaterEquations1D(gravity_constant = 1.0, H0 = 3.0)
+equations = ShallowWaterEquations1D(gravity = 1.0, H0 = 3.0)
 
 # An initial condition with constant total water height and zero velocities to test well-balancedness.
 function initial_condition_well_balancedness(x, t, equations::ShallowWaterEquations1D)

@@ -5,7 +5,7 @@ using Trixi
 # semidiscretization of the shallow water equations with a discontinuous
 # bottom topography function
 
-equations = ShallowWaterEquations2D(gravity_constant = 9.81, H0 = 3.25)
+equations = ShallowWaterEquations2D(gravity = 9.81, H0 = 3.25)
 
 # An initial condition with constant total water height and zero velocities to test well-balancedness.
 # Note, this routine is used to compute errors in the analysis callback but the initialization is

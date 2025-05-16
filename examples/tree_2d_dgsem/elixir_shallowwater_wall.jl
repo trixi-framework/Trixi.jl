@@ -4,7 +4,7 @@ using Trixi
 ###############################################################################
 # Semidiscretization of the shallow water equations
 
-equations = ShallowWaterEquations2D(gravity_constant = 9.81, H0 = 3.25)
+equations = ShallowWaterEquations2D(gravity = 9.81, H0 = 3.25)
 
 # An initial condition with a bottom topography and a perturbation in the waterheight to test
 # boundary_condition_slip_wall
