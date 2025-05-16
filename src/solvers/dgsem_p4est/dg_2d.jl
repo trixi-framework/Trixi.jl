@@ -276,8 +276,37 @@ function prolong2boundaries!(cache, u,
     return nothing
 end
 
+function prolong2boundaries!(cache, u, u_global, semis,
+                             mesh::P4estMeshView{2},
+                             equations, surface_integral, dg::DG)
+    @unpack interfaces, boundaries = cache
+    index_range = eachnode(dg)
+
+    @threaded for boundary in eachboundary(dg, cache)
+        # Copy solution data from the element using "delayed indexing" with
+        # a start value and a step size to get the correct face and orientation.
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        for i in eachnode(dg)
+            for v in eachvariable(equations)
+                boundaries.u[v, i, boundary] = u[v, i_node, j_node, element]
+            end
+            i_node += i_node_step
+            j_node += j_node_step
+        end
+    end
+
+    return nothing
+end
+
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
-                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
@@ -335,6 +364,34 @@ end
                         i_index, j_index, element_index)
 
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+
+    # Copy flux to element storage in the correct orientation
+    for v in eachvariable(equations)
+        surface_flux_values[v, node_index, direction_index, element_index] = flux_[v]
+    end
+end
+
+# inlined version of the boundary flux calculation along a physical interface
+@inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                     mesh::P4estMeshView{2},
+                                     nonconservative_terms::False, equations,
+                                     surface_integral, dg::DG, cache,
+                                     i_index, j_index,
+                                     node_index, direction_index, element_index,
+                                     boundary_index)
+    @unpack boundaries = cache
+    @unpack contravariant_vectors = cache.elements
+    @unpack surface_flux = surface_integral
+
+    # Extract solution data from boundary container
+    u_inner = get_node_vars(boundaries.u, equations, dg, node_index, boundary_index)
+
+    # Outward-pointing normal direction (not normalized)
+    normal_direction = get_normal_direction(direction_index, contravariant_vectors,
+                                            i_index, j_index, element_index)
+
+    # flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
+    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index, element_index, normal_direction, surface_flux)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)

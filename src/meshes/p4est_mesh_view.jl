@@ -36,6 +36,7 @@ end
 
 @inline Base.ndims(::P4estMeshView{NDIMS}) where {NDIMS} = NDIMS
 @inline Base.real(::P4estMeshView{NDIMS, NDIMS_AMBIENT, RealT}) where {NDIMS, NDIMS_AMBIENT, RealT} = RealT
+@inline ncells(mesh::P4estMeshView) = length(mesh.cell_ids)
 
 function extract_p4est_mesh_view(elements_parent,
                                  interfaces_parent,
@@ -60,10 +61,13 @@ function extract_p4est_mesh_view(elements_parent,
                                                                                    mesh.cell_ids]
     @views elements.surface_flux_values .= elements_parent.surface_flux_values[..,
                                                                                mesh.cell_ids]
-    # Extract interfaces that belong to mesh view
+    # Extract interfaces that belong to mesh view.
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
-    return elements, interfaces, boundaries_parent, mortars_parent
+    # Extract boundaries of this mesh view.
+    boundaries = extract_boundaries(mesh, boundaries_parent, interfaces_parent, interfaces)
+
+    return elements, interfaces, boundaries, mortars_parent
 end
 
 # Remove all interfaces that have a tuple of neighbor_ids where at least one is
@@ -99,23 +103,89 @@ function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     return interfaces
 end
 
+# Remove all boundaries that are not part of this p4est mesh view and add new boundaries
+# that were interfaces of the parent mesh.
+function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_parent, interfaces)
+    # Remove all boundaries that are not part of this p4est mesh view.
+    boundaries = deepcopy(boundaries_parent)
+    mask = BitArray(undef, nboundaries(boundaries_parent))
+    for boundary in 1:size(boundaries_parent.neighbor_ids)[1]
+        mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
+    end
+    boundaries.neighbor_ids = global_element_id_to_local(boundaries_parent.neighbor_ids[mask], mesh)
+    boundaries.name = boundaries_parent.name[mask]
+    boundaries.node_indices = boundaries_parent.node_indices[mask]
+
+    # Add new boundaries that were interfaces of the parent mesh.
+    for interface in 1:size(interfaces_parent.neighbor_ids)[2]
+        if ((interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
+            !(interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)) ||
+            ((interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids) &&
+            !(interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids))
+            if interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids
+                neighbor_id = interfaces_parent.neighbor_ids[1, interface]
+                view_idx = 1
+            else
+                neighbor_id = interfaces_parent.neighbor_ids[2, interface]
+                view_idx = 2
+            end
+
+            push!(boundaries.neighbor_ids, global_element_id_to_local(neighbor_id, mesh))
+            if interfaces_parent.node_indices[view_idx, interface] == (:end, :i_forward)
+                push!(boundaries.name, :x_pos)
+            elseif interfaces_parent.node_indices[view_idx, interface] == (:begin, :i_forward)
+                push!(boundaries.name, :x_neg)
+            elseif interfaces_parent.node_indices[view_idx, interface] == (:i_forward, :end)
+                push!(boundaries.name, :y_pos)
+            else
+                push!(boundaries.name, :y_neg)
+            end
+
+            push!(boundaries.node_indices, interfaces_parent.node_indices[view_idx, interface])
+        end
+    end
+
+    boundaries.u = zeros(typeof(boundaries_parent.u).parameters[1],
+                         (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2], size(boundaries.node_indices)[end]))
+    
+    return boundaries
+end
+
+# Convert a global cell id to a local cell id in the mesh view.
+function global_element_id_to_local(id::Int, mesh::P4estMeshView)
+    # Find the index of the cell id in the mesh view
+    local_id = findfirst(==(id), mesh.cell_ids)
+
+    return local_id
+end
+
+# Convert a global cell id to a local cell id in the mesh view.
+function global_element_id_to_local(id::AbstractArray, mesh::P4estMeshView)
+    # Find the index of the cell id in the mesh view
+    local_id = zeros(Int, length(id))
+    for i in eachindex(id)
+        local_id[i] = global_element_id_to_local(id[i], mesh)
+    end
+
+    return local_id
+end
+
 # Does not save the mesh itself to an HDF5 file. Instead saves important attributes
 # of the mesh, like its size and the type of boundary mapping function.
 # Then, within Trixi2Vtk, the P4estMeshView and its node coordinates are reconstructured from
 # these attributes for plotting purposes
 # | Warning: This overwrites any existing mesh file, either for a mesh view or parent mesh.
-function save_mesh_file(mesh::P4estMeshView, output_directory, timestep,
-                        mpi_parallel::False)
+function save_mesh_file(mesh::P4estMeshView, output_directory; system = "", timestep = 0)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%09d.h5", timestep))
-        p4est_filename = @sprintf("p4est_data_%09d", timestep)
+        filename = joinpath(output_directory, @sprintf("mesh_%s_%09d.h5", system, timestep))
+        p4est_filename = @sprintf("p4est_%s_data_%09d", system, timestep)
     else
-        filename = joinpath(output_directory, "mesh.h5")
-        p4est_filename = "p4est_data"
+        filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system))
+        p4est_filename = @sprintf("p4est_%s_data", system)
     end
 
     p4est_file = joinpath(output_directory, p4est_filename)
