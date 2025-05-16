@@ -46,7 +46,7 @@ end
                                                   boundary_condition::BoundaryConditionPeriodic,
                                                   mesh::Union{StructuredMesh,
                                                               StructuredMeshView},
-                                                  nonconservative_terms::True,
+                                                  have_nonconservative_terms::True,
                                                   equations,
                                                   surface_integral, dg::DG, cache,
                                                   direction, node_indices,
