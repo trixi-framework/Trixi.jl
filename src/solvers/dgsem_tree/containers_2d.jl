@@ -1422,4 +1422,94 @@ function Base.resize!(container::ContainerSubcellLimiterIDP2D, capacity)
 
     return nothing
 end
+
+# Initialize auxiliary surface node variables
+# 2D TreeMesh implementation, similar to prolong2interfaces
+function init_aux_surface_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
+                                     cache)
+    @unpack aux_node_vars, aux_surface_node_vars = aux_vars
+    @unpack orientations, neighbor_ids = cache.interfaces
+
+    @threaded for interface in eachinterface(solver, cache)
+        left_element = neighbor_ids[1, interface]
+        right_element = neighbor_ids[2, interface]
+
+        if orientations[interface] == 1
+            # interface in x-direction
+            for j in eachnode(solver)
+                for v in axes(aux_surface_node_vars, 2)
+                    aux_surface_node_vars[1, v, j, interface] = aux_node_vars[v,
+                                                                              nnodes(solver),
+                                                                              j,
+                                                                              left_element]
+                    aux_surface_node_vars[2, v, j, interface] = aux_node_vars[v,
+                                                                              1,
+                                                                              j,
+                                                                              right_element]
+                end
+            end
+        else # if orientations[interface] == 2
+            # interface in y-direction
+            for i in eachnode(solver)
+                for v in axes(aux_surface_node_vars, 2)
+                    aux_surface_node_vars[1, v, i, interface] = aux_node_vars[v,
+                                                                              i,
+                                                                              nnodes(solver),
+                                                                              left_element]
+                    aux_surface_node_vars[2, v, i, interface] = aux_node_vars[v,
+                                                                              i,
+                                                                              1,
+                                                                              right_element]
+                end
+            end
+        end
+    end
+    return nothing
+end
+
+# Initialize auxiliary boundary node variables
+# 2D TreeMesh implementation, similar to prolong2boundaries
+function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, solver,
+                                      cache)
+    @unpack aux_node_vars, aux_boundary_node_vars = aux_vars
+    @unpack orientations, neighbor_ids, neighbor_sides = cache.boundaries
+
+    @threaded for boundary in eachboundary(solver, cache)
+        element = boundaries.neighbor_ids[boundary]
+        if orientations[boundary] == 1
+            # boundary in x-direction
+            if neighbor_sides[boundary] == 1
+                # element in -x direction of boundary
+                for l in eachnode(solver), v in eachvariable(equations)
+                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v,
+                                                                              nnodes(solver),
+                                                                              l,
+                                                                              element]
+                end
+            else # Element in +x direction of boundary
+                for l in eachnode(solver), v in eachvariable(equations)
+                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, 1, l,
+                                                                              element]
+                end
+            end
+        else # if orientations[boundary] == 2
+            # boundary in y-direction
+            if neighbor_sides[boundary] == 1
+                # element in -y direction of boundary
+                for l in eachnode(solver), v in eachvariable(equations)
+                    aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v, l,
+                                                                              nnodes(solver),
+                                                                              element]
+                end
+            else
+                # element in +y direction of boundary
+                for l in eachnode(solver), v in eachvariable(equations)
+                    aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, l, 1,
+                                                                              element]
+                end
+            end
+        end
+    end
+    return nothing
+end
 end # @muladd
