@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 using Trixi
 
 surface_flux = FluxPlusDissipation(flux_ranocha, DissipationMatrixWintersEtal())
