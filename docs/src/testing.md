@@ -59,6 +59,7 @@ with `!` and search for test files with a fuzzy search. To search for testsets, 
 can separate the fuzzy search for test files and a fuzzy search of testsets with
 a colon. For more details, check out the documentation of
 [TestPicker.jl](https://github.com/theogf/TestPicker.jl).
+
 For the automated tests with GitHub Actions, we run multiple jobs in parallel to
 reduce the waiting time until all tests are finished. You can see the different
 components that are run as jobs by looking at the `TRIXI_TEST` variable in
