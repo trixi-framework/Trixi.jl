@@ -5,6 +5,18 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.12 from v0.11.x
+
+#### Added
+
+#### Changed
+
+#### Deprecated
+
+#### Removed
+- The additional `ìnitial_cache` entries in the caches of `SemidiscretizationHyperbolic`
+  and `SemidiscretizationHyperbolicParabolic`, and the corresponding keyword arguments of
+  their constructors have been removed. ([#2399])
 
 ## Changes in the v0.11 lifecycle
 
