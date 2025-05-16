@@ -84,7 +84,7 @@ Wrap the semidiscretization `semi` as an ODE problem in the time interval `tspan
 that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
 """
 function semidiscretize(semi::AbstractSemidiscretization, tspan;
-                        reset_threads = true)
+                        reset_threads = true, threaded_broadcast_array = false)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -93,6 +93,10 @@ function semidiscretize(semi::AbstractSemidiscretization, tspan;
     end
 
     u0_ode = compute_coefficients(first(tspan), semi)
+
+    if threaded_broadcast_array
+        u0_ode = ThreadedBroadcastArray(u0_ode)
+    end
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328
