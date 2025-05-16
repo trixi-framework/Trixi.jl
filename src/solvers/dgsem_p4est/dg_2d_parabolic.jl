@@ -176,14 +176,14 @@ function calc_gradient!(gradients, u_transformed, t,
 
                 for ii in eachnode(dg)
                     multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
-                                               u_node,
-                                               equations_parabolic, dg, ii, j, element)
+                                               u_node, equations_parabolic, dg,
+                                               ii, j, element)
                 end
 
                 for jj in eachnode(dg)
                     multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
-                                               u_node,
-                                               equations_parabolic, dg, i, jj, element)
+                                               u_node, equations_parabolic, dg,
+                                               i, jj, element)
                 end
             end
 
@@ -196,11 +196,9 @@ function calc_gradient!(gradients, u_transformed, t,
                                                       element)
 
                 gradients_reference_1 = get_node_vars(gradients_x, equations_parabolic,
-                                                      dg,
-                                                      i, j, element)
+                                                      dg, i, j, element)
                 gradients_reference_2 = get_node_vars(gradients_y, equations_parabolic,
-                                                      dg,
-                                                      i, j, element)
+                                                      dg, i, j, element)
 
                 # note that the contravariant vectors are transposed compared with computations of flux
                 # divergences in `calc_volume_integral!`. See
@@ -211,12 +209,10 @@ function calc_gradient!(gradients, u_transformed, t,
                 gradient_y_node = Ja12 * gradients_reference_1 +
                                   Ja22 * gradients_reference_2
 
-                set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg, i,
-                               j,
-                               element)
-                set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg, i,
-                               j,
-                               element)
+                set_node_vars!(gradients_x, gradient_x_node, equations_parabolic, dg,
+                               i, j, element)
+                set_node_vars!(gradients_y, gradient_y_node, equations_parabolic, dg,
+                               i, j, element)
             end
         end
     end
@@ -486,15 +482,15 @@ function calc_volume_integral!(du, flux_viscous,
     @threaded for element in eachelement(dg, cache)
         # Calculate volume terms in one element
         for j in eachnode(dg), i in eachnode(dg)
-            flux1 = get_node_vars(flux_viscous_x, equations_parabolic, dg, i, j,
-                                  element)
-            flux2 = get_node_vars(flux_viscous_y, equations_parabolic, dg, i, j,
-                                  element)
+            flux1 = get_node_vars(flux_viscous_x, equations_parabolic, dg,
+                                  i, j, element)
+            flux2 = get_node_vars(flux_viscous_y, equations_parabolic, dg,
+                                  i, j, element)
 
             # Compute the contravariant flux by taking the scalar product of the
             # first contravariant vector Ja^1 and the flux vector
-            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors, i, j,
-                                                  element)
+            Ja11, Ja12 = get_contravariant_vector(1, contravariant_vectors,
+                                                  i, j, element)
             contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2
             for ii in eachnode(dg)
                 multiply_add_to_node_vars!(du, derivative_dhat[ii, i],
@@ -504,8 +500,8 @@ function calc_volume_integral!(du, flux_viscous,
 
             # Compute the contravariant flux by taking the scalar product of the
             # second contravariant vector Ja^2 and the flux vector
-            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors, i, j,
-                                                  element)
+            Ja21, Ja22 = get_contravariant_vector(2, contravariant_vectors,
+                                                  i, j, element)
             contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2
             for jj in eachnode(dg)
                 multiply_add_to_node_vars!(du, derivative_dhat[jj, j],
@@ -754,11 +750,9 @@ function prolong2mortars_divergence!(cache, flux_viscous::Vector{Array{uEltype, 
 
         # Interpolate large element face data from buffer to small face locations
         multiply_dimensionwise!(view(cache.mortars.u, 2, :, 1, :, mortar),
-                                mortar_l2.forward_lower,
-                                u_buffer)
+                                mortar_l2.forward_lower, u_buffer)
         multiply_dimensionwise!(view(cache.mortars.u, 2, :, 2, :, mortar),
-                                mortar_l2.forward_upper,
-                                u_buffer)
+                                mortar_l2.forward_upper, u_buffer)
     end
 
     return nothing
