@@ -23,3 +23,8 @@ varnames(::typeof(cons2prim), ::AbstractCompressibleEulerEquations{2}) =
                    -s * u[2] + c * u[3],
                    u[4])
 end
+
+varnames(::typeof(cons2cons), ::AbstractCompressibleEulerEquations{3}) =
+    ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
+varnames(::typeof(cons2prim), ::AbstractCompressibleEulerEquations{3}) =
+    ("rho", "v1", "v2", "v3", "p")

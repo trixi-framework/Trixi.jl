@@ -308,6 +308,21 @@ function analyze(::typeof(entropy_timederivative), du, u, t,
     end
 end
 
+function analyze(::typeof(entropy_timederivative), du, u, t,
+                 mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
+                             T8codeMesh{3}},
+                 have_aux_node_vars::True, equations, dg::DG, cache)
+    @unpack aux_node_vars = cache.aux_vars
+    # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
+    integrate_via_indices(u, mesh, equations, dg, cache,
+                          du) do u, i, j, k, element, equations, dg, du
+        u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
+        du_node = get_node_vars(du, equations, dg, i, j, k, element)
+        dot(cons2entropy(u_node, aux_node, equations), du_node)
+    end
+end
+
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::TreeMesh{3}, equations, have_aux_node_vars::False,
                  dg::DGSEM, cache)

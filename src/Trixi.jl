@@ -153,7 +153,7 @@ include("visualization/visualization.jl")
 export AcousticPerturbationEquations2D, AcousticPerturbationEquations2DAuxVars,
        CompressibleEulerEquations1D, CompressibleEulerEquations2D,
        CompressibleEulerEquations3D,
-       CompressibleEulerEquationsPerturbation2D,
+       CompressibleEulerEquationsPerturbation2D, CompressibleEulerEquationsPerturbation3D,
        CompressibleEulerMulticomponentEquations1D,
        CompressibleEulerMulticomponentEquations2D,
        CompressibleEulerEquationsQuasi1D,
