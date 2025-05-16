@@ -56,13 +56,13 @@ end
     ############################
     # TODO: Calculate blending factor for mortar fluxes
     (; limiting_factor) = cache.mortars
-    limiting_factor .= zero(eltype(limiting_factor))
-    # limiting_factor = 1 => full DG
-    # limiting_factor = 0 => full FV
+    limiting_factor .= one(eltype(limiting_factor))
+    # limiting_factor = 1 => full FV
+    # limiting_factor = 0 => full DG
     #######################
 
     for mortar in eachmortar(dg, cache)
-        if isapprox(limiting_factor[mortar], zero(eltype(limiting_factor)))
+        if isapprox(limiting_factor[mortar], one(eltype(limiting_factor)))
             continue
         end
         large_element = cache.mortars.neighbor_ids[3, mortar]
@@ -121,8 +121,10 @@ end
 
             for v in eachvariable(equations)
                 u[v, indices_small..., lower_element] += dt * inverse_jacobian_lower *
-                                       (factor_small * limiting_factor[mortar] *
-                                        (flux_local_high_order[v] - flux_local_low_order[v]))
+                                                         (factor_small *
+                                                          (1 - limiting_factor[mortar]) *
+                                                          (flux_local_high_order[v] -
+                                                           flux_local_low_order[v]))
             end
 
             flux_local_high_order = view(surface_flux_values_high_order, :, i,
@@ -131,8 +133,10 @@ end
                                         upper_element)
             for v in eachvariable(equations)
                 u[v, indices_small..., upper_element] += dt * inverse_jacobian_upper *
-                                       (factor_small * limiting_factor[mortar] *
-                                        (flux_local_high_order[v] - flux_local_low_order[v]))
+                                                         (factor_small *
+                                                          (1 - limiting_factor[mortar]) *
+                                                          (flux_local_high_order[v] -
+                                                           flux_local_low_order[v]))
             end
 
             flux_local_high_order = view(surface_flux_values_high_order, :, i,
@@ -141,8 +145,10 @@ end
                                         large_element)
             for v in eachvariable(equations)
                 u[v, indices_large..., large_element] += dt * inverse_jacobian_large *
-                                       (factor_large * limiting_factor[mortar] *
-                                        (flux_local_high_order[v] - flux_local_low_order[v]))
+                                                         (factor_large *
+                                                          (1 - limiting_factor[mortar]) *
+                                                          (flux_local_high_order[v] -
+                                                           flux_local_low_order[v]))
             end
         end
     end
