@@ -178,19 +178,7 @@ makedocs(
              "License" => "license.md"
          ])
 
-# Replace with below once https://github.com/JuliaDocs/Documenter.jl/pull/2692 is merged and available.
-#  deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
-#    deploy_repo = "github.com/trixi-framework/TrixiDocumentation",
-#    devbranch = "main",
-#    push_preview = true)
-if get(ENV, "GITHUB_EVENT_NAME", "") == "pull_request"
-    deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
-               repo_previews = "github.com/trixi-framework/TrixiDocumentation",
-               devbranch = "main",
-               push_preview = true)
-else
-    repo = "github.com/trixi-framework/TrixiDocumentation"
-    withenv("GITHUB_REPOSITORY" => repo) do
-        deploydocs(repo = repo, devbranch = "main")
-    end
-end
+deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
+  deploy_repo = "github.com/trixi-framework/TrixiDocumentation",
+  devbranch = "main",
+  push_preview = true)
