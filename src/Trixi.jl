@@ -173,7 +173,7 @@ export AcousticPerturbationEquations2D,
        MaxwellEquations1D,
        PassiveTracerEquations
 
-export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
+export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,       
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
        CompressibleNavierStokesDiffusion3D
 
