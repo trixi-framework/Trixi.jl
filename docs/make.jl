@@ -179,6 +179,6 @@ makedocs(
          ])
 
 deploydocs(repo = "github.com/trixi-framework/Trixi.jl",
-  deploy_repo = "github.com/trixi-framework/TrixiDocumentation",
-  devbranch = "main",
-  push_preview = true)
+           deploy_repo = "github.com/trixi-framework/TrixiDocumentation",
+           devbranch = "main",
+           push_preview = true)
