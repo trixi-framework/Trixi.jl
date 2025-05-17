@@ -945,7 +945,18 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_laplace_diffusion.jl"),
                         cells_per_dimension=8, element_type=Tri(),
                         approximation_type=Polynomial(), tspan=(0.0, 0.2),
-                        l2 = [0.09573222780014387, 0.07305375992978504, 0.07305375992978479, 0.35291692218403836], linf = [0.2632457353233918, 0.22249956389208922, 0.2224995638920848, 0.9524896560641394])
+                        l2=[
+                            0.09573222780014387,
+                            0.07305375992978504,
+                            0.07305375992978479,
+                            0.35291692218403836
+                        ],
+                        linf=[
+                            0.2632457353233918,
+                            0.22249956389208922,
+                            0.2224995638920848,
+                            0.9524896560641394
+                        ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -955,7 +966,6 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
-
 end
 # Clean up afterwards: delete Trixi.jl output directory
 @test_nowarn isdir(outdir) && rm(outdir, recursive = true)
