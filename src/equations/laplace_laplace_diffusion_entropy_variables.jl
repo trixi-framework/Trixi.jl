@@ -3,10 +3,9 @@
     LaplaceDiffusionEntropyVariables2D(equations)
     LaplaceDiffusionEntropyVariables3D(equations)
 
-`LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D`, and 
-`LaplaceDiffusionEntropyVariables3D` represent a diffusion term 
-``\nabla \cdot (\frac{\partial u}{\partial w}\nabla w(u)))``, where `w(u)` 
-denotes the mapping between conservative and entropy variables. 
+This represent an artificial viscosity term used to enforce entropy stability
+``\nabla \cdot (\epsilon(u)\frac{\partial u}{\partial w}\nabla w(u)))``, 
+where `w(u)` denotes the mapping between conservative and entropy variables. 
 """
 struct LaplaceDiffusionEntropyVariables{NDIMS, E, N}
     equations_hyperbolic::E
@@ -32,6 +31,7 @@ function gradient_variable_transformation(::LaplaceDiffusionEntropyVariables)
     cons2entropy
 end
 
+# generic fallback, assuming entropy2cons exists
 function jacobian_entropy2cons(w, equations)
     return ForwardDiff.jacobian(w -> entropy2cons(w, equations), w)
 end
