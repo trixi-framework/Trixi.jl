@@ -7,21 +7,29 @@ This represent an artificial viscosity term used to enforce entropy stability
 ``\nabla \cdot (\epsilon(u)\frac{\partial u}{\partial w}\nabla w(u)))``, 
 where `w(u)` denotes the mapping between conservative and entropy variables. 
 """
-struct LaplaceDiffusionEntropyVariables{NDIMS, E, N}
+struct LaplaceDiffusionEntropyVariables{NDIMS, E, N, T} <:
+       AbstractLaplaceDiffusion{NDIMS, N}
+    diffusivity::T
     equations_hyperbolic::E
 end
 
-LaplaceDiffusionEntropyVariables1D(equations_hyperbolic) = 
-    LaplaceDiffusionEntropyVariables{1, typeof(equations_hyperbolic), 
-                                     nvariables(equations_hyperbolic)}(equations_hyperbolic)
+function LaplaceDiffusionEntropyVariables1D(diffusivity, equations_hyperbolic)
+    LaplaceDiffusionEntropyVariables{1, typeof(equations_hyperbolic),
+                                     nvariables(equations_hyperbolic),
+                                     typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+end
 
-LaplaceDiffusionEntropyVariables2D(equations_hyperbolic) = 
-    LaplaceDiffusionEntropyVariables{2, typeof(equations_hyperbolic), 
-                                     nvariables(equations_hyperbolic)}(equations_hyperbolic)
+function LaplaceDiffusionEntropyVariables2D(diffusivity, equations_hyperbolic)
+    LaplaceDiffusionEntropyVariables{2, typeof(equations_hyperbolic),
+                                     nvariables(equations_hyperbolic),
+                                     typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+end
 
-LaplaceDiffusionEntropyVariables3D(equations_hyperbolic) = 
-    LaplaceDiffusionEntropyVariables{3, typeof(equations_hyperbolic), 
-                                     nvariables(equations_hyperbolic)}(equations_hyperbolic)
+function LaplaceDiffusionEntropyVariables3D(equations_hyperbolic)
+    LaplaceDiffusionEntropyVariables{3, typeof(equations_hyperbolic),
+                                     nvariables(equations_hyperbolic),
+                                     typeof(diffusivity)}(diffusivity, equations_hyperbolic)
+end
 
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusionEntropyVariables)
     varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
@@ -31,27 +39,32 @@ function gradient_variable_transformation(::LaplaceDiffusionEntropyVariables)
     cons2entropy
 end
 
+function cons2entropy(u, equations::LaplaceDiffusionEntropyVariables)
+    cons2entropy(u, equations.equations_hyperbolic)
+end
+function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
+    entropy2cons(w, equations.equations_hyperbolic)
+end
+
 # generic fallback, assuming entropy2cons exists
 function jacobian_entropy2cons(w, equations)
-    return ForwardDiff.jacobian(w -> entropy2cons(w, equations), w)
+    return equations.diffusivity * ForwardDiff.jacobian(w -> entropy2cons(w, equations), w)
 end
 
 # Note that here, `u` should be the transformed entropy variables, and 
 # not the conservative variables.
-function flux(u, gradients, orientation::Integer, 
-              equations_parabolic::LaplaceDiffusionEntropyVariables{1})
+function flux(u, gradients, orientation::Integer,
+              equations::LaplaceDiffusionEntropyVariables{1})
     dudx = gradients
-    (; equations_hyperbolic) = equations_parabolic
-    diffusivity = jacobian_entropy2cons(u, equations_hyperbolic)
+    diffusivity = jacobian_entropy2cons(u, equations)
     # if orientation == 1
-    return SVector(diffusivity * dudx)    
+    return SVector(diffusivity * dudx)
 end
 
-function flux(u, gradients, orientation::Integer, 
-              equations_parabolic::LaplaceDiffusionEntropyVariables{2})
+function flux(u, gradients, orientation::Integer,
+              equations::LaplaceDiffusionEntropyVariables{2})
     dudx, dudy = gradients
-    (; equations_hyperbolic) = equations_parabolic
-    diffusivity = hessian_cons_vars_entropy_vars(u, equations_hyperbolic)
+    diffusivity = jacobian_entropy2cons(u, equations)
     if orientation == 1
         return SVector(diffusivity * dudx)
     else # if orientation == 2
@@ -59,11 +72,10 @@ function flux(u, gradients, orientation::Integer,
     end
 end
 
-function flux(u, gradients, orientation::Integer, 
-              equations_parabolic::LaplaceDiffusionEntropyVariables{3})
+function flux(u, gradients, orientation::Integer,
+              equations::LaplaceDiffusionEntropyVariables{3})
     dudx, dudy, dudz = gradients
-    (; equations_hyperbolic) = equations_parabolic
-    diffusivity = hessian_cons_vars_entropy_vars(u, equations_hyperbolic)
+    diffusivity = hessian_cons_vars_entropy_vars(u, equations)
     if orientation == 1
         return SVector(diffusivity * dudx)
     elseif orientation == 2
@@ -107,4 +119,3 @@ end
                                                                 equations_parabolic::LaplaceDiffusionEntropyVariables)
     return flux_inner
 end
-
