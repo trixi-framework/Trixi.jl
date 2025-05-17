@@ -14,6 +14,8 @@ include("laplace_diffusion_1d.jl")
 include("laplace_diffusion_2d.jl")
 include("laplace_diffusion_3d.jl")
 
+include("laplace_diffusion_entropy_variables.jl")
+
 # Compressible Navier-Stokes equations
 abstract type AbstractCompressibleNavierStokesDiffusion{NDIMS, NVARS, GradientVariables} <:
               AbstractEquationsParabolic{NDIMS, NVARS, GradientVariables} end
