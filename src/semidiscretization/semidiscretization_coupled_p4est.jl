@@ -475,37 +475,36 @@ end
 
 function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equations, cache,
                                                              i_index, j_index, element_index,
-                                                             normal_direction, surface_flux)
+                                                             normal_direction, surface_flux_function, direction)
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
-    u_boundary = SVector(ntuple(v -> boundary_condition.u_boundary[v,
-                                                                   surface_node_indices...,
-                                                                   cell_indices...],
-                                Val(nvariables(equations))))
+    @autoinfiltrate
+    u_boundary = u_inner
+    orientation = normal_direction
 
     # Calculate boundary flux
     if surface_flux_function isa Tuple
         # In case of conservative (index 1) and non-conservative (index 2) fluxes,
         # add the non-conservative one with a factor of 1/2.
-        if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        # if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
             flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
                                              equations) +
                     0.5f0 *
                     surface_flux_function[2](u_inner, u_boundary, orientation,
                                              equations))
-        else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-            flux = (surface_flux_function[1](u_boundary, u_inner, orientation,
-                                             equations) +
-                    0.5f0 *
-                    surface_flux_function[2](u_boundary, u_inner, orientation,
-                                             equations))
-        end
+        # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        #     flux = (surface_flux_function[1](u_boundary, u_inner, orientation,
+        #                                      equations) +
+        #             0.5f0 *
+        #             surface_flux_function[2](u_boundary, u_inner, orientation,
+        #                                      equations))
+        # end
     else
-        if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
+        # if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
             flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-        else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-            flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-        end
+        # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
+        #     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
+        # end
     end
 
     return flux
