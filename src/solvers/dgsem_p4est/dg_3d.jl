@@ -511,7 +511,8 @@ end
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                     nonconservative_terms::True, equations,
+                                     nonconservative_terms::True,
+                                     have_aux_node_vars::False, equations,
                                      surface_integral, dg::DG, cache, i_index, j_index,
                                      k_index, i_node_index, j_node_index,
                                      direction_index,
