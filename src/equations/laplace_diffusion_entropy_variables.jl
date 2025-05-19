@@ -3,9 +3,11 @@
     LaplaceDiffusionEntropyVariables2D(equations)
     LaplaceDiffusionEntropyVariables3D(equations)
 
-This represent an artificial viscosity term used to enforce entropy stability
-``\nabla \cdot (\epsilon(u)\frac{\partial u}{\partial w}\nabla w(u)))``, 
+This represent a symmetrized Laplacian diffusion 
+``\nabla \cdot (\kappa\frac{\partial u}{\partial w}\nabla w(u)))``, 
 where `w(u)` denotes the mapping between conservative and entropy variables. 
+Compared with `LaplaceDiffusion`, `LaplaceDiffusionEntropyVariables` is 
+guaranteed to dissipate entropy.
 """
 struct LaplaceDiffusionEntropyVariables{NDIMS, E, N, T} <:
        AbstractLaplaceDiffusion{NDIMS, N}
