@@ -389,7 +389,7 @@ end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             equations, surface_integral, dg::DG)
+                             equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
     index_range = eachnode(dg)
@@ -480,7 +480,7 @@ end
     @unpack boundaries = cache
     @unpack node_coordinates, contravariant_vectors = cache.elements
     @unpack surface_flux = surface_integral
-    @unpack 
+    @unpack aux_boundary_node_vars = cache.aux_vars
 
     # Extract solution data from boundary container
     u_inner = get_node_vars(boundaries.u, equations, dg, i_node_index, j_node_index,
