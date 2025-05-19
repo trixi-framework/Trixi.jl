@@ -429,8 +429,7 @@ function calc_volume_integral!(du, u,
 
             # Calculate FV volume integral contribution
             fv_kernel!(du, u, mesh, have_nonconservative_terms, equations,
-                       volume_flux_fv,
-                       dg, cache, element, alpha_element)
+                       volume_flux_fv, dg, cache, element, alpha_element)
         end
     end
 
@@ -472,9 +471,8 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                 mesh, have_nonconservative_terms, equations, volume_flux_fv, dg,
-                 element,
-                 cache)
+                 mesh, have_nonconservative_terms, equations,
+                 volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -543,11 +541,11 @@ end
     return nothing
 end
 
-# Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
+# Calculate the finite volume fluxes inside the elements (**with non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
-                              mesh::TreeMesh{3}, have_nonconservative_terms::True,
-                              equations,
+                              mesh::TreeMesh{3},
+                              have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 

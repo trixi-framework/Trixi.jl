@@ -367,8 +367,7 @@ function calc_volume_integral!(du, u,
 
             # Calculate FV volume integral contribution
             fv_kernel!(du, u, mesh, have_nonconservative_terms, equations,
-                       volume_flux_fv,
-                       dg, cache, element, alpha_element)
+                       volume_flux_fv, dg, cache, element, alpha_element)
         end
     end
 
@@ -439,8 +438,8 @@ end
 # - `fstar2_R::AbstractArray{<:Real, 3}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               u::AbstractArray{<:Any, 4},
-                              mesh::TreeMesh{2}, have_nonconservative_terms::False,
-                              equations,
+                              mesh::TreeMesh{2},
+                              have_nonconservative_terms::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     fstar1_L[:, 1, :] .= zero(eltype(fstar1_L))
     fstar1_L[:, nnodes(dg) + 1, :] .= zero(eltype(fstar1_L))
@@ -485,8 +484,8 @@ end
 # - `u_leftright::AbstractArray{<:Real, 4}`
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R,
                               u::AbstractArray{<:Any, 4},
-                              mesh::TreeMesh{2}, have_nonconservative_terms::True,
-                              equations,
+                              mesh::TreeMesh{2},
+                              have_nonconservative_terms::True, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
