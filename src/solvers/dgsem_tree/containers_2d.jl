@@ -1475,7 +1475,7 @@ function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, sol
     @unpack orientations, neighbor_ids, neighbor_sides = cache.boundaries
 
     @threaded for boundary in eachboundary(solver, cache)
-        element = boundaries.neighbor_ids[boundary]
+        element = neighbor_ids[boundary]
         if orientations[boundary] == 1
             # boundary in x-direction
             if neighbor_sides[boundary] == 1
