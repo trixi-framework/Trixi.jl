@@ -112,8 +112,7 @@ end
 
 function rhs!(du, u, t,
               mesh::Union{TreeMesh{2}, P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
-              equations,
-              boundary_conditions, source_terms::Source,
+              equations, boundary_conditions, source_terms::Source,
               dg::DG, cache) where {Source}
 
     @unpack surface_flux_values = cache.elements
@@ -906,7 +905,7 @@ function calc_boundary_flux_by_direction!(t, boundary_condition,
     @unpack surface_flux_values = cache.elements
     @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, neighbor_sides, node_coordinates, orientations = cache.boundaries
-    @unpack aux_surface_node_vars = cache.aux_vars
+    @unpack aux_boundary_node_vars = cache.aux_vars
 
     @threaded for boundary in first_boundary:last_boundary
         # Get neighboring element
@@ -915,7 +914,7 @@ function calc_boundary_flux_by_direction!(t, boundary_condition,
         for i in eachnode(dg)
             # Get boundary flux
             u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, boundary)
-            aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars,
+            aux_ll, aux_rr = get_aux_surface_node_vars(aux_boundary_node_vars,
                                                        equations, dg, i, boundary)
             if neighbor_sides[boundary] == 1 # Element is on the left, boundary on the right
                 u_inner = u_ll

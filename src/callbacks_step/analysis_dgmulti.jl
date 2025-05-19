@@ -45,7 +45,7 @@ function integrate(func::Func, u,
 end
 
 function analyze(::typeof(entropy_timederivative), du, u, t,
-                 mesh::DGMultiMesh, equations, have_aux_node_vars::False, dg::DGMulti,
+                 mesh::DGMultiMesh, have_aux_node_vars::False, equations, dg::DGMulti,
                  cache)
     rd = dg.basis
     md = mesh.md
@@ -93,8 +93,8 @@ get_component(u::StructArray, i::Int) = StructArrays.component(u, i)
 get_component(u::AbstractArray{<:SVector}, i::Int) = getindex.(u, i)
 
 function analyze(::Val{:l2_divb}, du, u, t,
-                 mesh::DGMultiMesh, equations::IdealGlmMhdEquations2D,
-                 have_aux_node_vars::False, dg::DGMulti, cache)
+                 mesh::DGMultiMesh, have_aux_node_vars::False,
+                 equations::IdealGlmMhdEquations2D, dg::DGMulti, cache)
     @unpack md = mesh
     rd = dg.basis
     B1 = get_component(u, 6)
@@ -117,8 +117,8 @@ function analyze(::Val{:l2_divb}, du, u, t,
 end
 
 function analyze(::Val{:linf_divb}, du, u, t,
-                 mesh::DGMultiMesh, equations::IdealGlmMhdEquations2D,
-                 have_aux_node_vars::False, dg::DGMulti, cache)
+                 mesh::DGMultiMesh, have_aux_node_vars::False,
+                 equations::IdealGlmMhdEquations2D, dg::DGMulti, cache)
     B1 = get_component(u, 6)
     B2 = get_component(u, 7)
     B = (B1, B2)

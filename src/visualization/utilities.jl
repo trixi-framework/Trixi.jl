@@ -475,6 +475,9 @@ end
 
 # Apply the `solution_variables` function to all node values stored in `u`.
 # Dispatch on `have_aux_node_vars` to take into account auxiliary variables.
+# Similar to `save_solution_file` in `callbacks_step/save_solution_dg.jl`.
+# However, we cannot use `reinterpret` here as `u` might have a non-bits type.
+# See https://github.com/trixi-framework/Trixi.jl/pull/2388
 @inline function apply_solution_variables(u, solution_variables,
                                           have_aux_node_vars::True, equations,
                                           solver, cache)
@@ -506,20 +509,11 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
         raw_data = u
         n_vars = size(raw_data, 1)
     else
-        # FIXME: Remove this comment once the implementation following it has been verified
-        # Reinterpret the solution array as an array of conservative variables,
-        # compute the solution variables via broadcasting, and reinterpret the
-        # result as a plain array of floating point numbers
-        # raw_data = Array(reinterpret(eltype(u),
-        #        solution_variables.(reinterpret(SVector{nvariables(equations),eltype(u)}, u),
-        #                   Ref(equations))))
-        # n_vars = size(raw_data, 1)
         raw_data = apply_solution_variables(u, solution_variables,
                                             have_aux_node_vars(equations),
                                             equations, solver, cache)
         n_vars = size(raw_data, 1)
     end
-
     unstructured_data = Array{eltype(raw_data)}(undef,
                                                 ntuple((d) -> nnodes(solver),
                                                        ndims(equations))...,

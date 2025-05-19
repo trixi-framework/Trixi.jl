@@ -57,6 +57,14 @@ end
                                  initial_cache=NamedTuple())
 
 Construct a semidiscretization of a hyperbolic PDE.
+
+`aux_field` is an optional function taking a coordinate vector `x` and the current
+`equations` as arguments. It is used to fill an additional field `aux_vars` in the `cache`,
+which will be available, e.g., in flux computations. The current `equations` need to set
+`have_aux_node_vars to `True()` and `n_aux_node_vars` to the number of auxiliary variables
+per node.
+Currently only TreeMesh in 2D is supported.
+Upon refinement, `aux_field` will be called again to recompute the auxiliary variables.
 """
 function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                       source_terms = nothing,
@@ -73,7 +81,8 @@ function SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver
 
     # Add specialized parts of the cache for auxiliary node variables
     cache = (; cache...,
-             create_cache_aux(mesh, equations, solver, cache, have_aux_node_vars(equations),
+             create_cache_aux(mesh, equations, solver, cache,
+                              have_aux_node_vars(equations),
                               aux_field)...)
 
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
@@ -113,8 +122,7 @@ end
 # If there are auxiliary variables, initialize them
 function create_cache_aux(mesh, equations, solver, cache, have_aux_node_vars::True,
                           aux_field)
-    aux_vars = init_aux_node_vars(mesh, equations, solver, cache,
-                                  aux_field)
+    aux_vars = init_aux_vars(mesh, equations, solver, cache, aux_field)
     return (; aux_vars)
 end
 

@@ -617,10 +617,10 @@ end
 # Trixi.analyze, Trixi.pretty_form_utf, Trixi.pretty_form_ascii
 function analyze(quantity, du, u, t, semi::AbstractSemidiscretization)
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
-    analyze(quantity, du, u, t, mesh, equations, have_aux_node_vars(equations), solver,
+    analyze(quantity, du, u, t, mesh, have_aux_node_vars(equations), equations, solver,
             cache)
 end
-function analyze(quantity, du, u, t, mesh, equations, have_aux_node_vars, solver, cache)
+function analyze(quantity, du, u, t, mesh, have_aux_node_vars, equations, solver, cache)
     integrate(quantity, u, mesh, equations, solver, cache, normalize = true)
 end
 pretty_form_utf(quantity) = get_name(quantity)

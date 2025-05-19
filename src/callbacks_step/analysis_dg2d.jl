@@ -274,7 +274,7 @@ end
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                              UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
-                 equations, have_aux_node_vars::False, dg::DG, cache)
+                 have_aux_node_vars::False, equations, dg::DG, cache)
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
                           du) do u, i, j, element, equations, dg, du
@@ -287,7 +287,7 @@ end
 function analyze(::typeof(entropy_timederivative), du, u, t,
                  mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                              UnstructuredMesh2D, P4estMesh{2}, T8codeMesh{2}},
-                 equations, have_aux_node_vars::True, dg::DG, cache)
+                 have_aux_node_vars::True, equations, dg::DG, cache)
     @unpack aux_node_vars = cache.aux_vars
     # Calculate ∫(∂S/∂u ⋅ ∂u/∂t)dΩ
     integrate_via_indices(u, mesh, equations, dg, cache,
@@ -301,7 +301,7 @@ end
 
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::TreeMesh{2},
-                 equations, have_aux_node_vars::False, dg::DGSEM, cache)
+                 have_aux_node_vars::False, equations, dg::DGSEM, cache)
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, element, equations,
                                                          dg, cache, derivative_matrix
@@ -324,7 +324,7 @@ end
 function analyze(::Val{:l2_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                              T8codeMesh{2}},
-                 equations, have_aux_node_vars::False, dg::DGSEM, cache)
+                 have_aux_node_vars::False, equations, dg::DGSEM, cache)
     @unpack contravariant_vectors = cache.elements
     integrate_via_indices(u, mesh, equations, dg, cache, cache,
                           dg.basis.derivative_matrix) do u, i, j, element, equations,
@@ -353,7 +353,7 @@ end
 
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::TreeMesh{2},
-                 equations, have_aux_node_vars::False, dg::DGSEM, cache)
+                 have_aux_node_vars::False, equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
 
     # integrate over all elements to get the divergence-free condition errors
@@ -375,6 +375,10 @@ function analyze(::Val{:linf_divb}, du, u, t,
             linf_divb = max(linf_divb, abs(divb))
         end
     end
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
+    end
 
     return linf_divb
 end
@@ -382,7 +386,7 @@ end
 function analyze(::Val{:linf_divb}, du, u, t,
                  mesh::Union{StructuredMesh{2}, UnstructuredMesh2D, P4estMesh{2},
                              T8codeMesh{2}},
-                 equations, have_aux_node_vars::False, dg::DGSEM, cache)
+                 have_aux_node_vars::False, equations, dg::DGSEM, cache)
     @unpack derivative_matrix, weights = dg.basis
     @unpack contravariant_vectors = cache.elements
 
@@ -412,6 +416,10 @@ function analyze(::Val{:linf_divb}, du, u, t,
             divb *= cache.elements.inverse_jacobian[i, j, element]
             linf_divb = max(linf_divb, abs(divb))
         end
+    end
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
     end
 
     return linf_divb
