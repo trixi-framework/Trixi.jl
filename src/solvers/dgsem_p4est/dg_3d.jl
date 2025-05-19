@@ -389,7 +389,7 @@ end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             have_aux_node_vars::False, equations, surface_integral, dg::DG)
+                             equations, surface_integral, dg::DG)
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
     index_range = eachnode(dg)
@@ -433,71 +433,6 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
     end
 end
 
-<<<<<<< HEAD
-function calc_boundary_flux!(cache, t, boundary_condition, boundary_indexing,
-                             mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             have_aux_node_vars::True, equations, surface_integral, dg::DG)
-    @unpack boundaries = cache
-    @unpack surface_flux_values, node_coordinates, contravariant_vectors = cache.elements
-    @unpack surface_flux = surface_integral
-    @unpack aux_boundary_node_vars = cache.aux_vars
-    index_range = eachnode(dg)
-
-    @threaded for local_index in eachindex(boundary_indexing)
-        # Use the local index to get the global boundary index from the
-        # pre-sorted list
-        boundary = boundary_indexing[local_index]
-
-        # Get information on the adjacent element, compute the surface fluxes,
-        # and store them
-        element = boundaries.neighbor_ids[boundary]
-        node_indices = boundaries.node_indices[boundary]
-        direction = indices2direction(node_indices)
-
-        i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
-                                                                            index_range)
-        j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
-                                                                            index_range)
-        k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
-                                                                            index_range)
-
-        i_node = i_node_start
-        j_node = j_node_start
-        k_node = k_node_start
-        for j in eachnode(dg)
-            for i in eachnode(dg)
-                # Extract solution data from boundary container
-                u_inner = get_node_vars(boundaries.u, equations, dg, i, j, boundary)
-                # P4est stores only one index for boudaries
-                aux_inner, _ = get_surface_node_vars(aux_boundary_node_vars, equations, dg,
-                                                     i, j, boundary)
-
-                # Outward-pointing normal direction (not normalized)
-                normal_direction = get_normal_direction(direction,
-                                                        contravariant_vectors,
-                                                        i_node, j_node, k_node, element)
-
-                # Coordinates at boundary node
-                x = get_node_coords(node_coordinates, equations, dg,
-                                    i_node, j_node, k_node, element)
-
-                flux_ = boundary_condition(u_inner, aux_inner, normal_direction, x, t,
-                                           surface_flux, equations)
-
-                # Copy flux to element storage in the correct orientation
-                for v in eachvariable(equations)
-                    surface_flux_values[v, i, j, direction, element] = flux_[v]
-                end
-
-                i_node += i_node_step_i
-                j_node += j_node_step_i
-                k_node += k_node_step_i
-            end
-            i_node += i_node_step_j
-            j_node += j_node_step_j
-            k_node += k_node_step_j
-        end
-=======
 # inlined version of the boundary flux calculation along a physical interface
 @inline function calc_boundary_flux!(surface_flux_values, t, boundary_condition,
                                      mesh::Union{P4estMesh{3}, T8codeMesh{3}},
@@ -610,7 +545,6 @@ end
         surface_flux_values[v, i_node_index, j_node_index,
         direction_index, element_index] = flux[v] + 0.5f0 *
                                                     noncons_flux[v]
->>>>>>> bg/feature-aux-vars-p4est
     end
 end
 
