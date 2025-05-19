@@ -327,4 +327,124 @@ function orientation_to_indices_p4est(my_face, other_face, orientation_code)
 
     return surface_index1, surface_index2
 end
+
+# Initialize auxiliary surface node variables
+# 3D P4estMesh implementation, like prolong2interfaces
+function init_aux_surface_node_vars!(aux_vars, mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                     equations, solver, cache)
+    @unpack aux_node_vars, aux_surface_node_vars = aux_vars
+    @unpack interfaces = cache
+    index_range = eachnode(solver)
+
+    @threaded for interface in eachinterface(solver, cache)
+        # Copy solution data from the primary element using "delayed indexing" with
+        # a start value and two step sizes to get the correct face and orientation.
+        # Note that in the current implementation, the interface will be
+        # "aligned at the primary element", i.e., the indices of the primary side
+        # will always run forwards.
+        primary_element = interfaces.neighbor_ids[1, interface]
+        primary_indices = interfaces.node_indices[1, interface]
+
+        i_primary_start, i_primary_step_i, i_primary_step_j = index_to_start_step_3d(primary_indices[1],
+                                                                                     index_range)
+        j_primary_start, j_primary_step_i, j_primary_step_j = index_to_start_step_3d(primary_indices[2],
+                                                                                     index_range)
+        k_primary_start, k_primary_step_i, k_primary_step_j = index_to_start_step_3d(primary_indices[3],
+                                                                                     index_range)
+
+        i_primary = i_primary_start
+        j_primary = j_primary_start
+        k_primary = k_primary_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachvariable(equations)
+                    aux_surface_node_vars[1, v, i, j, interface] = aux_node_vars[v, i_primary, j_primary,
+                                                            k_primary, primary_element]
+                end
+                i_primary += i_primary_step_i
+                j_primary += j_primary_step_i
+                k_primary += k_primary_step_i
+            end
+            i_primary += i_primary_step_j
+            j_primary += j_primary_step_j
+            k_primary += k_primary_step_j
+        end
+
+        # Copy solution data from the secondary element using "delayed indexing" with
+        # a start value and two step sizes to get the correct face and orientation.
+        secondary_element = interfaces.neighbor_ids[2, interface]
+        secondary_indices = interfaces.node_indices[2, interface]
+
+        i_secondary_start, i_secondary_step_i, i_secondary_step_j = index_to_start_step_3d(secondary_indices[1],
+                                                                                           index_range)
+        j_secondary_start, j_secondary_step_i, j_secondary_step_j = index_to_start_step_3d(secondary_indices[2],
+                                                                                           index_range)
+        k_secondary_start, k_secondary_step_i, k_secondary_step_j = index_to_start_step_3d(secondary_indices[3],
+                                                                                           index_range)
+
+        i_secondary = i_secondary_start
+        j_secondary = j_secondary_start
+        k_secondary = k_secondary_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachvariable(equations)
+                    aux_surface_node_vars[2, v, i, j, interface] = aux_node_vars[v, i_secondary, j_secondary,
+                                                            k_secondary,
+                                                            secondary_element]
+                end
+                i_secondary += i_secondary_step_i
+                j_secondary += j_secondary_step_i
+                k_secondary += k_secondary_step_i
+            end
+            i_secondary += i_secondary_step_j
+            j_secondary += j_secondary_step_j
+            k_secondary += k_secondary_step_j
+        end
+    end
+
+    return nothing
+end
+
+# Initialize auxiliary surface node variables
+# 3D P4estMesh implementation, like prolong2interfaces
+function init_aux_boundary_node_vars!(aux_vars, mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                     equations, solver, cache)
+    @unpack aux_node_vars, aux_boundary_node_vars = aux_vars
+    @unpack boundaries = cache
+    index_range = eachnode(solver)
+
+    @threaded for boundary in eachboundary(solver, cache)
+        # Copy solution data from the element using "delayed indexing" with
+        # a start value and two step sizes to get the correct face and orientation.
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+
+        i_node_start, i_node_step_i, i_node_step_j = index_to_start_step_3d(node_indices[1],
+                                                                            index_range)
+        j_node_start, j_node_step_i, j_node_step_j = index_to_start_step_3d(node_indices[2],
+                                                                            index_range)
+        k_node_start, k_node_step_i, k_node_step_j = index_to_start_step_3d(node_indices[3],
+                                                                            index_range)
+
+        i_node = i_node_start
+        j_node = j_node_start
+        k_node = k_node_start
+        for j in eachnode(solver)
+            for i in eachnode(solver)
+                for v in eachvariable(equations)
+                    # CAVE: for P4est only 1 value is stored
+                    aux_boundary_node_vars[1, v, i, j, boundary] = aux_node_vars[v, i_node, j_node, k_node, element]
+                end
+                i_node += i_node_step_i
+                j_node += j_node_step_i
+                k_node += k_node_step_i
+            end
+            i_node += i_node_step_j
+            j_node += j_node_step_j
+            k_node += k_node_step_j
+        end
+    end
+
+    return nothing
+end
 end # @muladd

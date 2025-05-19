@@ -60,7 +60,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
                                    element,
                                    mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                T8codeMesh{3}},
-                                   nonconservative_terms::False, equations,
+                                   nonconservative_terms::False,
+                                   have_aux_node_vars::False, equations,
                                    dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -118,7 +119,8 @@ end
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
-                                           nonconservative_terms::False, equations,
+                                           nonconservative_terms::False,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -193,7 +195,8 @@ end
                                            element,
                                            mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                                        T8codeMesh{3}},
-                                           nonconservative_terms::True, equations,
+                                           nonconservative_terms::True,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     @unpack derivative_split = dg.basis
     @unpack contravariant_vectors = cache.elements
@@ -280,7 +283,8 @@ end
                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                           T8codeMesh{3}},
                               nonconservative_terms::False,
-                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+                              have_aux_node_vars::False, equations,
+                              volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
 
@@ -376,7 +380,8 @@ end
                               mesh::Union{StructuredMesh{3}, P4estMesh{3},
                                           T8codeMesh{3}},
                               nonconservative_terms::True,
-                              equations, volume_flux_fv, dg::DGSEM, element, cache)
+                              have_aux_node_vars::False, equations,
+                              volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
 
