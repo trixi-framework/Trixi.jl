@@ -25,7 +25,7 @@ function LaplaceDiffusionEntropyVariables2D(diffusivity, equations_hyperbolic)
                                      typeof(diffusivity)}(diffusivity, equations_hyperbolic)
 end
 
-function LaplaceDiffusionEntropyVariables3D(equations_hyperbolic)
+function LaplaceDiffusionEntropyVariables3D(diffusivity, equations_hyperbolic)
     LaplaceDiffusionEntropyVariables{3, typeof(equations_hyperbolic),
                                      nvariables(equations_hyperbolic),
                                      typeof(diffusivity)}(diffusivity, equations_hyperbolic)
@@ -75,7 +75,7 @@ end
 function flux(u, gradients, orientation::Integer,
               equations::LaplaceDiffusionEntropyVariables{3})
     dudx, dudy, dudz = gradients
-    diffusivity = hessian_cons_vars_entropy_vars(u, equations)
+    diffusivity = jacobian_entropy2cons(u, equations)
     if orientation == 1
         return SVector(diffusivity * dudx)
     elseif orientation == 2
