@@ -15,24 +15,6 @@ struct LaplaceDiffusionEntropyVariables{NDIMS, E, N, T} <:
     equations_hyperbolic::E
 end
 
-function LaplaceDiffusionEntropyVariables1D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusionEntropyVariables{1, typeof(equations_hyperbolic),
-                                     nvariables(equations_hyperbolic),
-                                     typeof(diffusivity)}(diffusivity, equations_hyperbolic)
-end
-
-function LaplaceDiffusionEntropyVariables2D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusionEntropyVariables{2, typeof(equations_hyperbolic),
-                                     nvariables(equations_hyperbolic),
-                                     typeof(diffusivity)}(diffusivity, equations_hyperbolic)
-end
-
-function LaplaceDiffusionEntropyVariables3D(diffusivity, equations_hyperbolic)
-    LaplaceDiffusionEntropyVariables{3, typeof(equations_hyperbolic),
-                                     nvariables(equations_hyperbolic),
-                                     typeof(diffusivity)}(diffusivity, equations_hyperbolic)
-end
-
 function varnames(variable_mapping, equations_parabolic::LaplaceDiffusionEntropyVariables)
     varnames(variable_mapping, equations_parabolic.equations_hyperbolic)
 end
@@ -44,52 +26,20 @@ end
 function cons2entropy(u, equations::LaplaceDiffusionEntropyVariables)
     cons2entropy(u, equations.equations_hyperbolic)
 end
+
 function entropy2cons(w, equations::LaplaceDiffusionEntropyVariables)
     entropy2cons(w, equations.equations_hyperbolic)
 end
 
-# generic fallback, assuming entropy2cons exists
+# This is used to compute the diffusivity tensor for LaplaceDiffusionEntropyVariables.
+# This is the generic fallback using AD (assuming entropy2cons exists)
 function jacobian_entropy2cons(w, equations)
     return equations.diffusivity * ForwardDiff.jacobian(w -> entropy2cons(w, equations), w)
 end
 
-# Note that here, `u` should be the transformed entropy variables, and 
-# not the conservative variables.
-function flux(u, gradients, orientation::Integer,
-              equations::LaplaceDiffusionEntropyVariables{1})
-    dudx = gradients
-    diffusivity = jacobian_entropy2cons(u, equations)
-    # if orientation == 1
-    return SVector(diffusivity * dudx)
-end
-
-function flux(u, gradients, orientation::Integer,
-              equations::LaplaceDiffusionEntropyVariables{2})
-    dudx, dudy = gradients
-    diffusivity = jacobian_entropy2cons(u, equations)
-    if orientation == 1
-        return SVector(diffusivity * dudx)
-    else # if orientation == 2
-        return SVector(diffusivity * dudy)
-    end
-end
-
-function flux(u, gradients, orientation::Integer,
-              equations::LaplaceDiffusionEntropyVariables{3})
-    dudx, dudy, dudz = gradients
-    diffusivity = jacobian_entropy2cons(u, equations)
-    if orientation == 1
-        return SVector(diffusivity * dudx)
-    elseif orientation == 2
-        return SVector(diffusivity * dudy)
-    else # if orientation == 3
-        return SVector(diffusivity * dudz)
-    end
-end
-
 # Dirichlet and Neumann boundary conditions for use with parabolic solvers in weak form.
 # Note that these are general, so they apply to LaplaceDiffusionEntropyVariables in any 
-# spatial dimension.
+# spatial dimension. 
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner, u_inner,
                                                                   normal::AbstractVector,
                                                                   x, t,
