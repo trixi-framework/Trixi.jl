@@ -14,4 +14,3 @@ function flux(u, gradients, orientation::Integer,
         return SVector(diffusivity * dudy)
     end
 end
-
