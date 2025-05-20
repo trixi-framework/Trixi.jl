@@ -333,8 +333,9 @@ end
 
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, primary_i_node_index,
                                        primary_j_node_index, interface_index)
-    aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars, equations, dg, primary_i_node_index,
-                                       primary_j_node_index, interface_index)
+    aux_ll, aux_rr = get_aux_surface_node_vars(aux_surface_node_vars, equations, dg,
+                                               primary_i_node_index,
+                                               primary_j_node_index, interface_index)
 
     flux_ = surface_flux(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
 
@@ -488,7 +489,7 @@ end
 
     # P4est stores only one index for boudaries
     aux_inner, _ = get_surface_node_vars(aux_boundary_node_vars, equations, dg,
-                                        i_node_index, j_node_index, boundary_index)
+                                         i_node_index, j_node_index, boundary_index)
 
     # Outward-pointing normal direction (not normalized)
     normal_direction = get_normal_direction(direction_index, contravariant_vectors,
