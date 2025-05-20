@@ -2,8 +2,8 @@ using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
-# semidiscretization of the compressible Euler equations
-
+# semidiscretization of the compressible Euler equations with Laplacian
+# diffusion represented in terms of entropy variables
 equations = CompressibleEulerEquations3D(1.4)
 equations_parabolic = LaplaceDiffusionEntropyVariables3D(0.01, equations)
 
