@@ -103,6 +103,8 @@ end
                 factor_large = boundary_interpolation[1, 1]
                 factor_small = -boundary_interpolation[nnodes(dg), 2]
             end
+            # In `apply_jacobian`, `du` is multiplied with inverse jacobian and a negative sign.
+            # This sign switch is directly applied to the boundary interpolation factors here.
             inverse_jacobian_upper = get_inverse_jacobian(cache.elements.inverse_jacobian,
                                                           mesh, indices_small...,
                                                           upper_element)
@@ -114,41 +116,43 @@ end
                                                           large_element)
 
             # lower element
-            flux_local_high_order = view(surface_flux_values_high_order, :, i,
+            flux_lower_high_order = view(surface_flux_values_high_order, :, i,
                                          direction_small, lower_element)
-            flux_local_low_order = view(surface_flux_values, :, i, direction_small,
+            flux_lower_low_order = view(surface_flux_values, :, i, direction_small,
                                         lower_element)
+            flux_difference_lower = factor_small *
+                                    (flux_lower_high_order .- flux_lower_low_order)
 
             for v in eachvariable(equations)
                 u[v, indices_small..., lower_element] += dt * inverse_jacobian_lower *
-                                                         (factor_small *
-                                                          (1 - limiting_factor[mortar]) *
-                                                          (flux_local_high_order[v] -
-                                                           flux_local_low_order[v]))
+                                                         (1 - limiting_factor[mortar]) *
+                                                         flux_difference_lower[v]
             end
 
-            flux_local_high_order = view(surface_flux_values_high_order, :, i,
+            flux_upper_high_order = view(surface_flux_values_high_order, :, i,
                                          direction_small, upper_element)
-            flux_local_low_order = view(surface_flux_values, :, i, direction_small,
+            flux_upper_low_order = view(surface_flux_values, :, i, direction_small,
                                         upper_element)
+            flux_difference_upper = factor_small *
+                                    (flux_upper_high_order .- flux_upper_low_order)
+
             for v in eachvariable(equations)
                 u[v, indices_small..., upper_element] += dt * inverse_jacobian_upper *
-                                                         (factor_small *
-                                                          (1 - limiting_factor[mortar]) *
-                                                          (flux_local_high_order[v] -
-                                                           flux_local_low_order[v]))
+                                                         (1 - limiting_factor[mortar]) *
+                                                         flux_difference_upper[v]
             end
 
-            flux_local_high_order = view(surface_flux_values_high_order, :, i,
+            flux_large_high_order = view(surface_flux_values_high_order, :, i,
                                          direction_large, large_element)
-            flux_local_low_order = view(surface_flux_values, :, i, direction_large,
+            flux_large_low_order = view(surface_flux_values, :, i, direction_large,
                                         large_element)
+            flux_difference_large = factor_large *
+                                    (flux_large_high_order .- flux_large_low_order)
+
             for v in eachvariable(equations)
                 u[v, indices_large..., large_element] += dt * inverse_jacobian_large *
-                                                         (factor_large *
-                                                          (1 - limiting_factor[mortar]) *
-                                                          (flux_local_high_order[v] -
-                                                           flux_local_low_order[v]))
+                                                         (1 - limiting_factor[mortar]) *
+                                                         flux_difference_large[v]
             end
         end
     end
