@@ -306,7 +306,7 @@ function prolong2boundaries!(cache, u, u_global, semis,
 end
 
 function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
-                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG) where {BC}
     @unpack boundaries = cache
     @unpack surface_flux_values = cache.elements
@@ -336,6 +336,42 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
 
             i_node += i_node_step
             j_node += j_node_step
+        end
+    end
+end
+
+function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing,
+                             mesh::P4estMeshView{2},
+                             equations, surface_integral, dg::DG, u_global) where {BC}
+    @unpack boundaries = cache
+    @unpack surface_flux_values = cache.elements
+    index_range = eachnode(dg)
+
+    @threaded for local_index in eachindex(boundary_indexing)
+    # Use the local index to get the global boundary index from the pre-sorted list
+    boundary = boundary_indexing[local_index]
+
+    # Get information on the adjacent element, compute the surface fluxes,
+    # and store them
+    element = boundaries.neighbor_ids[boundary]
+    node_indices = boundaries.node_indices[boundary]
+    direction = indices2direction(node_indices)
+
+    i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+    j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+
+    i_node = i_node_start
+    j_node = j_node_start
+    for node in eachnode(dg)
+        calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                            mesh, have_nonconservative_terms(equations),
+                            equations, surface_integral, dg, cache,
+                            i_node, j_node,
+                            node, direction, element, boundary,
+                            u_global)
+
+        i_node += i_node_step
+        j_node += j_node_step
         end
     end
 end
@@ -391,7 +427,7 @@ end
                                             i_index, j_index, element_index)
 
     # flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
-    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index, element_index, normal_direction, surface_flux, normal_direction)
+    flux_ = boundary_condition(u_inner, mesh, equations, cache, i_index, j_index, element_index, normal_direction, surface_flux, normal_direction, u_global)
 
     # Copy flux to element storage in the correct orientation
     for v in eachvariable(equations)

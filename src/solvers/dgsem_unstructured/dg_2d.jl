@@ -318,8 +318,7 @@ end
 
 # Function barrier for type stability
 function calc_boundary_flux!(cache, t, boundary_conditions,
-                             mesh::Union{UnstructuredMesh2D, P4estMesh, P4estMeshView,
-                                         T8codeMesh},
+                             mesh::Union{UnstructuredMesh2D, P4estMesh, T8codeMesh},
                              equations, surface_integral, dg::DG)
     @unpack boundary_condition_types, boundary_indices = boundary_conditions
 
@@ -328,12 +327,23 @@ function calc_boundary_flux!(cache, t, boundary_conditions,
     return nothing
 end
 
+# Function barrier for type stability
+function calc_boundary_flux!(cache, t, boundary_conditions,
+                             mesh::P4estMeshView,
+                             equations, surface_integral, dg::DG, u_global)
+    @unpack boundary_condition_types, boundary_indices = boundary_conditions
+
+    calc_boundary_flux_by_type!(cache, t, boundary_condition_types, boundary_indices,
+                                mesh, equations, surface_integral, dg, u_global)
+    return nothing
+end
+
 # Iterate over tuples of boundary condition types and associated indices
 # in a type-stable way using "lispy tuple programming".
 function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
                                      BC_indices::NTuple{N, Vector{Int}},
                                      mesh::Union{UnstructuredMesh2D, P4estMesh,
-                                                 P4estMeshView, T8codeMesh},
+                                                 T8codeMesh},
                                      equations, surface_integral, dg::DG) where {N}
     # Extract the boundary condition type and index vector
     boundary_condition = first(BCs)
@@ -350,6 +360,32 @@ function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
     calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
                                 remaining_boundary_condition_indices,
                                 mesh, equations, surface_integral, dg)
+
+    return nothing
+end
+
+# Iterate over tuples of boundary condition types and associated indices
+# in a type-stable way using "lispy tuple programming".
+function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
+                                     BC_indices::NTuple{N, Vector{Int}},
+                                     mesh::P4estMeshView,
+                                     equations, surface_integral, dg::DG,
+                                     u_global) where {N}
+    # Extract the boundary condition type and index vector
+    boundary_condition = first(BCs)
+    boundary_condition_indices = first(BC_indices)
+    # Extract the remaining types and indices to be processed later
+    remaining_boundary_conditions = Base.tail(BCs)
+    remaining_boundary_condition_indices = Base.tail(BC_indices)
+
+    # process the first boundary condition type
+    calc_boundary_flux!(cache, t, boundary_condition, boundary_condition_indices,
+                        mesh, equations, surface_integral, dg, u_global)
+
+    # recursively call this method with the unprocessed boundary types
+    calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
+                                remaining_boundary_condition_indices,
+    mesh, equations, surface_integral, dg)
 
     return nothing
 end

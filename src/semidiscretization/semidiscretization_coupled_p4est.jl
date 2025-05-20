@@ -475,7 +475,8 @@ end
 
 function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equations, cache,
                                                              i_index, j_index, element_index,
-                                                             normal_direction, surface_flux_function, direction)
+                                                             normal_direction, surface_flux_function, direction,
+                                                             u_global)
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
     @autoinfiltrate
