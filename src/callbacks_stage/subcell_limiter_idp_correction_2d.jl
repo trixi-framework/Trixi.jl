@@ -270,44 +270,47 @@ end
                                                           large_element)
 
             # lower element
-            flux_lower_high_order = view(surface_flux_values_high_order, :, i,
-                                         direction_small, lower_element)
-            flux_lower_low_order = view(surface_flux_values, :, i, direction_small,
-                                        lower_element)
+            flux_lower_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg, i, direction_small,
+                                                  lower_element)
+            flux_lower_low_order = get_node_vars(surface_flux_values, equations, dg, i,
+                                                 direction_small, lower_element)
             flux_difference_lower = factor_small *
                                     (flux_lower_high_order .- flux_lower_low_order)
 
-            for v in eachvariable(equations)
-                u[v, indices_small..., lower_element] += dt * inverse_jacobian_lower *
-                                                         (1 - limiting_factor[mortar]) *
-                                                         flux_difference_lower[v]
-            end
+            multiply_add_to_node_vars!(u,
+                                       dt * inverse_jacobian_lower *
+                                       (1 - limiting_factor[mortar]),
+                                       flux_difference_lower, equations, dg,
+                                       indices_small..., lower_element)
 
-            flux_upper_high_order = view(surface_flux_values_high_order, :, i,
-                                         direction_small, upper_element)
-            flux_upper_low_order = view(surface_flux_values, :, i, direction_small,
-                                        upper_element)
+            flux_upper_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg, i, direction_small,
+                                                  upper_element)
+            flux_upper_low_order = get_node_vars(surface_flux_values, equations, dg, i,
+                                                 direction_small, upper_element)
             flux_difference_upper = factor_small *
                                     (flux_upper_high_order .- flux_upper_low_order)
 
-            for v in eachvariable(equations)
-                u[v, indices_small..., upper_element] += dt * inverse_jacobian_upper *
-                                                         (1 - limiting_factor[mortar]) *
-                                                         flux_difference_upper[v]
-            end
+            multiply_add_to_node_vars!(u,
+                                       dt * inverse_jacobian_upper *
+                                       (1 - limiting_factor[mortar]),
+                                       flux_difference_upper, equations, dg,
+                                       indices_small..., upper_element)
 
-            flux_large_high_order = view(surface_flux_values_high_order, :, i,
-                                         direction_large, large_element)
-            flux_large_low_order = view(surface_flux_values, :, i, direction_large,
-                                        large_element)
+            flux_large_high_order = get_node_vars(surface_flux_values_high_order,
+                                                  equations, dg, i, direction_large,
+                                                  large_element)
+            flux_large_low_order = get_node_vars(surface_flux_values, equations, dg, i,
+                                                 direction_large, large_element)
             flux_difference_large = factor_large *
                                     (flux_large_high_order .- flux_large_low_order)
 
-            for v in eachvariable(equations)
-                u[v, indices_large..., large_element] += dt * inverse_jacobian_large *
-                                                         (1 - limiting_factor[mortar]) *
-                                                         flux_difference_large[v]
-            end
+            multiply_add_to_node_vars!(u,
+                                       dt * inverse_jacobian_large *
+                                       (1 - limiting_factor[mortar]),
+                                       flux_difference_large, equations, dg,
+                                       indices_large..., large_element)
         end
     end
 
