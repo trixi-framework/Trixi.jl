@@ -284,7 +284,8 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
-                               equations, volume_integral::VolumeIntegralFluxDifferencing,
+                               equations,
+                               volume_integral::VolumeIntegralFluxDifferencing,
                                dg::DGSEM, cache)
     @threaded for element in eachelement(dg, cache)
         flux_differencing_kernel!(du, u, element, mesh,
@@ -346,7 +347,8 @@ end
 
 @inline function flux_differencing_kernel!(du, u,
                                            element, mesh::TreeMesh{3},
-                                           nonconservative_terms::True, equations,
+                                           nonconservative_terms::True,
+                                           have_aux_node_vars::False, equations,
                                            volume_flux, dg::DGSEM, cache, alpha = true)
     # true * [some floating point value] == [exactly the same floating point value]
     # This can (hopefully) be optimized away due to constant propagation.
@@ -354,8 +356,9 @@ end
     symmetric_flux, nonconservative_flux = volume_flux
 
     # Apply the symmetric flux as usual
-    flux_differencing_kernel!(du, u, element, mesh, False(), equations, symmetric_flux,
-                              dg, cache, alpha)
+    flux_differencing_kernel!(du, u, element, mesh, False(), have_aux_node_vars,
+                              equations,
+                              symmetric_flux, dg, cache, alpha)
 
     # Calculate the remaining volume terms using the nonsymmetric generalized flux
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -399,7 +402,8 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
-                               equations, volume_integral::VolumeIntegralShockCapturingHG,
+                               equations,
+                               volume_integral::VolumeIntegralShockCapturingHG,
                                dg::DGSEM, cache)
     @unpack volume_flux_dg, volume_flux_fv, indicator = volume_integral
 
@@ -441,7 +445,8 @@ end
 function calc_volume_integral!(du, u,
                                mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                            T8codeMesh{3}},
-                               equations, volume_integral::VolumeIntegralPureLGLFiniteVolume,
+                               equations,
+                               volume_integral::VolumeIntegralPureLGLFiniteVolume,
                                dg::DGSEM, cache)
     @unpack volume_flux_fv = volume_integral
 
@@ -661,7 +666,6 @@ end
 function calc_interface_flux!(surface_flux_values,
                               mesh::TreeMesh{3}, equations,
                               surface_integral, dg::DG, cache)
-    @unpack surface_flux = surface_integral
     @unpack u, neighbor_ids, orientations = cache.interfaces
 
     @threaded for interface in eachinterface(dg, cache)
@@ -680,26 +684,20 @@ function calc_interface_flux!(surface_flux_values,
         for j in eachnode(dg), i in eachnode(dg)
             calc_interface_flux_inner!(surface_flux_values, u,
                                        have_nonconservative_terms(equations),
-                                       have_aux_node_vars(equations), equations, surface_flux, dg, orientation, interface,
-                                       left_id, right_id, left_direction, right_direction,i, j)
-            # Call pointwise Riemann solver
-            u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
-            flux = surface_flux(u_ll, u_rr, orientations[interface], equations)
-
-            # Copy flux to left and right element storage
-            for v in eachvariable(equations)
-                surface_flux_values[v, i, j, left_direction, left_id] = flux[v]
-                surface_flux_values[v, i, j, right_direction, right_id] = flux[v]
-            end
+                                       have_aux_node_vars(equations), equations,
+                                       surface_integral, dg, orientation, interface,
+                                       left_id, right_id, left_direction,
+                                       right_direction, i, j)
         end
     end
 end
 
 function calc_interface_flux_inner!(surface_flux_values, u,
                                     have_nonconservative_terms::False,
-                                    have_aux_node_vars, equations, surface_flux, dg,
+                                    have_aux_node_vars, equations, surface_integral, dg,
                                     orientation, interface, left_id, right_id,
                                     left_direction, right_direction, i, j)
+    @unpack surface_flux = surface_integral
     # Call pointwise Riemann solver
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
     flux = surface_flux(u_ll, u_rr, orientation, equations)
@@ -714,9 +712,10 @@ end
 
 function calc_interface_flux_inner!(surface_flux_values, u,
                                     have_nonconservative_terms::True,
-                                    have_aux_node_vars, equations, surface_flux, dg,
+                                    have_aux_node_vars, equations, surface_integral, dg,
                                     orientation, interface, left_id, right_id,
                                     left_direction, right_direction, i, j)
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
     u_ll, u_rr = get_surface_node_vars(u, equations, dg, i, j, interface)
     flux = surface_flux(u_ll, u_rr, orientation, equations)
 
@@ -733,8 +732,8 @@ function calc_interface_flux_inner!(surface_flux_values, u,
                                                                 0.5f0 *
                                                                 noncons_left[v]
         surface_flux_values[v, i, j, right_direction, right_id] = flux[v] +
-                                                                    0.5f0 *
-                                                                    noncons_right[v]
+                                                                  0.5f0 *
+                                                                  noncons_right[v]
     end
     return nothing
 end

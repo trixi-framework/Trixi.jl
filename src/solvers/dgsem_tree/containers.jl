@@ -38,7 +38,8 @@ function reinitialize_containers!(mesh::TreeMesh, equations, dg::DGSEM, cache)
     if hasproperty(cache, :aux_vars)
         @unpack aux_vars = cache
         resize!(aux_vars, length(leaf_cell_ids),
-                count_required_interfaces(mesh, leaf_cell_ids))
+                count_required_interfaces(mesh, leaf_cell_ids),
+                count_required_boundaries(mesh, leaf_cell_ids))
         init_aux_vars!(aux_vars, mesh, equations, dg, cache)
     end
 
@@ -118,7 +119,8 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
                                           n_boundaries))
 
     aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, NDIMS + 2,
-                                    typeof(aux_field)}(aux_node_vars, aux_surface_node_vars,
+                                    typeof(aux_field)}(aux_node_vars,
+                                                       aux_surface_node_vars,
                                                        aux_boundary_node_vars,
                                                        _aux_node_vars,
                                                        _aux_surface_node_vars,
@@ -162,7 +164,9 @@ end
 function Base.resize!(aux_vars::AuxNodeVarsContainer{NDIMS},
                       capacity_node_vars, capacity_node_surface_vars,
                       capacity_node_boundary_vars) where {NDIMS}
-    @unpack _aux_node_vars, _aux_surface_node_vars = aux_vars
+    @info capacity_node_vars, capacity_node_surface_vars,
+          capacity_node_boundary_vars
+    @unpack _aux_node_vars, _aux_surface_node_vars, _aux_boundary_node_vars = aux_vars
     n_nodes = nnodes(aux_vars)
     n_variables = nvariables(aux_vars)
 
@@ -170,8 +174,7 @@ function Base.resize!(aux_vars::AuxNodeVarsContainer{NDIMS},
     aux_vars.aux_node_vars = unsafe_wrap(Array,
                                          pointer(_aux_node_vars),
                                          (n_variables,
-                                          ntuple(_ -> n_nodes,
-                                                 NDIMS)...,
+                                          ntuple(_ -> n_nodes, NDIMS)...,
                                           capacity_node_vars))
 
     resize!(_aux_surface_node_vars,
@@ -180,18 +183,16 @@ function Base.resize!(aux_vars::AuxNodeVarsContainer{NDIMS},
     aux_vars.aux_surface_node_vars = unsafe_wrap(Array,
                                                  pointer(_aux_surface_node_vars),
                                                  (2, n_variables,
-                                                  ntuple(_ -> n_nodes,
-                                                         NDIMS - 1)...,
+                                                  ntuple(_ -> n_nodes, NDIMS - 1)...,
                                                   capacity_node_surface_vars))
     resize!(_aux_boundary_node_vars,
             2 * n_variables * n_nodes^(NDIMS - 1) *
             capacity_node_boundary_vars)
-    aux_vars.aux_surface_node_vars = unsafe_wrap(Array,
-                                                 pointer(_aux_boundary_node_vars),
-                                                 (2, n_variables,
-                                                  ntuple(_ -> n_nodes,
-                                                         NDIMS - 1)...,
-                                                  capacity_node_boundary_vars))
+    aux_vars.aux_boundary_node_vars = unsafe_wrap(Array,
+                                                  pointer(_aux_boundary_node_vars),
+                                                  (2, n_variables,
+                                                   ntuple(_ -> n_nodes, NDIMS - 1)...,
+                                                   capacity_node_boundary_vars))
     return nothing
 end
 
