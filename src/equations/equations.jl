@@ -497,6 +497,11 @@ Return the water height associated to the conserved variables `u` for a given se
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
+
+!!! note
+    This function is defined in `Trixi.jl` to have a common interface for the
+    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight end
 
@@ -509,6 +514,11 @@ associated to the conserved variables `u` for a given set of
 
 `u` is a vector of the conserved variables at a single node, i.e., a vector
 of the correct length `nvariables(equations)`.
+
+!!! note
+    This function is defined in `Trixi.jl` to have a common interface for the
+    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight_pressure end
 
@@ -516,6 +526,11 @@ function waterheight_pressure end
     lake_at_rest_error(u, equations)
     
 Calculate the point-wise error for the lake-at-rest steady state solution.
+
+!!! note
+    This function is defined in `Trixi.jl` to have a common interface for the
+    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function lake_at_rest_error end
 
