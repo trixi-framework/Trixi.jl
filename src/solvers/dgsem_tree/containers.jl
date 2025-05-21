@@ -164,8 +164,6 @@ end
 function Base.resize!(aux_vars::AuxNodeVarsContainer{NDIMS},
                       capacity_node_vars, capacity_node_surface_vars,
                       capacity_node_boundary_vars) where {NDIMS}
-    @info capacity_node_vars, capacity_node_surface_vars,
-          capacity_node_boundary_vars
     @unpack _aux_node_vars, _aux_surface_node_vars, _aux_boundary_node_vars = aux_vars
     n_nodes = nnodes(aux_vars)
     n_variables = nvariables(aux_vars)
