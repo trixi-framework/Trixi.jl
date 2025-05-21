@@ -578,6 +578,10 @@ include("compressible_euler_3d.jl")
 include("compressible_euler_quasi_1d.jl")
 include("compressible_euler_perturbation_2d.jl")
 include("compressible_euler_perturbation_3d.jl")
+include("compressible_euler_gravity_2d.jl")
+include("compressible_euler_gravity_3d.jl")
+include("compressible_euler_gravity_pert_2d.jl")
+
 
 # CompressibleEulerMulticomponentEquations
 abstract type AbstractCompressibleEulerMulticomponentEquations{NDIMS, NVARS, NCOMP} <:

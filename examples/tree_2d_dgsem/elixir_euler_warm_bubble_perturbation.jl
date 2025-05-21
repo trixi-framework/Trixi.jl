@@ -72,7 +72,7 @@ function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquationsPer
     v2_ref =  0.0
 
     E = c_v * T + 0.5f0 * (v1^2 + v2^2)
-    E_ref = c_v * T_ref
+    E_ref = c_v * T_ref + 0.5f0 * (v1_ref^2 + v2_ref^2)
 
     return SVector(rho - rho_ref,
                    rho * v1 - rho_ref * v1_ref,
@@ -98,10 +98,9 @@ function (setup::WarmBubbleSetup)(x, ::CompressibleEulerEquationsPerturbation2D)
     T_ref = potential_temperature_ref * exner_ref
 
     rho_ref = p_ref / (R * T_ref)
-    E_ref = c_v * T_ref
-
     v1_ref = 20.0
     v2_ref = 0.0
+    E_ref = c_v * T_ref + 0.5f0 * (v1_ref^2 + v2_ref^2)
 
     return SVector(rho_ref, rho_ref * v1_ref, rho_ref * v2_ref, rho_ref * E_ref)
 end
@@ -153,7 +152,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 semi = SemidiscretizationHyperbolic(mesh, equations, warm_bubble_setup, solver,
                                     source_terms = warm_bubble_setup,
                                     boundary_conditions = boundary_conditions,
-                                    auxiliary_field = warm_bubble_setup)
+                                    aux_field = warm_bubble_setup)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
