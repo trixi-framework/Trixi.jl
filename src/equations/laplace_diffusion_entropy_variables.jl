@@ -5,8 +5,9 @@
 
 This represent a symmetrized Laplacian diffusion 
 ``\nabla \cdot (\kappa\frac{\partial u}{\partial w}\nabla w(u)))``, 
-where `w(u)` denotes the mapping between conservative and entropy variables. 
-Compared with `LaplaceDiffusion`, `LaplaceDiffusionEntropyVariables` is 
+where ``w(u)`` denotes the mapping between conservative and entropy variables. 
+Compared with `LaplaceDiffusion` (see [`LaplaceDiffusion1D`](@ref),
+[`LaplaceDiffusion2D`](@ref), and [`LaplaceDiffusion3D`](@ref)), `LaplaceDiffusionEntropyVariables` is 
 guaranteed to dissipate entropy.
 """
 struct LaplaceDiffusionEntropyVariables{NDIMS, E, N, T} <:
