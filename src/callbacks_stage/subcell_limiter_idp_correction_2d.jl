@@ -215,6 +215,13 @@ end
     (; surface_flux_values, surface_flux_values_high_order) = cache.elements
     (; boundary_interpolation) = dg.basis
 
+    limiting_factor .= one(eltype(limiting_factor))
+
+    ############################
+    # limiting_factor = 1 => full FV
+    # limiting_factor = 0 => full DG
+    #######################
+
     for mortar in eachmortar(dg, cache)
         if isapprox(limiting_factor[mortar], one(eltype(limiting_factor)))
             continue
