@@ -357,7 +357,7 @@ function init_aux_surface_node_vars!(aux_vars, mesh::Union{P4estMesh{3}, T8codeM
         k_primary = k_primary_start
         for j in eachnode(solver)
             for i in eachnode(solver)
-                for v in eachvariable(equations)
+                for v in axes(aux_surface_node_vars, 2)
                     aux_surface_node_vars[1, v, i, j, interface] = aux_node_vars[v,
                                                                                  i_primary,
                                                                                  j_primary,
@@ -390,7 +390,7 @@ function init_aux_surface_node_vars!(aux_vars, mesh::Union{P4estMesh{3}, T8codeM
         k_secondary = k_secondary_start
         for j in eachnode(solver)
             for i in eachnode(solver)
-                for v in eachvariable(equations)
+                for v in axes(aux_surface_node_vars, 2)
                     aux_surface_node_vars[2, v, i, j, interface] = aux_node_vars[v,
                                                                                  i_secondary,
                                                                                  j_secondary,
@@ -437,7 +437,7 @@ function init_aux_boundary_node_vars!(aux_vars,
         k_node = k_node_start
         for j in eachnode(solver)
             for i in eachnode(solver)
-                for v in eachvariable(equations)
+                for v in axes(aux_boundary_node_vars, 2)
                     # CAVE: for P4est only 1 value is stored
                     aux_boundary_node_vars[1, v, i, j, boundary] = aux_node_vars[v,
                                                                                  i_node,
