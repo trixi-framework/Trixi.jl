@@ -146,7 +146,7 @@ end
 # Print information about the current simulation setup
 # Note: This is called *after* all initialization is done, but *before* the first time step
 function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
-                                     reset_threads = true)
+                                     reset_threads = true, show_threading = true)
     # Optionally reset Polyester.jl threads. See
     # https://github.com/trixi-framework/Trixi.jl/issues/1583
     # https://github.com/JuliaSIMD/Polyester.jl/issues/30
@@ -209,8 +209,8 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
 
     # technical details
     setup = Pair{String, Any}["#threads" => Threads.nthreads()]
-    if !_PREFERENCE_POLYESTER
-        push!(setup, "Polyester" => "disabled")
+    if show_threading
+        push!(setup, "threading backend" => _PREFERENCE_THREADING)
     end
     if mpi_isparallel()
         push!(setup,
