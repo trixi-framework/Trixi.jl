@@ -119,6 +119,7 @@ jobs:
         env:
           PYTHON: ''
           TRIXI_TEST: ${{ matrix.trixi_test }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: julia-actions/julia-processcoverage@v1
         if: ${{ !cancelled() }}
         with:
