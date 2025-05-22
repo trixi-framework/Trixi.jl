@@ -127,7 +127,9 @@ function (indicator_hg::IndicatorHennemannGassner)(u, mesh, equations, dg::DGSEM
         # Otherwise, `@threaded` does not work here with Julia ARM on macOS.
         # See https://github.com/JuliaSIMD/Polyester.jl/issues/88.
         calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s, u,
-                                          element, mesh, equations, dg, cache)
+                                          element, mesh,
+                                          have_aux_node_vars(equations), equations,
+                                          dg, cache)
     end
 
     if alpha_smooth
