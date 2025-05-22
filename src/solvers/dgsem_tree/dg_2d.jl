@@ -626,8 +626,8 @@ end
     for j in eachnode(dg), i in 2:nnodes(dg)
         u_ll = get_node_vars(u, equations, dg, i - 1, j, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
-        aux_ll = get_node_vars(aux_node_vars, equations, dg, i - 1, j, element)
-        aux_rr = get_node_vars(aux_node_vars, equations, dg, i, j, element)
+        aux_ll = get_aux_node_vars(aux_node_vars, equations, dg, i - 1, j, element)
+        aux_rr = get_aux_node_vars(aux_node_vars, equations, dg, i, j, element)
         flux = volume_flux_fv(u_ll, u_rr, aux_ll, aux_rr, 1, equations) # orientation 1: x direction
         set_node_vars!(fstar1_L, flux, equations, dg, i, j)
         set_node_vars!(fstar1_R, flux, equations, dg, i, j)
@@ -641,8 +641,8 @@ end
     for j in 2:nnodes(dg), i in eachnode(dg)
         u_ll = get_node_vars(u, equations, dg, i, j - 1, element)
         u_rr = get_node_vars(u, equations, dg, i, j, element)
-        aux_ll = get_node_vars(aux_node_vars, equations, dg, i, j - 1, element)
-        aux_rr = get_node_vars(aux_node_vars, equations, dg, i, j, element)
+        aux_ll = get_aux_node_vars(aux_node_vars, equations, dg, i, j - 1, element)
+        aux_rr = get_aux_node_vars(aux_node_vars, equations, dg, i, j, element)
         flux = volume_flux_fv(u_ll, u_rr, aux_ll, aux_rr, 2, equations) # orientation 2: y direction
         set_node_vars!(fstar2_L, flux, equations, dg, i, j)
         set_node_vars!(fstar2_R, flux, equations, dg, i, j)
@@ -975,7 +975,7 @@ function calc_interface_flux!(surface_flux_values,
             # Compute both nonconservative fluxes
             noncons_left = nonconservative_flux(u_ll, u_rr, aux_ll, aux_rr,
                                                 orientation, equations)
-            noncons_right = nonconservative_flux(u_rr, u_ll, aux_ll, aux_rr,
+            noncons_right = nonconservative_flux(u_rr, u_ll, aux_rr, aux_ll,
                                                  orientation, equations)
 
             # Copy flux to left and right element storage
