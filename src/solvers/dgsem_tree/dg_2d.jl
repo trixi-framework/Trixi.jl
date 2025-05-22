@@ -446,7 +446,8 @@ end
             u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
             aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg,
                                             ii, j, element)
-            noncons_flux1 = nonconservative_flux(u_node, u_node_ii, aux_node, aux_node_ii,
+            noncons_flux1 = nonconservative_flux(u_node, u_node_ii, aux_node,
+                                                 aux_node_ii,
                                                  1, equations)
             integral_contribution = integral_contribution +
                                     derivative_split[i, ii] * noncons_flux1
@@ -457,7 +458,8 @@ end
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
             aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg,
                                             i, jj, element)
-            noncons_flux2 = nonconservative_flux(u_node, u_node_jj, aux_node, aux_node_jj,
+            noncons_flux2 = nonconservative_flux(u_node, u_node_jj, aux_node,
+                                                 aux_node_jj,
                                                  2, equations)
             integral_contribution = integral_contribution +
                                     derivative_split[j, jj] * noncons_flux2
@@ -749,8 +751,10 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        f1_L = f1 + 0.5f0 * nonconservative_flux(u_ll, u_rr, aux_ll, aux_rr, 1, equations)
-        f1_R = f1 + 0.5f0 * nonconservative_flux(u_rr, u_ll, aux_ll, aux_rr, 1, equations)
+        f1_L = f1 +
+               0.5f0 * nonconservative_flux(u_ll, u_rr, aux_ll, aux_rr, 1, equations)
+        f1_R = f1 +
+               0.5f0 * nonconservative_flux(u_rr, u_ll, aux_ll, aux_rr, 1, equations)
 
         # Copy to temporary storage
         set_node_vars!(fstar1_L, f1_L, equations, dg, i, j)
@@ -777,8 +781,10 @@ end
         # Note the factor 0.5 necessary for the nonconservative fluxes based on
         # the interpretation of global SBP operators coupled discontinuously via
         # central fluxes/SATs
-        f2_L = f2 + 0.5f0 * nonconservative_flux(u_ll, u_rr, aux_ll, aux_rr, 2, equations)
-        f2_R = f2 + 0.5f0 * nonconservative_flux(u_rr, u_ll, aux_ll, aux_rr, 2, equations)
+        f2_L = f2 +
+               0.5f0 * nonconservative_flux(u_ll, u_rr, aux_ll, aux_rr, 2, equations)
+        f2_R = f2 +
+               0.5f0 * nonconservative_flux(u_rr, u_ll, aux_ll, aux_rr, 2, equations)
 
         # Copy to temporary storage
         set_node_vars!(fstar2_L, f2_L, equations, dg, i, j)
@@ -1207,7 +1213,8 @@ function calc_boundary_flux_by_direction!(t, boundary_condition,
             end
             x = get_node_coords(node_coordinates, equations, dg, i, boundary)
             flux, noncons_flux = boundary_condition(u_inner, aux_inner,
-                                                    orientations[boundary], direction, x, t,
+                                                    orientations[boundary], direction,
+                                                    x, t,
                                                     surface_integral.surface_flux,
                                                     equations)
 

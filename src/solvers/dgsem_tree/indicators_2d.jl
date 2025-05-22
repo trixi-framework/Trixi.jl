@@ -97,7 +97,8 @@ end
 end
 
 @inline function calc_indicator_inner!(indicator, u, element, indicator_variable,
-                                       have_aux_node_vars::False, equations, solver, cache)
+                                       have_aux_node_vars::False, equations, solver,
+                                       cache)
     for j in eachnode(solver), i in eachnode(solver)
         u_local = get_node_vars(u, equations, solver, i, j, element)
         indicator[i, j] = indicator_variable(u_local, equations)
@@ -105,7 +106,8 @@ end
 end
 
 @inline function calc_indicator_inner!(indicator, u, element, indicator_variable,
-                                       have_aux_node_vars::True, equations, solver, cache)
+                                       have_aux_node_vars::True, equations, solver,
+                                       cache)
     @unpack aux_node_vars = cache.aux_vars
     for j in eachnode(solver), i in eachnode(solver)
         u_local = get_node_vars(u, equations, solver, i, j, element)
