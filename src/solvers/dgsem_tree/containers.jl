@@ -118,7 +118,8 @@ function init_aux_vars(mesh, equations, solver, cache, aux_field)
                                           n_boundaries))
 
     aux_vars = AuxNodeVarsContainer{NDIMS, uEltype, NDIMS + 2,
-                                    typeof(aux_field)}(aux_node_vars, aux_surface_node_vars,
+                                    typeof(aux_field)}(aux_node_vars,
+                                                       aux_surface_node_vars,
                                                        aux_boundary_node_vars,
                                                        _aux_node_vars,
                                                        _aux_surface_node_vars,
