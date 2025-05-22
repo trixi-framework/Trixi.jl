@@ -11,6 +11,7 @@ equations = CompressibleEulerEquations2D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                           Prandtl = prandtl_number())
 
+# 
 function initial_condition_freestream(x, t, equations)
     rho = 1.4
     v1 = 0.0
@@ -26,36 +27,32 @@ solver = DGSEM(polydeg = 3, surface_flux = flux_hlle)
 
 coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
-# TODO: This needs to be p4est
-mesh = TreeMesh(coordinates_min, coordinates_max,
-                initial_refinement_level = 4,
-                n_cells_max = 100_000,
-                periodicity = (true, false))
+trees_per_dimension = (4, 4)
+mesh = P4estMesh(trees_per_dimension,
+                 polydeg = 3, initial_refinement_level = 0,
+                 coordinates_min = coordinates_min, coordinates_max = coordinates_max,
+                 periodicity = (false, true))
 
-boundary_conditions = (; x_neg = boundary_condition_periodic,
-                       x_pos = boundary_condition_periodic,
-                       y_neg = boundary_condition_slip_wall,
-                       y_pos = boundary_condition_slip_wall,)
+boundary_conditions = Dict(:x_neg => boundary_condition_slip_wall,
+                           :x_pos => boundary_condition_slip_wall)
 
 velocity_bc = SlipWall()
 heat_bc = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
 boundary_condition_y = BoundaryConditionNavierStokesWall(velocity_bc,
                                                          heat_bc)
 
-boundary_conditions_parabolic = (; x_neg = boundary_condition_periodic,
-                                 x_pos = boundary_condition_periodic,
-                                 y_neg = boundary_condition_y,
-                                 y_pos = boundary_condition_y)
+boundary_conditions_parabolic = Dict(:x_neg => boundary_condition_y,
+                                     :x_pos => boundary_condition_y)
 
 semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabolic),
-                                             initial_condition, solver,
+                                             initial_condition, solver;
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
