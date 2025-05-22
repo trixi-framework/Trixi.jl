@@ -12,15 +12,18 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder = 
     binder_logo = "https://mybinder.org/badge_logo.svg"
     nbviewer_logo = "https://img.shields.io/badge/render-nbviewer-f37726"
     raw_notebook_logo = "https://img.shields.io/badge/raw-notebook-4cc61e"
+    colab_logo = "https://colab.research.google.com/assets/colab-badge.svg"
 
     notebook_path = "tutorials/notebooks/$notebook_filename"
-    binder_url = "https://mybinder.org/v2/gh/trixi-framework/Trixi.jl/tutorial_notebooks?filepath=$notebook_path"
-    nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/Trixi.jl/blob/tutorial_notebooks/$notebook_path"
-    raw_notebook_url = "https://raw.githubusercontent.com/trixi-framework/Trixi.jl/tutorial_notebooks/$notebook_path"
+    binder_url = "https://mybinder.org/v2/gh/trixi-framework/TrixiDocumentation/tutorial_notebooks?filepath=$notebook_path"
+    nbviewer_url = "https://nbviewer.jupyter.org/github/trixi-framework/TrixiDocumentation/blob/tutorial_notebooks/$notebook_path"
+    raw_notebook_url = "https://raw.githubusercontent.com/trixi-framework/TrixiDocumentation/tutorial_notebooks/$notebook_path"
+    colab_url = "https://colab.research.google.com/github/trixi-framework/TrixiDocumentation/blob/tutorial_notebooks/$notebook_path"
 
     binder_badge = "# [![]($binder_logo)]($binder_url)"
     nbviewer_badge = "# [![]($nbviewer_logo)]($nbviewer_url)"
     raw_notebook_badge = "# [![]($raw_notebook_logo)]($raw_notebook_url)"
+    colab_badge = "# [![]($colab_logo)]($colab_url)"
 
     # Generate notebook file
     function preprocess_notebook(content)
@@ -33,7 +36,7 @@ function create_files(title, file, repo_src, pages_dir, notebooks_dir; folder = 
 
     # Generate markdown file
     function preprocess_docs(content)
-        return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $raw_notebook_badge\n\n",
+        return string("# # [$title](@id $(splitext(file)[1]))\n $binder_badge\n $nbviewer_badge\n $colab_badge\n $raw_notebook_badge\n\n",
                       content)
     end
     Literate.markdown(joinpath(repo_src, folder, file), joinpath(pages_dir, folder);
