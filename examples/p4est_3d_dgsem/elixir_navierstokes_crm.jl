@@ -104,8 +104,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
                                              boundary_conditions = (boundary_conditions_hyp,
                                                                     boundary_conditions_para))
 
-#tspan = (0.0, 1.5e-5)
-tspan = (0.0, 1e-10)
+tspan = (0.0, 1.5e-5)
 ode = semidiscretize(semi, tspan)
 
 ###############################################################################
