@@ -29,13 +29,15 @@ coordinates_min = (0.0, 0.0)
 coordinates_max = (1.0, 1.0)
 trees_per_dimension = (4, 4)
 mesh = P4estMesh(trees_per_dimension,
-                 polydeg = 3, initial_refinement_level = 0,
+                 polydeg = 1, initial_refinement_level = 0,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
                  periodicity = (false, true))
 
 boundary_conditions = Dict(:x_neg => boundary_condition_slip_wall,
                            :x_pos => boundary_condition_slip_wall)
 
+# The "SlipWall" boundary condition rotates all velocities into tangential direction
+# and thus acts as a symmetry plane.
 velocity_bc = SlipWall()
 heat_bc = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
 boundary_condition_y = BoundaryConditionNavierStokesWall(velocity_bc,
@@ -50,7 +52,6 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
                                                                     boundary_conditions_parabolic))
 
 ###############################################################################
-# ODE solvers, callbacks etc.
 
 tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
@@ -70,7 +71,6 @@ callbacks = CallbackSet(summary_callback,
                         stepsize_callback)
 
 ###############################################################################
-# run the simulation
 
 sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback

@@ -39,6 +39,9 @@ The (purely) hyperbolic equivalent boundary condition is [`boundary_condition_sl
 permits only tangential velocities.
 
 Note that in 1D this degenerates to the [`NoSlip`](@ref) boundary condition which must be used instead.
+
+!!! note
+    Currently this boundary condition is only compatible with the [`P4estMesh`](@ref).
 """
 struct SlipWall end
 
