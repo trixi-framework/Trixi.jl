@@ -11,7 +11,7 @@ equations = CompressibleEulerEquations2D(1.4)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                           Prandtl = prandtl_number())
 
-# 
+# Flow in y-direction to test the symmetry BCs at the left and right boundaries
 function initial_condition_freestream(x, t, equations)
     rho = 1.4
     v1 = 0.0
