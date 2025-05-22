@@ -480,7 +480,17 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
     @autoinfiltrate
-    u_boundary = u_inner
+    element_index_x = (mesh.cell_ids[4]-1) % 4 + 1
+    element_index_y = floor(Int64, mesh.cell_ids[element_index]/4) + 1
+    if abs(sum(normal_direction .* (1.0, 0.0))) > abs(sum(normal_direction .* (0.0, 1.0)))
+        element_index_x += sign(sum(normal_direction .* (1.0, 0.0)))
+    else
+        element_index_y += sign(sum(normal_direction .* (0.0, 1.0)))
+    end
+    element_index_other = Int(element_index_x + element_index_y * 4)-1 + i_index + (j_index-1)*4
+    u_boundary = SVector(u_global[element_index_other])
+
+    # u_boundary = u_inner
     orientation = normal_direction
 
     # Calculate boundary flux

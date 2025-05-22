@@ -385,7 +385,7 @@ function calc_boundary_flux_by_type!(cache, t, BCs::NTuple{N, Any},
     # recursively call this method with the unprocessed boundary types
     calc_boundary_flux_by_type!(cache, t, remaining_boundary_conditions,
                                 remaining_boundary_condition_indices,
-    mesh, equations, surface_integral, dg)
+                                mesh, equations, surface_integral, dg, u_global)
 
     return nothing
 end
@@ -395,6 +395,13 @@ function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{}
                                      mesh::Union{UnstructuredMesh2D, P4estMesh,
                                                  P4estMeshView, T8codeMesh},
                                      equations, surface_integral, dg::DG)
+    nothing
+end
+
+# terminate the type-stable iteration over tuples
+function calc_boundary_flux_by_type!(cache, t, BCs::Tuple{}, BC_indices::Tuple{},
+                                     mesh::P4estMeshView,
+                                     equations, surface_integral, dg::DG, u_global)
     nothing
 end
 

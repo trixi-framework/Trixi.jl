@@ -414,7 +414,7 @@ end
                                      surface_integral, dg::DG, cache,
                                      i_index, j_index,
                                      node_index, direction_index, element_index,
-                                     boundary_index)
+                                     boundary_index, u_global)
     @unpack boundaries = cache
     @unpack contravariant_vectors = cache.elements
     @unpack surface_flux = surface_integral
