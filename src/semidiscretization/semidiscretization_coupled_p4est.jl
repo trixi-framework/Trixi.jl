@@ -480,15 +480,41 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
     @autoinfiltrate
-    element_index_x = (mesh.cell_ids[4]-1) % 4 + 1
-    element_index_y = floor(Int64, mesh.cell_ids[element_index]/4) + 1
+    element_index_y = cld( mesh.cell_ids[element_index], 4)
+    element_index_x = mesh.cell_ids[element_index] - (element_index_y - 1) * 4
     if abs(sum(normal_direction .* (1.0, 0.0))) > abs(sum(normal_direction .* (0.0, 1.0)))
-        element_index_x += sign(sum(normal_direction .* (1.0, 0.0)))
+        element_index_x += Int(sign(sum(normal_direction .* (1.0, 0.0))))
+        if i_index == 4
+            i_index = 1
+        elseif i_index == 1
+            i_index = 4
+        end
     else
-        element_index_y += sign(sum(normal_direction .* (0.0, 1.0)))
+        element_index_y += Int(sign(sum(normal_direction .* (0.0, 1.0))))
+        if j_index == 4
+            j_index = 1
+        elseif j_index == 1
+            j_index = 4
+        end
     end
-    element_index_other = Int(element_index_x + element_index_y * 4)-1 + i_index + (j_index-1)*4
-    u_boundary = SVector(u_global[element_index_other])
+    # Make things periodic across physical boundaries.
+    if element_index_x == 0
+        element_index_x = 4
+    elseif element_index_x == 5
+        element_index_x = 1
+    end
+    if element_index_y == 0
+        element_index_y = 4
+    elseif element_index_y == 5
+        element_index_y = 1
+    end
+    u_global_reshape = reshape(u_global, (4, 4, 4, 4))
+    u_boundary = SVector(u_global_reshape[i_index, j_index, element_index_x, element_index_y])
+
+    # element_index_other = Int(element_index_x + (element_index_y-1) * 4)-1 + i_index + (j_index-1)*4
+    # println(element_index, " ", i_index, " ", j_index, " ", normal_direction)
+    # println(element_index_x, " ", element_index_y, " ", element_index_other)
+    # u_boundary = SVector(u_global[element_index_other])
 
     # u_boundary = u_inner
     orientation = normal_direction
