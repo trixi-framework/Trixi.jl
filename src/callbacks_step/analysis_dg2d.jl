@@ -246,11 +246,29 @@ function integrate(func::Func, u,
                                UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
                                T8codeMesh{2}},
                    equations, dg::DG, cache; normalize = true) where {Func}
-    integrate_via_indices(u, mesh, equations, dg, cache;
-                          normalize = normalize) do u, i, j, element, equations, dg
-        u_local = get_node_vars(u, equations, dg, i, j, element)
-        return func(u_local, equations)
-    end
+    @autoinfiltrate
+    if length(m.sig.parameters) == 2
+        integrate_via_indices(u, mesh, equations, dg, cache;
+                            normalize = normalize) do u, i, j, element, equations, dg
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            return func(u_local, equations)
+        end
+    if length(m.sig.parameters) == 3
+        integrate_via_indices(u, mesh, equations, dg, cache;
+                            normalize = normalize) do u, i, j, element, equations, dg
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            # Since gradients are calculated for parabolic equations we need to use
+            # some of their infrastructure.
+            viscous_container = init_viscous_container_2d(nvariables(equations),
+                                                        nnodes(cache.elements), nelements(cache.elements),
+                                                        eltype(cache.elements))
+            @unpack u_transformed, gradients, flux_viscous = viscous_container
+            calc_gradient!(gradients, u_transformed, 0.0,
+                                mesh::TreeMesh{2}, equations,
+                                boundary_conditions, dg::DG, parabolic_scheme,
+                                cache, cache)
+            return func(u_local, gradients, equations)
+        end
 end
 
 function integrate(func::Func, u,
