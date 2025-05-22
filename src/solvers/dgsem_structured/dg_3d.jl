@@ -278,7 +278,8 @@ end
         # x direction
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
-            aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg, ii, j, k, element)
+            aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg, ii, j, k,
+                                            element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
@@ -296,7 +297,8 @@ end
         # y direction
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
-            aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg, i, jj, k, element)
+            aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg, i, jj, k,
+                                            element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
@@ -314,7 +316,8 @@ end
         # z direction
         for kk in (k + 1):nnodes(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
-            aux_node_kk = get_aux_node_vars(aux_node_vars, equations, dg, i, j, kk, element)
+            aux_node_kk = get_aux_node_vars(aux_node_vars, equations, dg, i, j, kk,
+                                            element)
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
@@ -452,7 +455,8 @@ end
         integral_contribution = zero(u_node)
         for ii in eachnode(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
-            aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg, ii, j, k, element)
+            aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg, ii, j, k,
+                                            element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
@@ -468,7 +472,8 @@ end
         # y direction
         for jj in eachnode(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
-            aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg, i, jj, k, element)
+            aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg, i, jj, k,
+                                            element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
@@ -484,7 +489,8 @@ end
         # z direction
         for kk in eachnode(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
-            aux_node_kk = get_aux_node_vars(aux_node_vars, equations, dg, i, j, kk, element)
+            aux_node_kk = get_aux_node_vars(aux_node_vars, equations, dg, i, j, kk,
+                                            element)
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
