@@ -234,7 +234,8 @@ end
                               mesh::Union{StructuredMesh{2}, StructuredMeshView{2},
                                           UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
-                              nonconservative_terms::False, equations,
+                              nonconservative_terms::False,
+                              have_aux_node_vars::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis
@@ -305,7 +306,8 @@ end
                               mesh::Union{StructuredMesh{2}, StructuredMesh{2},
                                           UnstructuredMesh2D,
                                           P4estMesh{2}, T8codeMesh{2}},
-                              nonconservative_terms::True, equations,
+                              nonconservative_terms::True,
+                              have_aux_node_vars::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     @unpack contravariant_vectors = cache.elements
     @unpack weights, derivative_matrix = dg.basis

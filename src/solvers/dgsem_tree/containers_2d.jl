@@ -1480,14 +1480,14 @@ function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, sol
             # boundary in x-direction
             if neighbor_sides[boundary] == 1
                 # element in -x direction of boundary
-                for l in eachnode(solver), v in 1:n_aux_node_vars(equations)
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
                     aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v,
                                                                               nnodes(solver),
                                                                               l,
                                                                               element]
                 end
             else # Element in +x direction of boundary
-                for l in eachnode(solver), v in 1:n_aux_node_vars(equations)
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
                     aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, 1, l,
                                                                               element]
                 end
@@ -1496,14 +1496,14 @@ function init_aux_boundary_node_vars!(aux_vars, mesh::TreeMesh2D, equations, sol
             # boundary in y-direction
             if neighbor_sides[boundary] == 1
                 # element in -y direction of boundary
-                for l in eachnode(solver), v in 1:n_aux_node_vars(equations)
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
                     aux_boundary_node_vars[1, v, l, boundary] = aux_node_vars[v, l,
                                                                               nnodes(solver),
                                                                               element]
                 end
             else
                 # element in +y direction of boundary
-                for l in eachnode(solver), v in 1:n_aux_node_vars(equations)
+                for l in eachnode(solver), v in axes(aux_boundary_node_vars, 2)
                     aux_boundary_node_vars[2, v, l, boundary] = aux_node_vars[v, l, 1,
                                                                               element]
                 end
