@@ -99,7 +99,7 @@ function max_dt(u, t, mesh::Union{StructuredMesh{3}, P4estMesh{3}, T8codeMesh{3}
         max_lambda1 = max_lambda2 = max_lambda3 = zero(max_scaled_speed)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
-            aux_node = get_node_vars(aux_node_vars, equations, dg, i, j, k, element)
+            aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
             lambda1, lambda2, lambda3 = max_abs_speeds(u_node, aux_node, equations)
 
             Ja11, Ja12, Ja13 = get_contravariant_vector(1, contravariant_vectors, i, j,

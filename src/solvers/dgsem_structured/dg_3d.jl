@@ -263,7 +263,7 @@ end
     # Calculate volume integral in one element
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
         u_node = get_node_vars(u, equations, dg, i, j, k, element)
-        aux_node = get_node_vars(aux_node_vars, equations, dg, i, j, k, element)
+        aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
 
         # pull the contravariant vectors in each coordinate direction
         Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
@@ -278,7 +278,8 @@ end
         # x direction
         for ii in (i + 1):nnodes(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
-            aux_node_ii = get_node_vars(aux_node_vars, equations, dg, ii, j, k, element)
+            aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg, ii, j, k,
+                                            element)
             # pull the contravariant vectors and compute the average
             Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
                                                    ii, j, k, element)
@@ -296,7 +297,8 @@ end
         # y direction
         for jj in (j + 1):nnodes(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
-            aux_node_jj = get_node_vars(aux_node_vars, equations, dg, i, jj, k, element)
+            aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg, i, jj, k,
+                                            element)
             # pull the contravariant vectors and compute the average
             Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
                                                    i, jj, k, element)
@@ -314,7 +316,8 @@ end
         # z direction
         for kk in (k + 1):nnodes(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
-            aux_node_kk = get_node_vars(aux_node_vars, equations, dg, i, j, kk, element)
+            aux_node_kk = get_aux_node_vars(aux_node_vars, equations, dg, i, j, kk,
+                                            element)
             # pull the contravariant vectors and compute the average
             Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
                                                    i, j, kk, element)
@@ -404,6 +407,98 @@ end
             # averaged contravariant vector
             fluxtilde3 = nonconservative_flux(u_node, u_node_kk, Ja3_avg,
                                               equations)
+            integral_contribution = integral_contribution +
+                                    derivative_split[k, kk] * fluxtilde3
+        end
+
+        # The factor 0.5 cancels the factor 2 in the flux differencing form
+        multiply_add_to_node_vars!(du, alpha * 0.5f0, integral_contribution, equations,
+                                   dg, i, j, k, element)
+    end
+end
+
+@inline function flux_differencing_kernel!(du, u,
+                                           element,
+                                           mesh::Union{StructuredMesh{3}, P4estMesh{3},
+                                                       T8codeMesh{3}},
+                                           nonconservative_terms::True,
+                                           have_aux_node_vars::True, equations,
+                                           volume_flux, dg::DGSEM, cache, alpha = true)
+    @unpack derivative_split = dg.basis
+    @unpack contravariant_vectors = cache.elements
+    @unpack aux_node_vars = cache.aux_vars
+
+    symmetric_flux, nonconservative_flux = volume_flux
+
+    # Apply the symmetric flux as usual
+    flux_differencing_kernel!(du, u, element, mesh, False(), have_aux_node_vars,
+                              equations,
+                              symmetric_flux, dg, cache, alpha)
+
+    # Calculate the remaining volume terms using the nonsymmetric generalized flux
+    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+        u_node = get_node_vars(u, equations, dg, i, j, k, element)
+        aux_node = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
+
+        # pull the contravariant vectors in each coordinate direction
+        Ja1_node = get_contravariant_vector(1, contravariant_vectors, i, j, k, element)
+        Ja2_node = get_contravariant_vector(2, contravariant_vectors, i, j, k, element)
+        Ja3_node = get_contravariant_vector(3, contravariant_vectors, i, j, k, element)
+
+        # The diagonal terms are zero since the diagonal of `derivative_split`
+        # is zero. We ignore this for now.
+        # In general, nonconservative fluxes can depend on both the contravariant
+        # vectors (normal direction) at the current node and the averaged ones.
+        # Thus, we need to pass both to the nonconservative flux.
+
+        # x direction
+        integral_contribution = zero(u_node)
+        for ii in eachnode(dg)
+            u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
+            aux_node_ii = get_aux_node_vars(aux_node_vars, equations, dg, ii, j, k,
+                                            element)
+            # pull the contravariant vectors and compute the average
+            Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
+                                                   ii, j, k, element)
+            Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
+            # compute the contravariant nonconservative flux in the direction of the
+            # averaged contravariant vector
+            fluxtilde1 = nonconservative_flux(u_node, u_node_ii, aux_node, aux_node_ii,
+                                              Ja1_avg, equations)
+            integral_contribution = integral_contribution +
+                                    derivative_split[i, ii] * fluxtilde1
+        end
+
+        # y direction
+        for jj in eachnode(dg)
+            u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
+            aux_node_jj = get_aux_node_vars(aux_node_vars, equations, dg, i, jj, k,
+                                            element)
+            # pull the contravariant vectors and compute the average
+            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
+                                                   i, jj, k, element)
+            Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
+            # compute the contravariant nonconservative flux in the direction of the
+            # averaged contravariant vector
+            fluxtilde2 = nonconservative_flux(u_node, u_node_jj, aux_node, aux_node_jj,
+                                              Ja2_avg, equations)
+            integral_contribution = integral_contribution +
+                                    derivative_split[j, jj] * fluxtilde2
+        end
+
+        # z direction
+        for kk in eachnode(dg)
+            u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
+            aux_node_kk = get_aux_node_vars(aux_node_vars, equations, dg, i, j, kk,
+                                            element)
+            # pull the contravariant vectors and compute the average
+            Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
+                                                   i, j, kk, element)
+            Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
+            # compute the contravariant nonconservative flux in the direction of the
+            # averaged contravariant vector
+            fluxtilde3 = nonconservative_flux(u_node, u_node_kk, aux_node, aux_node_kk,
+                                              Ja3_avg, equations)
             integral_contribution = integral_contribution +
                                     derivative_split[k, kk] * fluxtilde3
         end
