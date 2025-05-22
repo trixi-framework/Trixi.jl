@@ -35,6 +35,7 @@ end
 @inline function calc_indicator_hennemann_gassner!(indicator_hg, threshold, parameter_s,
                                                    u,
                                                    element, mesh::AbstractMesh{2},
+                                                   have_aux_node_vars,
                                                    equations, dg, cache)
     @unpack alpha_max, alpha_min, alpha_smooth, variable = indicator_hg
     @unpack alpha, alpha_tmp, indicator_threaded, modal_threaded,
@@ -45,10 +46,8 @@ end
     modal_tmp1 = modal_tmp1_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
-    for j in eachnode(dg), i in eachnode(dg)
-        u_local = get_node_vars(u, equations, dg, i, j, element)
-        indicator[i, j] = indicator_hg.variable(u_local, equations)
-    end
+    calc_indicator_inner!(indicator, u, element, indicator_hg.variable,
+                          have_aux_node_vars, equations, dg, cache)
 
     # Convert to modal representation
     multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
@@ -95,6 +94,26 @@ end
 
     # Clip the maximum amount of FV allowed
     alpha[element] = min(alpha_max, alpha_element)
+end
+
+@inline function calc_indicator_inner!(indicator, u, element, indicator_variable,
+                                       have_aux_node_vars::False, equations, solver,
+                                       cache)
+    for j in eachnode(solver), i in eachnode(solver)
+        u_local = get_node_vars(u, equations, solver, i, j, element)
+        indicator[i, j] = indicator_variable(u_local, equations)
+    end
+end
+
+@inline function calc_indicator_inner!(indicator, u, element, indicator_variable,
+                                       have_aux_node_vars::True, equations, solver,
+                                       cache)
+    @unpack aux_node_vars = cache.aux_vars
+    for j in eachnode(solver), i in eachnode(solver)
+        u_local = get_node_vars(u, equations, solver, i, j, element)
+        aux_local = get_aux_node_vars(aux_node_vars, equations, solver, i, j, element)
+        indicator[i, j] = indicator_variable(u_local, aux_local, equations)
+    end
 end
 
 # Diffuse alpha values by setting each alpha to at least 50% of neighboring elements' alpha
