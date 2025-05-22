@@ -95,6 +95,17 @@ end
     return p
 end
 
+# TODO: based on total or perturbation?
+@inline function density_pressure(u, aux,
+                                  equations::CompressibleEulerEquationsPerturbationGravity2D)
+    rho, rho_v1, rho_v2, rho_e = u
+    #rho, rho_v1, rho_v2, rho_e = cons2cons_total(u, aux, equations)
+    phi = aux[5]
+    rho_times_p = (equations.equations_total.gamma - 1) *
+                  (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2) - rho^2 * phi)
+    return rho_times_p
+end
+
 # Convert total conservative variables to total primitive variables
 @inline function cons2prim_total(u, aux,
                                  equations::CompressibleEulerEquationsPerturbationGravity2D)
@@ -620,8 +631,10 @@ end
     c = flux_lmars.speed_of_sound
 
     # Unpack left and right state
-    rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
-    rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
+    u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
+    u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
+    rho_ll, v1_ll, v2_ll, p_ll = cons2prim_geopot(u_ll_total, aux_ll, equations)
+    rho_rr, v1_rr, v2_rr, p_rr = cons2prim_geopot(u_rr_total, aux_rr, equations)
     p_steady_ll = pressure_steady(aux_ll, equations)
     p_steady_rr = pressure_steady(aux_rr, equations)
     p_steady_avg = 0.5f0 * (p_steady_ll + p_steady_rr)
@@ -640,10 +653,10 @@ end
     # We treat the energy term analogous to the potential temperature term in the paper by
     # Chen et al., i.e. we use p_ll and p_rr, and not p
     if v >= 0
-        f1, f2, f3, f4 = u_ll * v
+        f1, f2, f3, f4 = u_ll_total * v
         f4 = f4 + p_ll * v
     else
-        f1, f2, f3, f4 = u_rr * v
+        f1, f2, f3, f4 = u_rr_total * v
         f4 = f4 + p_rr * v
     end
 

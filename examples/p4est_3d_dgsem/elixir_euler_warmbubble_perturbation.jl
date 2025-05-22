@@ -74,7 +74,7 @@ function (setup::WarmBubbleSetup)(x, t, equations::CompressibleEulerEquationsPer
     v3_ref =  0.0
 
     E = c_v * T + 0.5f0 * (v1^2 + v2^2 + v3^2)
-    E_ref = c_v * T_ref
+    E_ref = c_v * T_ref + 0.5f0 * (v1_ref^2 + v2_ref^2 + v3_ref^2)
 
     return SVector(rho - rho_ref,
                    rho * v1 - rho_ref * v1_ref,
@@ -101,13 +101,18 @@ function (setup::WarmBubbleSetup)(x, ::CompressibleEulerEquationsPerturbation3D)
     T_ref = potential_temperature_ref * exner_ref
 
     rho_ref = p_ref / (R * T_ref)
-    E_ref = c_v * T_ref
 
     v1_ref = 20.0
     v2_ref = 0.0
     v3_ref = 0.0
 
-    return SVector(rho_ref, rho_ref * v1_ref, rho_ref * v2_ref, rho_ref * v3_ref, rho_ref * E_ref)
+    E_ref = c_v * T_ref + 0.5f0 * (v1_ref^2 + v2_ref^2 + v3_ref^2)
+
+    return SVector(rho_ref,
+                   rho_ref * v1_ref,
+                   rho_ref * v2_ref,
+                   rho_ref * v3_ref,
+                   rho_ref * E_ref)
 end
 
 # Source terms
@@ -171,7 +176,8 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(dt = 10.0, #interval = 1, #dt = 10.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim_total)
+                                     solution_variables = cons2prim_total,
+                                     output_directory = "out_bubble_3d")
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 

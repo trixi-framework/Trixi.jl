@@ -581,6 +581,7 @@ include("compressible_euler_perturbation_3d.jl")
 include("compressible_euler_gravity_2d.jl")
 include("compressible_euler_gravity_3d.jl")
 include("compressible_euler_gravity_pert_2d.jl")
+include("compressible_euler_gravity_pert_3d.jl")
 
 
 # CompressibleEulerMulticomponentEquations
