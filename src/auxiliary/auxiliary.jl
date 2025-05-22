@@ -316,7 +316,15 @@ function download(src_url, file_path)
     # Note that `mpi_isroot()` is also `true` if running
     # in serial (without MPI).
     if mpi_isroot()
-        isfile(file_path) || Downloads.download(src_url, file_path)
+        if !isfile(file_path)
+            headers = Pair{String, String}[]
+            # Pass the GH_TOKEN through to prevent rate-limiting
+            token = get(ENV, "GH_TOKEN", nothing)
+            if token !== nothing
+                push!(headers, "authorization" => "Bearer $token")
+            end
+            Downloads.download(src_url, file_path; headers)
+        end
     end
 
     if mpi_isparallel()
