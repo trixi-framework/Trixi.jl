@@ -288,14 +288,14 @@ end
     return SVector(v1, v2)
 end
 
-@inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+@inline function enstrophy(u, equations::CompressibleNavierStokesDiffusion2D; gradients)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
     omega = vorticity(u, gradients, equations)
     return 0.5f0 * u[1] * omega^2
 end
 
-@inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+@inline function vorticity(u, equations::CompressibleNavierStokesDiffusion2D; gradients)
     # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
     _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
     _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)

@@ -865,4 +865,33 @@ end
     v = u[orientation] / rho
     return v
 end
+
+@inline function enstrophy(u, equations::CompressibleEulerMulticomponentEquations2D)
+    # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
+
+    # Since gradients are calculated for parabolic equations we need to use
+    # some of their infrastructure.
+    viscous_container = init_viscous_container_2d(nvariables(equations),
+                                                  nnodes(elements), nelements(elements),
+                                                  uEltype)
+    @unpack u_transformed, gradients, flux_viscous = viscous_container
+
+    calc_gradient!(gradients, u_transformed, 0.0,
+                        mesh::TreeMesh{2}, equations,
+                        boundary_conditions, dg::DG, parabolic_scheme,
+                        cache, cache)
+
+    omega = vorticity(u, gradients, equations)
+
+    return 0.5f0 * u[1] * omega^2
+end
+
+@inline function vorticity(u, gradients, equations::CompressibleEulerMulticomponentEquations2D)
+    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+
+    return dv2dx - dv1dy
+end
+
 end # @muladd
