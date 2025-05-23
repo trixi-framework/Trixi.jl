@@ -181,6 +181,8 @@ export AcousticPerturbationEquations2D,
        PassiveTracerEquations
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
+       LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
+       LaplaceDiffusionEntropyVariables3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
        CompressibleNavierStokesDiffusion3D
 
