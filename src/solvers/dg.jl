@@ -277,18 +277,6 @@ function Base.show(io::IO, mime::MIME"text/plain",
     end
 end
 
-function get_node_variables!(node_variables, u_ode, mesh, equations,
-                             volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
-    # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
-    # called here to get up-to-date values for IO, this is not easily possible in this case
-    # because the calculation is very integrated into the method.
-    # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
-    # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
-    # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
-    get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
-                        equations)
-end
-
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
 """
