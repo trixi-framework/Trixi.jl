@@ -143,10 +143,40 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+# Add `:temperature` to `extra_node_variables` tuple ...
+extra_node_variables = (:temperature,)
+
+# ... and specify the function `get_node_variables` for this symbol, 
+# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
+function Trixi.get_node_variables(::Val{:temperature}, u, mesh, equations,
+                                  volume_integral, dg, cache)
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, node variables must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    temp_array = zeros(eltype(cache.elements),
+                       n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                       n_elements)
+
+    # We can accelerate the computation by thread-parallelizing the loop over elements
+    # by using the `@threaded` macro.
+    Trixi.@threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            rho, _, _, p = prim2cons(u_node, equations)
+            temp = p / rho # ideal gas equation with R = 1
+
+            temp_array[i, j, element] = temp
+        end
+    end
+
+    return temp_array
+end
 save_solution = SaveSolutionCallback(interval = 50,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = extra_node_variables) # Supply the additional `extra_node_variables` here
 
 amr_controller = ControllerThreeLevel(semi, TrixiExtension.IndicatorVortex(semi),
                                       base_level = 3,
