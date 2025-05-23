@@ -86,10 +86,10 @@ function Trixi.get_node_variables(::Val{:thermodynamic_entropy}, u, mesh, equati
     # We can accelerate the computation by thread-parallelizing the loop over elements
     # by using the `@threaded` macro.
     Trixi.@threaded for element in eachelement(dg, cache)
-        for j in eachnode(dg), i in eachnode(dg)
-            u_node = get_node_vars(u, equations, dg, i, j, element)
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
-            entropy_array[i, j, element] = entropy_thermodynamic(u_node, equations)
+            entropy_array[i, j, k, element] = entropy_thermodynamic(u_node, equations)
         end
     end
 
