@@ -476,6 +476,7 @@ end
 # Computes the mirror velocity across a symmetry plane which enforces
 # a tangential velocity that is aligned with the symmetry plane, i.e.,
 # which is normal to the `normal_direction`.
+# See also `boundary_condition_slip_wall` and `rotate_to_x`.
 @inline function velocity_symmetry_plane(normal_direction::AbstractVector, v1, v2, v3)
     norm_ = norm(normal_direction)
     normal = normal_direction / norm_
@@ -490,6 +491,7 @@ end
     return v1_outer, v2_outer, v3_outer
 end
 
+# Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:SlipWall,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
@@ -506,6 +508,7 @@ end
     return SVector(u_inner[1], v1_outer, v2_outer, v3_outer, u_inner[5])
 end
 
+# Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
 @inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:SlipWall,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
