@@ -924,16 +924,16 @@ end
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_symmetry.jl"),
                         l2=[
-                            1.7125149789796555e-14,
-                            9.071342334024431e-16,
-                            7.01204797397899e-14,
-                            6.027580564339159e-14
+                            4.37868326434923e-15,
+                            7.002449644031901e-16,
+                            1.0986677074164136e-14,
+                            1.213800745067394e-14
                         ],
                         linf=[
-                            1.1213252548714081e-13,
-                            3.737898034042665e-15,
-                            4.0523140398818214e-13,
-                            3.8058445284150366e-13
+                            2.531308496145357e-14,
+                            3.8367543336926215e-15,
+                            4.9960036108132044e-14,
+                            6.705747068735946e-14
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

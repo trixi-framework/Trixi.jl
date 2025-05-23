@@ -520,16 +520,12 @@ end
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
-    v1_outer, v2_outer, v3_outer = velocity_symmetry_plane(normal,
-                                                           u_inner[2],
-                                                           u_inner[3],
-                                                           u_inner[4])
-
-    _, tau_1n, tau_2n, tau_3n, _ = flux_inner # extract fluxes for 2nd, 3rd, and 4th equations
-    normal_energy_flux = v1_outer * tau_1n + v2_outer * tau_2n + v3_outer * tau_3n +
-                         normal_heat_flux
-    return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4],
-                   normal_energy_flux)
+    # Normal stresses should be 0. This implies also that `normal_energy_flux = normal_heat_flux`.
+    # For details, see Section 4.2 of 
+    # "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions
+    #  for the compressible Navier-Stokes equations" by Chan, Lin, Warburton 2022.
+    # DOI: 10.1016/j.jcp.2021.110723
+    return SVector(flux_inner[1], 0, 0, 0, normal_heat_flux)
 end
 
 # Dirichlet Boundary Condition for e.g. P4est mesh
