@@ -295,8 +295,8 @@ Computes the (node-wise) enstrophy, defined as
 ```math
     \mathcal{E} = \frac{1}{2} \rho \omega \cdot \omega
 ```
-where ``\omega = \nabla \times \boldsymbol{v}`` is the [vorticity](@ref).
-In 2D, `\omega` is just a scalar.
+where ``\omega = \nabla \times \boldsymbol{v}`` is the [`vorticity`](@ref).
+In 2D,  ``\omega`` is just a scalar.
 """
 @inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
