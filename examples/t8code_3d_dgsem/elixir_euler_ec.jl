@@ -80,7 +80,7 @@ function Trixi.get_node_variables(::Val{:thermodynamic_entropy}, u, mesh, equati
     # By definition, node variables must be provided at every node of every element!
     # Otherwise, the `SaveSolutionCallback` will crash.
     entropy_array = zeros(eltype(cache.elements),
-                          n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                          ntuple(_ -> n_nodes, ndims(mesh))..., # equivalent: `n_nodes, n_nodes, n_nodes`
                           n_elements)
 
     # We can accelerate the computation by thread-parallelizing the loop over elements
