@@ -185,7 +185,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     RealT = eltype(x)
     c = 2
     A = convert(RealT, 0.1)
-    ini = c + A * sin(convert(RealT, pi) * (x[1] + x[2] + x[3] - t))
+    ini = c + A * sinpi(x[1] + x[2] + x[3] - t)
     G = 1 # gravitational constant
 
     rho = ini
@@ -216,8 +216,7 @@ in combination with [`initial_condition_eoc_test_coupled_euler_gravity`](@ref).
     C_grav = -4 * G / (3 * convert(RealT, pi)) # "3" is the number of spatial dimensions  # 2D: -2.0*G/pi
 
     x1, x2, x3 = x
-    # TODO: sincospi
-    si, co = sincos(convert(RealT, pi) * (x1 + x2 + x3 - t))
+    si, co = sincospi(x1 + x2 + x3 - t)
     rhox = A * convert(RealT, pi) * co
     rho = c + A * si
 
@@ -254,8 +253,7 @@ function source_terms_eoc_test_euler(u, x, t, equations::CompressibleEulerEquati
     C_grav = -4 * G / (3 * convert(RealT, pi)) # "3" is the number of spatial dimensions
 
     x1, x2, x3 = x
-    # TODO: sincospi
-    si, co = sincos(convert(RealT, pi) * (x1 + x2 + x3 - t))
+    si, co = sincospi(x1 + x2 + x3 - t)
     rhox = A * convert(RealT, pi) * co
     rho = c + A * si
 
@@ -287,6 +285,8 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+
+Should be used together with [`P4estMesh`](@ref) or [`T8codeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t,
@@ -358,7 +358,7 @@ Should be used together with [`TreeMesh`](@ref).
         normal_direction = SVector(zero(RealT), zero(RealT), one(RealT))
     end
 
-    # compute and return the flux using `boundary_condition_slip_wall` routine above
+    # compute and return the flux using `boundary_condition_slip_wall` routine below
     return boundary_condition_slip_wall(u_inner, normal_direction, direction,
                                         x, t, surface_flux_function, equations)
 end
