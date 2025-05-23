@@ -33,7 +33,7 @@ Creates a symmetric velocity boundary condition which eliminates any normal velo
 allows only the tangential velocity gradients to be non-zero.
 When combined with the heat boundary condition [`Adiabatic`](@ref), this creates a truly symmetric boundary condition.
 Any boundary on which this combined boundary condition is applied thus acts as a symmetry plane for the flow.
-In contrast to the [`NoSlip`](@ref) boundary condition, `SymmetryPlane` does not require a function to be supplied.
+In contrast to the [`NoSlip`](@ref) boundary condition, `SlipWall` does not require a function to be supplied.
 
 The (purely) hyperbolic equivalent boundary condition is [`boundary_condition_slip_wall`](@ref) which 
 permits only tangential velocities.
