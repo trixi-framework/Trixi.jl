@@ -102,10 +102,44 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-node_variables = Dict{Symbol, Any}()
-# Add `:vorticity` key to `node_variables` dictionary.
-# The actual values are then computed during the `SaveSolutionCallback`.
-node_variables[:vorticity] = nothing
+# Add `:vorticity` to `node_variables` tuple ...
+node_variables = (:vorticity,)
+
+# ... and specify a function for this symbol
+function Val{:vorticity}(u_ode, mesh, equations, volume_integral,
+                         dg, cache, equations_parabolic, cache_parabolic)
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)                    
+    # By definition, node variables must be provided at every node of every element!
+    vorticity_array = zeros(eltype(cache.elements),
+                            ntuple(_ -> n_nodes, ndims(mesh))..., # equivalent: `n_nodes, n_nodes,`
+                            n_elements)
+
+    @unpack viscous_container = cache_parabolic
+    @unpack gradients = viscous_container
+    gradients_x, gradients_y = gradients
+
+    vorticity_array = zeros(eltype(cache.elements),
+                            n_nodes, n_nodes, n_elements)
+
+    @threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+
+            gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg,
+                                        i, j, element)
+            gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg,
+                                        i, j, element)
+
+            vorticity_nodal = vorticity(u_node, (gradients_1, gradients_2),
+                                        equations_parabolic)
+            vorticity_array[i, j, element] = vorticity_nodal
+        end
+    end
+
+    return vorticity_array
+end
+
 save_solution = SaveSolutionCallback(dt = 1.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,

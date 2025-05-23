@@ -19,7 +19,7 @@ function get_element_variables!(element_variables, mesh, dg, cache)
     nothing
 end
 
-# Function to define "node variables" for the SaveSolutionCallback. 
+# Function to define `node variables` for the `SaveSolutionCallback`.
 # Does for hyperbolic equations nothing by default, but can be specialized for certain volume integral types. 
 # For instance, shock capturing volume integrals output the blending factor as a "node variable".
 function get_node_variables!(node_variables, u_ode, mesh, equations,
@@ -27,8 +27,33 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
     return nothing
 end
 function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
+    # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
+    # called here to get up-to-date values for IO, this is not easily possible in this case
+    # because the calculation is very integrated into the method.
+    # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
+    # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
+    # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+    get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
+                        equations)
+end
+# Version for parabolic-extended equations
+function get_node_variables!(node_variables, u_ode, mesh, equations,
                              volume_integral::AbstractVolumeIntegral, dg, cache,
                              equations_parabolic, cache_parabolic)
+    if !isempty(node_variables)
+        n_nodes = nnodes(dg)
+        n_elements = nelements(dg, cache)
+        for var in keys(node_variables)
+            # By definition, node variables are defined at every node of every element
+            var_array = zeros(eltype(cache.elements),
+                              ntuple(_ -> n_nodes, ndims(mesh))..., n_elements)
+
+            node_variables[var] = Val(var)(u_ode, mesh, equations, volume_integral,
+                                           dg, cache, equations_parabolic, cache_parabolic)
+        end
+    end
+    
     if !isempty(node_variables)
         n_nodes = nnodes(dg)
         n_elements = nelements(dg, cache)
@@ -58,19 +83,6 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
             end
             node_variables[:vorticity] = vorticity_array
         end
-    end
-
-    if typeof(volume_integral) == VolumeIntegralSubcellLimiting
-        # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
-        # called here to get up-to-date values for IO, this is not easily possible in this case
-        # because the calculation is very integrated into the method.
-        # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
-        # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
-        # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
-        get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
-                            equations)
-    else
-        return nothing
     end
 end
 

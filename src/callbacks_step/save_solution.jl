@@ -12,7 +12,7 @@
                            save_final_solution=true,
                            output_directory="out",
                            solution_variables=cons2prim,
-                           node_variables=Dict{Symbol, Any}())
+                           node_variables=())
 
 Save the current numerical solution in regular intervals. Either pass `interval` to save
 every `interval` time steps or pass `dt` to save in intervals of `dt` in terms
@@ -21,10 +21,11 @@ of integration time by adding additional (shortened) time steps where necessary 
 at a single point to a set of solution variables. The first parameter passed
 to `solution_variables` will be the set of conservative variables
 and the second parameter is the equation struct.
-Additional nodal variables such as `:vorticity` can be saved by adding this symbol as a key to 
-the `node_variables` dictionary.
-In case that the [`SubcellLimiterIDP`](@ref) is used, this dictionary is automatically extended by the 
+Additional nodal variables such as `:vorticity` can be saved by passing a tuple of symbols
+to `node_variables`, e.g., `node_variables = (:vorticity,)`.
+In case that the [`SubcellLimiterIDP`](@ref) is used, this tuple is automatically extended by the 
 `:limiting_coefficient` key which contains the limiting coefficient for each node.
+# TODO: Can I implement this such that the user does not pass a symbol but the name of a function to be called?
 """
 mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
     interval_or_dt::IntervalType
@@ -103,7 +104,7 @@ function SaveSolutionCallback(; interval::Integer = 0,
                               save_final_solution = true,
                               output_directory = "out",
                               solution_variables = cons2prim,
-                              node_variables = Dict{Symbol, Any}())
+                              node_variables = ())
     if !isnothing(dt) && interval > 0
         throw(ArgumentError("You can either set the number of steps between output (using `interval`) or the time between outputs (using `dt`) but not both simultaneously"))
     end
@@ -115,10 +116,11 @@ function SaveSolutionCallback(; interval::Integer = 0,
         interval_or_dt = dt
     end
 
+    node_variables_dict = Dict{Symbol, Any}(var => nothing for var in node_variables)
     solution_callback = SaveSolutionCallback(interval_or_dt,
                                              save_initial_solution, save_final_solution,
                                              output_directory, solution_variables,
-                                             node_variables)
+                                             node_variables_dict)
 
     # Expected most frequent behavior comes first
     if isnothing(dt)
