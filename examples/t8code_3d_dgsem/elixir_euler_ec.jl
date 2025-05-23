@@ -89,7 +89,7 @@ function Trixi.get_node_variables(::Val{:thermodynamic_entropy}, u, mesh, equati
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, k, element)
 
-            entropy_array[i, j, k, element] = entropy_thermodynamic(u_node, equations)
+            entropy_array[i, j, k, element] = Trixi.entropy_thermodynamic(u_node, equations)
         end
     end
 
