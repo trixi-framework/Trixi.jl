@@ -266,6 +266,7 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolicParab
     compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
+# Required for storing `extra_node_variables` in the `SaveSolutionCallback`
 function get_node_variables!(node_variables, u_ode,
                              semi::SemidiscretizationHyperbolicParabolic)
     get_node_variables!(node_variables, u_ode, mesh_equations_solver_cache(semi)...,

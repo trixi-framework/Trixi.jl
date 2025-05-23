@@ -360,6 +360,7 @@ function get_element_variables!(element_variables, u_ode,
     get_element_variables!(element_variables, u, mesh_equations_solver_cache(semi)...)
 end
 
+# Required for storing `extra_node_variables` in the `SaveSolutionCallback`
 function get_node_variables!(node_variables, u_ode, semi::AbstractSemidiscretization)
     get_node_variables!(node_variables, u_ode, mesh_equations_solver_cache(semi)...)
 end

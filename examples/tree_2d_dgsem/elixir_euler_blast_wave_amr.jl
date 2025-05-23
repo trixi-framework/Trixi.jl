@@ -74,8 +74,7 @@ extra_node_variables = (:mach,)
 
 # ... and specify the function `get_node_variables` for this symbol, 
 # with first argument matching the symbol (turned into a type via `Val`) for dispatching.
-function Trixi.get_node_variables(::Val{:mach}, u, mesh, equations,
-                                  volume_integral, dg, cache)
+function Trixi.get_node_variables(::Val{:mach}, u, mesh, equations, dg, cache)
     n_nodes = nnodes(dg)
     n_elements = nelements(dg, cache)
     # By definition, the variable must be provided at every node of every element!

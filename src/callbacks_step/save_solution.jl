@@ -27,15 +27,13 @@ to `extra_node_variables`, e.g., `extra_node_variables = (:vorticity, :mach)`.
 In that case the function `get_node_variables` must be defined for each symbol in the tuple.
 The expected signature of the function for (purely) hyperbolic equations is:
 ```julia
-function get_node_variables(::Val{symbol}, u, mesh, equations,
-                             volume_integral, dg, cache)
+function get_node_variables(::Val{symbol}, u, mesh, equations, dg, cache)
     # Implementation goes here
 end
 ```
 while for parabolic-hyperbolic equations `equations_parabolic` and `cache_parabolic` must be added:
 ```julia
-function get_node_variables(::Val{symbol}, u, mesh, equations,
-                             volume_integral, dg, cache,
+function get_node_variables(::Val{symbol}, u, mesh, equations, dg, cache,
                              equations_parabolic, cache_parabolic)
     # Implementation goes here
 end

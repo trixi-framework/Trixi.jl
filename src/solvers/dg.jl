@@ -27,15 +27,16 @@ function get_node_variables end
 
 # Version for (purely) hyperbolic equations.
 function get_node_variables!(node_variables, u_ode, mesh, equations,
-                             volume_integral, dg, cache)
+                             dg, cache)
     if !isempty(node_variables)
         u = wrap_array(u_ode, mesh, equations, dg, cache)
         for var in keys(node_variables)
             node_variables[var] = get_node_variables(Val(var), u, mesh, equations,
-                                                     volume_integral, dg, cache)
+                                                     dg, cache)
         end
     end
 
+    @unpack volume_integral = dg
     # Shock capturing volume integrals output the blending factor as a "node variable".
     if typeof(volume_integral) == VolumeIntegralSubcellLimiting
         get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
@@ -46,18 +47,19 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
 end
 # Version for parabolic-extended equations
 function get_node_variables!(node_variables, u_ode, mesh, equations,
-                             volume_integral, dg, cache,
+                             dg, cache,
                              equations_parabolic, cache_parabolic)
     if !isempty(node_variables)
         u = wrap_array(u_ode, mesh, equations, dg, cache)
         for var in keys(node_variables)
             node_variables[var] = get_node_variables(Val(var), u, mesh, equations,
-                                                     volume_integral, dg, cache,
+                                                     dg, cache,
                                                      equations_parabolic,
                                                      cache_parabolic)
         end
     end
 
+    @unpack volume_integral = dg
     # Shock capturing volume integrals output the blending factor as a "node variable".
     if typeof(volume_integral) == VolumeIntegralSubcellLimiting
         get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
@@ -466,16 +468,6 @@ function get_element_variables!(element_variables, u, mesh, equations, dg::DG, c
     get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral,
                            dg, cache)
     get_element_variables!(element_variables, mesh, dg, cache)
-end
-
-function get_node_variables!(node_variables, u_ode, mesh, equations, dg::DG, cache)
-    get_node_variables!(node_variables, u_ode, mesh, equations, dg.volume_integral,
-                        dg, cache)
-end
-function get_node_variables!(node_variables, u_ode, mesh, equations, dg::DG, cache,
-                             equations_parabolic, cache_parabolic)
-    get_node_variables!(node_variables, u_ode, mesh, equations, dg.volume_integral,
-                        dg, cache, equations_parabolic, cache_parabolic)
 end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
