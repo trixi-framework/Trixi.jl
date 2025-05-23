@@ -105,24 +105,28 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # Add `:vorticity` to `node_variables` tuple ...
 node_variables = (:vorticity,)
 
-# ... and specify a function for this symbol
-function Val{:vorticity}(u_ode, mesh, equations, volume_integral,
-                         dg, cache, equations_parabolic, cache_parabolic)
+# ... and specify the function `get_node_variables` for this symbol, 
+# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
+# Note that for parabolic(-extended) equations, `equations_parabolic` and `cache_parabolic`
+# must be declared as the last two arguments of the function to match the expected signature.
+function Trixi.get_node_variables(::Val{:vorticity}, u, mesh, equations,
+                                  volume_integral, dg, cache,
+                                  equations_parabolic, cache_parabolic)
     n_nodes = nnodes(dg)
-    n_elements = nelements(dg, cache)                    
+    n_elements = nelements(dg, cache)
     # By definition, node variables must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
     vorticity_array = zeros(eltype(cache.elements),
-                            ntuple(_ -> n_nodes, ndims(mesh))..., # equivalent: `n_nodes, n_nodes,`
+                            n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
                             n_elements)
 
     @unpack viscous_container = cache_parabolic
     @unpack gradients = viscous_container
     gradients_x, gradients_y = gradients
 
-    vorticity_array = zeros(eltype(cache.elements),
-                            n_nodes, n_nodes, n_elements)
-
-    @threaded for element in eachelement(dg, cache)
+    # We can accelerate the computation by thread-parallelizing the loop over elements
+    # by using the `@threaded` macro.
+    Trixi.@threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             u_node = get_node_vars(u, equations, dg, i, j, element)
 
@@ -144,7 +148,7 @@ save_solution = SaveSolutionCallback(dt = 1.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
-                                     node_variables = node_variables)
+                                     node_variables = node_variables) # Supply the additional `node_variables` here
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

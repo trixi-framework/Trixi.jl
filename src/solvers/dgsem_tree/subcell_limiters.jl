@@ -216,6 +216,12 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
     end
 end
 
+# While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
+# called here to get up-to-date values for IO, this is not easily possible in this case
+# because the calculation is very integrated into the method.
+# See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
+# Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
+# stored solution (initial condition) are not yet defined and were manually set to `NaN`.
 function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
                              ::VolumeIntegralSubcellLimiting, equations)
     node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha

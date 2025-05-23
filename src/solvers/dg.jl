@@ -19,71 +19,52 @@ function get_element_variables!(element_variables, mesh, dg, cache)
     nothing
 end
 
-# Function to define `node variables` for the `SaveSolutionCallback`.
-# Does for hyperbolic equations nothing by default, but can be specialized for certain volume integral types. 
-# For instance, shock capturing volume integrals output the blending factor as a "node variable".
+### Functions to define `node variables` for the `SaveSolutionCallback`. ###
+
+# Abstract function which is to be overwritten for the specific `node_variables`
+# in e.g. the elixirs.
+function get_node_variables end
+
+# Version for (purely) hyperbolic equations.
 function get_node_variables!(node_variables, u_ode, mesh, equations,
-                             volume_integral::AbstractVolumeIntegral, dg, cache)
+                             volume_integral, dg, cache)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variables(Val(var), u, mesh, equations,
+                                                     volume_integral, dg, cache)
+        end
+    end
+
+    # Shock capturing volume integrals output the blending factor as a "node variable".
+    if typeof(volume_integral) == VolumeIntegralSubcellLimiting
+        get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
+                            equations)
+    end
+
     return nothing
-end
-function get_node_variables!(node_variables, u_ode, mesh, equations,
-                             volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
-    # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
-    # called here to get up-to-date values for IO, this is not easily possible in this case
-    # because the calculation is very integrated into the method.
-    # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
-    # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
-    # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
-    get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
-                        equations)
 end
 # Version for parabolic-extended equations
 function get_node_variables!(node_variables, u_ode, mesh, equations,
-                             volume_integral::AbstractVolumeIntegral, dg, cache,
+                             volume_integral, dg, cache,
                              equations_parabolic, cache_parabolic)
     if !isempty(node_variables)
-        n_nodes = nnodes(dg)
-        n_elements = nelements(dg, cache)
-        for var in keys(node_variables)
-            # By definition, node variables are defined at every node of every element
-            var_array = zeros(eltype(cache.elements),
-                              ntuple(_ -> n_nodes, ndims(mesh))..., n_elements)
-
-            node_variables[var] = Val(var)(u_ode, mesh, equations, volume_integral,
-                                           dg, cache, equations_parabolic, cache_parabolic)
-        end
-    end
-    
-    if !isempty(node_variables)
-        n_nodes = nnodes(dg)
-        n_elements = nelements(dg, cache)
-
         u = wrap_array(u_ode, mesh, equations, dg, cache)
-        if :vorticity in keys(node_variables)
-            @unpack viscous_container = cache_parabolic
-            @unpack gradients = viscous_container
-            gradients_x, gradients_y = gradients
-
-            vorticity_array = zeros(eltype(cache.elements),
-                                    n_nodes, n_nodes, n_elements)
-
-            @threaded for element in eachelement(dg, cache)
-                for j in eachnode(dg), i in eachnode(dg)
-                    u_node = get_node_vars(u, equations, dg, i, j, element)
-
-                    gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg,
-                                                i, j, element)
-                    gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg,
-                                                i, j, element)
-
-                    vorticity_nodal = vorticity(u_node, (gradients_1, gradients_2),
-                                                equations_parabolic)
-                    vorticity_array[i, j, element] = vorticity_nodal
-                end
-            end
-            node_variables[:vorticity] = vorticity_array
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variables(Val(var), u, mesh, equations,
+                                                     volume_integral, dg, cache,
+                                                     equations_parabolic,
+                                                     cache_parabolic)
         end
     end
+
+    # Shock capturing volume integrals output the blending factor as a "node variable".
+    if typeof(volume_integral) == VolumeIntegralSubcellLimiting
+        get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
+                            equations)
+    end
+
+    return nothing
 end
 
 """
@@ -610,6 +591,16 @@ end
     SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
 end
 
+"""
+    get_node_vars(u, equations, solver::DG, indices...)
+
+Return the value of the variable (vector) `u` at a node inside a specific element.
+The node is specified by the indices `indices...` argument which is a combination of
+node index inside the element and the element index itself.
+Thus, in 1D this is a two integer tuple `indices = i, element`,
+in 2D a three integer tuple `indices = i, j, element`,
+and in 3D a four integer tuple `indices = i, j, k, element`.
+"""
 @inline function get_node_vars(u, equations, solver::DG, indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17

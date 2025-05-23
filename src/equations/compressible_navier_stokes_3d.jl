@@ -322,10 +322,10 @@ end
 
 Computes the (node-wise) enstrophy, defined as
 ```math
-    \Epsilon = \frac{1}{2} \rho \boldsymbol{\omega} \cdot \boldsymbol{\omega}
+    \mathcal{E} = \frac{1}{2} \rho \boldsymbol{\omega} \cdot \boldsymbol{\omega}
 ```
-where ``\boldsymbol{\omega} = \nabla \times \boldsymbol{v}`` is the [vorticity](@ref).
-In 3D, `\\boldsymbol{\omega}` is a full three-component vector.
+where ``\boldsymbol{\omega} = \nabla \times \boldsymbol{v}`` is the [`vorticity`](@ref).
+In 3D, ``\boldsymbol{\omega}`` is a full three-component vector.
 """
 @inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
