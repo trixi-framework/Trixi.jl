@@ -174,7 +174,7 @@ error_1 / error_2
 # to an experimental order of convergence of 4 (for polynomials of degree 3).
 
 # For non-trivial boundary conditions involving non-conservative terms,
-# please refer to the section on [Other available example elixirs with non-trivial BC](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/non_periodic_boundaries/#Other-available-example-elixirs-with-non-trivial-BC).
+# please refer to the section on [Other available example elixirs with non-trivial BC](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/non_periodic_boundaries/#Other-available-example-elixirs-with-non-trivial-BC).
 
 # ## Summary of the code
 

@@ -45,7 +45,7 @@ function init_t8code()
         t8_init(LOG_LEVEL)
     else
         @warn "Preferences for T8code.jl are not set correctly. Until fixed, using `T8codeMesh` will result in a crash. " *
-              "See also https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#parallel_system_MPI"
+              "See also https://trixi-framework.github.io/TrixiDocumentation/stable/parallelization/#parallel_system_MPI"
     end
 
     return nothing
