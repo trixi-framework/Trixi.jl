@@ -314,4 +314,95 @@ end
 function raw_copy!(c::AbstractContainer, from::Int, destination::Int)
     raw_copy!(c, c, from, from, destination)
 end
+
+# Trixi storage types must implement these two Adapt.jl methods
+function Adapt.adapt_structure(to, c::AbstractContainer)
+    error("Interface: Must implement Adapt.adapt_structure(to, ::$(typeof(c)))")
+end
+
+function Adapt.parent_type(C::Type{<:AbstractContainer})
+    error("Interface: Must implement Adapt.parent_type(::Type{$C}")
+end
+
+function Adapt.unwrap_type(C::Type{<:AbstractContainer})
+    return Adapt.unwrap_type(Adapt.parent_type(C))
+end
+
+# TODO: Upstream to Adapt
+function storage_type(x)
+    return storage_type(typeof(x))
+end
+
+function storage_type(T::Type)
+    error("Interface: Must implement storage_type(::Type{$T}")
+end
+
+function storage_type(::Type{<:Array})
+    Array
+end
+
+function storage_type(C::Type{<:AbstractContainer})
+    return storage_type(Adapt.unwrap_type(C))
+end
+
+# For some storage backends like CUDA.jl, empty arrays do seem to simply be
+# null pointers which can cause `unsafe_wrap` to fail when calling
+# Adapt.adapt (ArgumentError, see
+# https://github.com/JuliaGPU/CUDA.jl/blob/v5.4.2/src/array.jl#L212-L229).
+# To circumvent this, on length zero arrays this allocates
+# a separate empty array instead of wrapping.
+# However, since zero length arrays are not used in calculations,
+# it should be okay if the underlying storage vectors and wrapped arrays
+# are not the same as long as they are properly wrapped when `resize!`d etc.
+function unsafe_wrap_or_alloc(to, vector, size)
+    if length(vector) == 0
+        return similar(vector, size)
+    else
+        return unsafe_wrap(to, pointer(vector), size)
+    end
+end
+
+struct TrixiAdaptor{Storage, Real} end
+
+function trixi_adapt(storage, real, x)
+    adapt(TrixiAdaptor{storage, real}(), x)
+end
+
+# Custom rules
+# 1. handling of StaticArrays
+function Adapt.adapt_storage(::TrixiAdaptor{<:Any, Real},
+                             x::StaticArrays.StaticArray{S, T, N}) where {Real, S, T, N}
+    StaticArrays.similar_type(x, Real)(x)
+end
+
+# 2. Handling of Arrays
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
+                             x::AbstractArray{T}) where {Storage, Real,
+                                                         T <: AbstractFloat}
+    adapt(Storage{Real}, x)
+end
+
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
+                             x::AbstractArray{T}) where {Storage, Real,
+                                                         T <: StaticArrays.StaticArray}
+    adapt(Storage{StaticArrays.similar_type(T, Real)}, x)
+end
+
+# Our threaded cache contains MArray, it is unlikely that we would want to adapt those
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
+                             x::Array{T}) where {Storage, Real,
+                                                 T <: StaticArrays.MArray}
+    adapt(Array{StaticArrays.similar_type(T, Real)}, x)
+end
+
+function Adapt.adapt_storage(::TrixiAdaptor{Storage, Real},
+                             x::AbstractArray) where {Storage, Real}
+    adapt(Storage, x)
+end
+
+# 3. TODO: Should we have a fallback? But that would imply implementing things for NamedTuple again
+
+function unsafe_wrap_or_alloc(::TrixiAdaptor{Storage}, vec, size) where {Storage}
+    return unsafe_wrap_or_alloc(Storage, vec, size)
+end
 end # @muladd
