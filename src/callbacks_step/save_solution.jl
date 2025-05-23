@@ -12,7 +12,7 @@
                            save_final_solution=true,
                            output_directory="out",
                            solution_variables=cons2prim,
-                           node_variables=())
+                           extra_node_variables=())
 
 Save the current numerical solution in regular intervals. Either pass `interval` to save
 every `interval` time steps or pass `dt` to save in intervals of `dt` in terms
@@ -21,11 +21,28 @@ of integration time by adding additional (shortened) time steps where necessary 
 at a single point to a set of solution variables. The first parameter passed
 to `solution_variables` will be the set of conservative variables
 and the second parameter is the equation struct.
-Additional nodal variables such as `:vorticity` can be saved by passing a tuple of symbols
-to `node_variables`, e.g., `node_variables = (:vorticity,)`.
-In case that the [`SubcellLimiterIDP`](@ref) is used, this tuple is automatically extended by the 
+    
+Additional nodal variables such as vorticity or the Mach number can be saved by passing a tuple of symbols
+to `extra_node_variables`, e.g., `extra_node_variables = (:vorticity, :mach)`.
+In that case the function `get_node_variables` must be defined for each symbol in the tuple.
+The expected signature of the function for (purely) hyperbolic equations is:
+```julia
+function get_node_variables(::Val{symbol}, u, mesh, equations,
+                             volume_integral, dg, cache)
+    # Implementation goes here
+end
+```
+while for parabolic-hyperbolic equations `equations_parabolic` and `cache_parabolic` must be added:
+```julia
+function get_node_variables(::Val{symbol}, u, mesh, equations,
+                             volume_integral, dg, cache,
+                             equations_parabolic, cache_parabolic)
+    # Implementation goes here
+end
+```
+
+In case that the [`SubcellLimiterIDP`](@ref) is used, the `extra_node_variables` tuple is automatically extended by the 
 `:limiting_coefficient` key which contains the limiting coefficient for each node.
-# TODO: Can I implement this such that the user does not pass a symbol but the name of a function to be called?
 """
 mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
     interval_or_dt::IntervalType
@@ -104,7 +121,7 @@ function SaveSolutionCallback(; interval::Integer = 0,
                               save_final_solution = true,
                               output_directory = "out",
                               solution_variables = cons2prim,
-                              node_variables = ())
+                              extra_node_variables = ())
     if !isnothing(dt) && interval > 0
         throw(ArgumentError("You can either set the number of steps between output (using `interval`) or the time between outputs (using `dt`) but not both simultaneously"))
     end
@@ -116,11 +133,11 @@ function SaveSolutionCallback(; interval::Integer = 0,
         interval_or_dt = dt
     end
 
-    node_variables_dict = Dict{Symbol, Any}(var => nothing for var in node_variables)
+    node_variables = Dict{Symbol, Any}(var => nothing for var in extra_node_variables)
     solution_callback = SaveSolutionCallback(interval_or_dt,
                                              save_initial_solution, save_final_solution,
                                              output_directory, solution_variables,
-                                             node_variables_dict)
+                                             node_variables)
 
     # Expected most frequent behavior comes first
     if isnothing(dt)

@@ -481,14 +481,13 @@ function get_element_variables!(element_variables, u, mesh, equations, dg::DG, c
 end
 
 function get_node_variables!(node_variables, u_ode, mesh, equations, dg::DG, cache)
-    get_node_variables!(node_variables, u_ode, mesh, equations, dg.volume_integral, dg,
-                        cache)
+    get_node_variables!(node_variables, u_ode, mesh, equations, dg.volume_integral,
+                        dg, cache)
 end
 function get_node_variables!(node_variables, u_ode, mesh, equations, dg::DG, cache,
                              equations_parabolic, cache_parabolic)
-    get_node_variables!(node_variables, u_ode, mesh, equations, dg.volume_integral, dg,
-                        cache,
-                        equations_parabolic, cache_parabolic)
+    get_node_variables!(node_variables, u_ode, mesh, equations, dg.volume_integral,
+                        dg, cache, equations_parabolic, cache_parabolic)
 end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,

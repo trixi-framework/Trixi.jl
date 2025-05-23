@@ -102,8 +102,8 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-# Add `:vorticity` to `node_variables` tuple ...
-node_variables = (:vorticity,)
+# Add `:vorticity` to `extra_node_variables` tuple ...
+extra_node_variables = (:vorticity,)
 
 # ... and specify the function `get_node_variables` for this symbol, 
 # with first argument matching the symbol (turned into a type via `Val`) for dispatching.
@@ -148,7 +148,7 @@ save_solution = SaveSolutionCallback(dt = 1.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
-                                     node_variables = node_variables) # Supply the additional `node_variables` here
+                                     extra_node_variables = extra_node_variables) # Supply the additional `extra_node_variables` here
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
