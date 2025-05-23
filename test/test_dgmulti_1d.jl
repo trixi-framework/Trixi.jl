@@ -165,6 +165,26 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_modified_sod.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "dgmulti_1d",
+                                 "elixir_euler_modified_sod.jl"),
+                        cells_per_dimension=(16,),
+                        l2=[0.26352391505659767, 0.4528974787813885, 0.9310255091126164],
+                        linf=[
+                            0.6268146194274395,
+                            0.8214003799995101,
+                            1.8606901431409795
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_fdsbp_periodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_fdsbp_periodic.jl"),
                         l2=[
@@ -243,6 +263,32 @@ end
                             5.2365944135601694e-5,
                             6.469559594934893e-5,
                             0.0
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_quasi_1d.jl (Polynomial) " begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_quasi_1d.jl"),
+                        cells_per_dimension=(8,),
+                        approximation_type=Polynomial(),
+                        l2=[
+                            3.3742251708854453e-6,
+                            2.9716405988822176e-6,
+                            3.1641250402788772e-6,
+                            1.0482169269991052e-6
+                        ],
+                        linf=[
+                            8.056816211965412e-6,
+                            6.031057946387364e-6,
+                            6.90878439346676e-6,
+                            1.5199471203874992e-6
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)

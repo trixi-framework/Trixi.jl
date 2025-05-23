@@ -12,6 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/julia-format@v3
+      - uses: julia-actions/julia-format@v4
         with:
           version: "1.0.60"

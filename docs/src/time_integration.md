@@ -57,12 +57,12 @@ Formally, this boils down to an optimization problem of the form
 ```math
 \underset{P_{p;S} \, \in \, \mathcal{P}_{p;S}}{\max} \Delta t \text{ such that } \big \vert P_{p;S}(\Delta t \lambda_m) \big \vert \leq 1, \quad  m = 1 , \dots , M \tag{1}
 ```
-where $p$ denotes the order of consistency of the scheme, $S$ is the number of stage evaluations and $M$ denotes the number of eigenvalues $\lambda_m$ of the Jacobian matrix $J \coloneqq \frac{\partial \boldsymbol F}{\partial \boldsymbol U}$ of the right-hand side of the [semidiscretized PDE](https://trixi-framework.github.io/Trixi.jl/stable/overview/#overview-semidiscretizations):
+where $p$ denotes the order of consistency of the scheme, $S$ is the number of stage evaluations and $M$ denotes the number of eigenvalues $\lambda_m$ of the Jacobian matrix $J \coloneqq \frac{\partial \boldsymbol F}{\partial \boldsymbol U}$ of the right-hand side of the [semidiscretized PDE](https://trixi-framework.github.io/TrixiDocumentation/stable/overview/#overview-semidiscretizations):
 ```math
 \dot{\boldsymbol U} = \boldsymbol F(\boldsymbol U) \tag{2} \: .
 ```
 In particular, for $S > p$ the Runge-Kutta method includes some free coefficients which may be used to adapt the domain of absolute stability to the problem at hand.
-Since Trixi.jl [supports exact computation of the Jacobian $J$ by means of automatic differentiation](https://trixi-framework.github.io/Trixi.jl/stable/tutorials/differentiable_programming/), we have access to the Jacobian of a given simulation setup.
+Since Trixi.jl [supports exact computation of the Jacobian $J$ by means of automatic differentiation](https://trixi-framework.github.io/TrixiDocumentation/stable/tutorials/differentiable_programming/), we have access to the Jacobian of a given simulation setup.
 For small (say, up to roughly $10^4$ DoF) systems, the spectrum $\boldsymbol \sigma = \left \{ \lambda_m \right \}_{m=1, \dots, M}$ can be computed directly using [`LinearAlgebra.eigvals(J)`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.eigvals).
 For larger systems, we recommend the procedure outlined in section 4.1 of [Doehring et al. (2024)](https://doi.org/10.1016/j.jcp.2024.113223). This approach computes a reduced set of (estimated) eigenvalues $\widetilde{\boldsymbol \sigma}$ around the convex hull of the spectrum by means of the [Arnoldi method](https://github.com/JuliaLinearAlgebra/Arpack.jl).
 
@@ -153,7 +153,7 @@ Next, we will construct the time integrator. In order to do this, you need the f
   This defines the bounds for the bisection routine for the optimal timestep $\Delta t$ used in calculating the polynomial coefficients at optimization stage.
   This variable is already defined in step 5.
   - Semidiscretization (`semi`): The semidiscretization setup that includes the mesh, equations, initial condition, and solver. In this example, this variable is already defined in step 3.
-  In the background, we compute from `semi` the Jacobian $J$ evaluated at the initial condition using [`jacobian_ad_forward`](https://trixi-framework.github.io/Trixi.jl/stable/reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
+  In the background, we compute from `semi` the Jacobian $J$ evaluated at the initial condition using [`jacobian_ad_forward`](https://trixi-framework.github.io/TrixiDocumentation/stable/reference-trixi/#Trixi.jacobian_ad_forward-Tuple{Trixi.AbstractSemidiscretization}).
   This is then followed by the computation of the spectrum $\boldsymbol \sigma(J)$ using `LinearAlgebra.eigvals`.
   Equipped with the spectrum, the optimal stability polynomial is computed, from which the corresponding Runge-Kutta method is derived. Other constructors (if the coefficients $\boldsymbol{\alpha}$ of the stability polynomial are already available, or if a reduced spectrum $\widetilde{\boldsymbol{\sigma}}$ should be used) are discussed below.
 
@@ -215,3 +215,4 @@ Then, the stable CFL number can be computed as described above.
 
 - [`Trixi.PairedExplicitRK2`](@ref): Second-order PERK method with at least two stages.
 - [`Trixi.PairedExplicitRK3`](@ref): Third-order PERK method with at least three stages.
+- [`Trixi.PairedExplicitRK4`](@ref): Fourth-order PERK method with at least five stages.

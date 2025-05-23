@@ -218,6 +218,8 @@ function solve!(integrator::SimpleIntegrator3Sstar)
         step!(integrator)
     end # "main loop" timer
 
+    finalize_callbacks(integrator)
+
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                                   (prob.u0, integrator.u),
                                   integrator.sol.prob)
