@@ -114,7 +114,7 @@ function Trixi.get_node_variables(::Val{:vorticity}, u, mesh, equations,
                                   equations_parabolic, cache_parabolic)
     n_nodes = nnodes(dg)
     n_elements = nelements(dg, cache)
-    # By definition, node variables must be provided at every node of every element!
+    # By definition, the variable must be provided at every node of every element!
     # Otherwise, the `SaveSolutionCallback` will crash.
     vorticity_array = zeros(eltype(cache.elements),
                             n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
