@@ -313,7 +313,7 @@ This is a small wrapper of `Downloads.download(src_url, file_path)`
 that avoids race conditions when multiple MPI ranks are used.
 Furthermore, when run as part of a GitHub Action, it uses
 token-authenticated downloads to avoid GitHub's rate limiting
-for unauthenticated HTTP request. To use this feature provide
+for unauthenticated HTTP request. To use this feature, provide
 the environment variable `GITHUB_TOKEN`.
 """
 function download(src_url, file_path)
