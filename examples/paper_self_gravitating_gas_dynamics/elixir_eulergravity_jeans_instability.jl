@@ -132,9 +132,8 @@ function Trixi.analyze(::Val{:energy_potential}, du, u_euler, t,
                                               u_gravity) do u, i, j, element,
                                                             equations_euler, dg,
                                                             equations_gravity, u_gravity
-        u_euler_local = Trixi.get_node_vars(u_euler, equations_euler, dg, i, j, element)
-        u_gravity_local = Trixi.get_node_vars(u_gravity, equations_gravity, dg, i, j,
-                                              element)
+        u_euler_local = get_node_vars(u_euler, equations_euler, dg, i, j, element)
+        u_gravity_local = get_node_vars(u_gravity, equations_gravity, dg, i, j, element)
         # OBS! subtraction is specific to Jeans instability test where rho0 = 1.5e7
         # For formula of potential energy see
         # "Galactic Dynamics" by Binney and Tremaine, 2nd ed., equation (2.18)

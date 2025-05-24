@@ -339,7 +339,7 @@ end
 
 Computes the (node-wise) vorticity, defined in 3D as
 ```math
-    \omega = \nabla \times \boldsymbol{v} =
+    \boldsymbol{\omega} = \nabla \times \boldsymbol{v} =
     \begin{pmatrix}
         \frac{\partial v_3}{\partial y} - \frac{\partial v_2}{\partial z} \\
         \frac{\partial v_1}{\partial z} - \frac{\partial v_3}{\partial x} \\
