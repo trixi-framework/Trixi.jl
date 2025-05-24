@@ -456,6 +456,50 @@ function get_data_1d(original_nodes, unstructured_data, nvisnodes, reinterpolate
            vcat(original_nodes[1, 1, :], original_nodes[1, end, end])
 end
 
+# Apply the `solution_variables` function to all node values stored in `u`.
+@inline function apply_solution_variables(u, solution_variables,
+                                          have_aux_node_vars::False, equations,
+                                          solver, cache)
+    n_vars_in = nvariables(equations)
+    n_vars = length(solution_variables(get_node_vars(u, equations, solver),
+                                       equations))
+    raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
+    reshaped_u = reshape(u, n_vars_in, :)
+    reshaped_r = reshape(raw_data, n_vars, :)
+    for idx in axes(reshaped_u, 2)
+        u_node = get_node_vars(reshaped_u, equations, solver, idx)
+        reshaped_r[:, idx] = solution_variables(u_node, equations)
+    end
+    return raw_data
+end
+
+# Apply the `solution_variables` function to all node values stored in `u`.
+# Dispatch on `have_aux_node_vars` to take into account auxiliary variables.
+# Similar to `save_solution_file` in `callbacks_step/save_solution_dg.jl`.
+# However, we cannot use `reinterpret` here as `u` might have a non-bits type.
+# See https://github.com/trixi-framework/Trixi.jl/pull/2388
+@inline function apply_solution_variables(u, solution_variables,
+                                          have_aux_node_vars::True, equations,
+                                          solver, cache)
+    @unpack aux_node_vars = cache.aux_vars
+    n_vars_in = nvariables(equations)
+    n_vars_aux = n_aux_node_vars(equations)
+    n_vars = length(solution_variables(get_node_vars(u, equations, solver),
+                                       get_aux_node_vars(aux_node_vars,
+                                                         equations, solver),
+                                       equations))
+    raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
+    reshaped_u = reshape(u, n_vars_in, :)
+    reshaped_r = reshape(raw_data, n_vars, :)
+    reshaped_aux = reshape(aux_node_vars, n_vars_aux, :)
+    for idx in axes(reshaped_u, 2)
+        u_node = get_node_vars(reshaped_u, equations, solver, idx)
+        aux_node = get_aux_node_vars(reshaped_aux, equations, solver, idx)
+        reshaped_r[:, idx] = solution_variables(u_node, aux_node, equations)
+    end
+    return raw_data
+end
+
 # Change order of dimensions (variables are now last) and convert data to `solution_variables`
 #
 # Note: This is a low-level function that is not considered as part of Trixi.jl's interface and may
@@ -465,22 +509,11 @@ function get_unstructured_data(u, solution_variables, mesh, equations, solver, c
         raw_data = u
         n_vars = size(raw_data, 1)
     else
-        # Similar to `save_solution_file` in `callbacks_step/save_solution_dg.jl`.
-        # However, we cannot use `reinterpret` here as `u` might have a non-bits type.
-        # See https://github.com/trixi-framework/Trixi.jl/pull/2388
-        n_vars_in = nvariables(equations)
-        n_vars = length(solution_variables(get_node_vars(u, equations, solver),
-                                           equations))
-        raw_data = Array{eltype(u)}(undef, n_vars, Base.tail(size(u))...)
-        reshaped_u = reshape(u, n_vars_in, :)
-        reshaped_r = reshape(raw_data, n_vars, :)
-        for idx in axes(reshaped_u, 2)
-            reshaped_r[:, idx] = solution_variables(get_node_vars(reshaped_u, equations,
-                                                                  solver, idx),
-                                                    equations)
-        end
+        raw_data = apply_solution_variables(u, solution_variables,
+                                            have_aux_node_vars(equations),
+                                            equations, solver, cache)
+        n_vars = size(raw_data, 1)
     end
-
     unstructured_data = Array{eltype(raw_data)}(undef,
                                                 ntuple((d) -> nnodes(solver),
                                                        ndims(equations))...,
