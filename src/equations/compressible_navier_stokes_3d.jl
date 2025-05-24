@@ -317,6 +317,16 @@ end
     return SVector(v1, v2, v3)
 end
 
+@doc raw"""
+    enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+
+Computes the (node-wise) enstrophy, defined as
+```math
+    \mathcal{E} = \frac{1}{2} \rho \boldsymbol{\omega} \cdot \boldsymbol{\omega}
+```
+where ``\boldsymbol{\omega} = \nabla \times \boldsymbol{v}`` is the [`vorticity`](@ref).
+In 3D, ``\boldsymbol{\omega}`` is a full three-component vector.
+"""
 @inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
@@ -324,14 +334,24 @@ end
     return 0.5f0 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
 end
 
+@doc raw"""
+    vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+
+Computes the (node-wise) vorticity, defined in 3D as
+```math
+    \omega = \nabla \times \boldsymbol{v} =
+    \begin{pmatrix}
+        \frac{\partial v_3}{\partial y} - \frac{\partial v_2}{\partial z} \\
+        \frac{\partial v_1}{\partial z} - \frac{\partial v_3}{\partial x} \\
+        \frac{\partial v_2}{\partial x} - \frac{\partial v_1}{\partial y}
+    \end{pmatrix}
+```
+"""
 @inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
     # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
-    _, dv1dx, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1],
-                                                                equations)
-    _, dv1dy, dv2dy, dv3dy, _ = convert_derivative_to_primitive(u, gradients[2],
-                                                                equations)
-    _, dv1dz, dv2dz, dv3dz, _ = convert_derivative_to_primitive(u, gradients[3],
-                                                                equations)
+    _, _, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, dv1dy, _, dv3dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+    _, dv1dz, dv2dz, _, _ = convert_derivative_to_primitive(u, gradients[3], equations)
 
     return SVector(dv3dy - dv2dz, dv1dz - dv3dx, dv2dx - dv1dy)
 end
@@ -358,7 +378,6 @@ end
                                                                                       t,
                                                                                       operator_type::Divergence,
                                                                                       equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
-    # rho, v1, v2, v3, _ = u_inner
     normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
                                                                                                            t,
                                                                                                            equations)
@@ -472,5 +491,29 @@ end
                                                                                        equations::CompressibleNavierStokesDiffusion3D{GradientVariablesEntropy})
     return SVector(flux_inner[1], flux_inner[2], flux_inner[3], flux_inner[4],
                    flux_inner[5])
+end
+
+# Dirichlet Boundary Condition for e.g. P4est mesh
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Gradient,
+                                                                  equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+    # BCs are usually specified as conservative variables so we convert them to primitive variables
+    #  because the gradients are assumed to be with respect to the primitive variables
+    u_boundary = boundary_condition.boundary_value_function(x, t, equations)
+
+    return cons2prim(u_boundary, equations)
+end
+
+@inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
+                                                                  u_inner,
+                                                                  normal::AbstractVector,
+                                                                  x, t,
+                                                                  operator_type::Divergence,
+                                                                  equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+    # for Dirichlet boundary conditions, we do not impose any conditions on the viscous fluxes
+    return flux_inner
 end
 end # @muladd

@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -28,14 +28,15 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
 #   to numerical partial differential equations.
 #   [DOI](https://doi.org/10.1007/978-3-319-41640-3_6).
 function initial_condition_eriksson_johnson(x, t, equations)
+    RealT = eltype(x)
     l = 4
     epsilon = diffusivity() # TODO: this requires epsilon < .6 due to sqrt
     lambda_1 = (-1 + sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
     lambda_2 = (-1 - sqrt(1 - 4 * epsilon * l)) / (-2 * epsilon)
-    r1 = (1 + sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
-    s1 = (1 - sqrt(1 + 4 * pi^2 * epsilon^2)) / (2 * epsilon)
+    r1 = (1 + sqrt(1 + 4 * convert(RealT, pi)^2 * epsilon^2)) / (2 * epsilon)
+    s1 = (1 - sqrt(1 + 4 * convert(RealT, pi)^2 * epsilon^2)) / (2 * epsilon)
     u = exp(-l * t) * (exp(lambda_1 * x[1]) - exp(lambda_2 * x[1])) +
-        cos(pi * x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) / (exp(-s1) - exp(-r1))
+        cospi(x[2]) * (exp(s1 * x[1]) - exp(r1 * x[1])) / (exp(-s1) - exp(-r1))
     return SVector{1}(u)
 end
 initial_condition = initial_condition_eriksson_johnson
@@ -51,6 +52,7 @@ boundary_conditions_parabolic = BoundaryConditionDirichlet(initial_condition)
 semi = SemidiscretizationHyperbolicParabolic(mesh,
                                              (equations, equations_parabolic),
                                              initial_condition, solver;
+                                             solver_parabolic = ViscousFormulationBassiRebay1(),
                                              boundary_conditions = (boundary_conditions,
                                                                     boundary_conditions_parabolic))
 
@@ -82,6 +84,3 @@ callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback)
 time_int_tol = 1.0e-11
 sol = solve(ode, RDPK3SpFSAL49(); abstol = time_int_tol, reltol = time_int_tol,
             ode_default_options()..., callback = callbacks)
-
-# Print the timer summary
-summary_callback()

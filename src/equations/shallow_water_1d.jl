@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquations1D(; gravity, H0 = 0)
+    ShallowWaterEquations1D(; gravity_constant, H0 = 0)
 
 Shallow water equations (SWE) in one space dimension. The equations are given by
 ```math
@@ -160,9 +160,12 @@ For details see Section 9.2.5 of the book:
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation_or_normal, direction,
                                               x, t,
-                                              surface_flux_function,
+                                              surface_flux_functions,
                                               equations::ShallowWaterEquations1D)
 
+    # The boundary conditions for the non-conservative term are identically 0 here.
+    # Bottom topography is assumed to be continuous at the boundary.
+    surface_flux_function, nonconservative_flux_function = surface_flux_functions
     # create the "external" boundary solution state
     u_boundary = SVector(u_inner[1],
                          -u_inner[2],
@@ -172,12 +175,18 @@ For details see Section 9.2.5 of the book:
     if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = surface_flux_function(u_inner, u_boundary, orientation_or_normal,
                                      equations)
+        noncons_flux = nonconservative_flux_function(u_inner, u_boundary,
+                                                     orientation_or_normal,
+                                                     equations)
     else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         flux = surface_flux_function(u_boundary, u_inner, orientation_or_normal,
                                      equations)
+        noncons_flux = nonconservative_flux_function(u_boundary, u_inner,
+                                                     orientation_or_normal,
+                                                     equations)
     end
 
-    return flux
+    return flux, noncons_flux
 end
 
 # Calculate 1D flux for a single point
@@ -420,6 +429,22 @@ end
     c_rr = sqrt(equations.gravity * h_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::ShallowWaterEquations1D)
+    # Get the velocity quantities
+    v_ll = velocity(u_ll, equations)
+    v_rr = velocity(u_rr, equations)
+
+    # Calculate the wave celerity on the left and right
+    h_ll = waterheight(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
 end
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography

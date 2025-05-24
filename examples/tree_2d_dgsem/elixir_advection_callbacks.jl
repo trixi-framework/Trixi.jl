@@ -1,12 +1,11 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # define new structs inside a module to allow re-evaluating the file
 module TrixiExtensionExample
 
 using Trixi
-using OrdinaryDiffEq: DiscreteCallback, u_modified!
+using OrdinaryDiffEqSSPRK: DiscreteCallback, u_modified!
 
 # This is an example implementation for a simple stage callback (i.e., a callable
 # that is executed after each Runge-Kutta *stage*), which records some values
@@ -130,7 +129,7 @@ save_solution = SaveSolutionCallback(interval = 100,
                                      save_final_solution = true,
                                      solution_variables = cons2cons)
 
-example_callback = TrixiExtensionExample.ExampleStepCallback(message = "안녕하세요?")
+example_callback = TrixiExtensionExample.ExampleStepCallback(message = "Initializing callback")
 
 stepsize_callback = StepsizeCallback(cfl = 1.6)
 
@@ -154,10 +153,9 @@ example_stage_callback! = TrixiExtensionExample.ExampleStageCallback()
 # run the simulation
 
 sol = solve(ode,
-            CarpenterKennedy2N54(example_stage_callback!, williamson_condition = false),
+            CarpenterKennedy2N54(example_stage_callback!, williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);
 
 # Check whether we recorded the same values.
 # Remember that CarpenterKennedy2N54 has five stages per step.

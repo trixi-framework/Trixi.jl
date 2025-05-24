@@ -54,6 +54,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Maxwell
     include("test_tree_1d_maxwell.jl")
+
+    # Passive tracers
+    include("test_tree_1d_passive_tracers.jl")
 end
 
 # Coverage test for all initial conditions
@@ -254,7 +257,7 @@ end
 
     # Create a simulation setup
     using Trixi
-    using OrdinaryDiffEq
+    using OrdinaryDiffEqTsit5
 
     equation = NonconservativeLinearAdvectionEquation()
 
@@ -291,8 +294,8 @@ end
 
     # OrdinaryDiffEq's `solve` method evolves the solution in time and executes
     # the passed callbacks
-    sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6,
-                save_everystep = false, callback = callbacks)
+    sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
+                ode_default_options()..., callback = callbacks)
 
     @test analysis_callback(sol).l2 ≈ [0.00029609575838969394, 5.5681704039507985e-6]
 end

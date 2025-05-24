@@ -1,8 +1,78 @@
 # Changelog
 
-Trixi.jl follows the interpretation of [semantic versioning (semver)](https://julialang.github.io/Pkg.jl/dev/compatibility/#Version-specifier-format-1)
+Trixi.jl follows the interpretation of
+[semantic versioning (semver)](https://julialang.github.io/Pkg.jl/dev/compatibility/#Version-specifier-format-1)
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
+
+
+## Changes in the v0.11 lifecycle
+
+#### Added
+
+- Added `LaplaceDiffusionEntropyVariables1D`, `LaplaceDiffusionEntropyVariables2D`, and `LaplaceDiffusionEntropyVariables3D`. These add scalar diffusion to each
+  equation of a system, but apply diffusion in terms of the entropy variables, which symmetrizes the viscous formulation and ensures semi-discrete entropy dissipation ([#2406]).
+- Added the three-dimensional multi-ion magneto-hydrodynamics (MHD) equations with a
+  generalized Lagrange multipliers (GLM) divergence cleaning technique ([#2215]).
+- New time integrator `PairedExplicitRK4`, implementing the fourth-order
+  paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
+  and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
+- Passive tracers for arbitrary equations with density and flow variables ([#2364])
+
+#### Deprecated
+
+- The (2D) aerodynamic coefficients 
+  `DragCoefficientPressure, LiftCoefficientPressure, DragCoefficientShearStress, LiftCoefficientShearStress` have been renamed to 
+  `DragCoefficientPressure2D, LiftCoefficientPressure2D, DragCoefficientShearStress2D, LiftCoefficientShearStress2D`. ([#2375])
+
+## Changes when updating to v0.11 from v0.10.x
+
+#### Added
+
+#### Changed
+
+- The `CallbackSet` from the OrdinaryDiffEq.jl ecosystem is `export`ed from Trixi.jl ([@2266]).
+- The examples switched from OrdinaryDiffEq.jl to its sub-packages such as
+  OrdinaryDiffEqLowStorageRK.jl and OrdinaryDiffEqSSPRK.jl ([@2266]). The installation
+  instructions for Trixi.jl have been updated accordingly.
+- The output of the `SummaryCallback` will automatically be printed after the simulation
+  is finished. Therefore, manually calling `summary_callback()` is not necessary anymore ([#2275]).
+- The two performance numbers (local `time/DOF/rhs!` and performance index `PID`)
+  are now computed taking into account the number of threads ([#2292]). This allows
+  for a better comparison of shared memory (threads) and hybrid (MPI + threads) simulations
+  with serial simulations.
+
+#### Deprecated
+
+#### Removed
+
+
+## Changes when updating to v0.10 from v0.9.x
+
+#### Added
+
+#### Changed
+
+- The numerical solution is wrapped in a `VectorOfArrays` from
+  [RecursiveArrayTools.jl](https://github.com/SciML/RecursiveArrayTools.jl)
+  for `DGMulti` solvers ([#2150]). You can use `Base.parent` to unwrap
+  the original data.
+- The `PairedExplicitRK2` constructor with second argument `base_path_monomial_coeffs::AbstractString` requires
+  now `dt_opt`, `bS`, `cS` to be given as keyword arguments ([#2184]).
+  Previously, those where standard function parameters, in the same order as listed above.
+- The `AnalysisCallback` output generated with the `save_analysis = true` option now prints
+  floating point numbers in their respective (full) precision.
+  Previously, only the first 8 digits were printed to file.
+  Furthermore, the names of the printed fields are now only separated by a single white space,
+  in contrast to before where this were multiple, depending on the actual name of the printed data.
+- The boundary conditions for non-conservative equations can now be defined separately from the conservative part.
+  The `surface_flux_functions` tuple is now passed directly to the boundary condition call,
+  returning a tuple with boundary condition values for both the conservative and non-conservative parts ([#2200]).
+
+#### Deprecated
+
+#### Removed
+
 
 ## Changes in the v0.9 lifecycle
 
@@ -13,6 +83,17 @@ for human readability.
   and [NLsolve.jl](https://github.com/JuliaNLSolvers/NLsolve.jl) ([#2008])
 - `LobattoLegendreBasis` and related datastructures made fully floating-type general,
   enabling calculations with higher than double (`Float64`) precision ([#2128])
+- In 2D, quadratic elements, i.e., 8-node (quadratic) quadrilaterals are now supported in standard Abaqus `inp` format ([#2217])
+- The `cfl` value supplied in the `StepsizeCallback` and `GlmStepsizeCallback` can now be a function of simulation
+  time `t` to enable e.g. a ramp-up of the CFL value.
+  This is useful for simulations that are initialized with an "unphysical" initial condition, but do not permit the usage of
+  adaptive, error-based timestepping.
+  Examples for this are simulations involving the MHD equations which require in general the `GlmStepsizeCallback` ([#2248])
+
+#### Changed
+
+- The required Julia version is updated to v1.10.
+
 
 ## Changes when updating to v0.9 from v0.8.x
 
@@ -22,14 +103,14 @@ for human readability.
 
 #### Changed
 
-- We removed the first argument `semi` corresponding to a `Semidiscretization` from the 
+- We removed the first argument `semi` corresponding to a `Semidiscretization` from the
   `AnalysisSurfaceIntegral` constructor, as it is no longer needed (see [#1959]).
   The `AnalysisSurfaceIntegral` now only takes the arguments `boundary_symbols` and `variable`.
   ([#2069])
 - In functions `rhs!`, `rhs_parabolic!`  we removed the unused argument `initial_condition`. ([#2037])
   Users should not be affected by this.
-- Nonconservative terms depend only on `normal_direction_average` instead of both 
-  `normal_direction_average` and `normal_direction_ll`, such that the function signature is now 
+- Nonconservative terms depend only on `normal_direction_average` instead of both
+  `normal_direction_average` and `normal_direction_ll`, such that the function signature is now
   identical with conservative fluxes. This required a change of the `normal_direction` in
   `flux_nonconservative_powell` ([#2062]).
 

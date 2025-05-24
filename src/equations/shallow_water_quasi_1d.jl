@@ -6,7 +6,7 @@
 #! format: noindent
 
 @doc raw"""
-    ShallowWaterEquationsQuasi1D(; gravity, H0 = 0, threshold_limiter = nothing threshold_wet = nothing)
+    ShallowWaterEquationsQuasi1D(; gravity_constant, H0 = 0)
 
 The quasi-1D shallow water equations (SWE). The equations are given by
 ```math
@@ -231,6 +231,22 @@ end
     c_rr = sqrt(equations.gravity * h_rr)
 
     return max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::ShallowWaterEquationsQuasi1D)
+    # Get the velocity quantities
+    v_ll = velocity(u_ll, equations)
+    v_rr = velocity(u_rr, equations)
+
+    # Calculate the wave celerity on the left and right
+    h_ll = waterheight(u_ll, equations)
+    h_rr = waterheight(u_rr, equations)
+    c_ll = sqrt(equations.gravity * h_ll)
+    c_rr = sqrt(equations.gravity * h_rr)
+
+    return max(abs(v_ll) + c_ll, abs(v_rr) + c_rr)
 end
 
 # Specialized `DissipationLocalLaxFriedrichs` to avoid spurious dissipation in the bottom topography

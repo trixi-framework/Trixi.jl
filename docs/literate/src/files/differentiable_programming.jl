@@ -216,7 +216,7 @@ norm(J[1:4:end])
 # the total energy of a simulation using the linear scalar advection equation with respect to the
 # wave number (frequency) of the initial data.
 
-using Trixi, OrdinaryDiffEq, ForwardDiff, Plots
+using Trixi, OrdinaryDiffEqLowOrderRK, ForwardDiff, Plots
 
 function energy_at_final_time(k) # k is the wave number of the initial condition
     equations = LinearScalarAdvectionEquation2D(1.0, -0.3)
@@ -230,7 +230,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
-    sol = solve(ode, BS3(), save_everystep = false)
+    sol = solve(ode, BS3(); ode_default_options()...)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
@@ -280,7 +280,7 @@ function energy_at_final_time(k) # k is the wave number of the initial condition
     semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                         uEltype = typeof(k))
     ode = semidiscretize(semi, (0.0, 1.0))
-    sol = solve(ode, BS3(), save_everystep = false)
+    sol = solve(ode, BS3(); ode_default_options()...)
     Trixi.integrate(energy_total, sol.u[end], semi)
 end
 
@@ -330,7 +330,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
 # does. This is basically the only part where you need to modify your standard Trixi.jl
 # code to enable automatic differentiation. From there on, the remaining steps
 ode = semidiscretize(semi, (0.0, 1.0))
-sol = solve(ode, BS3(), save_everystep = false)
+sol = solve(ode, BS3(); ode_default_options()...)
 round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5)
 @test round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5) == 0.24986 #src
 
@@ -349,7 +349,7 @@ round(Trixi.integrate(energy_total, sol.u[end], semi), sigdigits = 5)
 # sine wave as initial condition, solve the ODE, and plot the resulting uncertainties
 # in the primitive variables.
 
-using Trixi, OrdinaryDiffEq, Measurements, Plots, LaTeXStrings
+using Trixi, OrdinaryDiffEqLowOrderRK, Measurements, Plots, LaTeXStrings
 
 equations = LinearScalarAdvectionEquation1D(1.0 ± 0.1)
 
@@ -362,7 +362,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition_convergen
 
 ode = semidiscretize(semi, (0.0, 1.5))
 
-sol = solve(ode, BS3(), save_everystep = false);
+sol = solve(ode, BS3(); ode_default_options()...);
 
 plot(sol)
 
@@ -453,5 +453,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots", "ForwardDiff"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowOrderRK", "Plots", "ForwardDiff"],
            mode = PKGMODE_MANIFEST)

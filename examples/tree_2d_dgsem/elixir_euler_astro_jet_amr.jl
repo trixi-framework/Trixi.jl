@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -7,24 +6,25 @@ using Trixi
 gamma = 5 / 3
 equations = CompressibleEulerEquations2D(gamma)
 
-# Initial condition adopted from 
+# Initial condition adopted from
 # - Yong Liu, Jianfang Lu, and Chi-Wang Shu
 #   An oscillation free discontinuous Galerkin method for hyperbolic systems
 #   https://tinyurl.com/c76fjtx4
 # Mach = 2000 jet
 function initial_condition_astro_jet(x, t, equations::CompressibleEulerEquations2D)
+    RealT = eltype(x)
     @unpack gamma = equations
-    rho = 0.5
+    rho = 0.5f0
     v1 = 0
     v2 = 0
-    p = 0.4127
+    p = convert(RealT, 0.4127)
     # add inflow for t>0 at x=-0.5
     # domain size is [-0.5,+0.5]^2
-    if (t > 0) && (x[1] ≈ -0.5) && (abs(x[2]) < 0.05)
-        rho = 5
+    if (t > 0) && (x[1] ≈ -0.5f0) && (abs(x[2]) < RealT(0.05))
+        rho = 5.0f0
         v1 = 800 # about Mach number Ma = 2000
         v2 = 0
-        p = 0.4127
+        p = convert(RealT, 0.4127)
     end
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -110,4 +110,3 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 # use adaptive time stepping based on error estimates, time step roughly dt = 1e-7
 sol = solve(ode, SSPRK43(stage_limiter!);
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary
