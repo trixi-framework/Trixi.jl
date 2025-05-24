@@ -88,10 +88,10 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
 """
 @inline function boundary_condition_slip_wall(u_inner,
-                                                    normal_direction::AbstractVector,
-                                                    x, t,
-                                                    surface_flux_function,
-                                                    equations::CompressibleEulerEquationsWithGravity3D)
+                                              normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquationsWithGravity3D)
     norm_ = norm(normal_direction)
     # Normalize the vector without using `normalize` since we need to multiply by the `norm_` later
     normal = normal_direction / norm_
@@ -109,7 +109,8 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
     u_local = rotate_to_x(u_inner, normal, tangent1, tangent2, equations)
 
     # compute the primitive variables
-    rho_local, v_normal, v_tangent1, v_tangent2, p_local, _ = cons2prim(u_local, equations)
+    rho_local, v_normal, v_tangent1, v_tangent2, p_local, _ = cons2prim(u_local,
+                                                                        equations)
 
     # Get the solution of the pressure Riemann problem
     # See Section 6.3.3 of
@@ -152,9 +153,9 @@ end
 Should be used together with [`TreeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, orientation,
-                                                    direction, x, t,
-                                                    surface_flux_function,
-                                                    equations::CompressibleEulerEquationsWithGravity3D)
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquationsWithGravity3D)
     # get the appropriate normal vector from the orientation
     RealT = eltype(u_inner)
     if orientation == 1
@@ -177,10 +178,10 @@ end
 Should be used together with [`StructuredMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner,
-                                                    normal_direction::AbstractVector,
-                                                    direction, x, t,
-                                                    surface_flux_function,
-                                                    equations::CompressibleEulerEquationsWithGravity3D)
+                                              normal_direction::AbstractVector,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquationsWithGravity3D)
     # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
     # to be inward pointing on the -x, -y, and -z sides due to the orientation convention used by StructuredMesh
     if isodd(direction)
@@ -198,7 +199,7 @@ end
 
 # Calculate 3D flux for a single point
 @inline function flux(u, orientation::Integer,
-                            equations::CompressibleEulerEquationsWithGravity3D)
+                      equations::CompressibleEulerEquationsWithGravity3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, phi = u
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
@@ -230,7 +231,7 @@ end
 # Calculate 2D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
-                            equations::CompressibleEulerEquationsWithGravity3D)
+                      equations::CompressibleEulerEquationsWithGravity3D)
     rho_e = u[5]
     rho, v1, v2, v3, p, _ = cons2prim(u, equations)
 
@@ -262,7 +263,7 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
   [DOI: 10.1016/j.jcp.2020.110060](https://doi.org/10.1016/j.jcp.2020.110060)
 """
 @inline function flux_shima_etal(u_ll, u_rr, orientation::Integer,
-                                       equations::CompressibleEulerEquationsWithGravity3D)
+                                 equations::CompressibleEulerEquationsWithGravity3D)
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
@@ -303,7 +304,7 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
 end
 
 @inline function flux_shima_etal(u_ll, u_rr, normal_direction::AbstractVector,
-                                       equations::CompressibleEulerEquationsWithGravity3D)
+                                 equations::CompressibleEulerEquationsWithGravity3D)
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
@@ -344,7 +345,7 @@ Kinetic energy preserving two-point flux by
   [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
 @inline function flux_kennedy_gruber(u_ll, u_rr, normal_direction::AbstractVector,
-                                           equations::CompressibleEulerEquationsWithGravity3D)
+                                     equations::CompressibleEulerEquationsWithGravity3D)
     # Unpack left and right state
     rho_e_ll = u_ll[5]
     rho_e_rr = u_rr[5]
@@ -381,7 +382,7 @@ Entropy conserving two-point flux by
   [DOI: 10.4208/cicp.170712.010313a](https://doi.org/10.4208/cicp.170712.010313a)
 """
 @inline function flux_chandrashekar(u_ll, u_rr, orientation::Integer,
-                                          equations::CompressibleEulerEquationsWithGravity3D)
+                                    equations::CompressibleEulerEquationsWithGravity3D)
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
@@ -433,7 +434,7 @@ Entropy conserving two-point flux by
 end
 
 @inline function flux_chandrashekar(u_ll, u_rr, normal_direction::AbstractVector,
-                                          equations::CompressibleEulerEquationsWithGravity3D)
+                                    equations::CompressibleEulerEquationsWithGravity3D)
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
@@ -486,7 +487,7 @@ See also
   [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
 @inline function flux_ranocha(u_ll, u_rr, orientation::Integer,
-                                    equations::CompressibleEulerEquationsWithGravity3D)
+                              equations::CompressibleEulerEquationsWithGravity3D)
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
@@ -535,7 +536,7 @@ See also
 end
 
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
-                                    equations::CompressibleEulerEquationsWithGravity3D)
+                              equations::CompressibleEulerEquationsWithGravity3D)
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
@@ -697,7 +698,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
-                                           equations::CompressibleEulerEquationsWithGravity3D)
+                                     equations::CompressibleEulerEquationsWithGravity3D)
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
 
@@ -720,14 +721,14 @@ end
 end
 
 @inline function max_abs_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
-                                           equations::CompressibleEulerEquationsWithGravity3D)
+                                     equations::CompressibleEulerEquationsWithGravity3D)
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
 
     # Calculate normal velocities and sound speed
     # left
     v_ll = (v1_ll * normal_direction[1] +
-            v2_ll * normal_direction[2] + 
+            v2_ll * normal_direction[2] +
             v3_ll * normal_direction[3])
     c_ll = sqrt(equations.gamma * p_ll / rho_ll)
     # right
@@ -741,7 +742,7 @@ end
 
 # Calculate estimates for minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, orientation::Integer,
-                                           equations::CompressibleEulerEquationsWithGravity3D)
+                                     equations::CompressibleEulerEquationsWithGravity3D)
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
 
@@ -760,7 +761,7 @@ end
 end
 
 @inline function min_max_speed_naive(u_ll, u_rr, normal_direction::AbstractVector,
-                                           equations::CompressibleEulerEquationsWithGravity3D)
+                                     equations::CompressibleEulerEquationsWithGravity3D)
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll, _ = cons2prim(u_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr, _ = cons2prim(u_rr, equations)
 
@@ -781,7 +782,7 @@ end
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the directions
 # has been normalized prior to this rotation of the state vector
 @inline function rotate_to_x(u, normal_vector, tangent1, tangent2,
-                                   equations::CompressibleEulerEquationsWithGravity3D)
+                             equations::CompressibleEulerEquationsWithGravity3D)
     # Multiply with [ 1   0        0       0   0;
     #                 0   ―  normal_vector ―   0;
     #                 0   ―    tangent1    ―   0;
@@ -799,7 +800,7 @@ end
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the directions
 # has been normalized prior to this back-rotation of the state vector
 @inline function rotate_from_x(u, normal_vector, tangent1, tangent2,
-                                     equations::CompressibleEulerEquationsWithGravity3D)
+                               equations::CompressibleEulerEquationsWithGravity3D)
     # Multiply with [ 1        0          0        0      0;
     #                 0        |          |        |      0;
     #                 0  normal_vector tangent1 tangent2  0;
@@ -813,7 +814,7 @@ end
 end
 
 @inline function max_abs_speeds(u,
-                                      equations::CompressibleEulerEquationsWithGravity3D)
+                                equations::CompressibleEulerEquationsWithGravity3D)
     rho, v1, v2, v3, p, _ = cons2prim(u, equations)
     c = sqrt(equations.gamma * p / rho)
 
@@ -835,7 +836,7 @@ end
 
 # Convert conservative variables to entropy
 @inline function cons2entropy(u,
-                                    equations::CompressibleEulerEquationsWithGravity3D)
+                              equations::CompressibleEulerEquationsWithGravity3D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, phi = u
 
     v1 = rho_v1 / rho
@@ -857,7 +858,7 @@ end
 end
 
 @inline function entropy2cons(w,
-                                    equations::CompressibleEulerEquationsWithGravity3D)
+                              equations::CompressibleEulerEquationsWithGravity3D)
     # See Hughes, Franca, Mallet (1986) A new finite element formulation for CFD
     # [DOI: 10.1016/0045-7825(86)90127-1](https://doi.org/10.1016/0045-7825(86)90127-1)
     @unpack gamma = equations
@@ -886,7 +887,7 @@ end
 
 # Convert primitive to conservative variables
 @inline function prim2cons(prim,
-                                 equations::CompressibleEulerEquationsWithGravity3D)
+                           equations::CompressibleEulerEquationsWithGravity3D)
     rho, v1, v2, v3, p, phi = prim
     rho_v1 = rho * v1
     rho_v2 = rho * v2
@@ -910,22 +911,22 @@ end
 end
 
 @inline function velocity(u, orientation::Int,
-                                equations::CompressibleEulerEquationsWithGravity3D)
+                          equations::CompressibleEulerEquationsWithGravity3D)
     rho = u[1]
     v = u[orientation + 1] / rho
     return v
 end
 
 @inline function pressure(u, equations::CompressibleEulerEquationsWithGravity3D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e = u
+    rho, rho_v1, rho_v2, rho_v3, rho_e, phi = u
     p = (equations.gamma - 1) *
         (rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho - rho * phi)
     return p
 end
 
 @inline function density_pressure(u,
-                                        equations::CompressibleEulerEquationsWithGravity3D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e = u
+                                  equations::CompressibleEulerEquationsWithGravity3D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e, phi = u
     rho_times_p = (equations.gamma - 1) *
                   (rho * rho_e - 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) - rho^2 * phi)
     return rho_times_p
@@ -933,7 +934,7 @@ end
 
 # Calculate thermodynamic entropy for a conservative state `u`
 @inline function entropy_thermodynamic(u,
-                                             equations::CompressibleEulerEquationsWithGravity3D)
+                                       equations::CompressibleEulerEquationsWithGravity3D)
     rho, _ = u
     p = pressure(u, equations)
 
@@ -945,7 +946,7 @@ end
 
 # Calculate mathematical entropy for a conservative state `cons`
 @inline function entropy_math(cons,
-                                    equations::CompressibleEulerEquationsWithGravity3D)
+                              equations::CompressibleEulerEquationsWithGravity3D)
     S = -entropy_thermodynamic(cons, equations) * cons[1] *
         equations.inv_gamma_minus_one
     # Mathematical entropy
@@ -963,14 +964,14 @@ end
 
 # Calculate kinetic energy for a conservative state `cons`
 @inline function energy_kinetic(u,
-                                      equations::CompressibleEulerEquationsWithGravity3D)
+                                equations::CompressibleEulerEquationsWithGravity3D)
     rho, rho_v1, rho_v2, rho_v3, _ = u
     return 0.5f0 * (rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
 end
 
 # Calculate internal energy for a conservative state `cons`
 @inline function energy_internal(cons,
-                                       equations::CompressibleEulerEquationsWithGravity3D)
+                                 equations::CompressibleEulerEquationsWithGravity3D)
     return energy_total(cons, equations) - energy_kinetic(cons, equations) -
            cons[1] * cons[6]
 end

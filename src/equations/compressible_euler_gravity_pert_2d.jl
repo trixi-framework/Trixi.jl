@@ -60,9 +60,11 @@ function cons2aux(u, aux, equations::CompressibleEulerEquationsPerturbationGravi
     return SVector(aux[1], aux[2], aux[3], aux[4], aux[5])
 end
 
-varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbationGravity2D) =
-    ("rho_steady", "rho_v1_steady", "rho_v2_steady", "rho_e_steady", "geopotential")
-
+varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbationGravity2D) = ("rho_steady",
+                                                                                   "rho_v1_steady",
+                                                                                   "rho_v2_steady",
+                                                                                   "rho_e_steady",
+                                                                                   "geopotential")
 
 # Add steady state to current perturbations (in conserved variables)
 @inline function cons2cons_total(u, aux,
@@ -78,7 +80,8 @@ end
     phi = aux[5]
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
-    p = (equations.equations_total.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2) - rho * phi)
+    p = (equations.equations_total.gamma - 1) *
+        (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2) - rho * phi)
     return SVector(rho, v1, v2, p)
 end
 
@@ -90,8 +93,10 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     p = (equations.equations_total.gamma - 1) * (rho_e
-                                                 - 0.5 * (rho_v1 * v1 + rho_v2 * v2)
-                                                 - rho * phi)
+         -
+         0.5 * (rho_v1 * v1 + rho_v2 * v2)
+         -
+         rho * phi)
     return p
 end
 
@@ -113,20 +118,25 @@ end
     return cons2prim_geopot(u_total, aux, equations)
 end
 
-varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbationGravity2D) =
-    ("rho_total", "v1_total", "v2_total", "p_total")
+varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbationGravity2D) = ("rho_total",
+                                                                                          "v1_total",
+                                                                                          "v2_total",
+                                                                                          "p_total")
 
 # Convert perturbation in conservative variables to perturbation in primitive variables
 # cons2prim applied to perturbations might fail when rho ~ 0
 # this will likewise fail when steady rho ~ 0
-@inline function cons2prim_pert(u, aux, equations::CompressibleEulerEquationsPerturbationGravity2D)
+@inline function cons2prim_pert(u, aux,
+                                equations::CompressibleEulerEquationsPerturbationGravity2D)
     u_prim_total = cons2prim_total(u, aux, equations)
-    u_prim_steady = pressure_steady(aux, equations)
+    u_prim_steady = cons2prim_geopot(aux, aux, equations)
     return u_prim_total - u_prim_steady
 end
 
-varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbationGravity2D) =
-    ("rho_pert", "v1_pert", "v2_pert", "p_pert")
+varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbationGravity2D) = ("rho_pert",
+                                                                                         "v1_pert",
+                                                                                         "v2_pert",
+                                                                                         "p_pert")
 
 """
     boundary_condition_slip_wall(u_inner, normal_direction, x, t, surface_flux_function,
@@ -166,7 +176,8 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
     u_local = rotate_to_x(u_inner_total, normal, equations)
 
     # compute the primitive variables
-    rho_local, v_normal, v_tangent, p_local = cons2prim_geopot(u_local, aux_inner, equations)
+    rho_local, v_normal, v_tangent, p_local = cons2prim_geopot(u_local, aux_inner,
+                                                               equations)
 
     # Get the solution of the pressure Riemann problem
     # See Section 6.3.3 of
@@ -177,8 +188,8 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
         sound_speed = sqrt(gamma * p_local / rho_local) # local sound speed
         p_star = p_local *
                  (1 + 0.5 * (gamma - 1) * v_normal / sound_speed)^(2 *
-                                                                             gamma *
-                                                                             inv_gamma_minus_one)
+                                                                   gamma *
+                                                                   inv_gamma_minus_one)
     else # v_normal > 0.0
         A = 2 / ((gamma + 1) * rho_local)
         B = p_local * (gamma - 1) / (gamma + 1)
@@ -204,9 +215,9 @@ end
 Should be used together with [`TreeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, aux_inner, orientation,
-                                                    direction, x, t,
-                                                    surface_flux_function,
-                                                    equations::CompressibleEulerEquationsPerturbationGravity2D)
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquationsPerturbationGravity2D)
     # get the appropriate normal vector from the orientation
     if orientation == 1
         normal_direction = SVector(1, 0)
@@ -226,10 +237,10 @@ end
 Should be used together with [`StructuredMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, aux_inner,
-                                                    normal_direction::AbstractVector,
-                                                    direction, x, t,
-                                                    surface_flux_function,
-                                                    equations::CompressibleEulerEquationsPerturbationGravity2D)
+                                              normal_direction::AbstractVector,
+                                              direction, x, t,
+                                              surface_flux_function,
+                                              equations::CompressibleEulerEquationsPerturbationGravity2D)
     # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
     # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
     if isodd(direction)
@@ -237,7 +248,8 @@ Should be used together with [`StructuredMesh`](@ref).
                                               x, t, surface_flux_function, equations)
         boundary_flux = (-fluxes[1], -fluxes[2])
     else
-        boundary_flux = boundary_condition_slip_wall(u_inner, aux_inner, normal_direction,
+        boundary_flux = boundary_condition_slip_wall(u_inner, aux_inner,
+                                                     normal_direction,
                                                      x, t, surface_flux_function,
                                                      equations)
     end
@@ -247,7 +259,7 @@ end
 
 # Calculate 2D flux for a single point
 @inline function flux(u, aux, orientation::Integer,
-                            equations::CompressibleEulerEquationsPerturbationGravity2D)
+                      equations::CompressibleEulerEquationsPerturbationGravity2D)
     u_total = cons2cons_total(u, aux, equations)
     _, rho_v1, rho_v2, rho_e = u_total
     _, v1, v2, p = cons2prim_geopot(u_total, aux, equations)
@@ -269,7 +281,7 @@ end
 # Calculate 2D flux for a single point in the normal direction
 # Note, this directional vector is not normalized
 @inline function flux(u, normal_direction::AbstractVector,
-                            equations::CompressibleEulerEquationsPerturbationGravity2D)
+                      equations::CompressibleEulerEquationsPerturbationGravity2D)
     u_total = cons2cons_total(u, aux, equations)
     rho, _, _, rho_e = u_total
     _, v1, v2, p = cons2prim_geopot(u_total, aux, equations)
@@ -334,8 +346,9 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
     return SVector(f1, f2, f3, f4, zero(eltype(u_ll)))
 end
 
-@inline function flux_shima_etal(u_ll, u_rr, aux_ll, aux_rr, normal_direction::AbstractVector,
-                                       equations::CompressibleEulerEquationsPerturbationGravity2D)
+@inline function flux_shima_etal(u_ll, u_rr, aux_ll, aux_rr,
+                                 normal_direction::AbstractVector,
+                                 equations::CompressibleEulerEquationsPerturbationGravity2D)
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
@@ -375,7 +388,7 @@ Kinetic energy preserving two-point flux by
     [DOI: 10.1016/j.jcp.2007.09.020](https://doi.org/10.1016/j.jcp.2007.09.020)
 """
 @inline function flux_kennedy_gruber(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
-                                           equations::CompressibleEulerEquationsPerturbationGravity2D)
+                                     equations::CompressibleEulerEquationsPerturbationGravity2D)
     # Unpack left and right state
     u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
@@ -410,8 +423,9 @@ Kinetic energy preserving two-point flux by
     return SVector(f1, f2, f3, f4, zero(eltype(u_ll)))
 end
 
-@inline function flux_kennedy_gruber(u_ll, u_rr, aux_ll, aux_rr, normal_direction::AbstractVector,
-                                           equations::CompressibleEulerEquationsPerturbationGravity2D)
+@inline function flux_kennedy_gruber(u_ll, u_rr, aux_ll, aux_rr,
+                                     normal_direction::AbstractVector,
+                                     equations::CompressibleEulerEquationsPerturbationGravity2D)
     # Unpack left and right state
     u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
@@ -456,7 +470,7 @@ See also
     [Proceedings of ICOSAHOM 2018](https://doi.org/10.1007/978-3-030-39647-3_42)
 """
 @inline function flux_ranocha(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
-                                    equations::CompressibleEulerEquationsPerturbationGravity2D)
+                              equations::CompressibleEulerEquationsPerturbationGravity2D)
     @unpack inv_gamma_minus_one = equations.equations_total
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
@@ -497,7 +511,7 @@ See also
 end
 
 @inline function flux_ranocha(u_ll, u_rr, normal_direction::AbstractVector,
-                                    equations::CompressibleEulerEquationsPerturbationGravity2D)
+                              equations::CompressibleEulerEquationsPerturbationGravity2D)
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
@@ -530,7 +544,8 @@ end
     return SVector(f1, f2, f3, f4, zero(eltype(u_ll)))
 end
 
-function flux_nonconservative_waruszewski(u_ll, u_rr, aux_ll, aux_rr, normal_direction::AbstractVector,
+function flux_nonconservative_waruszewski(u_ll, u_rr, aux_ll, aux_rr,
+                                          normal_direction::AbstractVector,
                                           equations::CompressibleEulerEquationsPerturbationGravity2D)
     # u[1] is perturbation in rho
     rho_ll, = u_ll
@@ -547,7 +562,8 @@ function flux_nonconservative_waruszewski(u_ll, u_rr, aux_ll, aux_rr, normal_dir
                    f0)
 end
 
-function flux_nonconservative_waruszewski(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
+function flux_nonconservative_waruszewski(u_ll, u_rr, aux_ll, aux_rr,
+                                          orientation::Integer,
                                           equations::CompressibleEulerEquationsPerturbationGravity2D)
     rho_ll, = u_ll
     rho_rr, = u_rr
@@ -581,7 +597,8 @@ References:
 """
 # The struct is already defined in CompressibleEulerEquations2D
 
-@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, aux_ll, aux_rr,
+                                         orientation::Integer,
                                          equations::CompressibleEulerEquationsPerturbationGravity2D)
     c = flux_lmars.speed_of_sound
 
@@ -669,7 +686,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation as the
 # maximum velocity magnitude plus the maximum speed of sound
 @inline function max_abs_speed_naive(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
-                                           equations::CompressibleEulerEquationsPerturbationGravity2D)
+                                     equations::CompressibleEulerEquationsPerturbationGravity2D)
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
 
@@ -688,8 +705,9 @@ end
     λ_max = max(abs(v_ll), abs(v_rr)) + max(c_ll, c_rr)
 end
 
-@inline function max_abs_speed_naive(u_ll, u_rr, aux_ll, aux_rr, normal_direction::AbstractVector,
-                                           equations::CompressibleEulerEquationsPerturbationGravity2D)
+@inline function max_abs_speed_naive(u_ll, u_rr, aux_ll, aux_rr,
+                                     normal_direction::AbstractVector,
+                                     equations::CompressibleEulerEquationsPerturbationGravity2D)
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
 
@@ -710,7 +728,7 @@ end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
 @inline function min_max_speed_naive(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
-                                           equations::CompressibleEulerEquationsPerturbationGravity2D)
+                                     equations::CompressibleEulerEquationsPerturbationGravity2D)
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
 
@@ -725,8 +743,9 @@ end
     return λ_min, λ_max
 end
 
-@inline function min_max_speed_naive(u_ll, u_rr, aux_ll, aux_rr, normal_direction::AbstractVector,
-                                           equations::CompressibleEulerEquationsPerturbationGravity2D)
+@inline function min_max_speed_naive(u_ll, u_rr, aux_ll, aux_rr,
+                                     normal_direction::AbstractVector,
+                                     equations::CompressibleEulerEquationsPerturbationGravity2D)
     rho_ll, v1_ll, v2_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
 
@@ -742,7 +761,7 @@ end
 end
 
 @inline function max_abs_speeds(u, aux,
-                                      equations::CompressibleEulerEquationsPerturbationGravity2D)
+                                equations::CompressibleEulerEquationsPerturbationGravity2D)
     rho, v1, v2, p = cons2prim_total(u, aux, equations)
     c = sqrt(equations.equations_total.gamma * p / rho)
 
@@ -751,7 +770,7 @@ end
 
 # Convert conservative variables to entropy (see, e.g., Waruszewski et al. (2022))
 @inline function cons2entropy(u, aux,
-                                    equations::CompressibleEulerEquationsPerturbationGravity2D)
+                              equations::CompressibleEulerEquationsPerturbationGravity2D)
     @unpack gamma, inv_gamma_minus_one = equations.equations_total
     rho, v1, v2, p = cons2prim_total(u, aux, equations)
     phi = aux[5]

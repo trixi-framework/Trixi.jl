@@ -36,8 +36,10 @@ function cons2aux(u, aux, equations::CompressibleEulerEquationsPerturbation2D)
     return SVector(aux[1], aux[2], aux[3], aux[4])
 end
 
-varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbation2D) =
-    ("rho_steady", "rho_v1_steady", "rho_v2_steady", "rho_e_steady")
+varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbation2D) = ("rho_steady",
+                                                                            "rho_v1_steady",
+                                                                            "rho_v2_steady",
+                                                                            "rho_e_steady")
 
 # Add steady state to current perturbations (in conserved variables)
 @inline function cons2cons_total(u, aux,
@@ -52,23 +54,29 @@ end
     return cons2prim(u_cons_total, equations.equations_total)
 end
 
-varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbation2D) =
-    ("rho_total", "v1_total", "v2_total", "p_total")
+varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbation2D) = ("rho_total",
+                                                                                   "v1_total",
+                                                                                   "v2_total",
+                                                                                   "p_total")
 
 # Convert perturbation in conservative variables to perturbation in primitive variables
 # cons2prim applied to perturbations might fail when rho ~ 0
 # this will likewise fail when steady rho ~ 0
-@inline function cons2prim_pert(u, aux, equations::CompressibleEulerEquationsPerturbation2D)
+@inline function cons2prim_pert(u, aux,
+                                equations::CompressibleEulerEquationsPerturbation2D)
     u_prim_total = cons2prim_total(u, aux, equations)
     u_prim_steady = cons2prim(aux, equations.equations_total)
     return u_prim_total - u_prim_steady
 end
 
-varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbation2D) =
-    ("rho_pert", "v1_pert", "v2_pert", "p_pert")
+varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbation2D) = ("rho_pert",
+                                                                                  "v1_pert",
+                                                                                  "v2_pert",
+                                                                                  "p_pert")
 
 # Convert conservative variables to entropy
-@inline function cons2entropy(u, aux, equations::CompressibleEulerEquationsPerturbation2D)
+@inline function cons2entropy(u, aux,
+                              equations::CompressibleEulerEquationsPerturbation2D)
     @unpack gamma, inv_gamma_minus_one = equations.equations_total
     # based on total quantities
     rho, v1, v2, p = cons2prim_total(u, aux, equations)
@@ -84,7 +92,8 @@ varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbation2D) =
     return SVector(w1, w2, w3, w4)
 end
 
-@inline function max_abs_speeds(u, aux, equations::CompressibleEulerEquationsPerturbation2D)
+@inline function max_abs_speeds(u, aux,
+                                equations::CompressibleEulerEquationsPerturbation2D)
     u_cons_total = cons2cons_total(u, aux, equations)
     return max_abs_speeds(u_cons_total, equations.equations_total)
 end
@@ -137,7 +146,7 @@ Kinetic energy preserving two-point flux by
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     if orientation == 1
         f2 = p_steady_avg
         f3 = 0
@@ -161,7 +170,8 @@ References:
   Lagrangian Coordinate
   [DOI: 10.1175/MWR-D-12-00129.1](https://doi.org/10.1175/mwr-d-12-00129.1)
 """
-@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, aux_ll, aux_rr,
+                                         orientation::Integer,
                                          equations::CompressibleEulerEquationsPerturbation2D)
     u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
@@ -169,7 +179,7 @@ References:
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     if orientation == 1
         f2 = p_steady_avg
         f3 = 0
@@ -200,11 +210,12 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
                                  equations::CompressibleEulerEquationsPerturbation2D)
     u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
-    flux = flux_shima_etal(u_ll_total, u_rr_total, orientation, equations.equations_total)
+    flux = flux_shima_etal(u_ll_total, u_rr_total, orientation,
+                           equations.equations_total)
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     if orientation == 1
         f2 = p_steady_avg
         f3 = 0
@@ -238,7 +249,7 @@ See also
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     if orientation == 1
         f2 = p_steady_avg
         f3 = 0
@@ -324,17 +335,17 @@ Should be used together with [`StructuredMesh`](@ref).
     # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
     # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
     if isodd(direction)
-        boundary_flux = -boundary_condition_slip_wall(u_inner, aux_inner, -normal_direction,
+        boundary_flux = -boundary_condition_slip_wall(u_inner, aux_inner,
+                                                      -normal_direction,
                                                       x, t, surface_flux_function,
                                                       equations)
     else
-        boundary_flux = boundary_condition_slip_wall(u_inner, aux_inner, normal_direction,
+        boundary_flux = boundary_condition_slip_wall(u_inner, aux_inner,
+                                                     normal_direction,
                                                      x, t, surface_flux_function,
                                                      equations)
     end
 
     return boundary_flux
 end
-
-
 end # @muladd

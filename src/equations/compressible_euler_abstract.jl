@@ -1,7 +1,9 @@
-varnames(::typeof(cons2cons), ::AbstractCompressibleEulerEquations{2}) =
+function varnames(::typeof(cons2cons), ::AbstractCompressibleEulerEquations{2})
     ("rho", "rho_v1", "rho_v2", "rho_e")
-varnames(::typeof(cons2prim), ::AbstractCompressibleEulerEquations{2}) =
+end
+function varnames(::typeof(cons2prim), ::AbstractCompressibleEulerEquations{2})
     ("rho", "v1", "v2", "p")
+end
 
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the direction
 # has been normalized prior to this rotation of the state vector
@@ -24,10 +26,12 @@ varnames(::typeof(cons2prim), ::AbstractCompressibleEulerEquations{2}) =
                    u[4])
 end
 
-varnames(::typeof(cons2cons), ::AbstractCompressibleEulerEquations{3}) =
+function varnames(::typeof(cons2cons), ::AbstractCompressibleEulerEquations{3})
     ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e")
-varnames(::typeof(cons2prim), ::AbstractCompressibleEulerEquations{3}) =
+end
+function varnames(::typeof(cons2prim), ::AbstractCompressibleEulerEquations{3})
     ("rho", "v1", "v2", "v3", "p")
+end
 
 # Rotate normal vector to x-axis; normal, tangent1 and tangent2 need to be orthonormal
 # Called inside `FluxRotated` in `numerical_fluxes.jl` so the directions

@@ -36,8 +36,11 @@ function cons2aux(u, aux, equations::CompressibleEulerEquationsPerturbation3D)
     return SVector(aux[1], aux[2], aux[3], aux[4], aux[5])
 end
 
-varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbation3D) =
-    ("rho_steady", "rho_v1_steady", "rho_v2_steady", "rho_v3_steady", "rho_e_steady")
+varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbation3D) = ("rho_steady",
+                                                                            "rho_v1_steady",
+                                                                            "rho_v2_steady",
+                                                                            "rho_v3_steady",
+                                                                            "rho_e_steady")
 
 # Add steady state to current perturbations (in conserved variables)
 @inline function cons2cons_total(u, aux,
@@ -52,28 +55,37 @@ end
     return cons2prim(u_cons_total, equations.equations_total)
 end
 
-varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbation3D) =
-    ("rho_total", "v1_total", "v2_total", "v3_total", "p_total")
+varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbation3D) = ("rho_total",
+                                                                                   "v1_total",
+                                                                                   "v2_total",
+                                                                                   "v3_total",
+                                                                                   "p_total")
 
 # Convert perturbation in conservative variables to perturbation in primitive variables
 # cons2prim applied to perturbations might fail when rho ~ 0
 # this will likewise fail when steady rho ~ 0
-@inline function cons2prim_pert(u, aux, equations::CompressibleEulerEquationsPerturbation3D)
+@inline function cons2prim_pert(u, aux,
+                                equations::CompressibleEulerEquationsPerturbation3D)
     u_prim_total = cons2prim_total(u, aux, equations)
     u_prim_steady = cons2prim(aux, equations.equations_total)
     return u_prim_total - u_prim_steady
 end
 
-varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbation3D) =
-    ("rho_pert", "v1_pert", "v2_pert", "v3_pert", "p_pert")
+varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbation3D) = ("rho_pert",
+                                                                                  "v1_pert",
+                                                                                  "v2_pert",
+                                                                                  "v3_pert",
+                                                                                  "p_pert")
 
 # Convert conservative variables to entropy
-@inline function cons2entropy(u, aux, equations::CompressibleEulerEquationsPerturbation3D)
+@inline function cons2entropy(u, aux,
+                              equations::CompressibleEulerEquationsPerturbation3D)
     u_cons_total = cons2cons_total(u, aux, equations)
     return cons2entropy(u_cons_total, equations.equations_total)
 end
 
-@inline function max_abs_speeds(u, aux, equations::CompressibleEulerEquationsPerturbation3D)
+@inline function max_abs_speeds(u, aux,
+                                equations::CompressibleEulerEquationsPerturbation3D)
     u_cons_total = cons2cons_total(u, aux, equations)
     return max_abs_speeds(u_cons_total, equations.equations_total)
 end
@@ -130,10 +142,10 @@ end
     # now substract the steady part of p in the momentum equations
     p_steady = pressure(aux, equations.equations_total)
     return _flux - SVector(0,
-                           p_steady * normal_direction[1],
-                           p_steady * normal_direction[2],
-                           p_steady * normal_direction[3],
-                           0)
+                   p_steady * normal_direction[1],
+                   p_steady * normal_direction[2],
+                   p_steady * normal_direction[3],
+                   0)
 end
 
 """
@@ -155,7 +167,7 @@ Kinetic energy preserving two-point flux by
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     if orientation == 1
         f2 = p_steady_avg
         f3 = 0
@@ -182,12 +194,12 @@ end
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     return flux - SVector(0,
-                          p_steady_avg * normal_direction[1],
-                          p_steady_avg * normal_direction[2],
-                          p_steady_avg * normal_direction[3],
-                          0)
+                   p_steady_avg * normal_direction[1],
+                   p_steady_avg * normal_direction[2],
+                   p_steady_avg * normal_direction[3],
+                   0)
 end
 
 """
@@ -203,7 +215,8 @@ References:
   Lagrangian Coordinate
   [DOI: 10.1175/MWR-D-12-00129.1](https://doi.org/10.1175/mwr-d-12-00129.1)
 """
-@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, aux_ll, aux_rr,
+                                         orientation::Integer,
                                          equations::CompressibleEulerEquationsPerturbation3D)
     u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
@@ -211,7 +224,7 @@ References:
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     if orientation == 1
         f2 = p_steady_avg
         f3 = 0
@@ -233,16 +246,17 @@ end
                                          equations::CompressibleEulerEquationsPerturbation3D)
     u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
-    flux = flux_lmars(u_ll_total, u_rr_total, normal_direction, equations.equations_total)
+    flux = flux_lmars(u_ll_total, u_rr_total, normal_direction,
+                      equations.equations_total)
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     return flux - SVector(0,
-                          p_steady_avg * normal_direction[1],
-                          p_steady_avg * normal_direction[2],
-                          p_steady_avg * normal_direction[3],
-                          0)
+                   p_steady_avg * normal_direction[1],
+                   p_steady_avg * normal_direction[2],
+                   p_steady_avg * normal_direction[3],
+                   0)
 end
 
 """
@@ -265,11 +279,12 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
                                  equations::CompressibleEulerEquationsPerturbation3D)
     u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
-    flux = flux_shima_etal(u_ll_total, u_rr_total, orientation, equations.equations_total)
+    flux = flux_shima_etal(u_ll_total, u_rr_total, orientation,
+                           equations.equations_total)
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     if orientation == 1
         f2 = p_steady_avg
         f3 = 0
@@ -291,16 +306,17 @@ end
                                  equations::CompressibleEulerEquationsPerturbation3D)
     u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
-    flux = flux_shima_etal(u_ll_total, u_rr_total, orientation, equations.equations_total)
+    flux = flux_shima_etal(u_ll_total, u_rr_total, orientation,
+                           equations.equations_total)
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     return flux - SVector(0,
-                          p_steady_avg * normal_direction[1],
-                          p_steady_avg * normal_direction[2],
-                          p_steady_avg * normal_direction[3],
-                          0)
+                   p_steady_avg * normal_direction[1],
+                   p_steady_avg * normal_direction[2],
+                   p_steady_avg * normal_direction[3],
+                   0)
 end
 
 """
@@ -326,7 +342,7 @@ See also
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     if orientation == 1
         f2 = p_steady_avg
         f3 = 0
@@ -343,20 +359,22 @@ See also
     return flux - SVector(0, f2, f3, f4, 0)
 end
 
-@inline function flux_ranocha(u_ll, u_rr, aux_ll, aux_rr, normal_direction::AbstractVector,
+@inline function flux_ranocha(u_ll, u_rr, aux_ll, aux_rr,
+                              normal_direction::AbstractVector,
                               equations::CompressibleEulerEquationsPerturbation3D)
     u_ll_total = cons2cons_total(u_ll, aux_ll, equations)
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
-    flux = flux_ranocha(u_ll_total, u_rr_total, normal_direction, equations.equations_total)
+    flux = flux_ranocha(u_ll_total, u_rr_total, normal_direction,
+                        equations.equations_total)
 
     # now substract the steady part of p in the momentum equations
     p_steady_avg = 0.5f0 * (pressure(aux_ll, equations.equations_total) +
-                            pressure(aux_rr, equations.equations_total))
+                    pressure(aux_rr, equations.equations_total))
     return flux - SVector(0,
-                          p_steady_avg * normal_direction[1],
-                          p_steady_avg * normal_direction[2],
-                          p_steady_avg * normal_direction[3],
-                          0)
+                   p_steady_avg * normal_direction[1],
+                   p_steady_avg * normal_direction[2],
+                   p_steady_avg * normal_direction[3],
+                   0)
 end
 
 """
@@ -394,10 +412,10 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
     # now substract the steady part of p
     p_steady = pressure(aux_inner, equations.equations_total)
     return boundary_flux - SVector(0,
-                                   p_steady * normal_direction[1],
-                                   p_steady * normal_direction[2],
-                                   p_steady * normal_direction[3],
-                                   0)
+                   p_steady * normal_direction[1],
+                   p_steady * normal_direction[2],
+                   p_steady * normal_direction[3],
+                   0)
 end
 
 """
@@ -437,17 +455,17 @@ Should be used together with [`StructuredMesh`](@ref).
     # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
     # to be inward pointing on the -x and -y sides due to the orientation convention used by StructuredMesh
     if isodd(direction)
-        boundary_flux = -boundary_condition_slip_wall(u_inner, aux_inner, -normal_direction,
+        boundary_flux = -boundary_condition_slip_wall(u_inner, aux_inner,
+                                                      -normal_direction,
                                                       x, t, surface_flux_function,
                                                       equations)
     else
-        boundary_flux = boundary_condition_slip_wall(u_inner, aux_inner, normal_direction,
+        boundary_flux = boundary_condition_slip_wall(u_inner, aux_inner,
+                                                     normal_direction,
                                                      x, t, surface_flux_function,
                                                      equations)
     end
 
     return boundary_flux
 end
-
-
 end # @muladd

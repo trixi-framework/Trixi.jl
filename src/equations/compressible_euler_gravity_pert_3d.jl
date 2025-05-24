@@ -28,10 +28,12 @@ function cons2aux(u, aux, equations::CompressibleEulerEquationsPerturbationGravi
     return aux
 end
 
-varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbationGravity3D) =
-    ("rho_steady", "rho_v1_steady", "rho_v2_steady", "rho_v3_steady",
-     "rho_e_steady", "geopotential")
-
+varnames(::typeof(cons2aux), ::CompressibleEulerEquationsPerturbationGravity3D) = ("rho_steady",
+                                                                                   "rho_v1_steady",
+                                                                                   "rho_v2_steady",
+                                                                                   "rho_v3_steady",
+                                                                                   "rho_e_steady",
+                                                                                   "geopotential")
 
 # add steady state to current perturbations (in conserved variables)
 @inline function cons2cons_total(u, aux,
@@ -49,8 +51,10 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
-                                 - rho * phi)
+    p = (equations.gamma - 1) *
+        (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+         -
+         rho * phi)
     return SVector(rho, v1, v2, v3, p)
 end
 
@@ -63,9 +67,23 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    p = (equations.gamma - 1) * (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
-                                 - rho * phi)
+    p = (equations.gamma - 1) *
+        (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3)
+         -
+         rho * phi)
     return p
+end
+
+# convert primitve to conervative variables
+@inline function prim2cons_geopot(prim, phi,
+                                  equations::CompressibleEulerEquationsPerturbationGravity3D)
+    rho, v1, v2, v3, p = prim
+    rho_v1 = rho * v1
+    rho_v2 = rho * v2
+    rho_v3 = rho * v3
+    rho_e = p * equations.inv_gamma_minus_one +
+            0.5f0 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3) + rho * phi
+    return SVector(rho, rho_v1, rho_v2, rho_v3, rho_e)
 end
 
 # compute rho times p used in indicators
@@ -87,19 +105,26 @@ end
     return cons2prim_geopot(u_total, aux, equations)
 end
 
-varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbationGravity3D) =
-    ("rho_total", "v1_total", "v2_total", "v3_total", "p_total")
+varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbationGravity3D) = ("rho_total",
+                                                                                          "v1_total",
+                                                                                          "v2_total",
+                                                                                          "v3_total",
+                                                                                          "p_total")
 
 # convert perturbation in conservative variables to perturbations in primitive variables
 # - will fail when steady rho ~ 0
-@inline function cons2prim_pert(u, aux, equations::CompressibleEulerEquationsPerturbationGravity3D)
+@inline function cons2prim_pert(u, aux,
+                                equations::CompressibleEulerEquationsPerturbationGravity3D)
     u_prim_total = cons2prim_total(u, aux, equations)
     u_prim_steady = pressure_steady(aux, equations)
     return u_prim_total - u_prim_steady
 end
 
-varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbationGravity3D) =
-    ("rho_pert", "v1_pert", "v2_pert", "v3_pert", "p_pert")
+varnames(::typeof(cons2prim_pert), ::CompressibleEulerEquationsPerturbationGravity3D) = ("rho_pert",
+                                                                                         "v1_pert",
+                                                                                         "v2_pert",
+                                                                                         "v3_pert",
+                                                                                         "p_pert")
 
 """
     boundary_condition_slip_wall(u_inner, aux_inner, normal_direction, x, t,
@@ -149,7 +174,9 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
     u_local = rotate_to_x(u_inner_total, normal, tangent1, tangent2, equations)
 
     # compute the primitive variables
-    rho_local, v_normal, v_tangent1, v_tangent2, p_local = cons2prim_geopot(u_local, aux_inner, equations)
+    rho_local, v_normal, v_tangent1, v_tangent2, p_local = cons2prim_geopot(u_local,
+                                                                            aux_inner,
+                                                                            equations)
 
     # Get the solution of the pressure Riemann problem
     # See Section 6.3.3 of
@@ -186,7 +213,8 @@ end
 
 Should be used together with [`TreeMesh`](@ref).
 """
-@inline function boundary_condition_slip_wall(u_inner, aux_inner, orientation, direction,
+@inline function boundary_condition_slip_wall(u_inner, aux_inner, orientation,
+                                              direction,
                                               x, t, surface_flux_function,
                                               equations::CompressibleEulerEquationsPerturbationGravity3D)
     # get the appropriate normal vector from the orientation
@@ -210,7 +238,8 @@ end
 Should be used together with [`StructuredMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, aux_inner,
-                                              normal_direction::AbstractVector, direction,
+                                              normal_direction::AbstractVector,
+                                              direction,
                                               x, t, surface_flux_function,
                                               equations::CompressibleEulerEquationsPerturbationGravity3D)
     # flip sign of normal to make it outward pointing, then flip the sign of the normal flux back
@@ -220,7 +249,8 @@ Should be used together with [`StructuredMesh`](@ref).
                                               x, t, surface_flux_function, equations)
         boundary_flux = (-fluxes[1], -fluxes[2])
     else
-        boundary_flux = boundary_condition_slip_wall(u_inner, aux_inner, normal_direction,
+        boundary_flux = boundary_condition_slip_wall(u_inner, aux_inner,
+                                                     normal_direction,
                                                      x, t, surface_flux_function,
                                                      equations)
     end
@@ -532,7 +562,8 @@ See also
     return SVector(f1, f2, f3, f4, f5)
 end
 
-@inline function flux_ranocha(u_ll, u_rr, aux_ll, aux_rr, normal_direction::AbstractVector,
+@inline function flux_ranocha(u_ll, u_rr, aux_ll, aux_rr,
+                              normal_direction::AbstractVector,
                               equations::CompressibleEulerEquationsPerturbationGravity3D)
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
@@ -593,7 +624,8 @@ function flux_nonconservative_waruszewski(u_ll, u_rr, aux_ll, aux_rr,
                    f0)
 end
 
-function flux_nonconservative_waruszewski(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
+function flux_nonconservative_waruszewski(u_ll, u_rr, aux_ll, aux_rr,
+                                          orientation::Integer,
                                           equations::CompressibleEulerEquationsPerturbationGravity3D)
     rho_ll = u_ll[1]
     rho_rr = u_rr[1]
@@ -629,7 +661,8 @@ References:
 """
 # The struct is already defined in CompressibleEulerEquations2D
 
-@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, aux_ll, aux_rr, orientation::Integer,
+@inline function (flux_lmars::FluxLMARS)(u_ll, u_rr, aux_ll, aux_rr,
+                                         orientation::Integer,
                                          equations::CompressibleEulerEquationsPerturbationGravity3D)
     c = flux_lmars.speed_of_sound
 
@@ -826,7 +859,7 @@ end
     rho, v1, v2, v3, p = cons2prim_total(u, aux, equations)
     phi = aux[6]
     v_square = v1^2 + v2^2 + v3^2
-    
+
     s = log(p) - equations.gamma * log(rho)
     rho_p = rho / p
 

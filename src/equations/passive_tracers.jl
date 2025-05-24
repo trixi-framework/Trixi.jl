@@ -235,4 +235,48 @@ end
     flux_tracer = flux_rho * flux_tracer
     return SVector(flux_flow..., flux_tracer...)
 end
+
+struct FluxTracerEquationsPass{FlowFlux}
+    flow_flux::FlowFlux
+end
+
+function (f::FluxTracerEquationsPass)(u_ll, u_rr,
+                                      orientation_or_normal_direction,
+                                      tracer_equations::PassiveTracerEquations)
+    (; flow_equations) = tracer_equations
+    u_flow_ll = flow_variables(u_ll, tracer_equations)
+    u_flow_rr = flow_variables(u_rr, tracer_equations)
+    flux_flow = f.flow_flux(u_flow_ll, u_flow_rr, orientation_or_normal_direction,
+                            flow_equations)
+    flux_tracer = SVector(ntuple(@inline(v->zero(eltype(u_ll))),
+                                 Val(ntracers(tracer_equations))))
+    return SVector(flux_flow..., flux_tracer...)
+end
+
+@inline function boundary_condition_slip_wall_noncons(u_inner,
+                                                      normal_direction::AbstractVector,
+                                                      x, t,
+                                                      surface_flux_function,
+                                                      tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow = flow_variables(u_inner, tracer_equations)
+    bc_flow, bc_flow_noncons = boundary_condition_slip_wall(u_flow, normal_direction, x,
+                                                            t,
+                                                            surface_flux_function,
+                                                            flow_equations)
+    bc_tracer = SVector(ntuple(@inline(v->0), Val(ntracers(tracer_equations))))
+    return (vcat(bc_flow, bc_tracer), vcat(bc_flow_noncons, bc_tracer))
+end
+
+@inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
+                                              x, t,
+                                              surface_flux_function,
+                                              tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow = flow_variables(u_inner, tracer_equations)
+    bc_flow = boundary_condition_slip_wall(u_flow, normal_direction, x, t,
+                                           surface_flux_function, flow_equations)
+    bc_tracer = SVector(ntuple(@inline(v->0), Val(ntracers(tracer_equations))))
+    return vcat(bc_flow, bc_tracer)
+end
 end # muladd
