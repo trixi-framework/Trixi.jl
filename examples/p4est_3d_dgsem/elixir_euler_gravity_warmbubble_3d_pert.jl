@@ -143,10 +143,10 @@ indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_min = 0.0001,
                                          alpha_smooth = true,
                                          variable = density_pressure)
-#volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
-#                                                 volume_flux_dg = volume_flux,
-#                                                 volume_flux_fv = surface_flux)
-volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+                                                 volume_flux_dg = volume_flux,
+                                                 volume_flux_fv = surface_flux)
+#volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
 
 solver = DGSEM(basis, surface_flux, volume_integral)
 
@@ -180,17 +180,33 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+@inline function v1_pert(u, ::CompressibleEulerEquationsPerturbationGravity3D)
+    return abs(u[2])
+end
+@inline function v2_pert(u, ::CompressibleEulerEquationsPerturbationGravity3D)
+    return abs(u[3])
+end
+
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = v2_pert),
+                                      base_level = 0,
+                                      med_level = 1, med_threshold = 0.5,
+                                      max_level = 2, max_threshold = 2.0)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 100,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true)
+
 save_solution = SaveSolutionCallback(dt = 10.0, #interval = 1, #dt = 10.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim_total,
-                                     output_directory="out_bubble_3d_pert")
+                                     output_directory="out_bubble_3d_amr_pert")
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution,
+                        save_solution, amr_callback,
                         stepsize_callback)
 
 ###############################################################################

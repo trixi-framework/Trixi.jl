@@ -87,13 +87,13 @@ polydeg = 4
 solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
                volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
 
-trees_per_dimension = (40, 20, 2)
+trees_per_dimension = (20, 10, 1)
 coordinates_min = (0.0, 0.0, 0.0)
 coordinates_max = (20_000.0, 10_000.0, 2_000.0)
 mesh = P4estMesh(trees_per_dimension;
                  polydeg = 1,
                  coordinates_min = coordinates_min, coordinates_max = coordinates_max,
-                 initial_refinement_level = 0,
+                 initial_refinement_level = 1,
                  periodicity = (true, false, true))
 
 boundary_conditions = Dict(:y_neg => boundary_condition_slip_wall,
@@ -116,14 +116,31 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+@inline function v1_pert(u, ::CompressibleEulerEquationsWithGravity3D)
+    return abs(u[2])
+end
+@inline function v2_pert(u, ::CompressibleEulerEquationsWithGravity3D)
+    return abs(u[3])
+end
+
+amr_controller = ControllerThreeLevel(semi, IndicatorMax(semi, variable = v2_pert),
+                                      base_level = 0,
+                                      med_level = 1, med_threshold = 0.5,
+                                      max_level = 2, max_threshold = 2.0)
+amr_callback = AMRCallback(semi, amr_controller,
+                           interval = 100,
+                           adapt_initial_condition = true,
+                           adapt_initial_condition_only_refine = true)
+
 save_solution = SaveSolutionCallback(dt = 10.0, #interval = 1, #dt = 10.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     output_directory="out_bubble_3d_amr")
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
-callbacks = CallbackSet(summary_callback,
+callbacks = CallbackSet(summary_callback, amr_callback,
                         analysis_callback, alive_callback,
                         save_solution,
                         stepsize_callback)
