@@ -245,7 +245,7 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
         # Send additional/extra node variables to root
         for (key, node_variable) in node_variables
             MPI.Gatherv!(node_variable, nothing, mpi_root(), mpi_comm())
-        end 
+        end
 
         return filename
     end
