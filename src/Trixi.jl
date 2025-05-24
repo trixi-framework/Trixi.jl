@@ -15,6 +15,12 @@ See also: [trixi-framework/Trixi.jl](https://github.com/trixi-framework/Trixi.jl
 """
 module Trixi
 
+using Preferences: @load_preference, set_preferences!
+const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
+const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
+const _PREFERENCE_POLYESTER = @load_preference("polyester", true)
+const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
+
 # Include other packages that are used in Trixi.jl
 # (standard library packages first, other packages next, all of them sorted alphabetically)
 
@@ -53,7 +59,13 @@ using FillArrays: Ones, Zeros
 using ForwardDiff: ForwardDiff
 using HDF5: HDF5, h5open, attributes, create_dataset, datatype, dataspace
 using LinearMaps: LinearMap
-using LoopVectorization: LoopVectorization, @turbo, indices
+if _PREFERENCE_LOOPVECTORIZATION
+    using LoopVectorization: LoopVectorization, @turbo, indices
+else
+    using LoopVectorization: LoopVectorization, indices
+    include("auxiliary/mock_turbo.jl")
+end
+
 using StaticArrayInterface: static_length # used by LoopVectorization
 using MuladdMacro: @muladd
 using Octavian: Octavian, matmul!
@@ -81,11 +93,6 @@ using SimpleUnPack: @pack!
 using DataStructures: BinaryHeap, FasterForward, extract_all!
 
 using UUIDs: UUID
-using Preferences: @load_preference, set_preferences!
-
-const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
-const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
-const _PREFERENCE_POLYESTER = @load_preference("polyester", true)
 
 # finite difference SBP operators
 using SummationByPartsOperators: AbstractDerivativeOperator,
@@ -172,6 +179,8 @@ export AcousticPerturbationEquations2D,
        PassiveTracerEquations
 
 export LaplaceDiffusion1D, LaplaceDiffusion2D, LaplaceDiffusion3D,
+       LaplaceDiffusionEntropyVariables1D, LaplaceDiffusionEntropyVariables2D,
+       LaplaceDiffusionEntropyVariables3D,
        CompressibleNavierStokesDiffusion1D, CompressibleNavierStokesDiffusion2D,
        CompressibleNavierStokesDiffusion3D
 
@@ -229,9 +238,9 @@ export cons2cons, cons2prim, prim2cons, cons2macroscopic, cons2state, cons2mean,
        cons2entropy, entropy2cons
 export density, pressure, density_pressure, velocity, global_mean_vars,
        equilibrium_distribution, waterheight, waterheight_pressure
-export entropy, energy_total, energy_kinetic, energy_internal, energy_magnetic,
-       cross_helicity,
-       enstrophy, magnetic_field, divergence_cleaning_field
+export entropy, energy_total, energy_kinetic, energy_internal,
+       energy_magnetic, cross_helicity, magnetic_field, divergence_cleaning_field,
+       enstrophy, vorticity
 export lake_at_rest_error
 export ncomponents, eachcomponent
 
