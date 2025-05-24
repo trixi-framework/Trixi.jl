@@ -66,8 +66,8 @@ function Trixi.get_node_variable(::Val{:entropy}, u, mesh, equations, dg, cache)
     # By definition, the variable must be provided at every node of every element!
     # Otherwise, the `SaveSolutionCallback` will crash.
     entropy_array = zeros(eltype(cache.elements),
-                            n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
-                            n_elements)
+                          n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                          n_elements)
 
     for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
