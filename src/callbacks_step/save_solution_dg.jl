@@ -297,6 +297,8 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
             var = file["node_variables_$v"]
             attributes(var)["name"] = string(key)
         end
+
+        error("Need to figure out which elixirs are MPI-parallel, but single I/O")
     end
 
     return filename
