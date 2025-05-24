@@ -204,7 +204,8 @@ function rhs!(du, u, t,
     # Calculate mortar fluxes
     @trixi_timeit timer() "mortar flux" begin
         calc_mortar_flux!(cache.elements.surface_flux_values, mesh,
-                          have_nonconservative_terms(equations), equations,
+                          have_nonconservative_terms(equations),
+                          have_aux_node_vars(equations), equations,
                           dg.mortar, dg.surface_integral, dg, cache)
     end
 
@@ -433,7 +434,7 @@ function calc_volume_integral!(du, u,
                                       volume_flux_dg, dg, cache, 1 - alpha_element)
 
             # Calculate FV volume integral contribution
-            fv_kernel!(du, u, mesh, have_nonconservative_terms(equations), equations,
+            fv_kernel!(du, u, mesh, equations,
                        volume_flux_fv, dg, cache, element, alpha_element)
         end
     end
@@ -452,7 +453,7 @@ function calc_volume_integral!(du, u,
 
     # Calculate LGL FV volume integral
     @threaded for element in eachelement(dg, cache)
-        fv_kernel!(du, u, mesh, have_nonconservative_terms(equations), equations,
+        fv_kernel!(du, u, mesh, equations,
                    volume_flux_fv, dg, cache, element, true)
     end
 
@@ -462,8 +463,8 @@ end
 @inline function fv_kernel!(du, u,
                             mesh::Union{TreeMesh{3}, StructuredMesh{3}, P4estMesh{3},
                                         T8codeMesh{3}},
-                            nonconservative_terms, equations,
-                            volume_flux_fv, dg::DGSEM, cache, element, alpha = true)
+                            equations, volume_flux_fv,
+                            dg::DGSEM, cache, element, alpha = true)
     @unpack fstar1_L_threaded, fstar1_R_threaded, fstar2_L_threaded, fstar2_R_threaded, fstar3_L_threaded, fstar3_R_threaded = cache
     @unpack inverse_weights = dg.basis
 
@@ -476,8 +477,9 @@ end
     fstar3_R = fstar3_R_threaded[Threads.threadid()]
 
     calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L, fstar3_R, u,
-                 mesh, nonconservative_terms, equations, volume_flux_fv, dg, element,
-                 cache)
+                 mesh, have_nonconservative_terms(equations),
+                 have_aux_node_vars(equations),
+                 equations, volume_flux_fv, dg, element, cache)
 
     # Calculate FV volume integral contribution
     for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
@@ -502,7 +504,7 @@ end
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
                               mesh::TreeMesh{3}, nonconservative_terms::False,
-                              equations,
+                              have_aux_node_vars::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     fstar1_L[:, 1, :, :] .= zero(eltype(fstar1_L))
     fstar1_L[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_L))
@@ -549,7 +551,8 @@ end
 # Calculate the finite volume fluxes inside the elements (**without non-conservative terms**).
 @inline function calcflux_fv!(fstar1_L, fstar1_R, fstar2_L, fstar2_R, fstar3_L,
                               fstar3_R, u,
-                              mesh::TreeMesh{3}, nonconservative_terms::True, equations,
+                              mesh::TreeMesh{3}, nonconservative_terms::True,
+                              have_aux_node_vars::False, equations,
                               volume_flux_fv, dg::DGSEM, element, cache)
     volume_flux, nonconservative_flux = volume_flux_fv
 
@@ -1052,7 +1055,8 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{3},
-                           nonconservative_terms::False, equations,
+                           nonconservative_terms::False,
+                           have_aux_node_vars::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack surface_flux = surface_integral
@@ -1110,7 +1114,8 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::TreeMesh{3},
-                           nonconservative_terms::True, equations,
+                           nonconservative_terms::True,
+                           have_aux_node_vars::False, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     surface_flux, nonconservative_flux = surface_integral.surface_flux

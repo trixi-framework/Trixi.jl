@@ -746,7 +746,7 @@ end
 
 function calc_mortar_flux!(surface_flux_values,
                            mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                           nonconservative_terms, equations,
+                           nonconservative_terms, have_aux_node_vars, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -787,7 +787,8 @@ function calc_mortar_flux!(surface_flux_values,
                                                             element)
 
                     calc_mortar_flux!(fstar_primary, fstar_secondary, mesh,
-                                      nonconservative_terms, equations,
+                                      nonconservative_terms, have_aux_node_vars,
+                                      equations,
                                       surface_integral, dg, cache,
                                       mortar, position, normal_direction,
                                       i, j)
@@ -823,7 +824,8 @@ end
 # Inlined version of the mortar flux computation on small elements for conservation fluxes
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                   nonconservative_terms::False, equations,
+                                   nonconservative_terms::False,
+                                   have_aux_node_vars::False, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
                                    i_node_index, j_node_index)
@@ -843,10 +845,38 @@ end
 end
 
 # Inlined version of the mortar flux computation on small elements for conservation fluxes
+@inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
+                                   mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                   nonconservative_terms::False,
+                                   have_aux_node_vars::True, equations,
+                                   surface_integral, dg::DG, cache,
+                                   mortar_index, position_index, normal_direction,
+                                   i_node_index, j_node_index)
+    @unpack u = cache.mortars
+    @unpack surface_flux = surface_integral
+    @unpack aux_mortar_node_vars = cache.aux_vars
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
+                                       i_node_index, j_node_index, mortar_index)
+    aux_ll, aux_rr = get_aux_surface_node_vars(aux_mortar_node_vars, equations, dg,
+                                               position_index, i_node_index,
+                                               j_node_index,
+                                               mortar_index)
+    flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+
+    # Copy flux to buffer
+    set_node_vars!(fstar_primary, flux, equations, dg,
+                   i_node_index, j_node_index, position_index)
+    set_node_vars!(fstar_secondary, flux, equations, dg,
+                   i_node_index, j_node_index, position_index)
+end
+
+# Inlined version of the mortar flux computation on small elements for conservation fluxes
 # with nonconservative terms
 @inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
                                    mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                                   nonconservative_terms::True, equations,
+                                   nonconservative_terms::True,
+                                   have_aux_node_vars::False, equations,
                                    surface_integral, dg::DG, cache,
                                    mortar_index, position_index, normal_direction,
                                    i_node_index, j_node_index)
@@ -864,6 +894,50 @@ end
     # central fluxes/SATs
     noncons_primary = nonconservative_flux(u_ll, u_rr, normal_direction, equations)
     noncons_secondary = nonconservative_flux(u_rr, u_ll, normal_direction, equations)
+    flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
+    flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
+
+    # Copy to buffer
+    set_node_vars!(fstar_primary, flux_plus_noncons_primary, equations, dg,
+                   i_node_index,
+                   j_node_index,
+                   position_index)
+    set_node_vars!(fstar_secondary, flux_plus_noncons_secondary, equations, dg,
+                   i_node_index,
+                   j_node_index,
+                   position_index)
+end
+
+# Inlined version of the mortar flux computation on small elements for conservation fluxes
+# with nonconservative terms
+@inline function calc_mortar_flux!(fstar_primary, fstar_secondary,
+                                   mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                   nonconservative_terms::True,
+                                   have_aux_node_vars::True, equations,
+                                   surface_integral, dg::DG, cache,
+                                   mortar_index, position_index, normal_direction,
+                                   i_node_index, j_node_index)
+    @unpack u = cache.mortars
+    surface_flux, nonconservative_flux = surface_integral.surface_flux
+    @unpack aux_mortar_node_vars = cache.aux_vars
+
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, i_node_index,
+                                       j_node_index, mortar_index)
+    aux_ll, aux_rr = get_aux_surface_node_vars(aux_mortar_node_vars, equations, dg,
+                                               position_index, i_node_index,
+                                               j_node_index,
+                                               mortar_index)
+
+    # Compute conservative flux
+    flux = surface_flux(u_ll, u_rr, aux_ll, aux_rr, normal_direction, equations)
+
+    # Compute nonconservative flux and add it to the flux scaled by a factor of 0.5 based on
+    # the interpretation of global SBP operators coupled discontinuously via
+    # central fluxes/SATs
+    noncons_primary = nonconservative_flux(u_ll, u_rr, aux_ll, aux_rr,
+                                           normal_direction, equations)
+    noncons_secondary = nonconservative_flux(u_rr, u_ll, aux_rr, aux_ll,
+                                             normal_direction, equations)
     flux_plus_noncons_primary = flux + 0.5f0 * noncons_primary
     flux_plus_noncons_secondary = flux + 0.5f0 * noncons_secondary
 
