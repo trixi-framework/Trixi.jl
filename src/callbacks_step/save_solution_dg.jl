@@ -242,6 +242,11 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
             MPI.Gatherv!(element_variable, nothing, mpi_root(), mpi_comm())
         end
 
+        # Send additional/extra node variables to root
+        for (key, node_variable) in node_variables
+            MPI.Gatherv!(node_variable, nothing, mpi_root(), mpi_comm())
+        end 
+
         return filename
     end
 
@@ -291,7 +296,7 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
             recv = Vector{eltype(data)}(undef, sum(node_counts))
             MPI.Gatherv!(node_variable, MPI.VBuffer(recv, node_counts),
                          mpi_root(), mpi_comm())
-            file["node_variables_$v"] = node_variable
+            file["node_variables_$v"] = recv
 
             # Add variable name as attribute
             var = file["node_variables_$v"]
