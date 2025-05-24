@@ -105,12 +105,12 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 # Add `:vorticity` to `extra_node_variables` tuple ...
 extra_node_variables = (:vorticity,)
 
-# ... and specify the function `get_node_variables` for this symbol, 
+# ... and specify the function `get_node_variable` for this symbol, 
 # with first argument matching the symbol (turned into a type via `Val`) for dispatching.
 # Note that for parabolic(-extended) equations, `equations_parabolic` and `cache_parabolic`
 # must be declared as the last two arguments of the function to match the expected signature.
-function Trixi.get_node_variables(::Val{:vorticity}, u, mesh, equations, dg, cache,
-                                  equations_parabolic, cache_parabolic)
+function Trixi.get_node_variable(::Val{:vorticity}, u, mesh, equations, dg, cache,
+                                 equations_parabolic, cache_parabolic)
     n_nodes = nnodes(dg)
     n_elements = nelements(dg, cache)
     # By definition, the variable must be provided at every node of every element!

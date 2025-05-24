@@ -21,9 +21,9 @@ end
 
 ### Functions to define `node variables` for the `SaveSolutionCallback`. ###
 
-# Abstract function which is to be overwritten for the specific `node_variables`
+# Abstract function which is to be overwritten for the specific `node_variable`
 # in e.g. the elixirs.
-function get_node_variables end
+function get_node_variable end
 
 # Version for (purely) hyperbolic equations.
 function get_node_variables!(node_variables, u_ode, mesh, equations,
@@ -31,8 +31,8 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
     if !isempty(node_variables)
         u = wrap_array(u_ode, mesh, equations, dg, cache)
         for var in keys(node_variables)
-            node_variables[var] = get_node_variables(Val(var), u, mesh, equations,
-                                                     dg, cache)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache)
         end
     end
 
@@ -52,10 +52,10 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
     if !isempty(node_variables)
         u = wrap_array(u_ode, mesh, equations, dg, cache)
         for var in keys(node_variables)
-            node_variables[var] = get_node_variables(Val(var), u, mesh, equations,
-                                                     dg, cache,
-                                                     equations_parabolic,
-                                                     cache_parabolic)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache,
+                                                    equations_parabolic,
+                                                    cache_parabolic)
         end
     end
 
