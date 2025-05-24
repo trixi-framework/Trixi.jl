@@ -50,10 +50,8 @@ end
     modal_tmp2 = modal_tmp2_threaded[Threads.threadid()]
 
     # Calculate indicator variables at Gauss-Lobatto nodes
-    for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-        u_local = get_node_vars(u, equations, dg, i, j, k, element)
-        indicator[i, j, k] = indicator_hg.variable(u_local, equations)
-    end
+    calc_indicator_inner!(indicator, u, element, mesh, indicator_hg.variable,
+                          have_aux_node_vars, equations, dg, cache)
 
     # Convert to modal representation
     multiply_scalar_dimensionwise!(modal, dg.basis.inverse_vandermonde_legendre,
@@ -100,6 +98,29 @@ end
 
     # Clip the maximum amount of FV allowed
     alpha[element] = min(alpha_max, alpha_element)
+end
+
+@inline function calc_indicator_inner!(indicator, u, element, mesh::AbstractMesh{3},
+                                       indicator_variable,
+                                       have_aux_node_vars::False, equations,
+                                       solver, cache)
+    for k in eachnode(solver), j in eachnode(solver), i in eachnode(solver)
+        u_local = get_node_vars(u, equations, solver, i, j, k, element)
+        indicator[i, j, k] = indicator_variable(u_local, equations)
+    end
+end
+
+@inline function calc_indicator_inner!(indicator, u, element, mesh::AbstractMesh{3},
+                                       indicator_variable,
+                                       have_aux_node_vars::True, equations,
+                                       solver, cache)
+    @unpack aux_node_vars = cache.aux_vars
+    for k in eachnode(solver), j in eachnode(solver), i in eachnode(solver)
+        u_local = get_node_vars(u, equations, solver, i, j, k, element)
+        aux_local = get_aux_node_vars(aux_node_vars, equations, solver, i, j, k,
+                                      element)
+        indicator[i, j, k] = indicator_variable(u_local, aux_local, equations)
+    end
 end
 
 function apply_smoothing!(mesh::Union{TreeMesh{3}, P4estMesh{3}, T8codeMesh{3}}, alpha,

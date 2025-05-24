@@ -457,4 +457,53 @@ function init_aux_boundary_node_vars!(aux_vars,
 
     return nothing
 end
+
+# Initialize auxiliary mortar node variables
+# 3D P4est implementation, similar to prolong2mortars
+# Each mortar has two sides (indentified by first variable of u_upper / u_lower)
+# On the side with two small elements, values can be copied from the aux vars field
+# On the side with one large element, values are usually interpolated to small elements
+# We do this differently here and use the same small element values on both side. This
+# assumes that the aux_field computes a smooth variable field with no jumps
+function init_aux_mortar_node_vars!(aux_vars, mesh::Union{P4estMesh{3}, T8codeMesh{3}},
+                                    equations, solver, cache)
+    @unpack aux_node_vars, aux_mortar_node_vars = aux_vars
+    @unpack fstar_tmp_threaded = cache
+    @unpack neighbor_ids, node_indices = cache.mortars
+    index_range = eachnode(solver)
+
+    @threaded for mortar in eachmortar(solver, cache)
+        # Copy solution data from the small elements using "delayed indexing" with
+        # a start value and two step sizes to get the correct face and orientation.
+        small_indices = node_indices[1, mortar]
+
+        i_small_start, i_small_step_i, i_small_step_j = index_to_start_step_3d(small_indices[1],
+                                                                               index_range)
+        j_small_start, j_small_step_i, j_small_step_j = index_to_start_step_3d(small_indices[2],
+                                                                               index_range)
+        k_small_start, k_small_step_i, k_small_step_j = index_to_start_step_3d(small_indices[3],
+                                                                               index_range)
+
+        for position in 1:4
+            i_small = i_small_start
+            j_small = j_small_start
+            k_small = k_small_start
+            element = neighbor_ids[position, mortar]
+            for j in eachnode(solver)
+                for i in eachnode(solver)
+                    for v in axes(aux_mortar_node_vars, 2)
+                        aux_mortar_node_vars[:, v, position, i, j, mortar] .=
+                            aux_node_vars[v, i_small, j_small, k_small, element]
+                    end
+                    i_small += i_small_step_i
+                    j_small += j_small_step_i
+                    k_small += k_small_step_i
+                end
+                i_small += i_small_step_j
+                j_small += j_small_step_j
+                k_small += k_small_step_j
+            end
+        end
+    end
+end
 end # @muladd
