@@ -919,6 +919,57 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_navierstokes_poiseuille_flow.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_poiseuille_flow.jl"),
+                        l2=[
+                            0.08961416764186343,
+                            0.3213531214648782,
+                            0.008127101709513574,
+                            0.36337868538217594
+                        ],
+                        linf=[
+                            0.34848113583829665,
+                            1.2979678813255084,
+                            0.11559426366146579,
+                            1.3559083922603685
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_couette_flow.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_couette_flow.jl"),
+                        l2=[
+                            0.009585252225488753,
+                            0.007939233099864973,
+                            0.0007617512688442657,
+                            0.027229870237669436
+                        ],
+                        linf=[
+                            0.027230029149270862,
+                            0.027230451118692933,
+                            0.0038642959675975713,
+                            0.04738248734987671
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

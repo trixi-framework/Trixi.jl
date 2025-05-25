@@ -5,44 +5,42 @@ using Trixi
 # semidiscretization of the ideal compressible Navier-Stokes equations
 
 # Fluid parameters
-const gamma = 1.4
-const prandtl_number = 0.72
+gamma() = 1.4
+prandtl_number() = 0.71
 
 # Parameters for compressible, yet viscous set up
-const Re = 1000
-const Ma = 0.8
+Re() = 100
+Ma() = 1.2
 
 # Parameters that can be freely chosen
-const v_in = 1
-const rho_in = 1
-const height = 1.0
+v_top() = 1
+rho_in() = 1
+height() = 1.0
 
 # Parameters that follow from Reynolds and Mach number + adiabatic index gamma
-const nu = v_in * height / Re
+nu() = v_top() * height() / Re()
 
-const c = v_in / Ma
-const p_over_rho = c^2 / gamma
-const p_in = rho_in * p_over_rho
-const mu = rho_in * nu
+c() = v_top() / Ma()
+p_over_rho() = c()^2 / gamma()
+p_in() = rho_in() * p_over_rho()
+mu() = rho_in() * nu()
 
-equations = CompressibleEulerEquations2D(gamma)
-equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
-                                                          Prandtl = prandtl_number)
+equations = CompressibleEulerEquations2D(gamma())
+equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
+                                                          Prandtl = prandtl_number())
 
-# Set inflow
+# Set inflow, impose known/expected velocity profile
 @inline function initial_condition(x, t, equations)
-    rho = rho_in
-    v1 = v_in
+    v1 = x[2] / height() * v_top() # Linear profile from 0 to v_top
     v2 = 0.0
-    p = p_in
 
-    prim = SVector(rho, v1, v2, p)
+    prim = SVector(rho_in(), v1, v2, p_in())
     return prim2cons(prim, equations)
 end
 
-const length = 10 * height # Roughly constant at this length of the channel
+length() = 5 * height() # Roughly constant at this length of the channel
 coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (length, height) # maximum coordinates (max(x), max(y))
+coordinates_max = (length(), height()) # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (36, 12)
 mesh = P4estMesh(trees_per_dimension, polydeg = 1,
@@ -66,18 +64,20 @@ bs_hyperbolic = Dict(:x_neg => BoundaryConditionDirichlet(initial_condition), # 
 
 ### Parabolic boundary conditions ###
 
-velocity_bc_inflow = NoSlip((x, t, equations) -> SVector(v_in, 0))
+velocity_bc_top_left = NoSlip((x, t, equations) -> SVector(x[2] / height() * v_top(), 0))
 # Use isothermal for inflow - adiabatic should also work
-heat_bc_inflow = Isothermal() do x, t, equations_parabolic
+heat_bc_top_left = Isothermal() do x, t, equations_parabolic
     Trixi.temperature(initial_condition(x, t,
                                         equations_parabolic),
                       equations_parabolic)
 end
-bc_parabolic_inflow = BoundaryConditionNavierStokesWall(velocity_bc_inflow, heat_bc_inflow)
+bc_parabolic_top_left = BoundaryConditionNavierStokesWall(velocity_bc_top_left,
+                                                          heat_bc_top_left)
 
-velocity_bc_wall = NoSlip((x, t, equations) -> SVector(0, 0))
-heat_bc_wall = Adiabatic((x, t, equations) -> 0)
-boundary_condition_wall = BoundaryConditionNavierStokesWall(velocity_bc_wall, heat_bc_wall)
+velocity_bc_bottom = NoSlip((x, t, equations) -> SVector(0, 0))
+heat_bc_bottom = Adiabatic((x, t, equations) -> 0)
+boundary_condition_bottom = BoundaryConditionNavierStokesWall(velocity_bc_bottom,
+                                                              heat_bc_bottom)
 
 # On right end: Just copy the state/gradients
 @inline function boundary_condition_copy(flux_inner,
@@ -97,11 +97,10 @@ end
     return flux_inner
 end
 
-bcs_parabolic = Dict(:x_neg => bc_parabolic_inflow,
+bcs_parabolic = Dict(:x_neg => bc_parabolic_top_left,
                      :x_pos => boundary_condition_copy,
-                     # Top/Bottom of channel: Walls
-                     :y_neg => boundary_condition_wall,
-                     :y_pos => boundary_condition_wall)
+                     :y_neg => boundary_condition_bottom,
+                     :y_pos => bc_parabolic_top_left)
 
 solver = DGSEM(polydeg = 3, surface_flux = flux_hll)
 
@@ -112,7 +111,7 @@ semi = SemidiscretizationHyperbolicParabolic(mesh, (equations, equations_parabol
 
 ###############################################################################
 
-tspan = (0, 10)
+tspan = (0, 5)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
