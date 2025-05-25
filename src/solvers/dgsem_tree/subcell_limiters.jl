@@ -222,10 +222,11 @@ end
 # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
 # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
 # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
-function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
-                             ::VolumeIntegralSubcellLimiting, equations)
-    node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha
-
-    return nothing
+function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
+    return dg.volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+end
+function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
+                           equations_parabolic, cache_parabolic)
+    get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
 end
 end # @muladd
