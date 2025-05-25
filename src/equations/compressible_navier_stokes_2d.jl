@@ -288,6 +288,16 @@ end
     return SVector(v1, v2)
 end
 
+@doc raw"""
+    enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+
+Computes the (node-wise) enstrophy, defined as
+```math
+    \mathcal{E} = \frac{1}{2} \rho \omega \cdot \omega
+```
+where ``\omega = \nabla \times \boldsymbol{v}`` is the [`vorticity`](@ref).
+In 2D, ``\omega`` is just a scalar.
+"""
 @inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
@@ -295,10 +305,18 @@ end
     return 0.5f0 * u[1] * omega^2
 end
 
+@doc raw"""
+    vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
+
+Computes the (node-wise) vorticity, defined in 2D as
+```math
+    \omega = \nabla \times \boldsymbol{v} = \frac{\partial v_2}{\partial x_1} - \frac{\partial v_1}{\partial x_2}
+```
+"""
 @inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion2D)
     # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
-    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
-    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+    _, _, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, dv1dy, _, _ = convert_derivative_to_primitive(u, gradients[2], equations)
 
     return dv2dx - dv1dy
 end
