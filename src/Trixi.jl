@@ -218,7 +218,7 @@ export boundary_condition_do_nothing,
        boundary_condition_slip_wall,
        boundary_condition_wall,
        BoundaryConditionNavierStokesWall,
-       NoSlip, SlipWall,
+       NoSlip, Slip,
        Adiabatic, Isothermal,
        BoundaryConditionCoupled
 

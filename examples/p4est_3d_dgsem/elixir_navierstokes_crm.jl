@@ -87,9 +87,9 @@ velocity_bc_airfoil = NoSlip((x, t, equations) -> SVector(0.0, 0.0, 0.0))
 heat_bc = Adiabatic((x, t, equations) -> 0.0)
 bc_body = BoundaryConditionNavierStokesWall(velocity_bc_airfoil, heat_bc)
 
-# The "SlipWall" boundary condition rotates all velocities into tangential direction
+# The "Slip" boundary condition rotates all velocities into tangential direction
 # and thus acts as a symmetry plane.
-bc_symmetry_plane = BoundaryConditionNavierStokesWall(SlipWall(), heat_bc)
+bc_symmetry_plane = BoundaryConditionNavierStokesWall(Slip(), heat_bc)
 
 boundary_conditions_para = Dict(:SYMMETRY => bc_symmetry_plane,
                                 :FARFIELD => bc_farfield,

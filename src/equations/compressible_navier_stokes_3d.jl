@@ -492,7 +492,7 @@ end
 end
 
 # Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
-@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:SlipWall,
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
                                                                                       normal::AbstractVector,
@@ -509,7 +509,7 @@ end
 end
 
 # Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
-@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:SlipWall,
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
                                                                         <:Adiabatic})(flux_inner,
                                                                                       u_inner,
                                                                                       normal::AbstractVector,

@@ -36,9 +36,9 @@ mesh = P4estMesh(trees_per_dimension,
 boundary_conditions = Dict(:x_neg => boundary_condition_slip_wall,
                            :x_pos => boundary_condition_slip_wall)
 
-# The "SlipWall" boundary condition rotates all velocities into tangential direction
+# The "Slip" boundary condition rotates all velocities into tangential direction
 # and thus acts as a symmetry plane.
-velocity_bc = SlipWall()
+velocity_bc = Slip()
 heat_bc = Adiabatic((x, t, equations_parabolic) -> zero(eltype(x)))
 boundary_condition_y = BoundaryConditionNavierStokesWall(velocity_bc,
                                                          heat_bc)
