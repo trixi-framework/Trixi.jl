@@ -35,7 +35,7 @@ initial_condition = initial_condition_weak_blast_wave
 
 surface_flux = flux_hlle
 volume_flux = flux_ranocha
-polydeg = 5
+polydeg = 4
 basis = LobattoLegendreBasis(polydeg)
 indicator_sc = IndicatorHennemannGassner(equations, basis,
                                          alpha_max = 1.0,
@@ -98,15 +98,15 @@ callbacks = CallbackSet(summary_callback,
                         analysis_callback,
                         alive_callback)
 
-stepsize_callback = StepsizeCallback(cfl = 0.5)
-
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
-                        alive_callback,
-                        stepsize_callback)
+                        alive_callback)
 
 ###############################################################################
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
-            dt = 1.0,
+# 5th-order RKM optimized for compressible Navier-Stokes equations, see also
+# https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods
+ode_alg = CKLLSRK65_4M_4R()
+
+sol = solve(ode, ode_alg;
             ode_default_options()..., callback = callbacks);

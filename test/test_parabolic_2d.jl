@@ -944,6 +944,31 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_navierstokes_blast_reflective.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_blast_reflective.jl"),
+                        l2=[
+                            0.2023755754487641,
+                            0.09980105525644697,
+                            0.09980105525644832,
+                            1.0126684183854844
+                        ],
+                        linf=[
+                            0.6190078878194776,
+                            0.4696078754282719,
+                            0.46960787542825216,
+                            5.1549225222023445
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
