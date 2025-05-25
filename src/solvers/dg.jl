@@ -36,13 +36,6 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
         end
     end
 
-    @unpack volume_integral = dg
-    # Shock capturing volume integrals output the blending factor as a "node variable".
-    if typeof(volume_integral) == VolumeIntegralSubcellLimiting
-        get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
-                            equations)
-    end
-
     return nothing
 end
 # Version for parabolic-extended equations
@@ -57,13 +50,6 @@ function get_node_variables!(node_variables, u_ode, mesh, equations,
                                                     equations_parabolic,
                                                     cache_parabolic)
         end
-    end
-
-    @unpack volume_integral = dg
-    # Shock capturing volume integrals output the blending factor as a "node variable".
-    if typeof(volume_integral) == VolumeIntegralSubcellLimiting
-        get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
-                            equations)
     end
 
     return nothing
