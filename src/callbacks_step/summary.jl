@@ -212,6 +212,9 @@ function initialize_summary_callback(cb::DiscreteCallback, u, t, integrator;
     if !_PREFERENCE_POLYESTER
         push!(setup, "Polyester" => "disabled")
     end
+    if !_PREFERENCE_LOOPVECTORIZATION
+        push!(setup, "LoopVectorization" => "disabled")
+    end
     if mpi_isparallel()
         push!(setup,
               "#MPI ranks" => mpi_nranks())
