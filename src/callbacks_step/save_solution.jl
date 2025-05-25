@@ -31,16 +31,16 @@ function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache)
     # Implementation goes here
 end
 ```
-while for parabolic-hyperbolic equations `equations_parabolic` and `cache_parabolic` must be added:
+and must return an array of dimension
+`(ntuple(_ -> n_nodes, ndims(mesh))..., n_elements)`.
+
+For parabolic-hyperbolic equations `equations_parabolic` and `cache_parabolic` must be added:
 ```julia
 function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
                            equations_parabolic, cache_parabolic)
     # Implementation goes here
 end
 ```
-
-In case that the [`SubcellLimiterIDP`](@ref) is used, the `extra_node_variables` tuple is automatically extended by the 
-`:limiting_coefficient` key which contains the limiting coefficient for each node.
 """
 mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
     interval_or_dt::IntervalType
