@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -108,5 +108,7 @@ callbacks = CallbackSet(summary_callback,
 # https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Low-Storage-Methods
 ode_alg = CKLLSRK65_4M_4R()
 
-sol = solve(ode, ode_alg;
+abstol = 1e-6
+reltol = 1e-4
+sol = solve(ode, ode_alg; abstol = abstol, reltol = reltol,
             ode_default_options()..., callback = callbacks);

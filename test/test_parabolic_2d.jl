@@ -949,17 +949,19 @@ end
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_blast_reflective.jl"),
                         l2=[
-                            0.2023755754487641,
-                            0.09980105525644697,
-                            0.09980105525644832,
-                            1.0126684183854844
+                            0.08399832661463955,
+                            0.10106557299029799,
+                            0.10106557299029797,
+                            0.6014268338990223
                         ],
                         linf=[
-                            0.6190078878194776,
-                            0.4696078754282719,
-                            0.46960787542825216,
-                            5.1549225222023445
-                        ])
+                            0.4818102238818984,
+                            0.7253328065280741,
+                            0.7253328065280749,
+                            3.259434423814996
+                        ],
+                        tspan=(0.0, 0.05),
+                        abstol=1e-7, reltol=1e-7)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
