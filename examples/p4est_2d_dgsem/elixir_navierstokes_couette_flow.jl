@@ -38,9 +38,9 @@ equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu(),
     return prim2cons(prim, equations)
 end
 
-length() = 5 * height() # Roughly constant at this length of the channel
+len() = 5 * height() # Roughly constant at this len of the channel
 coordinates_min = (0.0, 0.0) # minimum coordinates (min(x), min(y))
-coordinates_max = (length(), height()) # maximum coordinates (max(x), max(y))
+coordinates_max = (len(), height()) # maximum coordinates (max(x), max(y))
 
 trees_per_dimension = (36, 12)
 mesh = P4estMesh(trees_per_dimension, polydeg = 1,
