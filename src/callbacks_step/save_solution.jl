@@ -39,8 +39,6 @@ function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
 end
 ```
 
-In case that the [`SubcellLimiterIDP`](@ref) is used, the `extra_node_variables` tuple is automatically extended by the 
-`:limiting_coefficient` key which contains the limiting coefficient for each node.
 """
 mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
     interval_or_dt::IntervalType
