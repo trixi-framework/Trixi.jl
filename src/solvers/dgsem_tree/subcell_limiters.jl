@@ -225,4 +225,9 @@ end
 function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
     return dg.volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
 end
+function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
+                           equations_parabolic, cache_parabolic)
+    get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
+end
+
 end # @muladd

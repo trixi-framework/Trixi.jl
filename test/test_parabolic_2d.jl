@@ -919,6 +919,32 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
 end
+
+@trixi_testset "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl"),
+                        l2=[
+                            0.1987691550257618,
+                            0.1003336666735962,
+                            0.1599420846677608,
+                            0.07314642823482713
+                        ],
+                        linf=[
+                            0.8901520920065688,
+                            0.47421178500575756,
+                            0.38859478648621326,
+                            0.3247497921546598
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
