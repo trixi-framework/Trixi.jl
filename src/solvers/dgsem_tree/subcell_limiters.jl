@@ -229,5 +229,4 @@ function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg,
                            equations_parabolic, cache_parabolic)
     get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
 end
-
 end # @muladd
