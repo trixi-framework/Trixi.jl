@@ -29,7 +29,7 @@ equations = CompressibleEulerEquations2D(gamma)
 equations_parabolic = CompressibleNavierStokesDiffusion2D(equations, mu = mu,
                                                           Prandtl = prandtl_number)
 
-# Set inflow
+# Set naive inflow
 @inline function initial_condition(x, t, equations)
     rho = rho_in
     v1 = v_in
