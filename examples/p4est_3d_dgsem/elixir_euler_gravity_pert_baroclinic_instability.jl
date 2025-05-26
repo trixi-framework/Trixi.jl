@@ -218,8 +218,8 @@ end
     return SVector(du0, du2, du3, du0, du0)
 end
 
-@inline function vel_mag(u, equations::CompressibleEulerEquationsPerturbationGravity3D)
-    rho, rho_v1, rho_v2, rho_v3 = u
+@inline function vel_mag(u, aux, equations::CompressibleEulerEquationsPerturbationGravity3D)
+    rho, rho_v1, rho_v2, rho_v3 = Trixi.cons2cons_total(u, aux, equations)
     return sqrt(rho_v1^2 + rho_v2^2 + rho_v3^2) / rho
 end
 
@@ -297,5 +297,5 @@ callbacks = CallbackSet(summary_callback,
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
 sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
-            abstol = 1.0e-6, reltol = 1.0e-6,
+            abstol = 1.0e-6, reltol = 1.0e-6, maxiters=1e7,
             ode_default_options()..., callback = callbacks);
