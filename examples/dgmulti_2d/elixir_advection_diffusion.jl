@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 dg = DGMulti(polydeg = 3, element_type = Tri(), approximation_type = Polynomial(),
