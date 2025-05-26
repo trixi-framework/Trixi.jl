@@ -538,7 +538,7 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
         etype = get_element_type_from_string(etype_str)()
 
         polydeg = h5open(mesh_file, "r") do file
-            if etype isa Wedge
+            if etype isa Trixi.Wedge && haskey(attributes(file), "polydeg_tri")
                 return tuple(read(attributes(file)["polydeg_tri"]),
                              read(attributes(file)["polydeg_line"]))
             else

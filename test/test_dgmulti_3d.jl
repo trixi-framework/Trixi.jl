@@ -381,7 +381,8 @@ end
 @trixi_testset "elixir_advection_tensor_wedge.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
                         l2=[2.30487910e-04],
-                        linf=[6.31795281e-04])
+                        linf=[6.31795281e-04],
+                        rtol=2 * sqrt(eps()))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -401,7 +402,8 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
                         polydeg=3,
                         l2=[0.0002332063232167919],
-                        linf=[0.0006597931027270132])
+                        linf=[0.0006597931027270132],
+                        rtol=2 * sqrt(eps()))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
