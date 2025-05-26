@@ -5,6 +5,18 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes when updating to v0.12 from v0.11.x
+
+#### Changed
+
+- When using the `VolumeIntegralSubcellLimiting` with the `SubcellLimiterIDP` the
+  `:limiting_coefficient` must be explicitly provided to the `SaveSolutionCallback` via
+  ```julia
+  save_sol_cb = SaveSolutionCallback(interval = 42,
+                                     extra_node_variables = (:limiting_coefficient,))
+  ```
+  i.e., is no longer automatically saved ([#2298]).
+  
 
 ## Changes in the v0.11 lifecycle
 
@@ -18,6 +30,7 @@ for human readability.
   paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 - Passive tracers for arbitrary equations with density and flow variables ([#2364])
+- Arbitrary solution-dependent quantities can now be saved in the `SaveSolutionCallback` (and thus later on visualized) ([#2298]).
 
 #### Deprecated
 

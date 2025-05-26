@@ -565,6 +565,10 @@ node index inside the element and the element index itself.
 Thus, in 1D this is a two integer tuple `indices = (i, element)`,
 in 2D a three integer tuple `indices = (i, j, element)`,
 and in 3D a four integer tuple `indices = (i, j, k, element)`.
+It is also possible to call this function without `indices` being explicitly a tuple,
+i.e., `get_node_vars(u, equations, solver::DG, i, j, k, element)` is also valid.
+For more details, see the documentation:
+https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
 """
 @inline function get_node_vars(u, equations, solver::DG, indices...)
     # There is a cut-off at `n == 10` inside of the method
