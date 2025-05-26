@@ -51,10 +51,19 @@ struct Adiabatic{F}
 end
 
 """
-`GradientVariablesPrimitive` and `GradientVariablesEntropy` are gradient variable type parameters
-for `CompressibleNavierStokesDiffusion1D`. By default, the gradient variables are set to be
-`GradientVariablesPrimitive`. Specifying `GradientVariablesEntropy` instead uses the entropy variable
-formulation from
+`GradientVariablesPrimitive` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref), 
+[`CompressibleNavierStokesDiffusion2D`](@ref), and [`CompressibleNavierStokesDiffusion3D`](@ref).
+The other available gradient variable type parameter is [`GradientVariablesEntropy`](@ref).
+By default, the gradient variables are set to be `GradientVariablesPrimitive`.
+"""
+struct GradientVariablesPrimitive end
+
+"""
+`GradientVariablesEntropy` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref), 
+[`CompressibleNavierStokesDiffusion2D`](@ref), and [`CompressibleNavierStokesDiffusion3D`](@ref).
+The other available gradient variable type parameter is [`GradientVariablesPrimitive`](@ref).
+
+Specifying `GradientVariablesEntropy` uses the entropy variable formulation from
 - Hughes, Mallet, Franca (1986)
   A new finite element formulation for computational fluid dynamics: I. Symmetric forms of the
   compressible Euler and Navier-Stokes equations and the second law of thermodynamics.
@@ -62,7 +71,6 @@ formulation from
 
 Under `GradientVariablesEntropy`, the Navier-Stokes discretization is provably entropy stable.
 """
-struct GradientVariablesPrimitive end
 struct GradientVariablesEntropy end
 
 """
