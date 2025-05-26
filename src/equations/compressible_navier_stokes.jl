@@ -43,7 +43,8 @@ This boundary condition can also be employed as a reflective wall.
 Note that in 1D this degenerates to the [`NoSlip`](@ref) boundary condition which must be used instead.
 
 !!! note
-    Currently this boundary condition is only compatible with the [`P4estMesh`](@ref).
+    Currently this (velocity) boundary condition is only implemented for the 
+    [`P4estMesh`](@ref), [`GradientVariablesPrimitive`](@ref), and [`Adiabatic`](@ref) heat boundary condition.
 """
 struct Slip end
 
