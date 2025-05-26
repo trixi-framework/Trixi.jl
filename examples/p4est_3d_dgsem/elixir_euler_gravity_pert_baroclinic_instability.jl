@@ -32,6 +32,11 @@ function initial_condition_baroclinic_instability(x, t,
     # Unperturbed basic state
     rho, u, p = basic_state_baroclinic_instability_longitudinal_velocity(lon, lat, z)
 
+    # Convert spherical velocity to Cartesian
+    v1_ref = -sin(lon) * u
+    v2_ref = cos(lon) * u
+    v3_ref = 0.0
+
     # Stream function type perturbation
     u_perturbation, v_perturbation = perturbation_stream_function(lon, lat, z)
 
@@ -46,7 +51,8 @@ function initial_condition_baroclinic_instability(x, t,
     # geopotential
     phi = gravitational_acceleration * (radius_earth - radius_earth^2 / r)
 
-    return Trixi.prim2cons_geopot(SVector(rho, v1, v2, v3, p), phi, equations)
+    return Trixi.prim2cons_geopot(SVector(rho, v1, v2, v3, p), phi, equations) -
+           Trixi.prim2cons_geopot(SVector(rho, v1_ref, v2_ref, v3_ref, p), phi, equations)
 end
 
 # Steady state for RHS correction below
