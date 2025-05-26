@@ -638,7 +638,7 @@ end
     # since LoopVectorization does not support `ForwardDiff.Dual`s. Hence, we use
     # optimized `PtrArray`s whenever possible and fall back to plain `Array`s
     # otherwise.
-    if _PREFERENCE_POLYESTER && LoopVectorization.check_args(u_ode)
+    if _PREFERENCE_THREADING === :polyester && LoopVectorization.check_args(u_ode)
         # This version using `PtrArray`s from StrideArrays.jl is very fast and
         # does not result in allocations.
         #

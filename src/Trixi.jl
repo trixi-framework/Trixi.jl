@@ -18,7 +18,7 @@ module Trixi
 using Preferences: @load_preference, set_preferences!
 const _PREFERENCE_SQRT = @load_preference("sqrt", "sqrt_Trixi_NaN")
 const _PREFERENCE_LOG = @load_preference("log", "log_Trixi_NaN")
-const _PREFERENCE_POLYESTER = @load_preference("polyester", true)
+const _PREFERENCE_THREADING = @load_preference("backend", :polyester)
 const _PREFERENCE_LOOPVECTORIZATION = @load_preference("loop_vectorization", true)
 
 # Include other packages that are used in Trixi.jl
