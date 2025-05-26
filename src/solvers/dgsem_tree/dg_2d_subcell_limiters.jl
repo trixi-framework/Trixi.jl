@@ -744,8 +744,7 @@ function calc_mortar_flux!(surface_flux_values, mesh,
                                                                                     equations,
                                                                                     mortar_idp,
                                                                                     surface_integral,
-                                                                                    dg,
-                                                                                    cache)
+                                                                                    dg, cache)
 
     # high order fluxes
     (; surface_flux_values_high_order) = cache.elements
