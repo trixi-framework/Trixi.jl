@@ -562,9 +562,9 @@ end
 Return the value of the variable (vector) `u` at a node inside a specific element.
 The node is specified by the indices `indices...` argument which is a combination of
 node index inside the element and the element index itself.
-Thus, in 1D this is a two integer tuple `indices = i, element`,
-in 2D a three integer tuple `indices = i, j, element`,
-and in 3D a four integer tuple `indices = i, j, k, element`.
+Thus, in 1D this is a two integer tuple `indices = (i, element)`,
+in 2D a three integer tuple `indices = (i, j, element)`,
+and in 3D a four integer tuple `indices = (i, j, k, element)`.
 """
 @inline function get_node_vars(u, equations, solver::DG, indices...)
     # There is a cut-off at `n == 10` inside of the method
