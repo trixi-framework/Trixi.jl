@@ -7,9 +7,8 @@ using LinearAlgebra: norm
 # they are coupled across the domain boundaries to generate a periodic system.
 #
 # In this elixir, we have a square domain that is divided into a left and right half.
-# On each half of the domain, an independent SemidiscretizationHyperbolic is created for
-# each set of equations. The two systems are coupled in the x-direction
-# and are periodic in the y-direction.
+# On each half of the domain, an independent SemidiscretizationHyperbolic is created for each set of equations. 
+# The two systems are coupled in the x-direction and are periodic in the y-direction.
 # For a high-level overview, see also the figure below:
 #
 # (-2,  2)                                   ( 2,  2)
@@ -56,21 +55,16 @@ mesh_euler = StructuredMesh(cells_per_dimension,
                             coords_min_euler, coords_max_euler,
                             periodicity = (false, true))
 
-function coupling_function_Euler2LBM(x, u, equations_other, equations_own)
-    u_prim_euler = cons2prim(u, equations_own)
-    rho = u_prim_euler[1]
-    v1 = u_prim_euler[2]
-    v2 = u_prim_euler[3]
-
-    return equilibrium_distribution(rho, v1, v2, equations_other)
+function coupling_function_LBM2Euler(x, u, equations_other, equations_own)
+    return prim2cons(cons2macroscopic(u, equations_other), equations_own)
 end
 
 boundary_conditions_euler = (x_neg = BoundaryConditionCoupled(2, (:end, :i_forward),
                                                               Float64,
-                                                              coupling_function_Euler2LBM),
+                                                              coupling_function_LBM2Euler),
                              x_pos = BoundaryConditionCoupled(2, (:begin, :i_forward),
                                                               Float64,
-                                                              coupling_function_Euler2LBM),
+                                                              coupling_function_LBM2Euler),
                              y_neg = boundary_condition_periodic,
                              y_pos = boundary_condition_periodic)
 
@@ -107,16 +101,21 @@ mesh_lbm = StructuredMesh(cells_per_dimension,
                           coords_min_lbm, coords_max_lbm,
                           periodicity = (false, true))
 
-function coupling_function_LBM2Euler(x, u, equations_other, equations_own)
-    return prim2cons(cons2macroscopic(u, equations_own), equations_other)
+function coupling_function_Euler2LBM(x, u, equations_other, equations_own)
+    u_prim_euler = cons2prim(u, equations_other)
+    rho = u_prim_euler[1]
+    v1 = u_prim_euler[2]
+    v2 = u_prim_euler[3]
+
+    return equilibrium_distribution(rho, v1, v2, equations_own)
 end
 
 boundary_conditions_lbm = (x_neg = BoundaryConditionCoupled(1, (:end, :i_forward),
                                                             Float64,
-                                                            coupling_function_LBM2Euler),
+                                                            coupling_function_Euler2LBM),
                            x_pos = BoundaryConditionCoupled(1, (:begin, :i_forward),
                                                             Float64,
-                                                            coupling_function_LBM2Euler),
+                                                            coupling_function_Euler2LBM),
                            y_neg = boundary_condition_periodic,
                            y_pos = boundary_condition_periodic)
 
@@ -130,7 +129,7 @@ semi = SemidiscretizationCoupled(semi_euler, semi_lbm)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 0.1)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
