@@ -89,9 +89,9 @@ eqs_lbm = LatticeBoltzmannEquations2D(Ma = 0.1, Re = Inf)
                                     equations::LatticeBoltzmannEquations2D)
     RealT = eltype(normal_direction)
     if isapprox(normal_direction[2], zero(RealT), atol = 2 * eps(RealT))
-        v_alpha = equations.v_alpha1 * norm(normal_direction)
+        v_alpha = equations.v_alpha1 * abs(normal_direction[1])
     elseif isapprox(normal_direction[1], zero(RealT), atol = 2 * eps(RealT))
-        v_alpha = equations.v_alpha2 * norm(normal_direction)
+        v_alpha = equations.v_alpha2 * abs(normal_direction[2])
     else
         error("Invalid normal direction for flux_godunov: $normal_direction")
     end

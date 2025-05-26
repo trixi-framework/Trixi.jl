@@ -22,9 +22,9 @@ mesh = StructuredMesh(cells_per_dimension,
                                     equations::LatticeBoltzmannEquations2D)
     RealT = eltype(normal_direction)
     if isapprox(normal_direction[2], zero(RealT), atol = 2 * eps(RealT))
-        v_alpha = equations.v_alpha1 * norm(normal_direction)
+        v_alpha = equations.v_alpha1 * abs(normal_direction[1])
     elseif isapprox(normal_direction[1], zero(RealT), atol = 2 * eps(RealT))
-        v_alpha = equations.v_alpha2 * norm(normal_direction)
+        v_alpha = equations.v_alpha2 * abs(normal_direction[2])
     else
         error("Invalid normal direction for flux_godunov: $normal_direction")
     end
@@ -36,7 +36,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 ###############################################################################
 # ODE solvers, callbacks etc.
 
-tspan = (0.0, 1.0)
+tspan = (0.0, 10.0)
 ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
