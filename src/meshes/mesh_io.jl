@@ -322,7 +322,10 @@ end
 @inline get_EToV(mesh_type::StartUpDG.HOHQMeshType) = mesh_type.hmd.EToV
 
 # To save the data needed to reconstruct a DGMultiMesh object, we must include additional 
-# information contained within `dg.basis` such as the element shape and polynomial degree.
+# information contained within `dg.basis`. Currently, only the element shape and polynomial 
+# degree are stored, and it is assumed that the solution is stored at the default node 
+# positions for the `Polynomial` or `TensorProductWedge` approximation of that element 
+# shape and polynomial degree.
 function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0)
 
     # Create output directory (if it does not exist).
@@ -342,7 +345,8 @@ function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["nelements"] = ncells(mesh)
 
-        if basis.element_type isa Wedge
+        # For TensorProductWedge, the polynomial degree is a tuple
+        if basis.approximation_type isa TensorProductWedge
             attributes(file)["polydeg_tri"] = basis.N[2]
             attributes(file)["polydeg_line"] = basis.N[1]
         else
@@ -351,14 +355,6 @@ function save_mesh_file(mesh::DGMultiMesh, basis, output_directory, timestep = 0
 
         attributes(file)["element_type"] = basis.element_type |> typeof |> nameof |>
                                            string
-
-        ## TODO: Is this useful to reconstruct `RefElemData` from this?
-        ## # Store quad rule.
-        ## for idim = 1:ndims(mesh)
-        ##   # ASCII: Char(114) => 'r'
-        ##   file[(113 + idim |> Char |> string) * "q"] = dg.basis.rstq[idim]
-        ## end
-        ## file["wq"] = dg.basis.wq
 
         # Mesh-coordinates per element.
         for idim in 1:ndims(mesh)
@@ -550,19 +546,11 @@ function load_mesh_serial(mesh_file::AbstractString; n_cells_max, RealT)
             end
         end
 
-        ## TODO: Is this useful to reconstruct `RefElemData`?
-        ## # Load quadrature rule.
-        ## rstq = h5open(mesh_file, "r") do file
-        ##   # ASCII: Char(114) => 'r'
-        ##   return tuple([read(file[(113 + i |> Char |> string) * "q"]) for i = 1:ndims]...)
-        ## end
-        ## rstwq = h5open(mesh_file, "r") do file
-        ##   # ASCII: Char(114) => 'r'
-        ##   return tuple(rstq..., read(file["wq"]))
-        ## end
-
-        # TODO: Make the following more general. But how? @jchan
-        if etype isa StartUpDG.Wedge
+        # Currently, we assume that `basis.approximation_type` is a `TensorProductWedge` 
+        # with 2-tuple polynomial degree or a `Polynomial` with integer polynomial degree.
+        # TODO: Add support for other approximation types. This would requires further 
+        # information to be saved to the HDF5 file.
+        if etype isa StartUpDG.Wedge && polydeg isa NTuple{2}
             factor_a = RefElemData(StartUpDG.Tri(), Polynomial(), polydeg[1])
             factor_b = RefElemData(StartUpDG.Line(), Polynomial(), polydeg[2])
 

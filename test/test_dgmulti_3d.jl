@@ -396,6 +396,26 @@ end
                                          n_cells_max = 0,
                                          RealT = Float64)
 end
+
+@trixi_testset "elixir_advection_tensor_wedge.jl (scalar polydeg)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
+                        polydeg=3,
+                        l2=[0.0002332063232167919],
+                        linf=[0.0006597931027270132])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
+                                         n_cells_max = 0,
+                                         RealT = Float64)
+end
 end
 
 # Clean up afterwards: delete Trixi.jl output directory

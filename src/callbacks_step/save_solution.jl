@@ -166,7 +166,8 @@ function save_mesh(semi::AbstractSemidiscretization, output_directory, timestep 
     return mesh.current_filename
 end
 
-# Save mesh for a DGMultiMesh, which requires passing the `basis` as an argument.
+# Save mesh for a DGMultiMesh, which requires passing the `basis` as an argument to 
+# save_mesh_file
 function save_mesh(semi::Union{SemidiscretizationHyperbolic{<:DGMultiMesh},
                                SemidiscretizationHyperbolicParabolic{<:DGMultiMesh}},
                    output_directory, timestep = 0)

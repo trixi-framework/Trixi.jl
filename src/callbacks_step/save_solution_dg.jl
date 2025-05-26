@@ -124,7 +124,7 @@ function save_solution_file(u, time, dt, timestep,
         attributes(file)["ndims"] = ndims(mesh)
         attributes(file)["equations"] = get_name(equations)
 
-        if dg.basis.element_type isa Wedge
+        if dg.basis.approximation_type isa TensorProductWedge
             attributes(file)["polydeg_tri"] = dg.basis.N[2]
             attributes(file)["polydeg_line"] = dg.basis.N[1]
         else
