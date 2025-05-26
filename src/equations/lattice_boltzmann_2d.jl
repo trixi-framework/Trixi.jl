@@ -235,7 +235,7 @@ No-slip wall boundary condition using the bounce-back approach.
     return flux
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 2D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations2D)
     if orientation == 1
         v_alpha = equations.v_alpha1
