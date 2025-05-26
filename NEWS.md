@@ -10,6 +10,8 @@ for human readability.
 
 #### Added
 
+- Added `LaplaceDiffusionEntropyVariables1D`, `LaplaceDiffusionEntropyVariables2D`, and `LaplaceDiffusionEntropyVariables3D`. These add scalar diffusion to each
+  equation of a system, but apply diffusion in terms of the entropy variables, which symmetrizes the viscous formulation and ensures semi-discrete entropy dissipation ([#2406]).
 - Added the three-dimensional multi-ion magneto-hydrodynamics (MHD) equations with a
   generalized Lagrange multipliers (GLM) divergence cleaning technique ([#2215]).
 - New time integrator `PairedExplicitRK4`, implementing the fourth-order

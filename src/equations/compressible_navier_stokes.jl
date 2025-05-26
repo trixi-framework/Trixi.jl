@@ -2,10 +2,12 @@
 """
     struct BoundaryConditionNavierStokesWall
 
-Creates a wall-type boundary conditions for the compressible Navier-Stokes equations.
+Creates a wall-type boundary conditions for the compressible Navier-Stokes equations, see
+[`CompressibleNavierStokesDiffusion1D`](@ref), [`CompressibleNavierStokesDiffusion2D`](@ref), and
+[`CompressibleNavierStokesDiffusion3D`](@ref).
 The fields `boundary_condition_velocity` and `boundary_condition_heat_flux` are intended
-to be boundary condition types such as the `NoSlip` velocity boundary condition and the
-`Adiabatic` or `Isothermal` heat boundary condition.
+to be boundary condition types such as the [`NoSlip`](@ref) velocity boundary condition and the
+[`Adiabatic`](@ref) or [`Isothermal`](@ref) heat boundary condition.
 """
 struct BoundaryConditionNavierStokesWall{V, H}
     boundary_condition_velocity::V
@@ -15,10 +17,10 @@ end
 """
     struct NoSlip
 
-Use to create a no-slip boundary condition with `BoundaryConditionNavierStokesWall`. The field `boundary_value_function`
-should be a function with signature `boundary_value_function(x, t, equations)`
-and should return a `SVector{NDIMS}` whose entries are the velocity vector at a
-point `x` and time `t`.
+Use to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref). 
+The field `boundary_value_function` should be a function with signature 
+`boundary_value_function(x, t, equations)` and return a `SVector{NDIMS}` 
+whose entries are the velocity vector at a point `x` and time `t`.
 """
 struct NoSlip{F}
     boundary_value_function::F # value of the velocity vector on the boundary
@@ -49,10 +51,19 @@ struct Adiabatic{F}
 end
 
 """
-`GradientVariablesPrimitive` and `GradientVariablesEntropy` are gradient variable type parameters
-for `CompressibleNavierStokesDiffusion1D`. By default, the gradient variables are set to be
-`GradientVariablesPrimitive`. Specifying `GradientVariablesEntropy` instead uses the entropy variable
-formulation from
+`GradientVariablesPrimitive` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref), 
+[`CompressibleNavierStokesDiffusion2D`](@ref), and [`CompressibleNavierStokesDiffusion3D`](@ref).
+The other available gradient variable type parameter is [`GradientVariablesEntropy`](@ref).
+By default, the gradient variables are set to be `GradientVariablesPrimitive`.
+"""
+struct GradientVariablesPrimitive end
+
+"""
+`GradientVariablesEntropy` is a gradient variable type parameter for the [`CompressibleNavierStokesDiffusion1D`](@ref), 
+[`CompressibleNavierStokesDiffusion2D`](@ref), and [`CompressibleNavierStokesDiffusion3D`](@ref).
+The other available gradient variable type parameter is [`GradientVariablesPrimitive`](@ref).
+
+Specifying `GradientVariablesEntropy` uses the entropy variable formulation from
 - Hughes, Mallet, Franca (1986)
   A new finite element formulation for computational fluid dynamics: I. Symmetric forms of the
   compressible Euler and Navier-Stokes equations and the second law of thermodynamics.
@@ -60,7 +71,6 @@ formulation from
 
 Under `GradientVariablesEntropy`, the Navier-Stokes discretization is provably entropy stable.
 """
-struct GradientVariablesPrimitive end
 struct GradientVariablesEntropy end
 
 """

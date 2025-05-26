@@ -285,6 +285,8 @@ Details about the 1D pressure Riemann solution can be found in Section 6.3.3 of 
   Riemann Solvers and Numerical Methods for Fluid Dynamics: A Practical Introduction
   3rd edition
   [DOI: 10.1007/b79761](https://doi.org/10.1007/b79761)
+
+Should be used together with [`P4estMesh`](@ref) or [`T8codeMesh`](@ref).
 """
 @inline function boundary_condition_slip_wall(u_inner, normal_direction::AbstractVector,
                                               x, t,
@@ -356,7 +358,7 @@ Should be used together with [`TreeMesh`](@ref).
         normal_direction = SVector(zero(RealT), zero(RealT), one(RealT))
     end
 
-    # compute and return the flux using `boundary_condition_slip_wall` routine above
+    # compute and return the flux using `boundary_condition_slip_wall` routine below
     return boundary_condition_slip_wall(u_inner, normal_direction, direction,
                                         x, t, surface_flux_function, equations)
 end

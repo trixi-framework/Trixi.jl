@@ -17,7 +17,8 @@ the [`CompressibleEulerEquations3D`](@ref).
 - `mu`: dynamic viscosity,
 - `Pr`: Prandtl number,
 - `gradient_variables`: which variables the gradients are taken with respect to.
-                        Defaults to `GradientVariablesPrimitive()`.
+                        Defaults to [`GradientVariablesPrimitive()`](@ref).
+                        For an entropy stable formulation, use [`GradientVariablesEntropy()`](@ref).
 
 Fluid properties such as the dynamic viscosity ``\mu`` can be provided in any consistent unit system, e.g.,
 [``\mu``] = kg m⁻¹ s⁻¹.
@@ -317,6 +318,16 @@ end
     return SVector(v1, v2, v3)
 end
 
+@doc raw"""
+    enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+
+Computes the (node-wise) enstrophy, defined as
+```math
+    \mathcal{E} = \frac{1}{2} \rho \boldsymbol{\omega} \cdot \boldsymbol{\omega}
+```
+where ``\boldsymbol{\omega} = \nabla \times \boldsymbol{v}`` is the [`vorticity`](@ref).
+In 3D, ``\boldsymbol{\omega}`` is a full three-component vector.
+"""
 @inline function enstrophy(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
@@ -324,14 +335,24 @@ end
     return 0.5f0 * u[1] * (omega[1]^2 + omega[2]^2 + omega[3]^2)
 end
 
+@doc raw"""
+    vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
+
+Computes the (node-wise) vorticity, defined in 3D as
+```math
+    \omega = \nabla \times \boldsymbol{v} =
+    \begin{pmatrix}
+        \frac{\partial v_3}{\partial y} - \frac{\partial v_2}{\partial z} \\
+        \frac{\partial v_1}{\partial z} - \frac{\partial v_3}{\partial x} \\
+        \frac{\partial v_2}{\partial x} - \frac{\partial v_1}{\partial y}
+    \end{pmatrix}
+```
+"""
 @inline function vorticity(u, gradients, equations::CompressibleNavierStokesDiffusion3D)
     # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
-    _, dv1dx, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1],
-                                                                equations)
-    _, dv1dy, dv2dy, dv3dy, _ = convert_derivative_to_primitive(u, gradients[2],
-                                                                equations)
-    _, dv1dz, dv2dz, dv3dz, _ = convert_derivative_to_primitive(u, gradients[3],
-                                                                equations)
+    _, _, dv2dx, dv3dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, dv1dy, _, dv3dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+    _, dv1dz, dv2dz, _, _ = convert_derivative_to_primitive(u, gradients[3], equations)
 
     return SVector(dv3dy - dv2dz, dv1dz - dv3dx, dv2dx - dv1dy)
 end

@@ -355,6 +355,13 @@ end
     return SVector(w[1], w[2], w[3], a)
 end
 
+@inline function entropy2cons(w, equations::CompressibleEulerEquationsQuasi1D)
+    w_rho, w_rho_v1, w_rho_e, a = w
+    u = entropy2cons(SVector(w_rho, w_rho_v1, w_rho_e),
+                     CompressibleEulerEquations1D(equations.gamma))
+    return SVector(a * u[1], a * u[2], a * u[3], a)
+end
+
 # Convert primitive to conservative variables
 @inline function prim2cons(u, equations::CompressibleEulerEquationsQuasi1D)
     rho, v1, p, a = u
