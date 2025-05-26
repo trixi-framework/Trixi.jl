@@ -69,7 +69,7 @@ save_restart = SaveRestartCallback(interval = 100,
 # Create a CallbackSet to collect all callbacks such that they can be passed to
 # the ODE solver.
 callbacks = CallbackSet(summary_callback, analysis_callback, save_solution,
-                        stepsize_callback, save_restart)
+                        save_restart, stepsize_callback)
 
 ###############################################################################
 # Run the simulation.
