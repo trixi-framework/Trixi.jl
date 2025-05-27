@@ -949,7 +949,7 @@ end
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
 end
-  
+
 @trixi_testset "elixir_navierstokes_freestream_symmetry.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
                                  "elixir_navierstokes_freestream_symmetry.jl"),
