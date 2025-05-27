@@ -247,13 +247,15 @@ function integrate(func::Func, u,
                                T8codeMesh{2}},
                    equations, dg::DG, cache; normalize = true) where {Func}
     @autoinfiltrate
-    if length(m.sig.parameters) == 2
+    m = methods(func)
+    if length(m[1].sig.parameters) == 2
         integrate_via_indices(u, mesh, equations, dg, cache;
                             normalize = normalize) do u, i, j, element, equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
             return func(u_local, equations)
         end
-    if length(m.sig.parameters) == 3
+    end
+    if length(m[1].sig.parameters) == 3
         integrate_via_indices(u, mesh, equations, dg, cache;
                             normalize = normalize) do u, i, j, element, equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
@@ -264,11 +266,12 @@ function integrate(func::Func, u,
                                                         eltype(cache.elements))
             @unpack u_transformed, gradients, flux_viscous = viscous_container
             calc_gradient!(gradients, u_transformed, 0.0,
-                                mesh::TreeMesh{2}, equations,
-                                boundary_conditions, dg::DG, parabolic_scheme,
-                                cache, cache)
+                           mesh::TreeMesh{2}, equations,
+                           boundary_conditions, dg::DG, parabolic_scheme,
+                           cache, cache)
             return func(u_local, gradients, equations)
         end
+    end
 end
 
 function integrate(func::Func, u,
