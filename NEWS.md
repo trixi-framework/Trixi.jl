@@ -16,12 +16,20 @@ for human readability.
                                      extra_node_variables = (:limiting_coefficient,))
   ```
   i.e., is no longer automatically saved ([#2298]).
-  
+
+#### Added
+
+#### Deprecated
+
+#### Removed
+- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/). This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
 
 ## Changes in the v0.11 lifecycle
 
 #### Added
 
+- Added symmetry plane/reflective wall velocity+stress boundary conditions for the compressible Navier-Stokes equations in 2D and 3D. 
+  Currently available only for the `P4estMesh` mesh type, `GradientVariablesPrimitive`, and `Adiabatic` heat boundary condition ([#2416]).
 - Added `LaplaceDiffusionEntropyVariables1D`, `LaplaceDiffusionEntropyVariables2D`, and `LaplaceDiffusionEntropyVariables3D`. These add scalar diffusion to each
   equation of a system, but apply diffusion in terms of the entropy variables, which symmetrizes the viscous formulation and ensures semi-discrete entropy dissipation ([#2406]).
 - Added the three-dimensional multi-ion magneto-hydrodynamics (MHD) equations with a
