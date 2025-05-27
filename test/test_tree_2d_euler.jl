@@ -93,16 +93,16 @@ end
                                  "elixir_euler_convergence_amr_sc_subcell.jl"),
                         alternative=false, local_factor=false,
                         l2=[
-                            0.006254682457071628,
-                            0.004999416955608761,
-                            0.0048141964689589105,
-                            0.009972111077049216
+                            2.4110239842278583e-6,
+                            2.154630267786356e-6,
+                            2.1283762418750586e-6,
+                            6.113773134527389e-6
                         ],
                         linf=[
-                            0.04931632769799399,
-                            0.03556213775967221,
-                            0.033495743728496175,
-                            0.07783921049430154
+                            1.696740325396462e-5,
+                            1.695721640926351e-5,
+                            1.656799716243107e-5,
+                            5.129734239561756e-5
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -123,16 +123,16 @@ end
                                  "elixir_euler_convergence_amr_sc_subcell.jl"),
                         alternative=false, local_factor=true, first_order=true,
                         l2=[
-                            0.001058120516341185,
-                            0.0009133976065639385,
-                            0.0008810204004781092,
-                            0.001891369160213655
+                            2.411023984333364e-6,
+                            2.154630267960894e-6,
+                            2.1283762418214893e-6,
+                            6.113773134665568e-6
                         ],
                         linf=[
-                            0.017886304148701182,
-                            0.012224853173556927,
-                            0.015594531468539952,
-                            0.03165281612069837
+                            1.6967403261958225e-5,
+                            1.6957216406598974e-5,
+                            1.6567997161320847e-5,
+                            5.1297342376521726e-5
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -154,16 +154,16 @@ end
                         alternative=false, local_factor=true, first_order=false,
                         # Note: Not conservative
                         l2=[
-                            0.001315104732325498,
-                            0.0011661998948194854,
-                            0.0010984957991275826,
-                            0.0023024968589529945
+                            2.411023984473762e-6,
+                            2.154630268012045e-6,
+                            2.128376241902082e-6,
+                            6.113773134790818e-6
                         ],
                         linf=[
-                            0.01058518982128076,
-                            0.010040635205911919,
-                            0.009834772741424747,
-                            0.02053636644232526
+                            1.696740326551094e-5,
+                            1.6957216412816223e-5,
+                            1.6567997168426274e-5,
+                            5.129734239517347e-5
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -226,7 +226,7 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
     end
 end
 

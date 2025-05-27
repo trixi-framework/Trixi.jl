@@ -147,6 +147,7 @@ right_boundary_weight(basis::LobattoLegendreBasis) = last(basis.weights)
 
 struct LobattoLegendreMortarIDP{RealT <: Real, NNODES, Mortar} <:
        AbstractMortarL2{RealT}
+    pure_low_order::Bool
     local_factor::Bool
     mortar_l2::Mortar
     local_mortar_weights::Matrix{RealT}
@@ -164,7 +165,7 @@ struct LobattoLegendreMortarIDPAlternative{RealT <: Real, NNODES, Mortar,
 end
 
 function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
-                   local_factor = true, first_order = true)
+                   local_factor = true, first_order = true, pure_low_order = false)
     RealT = real(basis)
     nnodes_ = nnodes(basis)
 
@@ -188,7 +189,8 @@ function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
                                                                              reverse_upper_low_order,
                                                                              reverse_lower_low_order)
     else
-        LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(local_factor,
+        LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(pure_low_order,
+                                                                    local_factor,
                                                                     mortar_l2,
                                                                     local_mortar_weights)
     end
