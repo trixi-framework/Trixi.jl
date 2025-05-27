@@ -494,6 +494,61 @@ end
                    flux_inner[5])
 end
 
+# Computes the mirror velocity across a symmetry plane which enforces
+# a tangential velocity that is aligned with the symmetry plane, i.e.,
+# which is normal to the `normal_direction`.
+# See also `boundary_condition_slip_wall` and `rotate_to_x`.
+@inline function velocity_symmetry_plane(normal_direction::AbstractVector, v1, v2, v3)
+    norm_ = norm(normal_direction)
+    normal = normal_direction / norm_
+
+    # Compute alignment of velocity with normal direction
+    v_normal = v1 * normal[1] + v2 * normal[2] + v3 * normal[3]
+
+    v1_outer = v1 - 2 * v_normal * normal[1]
+    v2_outer = v2 - 2 * v_normal * normal[2]
+    v3_outer = v3 - 2 * v_normal * normal[3]
+
+    return v1_outer, v2_outer, v3_outer
+end
+
+# Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Gradient,
+                                                                                      equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+    v1_outer, v2_outer, v3_outer = velocity_symmetry_plane(normal,
+                                                           u_inner[2],
+                                                           u_inner[3],
+                                                           u_inner[4])
+
+    return SVector(u_inner[1], v1_outer, v2_outer, v3_outer, u_inner[5])
+end
+
+# Note: This should be used with `boundary_condition_slip_wall` for the hyperbolic (Euler) part.
+@inline function (boundary_condition::BoundaryConditionNavierStokesWall{<:Slip,
+                                                                        <:Adiabatic})(flux_inner,
+                                                                                      u_inner,
+                                                                                      normal::AbstractVector,
+                                                                                      x,
+                                                                                      t,
+                                                                                      operator_type::Divergence,
+                                                                                      equations::CompressibleNavierStokesDiffusion3D{GradientVariablesPrimitive})
+    normal_heat_flux = boundary_condition.boundary_condition_heat_flux.boundary_value_normal_flux_function(x,
+                                                                                                           t,
+                                                                                                           equations)
+    # Normal stresses should be 0. This implies also that `normal_energy_flux = normal_heat_flux`.
+    # For details, see Section 4.2 of 
+    # "Entropy stable modal discontinuous Galerkin schemes and wall boundary conditions
+    #  for the compressible Navier-Stokes equations" by Chan, Lin, Warburton 2022.
+    # DOI: 10.1016/j.jcp.2021.110723
+    return SVector(flux_inner[1], 0, 0, 0, normal_heat_flux)
+end
+
 # Dirichlet Boundary Condition for e.g. P4est mesh
 @inline function (boundary_condition::BoundaryConditionDirichlet)(flux_inner,
                                                                   u_inner,
