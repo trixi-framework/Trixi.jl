@@ -75,8 +75,6 @@ Source terms used for convergence tests in combination with
 """
 @inline function source_terms_convergence_test(u, x, t,
                                                equations::PolytropicEulerEquations2D)
-    rho, v1, v2 = cons2prim(u, equations)
-
     # Residual from Winters (2019) [0.1007/s10543-019-00789-w] eq. (5.2).
     RealT = eltype(u)
     h = 8 + cospi(2 * x[1]) * sinpi(2 * x[2]) * cospi(2 * t)
