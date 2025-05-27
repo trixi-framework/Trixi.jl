@@ -9,6 +9,8 @@ for human readability.
 
 #### Added
 
+- Arbitrary solution-dependent quantities can now be saved in the `SaveSolutionCallback` (and thus later on visualized) ([#2298]).
+
 #### Changed
 
 - When using the `VolumeIntegralSubcellLimiting` with the `SubcellLimiterIDP` the
@@ -38,7 +40,6 @@ for human readability.
   paired explicit Runge-Kutta method with [Convex.jl](https://github.com/jump-dev/Convex.jl)
   and [ECOS.jl](https://github.com/jump-dev/ECOS.jl) ([#2147])
 - Passive tracers for arbitrary equations with density and flow variables ([#2364])
-- Arbitrary solution-dependent quantities can now be saved in the `SaveSolutionCallback` (and thus later on visualized) ([#2298]).
 
 #### Deprecated
 
