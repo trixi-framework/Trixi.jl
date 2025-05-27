@@ -5,6 +5,13 @@ Trixi.jl follows the interpretation of
 used in the Julia ecosystem. Notable changes will be documented in this file
 for human readability.
 
+## Changes in the v0.12 lifecycle
+
+#### Added
+
+- Simulations can now be restarted from other runs with different polynomial degrees, i.e.,
+  the solution variables are correctly converted via interpolation or L2 projection ([#2358]).
+
 
 ## Changes in the v0.11 lifecycle
 
