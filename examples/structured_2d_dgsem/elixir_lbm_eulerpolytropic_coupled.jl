@@ -168,6 +168,8 @@ analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback_euler,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+# Need to implement `cons2macroscopic` for `PolytropicEulerEquations2D`
+# in order to be able to use this in the `SaveSolutionCallback`.
 @inline function Trixi.cons2macroscopic(u, equations::PolytropicEulerEquations2D)
     u_prim = cons2prim(u, equations)
     p = pressure(u, equations)
