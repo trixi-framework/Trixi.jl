@@ -933,7 +933,7 @@ end
                             0.30901218409540543,
                             1.3488655161645846,
                             0.1304661713119874,
-                            1.2094591729756736
+                            1.2094591729756736],
                         tspan=(0.0, 1.0))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
