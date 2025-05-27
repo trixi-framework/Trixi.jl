@@ -152,21 +152,19 @@ function calc_reverse_lower(n_nodes, ::Val{:gauss_lobatto}, RealT = Float64)
     return operator
 end
 
-#=
-Compute the L2 projection matrix for projecting polynomials 
-from a higher degree to a lower degree.
-
+# Compute the L2 projection matrix for projecting polynomials 
+# from a higher degree to a lower degree.
+#
 # Arguments
-- `nodes_high`: GLL/LGL nodes of the higher-degree polynomial
-- `nodes_low`: GLL/LGL nodes of the lower-degree polynomial
-- `::Val{:gauss_lobatto}`: Use Gauss-Lobatto-Legendre quadrature (accuracy 2N - 3)
-- `RealT`: Type of the output matrix (default: Float64)
-
+# - `nodes_high`: GLL/LGL nodes of the higher-degree polynomial
+# - `nodes_low`: GLL/LGL nodes of the lower-degree polynomial
+# - `::Val{:gauss_lobatto}`: Use Gauss-Lobatto-Legendre quadrature (accuracy 2N - 3)
+# - `RealT`: Type of the output matrix (default: Float64)
+#
 # Returns
-The projection matrix such that multiplying with it projects 
-a higher degree Lagrange interpolation/solution polynomial
-to a lower degree Lagrange interpolation/solution polynomial.
-=#
+# The projection matrix such that multiplying with it projects 
+# a higher degree Lagrange interpolation/solution polynomial
+# to a lower degree Lagrange interpolation/solution polynomial.
 function polynomial_l2projection_matrix(nodes_high, nodes_low, ::Val{:gauss_lobatto},
                                         RealT = Float64)
     n_high = length(nodes_high)
