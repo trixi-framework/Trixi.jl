@@ -46,12 +46,8 @@ solver_euler = DGSEM(polydeg = polydeg, surface_flux = flux_hll,
 
 # Linear pressure wave in the negative x-direction.
 function initial_condition_wave(x, t, equations::PolytropicEulerEquations2D)
-    rho = 1.0
-    v1 = 0.0
-    if x[1] > 0.0
-        rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)) / equations.kappa)^(1 / equations.gamma)
-        v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)) / equations.kappa)
-    end
+    rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)) / equations.kappa)^(1 / equations.gamma)
+    v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)) / equations.kappa)
     v2 = 0.0
 
     return prim2cons(SVector(rho, v1, v2), equations)
@@ -64,6 +60,7 @@ mesh_euler = StructuredMesh(cells_per_dim_per_section,
                             coords_min_euler, coords_max_euler,
                             periodicity = (false, true))
 
+# Use macroscopic variables derived from populations for the Euler as boundary values                            
 function coupling_function_LBM2Euler(x, u, equations_other, equations_own)
     rho, v1, v2, _ = cons2macroscopic(u, equations_other)
     return prim2cons(SVector(rho, v1, v2), equations_own)
@@ -113,14 +110,10 @@ end
 solver_lbm = DGSEM(polydeg = 2, surface_flux = flux_godunov)
 
 function initial_condition_lbm(x, t, equations::LatticeBoltzmannEquations2D)
-    rho = 1.0
-    v1 = 0.0
-    if x[1] > 0.0
-        #rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)) / equations.kappa)^(1 / equations.gamma)
-        rho = (1.0 + 0.01 * sin(x[1] * 2 * pi)) # kappa = gamma = 1
-        #v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)) / equations.kappa)
-        v1 = (0.01 * sin((x[1] - 1 / 2) * 2 * pi)) # kappa = 1
-    end
+    #rho = ((1.0 + 0.01 * sin(x[1] * 2 * pi)) / equations.kappa)^(1 / equations.gamma)
+    rho = (1.0 + 0.01 * sin(x[1] * 2 * pi)) # kappa = gamma = 1
+    #v1 = ((0.01 * sin((x[1] - 1 / 2) * 2 * pi)) / equations.kappa)
+    v1 = (0.01 * sin((x[1] - 1 / 2) * 2 * pi)) # kappa = 1
     v2 = 0.0
 
     return equilibrium_distribution(rho, v1, v2, equations)
@@ -132,6 +125,7 @@ mesh_lbm = StructuredMesh(cells_per_dim_per_section,
                           coords_min_lbm, coords_max_lbm,
                           periodicity = (false, true))
 
+# Supply equilibrium (Maxwellian) distribution function for the LBM as boundary values                     
 function coupling_function_Euler2LBM(x, u, equations_other, equations_own)
     u_prim_euler = cons2prim(u, equations_other)
     rho = u_prim_euler[1]
@@ -183,7 +177,7 @@ function Trixi.varnames(::typeof(cons2macroscopic), ::PolytropicEulerEquations2D
     ("rho", "v1", "v2", "p")
 end
 
-save_solution = SaveSolutionCallback(interval = 500,
+save_solution = SaveSolutionCallback(interval = 50,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2macroscopic)
