@@ -7,6 +7,8 @@ for human readability.
 
 ## Changes when updating to v0.12 from v0.11.x
 
+#### Added
+
 #### Changed
 
 - When using the `VolumeIntegralSubcellLimiting` with the `SubcellLimiterIDP` the
@@ -16,8 +18,6 @@ for human readability.
                                      extra_node_variables = (:limiting_coefficient,))
   ```
   i.e., is no longer automatically saved ([#2298]).
-
-#### Added
 
 #### Deprecated
 
