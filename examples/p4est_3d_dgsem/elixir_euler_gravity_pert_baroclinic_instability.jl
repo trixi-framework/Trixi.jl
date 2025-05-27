@@ -199,8 +199,10 @@ function perturbation_stream_function(lon, lat, z)
     return u_perturbation, v_perturbation
 end
 
-@inline function source_terms_coriolis(u, x, t,
-                                                     equations::CompressibleEulerEquationsPerturbationGravity3D)
+@inline function source_terms_coriolis(u, aux, x, t,
+                                       equations::CompressibleEulerEquationsPerturbationGravity3D)
+    u_total = Trixi.cons2cons_total(u, aux, equations)
+
     radius_earth = 6.371229e6  # a
     angular_velocity = 7.29212e-5  # Ω
 
@@ -212,8 +214,8 @@ end
     du0 = zero(eltype(u))
 
     # Coriolis term, -2Ω × ρv = -2 * angular_velocity * (0, 0, 1) × u[2:4]
-    du2 =  2 * angular_velocity * u[3]
-    du3 = -2 * angular_velocity * u[2]
+    du2 =  2 * angular_velocity * u_total[3]
+    du3 = -2 * angular_velocity * u_total[2]
 
     return SVector(du0, du2, du3, du0, du0)
 end
