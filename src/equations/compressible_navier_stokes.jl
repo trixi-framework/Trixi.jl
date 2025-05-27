@@ -27,6 +27,28 @@ struct NoSlip{F}
 end
 
 """
+    struct Slip
+
+Creates a symmetric velocity boundary condition which eliminates any normal velocity gradients across the boundary, i.e., 
+allows only the tangential velocity gradients to be non-zero.
+When combined with the heat boundary condition [`Adiabatic`](@ref), this creates a truly symmetric boundary condition.
+Any boundary on which this combined boundary condition is applied thus acts as a symmetry plane for the flow.
+In contrast to the [`NoSlip`](@ref) boundary condition, `Slip` does not require a function to be supplied.
+
+The (purely) hyperbolic equivalent boundary condition is [`boundary_condition_slip_wall`](@ref) which 
+permits only tangential velocities.
+
+This boundary condition can also be employed as a reflective wall.
+
+Note that in 1D this degenerates to the [`NoSlip`](@ref) boundary condition which must be used instead.
+
+!!! note
+    Currently this (velocity) boundary condition is only implemented for 
+    [`P4estMesh`](@ref) and [`GradientVariablesPrimitive`](@ref).
+"""
+struct Slip end
+
+"""
     struct Isothermal
 
 Used to create a no-slip boundary condition with [`BoundaryConditionNavierStokesWall`](@ref).
