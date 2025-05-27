@@ -24,7 +24,15 @@ for human readability.
 #### Deprecated
 
 #### Removed
-- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/). This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
+
+- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and 
+  `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via 
+  [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/). 
+  This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, 
+  `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
+- The additional `ìnitial_cache` entries in the caches of `SemidiscretizationHyperbolic`
+  and `SemidiscretizationHyperbolicParabolic`, and the corresponding keyword arguments of
+  their constructors have been removed. ([#2399])
 
 ## Changes in the v0.11 lifecycle
 
