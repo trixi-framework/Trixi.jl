@@ -268,10 +268,9 @@ function (indicator_max::IndicatorMax)(u::AbstractArray{<:Any, 5},
         indicator = indicator_threaded[Threads.threadid()]
 
         # Calculate indicator variables at Gauss-Lobatto nodes
-        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            u_local = get_node_vars(u, equations, dg, i, j, k, element)
-            indicator[i, j, k] = indicator_variable(u_local, equations)
-        end
+        calc_indicator_inner!(indicator, u, element, mesh, indicator_variable,
+                              have_aux_node_vars(equations), equations,
+                              dg, cache)
 
         alpha[element] = maximum(indicator)
     end
