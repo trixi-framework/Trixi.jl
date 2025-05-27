@@ -220,7 +220,9 @@ function rhs!(du, u, t,
 
     # Calculate source terms
     @trixi_timeit timer() "source terms" begin
-        calc_sources!(du, u, t, source_terms, equations, dg, cache)
+        calc_sources!(du, u, t, source_terms,
+                      have_aux_node_vars(equations), equations,
+                      dg, cache)
     end
 
     return nothing
@@ -1511,12 +1513,12 @@ function apply_jacobian!(du, mesh::TreeMesh{3},
 end
 
 # TODO: Taal dimension agnostic
-function calc_sources!(du, u, t, source_terms::Nothing,
+function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars,
                        equations::AbstractEquations{3}, dg::DG, cache)
     return nothing
 end
 
-function calc_sources!(du, u, t, source_terms,
+function calc_sources!(du, u, t, source_terms, have_aux_node_vars::False,
                        equations::AbstractEquations{3}, dg::DG, cache)
     @unpack node_coordinates = cache.elements
 
@@ -1526,6 +1528,25 @@ function calc_sources!(du, u, t, source_terms,
             x_local = get_node_coords(node_coordinates, equations, dg,
                                       i, j, k, element)
             du_local = source_terms(u_local, x_local, t, equations)
+            add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
+        end
+    end
+
+    return nothing
+end
+
+function calc_sources!(du, u, t, source_terms, have_aux_node_vars::True,
+                       equations::AbstractEquations{3}, dg::DG, cache)
+    @unpack node_coordinates = cache.elements
+    @unpack aux_node_vars = cache.aux_vars
+
+    @threaded for element in eachelement(dg, cache)
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_local = get_node_vars(u, equations, dg, i, j, k, element)
+            aux_local = get_aux_node_vars(aux_node_vars, equations, dg, i, j, k, element)
+            x_local = get_node_coords(node_coordinates, equations, dg,
+                                      i, j, k, element)
+            du_local = source_terms(u_local, aux_local, x_local, t, equations)
             add_to_node_vars!(du, du_local, equations, dg, i, j, k, element)
         end
     end
