@@ -1015,56 +1015,6 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
-                        l2=[
-                            0.0017286908591070864,
-                            0.025585037307655684,
-                            0.028374244567802766,
-                            6.274146767730866e-5
-                        ],
-                        linf=[
-                            0.012973752001194772,
-                            0.10829375385832263,
-                            0.15832858475438094,
-                            0.00018196759554722775
-                        ],
-                        tspan=(0.0, 0.05))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_well_balanced.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
-                        l2=[
-                            0.7920927046419308,
-                            9.92129670988898e-15,
-                            1.0118635033124588e-14,
-                            0.7920927046419308
-                        ],
-                        linf=[
-                            2.408429868800133,
-                            5.5835419986809516e-14,
-                            5.448874313931364e-14,
-                            2.4084298688001335
-                        ],
-                        tspan=(0.0, 0.25))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
 @trixi_testset "elixir_mhd_ec_shockcapturing.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_ec_shockcapturing.jl"),
                         l2=[0.03641928087745194, 0.04266672246194787,
