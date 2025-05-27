@@ -205,7 +205,8 @@ end
 end
 
 @trixi_testset "elixir_euler_density_wave_amr_sc_subcell.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_amr_sc_subcell.jl"),
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_density_wave_amr_sc_subcell.jl"),
                         initial_refinement_level=2,
                         l2=[
                             0.10807450110533318,
