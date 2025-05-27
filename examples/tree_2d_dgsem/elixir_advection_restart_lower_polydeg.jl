@@ -27,6 +27,7 @@ ode = semidiscretize(semi, tspan, restart_filename; interpolate_high2low = false
 # We can increase the CFL number compared to the k = 3 case
 stepsize_callback = StepsizeCallback(cfl = 2.0)
 
+# Reinitialize the `AnalysisCallback` for changed basis polynomial degree
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      extra_analysis_integrals = (entropy, energy_total))
 
