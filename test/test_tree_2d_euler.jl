@@ -204,6 +204,31 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_density_wave_amr_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_density_wave_amr_sc_subcell.jl"),
+                        initial_refinement_level=2,
+                        l2=[
+                            0.10807450110533318,
+                            0.010807450110533516,
+                            0.021614900221066703,
+                            0.0027018625276321187
+                        ],
+                        linf=[
+                            0.5774808056100666,
+                            0.057748080561012716,
+                            0.11549616112202077,
+                            0.014437020140242396
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_euler_source_terms_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_nonperiodic.jl"),

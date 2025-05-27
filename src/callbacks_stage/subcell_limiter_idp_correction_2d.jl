@@ -216,7 +216,6 @@ end
     (; boundary_interpolation) = dg.basis
 
     limiting_factor .= one(eltype(limiting_factor))
-
     ############################
     # limiting_factor = 1 => full FV
     # limiting_factor = 0 => full DG

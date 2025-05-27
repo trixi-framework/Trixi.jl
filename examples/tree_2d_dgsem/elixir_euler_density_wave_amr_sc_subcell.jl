@@ -5,8 +5,8 @@ using Trixi
 
 equations = CompressibleEulerEquations2D(1.4)
 
-initial_condition = initial_condition_convergence_test
-# initial_condition = initial_condition_constant
+# initial_condition = Trixi.initial_condition_density_wave_highdensity
+initial_condition = Trixi.initial_condition_density_wave
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha
@@ -14,10 +14,7 @@ polydeg = 3
 basis = LobattoLegendreBasis(polydeg)
 limiter_idp = SubcellLimiterIDP(equations, basis;
                                 positivity_variables_cons = ["rho"],
-                                positivity_variables_nonlinear = [pressure],
-                                # local_twosided_variables_cons = ["rho"],
-                                # local_onesided_variables_nonlinear = [(Trixi.entropy_math,
-                                #                                        max)]
+                                # positivity_variables_nonlinear = [pressure],
                                 )
 volume_integral = VolumeIntegralSubcellLimiting(limiter_idp;
                                                 volume_flux_dg = volume_flux,
@@ -38,8 +35,7 @@ mesh = TreeMesh(coordinates_min, coordinates_max,
                 refinement_patches = refinement_patches,
                 periodicity = true)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
-                                    source_terms = source_terms_convergence_test)
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver)
 
 ###############################################################################
 # ODE solvers, callbacks etc.
