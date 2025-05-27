@@ -9,7 +9,17 @@ for human readability.
 
 #### Added
 
+- Arbitrary solution-dependent quantities can now be saved in the `SaveSolutionCallback` (and thus later on visualized) ([#2298]).
+
 #### Changed
+
+- When using the `VolumeIntegralSubcellLimiting` with the `SubcellLimiterIDP` the
+  `:limiting_coefficient` must be explicitly provided to the `SaveSolutionCallback` via
+  ```julia
+  save_sol_cb = SaveSolutionCallback(interval = 42,
+                                     extra_node_variables = (:limiting_coefficient,))
+  ```
+  i.e., is no longer automatically saved ([#2298]).
 
 #### Deprecated
 
