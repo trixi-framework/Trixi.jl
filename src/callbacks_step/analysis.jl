@@ -9,11 +9,11 @@
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
 """
     AnalysisCallback(semi; interval=0,
-                            save_analysis=false,
-                            output_directory="out",
-                            analysis_filename="analysis.dat",
-                            extra_analysis_errors=Symbol[],
-                            extra_analysis_integrals=())
+                           save_analysis=false,
+                           output_directory="out",
+                           analysis_filename="analysis.dat",
+                           extra_analysis_errors=Symbol[],
+                           extra_analysis_integrals=())
 
 Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in
@@ -156,7 +156,13 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u_ode, du_ode, t,
 
     analysis_callback = cb.affect!
     analysis_callback.initial_state_integrals = initial_state_integrals
-    @unpack save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
+    @unpack analyzer, save_analysis, output_directory, analysis_filename, analysis_errors, analysis_integrals = analysis_callback
+
+    if length(analyzer.nodes) != 2 * polydeg(semi.solver.basis) + 1
+        @warn "AnalysisCallback has not the standard number of analysis nodes for this solver.
+         This might lead to unexpected results. 
+         You might want to reinitialize the `AnalysiCallback` for the actually simulated semidiscretization."
+    end
 
     if save_analysis && mpi_isroot()
         mkpath(output_directory)

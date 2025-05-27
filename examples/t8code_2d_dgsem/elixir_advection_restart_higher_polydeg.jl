@@ -22,6 +22,7 @@ ode = semidiscretize(semi, tspan, restart_filename)
 # We need to lower the CFL number compared to the k = 3 case
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
+# Reinitialize the `AnalysiCallback` for changed basis polynomial degree
 analysis_callback = AnalysisCallback(semi, interval = 100)
 
 callbacks = CallbackSet(summary_callback, # Re-used
