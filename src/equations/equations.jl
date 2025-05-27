@@ -499,9 +499,9 @@ Return the water height associated to the conserved variables `u` for a given se
 of the correct length `nvariables(equations)`.
 
 !!! note
-    This function is defined in `Trixi.jl` to have a common interface for the
-    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
-    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight end
 
@@ -516,9 +516,9 @@ associated to the conserved variables `u` for a given set of
 of the correct length `nvariables(equations)`.
 
 !!! note
-    This function is defined in `Trixi.jl` to have a common interface for the
-    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
-    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function waterheight_pressure end
 
@@ -528,9 +528,9 @@ function waterheight_pressure end
 Calculate the point-wise error for the lake-at-rest steady state solution.
 
 !!! note
-    This function is defined in `Trixi.jl` to have a common interface for the
-    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
-    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function lake_at_rest_error end
 

@@ -481,9 +481,9 @@ For the `surface_flux` either [`flux_wintermeyer_etal`](@ref) or [`flux_fjordhol
 be used to ensure well-balancedness and entropy conservation.
 
 !!! note
-    This function is defined in `Trixi.jl` to have a common interface for the
-    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
-    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function flux_wintermeyer_etal end
 
@@ -497,9 +497,9 @@ Gives entropy conservation and well-balancedness on both the volume and surface 
 [`flux_wintermeyer_etal`](@ref).
 
 !!! note
-    This function is defined in `Trixi.jl` to have a common interface for the
-    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
-    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function flux_nonconservative_wintermeyer_etal end
 
@@ -511,9 +511,9 @@ is nonzero this should only be used as a surface flux otherwise the scheme will 
 For well-balancedness in the volume flux use [`flux_wintermeyer_etal`](@ref).
 
 !!! note
-    This function is defined in `Trixi.jl` to have a common interface for the
-    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
-    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function flux_fjordholm_etal end
 
@@ -527,9 +527,9 @@ This flux can be used together with [`flux_fjordholm_etal`](@ref) at interfaces 
 conservation and well-balancedness.
 
 !!! note
-    This function is defined in `Trixi.jl` to have a common interface for the
-    methods implemented in the subpackages [`TrixiAtmo.jl`](https://github.com/trixi-framework/TrixiAtmo.jl) 
-    and [`TrixiShallowWater.jl`](https://github.com/trixi-framework/TrixiShallowWater.jl).
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
 """
 function flux_nonconservative_fjordholm_etal end
 
