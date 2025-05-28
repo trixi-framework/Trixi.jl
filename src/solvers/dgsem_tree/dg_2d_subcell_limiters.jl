@@ -675,6 +675,7 @@ function prolong2mortars!(cache, u, mesh::TreeMesh{2}, equations,
                           mortar_idp::LobattoLegendreMortarIDP, dg::DGSEM)
     prolong2mortars!(cache, u, mesh, equations, mortar_idp.mortar_l2, dg)
 
+    # The data of both small elements were already copied to the mortar cache
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
         # upper_element = cache.mortars.neighbor_ids[2, mortar]
@@ -686,8 +687,6 @@ function prolong2mortars!(cache, u, mesh::TreeMesh{2}, equations,
                 # IDP mortars in x-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        # cache.mortars.u_upper[v, l, mortar] = u[v, 1, l, upper_element]
-                        # cache.mortars.u_lower[v, l, mortar] = u[v, 1, l, lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, nnodes(dg), l,
                                                                 large_element]
                     end
@@ -696,8 +695,6 @@ function prolong2mortars!(cache, u, mesh::TreeMesh{2}, equations,
                 # IDP mortars in y-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        # cache.mortars.u_upper[v, l, mortar] = u[v, l, 1, upper_element]
-                        # cache.mortars.u_lower[v, l, mortar] = u[v, l, 1, lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, l, nnodes(dg),
                                                                 large_element]
                     end
@@ -708,10 +705,6 @@ function prolong2mortars!(cache, u, mesh::TreeMesh{2}, equations,
                 # IDP mortars in x-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        # cache.mortars.u_upper[v, l, mortar] = u[v, nnodes(dg), l,
-                        #                                         upper_element]
-                        # cache.mortars.u_lower[v, l, mortar] = u[v, nnodes(dg), l,
-                        #                                         lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, 1, l, large_element]
                     end
                 end
@@ -719,10 +712,6 @@ function prolong2mortars!(cache, u, mesh::TreeMesh{2}, equations,
                 # IDP mortars in y-direction
                 for l in eachnode(dg)
                     for v in eachvariable(equations)
-                        # cache.mortars.u_upper[v, l, mortar] = u[v, l, nnodes(dg),
-                        #                                         upper_element]
-                        # cache.mortars.u_lower[v, l, mortar] = u[v, l, nnodes(dg),
-                        #                                         lower_element]
                         cache.mortars.u_large[v, l, mortar] = u[v, l, 1, large_element]
                     end
                 end

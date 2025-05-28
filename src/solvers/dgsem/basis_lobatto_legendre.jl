@@ -171,16 +171,16 @@ function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
 
     mortar_l2 = MortarL2(basis)
 
-    local_mortar_weights = calc_mortar_weights(basis, RealT; first_order = first_order)
-
-    forward_upper_low_order = calc_forward_upper_low_order(nnodes_, RealT)
-    forward_lower_low_order = calc_forward_lower_low_order(nnodes_, RealT)
-    reverse_upper_low_order = calc_reverse_upper_low_order(nnodes_, Val(:gauss_lobatto),
-                                                           RealT)
-    reverse_lower_low_order = calc_reverse_lower_low_order(nnodes_, Val(:gauss_lobatto),
-                                                           RealT)
-
     if alternative
+        forward_upper_low_order = calc_forward_upper_low_order(nnodes_, RealT)
+        forward_lower_low_order = calc_forward_lower_low_order(nnodes_, RealT)
+        reverse_upper_low_order = calc_reverse_upper_low_order(nnodes_,
+                                                               Val(:gauss_lobatto),
+                                                               RealT)
+        reverse_lower_low_order = calc_reverse_lower_low_order(nnodes_,
+                                                               Val(:gauss_lobatto),
+                                                               RealT)
+
         LobattoLegendreMortarIDPAlternative{RealT, nnodes_, typeof(mortar_l2),
                                             typeof(forward_upper_low_order),
                                             typeof(reverse_upper_low_order)}(mortar_l2,
@@ -189,6 +189,9 @@ function MortarIDP(basis::LobattoLegendreBasis; alternative = false,
                                                                              reverse_upper_low_order,
                                                                              reverse_lower_low_order)
     else
+        local_mortar_weights = calc_mortar_weights(basis, RealT;
+                                                   first_order = first_order)
+
         LobattoLegendreMortarIDP{RealT, nnodes_, typeof(mortar_l2)}(pure_low_order,
                                                                     local_factor,
                                                                     mortar_l2,
