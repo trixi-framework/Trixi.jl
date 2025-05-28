@@ -5,24 +5,25 @@ using Trixi
 # Semidiscretization of the compressible Euler equations
 
 # Fluid parameters
-const gamma = 5 / 3
+const gamma = 1.4
 const prandtl_number = 0.72
 
 # Parameters for compressible von-Karman vortex street
-const Re = 500
+const Re = 200
 const Ma = 0.5f0
 const D = 1 # Diameter of the cylinder as in the mesh file
 
 # Parameters that can be freely chosen
 const v_in = 1
-const p_in = 1
+const rho_in = 1
 
 # Parameters that follow from Reynolds and Mach number + adiabatic index gamma
-const mu = v_in * D / Re
+const nu = v_in * D / Re
 
 const c = v_in / Ma
 const p_over_rho = c^2 / gamma
-const rho_in = p_in / p_over_rho
+const p_in = rho_in * p_over_rho
+const mu = rho_in * nu
 
 # Equations for this configuration
 equations = CompressibleEulerEquations2D(gamma)
@@ -101,10 +102,52 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-save_solution = SaveSolutionCallback(interval = analysis_interval,
+# Add `:vorticity` to `extra_node_variables` tuple ...
+extra_node_variables = (:vorticity,)
+
+# ... and specify the function `get_node_variable` for this symbol, 
+# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
+# Note that for parabolic(-extended) equations, `equations_parabolic` and `cache_parabolic`
+# must be declared as the last two arguments of the function to match the expected signature.
+function Trixi.get_node_variable(::Val{:vorticity}, u, mesh, equations, dg, cache,
+                                 equations_parabolic, cache_parabolic)
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, the variable must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    vorticity_array = zeros(eltype(cache.elements),
+                            n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                            n_elements)
+
+    @unpack viscous_container = cache_parabolic
+    @unpack gradients = viscous_container
+    gradients_x, gradients_y = gradients
+
+    # We can accelerate the computation by thread-parallelizing the loop over elements
+    # by using the `@threaded` macro.
+    Trixi.@threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+
+            gradients_1 = get_node_vars(gradients_x, equations_parabolic, dg,
+                                        i, j, element)
+            gradients_2 = get_node_vars(gradients_y, equations_parabolic, dg,
+                                        i, j, element)
+
+            vorticity_nodal = vorticity(u_node, (gradients_1, gradients_2),
+                                        equations_parabolic)
+            vorticity_array[i, j, element] = vorticity_nodal
+        end
+    end
+
+    return vorticity_array
+end
+
+save_solution = SaveSolutionCallback(dt = 1.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = extra_node_variables) # Supply the additional `extra_node_variables` here
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,

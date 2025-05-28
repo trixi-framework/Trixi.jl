@@ -40,9 +40,6 @@ isdir(outdir) && rm(outdir, recursive = true)
     # Compressible Euler with self-gravity
     include("test_tree_1d_eulergravity.jl")
 
-    # Shallow water
-    include("test_tree_1d_shallowwater.jl")
-
     # FDSBP methods on the TreeMesh
     include("test_tree_1d_fdsbp.jl")
 
@@ -54,6 +51,9 @@ isdir(outdir) && rm(outdir, recursive = true)
 
     # Maxwell
     include("test_tree_1d_maxwell.jl")
+
+    # Passive tracers
+    include("test_tree_1d_passive_tracers.jl")
 end
 
 # Coverage test for all initial conditions

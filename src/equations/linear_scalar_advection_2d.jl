@@ -221,7 +221,7 @@ end
 # Calculate maximum wave speed for local Lax-Friedrichs-type dissipation
 @inline function max_abs_speed_naive(u_ll, u_rr, orientation::Integer,
                                      equation::LinearScalarAdvectionEquation2D)
-    λ_max = abs(equation.advection_velocity[orientation])
+    return abs(equation.advection_velocity[orientation])
 end
 
 # Calculate 1D flux for a single point in the normal direction

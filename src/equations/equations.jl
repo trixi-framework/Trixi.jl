@@ -292,8 +292,7 @@ struct NonConservativeSymmetric end
 Trait function determining whether `equations` represent a conservation law
 with or without nonconservative terms. Classical conservation laws such as the
 [`CompressibleEulerEquations2D`](@ref) do not have nonconservative terms. The
-[`ShallowWaterEquations2D`](@ref) with non-constant bottom topography are an
-example of equations with nonconservative terms.
+[`IdealGlmMhdEquations2D`] are an example of equations with nonconservative terms.
 The return value will be `True()` or `False()` to allow dispatching on the return type.
 """
 have_nonconservative_terms(::AbstractEquations) = False()
@@ -490,6 +489,51 @@ of the correct length `nvariables(equations)`.
 """
 function density_pressure end
 
+"""
+    waterheight(u, equations)
+
+Return the water height associated to the conserved variables `u` for a given set of
+`equations`.
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
+"""
+function waterheight end
+
+"""
+    waterheight_pressure(u, equations)
+
+Return the product of the [`waterheight`](@ref) and the [`pressure`](@ref)
+associated to the conserved variables `u` for a given set of
+`equations`.
+
+`u` is a vector of the conserved variables at a single node, i.e., a vector
+of the correct length `nvariables(equations)`.
+
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
+"""
+function waterheight_pressure end
+
+"""
+    lake_at_rest_error(u, equations)
+    
+Calculate the point-wise error for the lake-at-rest steady state solution.
+
+!!! note
+    This function is defined in Trixi.jl to have a common interface for the
+    methods implemented in the subpackages [TrixiAtmo.jl](https://github.com/trixi-framework/TrixiAtmo.jl) 
+    and [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl).
+"""
+function lake_at_rest_error end
+
 # Default implementation of gradient for `variable`. Used for subcell limiting.
 # Implementing a gradient function for a specific variable improves the performance.
 @inline function gradient_conservative(variable, u, equations)
@@ -517,9 +561,6 @@ include("inviscid_burgers_1d.jl")
 # Shallow water equations
 abstract type AbstractShallowWaterEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
-include("shallow_water_1d.jl")
-include("shallow_water_2d.jl")
-include("shallow_water_quasi_1d.jl")
 
 # CompressibleEulerEquations
 abstract type AbstractCompressibleEulerEquations{NDIMS, NVARS} <:
@@ -539,6 +580,9 @@ include("compressible_euler_multicomponent_2d.jl")
 abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("polytropic_euler_2d.jl")
+
+# Passive tracer equations
+include("passive_tracers.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,

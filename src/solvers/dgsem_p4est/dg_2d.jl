@@ -7,7 +7,8 @@
 
 # The methods below are specialized on the mortar type
 # and called from the basic `create_cache` method at the top.
-function create_cache(mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
+function create_cache(mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                      equations,
                       mortar_l2::LobattoLegendreMortarL2, uEltype)
     # TODO: Taal performance using different types
     MA2d = MArray{Tuple{nvariables(equations), nnodes(mortar_l2)},
@@ -62,7 +63,7 @@ end
 
 # We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u,
-                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG)
     @unpack interfaces = cache
     index_range = eachnode(dg)
@@ -118,7 +119,8 @@ function prolong2interfaces!(cache, u,
 end
 
 function calc_interface_flux!(surface_flux_values,
-                              mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                              mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                          T8codeMesh{2}},
                               nonconservative_terms,
                               equations, surface_integral, dg::DG, cache)
     @unpack neighbor_ids, node_indices = cache.interfaces
@@ -186,7 +188,8 @@ end
 
 # Inlined version of the interface flux computation for conservation laws
 @inline function calc_interface_flux!(surface_flux_values,
-                                      mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                      mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                                  T8codeMesh{2}},
                                       nonconservative_terms::False, equations,
                                       surface_integral, dg::DG, cache,
                                       interface_index, normal_direction,
@@ -245,7 +248,7 @@ end
 end
 
 function prolong2boundaries!(cache, u,
-                             mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                             mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                              equations, surface_integral, dg::DG)
     @unpack boundaries = cache
     index_range = eachnode(dg)
@@ -328,8 +331,8 @@ end
                                             i_index, j_index, element_index)
 
     # Coordinates at boundary node
-    x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
-                        element_index)
+    x = get_node_coords(node_coordinates, equations, dg,
+                        i_index, j_index, element_index)
 
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
@@ -358,8 +361,8 @@ end
                                             i_index, j_index, element_index)
 
     # Coordinates at boundary node
-    x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
-                        element_index)
+    x = get_node_coords(node_coordinates, equations, dg,
+                        i_index, j_index, element_index)
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
@@ -378,7 +381,8 @@ end
 end
 
 function prolong2mortars!(cache, u,
-                          mesh::Union{P4estMesh{2}, T8codeMesh{2}}, equations,
+                          mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
+                          equations,
                           mortar_l2::LobattoLegendreMortarL2,
                           dg::DGSEM)
     @unpack neighbor_ids, node_indices = cache.mortars
@@ -445,7 +449,7 @@ function prolong2mortars!(cache, u,
 end
 
 function calc_mortar_flux!(surface_flux_values,
-                           mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                           mesh::Union{P4estMesh{2}, P4estMeshView{2}, T8codeMesh{2}},
                            nonconservative_terms, equations,
                            mortar_l2::LobattoLegendreMortarL2,
                            surface_integral, dg::DG, cache)
@@ -523,8 +527,8 @@ end
     @unpack u = cache.mortars
     @unpack surface_flux = surface_integral
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index,
-                                       mortar_index)
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
+                                       node_index, mortar_index)
 
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -544,8 +548,8 @@ end
     @unpack u = cache.mortars
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index,
-                                       mortar_index)
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
+                                       node_index, mortar_index)
 
     # Compute conservative flux
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
@@ -631,7 +635,8 @@ end
 end
 
 function calc_surface_integral!(du, u,
-                                mesh::Union{P4estMesh{2}, T8codeMesh{2}},
+                                mesh::Union{P4estMesh{2}, P4estMeshView{2},
+                                            T8codeMesh{2}},
                                 equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGSEM, cache)

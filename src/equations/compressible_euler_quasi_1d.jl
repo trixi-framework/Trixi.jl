@@ -90,7 +90,7 @@ function initial_condition_convergence_test(x, t,
     v1 = 1
     e = ini^2 / rho
     p = (equations.gamma - 1) * (e - 0.5f0 * rho * v1^2)
-    a = 1.5f0 - 0.5f0 * cos(x[1] * convert(RealT, pi))
+    a = 1.5f0 - 0.5f0 * cospi(x[1])
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
@@ -122,7 +122,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     v1(x1, t) = 1
     e(x1, t) = ini(x1, t)^2 / rho(x1, t)
     p1(x1, t) = (equations.gamma - 1) * (e(x1, t) - 0.5f0 * rho(x1, t) * v1(x1, t)^2)
-    a(x1, t) = 1.5f0 - 0.5f0 * cos(x1 * pi)
+    a(x1, t) = 1.5f0 - 0.5f0 * cospi(x1)
 
     arho(x1, t) = a(x1, t) * rho(x1, t)
     arhou(x1, t) = arho(x1, t) * v1(x1, t)
@@ -285,7 +285,30 @@ end
     p_rr = (equations.gamma - 1) * (e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
     c_rr = sqrt(equations.gamma * p_rr / rho_rr)
 
-    λ_max = max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+    return max(v_mag_ll, v_mag_rr) + max(c_ll, c_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::CompressibleEulerEquationsQuasi1D)
+    a_rho_ll, a_rho_v1_ll, a_e_ll, a_ll = u_ll
+    a_rho_rr, a_rho_v1_rr, a_e_rr, a_rr = u_rr
+
+    # Calculate primitive variables and speed of sound
+    rho_ll = a_rho_ll / a_ll
+    e_ll = a_e_ll / a_ll
+    v1_ll = a_rho_v1_ll / a_rho_ll
+    v_mag_ll = abs(v1_ll)
+    p_ll = (equations.gamma - 1) * (e_ll - 0.5f0 * rho_ll * v_mag_ll^2)
+    c_ll = sqrt(equations.gamma * p_ll / rho_ll)
+    rho_rr = a_rho_rr / a_rr
+    e_rr = a_e_rr / a_rr
+    v1_rr = a_rho_v1_rr / a_rho_rr
+    v_mag_rr = abs(v1_rr)
+    p_rr = (equations.gamma - 1) * (e_rr - 0.5f0 * rho_rr * v_mag_rr^2)
+    c_rr = sqrt(equations.gamma * p_rr / rho_rr)
+
+    return max(v_mag_ll + c_ll, v_mag_rr + c_rr)
 end
 
 @inline function max_abs_speeds(u, equations::CompressibleEulerEquationsQuasi1D)
@@ -326,10 +349,16 @@ end
     w = cons2entropy(SVector(a_rho, a_rho_v1, a_e) / a,
                      CompressibleEulerEquations1D(equations.gamma))
 
-    # we follow the convention for other spatially-varying equations such as
-    # `ShallowWaterEquations1D` and return the spatially varying coefficient 
-    # `a` as the final entropy variable.
+    # we follow the convention for other spatially-varying equations and return the spatially 
+    # varying coefficient `a` as the final entropy variable.
     return SVector(w[1], w[2], w[3], a)
+end
+
+@inline function entropy2cons(w, equations::CompressibleEulerEquationsQuasi1D)
+    w_rho, w_rho_v1, w_rho_e, a = w
+    u = entropy2cons(SVector(w_rho, w_rho_v1, w_rho_e),
+                     CompressibleEulerEquations1D(equations.gamma))
+    return SVector(a * u[1], a * u[2], a * u[3], a)
 end
 
 # Convert primitive to conservative variables

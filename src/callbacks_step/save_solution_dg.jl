@@ -8,7 +8,8 @@
 function save_solution_file(u, time, dt, timestep,
                             mesh::Union{SerialTreeMesh, StructuredMesh,
                                         StructuredMeshView,
-                                        UnstructuredMesh2D, SerialP4estMesh,
+                                        UnstructuredMesh2D,
+                                        SerialP4estMesh, P4estMeshView,
                                         SerialT8codeMesh},
                             equations, dg::DG, cache,
                             solution_callback,
@@ -128,11 +129,11 @@ function save_solution_file(u, time, dt, timestep,
     if HDF5.has_parallel()
         save_solution_file_parallel(data, time, dt, timestep, n_vars, mesh, equations,
                                     dg, cache, solution_variables, filename,
-                                    element_variables)
+                                    element_variables, node_variables)
     else
         save_solution_file_on_root(data, time, dt, timestep, n_vars, mesh, equations,
                                    dg, cache, solution_variables, filename,
-                                   element_variables)
+                                   element_variables, node_variables)
     end
 end
 
@@ -141,7 +142,8 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
                                                  ParallelT8codeMesh},
                                      equations, dg::DG, cache,
                                      solution_variables, filename,
-                                     element_variables = Dict{Symbol, Any}())
+                                     element_variables = Dict{Symbol, Any}(),
+                                     node_variables = Dict{Symbol, Any}())
 
     # Calculate element and node counts by MPI rank
     element_size = nnodes(dg)^ndims(mesh)
@@ -194,6 +196,22 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
             # Add variable name as attribute
             attributes(var)["name"] = string(key)
         end
+
+        # Store node variables
+        for (v, (key, node_variable)) in enumerate(node_variables)
+            # Need to create dataset explicitly in parallel case
+            var = create_dataset(file, "/node_variables_$v",
+                                 datatype(eltype(node_variable)),
+                                 dataspace((nelementsglobal(mesh, dg, cache) *
+                                            element_size,)))
+
+            # Write data of each process in slices (ranks start with 0)
+            slice = (cum_node_counts[mpi_rank() + 1] + 1):cum_node_counts[mpi_rank() + 2]
+            # Add to file
+            var[slice] = node_variable
+            # Add variable name as attribute
+            attributes(var)["name"] = string(key)
+        end
     end
 
     return filename
@@ -204,7 +222,8 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
                                                 ParallelT8codeMesh},
                                     equations, dg::DG, cache,
                                     solution_variables, filename,
-                                    element_variables = Dict{Symbol, Any}())
+                                    element_variables = Dict{Symbol, Any}(),
+                                    node_variables = Dict{Symbol, Any}())
 
     # Calculate element and node counts by MPI rank
     element_size = nnodes(dg)^ndims(mesh)
@@ -221,6 +240,11 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
         # Send element data to root
         for (key, element_variable) in element_variables
             MPI.Gatherv!(element_variable, nothing, mpi_root(), mpi_comm())
+        end
+
+        # Send additional/extra node variables to root
+        for (key, node_variable) in node_variables
+            MPI.Gatherv!(node_variable, nothing, mpi_root(), mpi_comm())
         end
 
         return filename
@@ -263,6 +287,19 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
 
             # Add variable name as attribute
             var = file["element_variables_$v"]
+            attributes(var)["name"] = string(key)
+        end
+
+        # Store node variables
+        for (v, (key, node_variable)) in enumerate(node_variables)
+            # Add to file
+            recv = Vector{eltype(data)}(undef, sum(node_counts))
+            MPI.Gatherv!(node_variable, MPI.VBuffer(recv, node_counts),
+                         mpi_root(), mpi_comm())
+            file["node_variables_$v"] = recv
+
+            # Add variable name as attribute
+            var = file["node_variables_$v"]
             attributes(var)["name"] = string(key)
         end
     end

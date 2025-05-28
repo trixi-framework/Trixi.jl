@@ -66,15 +66,15 @@ T8code.jl that can be ignored if you do not use these libraries from Trixi.jl. N
 `t8code` already comes with a `p4est` installation, so it suffices to install `t8code`.
 In order to use system-provided `p4est` and `t8code` installations, [P4est.jl](https://github.com/trixi-framework/P4est.jl)
 and [T8code.jl](https://github.com/DLR-AMR/T8code.jl) need to be configured to use the custom
-installations. Follow the steps described [here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) and
-[here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) for the configuration.
+installations. Follow the steps described [here](https://github.com/trixi-framework/P4est.jl/blob/main/README.md#installation) and
+[here](https://github.com/DLR-AMR/T8code.jl/blob/main/README.md#installation) for the configuration.
 The paths that point to `libp4est.so` (and potentially to `libsc.so`) need to be
 the same for P4est.jl and T8code.jl. This could, e.g., be `libp4est.so` that usually can be found
 in `lib/` or `local/lib/` in the installation directory of `t8code`.
 The preferences for [HDF5.jl](https://github.com/JuliaIO/HDF5.jl) always need to be set, even if you
 do not want to use `HDF5` from Trixi.jl, see also [issue #1079 in HDF5.jl](https://github.com/JuliaIO/HDF5.jl/issues/1079).
 To set the preferences for HDF5.jl, follow the instructions described
-[here](https://trixi-framework.github.io/Trixi.jl/stable/parallelization/#Using-parallel-input-and-output).
+[here](https://trixi-framework.github.io/TrixiDocumentation/stable/parallelization/#Using-parallel-input-and-output).
 
 In total, in your active Julia project you should have a `LocalPreferences.toml` file with sections
 `[MPIPreferences]`, `[T8code]` (only needed if `T8codeMesh` is used), `[P4est]` (only needed if
@@ -126,6 +126,13 @@ julia> using HDF5
 julia> HDF5.API.set_libraries!("/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5.so", "/usr/lib/x86_64-linux-gnu/hdf5/openmpi/libhdf5_hl.so")
 ```
 After the preferences are set, restart the Julia REPL again.
+
+!!! note 
+    If multiple MPI installations are present on a system (as is typically the case on a cluster), calling 
+    `MPIPreferences.use_system_binary()` may lead to an undesired selection of the MPI implementation - 
+    make sure to check the `LocalPreferences.toml` in any case. 
+    You can also check at runtime of your Julia session the MPI configuration with 
+    `using MPI; MPI.versioninfo()`.
 
 ### [Usage](@id parallel_usage)
 
@@ -246,8 +253,51 @@ julia> using HDF5
 julia> HDF5.API.set_libraries!("/path/to/your/libhdf5.so", "/path/to/your/libhdf5_hl.so")
 ```
 For more information see also the
-[documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). In total, you should
-have a file called `LocalPreferences.toml` in the project directory that contains a section
+[documentation of HDF5.jl](https://juliaio.github.io/HDF5.jl/stable/mpi/). 
+
+To install the MPI-enabled `HDF5` library, i.e., the `libhdf5.so` and `libhdf5_hl.so` files, 
+there are two options.
+First, there might be a package available from the package manager, e.g., `libhdf5-openmpi-dev` for 
+`OpenMPI` or `libhdf5-mpich-dev` for `MPICH`. 
+On `Ubuntu`, you find a list of available `libhdf5-` packages [here](https://packages.ubuntu.com/search?keywords=libhdf5-&searchon=names&suite=all&section=all).
+For other Linux distributions you can consult the package manager of your distribution or the third-party webpage https://pkgs.org/. 
+
+The second option is to manually build the library on your system.
+To do so, download the latest release from the [HDF5 download page](https://www.hdfgroup.org/download-hdf5/source-code/).
+After extracting the tarball, navigate to the extracted directory and set the environment variable `CC` to the desired MPI C compiler, in the simplest case
+```bash
+export CC=mpicc
+```
+Make sure that this is the same compiler as used for compilation of, e.g., `p4est` and `t8code`!
+Then, export also that you desire to use HDF5 with MPI:
+```bash
+export HDF5_MPI="ON"
+```
+Now you can run the `configure` bash script located in the extracted directory with the options
+```bash
+./configure --enable-shared --enable-parallel
+```
+The `--enable-shared` option is necessary to create shared libraries, i.e., the `.so` lib files, which are required to make HDF5 work with Julia, i.e., HDF5.jl.
+The `--enable-parallel` option is necessary to enable MPI support. If you want to install the library in a custom directory, you can use the `--prefix` option, e.g.,
+```bash
+./configure --enable-shared --enable-parallel --prefix=/path/to/your/hdf5/installation/directory
+```
+which might be desirable if you experiment with different configurations of the library.
+In that case, you should also set
+```bash
+export HDF5_DIR="/path/to/your/hdf5/installation/directory"
+```
+After the configuration is done, you can run the usual
+```bash
+make -j 4
+```
+to compile the library. The `-j 4` options tells `make` to use four threads for compilation, which can speed up the process. After the compilation is done, you can install the library with
+```bash
+make install
+```
+where you might need to switch to `sudo` mode if you did not provide an installation directory in your home directory.
+
+In total, you should have a file called `LocalPreferences.toml` in the project directory that contains a section
 `[MPIPreferences]`, a section `[HDF5]` with entries `libhdf5` and `libhdf5_hl`, a section `[P4est]`
 with the entry `libp4est` as well as a section `[T8code]` with the entries `libt8`, `libp4est`
 and `libsc`.

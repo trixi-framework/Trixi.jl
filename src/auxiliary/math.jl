@@ -23,6 +23,21 @@ function set_polyester!(toggle::Bool; force = true)
 end
 
 """
+    Trixi.set_loop_vectorization!(toggle::Bool; force = true)
+
+Toggle the usage of [LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl).
+By default, LoopVectorization.jl is enabled, but it can
+be useful for performance comparisons to switch to the Julia core backend.
+
+This does not fully disable LoopVectorization.jl,
+but only its internal use as part of Trixi.jl.
+"""
+function set_loop_vectorization!(toggle::Bool; force = true)
+    set_preferences!(TRIXI_UUID, "loop_vectorization" => toggle, force = force)
+    @info "Please restart Julia and reload Trixi.jl for the `loop_vectorization` change to take effect"
+end
+
+"""
     Trixi.set_sqrt_type!(type; force = true)
 
 Set the `type` of the square root function to be used in Trixi.jl.
