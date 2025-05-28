@@ -220,8 +220,8 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
         i_node = i_node_start
         j_node = j_node_start
         for node_index in index_range
-            u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
-                                         boundary)
+            u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg,
+                                         node_index, boundary)
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
@@ -279,8 +279,8 @@ function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
         i_node = i_node_start
         j_node = j_node_start
         for node_index in index_range
-            u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg, node_index,
-                                         boundary)
+            u_node = Trixi.get_node_vars(cache.boundaries.u, equations, dg,
+                                         node_index, boundary)
             # Extract normal direction at nodes which points from the elements outwards,
             # i.e., *into* the structure.
             normal_direction = get_normal_direction(direction, contravariant_vectors,
