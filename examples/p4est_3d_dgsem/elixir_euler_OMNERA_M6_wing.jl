@@ -22,7 +22,7 @@ equations = CompressibleEulerEquations3D(1.4)
     # set the freestream flow parameters
     rho_freestream = 1.4
 
-    # v_total = 0.84 = Mach NOTE: True Mach = 0.8395
+    # v_total = 0.84 = Mach (for c = 1)
 
     # AoA = 3.06
     v1 = 0.8388023121403883
@@ -86,11 +86,8 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 mesh_file = Trixi.download("https://github.com/DanielDoehring/AerodynamicMeshes/raw/refs/heads/main/ONERA_M6_Wing/ONERA_M6_Wing_sanitized.inp",
                            joinpath(@__DIR__, "ONERA_M6_sanitized.inp"))
 
-boundary_symbols = [:Symmetry,
-    :FarField,
-    :BottomWing,
-    :TopWing]
-
+# Boundary symbols follow from nodesets in the mesh file
+boundary_symbols = [:Symmetry, :FarField, :BottomWing, :TopWing]
 mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
 
 boundary_conditions = Dict(:Symmetry => bc_symmetry,
