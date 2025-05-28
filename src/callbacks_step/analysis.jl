@@ -9,11 +9,11 @@
 # - analysis_interval part as PeriodicCallback called after a certain amount of simulation time
 """
     AnalysisCallback(semi; interval=0,
-                            save_analysis=false,
-                            output_directory="out",
-                            analysis_filename="analysis.dat",
-                            extra_analysis_errors=Symbol[],
-                            extra_analysis_integrals=())
+                           save_analysis=false,
+                           output_directory="out",
+                           analysis_filename="analysis.dat",
+                           extra_analysis_errors=Symbol[],
+                           extra_analysis_integrals=())
 
 Analyze a numerical solution every `interval` time steps and print the
 results to the screen. If `save_analysis`, the results are also saved in

@@ -223,7 +223,7 @@ function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D
     return equilibrium_distribution(rho, v1, v2, v3, equations)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 3D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations3D)
     if orientation == 1 # x-direction
         v_alpha = equations.v_alpha1
@@ -303,7 +303,7 @@ Calculate the macroscopic pressure from the density `rho` or the  particle distr
 `u`.
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations3D)
-    rho * equations.c_s^2
+    return rho * equations.c_s^2
 end
 @inline function pressure(u, equations::LatticeBoltzmannEquations3D)
     pressure(density(u, equations), equations)
