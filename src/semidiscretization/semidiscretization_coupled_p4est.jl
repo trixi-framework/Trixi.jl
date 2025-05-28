@@ -42,7 +42,7 @@ function SemidiscretizationCoupledP4est(semis...)
         n_coefficients[i] = ndofs(semis[i]) * nvariables(equations)
     end
 
-    # Compute range of coefficients associated with each semidiscretization and allocate coupled BCs
+    # Compute range of coefficients associated with each semidiscretization
     u_indices = Vector{UnitRange{Int}}(undef, length(semis))
     for i in 1:length(semis)
         offset = sum(n_coefficients[1:(i - 1)]) + 1
@@ -192,11 +192,19 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     #     end
     # end
 
+    u_ode_reformatted = Vector{real(semi)}(undef, ndofs(semi))
+    u_ode_reformatted_reshape = reshape(u_ode_reformatted, (4, 4, 4*4))
+    foreach_enumerate(semi.semis) do (i, semi_)
+        system_ode = get_system_u_ode(u_ode, i, semi)
+        system_ode_reshape = reshape(system_ode, (4, 4, Int(length(system_ode)/16)))
+        u_ode_reformatted_reshape[:, :, semi.mesh_ids .== i] .= system_ode_reshape
+    end
+
     # Call rhs! for each semidiscretization
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, semi, semi_, t, u_ode)
+        rhs!(du_loc, u_loc, semi, semi_, t, u_ode_reformatted)
     end
 
     runtime = time_ns() - time_start
@@ -480,22 +488,24 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
     @autoinfiltrate
-    element_index_y = cld( mesh.cell_ids[element_index], 4)
+    element_index_y = cld(mesh.cell_ids[element_index], 4)
     element_index_x = mesh.cell_ids[element_index] - (element_index_y - 1) * 4
     if abs(sum(normal_direction .* (1.0, 0.0))) > abs(sum(normal_direction .* (0.0, 1.0)))
         element_index_x += Int(sign(sum(normal_direction .* (1.0, 0.0))))
         if i_index == 4
-            i_index = 1
+            i_index_g = 1
         elseif i_index == 1
-            i_index = 4
+            i_index_g = 4
         end
+        j_index_g = j_index
     else
         element_index_y += Int(sign(sum(normal_direction .* (0.0, 1.0))))
         if j_index == 4
-            j_index = 1
+            j_index_g = 1
         elseif j_index == 1
-            j_index = 4
+            j_index_g = 4
         end
+        i_index_g = i_index
     end
     # Make things periodic across physical boundaries.
     if element_index_x == 0
@@ -509,12 +519,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         element_index_y = 1
     end
     u_global_reshape = reshape(u_global, (4, 4, 4, 4))
-    u_boundary = SVector(u_global_reshape[i_index, j_index, element_index_x, element_index_y])
-
-    # element_index_other = Int(element_index_x + (element_index_y-1) * 4)-1 + i_index + (j_index-1)*4
-    # println(element_index, " ", i_index, " ", j_index, " ", normal_direction)
-    # println(element_index_x, " ", element_index_y, " ", element_index_other)
-    # u_boundary = SVector(u_global[element_index_other])
+    u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_x, element_index_y])
 
     # u_boundary = u_inner
     orientation = normal_direction

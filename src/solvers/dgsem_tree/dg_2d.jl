@@ -216,7 +216,6 @@ function rhs!(du, u, t, u_global, semis,
 
     # Calculate boundary fluxes
     @trixi_timeit timer() "boundary flux" begin
-        @autoinfiltrate    
         calc_boundary_flux!(cache, t, boundary_conditions, mesh, equations,
                             dg.surface_integral, dg, u_global)
     end
