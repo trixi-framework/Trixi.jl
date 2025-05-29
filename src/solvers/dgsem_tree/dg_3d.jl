@@ -1513,7 +1513,12 @@ function apply_jacobian!(du, mesh::TreeMesh{3},
 end
 
 # TODO: Taal dimension agnostic
-function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars,
+function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::False,
+                       equations::AbstractEquations{3}, dg::DG, cache)
+    return nothing
+end
+
+function calc_sources!(du, u, t, source_terms::Nothing, have_aux_node_vars::True,
                        equations::AbstractEquations{3}, dg::DG, cache)
     return nothing
 end
