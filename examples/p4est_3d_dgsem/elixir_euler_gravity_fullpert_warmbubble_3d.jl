@@ -29,7 +29,7 @@ end
 
 # Initial condition
 function (setup::WarmBubbleSetup)(x, t,
-                                  ::CompressibleEulerEquationsPerturbationGravity3D)
+                                  ::CompressibleEulerEquationsFullPerturbationGravity3D)
     RealT = eltype(x)
     @unpack g, c_p, c_v = setup
 
@@ -90,7 +90,7 @@ function (setup::WarmBubbleSetup)(x, t,
 end
 
 # Steady state
-function (setup::WarmBubbleSetup)(x, ::CompressibleEulerEquationsPerturbationGravity3D)
+function (setup::WarmBubbleSetup)(x, ::CompressibleEulerEquationsFullPerturbationGravity3D)
     @unpack g, c_p, c_v = setup
 
     potential_temperature_ref = 300
@@ -128,7 +128,7 @@ end
 # semidiscretization of the compressible Euler equations
 warm_bubble_setup = WarmBubbleSetup()
 
-equations = CompressibleEulerEquationsPerturbationGravity3D(warm_bubble_setup.gamma)
+equations = CompressibleEulerEquationsFullPerturbationGravity3D(warm_bubble_setup.gamma)
 
 initial_condition = warm_bubble_setup
 
@@ -180,10 +180,10 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-@inline function v1_pert(u, ::CompressibleEulerEquationsPerturbationGravity3D)
+@inline function v1_pert(u, ::CompressibleEulerEquationsFullPerturbationGravity3D)
     return abs(u[2])
 end
-@inline function v2_pert(u, ::CompressibleEulerEquationsPerturbationGravity3D)
+@inline function v2_pert(u, ::CompressibleEulerEquationsFullPerturbationGravity3D)
     return abs(u[3])
 end
 
@@ -200,13 +200,14 @@ save_solution = SaveSolutionCallback(dt = 10.0, #interval = 1, #dt = 10.0,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim_total,
-                                     output_directory="out_bubble_3d_amr_pert")
+                                     output_directory="out_bubble_3d_gfp")
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback, alive_callback,
-                        save_solution, amr_callback,
+                        save_solution,
+                        # amr_callback,
                         stepsize_callback)
 
 ###############################################################################
