@@ -116,7 +116,7 @@ varnames(::typeof(cons2prim_total), ::CompressibleEulerEquationsPerturbationGrav
 @inline function cons2prim_pert(u, aux,
                                 equations::CompressibleEulerEquationsPerturbationGravity3D)
     u_prim_total = cons2prim_total(u, aux, equations)
-    u_prim_steady = pressure_steady(aux, equations)
+    u_prim_steady = cons2prim_geopot(aux, aux, equations)
     return u_prim_total - u_prim_steady
 end
 
@@ -397,8 +397,8 @@ end
     f1 = rho_avg * v_dot_n_avg
     f2 = f1 * v1_avg + (p_avg - p_steady_avg) * normal_direction[1]
     f3 = f1 * v2_avg + (p_avg - p_steady_avg) * normal_direction[2]
-    f3 = f1 * v3_avg + (p_avg - p_steady_avg) * normal_direction[3]
-    f4 = (f1 * velocity_square_avg +
+    f4 = f1 * v3_avg + (p_avg - p_steady_avg) * normal_direction[3]
+    f5 = (f1 * velocity_square_avg +
           p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
           + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll))
 
