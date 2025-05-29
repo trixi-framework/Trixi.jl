@@ -40,19 +40,22 @@ function initial_condition_baroclinic_instability(x, t,
     # Stream function type perturbation
     u_perturbation, v_perturbation = perturbation_stream_function(lon, lat, z)
 
-    u += u_perturbation
-    v = v_perturbation
-
     # Convert spherical velocity to Cartesian
-    v1 = -sin(lon) * u - sin(lat) * cos(lon) * v
-    v2 = cos(lon) * u - sin(lat) * sin(lon) * v
-    v3 = cos(lat) * v
+    v1 = -sin(lon) * u_perturbation - sin(lat) * cos(lon) * v_perturbation
+    v2 = cos(lon) * u_perturbation - sin(lat) * sin(lon) * v_perturbation
+    v3 = cos(lat) * v_perturbation
 
     # geopotential
-    phi = gravitational_acceleration * (radius_earth - radius_earth^2 / r)
+    #phi = gravitational_acceleration * (2 * radius_earth - radius_earth^2 / r)
 
-    return Trixi.prim2cons_geopot(SVector(rho, v1, v2, v3, p), phi, equations) -
-           Trixi.prim2cons_geopot(SVector(rho, v1_ref, v2_ref, v3_ref, p), phi, equations)
+    # explicitly calculate the perturbation
+    E_pert = 0.5 * rho * (2 * v1_ref * v1 + v1^2
+                        + 2 * v2_ref * v2 + v2^2
+                        + 2 * v3_ref * v3 + v3^2 )
+    return SVector(0, rho * v1, rho * v2, rho * v3, E_pert)
+    #return Trixi.prim2cons_geopot(SVector(rho, v1, v2, v3, p), phi, equations)
+    # -
+    #       Trixi.prim2cons_geopot(SVector(rho, v1_ref, v2_ref, v3_ref, p), phi, equations)
 end
 
 # Steady state for RHS correction below
@@ -73,7 +76,7 @@ function steady_state_baroclinic_instability(x,equations::CompressibleEulerEquat
     v3 = 0.0
 
     # geopotential, steady as well
-    phi = gravitational_acceleration * (radius_earth - radius_earth^2 / r)
+    phi = gravitational_acceleration * (2 * radius_earth - radius_earth^2 / r)
 
     return vcat(Trixi.prim2cons_geopot(SVector(rho, v1, v2, v3, p), phi, equations), phi)
 end
@@ -202,14 +205,7 @@ end
 @inline function source_terms_coriolis(u, aux, x, t,
                                        equations::CompressibleEulerEquationsPerturbationGravity3D)
     u_total = Trixi.cons2cons_total(u, aux, equations)
-
-    radius_earth = 6.371229e6  # a
     angular_velocity = 7.29212e-5  # Ω
-
-    r = norm(x)
-    # Make sure that r is not smaller than radius_earth
-    z = max(r - radius_earth, 0.0)
-    r = z + radius_earth
 
     du0 = zero(eltype(u))
 
@@ -260,21 +256,27 @@ ode = semidiscretize(semi, tspan)
 
 summary_callback = SummaryCallback()
 
-analysis_interval = 5000
+analysis_interval = 500
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-output = "out_baroclinic_gravity_pert"
-save_solution = SaveSolutionCallback(interval = 5000,
+
+save_solution = SaveSolutionCallback(dt = 100, #interval = 5000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim_total,
-                                     output_directory=output)
+                                     output_directory="out_baroclinic_gp_test_tot")
 
-save_restart = SaveRestartCallback(interval = 100000,
-                                   save_final_restart = true,
-                                   output_directory = output)
+save_solution2 = SaveSolutionCallback(dt = 100, #interval = 5000,
+                                     save_initial_solution = true,
+                                     save_final_solution = true,
+                                     solution_variables = cons2prim_pert,
+                                     output_directory="out_baroclinic_gp_test_pert")
+
+#save_restart = SaveRestartCallback(interval = 100000,
+#                                   save_final_restart = true,
+#                                   output_directory = output)
 
 amr_indicator = IndicatorMax(semi, variable = vel_mag)
 
@@ -289,9 +291,9 @@ amr_callback = AMRCallback(semi, amr_controller,
                         adapt_initial_condition_only_refine = true)
 
 callbacks = CallbackSet(summary_callback,
-                        amr_callback,
+                        #amr_callback,
                         analysis_callback, alive_callback,
-                        save_solution, save_restart)
+                        save_solution, save_solution2)
 
 ###############################################################################
 # run the simulation
