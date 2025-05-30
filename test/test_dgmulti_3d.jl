@@ -402,7 +402,7 @@ end
                         polydeg=3,
                         l2=[0.0002332063232167919],
                         linf=[0.0006597931027270132],
-                        atol=1e-11) # MacOS and Ubuntu differ here
+                        atol=1e-10) # MacOS and Ubuntu differ here
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
