@@ -380,8 +380,8 @@ end
 
 @trixi_testset "elixir_advection_tensor_wedge.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
-                        l2=[2.30487910e-04],
-                        linf=[6.31795281e-04])
+                        l2=[0.00023048791012406786],
+                        linf=[0.0006317952824828055])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -390,6 +390,32 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
+                                         n_cells_max = 0,
+                                         RealT = Float64)
+end
+
+@trixi_testset "elixir_advection_tensor_wedge.jl (scalar polydeg)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_tensor_wedge.jl"),
+                        polydeg=3,
+                        l2=[0.0002332063232167919],
+                        linf=[0.0006597931027270132],
+                        atol=1e-10) # MacOS and Ubuntu differ here
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"),
+                                         n_cells_max = 0,
+                                         RealT = Float64)
 end
 end
 
