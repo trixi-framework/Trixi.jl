@@ -535,11 +535,11 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         # In case of conservative (index 1) and non-conservative (index 2) fluxes,
         # add the non-conservative one with a factor of 1/2.
         # if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
-            flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
-                                             equations) +
-                    0.5f0 *
-                    surface_flux_function[2](u_inner, u_boundary, orientation,
-                                             equations))
+        flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
+                                         equations) +
+                0.5f0 *
+                surface_flux_function[2](u_inner, u_boundary, orientation,
+                                         equations))
         # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
         #     flux = (surface_flux_function[1](u_boundary, u_inner, orientation,
         #                                      equations) +
