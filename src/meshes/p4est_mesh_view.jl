@@ -153,8 +153,9 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
     end
 
     boundaries.u = zeros(typeof(boundaries_parent.u).parameters[1],
-                         (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2], size(boundaries.node_indices)[end]))
-    
+                         (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2],
+                          size(boundaries.node_indices)[end]))
+
     return boundaries
 end
 
