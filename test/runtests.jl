@@ -9,6 +9,10 @@ const TRIXI_TEST = get(ENV, "TRIXI_TEST", "threaded")
 const TRIXI_MPI_NPROCS = clamp(Sys.CPU_THREADS, 2, 3)
 const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 
+# FIXME: remove this
+import Pkg
+Pkg.add(url = "https://github.com/efaulhaber/Polyester.jl", rev = "reset-if-task-failed")
+
 @time @testset "Trixi.jl tests" begin
     # This is placed first since tests error out otherwise if `TRIXI_TEST == "all"`,
     # at least on some systems.
