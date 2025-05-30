@@ -865,4 +865,21 @@ end
     v = u[orientation] / rho
     return v
 end
+
+@inline function enstrophy(u, gradients, equations::CompressibleEulerMulticomponentEquations2D)
+    # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
+
+    omega = vorticity(u, gradients, equations)
+
+    return 0.5f0 * u[1] * omega^2
+end
+
+@inline function vorticity(u, gradients, equations::CompressibleEulerMulticomponentEquations2D)
+    # Ensure that we have velocity `gradients` by way of the `convert_gradient_variables` function.
+    _, dv1dx, dv2dx, _ = convert_derivative_to_primitive(u, gradients[1], equations)
+    _, dv1dy, dv2dy, _ = convert_derivative_to_primitive(u, gradients[2], equations)
+
+    return dv2dx - dv1dy
+end
+
 end # @muladd
