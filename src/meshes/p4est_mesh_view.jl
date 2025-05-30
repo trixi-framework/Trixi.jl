@@ -183,7 +183,8 @@ end
 # Then, within Trixi2Vtk, the P4estMeshView and its node coordinates are reconstructured from
 # these attributes for plotting purposes
 # | Warning: This overwrites any existing mesh file, either for a mesh view or parent mesh.
-function save_mesh_file(mesh::P4estMeshView, output_directory; system = "", timestep = 0)
+function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
+                        timestep = 0)
     # Create output directory (if it does not exist)
     mkpath(output_directory)
 
