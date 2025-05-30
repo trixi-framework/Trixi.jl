@@ -471,7 +471,7 @@ BoundaryConditionCoupled(2, (:j, :i_backwards, :end), Float64, fun)
     This is an experimental feature and can change any time.
 """
 mutable struct BoundaryConditionCoupledP4est{CouplingConverter}
-    coupling_converter :: CouplingConverter
+    coupling_converter::CouplingConverter
 
     function BoundaryConditionCoupledP4est(coupling_converter)
         new{typeof(coupling_converter)}(coupling_converter)
