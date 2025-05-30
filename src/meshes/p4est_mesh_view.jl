@@ -114,7 +114,8 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
     for boundary in 1:size(boundaries_parent.neighbor_ids)[1]
         mask[boundary] = boundaries_parent.neighbor_ids[boundary] in mesh.cell_ids
     end
-    boundaries.neighbor_ids = global_element_id_to_local(boundaries_parent.neighbor_ids[mask], mesh)
+    boundaries.neighbor_ids = global_element_id_to_local(boundaries_parent.neighbor_ids[mask],
+                                                         mesh)
     boundaries.name = boundaries_parent.name[mask]
     boundaries.node_indices = boundaries_parent.node_indices[mask]
 
