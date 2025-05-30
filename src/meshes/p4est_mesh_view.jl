@@ -147,7 +147,8 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
                 push!(boundaries.name, :y_neg)
             end
 
-            push!(boundaries.node_indices, interfaces_parent.node_indices[view_idx, interface])
+            push!(boundaries.node_indices,
+                  interfaces_parent.node_indices[view_idx, interface])
         end
     end
 
