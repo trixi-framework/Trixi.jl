@@ -40,6 +40,10 @@ ode = semidiscretize(semi, (0.0, 1.0))
 # and resets the timers
 summary_callback = SummaryCallback()
 
+# The AnalysisCallback allows to analyse the solution in regular intervals and prints the results
+# We require this definition for the test, even though we don't use it in the CallbackSet.
+analysis_callback = AnalysisCallback(semi)
+
 # The SaveSolutionCallback allows to save the solution to a file in regular intervals
 save_solution = SaveSolutionCallback(interval = 100,
                                      solution_variables = cons2prim)
