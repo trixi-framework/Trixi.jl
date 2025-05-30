@@ -187,17 +187,16 @@ end
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
-    # @trixi_timeit timer() "copy to coupled boundaries" begin
-    #     foreach(semi.semis) do semi_
-    #         copy_to_coupled_boundary!(semi_.boundary_conditions, u_ode, semi, semi_)
-    #     end
-    # end
-
+    n_nodes = length(semi.semis[1].mesh.parent.nodes)
+    @autoinfiltrate
     u_ode_reformatted = Vector{real(semi)}(undef, ndofs(semi))
-    u_ode_reformatted_reshape = reshape(u_ode_reformatted, (4, 4, 4*4))
+    u_ode_reformatted_reshape = reshape(u_ode_reformatted,
+                                        (n_nodes,
+                                         n_nodes,
+                                         length(semi.mesh_ids)))
     foreach_enumerate(semi.semis) do (i, semi_)
         system_ode = get_system_u_ode(u_ode, i, semi)
-        system_ode_reshape = reshape(system_ode, (4, 4, Int(length(system_ode)/16)))
+        system_ode_reshape = reshape(system_ode, (n_nodes, n_nodes, Int(length(system_ode)/n_nodes^2)))
         u_ode_reformatted_reshape[:, :, semi.mesh_ids .== i] .= system_ode_reshape
     end
 
@@ -492,12 +491,12 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              u_global)
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
-    @autoinfiltrate
-    element_index_y = cld(mesh.cell_ids[element_index], 4)
-    element_index_x = mesh.cell_ids[element_index] - (element_index_y - 1) * 4
+    element_index_y = cld(mesh.cell_ids[element_index], 32)
+    element_index_x = mesh.cell_ids[element_index] - (element_index_y - 1) * 32
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
         element_index_x += Int(sign(sum(normal_direction .* (1.0, 0.0))))
+        i_index_g = i_index
         if i_index == 4
             i_index_g = 1
         elseif i_index == 1
@@ -506,6 +505,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         j_index_g = j_index
     else
         element_index_y += Int(sign(sum(normal_direction .* (0.0, 1.0))))
+        j_index_g = j_index
         if j_index == 4
             j_index_g = 1
         elseif j_index == 1
@@ -515,16 +515,16 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     end
     # Make things periodic across physical boundaries.
     if element_index_x == 0
-        element_index_x = 4
-    elseif element_index_x == 5
+        element_index_x = 32
+    elseif element_index_x == 33
         element_index_x = 1
     end
     if element_index_y == 0
-        element_index_y = 4
-    elseif element_index_y == 5
+        element_index_y = 32
+    elseif element_index_y == 33
         element_index_y = 1
     end
-    u_global_reshape = reshape(u_global, (4, 4, 4, 4))
+    u_global_reshape = reshape(u_global, (4, 4, 32, 32))
     u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_x, element_index_y])
 
     # u_boundary = u_inner
@@ -564,92 +564,6 @@ function allocate_coupled_boundary_condition(boundary_condition, direction, mesh
                                              solver)
     return nothing
 end
-
-# # Don't do anything for other BCs than BoundaryConditionCoupled
-# function copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi)
-#     return nothing
-# end
-
-# function copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i, n_boundaries,
-#                                    boundary_condition, boundary_conditions...)
-#     copy_to_coupled_boundary!(boundary_condition, u_ode, semi_coupled, semi)
-#     if i < n_boundaries
-#         copy_to_coupled_boundary!(u_ode, semi_coupled, semi, i + 1, n_boundaries,
-#                                   boundary_conditions...)
-#     end
-# end
-
-# function copy_to_coupled_boundary!(boundary_conditions::Union{Tuple, NamedTuple}, u_ode,
-#                                    semi_coupled, semi)
-#     copy_to_coupled_boundary!(u_ode, semi_coupled, semi, 1, length(boundary_conditions),
-#                               boundary_conditions...)
-# end
-
-# # In 2D
-# function copy_to_coupled_boundary!(boundary_condition::BoundaryConditionCoupled{2,
-#                                                                                 other_semi_index},
-#                                    u_ode, semi_coupled, semi) where {other_semi_index}
-#     @unpack u_indices = semi_coupled
-#     @unpack other_orientation, indices = boundary_condition
-#     @unpack coupling_converter, u_boundary = boundary_condition
-
-#     mesh_own, equations_own, solver_own, cache_own = mesh_equations_solver_cache(semi)
-#     other_semi = semi_coupled.semis[other_semi_index]
-#     mesh_other, equations_other, solver_other, cache_other = mesh_equations_solver_cache(other_semi)
-
-#     node_coordinates_other = cache_other.elements.node_coordinates
-#     u_ode_other = get_system_u_ode(u_ode, other_semi_index, semi_coupled)
-#     u_other = wrap_array(u_ode_other, mesh_other, equations_other, solver_other,
-#                          cache_other)
-
-#     linear_indices = LinearIndices(size(mesh_other))
-
-#     if other_orientation == 1
-#         cells = axes(mesh_other, 2)
-#     else # other_orientation == 2
-#         cells = axes(mesh_other, 1)
-#     end
-
-#     # Copy solution data to the coupled boundary using "delayed indexing" with
-#     # a start value and a step size to get the correct face and orientation.
-#     node_index_range = eachnode(solver_other)
-#     i_node_start, i_node_step = index_to_start_step_2d(indices[1], node_index_range)
-#     j_node_start, j_node_step = index_to_start_step_2d(indices[2], node_index_range)
-
-#     i_cell_start, i_cell_step = index_to_start_step_2d(indices[1], axes(mesh_other, 1))
-#     j_cell_start, j_cell_step = index_to_start_step_2d(indices[2], axes(mesh_other, 2))
-
-#     # We need indices starting at 1 for the handling of `i_cell` etc.
-#     Base.require_one_based_indexing(cells)
-
-#     @threaded for i in eachindex(cells)
-#         cell = cells[i]
-#         i_cell = i_cell_start + (i - 1) * i_cell_step
-#         j_cell = j_cell_start + (i - 1) * j_cell_step
-
-#         i_node = i_node_start
-#         j_node = j_node_start
-#         element_id = linear_indices[i_cell, j_cell]
-
-#         for element_id in eachnode(solver_other)
-#             x_other = get_node_coords(node_coordinates_other, equations_other,
-#                                       solver_other,
-#                                       i_node, j_node, linear_indices[i_cell, j_cell])
-#             u_node_other = get_node_vars(u_other, equations_other, solver_other, i_node,
-#                                          j_node, linear_indices[i_cell, j_cell])
-#             u_node_converted = coupling_converter(x_other, u_node_other,
-#                                                   equations_other,
-#                                                   equations_own)
-
-#             for i in eachindex(u_node_converted)
-#                 u_boundary[i, element_id, cell] = u_node_converted[i]
-#             end
-
-#             i_node += i_node_step
-#             j_node += j_node_step
-#         end
-#     end
-# end
 
 ################################################################################
 ### DGSEM/structured
