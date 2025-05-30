@@ -495,7 +495,8 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     @autoinfiltrate
     element_index_y = cld(mesh.cell_ids[element_index], 4)
     element_index_x = mesh.cell_ids[element_index] - (element_index_y - 1) * 4
-    if abs(sum(normal_direction .* (1.0, 0.0))) > abs(sum(normal_direction .* (0.0, 1.0)))
+    if abs(sum(normal_direction .* (1.0, 0.0))) >
+       abs(sum(normal_direction .* (0.0, 1.0)))
         element_index_x += Int(sign(sum(normal_direction .* (1.0, 0.0))))
         if i_index == 4
             i_index_g = 1
