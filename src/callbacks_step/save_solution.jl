@@ -11,7 +11,8 @@
                            save_initial_solution=true,
                            save_final_solution=true,
                            output_directory="out",
-                           solution_variables=cons2prim)
+                           solution_variables=cons2prim,
+                           extra_node_variables=())
 
 Save the current numerical solution in regular intervals. Either pass `interval` to save
 every `interval` time steps or pass `dt` to save in intervals of `dt` in terms
@@ -20,6 +21,26 @@ of integration time by adding additional (shortened) time steps where necessary 
 at a single point to a set of solution variables. The first parameter passed
 to `solution_variables` will be the set of conservative variables
 and the second parameter is the equation struct.
+    
+Additional nodal variables such as vorticity or the Mach number can be saved by passing a tuple of symbols
+to `extra_node_variables`, e.g., `extra_node_variables = (:vorticity, :mach)`.
+In that case the function `get_node_variable` must be defined for each symbol in the tuple.
+The expected signature of the function for (purely) hyperbolic equations is:
+```julia
+function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache)
+    # Implementation goes here
+end
+```
+and must return an array of dimension
+`(ntuple(_ -> n_nodes, ndims(mesh))..., n_elements)`.
+
+For parabolic-hyperbolic equations `equations_parabolic` and `cache_parabolic` must be added:
+```julia
+function get_node_variable(::Val{symbol}, u, mesh, equations, dg, cache,
+                           equations_parabolic, cache_parabolic)
+    # Implementation goes here
+end
+```
 """
 mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
     interval_or_dt::IntervalType
@@ -27,6 +48,7 @@ mutable struct SaveSolutionCallback{IntervalType, SolutionVariablesType}
     save_final_solution::Bool
     output_directory::String
     solution_variables::SolutionVariablesType
+    node_variables::Dict{Symbol, Any}
 end
 
 function Base.show(io::IO, cb::DiscreteCallback{<:Any, <:SaveSolutionCallback})
@@ -96,7 +118,8 @@ function SaveSolutionCallback(; interval::Integer = 0,
                               save_initial_solution = true,
                               save_final_solution = true,
                               output_directory = "out",
-                              solution_variables = cons2prim)
+                              solution_variables = cons2prim,
+                              extra_node_variables = ())
     if !isnothing(dt) && interval > 0
         throw(ArgumentError("You can either set the number of steps between output (using `interval`) or the time between outputs (using `dt`) but not both simultaneously"))
     end
@@ -108,9 +131,11 @@ function SaveSolutionCallback(; interval::Integer = 0,
         interval_or_dt = dt
     end
 
+    node_variables = Dict{Symbol, Any}(var => nothing for var in extra_node_variables)
     solution_callback = SaveSolutionCallback(interval_or_dt,
                                              save_initial_solution, save_final_solution,
-                                             output_directory, solution_variables)
+                                             output_directory, solution_variables,
+                                             node_variables)
 
     # Expected most frequent behavior comes first
     if isnothing(dt)
@@ -243,14 +268,13 @@ end
         end
     end
 
-    node_variables = Dict{Symbol, Any}()
-    @trixi_timeit timer() "get node variables" get_node_variables!(node_variables,
-                                                                   semi)
+    @trixi_timeit timer() "get node variables" get_node_variables!(solution_callback.node_variables,
+                                                                   u_ode, semi)
 
     @trixi_timeit timer() "save solution" save_solution_file(u_ode, t, dt, iter, semi,
                                                              solution_callback,
                                                              element_variables,
-                                                             node_variables,
+                                                             solution_callback.node_variables,
                                                              system = system)
 end
 
