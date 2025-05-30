@@ -123,7 +123,7 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
         if ((interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
             !(interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)) ||
-            ((interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids) &&
+           ((interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids) &&
             !(interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids))
             if interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids
                 neighbor_id = interfaces_parent.neighbor_ids[1, interface]
