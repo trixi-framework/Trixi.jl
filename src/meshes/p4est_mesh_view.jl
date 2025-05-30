@@ -190,7 +190,8 @@ function save_mesh_file(mesh::P4estMeshView, output_directory; system = "",
 
     # Determine file name based on existence of meaningful time step
     if timestep > 0
-        filename = joinpath(output_directory, @sprintf("mesh_%s_%09d.h5", system, timestep))
+        filename = joinpath(output_directory,
+                            @sprintf("mesh_%s_%09d.h5", system, timestep))
         p4est_filename = @sprintf("p4est_%s_data_%09d", system, timestep)
     else
         filename = joinpath(output_directory, @sprintf("mesh_%s.h5", system))
