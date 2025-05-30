@@ -348,30 +348,30 @@ function calc_boundary_flux!(cache, t, boundary_condition::BC, boundary_indexing
     index_range = eachnode(dg)
 
     @threaded for local_index in eachindex(boundary_indexing)
-    # Use the local index to get the global boundary index from the pre-sorted list
-    boundary = boundary_indexing[local_index]
+        # Use the local index to get the global boundary index from the pre-sorted list
+        boundary = boundary_indexing[local_index]
 
-    # Get information on the adjacent element, compute the surface fluxes,
-    # and store them
-    element = boundaries.neighbor_ids[boundary]
-    node_indices = boundaries.node_indices[boundary]
-    direction = indices2direction(node_indices)
+        # Get information on the adjacent element, compute the surface fluxes,
+        # and store them
+        element = boundaries.neighbor_ids[boundary]
+        node_indices = boundaries.node_indices[boundary]
+        direction = indices2direction(node_indices)
 
-    i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
-    j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
+        i_node_start, i_node_step = index_to_start_step_2d(node_indices[1], index_range)
+        j_node_start, j_node_step = index_to_start_step_2d(node_indices[2], index_range)
 
-    i_node = i_node_start
-    j_node = j_node_start
-    for node in eachnode(dg)
-        calc_boundary_flux!(surface_flux_values, t, boundary_condition,
-                            mesh, have_nonconservative_terms(equations),
-                            equations, surface_integral, dg, cache,
-                            i_node, j_node,
-                            node, direction, element, boundary,
-                            u_global)
+        i_node = i_node_start
+        j_node = j_node_start
+        for node in eachnode(dg)
+            calc_boundary_flux!(surface_flux_values, t, boundary_condition,
+                                mesh, have_nonconservative_terms(equations),
+                                equations, surface_integral, dg, cache,
+                                i_node, j_node,
+                                node, direction, element, boundary,
+                                u_global)
 
-        i_node += i_node_step
-        j_node += j_node_step
+            i_node += i_node_step
+            j_node += j_node_step
         end
     end
 end
