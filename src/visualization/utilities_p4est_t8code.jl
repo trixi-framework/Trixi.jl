@@ -685,7 +685,7 @@ function search_points_in_t8code_mesh_3d_callback_query(forest::t8_forest_t,
     queries = PointerWrapper(queries_ptr)
     query_indices = PointerWrapper(query_indices_ptr)
     for i in 1:num_active_queries
-        # t8code uses 0-based indexing, we use 1-based ondexing in Julia.
+        # t8code uses 0-based indexing, we use 1-based indexing in Julia.
         query_index = unsafe_load_sc(Csize_t, query_indices, i) + 1
         query = unsafe_load_sc(SearchPointsInP4estT8codeMesh3DHelper, queries,
                                query_index)
