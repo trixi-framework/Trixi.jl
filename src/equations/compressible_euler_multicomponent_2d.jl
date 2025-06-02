@@ -883,5 +883,4 @@ end
 
     return dv2dx - dv1dy
 end
-
 end # @muladd
