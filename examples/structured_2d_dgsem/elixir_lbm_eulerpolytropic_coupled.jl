@@ -93,7 +93,7 @@ c = sqrt(3)
 # The Mach number is computed internally from the speed of sound `c_s = c / sqrt(3)` and `u0`.
 eqs_lbm = LatticeBoltzmannEquations2D(c = c, Re = Inf, rho0 = 1.0, u0 = 0.0, Ma = nothing)
 
-# Quick & dirty implementation of the `flux_godunov` for cartesian, yet structured meshes.
+# Quick & dirty implementation of the `flux_godunov` for Cartesian, yet structured meshes.
 @inline function Trixi.flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
                                     equations::LatticeBoltzmannEquations2D)
     RealT = eltype(normal_direction)
