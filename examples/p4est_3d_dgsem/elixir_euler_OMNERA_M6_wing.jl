@@ -76,11 +76,14 @@ solver = DGSEM(polydeg = polydeg, surface_flux = surface_flux,
 
 # This is a sanitized mesh obtained from the original mesh available at
 # https://www.grc.nasa.gov/www/wind/valid/m6wing/m6wing01/m6wing01.html
-# which has been merged into a single gmsh mesh file by the 
-# HiSA team, see the case description (for the viscous case, but the mesh is the same)
+#
+# which has been merged into a single gmsh mesh file by the HiSA team, 
+# see the case description (for the viscous case, but the mesh is the same)
 # https://hisa.gitlab.io/archive/nparc/oneraM6/notes/oneraM6.html
+#
 # The base mesh is available at
 # https://gitlab.com/hisa/hisa/-/blob/master/examples/oneraM6/mesh/p3dMesh/m6wing.msh?ref_type=heads
+#
 # The sanitized, i.e., higher-order ready mesh was subsequently created by Daniel Doehring
 # and is available at
 mesh_file = Trixi.download("https://github.com/DanielDoehring/AerodynamicMeshes/raw/refs/heads/main/ONERA_M6_Wing/ONERA_M6_Wing_sanitized.inp",
@@ -99,8 +102,7 @@ semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)
 
 # This is an extremely long (weeks!) simulation
-#tspan = (0.0, 6.0)
-tspan = (0.0, 5e-8)
+tspan = (0.0, 6.0)
 ode = semidiscretize(semi, tspan)
 
 # Callbacks
