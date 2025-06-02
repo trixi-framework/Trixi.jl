@@ -378,7 +378,7 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                                                                          nonconservative_type::NonConservativeLocal,
                                                                          nonconservative_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
-    #Trixi.@autoinfiltrate
+
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
         v1_ll = rho_v1_ll / rho_ll

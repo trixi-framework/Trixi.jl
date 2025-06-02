@@ -397,7 +397,7 @@ end
     end
 end
 
-# TODO: SC: For now this is tested with reference values for the local-symmetric formulation.
+# This is tested with reference values for the local-symmetric formulation.
 @trixi_testset "elixir_mhd_shockcapturing_subcell.jl (skew-symmetric formulation)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
                         l2=[
