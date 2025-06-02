@@ -218,7 +218,9 @@ end
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 mesh::TreeMesh{2}, nonconservative_terms::True,
                                 equations,
-                                volume_flux, dg::DGSEM, element, cache)
+                                volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM, element, cache) where {
+                                    F_CONS <: Function,
+                                    F_NONCONS <: FluxNonConservative{NonConservativeSymmetric()}}
     @unpack weights, derivative_split = dg.basis
     @unpack flux_temp_threaded, flux_nonconservative_temp_threaded = cache
     @unpack fhat_temp_threaded, fhat_nonconservative_temp_threaded, phi_threaded = cache

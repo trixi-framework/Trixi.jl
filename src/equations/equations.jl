@@ -285,6 +285,12 @@ the function returns the symmetric part of the non-conservative term.
 """
 struct NonConservativeSymmetric end
 
+# TODO: SC: Write docstring
+struct NonConservativeSkewSymmetric end
+
+# TODO: SC: Write docstring
+abstract type FluxNonConservative{STRUCTURE} end
+
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)
