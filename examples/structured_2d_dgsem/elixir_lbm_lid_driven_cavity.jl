@@ -66,7 +66,7 @@ boundary_conditions = (x_neg = boundary_condition_noslip_wall,
                        y_neg = boundary_condition_noslip_wall,
                        y_pos = boundary_condition_lid_driven_cavity)
 
-# Quick & dirty implementation of the `flux_godunov` for cartesian, yet structured meshes.
+# Quick & dirty implementation of the `flux_godunov` for Cartesian, yet structured meshes.
 @inline function Trixi.flux_godunov(u_ll, u_rr, normal_direction::AbstractVector,
                                     equations::LatticeBoltzmannEquations2D)
     RealT = eltype(normal_direction)
