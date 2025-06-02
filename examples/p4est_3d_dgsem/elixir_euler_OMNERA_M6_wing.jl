@@ -91,21 +91,20 @@ mesh_file = Trixi.download("https://github.com/DanielDoehring/AerodynamicMeshes/
 
 # Boundary symbols follow from nodesets in the mesh file
 boundary_symbols = [:Symmetry, :FarField, :BottomWing, :TopWing]
-mesh = P4estMesh{3}(mesh_file, polydeg = polydeg, boundary_symbols = boundary_symbols)
+mesh = P4estMesh{3}(mesh_file; polydeg = polydeg, boundary_symbols = boundary_symbols)
 
-boundary_conditions = Dict(:Symmetry => bc_symmetry,
+boundary_conditions = Dict(:Symmetry => bc_symmetry, # Could use `boundary_condition_slip_wall` here as well
                            :FarField => bc_farfield,
                            :BottomWing => boundary_condition_slip_wall,
                            :TopWing => boundary_condition_slip_wall)
 
-semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
+semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver;
                                     boundary_conditions = boundary_conditions)
 
 # This is an extremely long (weeks!) simulation
 tspan = (0.0, 6.0)
 ode = semidiscretize(semi, tspan)
 
-# Callbacks
 ###############################################################################
 
 summary_callback = SummaryCallback()
@@ -154,12 +153,12 @@ save_solution = SaveSolutionCallback(interval = save_sol_interval,
                                      solution_variables = cons2prim,
                                      output_directory = "out/")
 
-callbacks = CallbackSet(summary_callback,
-                        alive_callback,
-                        analysis_callback,
-                        save_solution)
+save_restart = SaveRestartCallback(interval = save_sol_interval)
 
-# Run the simulation
+callbacks = CallbackSet(summary_callback,
+                        alive_callback, analysis_callback,
+                        save_solution, save_restart)
+
 ###############################################################################
 
 sol = solve(ode, SSPRK43(); abstol = 1.0e-6, reltol = 1.0e-6,
