@@ -3,7 +3,7 @@ using Trixi
 using LinearAlgebra: norm
 
 ###############################################################################
-# Semidiscretizations of the polytropic Euler equations and Lattice-Boltzmann method
+# Semidiscretizations of the polytropic Euler equations and Lattice-Boltzmann method (LBM)
 # coupled using converter functions across their respective domains to generate a periodic system.
 #
 # In this elixir, we have a rectangular domain that is divided into a left and right half.
@@ -32,9 +32,10 @@ cells_per_dim_per_section = (8, 8)
 
 ###########
 # system #1
+# Euler
 ###########
 
-# Setup taken from "elixir_eulerpolytropic_isothermal_wave.jl"
+### Setup taken from "elixir_eulerpolytropic_isothermal_wave.jl" ###
 
 gamma = 1.0 # Isothermal gas
 kappa = 1.0 # Scaling factor for the pressure, must fit to LBM `c_s`
@@ -60,7 +61,8 @@ mesh_euler = StructuredMesh(cells_per_dim_per_section,
                             coords_min_euler, coords_max_euler,
                             periodicity = (false, true))
 
-# Use macroscopic variables derived from populations for the Euler as boundary values                            
+# Use macroscopic variables derived from LBM populations 
+# as boundary values for the Euler equations
 function coupling_function_LBM2Euler(x, u, equations_other, equations_own)
     rho, v1, v2, _ = cons2macroscopic(u, equations_other)
     return prim2cons(SVector(rho, v1, v2), equations_own)
@@ -76,11 +78,12 @@ boundary_conditions_euler = (x_neg = BoundaryConditionCoupled(2, (:end, :i_forwa
                              y_pos = boundary_condition_periodic)
 
 semi_euler = SemidiscretizationHyperbolic(mesh_euler, eqs_euler, initial_condition_euler,
-                                          solver_euler,
+                                          solver_euler;
                                           boundary_conditions = boundary_conditions_euler)
 
 ###########
 # system #2
+# LBM
 ###########
 
 # Results in c_s = c/sqrt(3) = 1. 
@@ -89,8 +92,8 @@ semi_euler = SemidiscretizationHyperbolic(mesh_euler, eqs_euler, initial_conditi
 c = sqrt(3)
 
 # Reference values `rho0, u0` correspond to the initial condition of the Euler equations.
-# The gas should be inviscid (Re = Inf).
-# The Mach number is computed internally from the speed of sound `c_s = c / sqrt(3)` and `u0`.
+# The gas should be inviscid (Re = Inf) to be consistent with the inviscid Euler equations.
+# The Mach number `Ma` is computed internally from the speed of sound `c_s = c / sqrt(3)` and `u0`.
 eqs_lbm = LatticeBoltzmannEquations2D(c = c, Re = Inf, rho0 = 1.0, u0 = 0.0, Ma = nothing)
 
 # Quick & dirty implementation of the `flux_godunov` for Cartesian, yet structured meshes.
@@ -125,7 +128,8 @@ mesh_lbm = StructuredMesh(cells_per_dim_per_section,
                           coords_min_lbm, coords_max_lbm,
                           periodicity = (false, true))
 
-# Supply equilibrium (Maxwellian) distribution function for the LBM as boundary values                     
+# Supply equilibrium (Maxwellian) distribution function computed 
+# from the Euler-variables as boundary values for the LBM equations
 function coupling_function_Euler2LBM(x, u, equations_other, equations_own)
     u_prim_euler = cons2prim(u, equations_other)
     rho = u_prim_euler[1]
@@ -148,7 +152,7 @@ semi_lbm = SemidiscretizationHyperbolic(mesh_lbm, eqs_lbm, initial_condition_lbm
                                         solver_lbm;
                                         boundary_conditions = boundary_conditions_lbm)
 
-# Create a semidiscretization that bundles all the semidiscretizations.
+# Create a semidiscretization that bundles the two semidiscretizations
 semi = SemidiscretizationCoupled(semi_euler, semi_lbm)
 
 ###############################################################################
@@ -160,16 +164,16 @@ ode = semidiscretize(semi, tspan)
 summary_callback = SummaryCallback()
 
 analysis_interval = 100
-
-analysis_callback_euler = AnalysisCallback(semi_euler, interval = 100)
-analysis_callback_lbm = AnalysisCallback(semi_lbm, interval = 100)
-analysis_callback = AnalysisCallbackCoupled(semi, analysis_callback_euler,
+analysis_callback_euler = AnalysisCallback(semi_euler, interval = analysis_interval)
+analysis_callback_lbm = AnalysisCallback(semi_lbm, interval = analysis_interval)
+analysis_callback = AnalysisCallbackCoupled(semi,
+                                            analysis_callback_euler,
                                             analysis_callback_lbm)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
 # Need to implement `cons2macroscopic` for `PolytropicEulerEquations2D`
-# in order to be able to use this in the `SaveSolutionCallback`.
+# in order to be able to use this in the `SaveSolutionCallback` below
 @inline function Trixi.cons2macroscopic(u, equations::PolytropicEulerEquations2D)
     u_prim = cons2prim(u, equations)
     p = pressure(u, equations)
@@ -187,7 +191,7 @@ save_solution = SaveSolutionCallback(interval = 50,
 cfl = 2.0
 stepsize_callback = StepsizeCallback(cfl = cfl)
 
-# Need special version of the LBM collision callback
+# Need special version of the LBM collision callback for a `SemidiscretizationCoupled`
 @inline function Trixi.lbm_collision_callback(integrator)
     dt = get_proposed_dt(integrator)
     semi_coupled = integrator.p # Here `p` is the `SemidiscretizationCoupled`

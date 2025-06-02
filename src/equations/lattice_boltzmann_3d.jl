@@ -194,7 +194,12 @@ function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D)
     varnames(cons2cons, equations)
 end
 
-# Convert conservative variables to macroscopic
+"""
+    cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
+
+Convert the conservative variables `u` (the populations of the particle distribution functions)
+to the macroscopic variables (density, velocity_1, velocity_2, velocity_3, pressure).
+"""
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
     rho = density(u, equations)
     v1, v2, v3 = velocity(u, equations)
