@@ -196,6 +196,8 @@ function (drag_coefficient::DragCoefficientShearStress{RealT, 2})(u, normal_dire
            (0.5f0 * rho_inf * u_inf^2 * l_inf)
 end
 
+# 2D version of the `analyze` function for `AnalysisSurfaceIntegral`, i.e., 
+# `LiftCoefficientPressure` and `DragCoefficientPressure`.
 function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                  mesh::P4estMesh{2},
                  equations, dg::DGSEM, cache, semi)
@@ -247,8 +249,12 @@ function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
     return surface_integral
 end
 
-function analyze(surface_variable::AnalysisSurfaceIntegral{Variable},
-                 du, u, t, mesh::P4estMesh{2},
+# 2D version of the `analyze` function for `AnalysisSurfaceIntegral` of viscous, i.e.,
+# variables that require gradients of the solution variables.
+# These are for parabolic equations readily available.
+# Examples are `LiftCoefficientShearStress` and `DragCoefficientShearStress`.
+function analyze(surface_variable::AnalysisSurfaceIntegral{Variable}, du, u, t,
+                 mesh::P4estMesh{2},
                  equations, equations_parabolic,
                  dg::DGSEM, cache, semi,
                  cache_parabolic) where {Variable <: VariableViscous}

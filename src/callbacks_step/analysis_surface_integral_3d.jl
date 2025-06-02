@@ -71,6 +71,8 @@ function DragCoefficientPressure3D(aoa, rho_inf, u_inf, l_inf)
     return DragCoefficientPressure(ForceState(psi_drag, rho_inf, u_inf, l_inf))
 end
 
+# 3D version of the `analyze` function for `AnalysisSurfaceIntegral`, i.e., 
+# `LiftCoefficientPressure` and `DragCoefficientPressure`.
 function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                  mesh::P4estMesh{3},
                  equations, dg::DGSEM, cache, semi)
