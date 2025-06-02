@@ -31,8 +31,8 @@ function create_cache(mesh::Union{TreeMesh{2}, StructuredMesh{2}, P4estMesh{2}},
                                  nnodes(dg))
                              for _ in 1:Threads.nthreads()]
     antidiffusive_fluxes = ContainerAntidiffusiveFlux2D{uEltype}(0,
-                                                                       nvariables(equations),
-                                                                       nnodes(dg))
+                                                                 nvariables(equations),
+                                                                 nnodes(dg))
 
     if have_nonconservative_terms(equations) == true
         flux_nonconservative_temp_threaded = A4d[A4d(undef, nvariables(equations),
@@ -218,9 +218,13 @@ end
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 mesh::TreeMesh{2}, nonconservative_terms::True,
                                 equations,
-                                volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM, element, cache) where {
-                                    F_CONS <: Function,
-                                    F_NONCONS <: FluxNonConservative{NonConservativeSymmetric()}}
+                                volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
+                                element,
+                                cache) where {
+                                              F_CONS <: Function,
+                                              F_NONCONS <:
+                                              FluxNonConservative{NonConservativeSymmetric()}
+                                              }
     @unpack weights, derivative_split = dg.basis
     @unpack flux_temp_threaded, flux_nonconservative_temp_threaded = cache
     @unpack fhat_temp_threaded, fhat_nonconservative_temp_threaded, phi_threaded = cache
@@ -396,11 +400,15 @@ end
 # Alternative imlementation of `calcflux_fhat!` for non-conservative terms that are composed of
 # a local and a skew-symmetric contribution.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
-                                      mesh::TreeMesh{2}, nonconservative_terms::True,
-                                      equations,
-                                      volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM, element, cache) where {
-                                        F_CONS <: Function,
-                                        F_NONCONS <: FluxNonConservative{NonConservativeSkewSymmetric()}}
+                                mesh::TreeMesh{2}, nonconservative_terms::True,
+                                equations,
+                                volume_flux::Tuple{F_CONS, F_NONCONS}, dg::DGSEM,
+                                element,
+                                cache) where {
+                                              F_CONS <: Function,
+                                              F_NONCONS <:
+                                              FluxNonConservative{NonConservativeSkewSymmetric()}
+                                              }
     @unpack weights, derivative_split = dg.basis
     @unpack flux_temp_threaded, flux_nonconservative_temp_threaded = cache
     @unpack fhat_temp_threaded, fhat_nonconservative_temp_threaded, phi_threaded = cache
@@ -438,22 +446,22 @@ end
             u_node_ii = get_node_vars(u, equations, dg, ii, j, element)
             flux1 = volume_flux_cons(u_node, u_node_ii, 1, equations)
             multiply_add_to_node_vars!(flux_temp, derivative_split[i, ii], flux1,
-                                             equations, dg, i, j)
+                                       equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[ii, i], flux1,
-                                             equations, dg, ii, j)
+                                       equations, dg, ii, j)
             for noncons in 1:n_nonconservative_terms(equations)
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux1_noncons = volume_flux_noncons(u_node, u_node_ii, 1, equations,
                                                     NonConservativeSkewSymmetric(),
                                                     noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                                 0.5f0 * derivative_split[i, ii],
-                                                 flux1_noncons,
-                                                 equations, dg, noncons, i, j)
+                                           0.5f0 * derivative_split[i, ii],
+                                           flux1_noncons,
+                                           equations, dg, noncons, i, j)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                                 -0.5f0 * derivative_split[ii, i],
-                                                 flux1_noncons,
-                                                 equations, dg, noncons, ii, j)
+                                           -0.5f0 * derivative_split[ii, i],
+                                           flux1_noncons,
+                                           equations, dg, noncons, ii, j)
             end
         end
     end
@@ -472,9 +480,9 @@ end
         u_local = get_node_vars(u, equations, dg, i, j, element)
         for noncons in 1:n_nonconservative_terms(equations)
             set_node_vars!(phi,
-                                 volume_flux_noncons(u_local, 1, equations,
-                                                     NonConservativeLocal(), noncons),
-                                 equations, dg, noncons, i, j)
+                           volume_flux_noncons(u_local, 1, equations,
+                                               NonConservativeLocal(), noncons),
+                           equations, dg, noncons, i, j)
         end
     end
 
@@ -503,11 +511,11 @@ end
     # Apply correction term to the flux-differencing formula for skew-symmetric fluxes.
     for j in eachnode(dg)
         u_0 = get_node_vars(u, equations, dg, 1, j, element)
-        for i in 2:nnodes(dg) - 1
+        for i in 2:(nnodes(dg) - 1)
             u_i = get_node_vars(u, equations, dg, i, j, element)
             for noncons in 1:n_nonconservative_terms(equations)
                 phi_skew = volume_flux_noncons(u_0, u_i, 1, equations,
-                                            NonConservativeSkewSymmetric(), noncons)
+                                               NonConservativeSkewSymmetric(), noncons)
 
                 for v in eachvariable(equations)
                     fhat1_R[v, i, j] -= phi[v, noncons, i, j] * phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
@@ -518,10 +526,11 @@ end
         u_N = get_node_vars(u, equations, dg, nnodes(dg), j, element)
         for noncons in 1:n_nonconservative_terms(equations)
             phi_skew = volume_flux_noncons(u_0, u_N, 1, equations,
-                                            NonConservativeSkewSymmetric(), noncons)
+                                           NonConservativeSkewSymmetric(), noncons)
 
             for v in eachvariable(equations)
-                fhat1_R[v, nnodes(dg), j] -= phi[v, noncons, nnodes(dg), j] * phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
+                fhat1_R[v, nnodes(dg), j] -= phi[v, noncons, nnodes(dg), j] *
+                                             phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
             end
         end
     end
@@ -538,22 +547,22 @@ end
             u_node_jj = get_node_vars(u, equations, dg, i, jj, element)
             flux2 = volume_flux_cons(u_node, u_node_jj, 2, equations)
             multiply_add_to_node_vars!(flux_temp, derivative_split[j, jj], flux2,
-                                             equations, dg, i, j)
+                                       equations, dg, i, j)
             multiply_add_to_node_vars!(flux_temp, derivative_split[jj, j], flux2,
-                                             equations, dg, i, jj)
+                                       equations, dg, i, jj)
             for noncons in 1:n_nonconservative_terms(equations)
                 # We multiply by 0.5 because that is done in other parts of Trixi
                 flux2_noncons = volume_flux_noncons(u_node, u_node_jj, 2, equations,
                                                     NonConservativeSkewSymmetric(),
                                                     noncons)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                                 0.5 * derivative_split[j, jj],
-                                                 flux2_noncons,
-                                                 equations, dg, noncons, i, j)
+                                           0.5 * derivative_split[j, jj],
+                                           flux2_noncons,
+                                           equations, dg, noncons, i, j)
                 multiply_add_to_node_vars!(flux_noncons_temp,
-                                                 -0.5 * derivative_split[jj, j],
-                                                 flux2_noncons,
-                                                 equations, dg, noncons, i, jj)
+                                           -0.5 * derivative_split[jj, j],
+                                           flux2_noncons,
+                                           equations, dg, noncons, i, jj)
             end
         end
     end
@@ -572,9 +581,9 @@ end
         u_local = get_node_vars(u, equations, dg, i, j, element)
         for noncons in 1:n_nonconservative_terms(equations)
             set_node_vars!(phi,
-                                 volume_flux_noncons(u_local, 2, equations,
-                                                     NonConservativeLocal(), noncons),
-                                 equations, dg, noncons, i, j)
+                           volume_flux_noncons(u_local, 2, equations,
+                                               NonConservativeLocal(), noncons),
+                           equations, dg, noncons, i, j)
         end
     end
 
@@ -603,7 +612,7 @@ end
     # Apply correction term to the flux-differencing formula for skew-symmetric fluxes.
     for i in eachnode(dg)
         u_0 = get_node_vars(u, equations, dg, i, 1, element)
-        for j in 2:nnodes(dg) - 1
+        for j in 2:(nnodes(dg) - 1)
             u_j = get_node_vars(u, equations, dg, i, j, element)
             for noncons in 1:n_nonconservative_terms(equations)
                 phi_skew = volume_flux_noncons(u_0, u_j, 2, equations,
@@ -621,7 +630,8 @@ end
                                            NonConservativeSkewSymmetric(), noncons)
 
             for v in eachvariable(equations)
-                fhat2_R[v, i, nnodes(dg)] -= phi[v, noncons, i, nnodes(dg)] * phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
+                fhat2_R[v, i, nnodes(dg)] -= phi[v, noncons, i, nnodes(dg)] *
+                                             phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
             end
         end
     end
