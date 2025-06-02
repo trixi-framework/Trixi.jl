@@ -21,6 +21,7 @@ In 3D, the freestream-normal unit vector ``\psi_L`` is given by
 where ``\alpha`` is the angle of attack.
 This employs the convenction that the wing is oriented such that the streamwise flow is in 
 x-direction, the angle of attack rotates the flow into the y-direction, and that wing extends spanwise in the z-direction.
+
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
 which stores the boundary information and semidiscretization.
 
@@ -39,7 +40,36 @@ function LiftCoefficientPressure3D(aoa, rho_inf, u_inf, a_inf)
     return LiftCoefficientPressure(ForceState(psi_lift, rho_inf, u_inf, a_inf))
 end
 
-# TODO: DragCoefficientPressure3D(aoa, rho_inf, u_inf, a_inf)
+@doc raw"""
+    DragCoefficientPressure3D(aoa, rho_inf, u_inf, l_inf)
+
+Compute the drag coefficient
+```math
+C_{D,p} \coloneqq \frac{\oint_{\partial \Omega} p \boldsymbol n \cdot \psi_D \, \mathrm{d} S}
+                        {0.5 \rho_{\infty} U_{\infty}^2 L_{\infty}}
+```
+based on the pressure distribution along a boundary.
+In 3D, the freestream-tangent unit vector ``\psi_D`` is given by
+```math
+\psi_D \coloneqq \begin{pmatrix} \cos(\alpha) \\ \sin(\alpha) \\ 0 \end{pmatrix}
+```
+where ``\alpha`` is the angle of attack.
+This employs the convenction that the wing is oriented such that the streamwise flow is in 
+x-direction, the angle of attack rotates the flow into the y-direction, and that wing extends spanwise in the z-direction.
+
+Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
+which stores the boundary information and semidiscretization.
+
+- `aoa::Real`: Angle of attack in radians (for airfoils etc.)
+- `rho_inf::Real`: Free-stream density
+- `u_inf::Real`: Free-stream velocity
+- `l_inf::Real`: Reference length of geometry (e.g. airfoil chord length)
+"""
+function DragCoefficientPressure3D(aoa, rho_inf, u_inf, l_inf)
+    # `psi_drag` is the unit vector tangent to the freestream direction
+    psi_drag = (cos(aoa), sin(aoa), zero(aoa))
+    return DragCoefficientPressure(ForceState(psi_drag, rho_inf, u_inf, l_inf))
+end
 
 function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                  mesh::P4estMesh{3},

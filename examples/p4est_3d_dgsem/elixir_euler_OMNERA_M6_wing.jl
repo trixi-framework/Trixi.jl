@@ -130,15 +130,18 @@ g_II = base - g_I
 g_III = tan(deg2rad(15.8)) * height
 A = height * (0.5 * (g_I + g_III) + g_II)
 
-# TODO: Pressure-based drag coeff as well
 lift_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
                                            LiftCoefficientPressure3D(aoa(), rho_inf(),
+                                                                     u_inf(equations), A))
+drag_coefficient = AnalysisSurfaceIntegral(force_boundary_names,
+                                           DragCoefficientPressure3D(aoa(), rho_inf(),
                                                                      u_inf(equations), A))
 
 analysis_interval = 100_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      analysis_errors = Symbol[], # Turn off error computation
-                                     analysis_integrals = (lift_coefficient,))
+                                     analysis_integrals = (lift_coefficient,
+                                                           drag_coefficient))
 
 alive_callback = AliveCallback(alive_interval = 50)
 
