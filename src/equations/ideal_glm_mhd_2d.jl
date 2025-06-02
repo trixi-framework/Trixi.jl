@@ -503,10 +503,7 @@ Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations2D`](@ref).
 
 This implementation uses a non-conservative term that can be written as the product
-of local and skew-symmetric parts. It is equivalent to the non-conservative flux of Bohm
-et al. [`flux_nonconservative_powell`](@ref) for conforming meshes but it yields different
-results on non-conforming meshes(!). On curvilinear meshes this formulation applies the
-local normal direction compared to the averaged one used in [`flux_nonconservative_powell`](@ref).
+of local and skew-symmetric parts. 
 
 The two other flux functions with the same name return either the local
 or skew-symmetric portion of the non-conservative flux based on the type of the
@@ -532,8 +529,7 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
     # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
     psi_jump = psi_rr - psi_ll
     if orientation == 1
-        #B1_avg = (B1_ll + B1_rr) # The flux is already multiplied by 0.5 wherever it is used in the code
-        B1_jump = B1_rr - B1_ll
+        B1_jump = B1_rr - B1_ll # The flux is already multiplied by 0.5 wherever it is used in the code
         f = SVector(0,
                     B1_ll * B1_jump,
                     B2_ll * B1_jump,
@@ -544,7 +540,7 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
                     v3_ll * B1_jump,
                     v1_ll * psi_jump)
     else # orientation == 2
-        B2_jump = B2_rr - B2_ll # * 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+        B2_jump = B2_rr - B2_ll # The flux is already multiplied by 0.5 wherever it is used in the code
         f = SVector(0,
                     B1_ll * B2_jump,
                     B2_ll * B2_jump,
@@ -622,9 +618,9 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
 end
 
 """
-    flux_nonconservative_powell_local_symmetric(u_ll, orientation::Integer,
+    flux_nonconservative_powell_local_skew_symmetric(u_ll, orientation::Integer,
                                                 equations::IdealGlmMhdEquations2D,
-                                                nonconservative_type::NonConservativeSymmetric,
+                                                nonconservative_type::NonConservativeSkewSymmetric,
                                                 nonconservative_term::Integer)
 
 Skew-symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of
@@ -644,8 +640,7 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
         if orientation == 1
-            #B1_avg = (B1_ll + B1_rr)#* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
-            B1_jump = B1_rr - B1_ll
+            B1_jump = B1_rr - B1_ll # The flux is already multiplied by 0.5 wherever it is used in the code
             f = SVector(0,
                         B1_jump,
                         B1_jump,
@@ -656,8 +651,7 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                         B1_jump,
                         0)
         else # orientation == 2
-            #B2_avg = (B2_ll + B2_rr)#* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
-            B2_jump = B2_rr - B2_ll
+            B2_jump = B2_rr - B2_ll # The flux is already multiplied by 0.5 wherever it is used in the code
             f = SVector(0,
                         B2_jump,
                         B2_jump,
@@ -670,8 +664,7 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
         end
     else #nonconservative_term == 2
         # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
-        #psi_avg = (psi_ll + psi_rr)#* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
-        psi_jump = psi_rr - psi_ll
+        psi_jump = psi_rr - psi_ll # The flux is already multiplied by 0.5 wherever it is used in the code
         f = SVector(0,
                     0,
                     0,

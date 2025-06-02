@@ -205,7 +205,7 @@ end
 end
 
 # Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
-# (**with non-conservative terms**).
+# (**with non-conservative terms in "local * symmetric" form**).
 #
 # See also `flux_differencing_kernel!`.
 #
@@ -397,8 +397,13 @@ end
     return nothing
 end
 
-# Alternative imlementation of `calcflux_fhat!` for non-conservative terms that are composed of
-# a local and a skew-symmetric contribution.
+# Calculate the DG staggered volume fluxes `fhat` in subcell FV-form inside the element
+# (**with non-conservative terms in "local * skew-symmetric" form**).
+#
+# See also `flux_differencing_kernel!`.
+#
+# The calculation of the non-conservative staggered "fluxes" requires non-conservative
+# terms that can be written as a product of local and a skew-symmetric contributions.
 @inline function calcflux_fhat!(fhat1_L, fhat1_R, fhat2_L, fhat2_R, u,
                                 mesh::TreeMesh{2}, nonconservative_terms::True,
                                 equations,
