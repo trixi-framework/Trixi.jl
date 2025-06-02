@@ -866,7 +866,8 @@ end
     return v
 end
 
-@inline function enstrophy(u, gradients, equations::CompressibleEulerMulticomponentEquations2D)
+@inline function enstrophy(u, gradients,
+                           equations::CompressibleEulerMulticomponentEquations2D)
     # Enstrophy is 0.5 rho ω⋅ω where ω = ∇ × v
 
     omega = vorticity(u, gradients, equations)
