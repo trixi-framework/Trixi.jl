@@ -19,6 +19,8 @@ In 3D, the freestream-normal unit vector ``\psi_L`` is given by
 \psi_L \coloneqq \begin{pmatrix} -\sin(\alpha) \\ \cos(\alpha) \\ 0 \end{pmatrix}
 ```
 where ``\alpha`` is the angle of attack.
+This employs the convenction that the wing is oriented such that the streamwise flow is in 
+x-direction, the angle of attack rotates the flow into the y-direction, and that wing extends spanwise in the z-direction.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
 which stores the boundary information and semidiscretization.
 
@@ -28,14 +30,16 @@ which stores the boundary information and semidiscretization.
 - `a_inf::Real`: Reference area of geometry
 """
 function LiftCoefficientPressure3D(aoa, rho_inf, u_inf, a_inf)
-    # psi_lift is the normal unit vector to the freestream direction.
-    # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa), 0)
+    # `psi_lift` is the normal unit vector to the freestream direction.
+    # Note: The choice of the normal vector `psi_lift = (-sin(aoa), cos(aoa), 0)`
     # leads to positive lift coefficients for positive angles of attack for airfoils.
-    # One could also use psi_lift = (sin(aoa), -cos(aoa), 0) which results in the same
+    # One could also use `psi_lift = (sin(aoa), -cos(aoa), 0)` which results in the same
     # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa), zero(aoa))
     return LiftCoefficientPressure(ForceState(psi_lift, rho_inf, u_inf, a_inf))
 end
+
+# TODO: DragCoefficientPressure3D(aoa, rho_inf, u_inf, a_inf)
 
 function analyze(surface_variable::AnalysisSurfaceIntegral, du, u, t,
                  mesh::P4estMesh{3},

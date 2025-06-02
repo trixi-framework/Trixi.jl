@@ -28,10 +28,10 @@ which stores the boundary information and semidiscretization.
 - `l_inf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
 function LiftCoefficientPressure2D(aoa, rho_inf, u_inf, l_inf)
-    # psi_lift is the normal unit vector to the freestream direction.
-    # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa))
+    # `psi_lift` is the normal unit vector to the freestream direction.
+    # Note: The choice of the normal vector `psi_lift = (-sin(aoa), cos(aoa))`
     # leads to positive lift coefficients for positive angles of attack for airfoils.
-    # One could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same
+    # One could also use `psi_lift = (sin(aoa), -cos(aoa))` which results in the same
     # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa))
     return LiftCoefficientPressure(ForceState(psi_lift, rho_inf, u_inf, l_inf))
@@ -89,10 +89,10 @@ which stores the boundary information and semidiscretization.
 - `l_inf::Real`: Reference length of geometry (e.g. airfoil chord length)
 """
 function LiftCoefficientShearStress2D(aoa, rho_inf, u_inf, l_inf)
-    # psi_lift is the normal unit vector to the freestream direction.
-    # Note: The choice of the normal vector psi_lift = (-sin(aoa), cos(aoa))
+    # `psi_lift` is the normal unit vector to the freestream direction.
+    # Note: The choice of the normal vector `psi_lift = (-sin(aoa), cos(aoa))`
     # leads to negative lift coefficients for airfoils.
-    # One could also use psi_lift = (sin(aoa), -cos(aoa)) which results in the same
+    # One could also use `psi_lift = (sin(aoa), -cos(aoa))` which results in the same
     # value, but with the opposite sign.
     psi_lift = (-sin(aoa), cos(aoa))
     return LiftCoefficientShearStress(ForceState(psi_lift, rho_inf, u_inf, l_inf))
