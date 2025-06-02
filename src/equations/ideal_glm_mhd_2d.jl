@@ -287,8 +287,9 @@ end
     return f
 end
 
-# TODO: SC: What should we do about docstrings?
-# Make the flux a callablce struct to enable dispatch on the type of nonconservative term (symmetric / skew-symmetric)
+
+# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
+# enable dispatch on the type of the nonconservative term (symmetric / skew-symmetric).
 struct FluxNonConservativePowellLocalSymmetric <: FluxNonConservative{NonConservativeSymmetric()}
 end
 
@@ -318,7 +319,7 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 """
-@inline function (flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
+@inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                              orientation::Integer,
                                                              equations::IdealGlmMhdEquations2D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
@@ -371,7 +372,7 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
-@inline function (flux::FluxNonConservativePowellLocalSymmetric)(u_ll, orientation::Integer,
+@inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, orientation::Integer,
                                                              equations::IdealGlmMhdEquations2D,
                                                              nonconservative_type::NonConservativeLocal,
                                                              nonconservative_term::Integer)
@@ -433,7 +434,7 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
-@inline function (flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
+@inline function (noncons_flux::FluxNonConservativePowellLocalSymmetric)(u_ll, u_rr,
                                                              orientation::Integer,
                                                              equations::IdealGlmMhdEquations2D,
                                                              nonconservative_type::NonConservativeSymmetric,
@@ -478,6 +479,205 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
                     0,
                     0,
                     psi_avg)
+    end
+
+    return f
+end
+
+# For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
+# enable dispatch on the type of the nonconservative term (symmetric / skew-symmetric).
+struct FluxNonConservativePowellLocalSkewSymmetric <: FluxNonConservative{NonConservativeSkewSymmetric()}
+end
+
+const flux_nonconservative_powell_local_skew_symmetric = FluxNonConservativePowellLocalSkewSymmetric()
+
+"""
+    flux_nonconservative_powell_local_skew_symmetric(u_ll, u_rr,
+                                                orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D)
+
+Non-symmetric two-point flux discretizing the nonconservative (source) term of
+Powell and the Galilean nonconservative term associated with the GLM multiplier
+of the [`IdealGlmMhdEquations2D`](@ref).
+
+This implementation uses a non-conservative term that can be written as the product
+of local and skew-symmetric parts. It is equivalent to the non-conservative flux of Bohm
+et al. [`flux_nonconservative_powell`](@ref) for conforming meshes but it yields different
+results on non-conforming meshes(!). On curvilinear meshes this formulation applies the
+local normal direction compared to the averaged one used in [`flux_nonconservative_powell`](@ref).
+
+The two other flux functions with the same name return either the local
+or skew-symmetric portion of the non-conservative flux based on the type of the
+nonconservative_type argument, employing multiple dispatch. They are used to
+compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+
+## References
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+"""
+@inline function (noncons_flux::FluxNonConservativePowellLocalSkewSymmetric)(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::IdealGlmMhdEquations2D)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v3_ll = rho_v3_ll / rho_ll
+    v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+
+    # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+    # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+    psi_jump = psi_rr - psi_ll
+    if orientation == 1
+        #B1_avg = (B1_ll + B1_rr) # The flux is already multiplied by 0.5 wherever it is used in the code
+        B1_jump = B1_rr - B1_ll
+        f = SVector(0,
+                    B1_ll * B1_jump,
+                    B2_ll * B1_jump,
+                    B3_ll * B1_jump,
+                    v_dot_B_ll * B1_jump + v1_ll * psi_ll * psi_jump,
+                    v1_ll * B1_jump,
+                    v2_ll * B1_jump,
+                    v3_ll * B1_jump,
+                    v1_ll * psi_jump)
+    else # orientation == 2
+        B2_jump = B2_rr - B2_ll # * 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+        f = SVector(0,
+                    B1_ll * B2_jump,
+                    B2_ll * B2_jump,
+                    B3_ll * B2_jump,
+                    v_dot_B_ll * B2_jump + v2_ll * psi_ll * psi_jump,
+                    v1_ll * B2_jump,
+                    v2_ll * B2_jump,
+                    v3_ll * B2_jump,
+                    v2_ll * psi_jump)
+    end
+
+    return f
+end
+
+"""
+    flux_nonconservative_powell_local_skew_symmetric(u_ll, orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D,
+                                                nonconservative_type::NonConservativeLocal,
+                                                nonconservative_term::Integer)
+
+Local part of the Powell and GLM non-conservative terms. Needed for the calculation of
+the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+"""
+@inline function (noncons_flux::FluxNonConservativePowellLocalSkewSymmetric)(u_ll, orientation::Integer,
+                                                             equations::IdealGlmMhdEquations2D,
+                                                             nonconservative_type::NonConservativeLocal,
+                                                             nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    if nonconservative_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        v1_ll = rho_v1_ll / rho_ll
+        v2_ll = rho_v2_ll / rho_ll
+        v3_ll = rho_v3_ll / rho_ll
+        v_dot_B_ll = v1_ll * B1_ll + v2_ll * B2_ll + v3_ll * B3_ll
+        f = SVector(0,
+                    B1_ll,
+                    B2_ll,
+                    B3_ll,
+                    v_dot_B_ll,
+                    v1_ll,
+                    v2_ll,
+                    v3_ll,
+                    0)
+    else #nonconservative_term ==2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        if orientation == 1
+            v1_ll = rho_v1_ll / rho_ll
+            f = SVector(0,
+                        0,
+                        0,
+                        0,
+                        v1_ll * psi_ll,
+                        0,
+                        0,
+                        0,
+                        v1_ll)
+        else #orientation == 2
+            v2_ll = rho_v2_ll / rho_ll
+            f = SVector(0,
+                        0,
+                        0,
+                        0,
+                        v2_ll * psi_ll,
+                        0,
+                        0,
+                        0,
+                        v2_ll)
+        end
+    end
+    return f
+end
+
+"""
+    flux_nonconservative_powell_local_symmetric(u_ll, orientation::Integer,
+                                                equations::IdealGlmMhdEquations2D,
+                                                nonconservative_type::NonConservativeSymmetric,
+                                                nonconservative_term::Integer)
+
+Skew-symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of
+the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
+- Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
+  Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
+This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+"""
+@inline function (noncons_flux::FluxNonConservativePowellLocalSkewSymmetric)(u_ll, u_rr,
+                                                             orientation::Integer,
+                                                             equations::IdealGlmMhdEquations2D,
+                                                             nonconservative_type::NonConservativeSkewSymmetric,
+                                                             nonconservative_term::Integer)
+    rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
+
+    if nonconservative_term == 1
+        # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
+        if orientation == 1
+            #B1_avg = (B1_ll + B1_rr)#* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+            B1_jump = B1_rr - B1_ll
+            f = SVector(0,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        B1_jump,
+                        0)
+        else # orientation == 2
+            #B2_avg = (B2_ll + B2_rr)#* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+            B2_jump = B2_rr - B2_ll
+            f = SVector(0,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        B2_jump,
+                        0)
+        end
+    else #nonconservative_term == 2
+        # Galilean nonconservative term: (0, 0, 0, 0, ψ v_{1,2}, 0, 0, 0, v_{1,2})
+        #psi_avg = (psi_ll + psi_rr)#* 0.5 # The flux is already multiplied by 0.5 wherever it is used in the code
+        psi_jump = psi_rr - psi_ll
+        f = SVector(0,
+                    0,
+                    0,
+                    0,
+                    psi_jump,
+                    0,
+                    0,
+                    0,
+                    psi_jump)
     end
 
     return f

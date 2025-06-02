@@ -397,6 +397,48 @@ end
     end
 end
 
+# TODO: SC: For now this is tested with reference values for the local-symmetric formulation.
+@trixi_testset "elixir_mhd_shockcapturing_subcell.jl (skew-symmetric formulation)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
+                        l2=[
+                            3.2064026219236076e-02,
+                            7.2461094392606618e-02,
+                            7.2380202888062711e-02,
+                            0.0000000000000000e+00,
+                            8.6293936673145932e-01,
+                            8.4091669534557805e-03,
+                            5.2156364913231732e-03,
+                            0.0000000000000000e+00,
+                            2.0786952301129021e-04
+                        ],
+                        linf=[
+                            3.8778760255775635e-01,
+                            9.4666683953698927e-01,
+                            9.4618924645661928e-01,
+                            0.0000000000000000e+00,
+                            1.0980297261521951e+01,
+                            1.0264404591009069e-01,
+                            1.0655686942176350e-01,
+                            0.0000000000000000e+00,
+                            6.1013422157115546e-03
+                        ],
+                        tspan=(0.0, 0.003),
+                        surface_flux = (flux_lax_friedrichs, flux_nonconservative_powell_local_skew_symmetric),
+                        volume_flux = (flux_derigs_etal, flux_nonconservative_powell_local_skew_symmetric))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
 @trixi_testset "elixir_mhd_onion.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_onion.jl"),
                         l2=[
