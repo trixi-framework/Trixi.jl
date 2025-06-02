@@ -197,7 +197,7 @@ end
 """
     cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
 
-Convert the conservative variables `u` (the populations of the particle distribution functions)
+Convert the conservative variables `u` (the particle distribution functions)
 to the macroscopic variables (density, velocity_1, velocity_2, velocity_3, pressure).
 """
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
