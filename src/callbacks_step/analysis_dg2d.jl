@@ -245,8 +245,10 @@ function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                                UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
                                T8codeMesh{2}},
-                   equations, dg::DG, cache; normalize = true) where {Func}
+                   equations, dg::DG, cache; normalize = true, semi) where {Func}
     @autoinfiltrate
+    @unpack solver = semi
+    @unpack boundaries = cache
     m = methods(func)
     if length(m[1].sig.parameters) == 2
         integrate_via_indices(u, mesh, equations, dg, cache;
@@ -267,12 +269,47 @@ function integrate(func::Func, u,
             @unpack u_transformed, gradients, flux_viscous = viscous_container
             calc_gradient!(gradients, u_transformed, 0.0,
                            mesh::TreeMesh{2}, equations,
-                           boundary_conditions, dg::DG, parabolic_scheme,
+                           boundaries, dg::DG, solver,
                            cache, cache)
             return func(u_local, gradients, equations)
         end
     end
 end
+
+# Andrew's functions for computing the derivatives.
+# function DGSpaceDerivative_WeakForm!(
+#     F_prime::Matrix{Float64},       # size: (N+1, nEqn)
+#     FL::Vector{Float64},            # size: nEqn
+#     FR::Vector{Float64},            # size: nEqn
+#     Flux::Matrix{Float64},          # size: (N+1, nEqn)
+#     D::Matrix{Float64},             # size: (N+1, N+1)
+#     l_minus::Vector{Float64},       # size: N+1
+#     l_plus::Vector{Float64},        # size: N+1
+#     weights::Vector{Float64},       # size: N+1
+#     nEqn::Int,
+#     N::Int
+# )
+#     # Volume derivative term using D matrix
+#     for k in 1:nEqn
+#         MxVDerivative!(F_prime[:, k], Flux[:, k], D, N)
+#     end
+#
+#     # Surface contribution from numerical fluxes
+#     for j in 0:N
+#         for k in 1:nEqn
+#             F_prime[j+1, k] += (FR[k] * l_plus[j+1] + FL[k] * l_minus[j+1]) / weights[j+1]
+#         end
+#     end
+# end
+#
+# function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64}, D::Matrix{Float64}, N::Int)
+#     for i in 0:N
+#         t = 0.0
+#         for j in 0:N
+#             t += D[i+1, j+1] * Phi[j+1]  # Adjust for 1-based indexing
+#         end
+#         Phi_prime[i+1] = t
+#     end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, P4estMesh{2}},

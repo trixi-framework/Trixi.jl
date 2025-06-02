@@ -58,7 +58,7 @@ function integrate(func::Func, u_ode, semi::AbstractSemidiscretization;
     mesh, equations, solver, cache = mesh_equations_solver_cache(semi)
 
     u = wrap_array(u_ode, mesh, equations, solver, cache)
-    integrate(func, u, mesh, equations, solver, cache, normalize = normalize)
+    integrate(func, u, mesh, equations, solver, cache, normalize = normalize; semi=semi)
 end
 
 function integrate(u_ode, semi::AbstractSemidiscretization; normalize = true)
