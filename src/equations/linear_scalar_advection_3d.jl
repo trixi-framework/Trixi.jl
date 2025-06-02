@@ -130,7 +130,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equation::LinearScalarAdvectionEquation3D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equation::LinearScalarAdvectionEquation3D)
     a = equation.advection_velocity[orientation]

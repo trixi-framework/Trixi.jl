@@ -153,7 +153,7 @@ function initial_condition_eoc_test_coupled_euler_gravity(x, t,
     return SVector(phi, q1)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer,
                       equations::HyperbolicDiffusionEquations1D)
     phi, q1 = u
