@@ -264,8 +264,9 @@ function integrate(func::Func, u,
             # Since gradients are calculated for parabolic equations we need to use
             # some of their infrastructure.
             viscous_container = init_viscous_container_2d(nvariables(equations),
-                                                        nnodes(cache.elements), nelements(cache.elements),
-                                                        eltype(cache.elements))
+                                                          nnodes(cache.elements),
+                                                          nelements(cache.elements),
+                                                          eltype(cache.elements))
             @unpack u_transformed, gradients, flux_viscous = viscous_container
             calc_gradient!(gradients, u_transformed, 0.0,
                            mesh::TreeMesh{2}, equations,
