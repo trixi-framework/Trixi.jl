@@ -463,6 +463,7 @@ end
                                            0.5f0 * derivative_split[i, ii],
                                            flux1_noncons,
                                            equations, dg, noncons, i, j)
+                # Note the sign flip due to skew-symmetry when argument order is swapped
                 multiply_add_to_node_vars!(flux_noncons_temp,
                                            -0.5f0 * derivative_split[ii, i],
                                            flux1_noncons,
@@ -523,8 +524,9 @@ end
                                                NonConservativeSkewSymmetric(), noncons)
 
                 for v in eachvariable(equations)
-                    fhat1_R[v, i, j] -= phi[v, noncons, i, j] * phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
-                    fhat1_L[v, i + 1, j] -= phi[v, noncons, i, j] * phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
+                    # The factor of 2 is missing on each term because Trixi multiplies all the non-cons terms with 0.5
+                    fhat1_R[v, i, j] -= phi[v, noncons, i, j] * phi_skew[v]
+                    fhat1_L[v, i + 1, j] -= phi[v, noncons, i, j] * phi_skew[v]
                 end
             end
         end
@@ -534,8 +536,9 @@ end
                                            NonConservativeSkewSymmetric(), noncons)
 
             for v in eachvariable(equations)
+                # The factor of 2 is missing because Trixi multiplies all the non-cons terms with 0.5
                 fhat1_R[v, nnodes(dg), j] -= phi[v, noncons, nnodes(dg), j] *
-                                             phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
+                                             phi_skew[v]
             end
         end
     end
@@ -564,6 +567,7 @@ end
                                            0.5 * derivative_split[j, jj],
                                            flux2_noncons,
                                            equations, dg, noncons, i, j)
+                # Note the sign flip due to skew-symmetry when argument order is swapped
                 multiply_add_to_node_vars!(flux_noncons_temp,
                                            -0.5 * derivative_split[jj, j],
                                            flux2_noncons,
@@ -624,8 +628,9 @@ end
                                                NonConservativeSkewSymmetric(), noncons)
 
                 for v in eachvariable(equations)
-                    fhat2_R[v, i, j] -= phi[v, noncons, i, j] * phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
-                    fhat2_L[v, i, j + 1] -= phi[v, noncons, i, j] * phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
+                    # The factor of 2 is missing on each term because Trixi multiplies all the non-cons terms with 0.5
+                    fhat2_R[v, i, j] -= phi[v, noncons, i, j] * phi_skew[v]
+                    fhat2_L[v, i, j + 1] -= phi[v, noncons, i, j] * phi_skew[v]
                 end
             end
         end
@@ -635,8 +640,9 @@ end
                                            NonConservativeSkewSymmetric(), noncons)
 
             for v in eachvariable(equations)
+                # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
                 fhat2_R[v, i, nnodes(dg)] -= phi[v, noncons, i, nnodes(dg)] *
-                                             phi_skew[v] # The factor of 2 is missing cause Trixi multiplies all the non-cons terms with 0.5
+                                             phi_skew[v]
             end
         end
     end
