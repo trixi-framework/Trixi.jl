@@ -72,7 +72,7 @@ function extract_p4est_mesh_view(elements_parent,
 end
 
 # Remove all interfaces that have a tuple of neighbor_ids where at least one is
-# not part of this meshview, i.e. mesh.cell_ids, and return the new interface container
+# not part of this mesh view, i.e. mesh.cell_ids, and return the new interface container.
 function extract_interfaces(mesh::P4estMeshView, interfaces_parent)
     # Identify interfaces that need to be retained
     mask = BitArray(undef, ninterfaces(interfaces_parent))
@@ -156,7 +156,47 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
                          (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2],
                           size(boundaries.node_indices)[end]))
 
+    # Determine the global indices of the boundaring elements.
+    neighbor_ids_global = similar(boundaries.neighbor_ids) .* 0
+    for (idx, id) in enumerate(boundaries.neighbor_ids)
+        global_id = mesh.cell_ids[id]
+        # Find this id in the parent's interfaces.
+        for interface in eachindex(interfaces_parent.neighbor_ids[1, :])
+            if global_id == interfaces_parent.neighbor_ids[1, interface] ||
+               global_id == interfaces_parent.neighbor_ids[2, interface]
+               if global_id == interfaces_parent.neighbor_ids[1, interface]
+                    matching_boundary = 1
+               else
+                    matching_boundary = 2
+               end
+                # Check if interfaces with this id have the right name/node_indices.
+                if boundaries.name[idx] == node_indices_to_name(interfaces_parent.node_indices[matching_boundary, interface])
+                    if global_id == interfaces_parent.neighbor_ids[1, interface]
+                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[2, interface]
+                    else
+                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[1, interface]
+                    end
+                end
+            end
+        end
+    end
+    @autoinfiltrate
     return boundaries
+end
+
+# Translate the interface indices into boundary names.
+function node_indices_to_name(node_index)
+    if node_index == (:end, :i_forward)
+        return :x_pos
+    elseif node_index == (:begin, :i_forward)
+        return :x_neg
+    elseif node_index == (:i_forward, :end)
+        return :y_pos
+    elseif node_index == (:i_forward, :begin)
+        return :y_neg
+    else
+        error("Unknown node index: $node_index")
+    end
 end
 
 # Convert a global cell id to a local cell id in the mesh view.
