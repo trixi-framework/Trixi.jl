@@ -54,7 +54,7 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_tree_3d_part3.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "structured_part1"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "structured"
         include("test_structured_1d.jl")
         include("test_structured_2d.jl")
         include("test_structured_3d.jl")
