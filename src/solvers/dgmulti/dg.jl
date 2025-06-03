@@ -421,7 +421,7 @@ function calc_interface_flux!(cache, surface_integral::SurfaceIntegralWeakForm,
 end
 
 # assumes cache.flux_face_values is computed and filled with
-# for polyomial discretizations, use dense LIFT matrix for surface contributions.
+# for polynomial discretizations, use dense LIFT matrix for surface contributions.
 function calc_surface_integral!(du, u, mesh::DGMultiMesh, equations,
                                 surface_integral::SurfaceIntegralWeakForm,
                                 dg::DGMulti, cache)

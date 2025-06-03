@@ -90,7 +90,7 @@ The corresponding opposite directions are:
 
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
-   nearly incompressible flows**, J Comput Phys 230(1), 2011
+   nearly incompressible flows**, Journal of Computational Physics 230(1), 2011
    [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
 2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
    (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
@@ -223,7 +223,7 @@ function initial_condition_constant(x, t, equations::LatticeBoltzmannEquations3D
     return equilibrium_distribution(rho, v1, v2, v3, equations)
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations3D)
     if orientation == 1 # x-direction
         v_alpha = equations.v_alpha1

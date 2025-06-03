@@ -529,7 +529,8 @@ plotting. This can be changed by passing an appropriate conversion function to
 
 Alternatively, you can also pass a function `u` with signature `u(x, equations)`
 returning a vector. In this case, the `solution_variables` are ignored. This is useful,
-e.g., to visualize an analytical solution.
+e.g., to visualize an analytical solution. The spatial variable `x` is a vector with one
+element.
 
 `nvisnodes` specifies the number of visualization nodes to be used. If it is `nothing`,
 twice the number of solution DG nodes are used for visualization, and if set to `0`,
@@ -635,7 +636,7 @@ function PlotData1D(u, mesh::TreeMesh, equations, solver, cache;
                       orientation_x)
 end
 
-# unwrap u if it is VectorOfArray 
+# unwrap u if it is VectorOfArray
 PlotData1D(u::VectorOfArray, mesh, equations, dg::DGMulti{1}, cache; kwargs...) = PlotData1D(parent(u),
                                                                                              mesh,
                                                                                              equations,
@@ -659,25 +660,40 @@ function PlotData1D(u, mesh, equations, solver, cache;
                                             variable_names)
 
     original_nodes = cache.elements.node_coordinates
-    unstructured_data = get_unstructured_data(u, solution_variables_, mesh, equations,
-                                              solver, cache)
 
     orientation_x = 0 # Set 'orientation' to zero on default.
 
     if ndims(mesh) == 1
+        unstructured_data = get_unstructured_data(u, solution_variables_,
+                                                  mesh, equations, solver, cache)
         x, data, mesh_vertices_x = get_data_1d(original_nodes, unstructured_data,
                                                nvisnodes, reinterpolate)
         orientation_x = 1
     elseif ndims(mesh) == 2
-        # Create a 'PlotData2DTriangulated' object so a triangulation can be used when extracting relevant data.
-        pd = PlotData2DTriangulated(u, mesh, equations, solver, cache;
-                                    solution_variables, nvisnodes)
-        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(pd, curve, slice, point,
-                                                               nvisnodes)
+        x, data, mesh_vertices_x = unstructured_2d_to_1d_curve(u, mesh, equations,
+                                                               solver, cache,
+                                                               curve, slice,
+                                                               point, nvisnodes,
+                                                               solution_variables_)
     else # ndims(mesh) == 3
         # Extract the information required to create a PlotData1D object.
-        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(original_nodes, u, curve,
-                                                               slice, point, nvisnodes)
+        # If no curve is defined, create an axis curve.
+        if curve === nothing
+            curve = axis_curve(view(original_nodes, 1, :, :, :, :),
+                               view(original_nodes, 2, :, :, :, :),
+                               view(original_nodes, 3, :, :, :, :),
+                               slice, point, nvisnodes)
+        end
+
+        # We need to loop through all the points and check in which element they are
+        # located. A general implementation working for all mesh types has to perform
+        # a naive loop through all nodes. However, the P4estMesh and the T8codeMesh
+        # can make use of the efficient search functionality of p4est/t8code
+        # to speed up the process. Thus, we pass the mesh, too.
+        x, data, mesh_vertices_x = unstructured_3d_to_1d_curve(u, mesh, equations,
+                                                               solver, cache,
+                                                               curve,
+                                                               solution_variables_)
     end
 
     return PlotData1D(x, data, variable_names_, mesh_vertices_x,

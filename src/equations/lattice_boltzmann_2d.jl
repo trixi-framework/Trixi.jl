@@ -51,7 +51,7 @@ The corresponding opposite directions are:
 
 The main sources for the base implementation were
 1. Misun Min, Taehun Lee, **A spectral-element discontinuous Galerkin lattice Boltzmann method for
-   nearly incompressible flows**, J Comput Phys 230(1), 2011
+   nearly incompressible flows**, Journal of Computational Physics 230(1), 2011
    [doi:10.1016/j.jcp.2010.09.024](https://doi.org/10.1016/j.jcp.2010.09.024)
 2. Karsten Golly, **Anwendung der Lattice-Boltzmann Discontinuous Galerkin Spectral Element Method
    (LB-DGSEM) auf laminare und turbulente nahezu inkompressible Strömungen im dreidimensionalen
@@ -235,7 +235,7 @@ No-slip wall boundary condition using the bounce-back approach.
     return flux
 end
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::LatticeBoltzmannEquations2D)
     if orientation == 1
         v_alpha = equations.v_alpha1

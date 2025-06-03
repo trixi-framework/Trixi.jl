@@ -27,6 +27,19 @@ function DiffEqBase.get_tstops_max(integrator::AbstractTimeIntegrator)
     return maximum(get_tstops_array(integrator))
 end
 
+function finalize_callbacks(integrator::AbstractTimeIntegrator)
+    callbacks = integrator.opts.callback
+
+    if callbacks isa CallbackSet
+        foreach(callbacks.discrete_callbacks) do cb
+            cb.finalize(cb, integrator.u, integrator.t, integrator)
+        end
+        foreach(callbacks.continuous_callbacks) do cb
+            cb.finalize(cb, integrator.u, integrator.t, integrator)
+        end
+    end
+end
+
 include("methods_2N.jl")
 include("methods_3Sstar.jl")
 include("methods_SSP.jl")

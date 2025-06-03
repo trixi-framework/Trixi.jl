@@ -145,8 +145,9 @@ function initialize!(cb::DiscreteCallback{Condition, Affect!}, u, t,
             has_changed = amr_callback(integrator,
                                        only_refine = amr_callback.adapt_initial_condition_only_refine)
             iterations = iterations + 1
-            if iterations > 10
-                @warn "AMR for initial condition did not settle within 10 iterations!\n" *
+            allowed_max_iterations = max(10, max_level(amr_callback.controller))
+            if iterations > allowed_max_iterations
+                @warn "AMR for initial condition did not settle within $(allowed_max_iterations) iterations!\n" *
                       "Consider adjusting thresholds or setting `adapt_initial_condition_only_refine`."
                 break
             end
@@ -623,7 +624,7 @@ function (amr_callback::AMRCallback)(u_ode::AbstractVector, mesh::P4estMesh,
         end
 
         reinitialize_boundaries!(semi.boundary_conditions, cache)
-        # if the semidiscretization also stores parabolic boundary conditions, 
+        # if the semidiscretization also stores parabolic boundary conditions,
         # reinitialize them after each refinement step as well.
         if hasproperty(semi, :boundary_conditions_parabolic)
             reinitialize_boundaries!(semi.boundary_conditions_parabolic, cache)
@@ -867,6 +868,8 @@ function ControllerThreeLevel(semi, indicator; base_level = 1,
                                                                                   cache)
 end
 
+max_level(controller::ControllerThreeLevel) = controller.max_level
+
 function create_cache(indicator_type::Type{ControllerThreeLevel}, semi)
     create_cache(indicator_type, mesh_equations_solver_cache(semi)...)
 end
@@ -1058,6 +1061,8 @@ function ControllerThreeLevelCombined(semi, indicator_primary, indicator_seconda
                                                                              indicator_secondary,
                                                                              cache)
 end
+
+max_level(controller::ControllerThreeLevelCombined) = controller.max_level
 
 function create_cache(indicator_type::Type{ControllerThreeLevelCombined}, semi)
     create_cache(indicator_type, mesh_equations_solver_cache(semi)...)

@@ -51,7 +51,7 @@ end
 Source terms due to the Lorentz' force for plasmas with more than one ion species. These source 
 terms are a fundamental, inseparable part of the multi-ion GLM-MHD equations, and vanish for 
 a single-species plasma. In particular, they have to be used for every
-simulation of [`IdealGlmMhdMultiIonEquations2D`](@ref).
+simulation of [`IdealGlmMhdMultiIonEquations2D`](@ref) and [`IdealGlmMhdMultiIonEquations3D`](@ref).
 """
 function source_terms_lorentz(u, x, t, equations::AbstractIdealGlmMhdMultiIonEquations)
     @unpack charge_to_mass = equations
@@ -181,6 +181,22 @@ divergence_cleaning_field(u, equations::AbstractIdealGlmMhdMultiIonEquations) = 
         rho += u[3 + (k - 1) * 5 + 1]
     end
     return rho
+end
+
+@inline function pressure(u, equations::AbstractIdealGlmMhdMultiIonEquations)
+    B1, B2, B3, _ = u
+    p = zero(MVector{ncomponents(equations), real(equations)})
+    for k in eachcomponent(equations)
+        rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
+        v1 = rho_v1 / rho
+        v2 = rho_v2 / rho
+        v3 = rho_v3 / rho
+        gamma = equations.gammas[k]
+        p[k] = (gamma - 1) *
+               (rho_e - 0.5f0 * rho * (v1^2 + v2^2 + v3^2) -
+                0.5f0 * (B1^2 + B2^2 + B3^2))
+    end
+    return SVector{ncomponents(equations), real(equations)}(p)
 end
 
 #Convert conservative variables to primitive
@@ -470,5 +486,174 @@ end
     end
 
     return dissipation
+end
+
+@doc raw"""
+    source_terms_collision_ion_ion(u, x, t,
+                                   equations::AbstractIdealGlmMhdMultiIonEquations)
+
+Compute the ion-ion collision source terms for the momentum and energy equations of each ion species as
+```math
+\begin{aligned}
+  \vec{s}_{\rho_k \vec{v}_k} =&  \rho_k\sum_{l}\bar{\nu}_{kl}(\vec{v}_{l} - \vec{v}_k),\\
+  s_{E_k}  =& 
+    3 \sum_{l} \left(
+    \bar{\nu}_{kl} \frac{\rho_k M_1}{M_{l} + M_k} R_1 (T_{l} - T_k)
+    \right) + 
+    \sum_{l} \left(
+        \bar{\nu}_{kl} \rho_k \frac{M_{l}}{M_{l} + M_k} \|\vec{v}_{l} - \vec{v}_k\|^2
+        \right)
+        +
+        \vec{v}_k \cdot \vec{s}_{\rho_k \vec{v}_k},
+\end{aligned}
+```
+where ``M_k`` is the molar mass of ion species `k` provided in `equations.molar_masses`, 
+``R_k`` is the specific gas constant of ion species `k` provided in `equations.gas_constants`, and
+ ``\bar{\nu}_{kl}`` is the effective collision frequency of species `k` with species `l`, which is computed as
+```math
+\begin{aligned}
+  \bar{\nu}_{kl} = \bar{\nu}^1_{kl} \tilde{B}_{kl} \frac{\rho_{l}}{T_{k l}^{3/2}},
+\end{aligned}
+```
+with the so-called reduced temperature ``T_{k l}`` and the ion-ion collision constants ``\tilde{B}_{kl}`` provided
+in `equations.ion_electron_collision_constants` (see [`IdealGlmMhdMultiIonEquations2D`](@ref)).
+
+The additional coefficient ``\bar{\nu}^1_{kl}`` is a non-dimensional drift correction factor proposed by Rambo and Denavit.
+
+References:
+- P. Rambo, J. Denavit, Interpenetration and ion separation in colliding plasmas, Physics of Plasmas 1 (1994) 4050–4060.
+  [DOI: 10.1063/1.870875](https://doi.org/10.1063/1.870875).
+- Schunk, R. W., Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry. 
+  Cambridge university press. [DOI: 10.1017/CBO9780511635342](https://doi.org/10.1017/CBO9780511635342).
+"""
+function source_terms_collision_ion_ion(u, x, t,
+                                        equations::AbstractIdealGlmMhdMultiIonEquations)
+    s = zero(MVector{nvariables(equations), eltype(u)})
+    @unpack gas_constants, molar_masses, ion_ion_collision_constants = equations
+
+    prim = cons2prim(u, equations)
+
+    for k in eachcomponent(equations)
+        rho_k, v1_k, v2_k, v3_k, p_k = get_component(k, prim, equations)
+        T_k = p_k / (rho_k * gas_constants[k])
+
+        S_q1 = zero(eltype(u))
+        S_q2 = zero(eltype(u))
+        S_q3 = zero(eltype(u))
+        S_E = zero(eltype(u))
+        for l in eachcomponent(equations)
+            # Do not compute collisions of an ion species with itself
+            k == l && continue
+
+            rho_l, v1_l, v2_l, v3_l, p_l = get_component(l, prim, equations)
+            T_l = p_l / (rho_l * gas_constants[l])
+
+            # Reduced temperature
+            T_kl = (molar_masses[l] * T_k + molar_masses[k] * T_l) /
+                   (molar_masses[k] + molar_masses[l])
+
+            delta_v2 = (v1_l - v1_k)^2 + (v2_l - v2_k)^2 + (v3_l - v3_k)^2
+
+            # Compute collision frequency without drifting correction
+            v_kl = ion_ion_collision_constants[k, l] * rho_l / T_kl^(3 / 2)
+
+            # Correct the collision frequency with the drifting effect
+            z2 = delta_v2 / (p_l / rho_l + p_k / rho_k)
+            v_kl /= (1 + (2 / (9 * pi))^(1 / 3) * z2)^(3 / 2)
+
+            S_q1 += rho_k * v_kl * (v1_l - v1_k)
+            S_q2 += rho_k * v_kl * (v2_l - v2_k)
+            S_q3 += rho_k * v_kl * (v3_l - v3_k)
+
+            S_E += (3 * molar_masses[1] * gas_constants[1] * (T_l - T_k)
+                    +
+                    molar_masses[l] * delta_v2) * v_kl * rho_k /
+                   (molar_masses[k] + molar_masses[l])
+        end
+
+        S_E += (v1_k * S_q1 + v2_k * S_q2 + v3_k * S_q3)
+
+        set_component!(s, k, 0, S_q1, S_q2, S_q3, S_E, equations)
+    end
+    return SVector{nvariables(equations), real(equations)}(s)
+end
+
+@doc raw"""
+    source_terms_collision_ion_electron(u, x, t,
+                                        equations::AbstractIdealGlmMhdMultiIonEquations)
+
+Compute the ion-electron collision source terms for the momentum and energy equations of each ion species. We assume ``v_e = v^+`` 
+(no effect of currents on the electron velocity).
+
+The collision sources read as
+```math
+\begin{aligned}
+    \vec{s}_{\rho_k \vec{v}_k} =&  \rho_k \bar{\nu}_{ke} (\vec{v}_{e} - \vec{v}_k),
+    \\
+    s_{E_k}  =& 
+    3  \left(
+    \bar{\nu}_{ke} \frac{\rho_k M_{1}}{M_k} R_1 (T_{e} - T_k)
+    \right) 
+        +
+        \vec{v}_k \cdot \vec{s}_{\rho_k \vec{v}_k},
+\end{aligned}
+```
+where ``T_e`` is the electron temperature computed with the function `equations.electron_temperature`, 
+``M_k`` is the molar mass of ion species `k` provided in `equations.molar_masses`, 
+``R_k`` is the specific gas constant of ion species `k` provided in `equations.gas_constants`, and
+``\bar{\nu}_{ke}`` is the collision frequency of species `k` with the electrons, which is computed as
+```math
+\begin{aligned}
+  \bar{\nu}_{ke} = \tilde{B}_{ke} \frac{e n_e}{T_e^{3/2}},
+\end{aligned}
+```
+with the total electron charge ``e n_e`` (computed assuming quasi-neutrality), and the
+ion-electron collision coefficient ``\tilde{B}_{ke}`` provided in `equations.ion_electron_collision_constants`,
+which is scaled with the elementary charge (see [`IdealGlmMhdMultiIonEquations2D`](@ref)).
+
+References:
+- P. Rambo, J. Denavit, Interpenetration and ion separation in colliding plasmas, Physics of Plasmas 1 (1994) 4050–4060.
+  [DOI: 10.1063/1.870875](https://doi.org/10.1063/1.870875).
+- Schunk, R. W., Nagy, A. F. (2000). Ionospheres: Physics, plasma physics, and chemistry. 
+  Cambridge university press. [DOI: 10.1017/CBO9780511635342](https://doi.org/10.1017/CBO9780511635342).
+"""
+function source_terms_collision_ion_electron(u, x, t,
+                                             equations::AbstractIdealGlmMhdMultiIonEquations)
+    s = zero(MVector{nvariables(equations), eltype(u)})
+    @unpack gas_constants, molar_masses, ion_electron_collision_constants, electron_temperature = equations
+
+    prim = cons2prim(u, equations)
+    T_e = electron_temperature(u, equations)
+    T_e_power32 = T_e^(3 / 2)
+
+    v1_plus, v2_plus, v3_plus, vk1_plus, vk2_plus, vk3_plus = charge_averaged_velocities(u,
+                                                                                         equations)
+
+    # Compute total electron charge
+    total_electron_charge = zero(real(equations))
+    for k in eachcomponent(equations)
+        rho, _ = get_component(k, u, equations)
+        total_electron_charge += rho * equations.charge_to_mass[k]
+    end
+
+    for k in eachcomponent(equations)
+        rho_k, v1_k, v2_k, v3_k, p_k = get_component(k, prim, equations)
+        T_k = p_k / (rho_k * gas_constants[k])
+
+        # Compute effective collision frequency
+        v_ke = ion_electron_collision_constants[k] * total_electron_charge / T_e_power32
+
+        S_q1 = rho_k * v_ke * (v1_plus - v1_k)
+        S_q2 = rho_k * v_ke * (v2_plus - v2_k)
+        S_q3 = rho_k * v_ke * (v3_plus - v3_k)
+
+        S_E = 3 * molar_masses[1] * gas_constants[1] * (T_e - T_k) * v_ke * rho_k /
+              molar_masses[k]
+
+        S_E += (v1_k * S_q1 + v2_k * S_q2 + v3_k * S_q3)
+
+        set_component!(s, k, 0, S_q1, S_q2, S_q3, S_E, equations)
+    end
+    return SVector{nvariables(equations), real(equations)}(s)
 end
 end

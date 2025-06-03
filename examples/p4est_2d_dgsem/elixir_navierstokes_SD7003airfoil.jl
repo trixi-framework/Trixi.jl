@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -94,23 +94,24 @@ f_rho_inf() = rho_inf
 f_U_inf() = U_inf
 f_linf() = airfoil_cord_length
 
-drag_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
-                                           DragCoefficientPressure(f_aoa(), f_rho_inf(),
-                                                                   f_U_inf(), f_linf()))
+force_boundary_symbol = (:Airfoil,)
+drag_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
+                                           DragCoefficientPressure2D(f_aoa(), f_rho_inf(),
+                                                                     f_U_inf(), f_linf()))
 
-drag_coefficient_shear_force = AnalysisSurfaceIntegral((:Airfoil,),
-                                                       DragCoefficientShearStress(f_aoa(),
-                                                                                  f_rho_inf(),
-                                                                                  f_U_inf(),
-                                                                                  f_linf()))
+drag_coefficient_shear_force = AnalysisSurfaceIntegral(force_boundary_symbol,
+                                                       DragCoefficientShearStress2D(f_aoa(),
+                                                                                    f_rho_inf(),
+                                                                                    f_U_inf(),
+                                                                                    f_linf()))
 
-lift_coefficient = AnalysisSurfaceIntegral((:Airfoil,),
-                                           LiftCoefficientPressure(f_aoa(), f_rho_inf(),
-                                                                   f_U_inf(), f_linf()))
+lift_coefficient = AnalysisSurfaceIntegral(force_boundary_symbol,
+                                           LiftCoefficientPressure2D(f_aoa(), f_rho_inf(),
+                                                                     f_U_inf(), f_linf()))
 
 # For long simulation run, use a large interval.
-# For measurements once the simulation has settled in, one should use a 
-# significantly smaller interval, e.g. 500 to record the drag/lift coefficients.                                                                   
+# For measurements once the simulation has settled in, one should use a
+# significantly smaller interval, e.g. 500 to record the drag/lift coefficients.
 analysis_interval = 10_000
 analysis_callback = AnalysisCallback(semi, interval = analysis_interval,
                                      output_directory = "out",
@@ -145,7 +146,5 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode,
             CarpenterKennedy2N54(williamson_condition = false,
-                                 thread = OrdinaryDiffEq.True());
-            dt = 1.0, save_everystep = false, callback = callbacks)
-
-summary_callback() # print the timer summary
+                                 thread = Trixi.True());
+            dt = 1.0, ode_default_options()..., callback = callbacks)

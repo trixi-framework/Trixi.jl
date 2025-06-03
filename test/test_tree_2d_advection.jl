@@ -41,10 +41,12 @@ end
 end
 
 @trixi_testset "elixir_advection_restart.jl" begin
-    using OrdinaryDiffEq: SSPRK43
+    using OrdinaryDiffEqSSPRK: SSPRK43
     println("═"^100)
-    println(joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"))
-    trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_extended.jl"),
+    println(joinpath(EXAMPLES_DIR, "elixir_advection_timeintegration_adaptive.jl"))
+    trixi_include(@__MODULE__,
+                  joinpath(EXAMPLES_DIR,
+                           "elixir_advection_timeintegration_adaptive.jl"),
                   alg = SSPRK43(), tspan = (0.0, 10.0))
     l2_expected, linf_expected = analysis_callback(sol)
 
@@ -52,7 +54,8 @@ end
     println(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"))
     # Errors are exactly the same as in the elixir_advection_extended.jl
     trixi_include(@__MODULE__, joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
-                  alg = SSPRK43())
+                  alg = SSPRK43(),
+                  base_elixir = "elixir_advection_timeintegration_adaptive.jl")
     l2_actual, linf_actual = analysis_callback(sol)
 
     @test l2_actual == l2_expected
@@ -153,8 +156,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
@@ -174,8 +177,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
@@ -195,8 +198,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
@@ -214,8 +217,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
@@ -234,8 +237,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
@@ -255,8 +258,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000

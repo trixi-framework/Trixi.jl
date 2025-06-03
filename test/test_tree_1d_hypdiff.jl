@@ -24,6 +24,25 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
     end
 end
 
+@trixi_testset "elixir_hypdiff_nonperiodic_perk4.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic_perk4.jl"),
+                        l2=[1.3655114994521285e-7, 1.0200345014751413e-6],
+                        linf=[7.173289867656862e-7, 4.507115296537023e-6],
+                        atol=2.5e-13)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom 
+        # integrator which are not *recorded* for the methods from 
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
+    end
+end
+
 @trixi_testset "elixir_hypdiff_harmonic_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_hypdiff_harmonic_nonperiodic.jl"),

@@ -104,7 +104,7 @@
 # # Exemplary simulation
 # Here, we want to implement a simple AMR simulation of the 2D linear advection equation for a Gaussian pulse.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 advection_velocity = (0.2, -0.7)
@@ -148,9 +148,9 @@ stepsize_callback = StepsizeCallback(cfl = 0.9)
 callbacks = CallbackSet(amr_callback, stepsize_callback);
 
 # Running the simulation.
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
+            ode_default_options()..., callback = callbacks);
 
 # We plot the solution and add the refined mesh at the end of the simulation.
 using Plots
@@ -206,5 +206,5 @@ using InteractiveUtils
 versioninfo()
 
 using Pkg
-Pkg.status(["Trixi", "OrdinaryDiffEq", "Plots"],
+Pkg.status(["Trixi", "OrdinaryDiffEqLowStorageRK", "Plots"],
            mode = PKGMODE_MANIFEST)

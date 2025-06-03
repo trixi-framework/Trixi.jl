@@ -606,6 +606,34 @@ end
     end
 end
 
+@trixi_testset "elixir_euler_vortex_perk4.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_perk4.jl"),
+                        l2=[
+                            0.0001846244731283424,
+                            0.00042537910268029285,
+                            0.0003724909264689687,
+                            0.0026689613797051493
+                        ],
+                        linf=[
+                            0.0025031072787504716,
+                            0.009266316022570331,
+                            0.009876399281272374,
+                            0.0306915591360557
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom 
+        # integrator which are not *recorded* for the methods from 
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
+    end
+end
+
 @trixi_testset "elixir_euler_ec.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_ec.jl"),
                         l2=[
@@ -966,46 +994,17 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
-                        l2=[
-                            0.0017286908591070864,
-                            0.025585037307655684,
-                            0.028374244567802766,
-                            6.274146767730866e-5
-                        ],
-                        linf=[
-                            0.012973752001194772,
-                            0.10829375385832263,
-                            0.15832858475438094,
-                            0.00018196759554722775
-                        ],
-                        tspan=(0.0, 0.05))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_well_balanced.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
-                        l2=[
-                            0.7920927046419308,
-                            9.92129670988898e-15,
-                            1.0118635033124588e-14,
-                            0.7920927046419308
-                        ],
-                        linf=[
-                            2.408429868800133,
-                            5.5835419986809516e-14,
-                            5.448874313931364e-14,
-                            2.4084298688001335
-                        ],
-                        tspan=(0.0, 0.25))
+@trixi_testset "elixir_mhd_onion.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_onion.jl"),
+                        l2=[0.006145639992956197, 0.042989758089762846,
+                            0.009442309049940338, 0.0,
+                            0.02346607486955775, 0.003700847949592663,
+                            0.006939946054722184, 0.0, 5.379622479061923e-7],
+                        linf=[0.04033992113717777, 0.2507389500590965,
+                            0.055979197375423013, 0.0,
+                            0.14115256348718286, 0.01995761261479112,
+                            0.038667260744994936, 0.0,
+                            3.3767778019495598e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -1,7 +1,7 @@
 # !!! warning "Experimental implementation (upwind SBP)"
 #     This is an experimental feature and may change in future releases.
 
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -102,4 +102,3 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, SSPRK43(); abstol = 1.0e-6, reltol = 1.0e-6, dt = 1e-3,
             ode_default_options()..., callback = callbacks)
-summary_callback()

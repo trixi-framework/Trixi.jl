@@ -1,6 +1,9 @@
 name: Downgrade
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths-ignore:
       - 'AUTHORS.md'

@@ -28,6 +28,36 @@ isdir(outdir) && rm(outdir, recursive = true)
     end
 end
 
+@trixi_testset "TreeMesh1D: elixir_advection_diffusion_ldg.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_advection_diffusion_ldg.jl"),
+                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
+                        l2=[9.234438322146518e-6], linf=[5.425491770139068e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh1D: elixir_diffusion_ldg.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
+                                 "elixir_diffusion_ldg.jl"),
+                        initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
+                        l2=[9.235894939144276e-6], linf=[5.402550135213957e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "TreeMesh1D: elixir_advection_diffusion_restart.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_restart.jl"),
@@ -60,9 +90,9 @@ end
     # Create a CallbackSet to collect all callbacks such that they can be passed to the ODE solver
     callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
                             amr_callback)
-    sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff()),
+    sol = solve(ode, KenCarp4(autodiff = AutoFiniteDiff());
                 abstol = time_abs_tol, reltol = time_int_tol,
-                save_everystep = false, callback = callbacks)
+                ode_default_options()..., callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)
     @test l2_error ≈ [6.487940740394583e-6]
     @test linf_error ≈ [3.262867898701227e-5]

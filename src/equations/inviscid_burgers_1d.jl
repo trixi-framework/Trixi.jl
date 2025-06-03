@@ -70,7 +70,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::InviscidBurgersEquation1D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
     return SVector(0.5f0 * u[1]^2)
 end
@@ -81,7 +81,7 @@ end
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    λ_max = max(abs(u_L), abs(u_R))
+    return max(abs(u_L), abs(u_R))
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes

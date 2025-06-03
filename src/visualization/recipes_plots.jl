@@ -175,7 +175,7 @@ end
 # We need this recipe in addition to the one above to avoid method ambiguities.
 RecipesBase.@recipe function f(func::Function, semi::AbstractSemidiscretization;
                                solution_variables = nothing)
-    n_variables = length(func(0.0, semi.equations))
+    n_variables = length(func(SVector(0.0), semi.equations))
     variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
     if ndims(semi) == 1
         return PlotData1D(func, semi; solution_variables = cons2cons, variable_names)
@@ -210,7 +210,7 @@ RecipesBase.@recipe function f(func::Function,
                                solution_variables = nothing,
                                nvisnodes = nothing, slice = :xy,
                                point = (0.0, 0.0, 0.0), curve = nothing)
-    n_variables = length(func(0.0, semi.equations))
+    n_variables = length(func(SVector(0.0), semi.equations))
     variable_names = SVector(["func[$i]" for i in 1:n_variables]...)
     if ndims(semi) == 1
         return PlotData1D(func, semi; solution_variables = cons2cons, nvisnodes, slice,
