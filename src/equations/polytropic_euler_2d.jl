@@ -442,7 +442,7 @@ end
 end
 
 @inline function pressure(u, equations::PolytropicEulerEquations2D)
-    rho, rho_v1, rho_v2 = u
+    rho, _, _ = u
     p = equations.kappa * rho^equations.gamma
     return p
 end
