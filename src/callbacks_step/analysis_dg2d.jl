@@ -259,7 +259,7 @@ function integrate(func::Func, u,
     end
     if length(m[1].sig.parameters) == 3
         integrate_via_indices(u, mesh, equations, dg, cache;
-                            normalize = normalize) do u, i, j, element, equations, dg
+                              normalize = normalize) do u, i, j, element, equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
             # Since gradients are calculated for parabolic equations we need to use
             # some of their infrastructure.
