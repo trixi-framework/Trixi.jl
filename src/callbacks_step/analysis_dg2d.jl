@@ -252,7 +252,7 @@ function integrate(func::Func, u,
     m = methods(func)
     if length(m[1].sig.parameters) == 2
         integrate_via_indices(u, mesh, equations, dg, cache;
-                            normalize = normalize) do u, i, j, element, equations, dg
+                              normalize = normalize) do u, i, j, element, equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
             return func(u_local, equations)
         end
