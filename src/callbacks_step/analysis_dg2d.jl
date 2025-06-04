@@ -277,19 +277,25 @@ function integrate(func::Func, u,
     end
 end
 
-# Andrew's functions for computing the derivatives.
+# # Andrew's functions for computing the derivatives.
 # function DGSpaceDerivative_WeakForm!(
-#     F_prime::Matrix{Float64},       # size: (N+1, nEqn)
+# #     F_prime::Matrix{Float64},       # size: (N+1, nEqn)
 #     FL::Vector{Float64},            # size: nEqn
 #     FR::Vector{Float64},            # size: nEqn
-#     Flux::Matrix{Float64},          # size: (N+1, nEqn)
-#     D::Matrix{Float64},             # size: (N+1, N+1)
+# #     Flux::Matrix{Float64},          # size: (N+1, nEqn)
+# #     D::Matrix{Float64},             # size: (N+1, N+1)
 #     l_minus::Vector{Float64},       # size: N+1
 #     l_plus::Vector{Float64},        # size: N+1
 #     weights::Vector{Float64},       # size: N+1
 #     nEqn::Int,
 #     N::Int
 # )
+#     # Translations.
+#     D = basis.derivative_dhat
+#     J = elements.jacobian_matrix
+#     Flux =
+#     F_prime = D*Flux
+#
 #     # Volume derivative term using D matrix
 #     for k in 1:nEqn
 #         MxVDerivative!(F_prime[:, k], Flux[:, k], D, N)
@@ -311,6 +317,7 @@ end
 #         end
 #         Phi_prime[i+1] = t
 #     end
+# end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, P4estMesh{2}},
