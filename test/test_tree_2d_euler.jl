@@ -582,7 +582,6 @@ end
     @test lines[1] ==
           "# iter, simu_time, alpha_max, alpha_avg"
     @test startswith(lines[end], "381, 1.0, 1.0, 0.544")
-
     @test count(",", lines[end]) == 3
     @test !any(occursin.(r"NaN", lines))
     # Ensure that we do not have excessive memory allocations
