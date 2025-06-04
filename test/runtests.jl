@@ -74,11 +74,8 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
         include("test_t8code_3d.jl")
     end
 
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "unstructured"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "unstructured_dgmulti"
         include("test_unstructured_2d.jl")
-    end
-
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "dgmulti"
         include("test_dgmulti_1d.jl")
         include("test_dgmulti_2d.jl")
         include("test_dgmulti_3d.jl")
@@ -86,11 +83,9 @@ const TRIXI_NTHREADS = clamp(Sys.CPU_THREADS, 2, 3)
 
     @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part1"
         include("test_parabolic_1d.jl")
-    end
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part2"
         include("test_parabolic_2d.jl")
     end
-    @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part3"
+    @time if TRIXI_TEST == "all" || TRIXI_TEST == "parabolic_part2"
         include("test_parabolic_3d.jl")
     end
 
