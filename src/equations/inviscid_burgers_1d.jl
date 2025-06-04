@@ -70,7 +70,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::InviscidBurgersEquation1D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equation::InviscidBurgersEquation1D)
     return SVector(0.5f0 * u[1]^2)
 end
@@ -81,7 +81,7 @@ end
     u_L = u_ll[1]
     u_R = u_rr[1]
 
-    λ_max = max(abs(u_L), abs(u_R))
+    return max(abs(u_L), abs(u_R))
 end
 
 # Calculate minimum and maximum wave speeds for HLL-type fluxes
@@ -100,7 +100,14 @@ end
     return (abs(u[1]),)
 end
 
-# (Symmetric) Entropy Conserving flux
+@doc raw"""
+    flux_ec(u_ll, u_rr, orientation, equations::InviscidBurgersEquation1D)
+
+Entropy-conserving, symmetric flux for the inviscid Burgers' equation.
+```math
+F(u_L, u_R) = \frac{u_L^2 + u_L u_R + u_R^2}{6}
+```
+"""
 function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]
@@ -108,8 +115,13 @@ function flux_ec(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
     return SVector((u_L^2 + u_L * u_R + u_R^2) / 6)
 end
 
-# See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
-# section 4.1.5 and especially equation (4.16).
+"""
+    flux_godunov(u_ll, u_rr, orientation, equations::InviscidBurgersEquation1D)
+
+Godunov (upwind) numerical flux for the inviscid Burgers' equation.
+See https://metaphor.ethz.ch/x/2019/hs/401-4671-00L/literature/mishra_hyperbolic_pdes.pdf ,
+section 4.1.5 and especially equation (4.16).
+"""
 function flux_godunov(u_ll, u_rr, orientation, equation::InviscidBurgersEquation1D)
     u_L = u_ll[1]
     u_R = u_rr[1]

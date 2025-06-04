@@ -1,5 +1,3 @@
-
-using OrdinaryDiffEq
 using Trixi
 
 ###############################################################################
@@ -81,7 +79,13 @@ alive_callback = AliveCallback(analysis_interval = analysis_interval)
 save_solution = SaveSolutionCallback(interval = 1000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = (:limiting_coefficient_rho,
+                                                             :limiting_coefficient_rho_v1,
+                                                             :limiting_coefficient_rho_v2,
+                                                             :limiting_coefficient_rho_e,
+                                                             :limiting_coefficient_pressure,
+                                                             :limiting_coefficient_entropy))
 
 stepsize_callback = StepsizeCallback(cfl = 0.9)
 
@@ -101,4 +105,3 @@ stage_callbacks = (BoundsCheckCallback(save_errors = false, interval = 100),)
 sol = Trixi.solve(ode, Trixi.SimpleSSPRK33(stage_callbacks = stage_callbacks);
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary

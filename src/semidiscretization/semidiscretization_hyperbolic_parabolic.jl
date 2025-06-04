@@ -87,8 +87,7 @@ end
                                           source_terms=nothing,
                                           both_boundary_conditions=(boundary_condition_periodic, boundary_condition_periodic),
                                           RealT=real(solver),
-                                          uEltype=RealT,
-                                          both_initial_caches=(NamedTuple(), NamedTuple()))
+                                          uEltype=RealT)
 
 Construct a semidiscretization of a hyperbolic-parabolic PDE.
 """
@@ -100,12 +99,9 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                                       boundary_condition_periodic),
                                                # `RealT` is used as real type for node locations etc.
                                                # while `uEltype` is used as element type of solutions etc.
-                                               RealT = real(solver), uEltype = RealT,
-                                               initial_caches = (NamedTuple(),
-                                                                 NamedTuple()))
+                                               RealT = real(solver), uEltype = RealT)
     equations_hyperbolic, equations_parabolic = equations
     boundary_conditions_hyperbolic, boundary_conditions_parabolic = boundary_conditions
-    initial_hyperbolic_cache, initial_cache_parabolic = initial_caches
 
     return SemidiscretizationHyperbolicParabolic(mesh, equations_hyperbolic,
                                                  equations_parabolic,
@@ -113,9 +109,7 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations::Tuple,
                                                  solver_parabolic, source_terms,
                                                  boundary_conditions = boundary_conditions_hyperbolic,
                                                  boundary_conditions_parabolic = boundary_conditions_parabolic,
-                                                 RealT, uEltype,
-                                                 initial_cache = initial_hyperbolic_cache,
-                                                 initial_cache_parabolic = initial_cache_parabolic)
+                                                 RealT, uEltype)
 end
 
 function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabolic,
@@ -126,11 +120,8 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabo
                                                boundary_conditions_parabolic = boundary_condition_periodic,
                                                # `RealT` is used as real type for node locations etc.
                                                # while `uEltype` is used as element type of solutions etc.
-                                               RealT = real(solver), uEltype = RealT,
-                                               initial_cache = NamedTuple(),
-                                               initial_cache_parabolic = NamedTuple())
-    cache = (; create_cache(mesh, equations, solver, RealT, uEltype)...,
-             initial_cache...)
+                                               RealT = real(solver), uEltype = RealT)
+    cache = create_cache(mesh, equations, solver, RealT, uEltype)
     _boundary_conditions = digest_boundary_conditions(boundary_conditions, mesh, solver,
                                                       cache)
     _boundary_conditions_parabolic = digest_boundary_conditions(boundary_conditions_parabolic,
@@ -138,11 +129,9 @@ function SemidiscretizationHyperbolicParabolic(mesh, equations, equations_parabo
 
     check_periodicity_mesh_boundary_conditions(mesh, _boundary_conditions)
 
-    cache_parabolic = (;
-                       create_cache_parabolic(mesh, equations, equations_parabolic,
-                                              solver, solver_parabolic, RealT,
-                                              uEltype)...,
-                       initial_cache_parabolic...)
+    cache_parabolic = create_cache_parabolic(mesh, equations, equations_parabolic,
+                                             solver, solver_parabolic, RealT,
+                                             uEltype)
 
     SemidiscretizationHyperbolicParabolic{typeof(mesh), typeof(equations),
                                           typeof(equations_parabolic),
@@ -266,6 +255,14 @@ function compute_coefficients!(u_ode, t, semi::SemidiscretizationHyperbolicParab
     compute_coefficients!(u_ode, semi.initial_condition, t, semi)
 end
 
+# Required for storing `extra_node_variables` in the `SaveSolutionCallback`.
+# Not to be confused with `get_node_vars` which returns the variables of the simulated equation.
+function get_node_variables!(node_variables, u_ode,
+                             semi::SemidiscretizationHyperbolicParabolic)
+    get_node_variables!(node_variables, u_ode, mesh_equations_solver_cache(semi)...,
+                        semi.equations_parabolic, semi.cache_parabolic)
+end
+
 """
     semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan)
 
@@ -285,6 +282,39 @@ function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan;
     end
 
     u0_ode = compute_coefficients(first(tspan), semi)
+    # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
+    #       mpi_isparallel() && MPI.Barrier(mpi_comm())
+    #       See https://github.com/trixi-framework/Trixi.jl/issues/328
+    iip = true # is-inplace, i.e., we modify a vector when calling rhs_parabolic!, rhs!
+    # Note that the IMEX time integration methods of OrdinaryDiffEq.jl treat the
+    # first function implicitly and the second one explicitly. Thus, we pass the
+    # stiffer parabolic function first.
+    return SplitODEProblem{iip}(rhs_parabolic!, rhs!, u0_ode, tspan, semi)
+end
+
+"""
+    semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
+                   restart_file::AbstractString)
+
+Wrap the semidiscretization `semi` as a split ODE problem in the time interval `tspan`
+that can be passed to `solve` from the [SciML ecosystem](https://diffeq.sciml.ai/latest/).
+The parabolic right-hand side is the first function of the split ODE problem and
+will be used by default by the implicit part of IMEX methods from the
+SciML ecosystem.
+
+The initial condition etc. is taken from the `restart_file`.
+"""
+function semidiscretize(semi::SemidiscretizationHyperbolicParabolic, tspan,
+                        restart_file::AbstractString;
+                        reset_threads = true)
+    # Optionally reset Polyester.jl threads. See
+    # https://github.com/trixi-framework/Trixi.jl/issues/1583
+    # https://github.com/JuliaSIMD/Polyester.jl/issues/30
+    if reset_threads
+        Polyester.reset_threads!()
+    end
+
+    u0_ode = load_restart_file(semi, restart_file)
     # TODO: MPI, do we want to synchronize loading and print debug statements, e.g. using
     #       mpi_isparallel() && MPI.Barrier(mpi_comm())
     #       See https://github.com/trixi-framework/Trixi.jl/issues/328

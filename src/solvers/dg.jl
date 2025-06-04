@@ -12,9 +12,47 @@ function get_element_variables!(element_variables, u, mesh, equations,
     nothing
 end
 
-function get_node_variables!(node_variables, mesh, equations,
-                             volume_integral::AbstractVolumeIntegral, dg, cache)
+# Function to define "element variables" for the SaveSolutionCallback. It does
+# nothing by default, but can be specialized for certain mesh types. For instance,
+# parallel meshes output the mpi rank as an "element variable".
+function get_element_variables!(element_variables, mesh, dg, cache)
     nothing
+end
+
+### Functions to define `node variables` for the `SaveSolutionCallback`. ###
+
+# Abstract function which is to be overwritten for the specific `node_variable`
+# in e.g. the elixirs.
+function get_node_variable end
+
+# Version for (purely) hyperbolic equations.
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache)
+        end
+    end
+
+    return nothing
+end
+# Version for parabolic-extended equations
+function get_node_variables!(node_variables, u_ode, mesh, equations,
+                             dg, cache,
+                             equations_parabolic, cache_parabolic)
+    if !isempty(node_variables)
+        u = wrap_array(u_ode, mesh, equations, dg, cache)
+        for var in keys(node_variables)
+            node_variables[var] = get_node_variable(Val(var), u, mesh, equations,
+                                                    dg, cache,
+                                                    equations_parabolic,
+                                                    cache_parabolic)
+        end
+    end
+
+    return nothing
 end
 
 """
@@ -239,17 +277,17 @@ function get_element_variables!(element_variables, u, mesh, equations,
     end
 end
 
-function get_node_variables!(node_variables, mesh, equations,
-                             volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
-    # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
-    # called here to get up-to-date values for IO, this is not easily possible in this case
-    # because the calculation is very integrated into the method.
-    # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
-    # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
-    # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
-    get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
-                        equations)
-end
+# function get_node_variables!(node_variables, mesh, equations,
+#                              volume_integral::VolumeIntegralSubcellLimiting, dg, cache)
+#     # While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
+#     # called here to get up-to-date values for IO, this is not easily possible in this case
+#     # because the calculation is very integrated into the method.
+#     # See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
+#     # Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
+#     # stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+#     get_node_variables!(node_variables, volume_integral.limiter, volume_integral,
+#                         equations)
+# end
 
 # TODO: FD. Should this definition live in a different file because it is
 # not strictly a DG method?
@@ -439,15 +477,12 @@ Base.summary(io::IO, dg::DG) = print(io, "DG(" * summary(dg.basis) * ")")
 function get_element_variables!(element_variables, u, mesh, equations, dg::DG, cache)
     get_element_variables!(element_variables, u, mesh, equations, dg.volume_integral,
                            dg, cache)
-end
-
-function get_node_variables!(node_variables, mesh, equations, dg::DG, cache)
-    get_node_variables!(node_variables, mesh, equations, dg.volume_integral, dg, cache)
+    get_element_variables!(element_variables, mesh, dg, cache)
 end
 
 const MeshesDGSEM = Union{TreeMesh, StructuredMesh, StructuredMeshView,
                           UnstructuredMesh2D,
-                          P4estMesh, T8codeMesh}
+                          P4estMesh, P4estMeshView, T8codeMesh}
 
 @inline function ndofs(mesh::MeshesDGSEM, dg::DG, cache)
     nelements(cache.elements) * nnodes(dg)^ndims(mesh)
@@ -545,6 +580,20 @@ end
     SVector(ntuple(@inline(idx->x[idx, indices...]), Val(ndims(equations))))
 end
 
+"""
+    get_node_vars(u, equations, solver::DG, indices...)
+
+Return the value of the variable (vector) `u` at a node inside a specific element.
+The node is specified by the indices `indices...` argument which is a combination of
+node index inside the element and the element index itself.
+Thus, in 1D this is a two integer tuple `indices = (i, element)`,
+in 2D a three integer tuple `indices = (i, j, element)`,
+and in 3D a four integer tuple `indices = (i, j, k, element)`.
+It is also possible to call this function without `indices` being explicitly a tuple,
+i.e., `get_node_vars(u, equations, solver::DG, i, j, k, element)` is also valid.
+For more details, see the documentation:
+https://docs.julialang.org/en/v1/manual/functions/#Varargs-Functions
+"""
 @inline function get_node_vars(u, equations, solver::DG, indices...)
     # There is a cut-off at `n == 10` inside of the method
     # `ntuple(f::F, n::Integer) where F` in Base at ntuple.jl:17
@@ -672,7 +721,7 @@ end
                 nvariables(equations) * nnodes(dg)^ndims(mesh) * nelements(dg, cache)
     end
     # See comments on the DGSEM version above
-    if LoopVectorization.check_args(u_ode)
+    if _PREFERENCE_POLYESTER && LoopVectorization.check_args(u_ode)
         # Here, we do not specialize on the number of nodes using `StaticInt` since
         # - it will not be type stable (SBP operators just store it as a runtime value)
         # - FD methods tend to use high node counts

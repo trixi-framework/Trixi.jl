@@ -1,20 +1,21 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # Oscillating Gaussian-shaped source terms
 function source_terms_gauss(u, x, t, equations::AcousticPerturbationEquations2D)
-    r = 0.1
-    A = 1.0
-    f = 2.0
+    RealT = eltype(u)
+    r = convert(RealT, 0.1)
+    A = 1
+    f = 2
 
     # Velocity sources
-    s1 = 0.0
-    s2 = 0.0
+    s1 = 0
+    s2 = 0
     # Pressure source
-    s3 = exp(-(x[1]^2 + x[2]^2) / (2 * r^2)) * A * sin(2 * pi * f * t)
+    s3 = exp(-(x[1]^2 + x[2]^2) / (2 * r^2)) * A * sinpi(2 * f * t)
 
     # Mean sources
-    s4 = s5 = s6 = s7 = 0.0
+    s4 = s5 = s6 = s7 = 0
 
     return SVector(s1, s2, s3, s4, s5, s6, s7)
 end
@@ -75,9 +76,6 @@ callbacks = CallbackSet(summary_callback, analysis_callback, save_solution, time
 # run the simulation
 
 # OrdinaryDiffEq's `solve` method evolves the solution in time and executes the passed callbacks
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-
-# Print the timer summary
-summary_callback()
+            ode_default_options()..., callback = callbacks);

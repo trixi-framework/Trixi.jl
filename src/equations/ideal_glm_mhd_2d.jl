@@ -46,6 +46,9 @@ function default_analysis_integrals(::IdealGlmMhdEquations2D)
     (entropy_timederivative, Val(:l2_divb), Val(:linf_divb))
 end
 
+# Helper function to extract the magnetic field vector from the conservative variables
+magnetic_field(u, equations::IdealGlmMhdEquations2D) = SVector(u[6], u[7], u[8])
+
 # Set initial conditions at physical location `x` for time `t`
 """
     initial_condition_constant(x, t, equations::IdealGlmMhdEquations2D)
@@ -70,9 +73,13 @@ end
     initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations2D)
 
 An Alfvén wave as smooth initial condition used for convergence tests.
+See for reference section 4.2 in
+- Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, and Stefanie Walch (2016) 
+  A novel high-order, entropy stable, 3D AMR MHD solver with guaranteed positive pressure
+  [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 """
 function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations2D)
-    # smooth Alfvén wave test from Derigs et al. FLASH (2016)
+    # smooth Alfvén wave test from Derigs et al. (2016)
     # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
     RealT = eltype(x)
     alpha = 0.25f0 * convert(RealT, pi)
@@ -121,7 +128,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::IdealGlmMhdEquations2D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
     v1 = rho_v1 / rho
@@ -775,6 +782,53 @@ end
 
     # wave speeds already scaled by norm(normal_direction) in [`calc_fast_wavespeed`](@ref)
     return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, orientation::Integer,
+                               equations::IdealGlmMhdEquations2D)
+    rho_ll, rho_v1_ll, rho_v2_ll, _ = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, _ = u_rr
+
+    # Calculate the left/right velocities and fast magnetoacoustic wave speeds
+    if orientation == 1
+        v_ll = rho_v1_ll / rho_ll
+        v_rr = rho_v1_rr / rho_rr
+    else # orientation == 2
+        v_ll = rho_v2_ll / rho_ll
+        v_rr = rho_v2_rr / rho_rr
+    end
+    cf_ll = calc_fast_wavespeed(u_ll, orientation, equations)
+    cf_rr = calc_fast_wavespeed(u_rr, orientation, equations)
+
+    return max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
+end
+
+# Less "cautious", i.e., less overestimating `λ_max` compared to `max_abs_speed_naive`
+@inline function max_abs_speed(u_ll, u_rr, normal_direction::AbstractVector,
+                               equations::IdealGlmMhdEquations2D)
+    # return max(v_mag_ll, v_mag_rr) + max(cf_ll, cf_rr)
+    rho_ll, rho_v1_ll, rho_v2_ll, _ = u_ll
+    rho_rr, rho_v1_rr, rho_v2_rr, _ = u_rr
+
+    # Calculate normal velocities and fast magnetoacoustic wave speeds
+    # left
+    v1_ll = rho_v1_ll / rho_ll
+    v2_ll = rho_v2_ll / rho_ll
+    v_ll = (v1_ll * normal_direction[1]
+            +
+            v2_ll * normal_direction[2])
+    cf_ll = calc_fast_wavespeed(u_ll, normal_direction, equations)
+    # right
+    v1_rr = rho_v1_rr / rho_rr
+    v2_rr = rho_v2_rr / rho_rr
+    v_rr = (v1_rr * normal_direction[1]
+            +
+            v2_rr * normal_direction[2])
+    cf_rr = calc_fast_wavespeed(u_rr, normal_direction, equations)
+
+    # wave speeds already scaled by norm(normal_direction) in [`calc_fast_wavespeed`](@ref)
+    return max(abs(v_ll) + cf_ll, abs(v_rr) + cf_rr)
 end
 
 # Calculate estimate for minimum and maximum wave speeds for HLL-type fluxes

@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -15,20 +14,21 @@ function initial_condition_colliding_flow_astro(x, t,
     # change discontinuity to tanh
     # resolution 128^2 elements (refined close to the interface) and polydeg=3 (total of 512^2 DOF)
     # domain size is [-64,+64]^2
+    RealT = eltype(x)
     @unpack gamma = equations
     # the quantities are chosen such, that they are as close as possible to the astro examples
     # keep in mind, that in the astro example, the physical units are weird (parsec, mega years, ...)
-    rho = 0.0247
-    c = 0.2
+    rho = convert(RealT, 0.0247)
+    c = convert(RealT, 0.2)
     p = c^2 / gamma * rho
-    vel = 13.907432274789372
-    slope = 1.0
+    vel = convert(RealT, 13.907432274789372)
+    slope = 1
     v1 = -vel * tanh(slope * x[1])
     # add small initial disturbance to the field, but only close to the interface
     if abs(x[1]) < 10
-        v1 = v1 * (1 + 0.01 * sin(pi * x[2]))
+        v1 = v1 * (1 + RealT(0.01) * sinpi(x[2]))
     end
-    v2 = 0.0
+    v2 = 0
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
 initial_condition = initial_condition_colliding_flow_astro
@@ -113,4 +113,3 @@ stage_limiter! = PositivityPreservingLimiterZhangShu(thresholds = (5.0e-6, 5.0e-
 # use adaptive time stepping based on error estimates, time step roughly dt = 5e-3
 sol = solve(ode, SSPRK43(stage_limiter!);
             ode_default_options()..., callback = callbacks);
-summary_callback() # print the timer summary

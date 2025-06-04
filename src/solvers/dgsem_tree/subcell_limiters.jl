@@ -260,11 +260,18 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterIDP)
     end
 end
 
-function get_node_variables!(node_variables, limiter::SubcellLimiterIDP,
-                             ::VolumeIntegralSubcellLimiting, equations)
-    node_variables[:limiting_coefficient] = limiter.cache.subcell_limiter_coefficients.alpha
-
-    return nothing
+# While for the element-wise limiting with `VolumeIntegralShockCapturingHG` the indicator is
+# called here to get up-to-date values for IO, this is not easily possible in this case
+# because the calculation is very integrated into the method.
+# See also https://github.com/trixi-framework/Trixi.jl/pull/1611#discussion_r1334553206.
+# Therefore, the coefficients at `t=t^{n-1}` are saved. Thus, the coefficients of the first
+# stored solution (initial condition) are not yet defined and were manually set to `NaN`.
+function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache)
+    return dg.volume_integral.limiter.cache.subcell_limiter_coefficients.alpha
+end
+function get_node_variable(::Val{:limiting_coefficient}, u, mesh, equations, dg, cache,
+                           equations_parabolic, cache_parabolic)
+    get_node_variable(Val(:limiting_coefficient), u, mesh, equations, dg, cache)
 end
 
 """
@@ -436,44 +443,123 @@ function Base.show(io::IO, ::MIME"text/plain", limiter::SubcellLimiterMCL)
     end
 end
 
-function get_node_variables!(node_variables, limiter::SubcellLimiterMCL,
-                             ::VolumeIntegralSubcellLimiting, equations)
+function get_node_variable(::Val{:limiting_coefficient_rho}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
     if !limiter.Plotting
-        return nothing
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
-    @unpack alpha = limiter.cache.subcell_limiter_coefficients
-    variables = varnames(cons2cons, equations)
-    for v in eachvariable(equations)
-        s = Symbol("alpha_", variables[v])
-        node_variables[s] = alpha[v, ntuple(_ -> :, size(alpha, 2) + 1)...]
-    end
+    (; alpha) = limiter.cache.subcell_limiter_coefficients
+    return alpha[1, ntuple(_ -> :, size(alpha, 2) + 1)...]
+end
 
-    if limiter.positivity_limiter_pressure
-        @unpack alpha_pressure = limiter.cache.subcell_limiter_coefficients
-        node_variables[:alpha_pressure] = alpha_pressure
+function get_node_variable(::Val{:limiting_coefficient_rho_v1}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
+    (; alpha) = limiter.cache.subcell_limiter_coefficients
+    return alpha[2, ntuple(_ -> :, size(alpha, 2) + 1)...]
+end
 
-    if limiter.entropy_limiter_semidiscrete
-        @unpack alpha_entropy = limiter.cache.subcell_limiter_coefficients
-        node_variables[:alpha_entropy] = alpha_entropy
+function get_node_variable(::Val{:limiting_coefficient_rho_v2}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
+    (; alpha) = limiter.cache.subcell_limiter_coefficients
+    return alpha[3, ntuple(_ -> :, size(alpha, 2) + 1)...]
+end
 
-    for v in eachvariable(equations)
-        @unpack alpha_mean = limiter.cache.subcell_limiter_coefficients
-        s = Symbol("alpha_mean_", variables[v])
-        node_variables[s] = copy(alpha_mean[v, ntuple(_ -> :, size(alpha, 2) + 1)...])
+function get_node_variable(::Val{:limiting_coefficient_rho_e}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
+    (; alpha) = limiter.cache.subcell_limiter_coefficients
+    return alpha[4, ntuple(_ -> :, size(alpha, 2) + 1)...]
+end
 
-    if limiter.positivity_limiter_pressure
-        @unpack alpha_mean_pressure = limiter.cache.subcell_limiter_coefficients
-        node_variables[:alpha_mean_pressure] = alpha_mean_pressure
+function get_node_variable(::Val{:limiting_coefficient_pressure}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
+    (; alpha_pressure) = limiter.cache.subcell_limiter_coefficients
+    return alpha_pressure
+end
 
-    if limiter.entropy_limiter_semidiscrete
-        @unpack alpha_mean_entropy = limiter.cache.subcell_limiter_coefficients
-        node_variables[:alpha_mean_entropy] = alpha_mean_entropy
+function get_node_variable(::Val{:limiting_coefficient_entropy}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
     end
+    (; alpha_entropy) = limiter.cache.subcell_limiter_coefficients
+    return alpha_entropy
+end
 
-    return nothing
+function get_node_variable(::Val{:limiting_coefficient_mean_rho}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean[1, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_rho_v1}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean[2, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_rho_v2}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean[3, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_rho_e}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean[4, ntuple(_ -> :, size(alpha_mean, 2) + 1)...]
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_pressure}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean_pressure) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean_pressure
+end
+
+function get_node_variable(::Val{:limiting_coefficient_mean_entropy}, u,
+                           mesh, equations, dg, cache)
+    (; limiter) = dg.volume_integral
+    if !limiter.Plotting
+        error("Activate `limiter.Plotting` to allow saving of limiting coefficients for MCL.")
+    end
+    (; alpha_mean_entropy) = limiter.cache.subcell_limiter_coefficients
+    return alpha_mean_entropy
 end
 end # @muladd

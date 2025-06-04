@@ -50,24 +50,31 @@ isdir(outdir) && rm(outdir, recursive = true)
         fill!(gradients[dim], zero(eltype(gradients[dim])))
     end
 
+    # unpack VectorOfArray
+    u0 = Base.parent(ode.u0)
     t = 0.0
     # pass in `boundary_condition_periodic` to skip boundary flux/integral evaluation
-    Trixi.calc_gradient!(gradients, ode.u0, t, mesh, equations_parabolic,
-                         boundary_condition_periodic, dg, cache, cache_parabolic)
+    parabolic_scheme = semi.solver_parabolic
+    Trixi.calc_gradient!(gradients, u0, t, mesh, equations_parabolic,
+                         boundary_condition_periodic, dg, parabolic_scheme,
+                         cache, cache_parabolic)
     @unpack x, y, xq, yq = mesh.md
     @test getindex.(gradients[1], 1) ≈ 2 * xq .* yq
     @test getindex.(gradients[2], 1) ≈ xq .^ 2
 
     u_flux = similar.(gradients)
-    Trixi.calc_viscous_fluxes!(u_flux, ode.u0, gradients, mesh, equations_parabolic,
+    Trixi.calc_viscous_fluxes!(u_flux, u0, gradients, mesh,
+                               equations_parabolic,
                                dg, cache, cache_parabolic)
     @test u_flux[1] ≈ gradients[1]
     @test u_flux[2] ≈ gradients[2]
 
-    du = similar(ode.u0)
-    Trixi.calc_divergence!(du, ode.u0, t, u_flux, mesh, equations_parabolic,
+    du = similar(u0)
+    Trixi.calc_divergence!(du, u0, t, u_flux, mesh,
+                           equations_parabolic,
                            boundary_condition_periodic,
                            dg, semi.solver_parabolic, cache, cache_parabolic)
+    Trixi.invert_jacobian!(du, mesh, equations_parabolic, dg, cache; scaling = 1.0)
     @test getindex.(du, 1) ≈ 2 * y
 end
 
@@ -124,16 +131,16 @@ end
                                  "elixir_navierstokes_convergence.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[
-                            0.0015355076812510957,
-                            0.0033843168272696756,
-                            0.0036531858107443434,
-                            0.009948436427519214
+                            0.0015355076237431118,
+                            0.003384316785885901,
+                            0.0036531858026850757,
+                            0.009948436101649498
                         ],
                         linf=[
-                            0.005522560467190019,
-                            0.013425258500730508,
-                            0.013962115643482154,
-                            0.027483102120502423
+                            0.005522560543588462,
+                            0.013425258431728926,
+                            0.013962115936715924,
+                            0.027483099961148838
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -150,16 +157,16 @@ end
                                  "elixir_navierstokes_convergence_curved.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.1),
                         l2=[
-                            0.004255101916146187,
-                            0.011118488923215765,
-                            0.011281831283462686,
-                            0.03573656447388509
+                            0.0042551020940351444,
+                            0.011118489080358264,
+                            0.011281831362358863,
+                            0.035736565778376306
                         ],
                         linf=[
-                            0.015071710669706473,
-                            0.04103132025858458,
-                            0.03990424085750277,
-                            0.1309401718598764
+                            0.015071709836357083,
+                            0.04103131887989486,
+                            0.03990424032494211,
+                            0.13094018584692968
                         ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -176,16 +183,16 @@ end
                                  "elixir_navierstokes_lid_driven_cavity.jl"),
                         cells_per_dimension=(4, 4), tspan=(0.0, 0.5),
                         l2=[
-                            0.00022156125227115747,
-                            0.028318325921401,
-                            0.009509168701070296,
-                            0.028267900513550506
+                            0.0002215612357465129,
+                            0.028318325887331217,
+                            0.009509168805093485,
+                            0.028267893004691534
                         ],
                         linf=[
-                            0.001562278941298234,
-                            0.14886653390744856,
-                            0.0716323565533752,
-                            0.19472785105241996
+                            0.0015622793960574644,
+                            0.1488665309341318,
+                            0.07163235778907852,
+                            0.19472797949052278
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -203,6 +210,22 @@ end
                         initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
                         l2=[4.0915532997994255e-6],
                         linf=[2.3040850347877395e-5])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion.jl (LDG)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_diffusion.jl"),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        initial_refinement_level=2, tspan=(0.0, 0.4), polydeg=5,
+                        l2=[6.193056910594806e-6], linf=[4.918855889635143e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -247,12 +270,47 @@ end
     end
 end
 
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_amr.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_amr.jl"),
+                        initial_refinement_level=2,
+                        base_level=2,
+                        med_level=3,
+                        max_level=4,
+                        l2=[0.0009662045510830027],
+                        linf=[0.006121646998993091])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl" begin
     @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
                                  "elixir_advection_diffusion_nonperiodic.jl"),
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         l2=[0.007646800618485118],
                         linf=[0.10067621050468958])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "TreeMesh2D: elixir_advection_diffusion_nonperiodic.jl (LDG)" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_advection_diffusion_nonperiodic.jl"),
+                        initial_refinement_level=2, tspan=(0.0, 0.1),
+                        solver_parabolic=ViscousFormulationLocalDG(),
+                        l2=[0.007009146246373517], linf=[0.09535203925012649])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -273,16 +331,16 @@ end
                                                                                        energy_internal,
                                                                                        enstrophy)),
                         l2=[
-                            0.002111672530658797,
-                            0.0034322351490857846,
-                            0.0038742528195910416,
-                            0.012469246082568561
+                            0.0021116725306624543,
+                            0.003432235149083229,
+                            0.003874252819605527,
+                            0.012469246082535005
                         ],
                         linf=[
-                            0.012006418939223495,
-                            0.035520871209746126,
-                            0.024512747492231427,
-                            0.11191122588756564
+                            0.012006418939279007,
+                            0.03552087120962882,
+                            0.02451274749189282,
+                            0.11191122588626357
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -303,16 +361,16 @@ end
                                                                                                                                               equations),
                                                                                              equations)),
                         l2=[
-                            0.002103629650383915,
-                            0.003435843933396454,
-                            0.00386735987813341,
-                            0.012670355349235728
+                            0.0021036296503840883,
+                            0.003435843933397192,
+                            0.003867359878114748,
+                            0.012670355349293195
                         ],
                         linf=[
-                            0.012006261793147788,
-                            0.03550212518982032,
-                            0.025107947319661185,
-                            0.11647078036571124
+                            0.01200626179308184,
+                            0.03550212518997239,
+                            0.025107947320178275,
+                            0.11647078036751068
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -330,16 +388,16 @@ end
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         gradient_variables=GradientVariablesEntropy(),
                         l2=[
-                            0.0021403742517389513,
-                            0.0034258287094908572,
-                            0.0038915122886898517,
-                            0.012506862343013842
+                            0.002140374251729127,
+                            0.003425828709496601,
+                            0.0038915122887358097,
+                            0.012506862342858291
                         ],
                         linf=[
-                            0.012244412004628336,
-                            0.03507559186162224,
-                            0.024580892345558894,
-                            0.11425600758350107
+                            0.012244412004772665,
+                            0.03507559186131113,
+                            0.02458089234472249,
+                            0.11425600758024679
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -361,16 +419,16 @@ end
                                                                                                                                               equations),
                                                                                              equations)),
                         l2=[
-                            0.0021349737347844907,
-                            0.0034301388278203033,
-                            0.0038928324474291572,
-                            0.012693611436230873
+                            0.0021349737347923716,
+                            0.0034301388278178365,
+                            0.0038928324473968836,
+                            0.012693611436338
                         ],
                         linf=[
-                            0.01224423627586213,
-                            0.035054066314102905,
-                            0.025099598504931965,
-                            0.11795616324751634
+                            0.012244236275761766,
+                            0.03505406631430898,
+                            0.025099598505644406,
+                            0.11795616324985403
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -388,16 +446,16 @@ end
                         initial_refinement_level=2, tspan=(0.0, 0.1),
                         volume_integral=VolumeIntegralFluxDifferencing(flux_central),
                         l2=[
-                            0.0021116725306633594,
-                            0.0034322351490827557,
-                            0.0038742528196093542,
-                            0.012469246082526909
+                            0.0021116725306612075,
+                            0.0034322351490838703,
+                            0.0038742528196011594,
+                            0.012469246082545557
                         ],
                         linf=[
-                            0.012006418939291663,
-                            0.035520871209594115,
-                            0.024512747491801577,
-                            0.11191122588591007
+                            0.012006418939262131,
+                            0.0355208712096602,
+                            0.024512747491999436,
+                            0.11191122588669522
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -431,11 +489,15 @@ end
                 ode_default_options()..., callback = callbacks)
     l2_error, linf_error = analysis_callback(sol)
     @test l2_error ≈
-          [0.00024296959173852447; 0.0002093263158670915; 0.0005390572390977262;
-           0.00026753561392341537]
+          [0.00024296959174050973;
+           0.00020932631586399853;
+           0.0005390572390981241;
+           0.00026753561391316933]
     @test linf_error ≈
-          [0.0016210102053424436; 0.002593287648655501; 0.002953907343823712;
-           0.002077119120180271]
+          [0.0016210102053486608;
+           0.0025932876486537016;
+           0.0029539073438284817;
+           0.0020771191202548778]
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -613,16 +675,16 @@ end
                                  "elixir_navierstokes_convergence.jl"),
                         initial_refinement_level=1, tspan=(0.0, 0.2),
                         l2=[
-                            0.0003811978985836709,
-                            0.0005874314969169538,
-                            0.0009142898787923481,
-                            0.0011613918899727263
+                            0.0003811978986531135,
+                            0.0005874314969137914,
+                            0.0009142898787681551,
+                            0.0011613918893790497
                         ],
                         linf=[
-                            0.0021633623982135752,
-                            0.009484348274135372,
-                            0.004231572066492217,
-                            0.011661660275365193
+                            0.0021633623985426453,
+                            0.009484348273965089,
+                            0.0042315720663082534,
+                            0.011661660264076446
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -639,16 +701,16 @@ end
                                  "elixir_navierstokes_convergence_nonperiodic.jl"),
                         initial_refinement_level=1, tspan=(0.0, 0.2),
                         l2=[
-                            0.00040364962558511795,
-                            0.0005869762481506936,
-                            0.00091488537427274,
-                            0.0011984191566376762
+                            0.0004036496258545996,
+                            0.0005869762480189079,
+                            0.0009148853742181908,
+                            0.0011984191532764543
                         ],
                         linf=[
-                            0.0024993634941723464,
-                            0.009487866203944725,
-                            0.004505829506628117,
-                            0.011634902776245681
+                            0.0024993634989209923,
+                            0.009487866203496731,
+                            0.004505829506103787,
+                            0.011634902753554499
                         ])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
@@ -719,10 +781,7 @@ end
                             1.199362305026636,
                             0.9077214424040279,
                             5.666071182328691], tspan=(0.0, 0.001),
-                        initial_refinement_level=0,
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 10_000,))
+                        initial_refinement_level=0,)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -755,6 +814,192 @@ end
 
     @test isapprox(drag_f, 1.5427441885921553, atol = 1e-13)
     @test isapprox(lift_f, 0.005621910087395724, atol = 1e-13)
+end
+
+@trixi_testset "P4estMesh2D: elixir_navierstokes_viscous_shock.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_viscous_shock.jl"),
+                        l2=[
+                            0.0002576236264053728,
+                            0.00014336949098706463,
+                            7.189100338239794e-17,
+                            0.00017369905124642074
+                        ],
+                        linf=[
+                            0.0016731940983241156,
+                            0.0010638640749656147,
+                            5.59044079947959e-16,
+                            0.001149532023891009
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_SD7003airfoil.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_SD7003airfoil.jl"),
+                        l2=[
+                            9.292899618740586e-5,
+                            0.0001350510200255721,
+                            7.964907891113045e-5,
+                            0.0002336568736996096
+                        ],
+                        linf=[
+                            0.2845637352223691,
+                            0.295808392241858,
+                            0.19309201225626166,
+                            0.7188927326929244
+                        ],
+                        tspan=(0.0, 5e-3))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_SD7003airfoil.jl (CFL-Interval)" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_SD7003airfoil.jl"),
+                        l2=[
+                            9.292895651912815e-5,
+                            0.0001350510066877861,
+                            7.964905098170568e-5,
+                            0.00023365678706785303
+                        ],
+                        linf=[
+                            0.2845614660523972,
+                            0.29577255454711177,
+                            0.19307666048254143,
+                            0.7188872358580256
+                        ],
+                        tspan=(0.0, 5e-3),
+                        stepsize_callback=StepsizeCallback(cfl = 2.2, interval = 5))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_vortex_street.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_vortex_street.jl"),
+                        l2=[
+                            0.012420217727434794,
+                            0.028935260981567217,
+                            0.023078384429351353,
+                            0.11317643179072025
+                        ],
+                        linf=[
+                            0.4484833725983406,
+                            1.268913882714608,
+                            0.7071821629898418,
+                            3.643975012834931
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "tree_2d_dgsem",
+                                 "elixir_navierstokes_kelvin_helmholtz_instability_sc_subcell.jl"),
+                        l2=[
+                            0.1987691663292404,
+                            0.10033374417496764,
+                            0.15994212326188492,
+                            0.07314656160168935
+                        ],
+                        linf=[
+                            0.8901521805368232,
+                            0.47421193123471655,
+                            0.3885949665915893,
+                            0.3247506602135042
+                        ],
+                        tspan=(0.0, 1.0))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_freestream_symmetry.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_freestream_symmetry.jl"),
+                        l2=[
+                            4.37868326434923e-15,
+                            7.002449644031901e-16,
+                            1.0986677074164136e-14,
+                            1.213800745067394e-14
+                        ],
+                        linf=[
+                            2.531308496145357e-14,
+                            3.8367543336926215e-15,
+                            4.9960036108132044e-14,
+                            6.705747068735946e-14
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_navierstokes_blast_reflective.jl" begin
+    @test_trixi_include(joinpath(examples_dir(), "p4est_2d_dgsem",
+                                 "elixir_navierstokes_blast_reflective.jl"),
+                        l2=[
+                            0.08271777454941344,
+                            0.10020048140682014,
+                            0.10020048140682006,
+                            0.5954017435122945
+                        ],
+                        linf=[
+                            0.4785944470287504,
+                            0.7205772140501768,
+                            0.7205772140501767,
+                            3.25120873497427
+                        ],
+                        tspan=(0.0, 0.05),
+                        abstol=1e-7, reltol=1e-7)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
 end
 end
 

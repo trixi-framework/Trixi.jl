@@ -49,9 +49,9 @@ end
 """
     ParsaniKetchesonDeconinck3Sstar94()
 
-Parsani, Ketcheson, Deconinck (2013)
+- Parsani, Ketcheson, Deconinck (2013)
   Optimized explicit RK schemes for the spectral difference method applied to wave propagation problems
-[DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
+  [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
 struct ParsaniKetchesonDeconinck3Sstar94 <: SimpleAlgorithm3Sstar
     gamma1::SVector{9, Float64}
@@ -100,9 +100,9 @@ end
 """
     ParsaniKetchesonDeconinck3Sstar32()
 
-Parsani, Ketcheson, Deconinck (2013)
+- Parsani, Ketcheson, Deconinck (2013)
   Optimized explicit RK schemes for the spectral difference method applied to wave propagation problems
-[DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
+  [DOI: 10.1137/120885899](https://doi.org/10.1137/120885899)
 """
 struct ParsaniKetchesonDeconinck3Sstar32 <: SimpleAlgorithm3Sstar
     gamma1::SVector{3, Float64}
@@ -145,8 +145,9 @@ function SimpleIntegrator3SstarOptions(callback, tspan; maxiters = typemax(Int),
 end
 
 mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
-                                      SimpleIntegrator3SstarOptions}
-    u::uType #
+                                      SimpleIntegrator3SstarOptions} <:
+               AbstractTimeIntegrator
+    u::uType
     du::uType
     u_tmp1::uType
     u_tmp2::uType
@@ -156,8 +157,8 @@ mutable struct SimpleIntegrator3Sstar{RealT <: Real, uType, Params, Sol, F, Alg,
     iter::Int # current number of time step (iteration)
     p::Params # will be the semidiscretization from Trixi.jl
     sol::Sol # faked
-    f::F
-    alg::Alg
+    f::F # `rhs!` of the semidiscretization
+    alg::Alg # SimpleAlgorithm3Sstar
     opts::SimpleIntegrator3SstarOptions
     finalstep::Bool # added for convenience
 end
@@ -217,6 +218,8 @@ function solve!(integrator::SimpleIntegrator3Sstar)
         step!(integrator)
     end # "main loop" timer
 
+    finalize_callbacks(integrator)
+
     return TimeIntegratorSolution((first(prob.tspan), integrator.t),
                                   (prob.u0, integrator.u),
                                   integrator.sol.prob)
@@ -265,13 +268,15 @@ function step!(integrator::SimpleIntegrator3Sstar)
     integrator.iter += 1
     integrator.t += integrator.dt
 
-    # handle callbacks
-    if callbacks isa CallbackSet
-        foreach(callbacks.discrete_callbacks) do cb
-            if cb.condition(integrator.u, integrator.t, integrator)
-                cb.affect!(integrator)
+    @trixi_timeit timer() "Step-Callbacks" begin
+        # handle callbacks
+        if callbacks isa CallbackSet
+            foreach(callbacks.discrete_callbacks) do cb
+                if cb.condition(integrator.u, integrator.t, integrator)
+                    cb.affect!(integrator)
+                end
+                return nothing
             end
-            return nothing
         end
     end
 
@@ -296,7 +301,7 @@ function set_proposed_dt!(integrator::SimpleIntegrator3Sstar, dt)
     integrator.dt = dt
 end
 
-# Required e.g. for `glm_speed_callback` 
+# Required e.g. for `glm_speed_callback`
 function get_proposed_dt(integrator::SimpleIntegrator3Sstar)
     return integrator.dt
 end

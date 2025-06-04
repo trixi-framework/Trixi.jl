@@ -137,7 +137,7 @@ function prolong2mpimortars!(cache, u,
                              mesh::Union{ParallelP4estMesh{2}, ParallelT8codeMesh{2}},
                              equations,
                              mortar_l2::LobattoLegendreMortarL2,
-                             surface_integral, dg::DGSEM)
+                             dg::DGSEM)
     @unpack node_indices = cache.mpi_mortars
     index_range = eachnode(dg)
 
@@ -177,11 +177,9 @@ function prolong2mpimortars!(cache, u,
 
                 # Interpolate large element face data from buffer to small face locations
                 multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 1, :, mortar),
-                                        mortar_l2.forward_lower,
-                                        u_buffer)
+                                        mortar_l2.forward_lower, u_buffer)
                 multiply_dimensionwise!(view(cache.mpi_mortars.u, 2, :, 2, :, mortar),
-                                        mortar_l2.forward_upper,
-                                        u_buffer)
+                                        mortar_l2.forward_upper, u_buffer)
             else # position in (1, 2) -> small element
                 # Copy solution data from the small elements
                 i_small = i_small_start
@@ -209,13 +207,13 @@ function calc_mpi_mortar_flux!(surface_flux_values,
                                surface_integral, dg::DG, cache)
     @unpack local_neighbor_ids, local_neighbor_positions, node_indices = cache.mpi_mortars
     @unpack contravariant_vectors = cache.elements
-    @unpack fstar_upper_threaded, fstar_lower_threaded = cache
+    @unpack fstar_primary_upper_threaded, fstar_primary_lower_threaded = cache
     index_range = eachnode(dg)
 
     @threaded for mortar in eachmpimortar(dg, cache)
         # Choose thread-specific pre-allocated container
-        fstar = (fstar_lower_threaded[Threads.threadid()],
-                 fstar_upper_threaded[Threads.threadid()])
+        fstar = (fstar_primary_lower_threaded[Threads.threadid()],
+                 fstar_primary_upper_threaded[Threads.threadid()])
 
         # Get index information on the small elements
         small_indices = node_indices[1, mortar]
@@ -235,8 +233,7 @@ function calc_mpi_mortar_flux!(surface_flux_values,
 
                 calc_mpi_mortar_flux!(fstar, mesh, nonconservative_terms, equations,
                                       surface_integral, dg, cache,
-                                      mortar, position, normal_direction,
-                                      node)
+                                      mortar, position, normal_direction, node)
 
                 i_small += i_small_step
                 j_small += j_small_step

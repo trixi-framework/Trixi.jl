@@ -59,8 +59,7 @@ end
                             6.314906965187994e-5,
                             6.31490696496595e-5,
                             6.314906965032563e-5
-                        ],
-                        coverage_override=(maxiters = 10^5,))
+                        ],)
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         errors = analysis_callback(sol)
@@ -96,8 +95,31 @@ end
                         linf=[
                             6.627000273318195e-5,
                             6.62700027264096e-5
+                        ],)
+
+    @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
+        # Ensure that we do not have excessive memory allocations
+        # (e.g., from type instabilities)
+        let
+            t = sol.t[end]
+            u_ode = sol.u[end]
+            du_ode = similar(u_ode)
+            @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        end
+    end
+end
+
+@trixi_testset "elixir_advection_meshview.jl with time-dependent CFL" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_meshview.jl"),
+                        l2=[
+                            8.311947673083206e-6,
+                            8.311947673068427e-6
                         ],
-                        coverage_override=(maxiters = 10^5,))
+                        linf=[
+                            6.627000273318195e-5,
+                            6.62700027264096e-5
+                        ],
+                        stepsize_callback=StepsizeCallback(cfl = x -> 1.6))
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         # Ensure that we do not have excessive memory allocations
@@ -253,10 +275,7 @@ end
 @trixi_testset "elixir_advection_restart.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_restart.jl"),
                         l2=[4.219208035582454e-6],
-                        linf=[3.438434404412494e-5],
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        linf=[3.438434404412494e-5],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -273,10 +292,7 @@ end
                         linf=[0.0015194252169410394],
                         rtol=5.0e-5, # Higher tolerance to make tests pass in CI (in particular with macOS)
                         elixir_file="elixir_advection_waving_flag.jl",
-                        restart_file="restart_000000021.h5",
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        restart_file="restart_000000021.h5",)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -292,10 +308,7 @@ end
                         l2=[7.841217436552029e-15],
                         linf=[1.0857981180834031e-13],
                         elixir_file="elixir_advection_free_stream.jl",
-                        restart_file="restart_000000036.h5",
-                        # With the default `maxiters = 1` in coverage tests,
-                        # there would be no time steps after the restart.
-                        coverage_override=(maxiters = 100_000,))
+                        restart_file="restart_000000036.h5",)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -557,16 +570,16 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR,
                                  "elixir_euler_source_terms_sc_subcell.jl"),
                         l2=[
-                            0.00816012943805366,
-                            0.008658255997419217,
-                            0.00935190284719103,
-                            0.027757019482291357
+                            0.008160130377504262,
+                            0.008658251570413505,
+                            0.009351904811521596,
+                            0.027757011943600092
                         ],
                         linf=[
-                            0.02722563220635177,
-                            0.040734034380730755,
-                            0.03819407626402338,
-                            0.08080649141597318
+                            0.027225586655142298,
+                            0.04073403227619998,
+                            0.038194072596896333,
+                            0.08080652842365987
                         ],
                         tspan=(0.0, 0.5))
     # Ensure that we do not have excessive memory allocations
@@ -739,16 +752,7 @@ end
     lines = readlines(joinpath("out", "alphas.txt"))
     @test lines[1] ==
           "# iter, simu_time, alpha_max, alpha_avg"
-    cmd = string(Base.julia_cmd())
-    coverage = occursin("--code-coverage", cmd) &&
-               !occursin("--code-coverage=none", cmd)
-    if coverage
-        # Run with coverage takes 1 time steps.
-        @test occursin(r"1, 0.0002[0-9]*, 1.0, 0.9809", lines[end])
-    else
-        # Run without coverage takes 193 time steps.
-        @test startswith(lines[end], "193, 0.05, 1.0, 0.3160")
-    end
+    @test startswith(lines[end], "193, 0.05, 1.0, 0.316")
     @test count(",", lines[end]) == 3
     @test !any(occursin.(r"NaN", lines))
     # Ensure that we do not have excessive memory allocations
@@ -787,16 +791,7 @@ end
     lines = readlines(joinpath("out", "alphas_mean.txt"))
     @test lines[1] ==
           "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e"
-    cmd = string(Base.julia_cmd())
-    coverage = occursin("--code-coverage", cmd) &&
-               !occursin("--code-coverage=none", cmd)
-    if coverage
-        # Run with coverage takes 1 time steps.
-        @test startswith(lines[end], "1, 0.0002")
-    else
-        # Run without coverage takes 191 time steps.
-        @test startswith(lines[end], "191, 0.05, 3.70")
-    end
+    @test startswith(lines[end], "191, 0.05, 3.70")
     @test count(",", lines[end]) == 9
     @test !any(occursin.(r"NaN", lines))
 
@@ -804,13 +799,7 @@ end
     lines = readlines(joinpath("out", "alphas_min.txt"))
     @test lines[1] ==
           "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e"
-    if coverage
-        # Run with coverage takes 1 time steps.
-        @test startswith(lines[end], "1, 0.0002") # TODO
-    else
-        # Run without coverage takes 191 time steps.
-        @test startswith(lines[end], "191, 0.05, -0.0, 0.7216")
-    end
+    @test startswith(lines[end], "191, 0.05, -0.0, 0.7216")
     @test count(",", lines[end]) == 9
     @test !any(occursin.(r"NaN", lines))
     # Ensure that we do not have excessive memory allocations
@@ -910,6 +899,34 @@ end
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
+@trixi_testset "elixir_euler_vortex_perk4.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_vortex_perk4.jl"),
+                        l2=[
+                            0.0001846244731283424,
+                            0.00042537910268029285,
+                            0.0003724909264689687,
+                            0.0026689613797051493
+                        ],
+                        linf=[
+                            0.0025031072787504716,
+                            0.009266316022570331,
+                            0.009876399281272374,
+                            0.0306915591360557
+                        ])
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom 
+        # integrator which are not *recorded* for the methods from 
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000
     end
 end
 
@@ -1188,8 +1205,7 @@ end
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[0.8799744480157664, 0.8535008397034816, 0.7851383019164209],
                         linf=[1.0771947577311836, 1.9143913544309838, 2.149549109115789],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -1217,8 +1233,7 @@ end
                             0.8344372248051408,
                             0.8344372248051408
                         ],
-                        tspan=(0.0, 0.1),
-                        coverage_override=(polydeg = 3,)) # Prevent long compile time in CI
+                        tspan=(0.0, 0.1),)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -1275,46 +1290,17 @@ end
     end
 end
 
-@trixi_testset "elixir_shallowwater_source_terms.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_source_terms.jl"),
-                        l2=[
-                            0.0017286908591070864,
-                            0.025585037307655684,
-                            0.028374244567802766,
-                            6.274146767730866e-5
-                        ],
-                        linf=[
-                            0.012973752001194772,
-                            0.10829375385832263,
-                            0.15832858475438094,
-                            0.00018196759554722775
-                        ],
-                        tspan=(0.0, 0.05))
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-end
-
-@trixi_testset "elixir_shallowwater_well_balanced.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_shallowwater_well_balanced.jl"),
-                        l2=[
-                            0.7920927046419308,
-                            9.92129670988898e-15,
-                            1.0118635033124588e-14,
-                            0.7920927046419308
-                        ],
-                        linf=[
-                            2.408429868800133,
-                            5.5835419986809516e-14,
-                            5.448874313931364e-14,
-                            2.4084298688001335
-                        ],
-                        tspan=(0.0, 0.25))
+@trixi_testset "elixir_mhd_onion.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_onion.jl"),
+                        l2=[0.006145639992956197, 0.042989758089762846,
+                            0.009442309049940338, 0.0,
+                            0.02346607486955775, 0.003700847949592663,
+                            0.006939946054722184, 0.0, 5.379622479061923e-7],
+                        linf=[0.04033992113717777, 0.2507389500590965,
+                            0.055979197375423013, 0.0,
+                            0.14115256348718286, 0.01995761261479112,
+                            0.038667260744994936, 0.0,
+                            3.3767778019495598e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -1372,8 +1358,7 @@ end
                             0.06180314632253597, 9.487023254761695e-7,
                             0.04370156101034084, 0.04370147392153745,
                             0.06180318786081015, 3.430672973680963e-8
-                        ],
-                        coverage_override=(maxiters = 10^5,))
+                        ],)
 
     @testset "analysis_callback(sol) for AnalysisCallbackCoupled" begin
         errors = analysis_callback(sol)

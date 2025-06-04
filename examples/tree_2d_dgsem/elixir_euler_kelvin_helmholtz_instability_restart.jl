@@ -1,4 +1,3 @@
-using OrdinaryDiffEq
 using Trixi
 
 path = "out"
@@ -29,4 +28,3 @@ callbacks = CallbackSet(summary_callback,
 sol = Trixi.solve(ode,
                   dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
                   callback = callbacks);
-summary_callback() # print the timer summary

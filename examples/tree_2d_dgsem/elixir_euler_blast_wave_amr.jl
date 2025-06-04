@@ -1,5 +1,4 @@
-
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -18,7 +17,8 @@ A medium blast wave taken from
 function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquations2D)
     # Modified From Hennemann & Gassner JCP paper 2020 (Sec. 6.3) -> "medium blast wave"
     # Set up polar coordinates
-    inicenter = SVector(0.0, 0.0)
+    RealT = eltype(x)
+    inicenter = SVector(0, 0)
     x_norm = x[1] - inicenter[1]
     y_norm = x[2] - inicenter[2]
     r = sqrt(x_norm^2 + y_norm^2)
@@ -26,10 +26,10 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
     sin_phi, cos_phi = sincos(phi)
 
     # Calculate primitive variables
-    rho = r > 0.5 ? 1.0 : 1.1691
-    v1 = r > 0.5 ? 0.0 : 0.1882 * cos_phi
-    v2 = r > 0.5 ? 0.0 : 0.1882 * sin_phi
-    p = r > 0.5 ? 1.0E-3 : 1.245
+    rho = r > 0.5f0 ? one(RealT) : RealT(1.1691)
+    v1 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * cos_phi
+    v2 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * sin_phi
+    p = r > 0.5f0 ? RealT(1.0E-3) : RealT(1.245)
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
@@ -69,10 +69,40 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+# Add `:mach` to `extra_node_variables` tuple ...
+extra_node_variables = (:mach,)
+
+# ... and specify the function `get_node_variable` for this symbol, 
+# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
+function Trixi.get_node_variable(::Val{:mach}, u, mesh, equations, dg, cache)
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, the variable must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    mach_array = zeros(eltype(cache.elements),
+                       n_nodes, n_nodes, # equivalent: `ntuple(_ -> n_nodes, ndims(mesh))...,`
+                       n_elements)
+
+    # We can accelerate the computation by thread-parallelizing the loop over elements
+    # by using the `@threaded` macro.
+    Trixi.@threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, element)
+            rho, v1, v2, p = prim2cons(u_node, equations)
+            c = sqrt(equations.gamma * p / rho) # speed of sound
+            v_magnitude = sqrt(v1^2 + v2^2)
+
+            mach_array[i, j, element] = v_magnitude / c
+        end
+    end
+
+    return mach_array
+end
 save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
                                      save_final_solution = true,
-                                     solution_variables = cons2prim)
+                                     solution_variables = cons2prim,
+                                     extra_node_variables = extra_node_variables) # Supply the additional `extra_node_variables` here
 
 amr_indicator = IndicatorHennemannGassner(semi,
                                           alpha_max = 0.5,
@@ -97,7 +127,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

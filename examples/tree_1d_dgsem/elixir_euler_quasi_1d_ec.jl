@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -15,10 +15,11 @@ equations = CompressibleEulerEquationsQuasi1D(1.4)
 # refinement level is changed the initial condition below may need changed as well to
 # ensure that the discontinuities lie on an element interface.
 function initial_condition_ec(x, t, equations::CompressibleEulerEquationsQuasi1D)
-    v1 = 0.1
-    rho = 2.0 + 0.1 * x[1]
-    p = 3.0
-    a = 2.0 + x[1]
+    RealT = eltype(x)
+    v1 = convert(RealT, 0.1)
+    rho = 2 + convert(RealT, 0.1) * x[1]
+    p = 3
+    a = 2 + x[1]
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
@@ -67,7 +68,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);

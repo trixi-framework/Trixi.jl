@@ -1,4 +1,4 @@
-using OrdinaryDiffEq
+using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
 using Trixi
 
 ###############################################################################
@@ -14,14 +14,15 @@ A discontinuous initial condition taken from
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
     High order entropy stable schemes for the quasi-one-dimensional
     shallow water and compressible Euler equations
-    [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)   
+    [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
 function initial_condition_discontinuity(x, t,
                                          equations::CompressibleEulerEquationsQuasi1D)
-    rho = (x[1] < 0) ? 3.4718 : 2.0
-    v1 = (x[1] < 0) ? -2.5923 : -3.0
-    p = (x[1] < 0) ? 5.7118 : 2.639
-    a = (x[1] < 0) ? 1.0 : 1.5
+    RealT = eltype(x)
+    rho = (x[1] < 0) ? RealT(3.4718) : RealT(2.0)
+    v1 = (x[1] < 0) ? RealT(-2.5923) : RealT(-3.0)
+    p = (x[1] < 0) ? RealT(5.7118) : RealT(2.639)
+    a = (x[1] < 0) ? 1.0f0 : 1.5f0
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
@@ -79,7 +80,6 @@ callbacks = CallbackSet(summary_callback,
 ###############################################################################
 # run the simulation
 
-sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false);
             dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
-            save_everystep = false, callback = callbacks);
-summary_callback() # print the timer summary
+            ode_default_options()..., callback = callbacks);
