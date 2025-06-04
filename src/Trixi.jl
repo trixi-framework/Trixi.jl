@@ -265,7 +265,8 @@ export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection
 
 export nelements, nnodes, nvariables,
-       eachelement, eachnode, eachvariable
+       eachelement, eachnode, eachvariable,
+       get_node_vars
 
 export SemidiscretizationHyperbolic, semidiscretize, compute_coefficients, integrate
 

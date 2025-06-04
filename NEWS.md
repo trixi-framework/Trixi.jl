@@ -17,12 +17,30 @@ for human readability.
 
 #### Added
 
+- Arbitrary solution-dependent quantities can now be saved in the `SaveSolutionCallback` (and thus later on visualized) ([#2298]).
+
 #### Changed
+
+- When using the `VolumeIntegralSubcellLimiting` with the `SubcellLimiterIDP` the
+  `:limiting_coefficient` must be explicitly provided to the `SaveSolutionCallback` via
+  ```julia
+  save_sol_cb = SaveSolutionCallback(interval = 42,
+                                     extra_node_variables = (:limiting_coefficient,))
+  ```
+  i.e., is no longer automatically saved ([#2298]).
 
 #### Deprecated
 
 #### Removed
-- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/). This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
+
+- The shallow-water equation types `ShallowWaterEquations1D`, `ShallowWaterEquations2D`, and 
+  `ShallowWaterEquationsQuasi1D` have been removed from Trixi.jl and are now available via 
+  [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl/). 
+  This also affects the related functions `hydrostatic_reconstruction_audusse_etal`, 
+  `flux_nonconservative_audusse_etal`, and `FluxHydrostaticReconstruction`. ([#2379])
+- The additional `ìnitial_cache` entries in the caches of `SemidiscretizationHyperbolic`
+  and `SemidiscretizationHyperbolicParabolic`, and the corresponding keyword arguments of
+  their constructors have been removed. ([#2399])
 
 ## Changes in the v0.11 lifecycle
 
