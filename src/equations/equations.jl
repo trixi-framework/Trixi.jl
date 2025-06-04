@@ -583,7 +583,6 @@ function waterheight_pressure end
 
 """
     lake_at_rest_error(u, equations)
-
 Calculate the point-wise error for the lake-at-rest steady state solution.
 
 !!! note

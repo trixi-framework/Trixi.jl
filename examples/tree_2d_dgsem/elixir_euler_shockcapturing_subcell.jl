@@ -24,11 +24,11 @@ function initial_condition_blast_wave(x, t, equations::CompressibleEulerEquation
     phi = atan(y_norm, x_norm)
     sin_phi, cos_phi = sincos(phi)
 
-    # Calculate primitive variables                         "normal" medium blast wave
+    # Calculate primitive variables         "normal" medium blast wave
     rho = r > 0.5f0 ? RealT(0.1) : RealT(0.2691)            # rho = r > 0.5 ? 1 : 1.1691
     v1 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * cos_phi
     v2 = r > 0.5f0 ? zero(RealT) : RealT(0.1882) * sin_phi
-    p = r > 0.5f0 ? RealT(1.0E-1) : RealT(1.245)            # p   = r > 0.5 ? 1.0E-3 : 1.245
+    p = r > 0.5f0 ? RealT(1.0E-1) : RealT(1.245)          # p   = r > 0.5 ? 1.0E-3 : 1.245
 
     return prim2cons(SVector(rho, v1, v2, p), equations)
 end
