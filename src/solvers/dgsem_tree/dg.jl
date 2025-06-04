@@ -20,22 +20,15 @@ end
 # Given blending factors `alpha` and the solver `dg`, fill
 # `element_ids_dg` with the IDs of elements using a pure DG scheme and
 # `element_ids_dgfv` with the IDs of elements using a blended DG-FV scheme.
+# TODO: Was deleted in main. Now, it's only used for subcell limiting since there we need the with HG calculated alpha twice (in volume integral and in correction stage). Remove in future?
 function pure_and_blended_element_ids!(element_ids_dg, element_ids_dgfv, alpha, dg::DG,
                                        cache)
     empty!(element_ids_dg)
     empty!(element_ids_dgfv)
-    # For `Float64`, this gives 1.8189894035458565e-12
-    # For `Float32`, this gives 1.1920929f-5
-    RealT = eltype(alpha)
-    atol = max(100 * eps(RealT), eps(RealT)^convert(RealT, 0.75f0))
 
     for element in eachelement(dg, cache)
         # Clip blending factor for values close to zero (-> pure DG)
-        if dg.volume_integral isa VolumeIntegralSubcellLimiting
-            tol = dg.volume_integral.limiter.threshold_smoothness_indicator
-        else
-            tol = 1e-12
-        end
+        tol = dg.volume_integral.limiter.threshold_smoothness_indicator
         dg_only = isapprox(alpha[element], 0, atol = tol)
         if dg_only
             push!(element_ids_dg, element)
