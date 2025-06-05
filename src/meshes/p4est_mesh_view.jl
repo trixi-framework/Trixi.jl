@@ -179,6 +179,31 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
                 end
             end
         end
+        # Find this id in the parent's boundaries.
+        parent_xneg_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
+        parent_xpos_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
+        parent_yneg_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_neg]
+        parent_ypos_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]        
+        for (parent_idx, boundary) in enumerate(boundaries_parent.neighbor_ids)
+            if global_id == boundary
+                # Check if boundaries with this id have the right name/node_indices.
+                if boundaries.name[idx] == boundaries_parent.name[parent_idx]
+                    # Make the coupling periodic.
+                    if boundaries_parent.name[parent_idx] == :x_neg
+                        neighbor_ids_global[idx] = parent_xpos_element_ids[findfirst(parent_xneg_element_ids .== boundary)]
+                    end
+                    if boundaries_parent.name[parent_idx] == :x_pos
+                        neighbor_ids_global[idx] = parent_xneg_element_ids[findfirst(parent_xpos_element_ids .== boundary)]
+                    end
+                    if boundaries_parent.name[parent_idx] == :y_neg
+                        neighbor_ids_global[idx] = parent_ypos_element_ids[findfirst(parent_yneg_element_ids .== boundary)]
+                    end
+                    if boundaries_parent.name[parent_idx] == :y_pos
+                        neighbor_ids_global[idx] = parent_yneg_element_ids[findfirst(parent_ypos_element_ids .== boundary)]
+                    end
+                end
+            end
+        end
     end
     @autoinfiltrate
     return boundaries
