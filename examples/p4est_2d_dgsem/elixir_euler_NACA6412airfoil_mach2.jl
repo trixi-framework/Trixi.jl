@@ -1,5 +1,5 @@
 using Trixi
-using OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 
 ###############################################################################
 # semidiscretization of the compressible Euler equations
