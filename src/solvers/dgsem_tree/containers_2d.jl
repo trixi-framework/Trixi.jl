@@ -668,11 +668,11 @@ function Base.resize!(mortars::IDPMortarContainer2D, capacity)
 
     resize!(_u_upper, 2 * n_variables * n_nodes * capacity)
     mortars.u_upper = unsafe_wrap(Array, pointer(_u_upper),
-                                  (n_variables, n_nodes, capacity))
+                                  (2, n_variables, n_nodes, capacity))
 
     resize!(_u_lower, 2 * n_variables * n_nodes * capacity)
     mortars.u_lower = unsafe_wrap(Array, pointer(_u_lower),
-                                  (n_variables, n_nodes, capacity))
+                                  (2, n_variables, n_nodes, capacity))
 
     resize!(_u_large, n_variables * n_nodes * capacity)
     mortars.u_large = unsafe_wrap(Array, pointer(_u_large),
