@@ -1,4 +1,4 @@
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # This is a DGMulti version of the UnstructuredMesh2D elixir `elixir_euler_basic.jl`,
