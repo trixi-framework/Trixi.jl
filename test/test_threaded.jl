@@ -2,7 +2,6 @@ module TestExamplesThreaded
 
 using Test
 using Trixi
-using OrdinaryDiffEqCore
 
 include("test_trixi.jl")
 
