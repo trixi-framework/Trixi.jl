@@ -65,10 +65,10 @@ function extract_p4est_mesh_view(elements_parent,
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
     # Extract boundaries of this mesh view.
-    boundaries = extract_boundaries(mesh, boundaries_parent, interfaces_parent,
-                                    interfaces)
+    boundaries, neighbor_ids_global = extract_boundaries(mesh, boundaries_parent, interfaces_parent,
+                                                         interfaces)
 
-    return elements, interfaces, boundaries, mortars_parent
+    return elements, interfaces, boundaries, mortars_parent, neighbor_ids_global
 end
 
 # Remove all interfaces that have a tuple of neighbor_ids where at least one is
@@ -205,8 +205,8 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
             end
         end
     end
-    @autoinfiltrate
-    return boundaries
+
+    return boundaries, neighbor_ids_global
 end
 
 # Translate the interface indices into boundary names.

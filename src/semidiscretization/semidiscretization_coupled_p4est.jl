@@ -188,7 +188,6 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
-    @autoinfiltrate
     u_ode_reformatted = Vector{real(semi)}(undef, ndofs(semi))
     u_ode_reformatted_reshape = reshape(u_ode_reformatted,
                                         (n_nodes,
@@ -491,11 +490,15 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              u_global)
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
-    element_index_y = cld(mesh.cell_ids[element_index], 4)
-    element_index_x = mesh.cell_ids[element_index] - (element_index_y - 1) * 4
+    # element_index_y = cld(mesh.cell_ids[element_index], 4)
+    # element_index_x = mesh.cell_ids[element_index] - (element_index_y - 1) * 4
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
-        element_index_x += Int(sign(sum(normal_direction .* (1.0, 0.0))))
+       if sum(normal_direction .* (1.0, 0.0)) > sum(normal_direction .* (-1.0, 0.0))
+        element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .== :x_pos) .* (cache.boundaries.neighbor_ids .== element_index))]
+        else
+            element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .== :x_neg) .* (cache.boundaries.neighbor_ids .== element_index))]
+        end
         i_index_g = i_index
         if i_index == 4
             i_index_g = 1
@@ -504,7 +507,11 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         j_index_g = j_index
     else
-        element_index_y += Int(sign(sum(normal_direction .* (0.0, 1.0))))
+        if sum(normal_direction .* (0.0, 1.0)) > sum(normal_direction .* (0.0, -1.0))
+            element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .== :y_pos) .* (cache.boundaries.neighbor_ids .== element_index))]
+        else
+            element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .== :y_neg) .* (cache.boundaries.neighbor_ids .== element_index))]
+        end
         j_index_g = j_index
         if j_index == 4
             j_index_g = 1
@@ -513,19 +520,22 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         i_index_g = i_index
     end
-    # Make things periodic across physical boundaries.
-    if element_index_x == 0
-        element_index_x = 4
-    elseif element_index_x == 5
-        element_index_x = 1
-    end
-    if element_index_y == 0
-        element_index_y = 4
-    elseif element_index_y == 5
-        element_index_y = 1
-    end
-    u_global_reshape = reshape(u_global, (4, 4, 4, 4))
-    u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_x, element_index_y])
+    # # Make things periodic across physical boundaries.
+    # if element_index_x == 0
+    #     element_index_x = 4
+    # elseif element_index_x == 5
+    #     element_index_x = 1
+    # end
+    # if element_index_y == 0
+    #     element_index_y = 4
+    # elseif element_index_y == 5
+    #     element_index_y = 1
+    # end
+    # u_global_reshape = reshape(u_global, (4, 4, 4, 4))
+    # u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_x, element_index_y])
+    u_global_reshape = reshape(u_global, (4, 4, length(u_global) ÷ 16))
+    u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_global])
+    @autoinfiltrate
 
     # u_boundary = u_inner
     orientation = normal_direction
