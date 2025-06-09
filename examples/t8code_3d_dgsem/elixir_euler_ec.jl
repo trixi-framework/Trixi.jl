@@ -68,9 +68,37 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
+# Add `:thermodynamic_entropy` to `extra_node_variables` tuple ...
+extra_node_variables = (:thermodynamic_entropy,)
+
+# ... and specify the function `get_node_variable` for this symbol, 
+# with first argument matching the symbol (turned into a type via `Val`) for dispatching.
+function Trixi.get_node_variable(::Val{:thermodynamic_entropy}, u, mesh, equations,
+                                 dg, cache)
+    n_nodes = nnodes(dg)
+    n_elements = nelements(dg, cache)
+    # By definition, the variable must be provided at every node of every element!
+    # Otherwise, the `SaveSolutionCallback` will crash.
+    entropy_array = zeros(eltype(cache.elements),
+                          ntuple(_ -> n_nodes, ndims(mesh))..., # equivalent: `n_nodes, n_nodes, n_nodes`
+                          n_elements)
+
+    # We can accelerate the computation by thread-parallelizing the loop over elements
+    # by using the `@threaded` macro.
+    Trixi.@threaded for element in eachelement(dg, cache)
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            u_node = get_node_vars(u, equations, dg, i, j, k, element)
+
+            entropy_array[i, j, k, element] = Trixi.entropy_thermodynamic(u_node, equations)
+        end
+    end
+
+    return entropy_array
+end
 save_solution = SaveSolutionCallback(interval = 100,
                                      save_initial_solution = true,
-                                     save_final_solution = true)
+                                     save_final_solution = true,
+                                     extra_node_variables = extra_node_variables) # Supply the additional `extra_node_variables` here
 
 stepsize_callback = StepsizeCallback(cfl = 1.0)
 

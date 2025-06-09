@@ -92,6 +92,98 @@ function save_solution_file(u, time, dt, timestep,
 end
 
 function save_solution_file(u, time, dt, timestep,
+                            mesh::SerialDGMultiMesh,
+                            equations, dg::DG, cache,
+                            solution_callback,
+                            element_variables = Dict{Symbol, Any}(),
+                            node_variables = Dict{Symbol, Any}();
+                            system = "")
+    @unpack output_directory, solution_variables = solution_callback
+
+    # Filename based on current time step.
+    if isempty(system)
+        filename = joinpath(output_directory, @sprintf("solution_%09d.h5", timestep))
+    else
+        filename = joinpath(output_directory,
+                            @sprintf("solution_%s_%09d.h5", system, timestep))
+    end
+
+    # Convert to different set of variables if requested.
+    if solution_variables === cons2cons
+        data = u
+        n_vars = nvariables(equations)
+    else
+        data = map(u_node -> solution_variables(u_node, equations), u)
+        # Find out variable count by looking at output from `solution_variables` function.
+        n_vars = length(data[1])
+    end
+
+    # Open file (clobber existing content).
+    h5open(filename, "w") do file
+        # Add context information as attributes.
+        attributes(file)["ndims"] = ndims(mesh)
+        attributes(file)["equations"] = get_name(equations)
+
+        if dg.basis.approximation_type isa TensorProductWedge
+            attributes(file)["polydeg_tri"] = dg.basis.N[2]
+            attributes(file)["polydeg_line"] = dg.basis.N[1]
+        else
+            attributes(file)["polydeg"] = dg.basis.N
+        end
+
+        attributes(file)["element_type"] = dg.basis.element_type |> typeof |> nameof |>
+                                           string
+        attributes(file)["n_vars"] = n_vars
+        attributes(file)["n_elements"] = nelements(dg, cache)
+        attributes(file)["dof_per_elem"] = length(dg.basis.r)
+        attributes(file)["mesh_type"] = get_name(mesh)
+        attributes(file)["mesh_file"] = splitdir(mesh.current_filename)[2]
+        attributes(file)["time"] = convert(Float64, time) # Ensure that `time` is written as a double precision scalar.
+        attributes(file)["dt"] = convert(Float64, dt) # Ensure that `dt` is written as a double precision scalar.
+        attributes(file)["timestep"] = timestep
+
+        # Store each variable of the solution data.
+        for v in 1:n_vars
+            temp = zeros(size(u.u))
+            n_nodes, n_elems = size(u.u)
+            for i_elem in 1:n_elems
+                for i_node in 1:n_nodes
+                    temp[i_node, i_elem] = data[i_node, i_elem][v]
+                end
+            end
+
+            file["variables_$v"] = temp
+
+            # Add variable name as attribute.
+            var = file["variables_$v"]
+            attributes(var)["name"] = varnames(solution_variables, equations)[v]
+        end
+
+        # Store element variables.
+        for (v, (key, element_variable)) in enumerate(element_variables)
+            # Add to file.
+            file["element_variables_$v"] = element_variable
+
+            # Add variable name as attribute.
+            var = file["element_variables_$v"]
+            attributes(var)["name"] = string(key)
+        end
+
+        # Store node variables.
+        for (v, (key, node_variable)) in enumerate(node_variables)
+            # Add to file
+            file["node_variables_$v"] = node_variable
+
+            # Add variable name as attribute.
+            var = file["node_variables_$v"]
+            attributes(var)["name"] = string(key)
+        end
+    end
+
+    return filename
+end
+
+function save_solution_file(u, time, dt, timestep,
                             mesh::Union{ParallelTreeMesh, ParallelP4estMesh,
                                         ParallelT8codeMesh}, equations,
                             dg::DG, cache,
@@ -129,11 +221,11 @@ function save_solution_file(u, time, dt, timestep,
     if HDF5.has_parallel()
         save_solution_file_parallel(data, time, dt, timestep, n_vars, mesh, equations,
                                     dg, cache, solution_variables, filename,
-                                    element_variables)
+                                    element_variables, node_variables)
     else
         save_solution_file_on_root(data, time, dt, timestep, n_vars, mesh, equations,
                                    dg, cache, solution_variables, filename,
-                                   element_variables)
+                                   element_variables, node_variables)
     end
 end
 
@@ -142,7 +234,8 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
                                                  ParallelT8codeMesh},
                                      equations, dg::DG, cache,
                                      solution_variables, filename,
-                                     element_variables = Dict{Symbol, Any}())
+                                     element_variables = Dict{Symbol, Any}(),
+                                     node_variables = Dict{Symbol, Any}())
 
     # Calculate element and node counts by MPI rank
     element_size = nnodes(dg)^ndims(mesh)
@@ -195,6 +288,22 @@ function save_solution_file_parallel(data, time, dt, timestep, n_vars,
             # Add variable name as attribute
             attributes(var)["name"] = string(key)
         end
+
+        # Store node variables
+        for (v, (key, node_variable)) in enumerate(node_variables)
+            # Need to create dataset explicitly in parallel case
+            var = create_dataset(file, "/node_variables_$v",
+                                 datatype(eltype(node_variable)),
+                                 dataspace((nelementsglobal(mesh, dg, cache) *
+                                            element_size,)))
+
+            # Write data of each process in slices (ranks start with 0)
+            slice = (cum_node_counts[mpi_rank() + 1] + 1):cum_node_counts[mpi_rank() + 2]
+            # Add to file
+            var[slice] = node_variable
+            # Add variable name as attribute
+            attributes(var)["name"] = string(key)
+        end
     end
 
     return filename
@@ -205,7 +314,8 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
                                                 ParallelT8codeMesh},
                                     equations, dg::DG, cache,
                                     solution_variables, filename,
-                                    element_variables = Dict{Symbol, Any}())
+                                    element_variables = Dict{Symbol, Any}(),
+                                    node_variables = Dict{Symbol, Any}())
 
     # Calculate element and node counts by MPI rank
     element_size = nnodes(dg)^ndims(mesh)
@@ -222,6 +332,11 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
         # Send element data to root
         for (key, element_variable) in element_variables
             MPI.Gatherv!(element_variable, nothing, mpi_root(), mpi_comm())
+        end
+
+        # Send additional/extra node variables to root
+        for (key, node_variable) in node_variables
+            MPI.Gatherv!(node_variable, nothing, mpi_root(), mpi_comm())
         end
 
         return filename
@@ -264,6 +379,19 @@ function save_solution_file_on_root(data, time, dt, timestep, n_vars,
 
             # Add variable name as attribute
             var = file["element_variables_$v"]
+            attributes(var)["name"] = string(key)
+        end
+
+        # Store node variables
+        for (v, (key, node_variable)) in enumerate(node_variables)
+            # Add to file
+            recv = Vector{eltype(data)}(undef, sum(node_counts))
+            MPI.Gatherv!(node_variable, MPI.VBuffer(recv, node_counts),
+                         mpi_root(), mpi_comm())
+            file["node_variables_$v"] = recv
+
+            # Add variable name as attribute
+            var = file["node_variables_$v"]
             attributes(var)["name"] = string(key)
         end
     end
