@@ -518,7 +518,10 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         j_index_g = j_index
     else
         if sum(normal_direction .* (0.0, 1.0)) > sum(normal_direction .* (0.0, -1.0))
-            element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .== :y_pos) .* (cache.boundaries.neighbor_ids .== element_index))]
+            element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .==
+                                                                        :y_pos) .*
+                                                                       (cache.boundaries.neighbor_ids .==
+                                                                        element_index))]
         else
             element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .== :y_neg) .* (cache.boundaries.neighbor_ids .== element_index))]
         end
