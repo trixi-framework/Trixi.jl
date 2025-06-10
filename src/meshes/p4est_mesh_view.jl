@@ -164,7 +164,8 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
 end
 
 # Extract the ids of the neighboring elements using the global indexing of the parent mesh.
-function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent, interfaces_parent,
+function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
+                                     interfaces_parent,
                                      boundaries)
     # Determine the global indices of the boundaring elements.
     neighbor_ids_global = zero.(boundaries.neighbor_ids)
