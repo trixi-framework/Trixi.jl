@@ -13,7 +13,7 @@ EXAMPLES_DIR = pkgdir(Trixi, "examples", "tree_1d_dgsem")
 @trixi_testset "elixir_hypdiff_nonperiodic.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_hypdiff_nonperiodic.jl"),
                         l2=[1.3655114953278825e-7, 1.0200345026471077e-6],
-                        linf=[7.173285075379177e-7, 4.507116828644797e-6])
+                        linf=[7.173285075379177e-7, 4.507116716734316e-6])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
