@@ -8,7 +8,7 @@
 """
     SemidiscretizationCoupledP4est
 
-Specialized semidiscretization routines for coupled problems using P4est meshes.
+Specialized semidiscretization routines for coupled problems using P4est mesh views.
 This is analogous to the implimantation for structured meshes.
 [`semidiscretize`](@ref) will return an `ODEProblem` that synchronizes time steps between the semidiscretizations.
 Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
@@ -49,7 +49,7 @@ function SemidiscretizationCoupledP4est(semis...)
         u_indices[i] = range(offset, length = n_coefficients[i])
     end
 
-    # Create correspondence between global cell IDs and local cell IDs.
+    # Create correspondence between global (to the parent mesh) cell IDs and local (to the mesh view) cell IDs.
     global_element_ids = 1:size(semis[1].mesh.parent.tree_node_coordinates)[end]
     local_element_ids = zeros(Int, size(global_element_ids))
     mesh_ids = zeros(Int, size(global_element_ids))
@@ -188,11 +188,13 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
     n_nodes = length(semi.semis[1].mesh.parent.nodes)
+    # Reformat the global solutions vector.
     u_ode_reformatted = Vector{real(semi)}(undef, ndofs(semi))
     u_ode_reformatted_reshape = reshape(u_ode_reformatted,
                                         (n_nodes,
                                          n_nodes,
                                          length(semi.mesh_ids)))
+    # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
         system_ode = get_system_u_ode(u_ode, i, semi)
         system_ode_reshape = reshape(system_ode, (n_nodes, n_nodes, Int(length(system_ode)/n_nodes^2)))
@@ -480,6 +482,10 @@ function Base.eltype(boundary_condition::BoundaryConditionCoupledP4est)
     eltype(boundary_condition.u_boundary)
 end
 
+"""
+Extract the boundary values from te neighboring element.
+This requires values from other mesh views.
+"""
 function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equations,
                                                              cache,
                                                              i_index, j_index,
@@ -488,8 +494,8 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              surface_flux_function,
                                                              direction,
                                                              u_global)
-    # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
-    # but we don't have a solver here
+    @autoinfiltrate
+    n_nodes = length(mesh.parent.nodes)
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
        if sum(normal_direction .* (1.0, 0.0)) > sum(normal_direction .* (-1.0, 0.0))
@@ -498,10 +504,10 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
             element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .== :x_neg) .* (cache.boundaries.neighbor_ids .== element_index))]
         end
         i_index_g = i_index
-        if i_index == 4
+        if i_index == n_nodes
             i_index_g = 1
         elseif i_index == 1
-            i_index_g = 4
+            i_index_g = n_nodes
         end
         j_index_g = j_index
     else
@@ -511,16 +517,15 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
             element_index_global = cache.neighbor_ids_global[findfirst((cache.boundaries.name .== :y_neg) .* (cache.boundaries.neighbor_ids .== element_index))]
         end
         j_index_g = j_index
-        if j_index == 4
+        if j_index == n_nodes
             j_index_g = 1
         elseif j_index == 1
-            j_index_g = 4
+            j_index_g = n_nodes
         end
         i_index_g = i_index
     end
-    u_global_reshape = reshape(u_global, (4, 4, length(u_global) ÷ 16))
+    u_global_reshape = reshape(u_global, (n_nodes, n_nodes, length(u_global) ÷ n_nodes^2))
     u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_global])
-    @autoinfiltrate
 
     # u_boundary = u_inner
     orientation = normal_direction
@@ -529,25 +534,13 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
     if surface_flux_function isa Tuple
         # In case of conservative (index 1) and non-conservative (index 2) fluxes,
         # add the non-conservative one with a factor of 1/2.
-        # if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = (surface_flux_function[1](u_inner, u_boundary, orientation,
                                          equations) +
                 0.5f0 *
                 surface_flux_function[2](u_inner, u_boundary, orientation,
                                          equations))
-        # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-        #     flux = (surface_flux_function[1](u_boundary, u_inner, orientation,
-        #                                      equations) +
-        #             0.5f0 *
-        #             surface_flux_function[2](u_boundary, u_inner, orientation,
-        #                                      equations))
-        # end
     else
-        # if iseven(direction) # u_inner is "left" of boundary, u_boundary is "right" of boundary
         flux = surface_flux_function(u_inner, u_boundary, orientation, equations)
-        # else # u_boundary is "left" of boundary, u_inner is "right" of boundary
-        #     flux = surface_flux_function(u_boundary, u_inner, orientation, equations)
-        # end
     end
 
     return flux
