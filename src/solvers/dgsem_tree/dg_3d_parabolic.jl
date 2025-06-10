@@ -82,9 +82,11 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
             for k in eachnode(dg), j in eachnode(dg),
                 v in eachvariable(equations_parabolic)
                 # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-                interfaces_u[1, v, j, k, interface] = flux_viscous_x[v, nnodes(dg), j,
-                                                                     k, left_element]
-                interfaces_u[2, v, j, k, interface] = flux_viscous_x[v, 1, j, k,
+                interfaces_u[1, v, j, k, interface] = flux_viscous_x[v,
+                                                                     nnodes(dg), j, k,
+                                                                     left_element]
+                interfaces_u[2, v, j, k, interface] = flux_viscous_x[v, 1, j,
+                                                                     k,
                                                                      right_element]
             end
         elseif orientations[interface] == 2
@@ -92,9 +94,11 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
             for k in eachnode(dg), i in eachnode(dg),
                 v in eachvariable(equations_parabolic)
                 # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-                interfaces_u[1, v, i, k, interface] = flux_viscous_y[v, i, nnodes(dg),
-                                                                     k, left_element]
-                interfaces_u[2, v, i, k, interface] = flux_viscous_y[v, i, 1, k,
+                interfaces_u[1, v, i, k, interface] = flux_viscous_y[v,
+                                                                     i, nnodes(dg), k,
+                                                                     left_element]
+                interfaces_u[2, v, i, k, interface] = flux_viscous_y[v, i, 1,
+                                                                     k,
                                                                      right_element]
             end
         else # if orientations[interface] == 3
@@ -102,10 +106,11 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
             for j in eachnode(dg), i in eachnode(dg),
                 v in eachvariable(equations_parabolic)
                 # OBS! `interfaces_u` stores the interpolated *fluxes* and *not the solution*!
-                interfaces_u[1, v, i, j, interface] = flux_viscous_z[v, i, j,
-                                                                     nnodes(dg),
+                interfaces_u[1, v, i, j, interface] = flux_viscous_z[v,
+                                                                     i, j, nnodes(dg),
                                                                      left_element]
-                interfaces_u[2, v, i, j, interface] = flux_viscous_z[v, i, j, 1,
+                interfaces_u[2, v, i, j, interface] = flux_viscous_z[v,
+                                                                     i, j, 1,
                                                                      right_element]
             end
         end

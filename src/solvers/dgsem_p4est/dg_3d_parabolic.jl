@@ -475,7 +475,8 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
                 # this is the outward normal direction on the primary element
                 normal_direction = get_normal_direction(primary_direction,
                                                         contravariant_vectors,
-                                                        i_primary, j_primary, k_primary,
+                                                        i_primary, j_primary,
+                                                        k_primary,
                                                         primary_element)
 
                 for v in eachvariable(equations_parabolic)
