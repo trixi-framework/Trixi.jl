@@ -65,8 +65,11 @@ function extract_p4est_mesh_view(elements_parent,
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
     # Extract boundaries of this mesh view.
-    boundaries, neighbor_ids_global = extract_boundaries(mesh, boundaries_parent, interfaces_parent,
-                                                         interfaces)
+    boundaries = extract_boundaries(mesh, boundaries_parent, interfaces_parent, interfaces)
+    
+    # Get the global elements ids of the neighbors.
+    neighbor_ids_global = extract_neighbor_ids_global(mesh, boundaries_parent, interfaces_parent,
+                                                      boundaries)
 
     return elements, interfaces, boundaries, mortars_parent, neighbor_ids_global
 end
@@ -156,6 +159,13 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
                          (size(boundaries_parent.u)[1], size(boundaries_parent.u)[2],
                           size(boundaries.node_indices)[end]))
 
+    return boundaries
+end
+
+# Extract the ids of the neighboring elements using the global indexing of the parent mesh.
+function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent, interfaces_parent,
+                                     boundaries)
+
     # Determine the global indices of the boundaring elements.
     neighbor_ids_global = similar(boundaries.neighbor_ids) .* 0
     for (idx, id) in enumerate(boundaries.neighbor_ids)
@@ -179,6 +189,7 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
                 end
             end
         end
+
         # Find this id in the parent's boundaries.
         parent_xneg_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
         parent_xpos_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
@@ -206,7 +217,7 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
         end
     end
 
-    return boundaries, neighbor_ids_global
+    return neighbor_ids_global
 end
 
 # Translate the interface indices into boundary names.
