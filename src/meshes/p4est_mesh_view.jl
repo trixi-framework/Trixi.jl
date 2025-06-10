@@ -124,10 +124,9 @@ function extract_boundaries(mesh::P4estMeshView, boundaries_parent, interfaces_p
 
     # Add new boundaries that were interfaces of the parent mesh.
     for interface in 1:size(interfaces_parent.neighbor_ids)[2]
-        if ((interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) &&
-            !(interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids)) ||
-           ((interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids) &&
-            !(interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids))
+        if ((interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids) ⊻
+            (interfaces_parent.neighbor_ids[2, interface] in mesh.cell_ids))
+            # Determine which of the ids is part of the mesh view.
             if interfaces_parent.neighbor_ids[1, interface] in mesh.cell_ids
                 neighbor_id = interfaces_parent.neighbor_ids[1, interface]
                 view_idx = 1
@@ -165,9 +164,8 @@ end
 # Extract the ids of the neighboring elements using the global indexing of the parent mesh.
 function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent, interfaces_parent,
                                      boundaries)
-
     # Determine the global indices of the boundaring elements.
-    neighbor_ids_global = similar(boundaries.neighbor_ids) .* 0
+    neighbor_ids_global = zero.(boundaries.neighbor_ids)
     for (idx, id) in enumerate(boundaries.neighbor_ids)
         global_id = mesh.cell_ids[id]
         # Find this id in the parent's interfaces.

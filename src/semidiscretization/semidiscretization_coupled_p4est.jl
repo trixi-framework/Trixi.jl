@@ -203,7 +203,7 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     foreach_enumerate(semi.semis) do (i, semi_)
         u_loc = get_system_u_ode(u_ode, i, semi)
         du_loc = get_system_u_ode(du_ode, i, semi)
-        rhs!(du_loc, u_loc, semi, semi_, t, u_ode_reformatted)
+        rhs!(du_loc, u_loc, u_ode_reformatted, semi, semi_, t)
     end
 
     runtime = time_ns() - time_start
@@ -490,8 +490,6 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              u_global)
     # get_node_vars(boundary_condition.u_boundary, equations, solver, surface_node_indices..., cell_indices...),
     # but we don't have a solver here
-    # element_index_y = cld(mesh.cell_ids[element_index], 4)
-    # element_index_x = mesh.cell_ids[element_index] - (element_index_y - 1) * 4
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
        if sum(normal_direction .* (1.0, 0.0)) > sum(normal_direction .* (-1.0, 0.0))
@@ -520,19 +518,6 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         i_index_g = i_index
     end
-    # # Make things periodic across physical boundaries.
-    # if element_index_x == 0
-    #     element_index_x = 4
-    # elseif element_index_x == 5
-    #     element_index_x = 1
-    # end
-    # if element_index_y == 0
-    #     element_index_y = 4
-    # elseif element_index_y == 5
-    #     element_index_y = 1
-    # end
-    # u_global_reshape = reshape(u_global, (4, 4, 4, 4))
-    # u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_x, element_index_y])
     u_global_reshape = reshape(u_global, (4, 4, length(u_global) ÷ 16))
     u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_global])
     @autoinfiltrate
