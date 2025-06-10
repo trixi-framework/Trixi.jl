@@ -65,8 +65,9 @@ function extract_p4est_mesh_view(elements_parent,
     interfaces = extract_interfaces(mesh, interfaces_parent)
 
     # Extract boundaries of this mesh view.
-    boundaries = extract_boundaries(mesh, boundaries_parent, interfaces_parent, interfaces)
-    
+    boundaries = extract_boundaries(mesh, boundaries_parent, interfaces_parent,
+                                    interfaces)
+
     # Get the global elements ids of the neighbors.
     neighbor_ids_global = extract_neighbor_ids_global(mesh, boundaries_parent,
                                                       interfaces_parent,
