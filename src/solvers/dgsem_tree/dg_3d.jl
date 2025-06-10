@@ -633,14 +633,16 @@ function prolong2interfaces!(cache, u, mesh::TreeMesh{3}, equations, dg::DG)
             for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, j, k, interface] = u[v, nnodes(dg), j, k,
                                                         left_element]
-                interfaces_u[2, v, j, k, interface] = u[v, 1, j, k, right_element]
+                interfaces_u[2, v, j, k, interface] = u[v, 1, j, k,
+                                                        right_element]
             end
         elseif orientations[interface] == 2
             # interface in y-direction
             for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, k, interface] = u[v, i, nnodes(dg), k,
                                                         left_element]
-                interfaces_u[2, v, i, k, interface] = u[v, i, 1, k, right_element]
+                interfaces_u[2, v, i, k, interface] = u[v, i, 1, k,
+                                                        right_element]
             end
         else # if orientations[interface] == 3
             # interface in z-direction

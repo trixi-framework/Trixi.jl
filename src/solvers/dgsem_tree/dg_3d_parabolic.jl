@@ -85,8 +85,8 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
                 interfaces_u[1, v, j, k, interface] = flux_viscous_x[v,
                                                                      nnodes(dg), j, k,
                                                                      left_element]
-                interfaces_u[2, v, j, k, interface] = flux_viscous_x[v, 1, j,
-                                                                     k,
+                interfaces_u[2, v, j, k, interface] = flux_viscous_x[v,
+                                                                     1, j, k,
                                                                      right_element]
             end
         elseif orientations[interface] == 2
@@ -97,8 +97,8 @@ function prolong2interfaces!(cache_parabolic, flux_viscous,
                 interfaces_u[1, v, i, k, interface] = flux_viscous_y[v,
                                                                      i, nnodes(dg), k,
                                                                      left_element]
-                interfaces_u[2, v, i, k, interface] = flux_viscous_y[v, i, 1,
-                                                                     k,
+                interfaces_u[2, v, i, k, interface] = flux_viscous_y[v,
+                                                                     i, 1, k,
                                                                      right_element]
             end
         else # if orientations[interface] == 3
@@ -963,8 +963,8 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, u_transformed, mesh, equations_parabolic,
-                            dg)
+        prolong2interfaces!(cache_parabolic, u_transformed, mesh,
+                            equations_parabolic, dg)
     end
 
     # Calculate interface fluxes

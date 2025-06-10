@@ -824,8 +824,8 @@ function calc_gradient!(gradients, u_transformed, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache_parabolic, u_transformed, mesh, equations_parabolic,
-                            dg)
+        prolong2interfaces!(cache_parabolic, u_transformed, mesh,
+                            equations_parabolic, dg)
     end
 
     # Calculate interface fluxes
