@@ -195,7 +195,7 @@ function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
         parent_xneg_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_neg]
         parent_xpos_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :x_pos]
         parent_yneg_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_neg]
-        parent_ypos_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]        
+        parent_ypos_element_ids = boundaries_parent.neighbor_ids[boundaries_parent.name .== :y_pos]
         for (parent_idx, boundary) in enumerate(boundaries_parent.neighbor_ids)
             if global_id == boundary
                 # Check if boundaries with this id have the right name/node_indices.
