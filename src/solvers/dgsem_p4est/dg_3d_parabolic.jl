@@ -115,7 +115,7 @@ function calc_gradient!(gradients, u_transformed, t,
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
         prolong2interfaces!(cache_parabolic, u_transformed, mesh,
-                            equations_parabolic, dg.surface_integral, dg)
+                            equations_parabolic, dg)
     end
 
     # Calculate interface fluxes for the gradient. This reuses P4est `calc_interface_flux!` along with a
@@ -440,11 +440,10 @@ function calc_volume_integral!(du, flux_viscous,
 end
 
 # This is the version used when calculating the divergence of the viscous fluxes
-# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache_parabolic, flux_viscous,
                              mesh::P4estMesh{3},
                              equations_parabolic::AbstractEquationsParabolic,
-                             surface_integral, dg::DG, cache)
+                             dg::DG, cache)
     (; interfaces) = cache_parabolic
     (; contravariant_vectors) = cache_parabolic.elements
     index_range = eachnode(dg)
