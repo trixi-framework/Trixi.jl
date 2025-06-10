@@ -732,16 +732,63 @@ end
                  nelements(dg, cache)))
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg::DG,
-                               cache)
+@doc raw"""
+    DiscontinuousInitialCondition
+
+An abstract type for convenient setting of discontinuous initial conditions.
+For a struct that inherits from this type, i.e., 
+`struct initial_condition <: DiscontinuousInitialCondition end`
+a specialized initialization is performed.
+
+The outer nodes (i.e., ±1 on the DG reference element) are shifted inwards
+by the smallest amount possible, i.e., `[-1 + ϵ, +1 - ϵ]`, when the initial condition
+is evaluated at the nodes.
+This avoids steep gradients in elements if a discontinuity is right at a cell boundary,
+i.e., if the jump location `x_jump` is at the position of an interface which is shared by
+the nodes ``x_{e-1}^{(n)} = x_{e}^{(1)}`` where ``e`` indexes the elements and ``n`` the DG nodes.
+
+In particular, this results in the typically desired behaviour for discontinuous initial conditions of the form
+```math
+    u(x, t) = 
+    \begin{cases}
+        u_1, & \text{if } x \leq x_{\text{jump}} \\
+        u_2, & \text{if } x > x_{\text{jump}}
+    \end{cases}
+```
+where ``x_\text{jump}`` is the location of the discontinuity.
+"""
+abstract type DiscontinuousInitialCondition end
+
+# Standard function for computing coefficients of `func` (usually the initial condition)
+function compute_coefficients!(u, func, t,
+                               mesh::AbstractMesh{1}, equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     element)
-            # Changing the node positions passed to the initial condition by the minimum
-            # amount possible with the current type of floating point numbers allows setting
-            # discontinuous initial data in a simple way. In particular, a check like `if x < x_jump`
-            # works if the jump location `x_jump` is at the position of an interface.
+            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
+                                     i, element)
+            u_node = func(x_node, t, equations)
+            set_node_vars!(u, u_node, equations, dg, i, element)
+        end
+    end
+end
+# Specialized function for computing coefficients of `func`, here a discontinuous initial condition
+function compute_coefficients!(u, func::DiscontinuousInitialCondition, t,
+                               mesh::AbstractMesh{1}, equations, dg::DG, cache)
+    @threaded for element in eachelement(dg, cache)
+        for i in eachnode(dg)
+            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
+                                     i, element)
+            # Shift the outer (i.e., ±1 on the reference element) nodes passed to the 
+            # `func` (usually the initial condition) inwards by the smallest amount possible,
+            # i.e., [-1 + ϵ, +1 - ϵ].
+            # This avoids steep gradients in elements if a discontinuity is right at a cell boundary,
+            # i.e., if the jump location `x_jump` is at the position of an interface which is shared by 
+            # the nodes x_{e-1}^{(i)} = x_{e}^{(1)}.
+            # In particular, this results in the typically desired behaviour for 
+            # initial conditions of the form
+            #           { u_1, if x <= x_jump
+            # u(x, t) = {
+            #           { u_2, if x > x_jump
             if i == 1
                 x_node = SVector(nextfloat(x_node[1]))
             elseif i == nnodes(dg)
@@ -753,24 +800,97 @@ function compute_coefficients!(u, func, t, mesh::AbstractMesh{1}, equations, dg:
     end
 end
 
+# Standard function for computing coefficients of `func` (usually the initial condition)
 function compute_coefficients!(u, func, t, mesh::AbstractMesh{2}, equations, dg::DG,
                                cache)
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     j, element)
+            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
+                                     i, j, element)
+            u_node = func(x_node, t, equations)
+            set_node_vars!(u, u_node, equations, dg, i, j, element)
+        end
+    end
+end
+# Specialized function for computing coefficients of `func`, here a discontinuous initial condition
+function compute_coefficients!(u, func::DiscontinuousInitialCondition, t,
+                               mesh::AbstractMesh{2}, equations, dg::DG, cache)
+    @threaded for element in eachelement(dg, cache)
+        for j in eachnode(dg), i in eachnode(dg)
+            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
+                                     i, j, element)
+            # Shift the outer (i.e., ±1 on the reference element) nodes passed to the 
+            # `func` (usually the initial condition) inwards by the smallest amount possible,
+            # i.e., [-1 + ϵ, +1 - ϵ].
+            # This avoids steep gradients in elements if a discontinuity is right at a cell boundary,
+            # i.e., if the jump location `x_jump` is at the position of an interface which is shared by 
+            # the nodes x_{e-1}^{(i)} = x_{e}^{(1)}.
+            # In particular, this results in the typically desired behaviour for 
+            # initial conditions of the form
+            #           { u_1, if x <= x_jump
+            # u(x, t) = {
+            #           { u_2, if x > x_jump
+            if i == 1
+                x_node = SVector(nextfloat(x_node[1]), x_node[2])
+            elseif i == nnodes(dg)
+                x_node = SVector(prevfloat(x_node[1]), x_node[2])
+            end
+            if j == 1
+                x_node = SVector(x_node[1], nextfloat(x_node[2]))
+            elseif j == nnodes(dg)
+                x_node = SVector(x_node[1], prevfloat(x_node[2]))
+            end
             u_node = func(x_node, t, equations)
             set_node_vars!(u, u_node, equations, dg, i, j, element)
         end
     end
 end
 
-function compute_coefficients!(u, func, t, mesh::AbstractMesh{3}, equations, dg::DG,
-                               cache)
+# Standard function for computing coefficients of `func` (usually the initial condition)
+function compute_coefficients!(u, func, t,
+                               mesh::AbstractMesh{3}, equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
-            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg, i,
-                                     j, k, element)
+            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
+                                     i, j, k, element)
+            u_node = func(x_node, t, equations)
+            set_node_vars!(u, u_node, equations, dg, i, j, k, element)
+        end
+    end
+end
+# Specialized function for computing coefficients of `func`, here a discontinuous initial condition
+function compute_coefficients!(u, func::DiscontinuousInitialCondition, t,
+                               mesh::AbstractMesh{3}, equations, dg::DG, cache)
+    @threaded for element in eachelement(dg, cache)
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
+                                     i, j, k, element)
+            # Shift the outer (i.e., ±1 on the reference element) nodes passed to the 
+            # `func` (usually the initial condition) inwards by the smallest amount possible,
+            # i.e., [-1 + ϵ, +1 - ϵ].
+            # This avoids steep gradients in elements if a discontinuity is right at a cell boundary,
+            # i.e., if the jump location `x_jump` is at the position of an interface which is shared by 
+            # the nodes x_{e-1}^{(i)} = x_{e}^{(1)}.
+            # In particular, this results in the typically desired behaviour for 
+            # initial conditions of the form
+            #           { u_1, if x <= x_jump
+            # u(x, t) = {
+            #           { u_2, if x > x_jump
+            if i == 1
+                x_node = SVector(nextfloat(x_node[1]), x_node[2], x_node[3])
+            elseif i == nnodes(dg)
+                x_node = SVector(prevfloat(x_node[1]), x_node[2], x_node[3])
+            end
+            if j == 1
+                x_node = SVector(x_node[1], nextfloat(x_node[2]), x_node[3])
+            elseif j == nnodes(dg)
+                x_node = SVector(x_node[1], prevfloat(x_node[2]), x_node[3])
+            end
+            if k == 1
+                x_node = SVector(x_node[1], x_node[2], nextfloat(x_node[3]))
+            elseif k == nnodes(dg)
+                x_node = SVector(x_node[1], x_node[2], prevfloat(x_node[3]))
+            end
             u_node = func(x_node, t, equations)
             set_node_vars!(u, u_node, equations, dg, i, j, k, element)
         end
