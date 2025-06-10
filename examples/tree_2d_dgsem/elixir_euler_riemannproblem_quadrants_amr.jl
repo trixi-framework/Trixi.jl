@@ -45,7 +45,7 @@ function (initial_condition_rp::InitialConditionRP)(x_, t,
     return prim2cons(prim, equations)
 end
 # Note calling the constructor of the struct: `InitialConditionRP()` instead of `initial_condition_rp` !
-initial_condition = InitialConditionRP()
+const initial_condition = InitialConditionRP()
 
 # Extend domain by specifying free outflow
 function boundary_condition_outflow(u_inner,

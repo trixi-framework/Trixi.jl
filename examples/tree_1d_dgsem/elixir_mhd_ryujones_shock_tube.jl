@@ -6,8 +6,21 @@ using Trixi
 gamma = 5 / 3
 equations = IdealGlmMhdEquations1D(gamma)
 
+# Specify the initial condition as a discontinuous initial condition (see docstring of 
+# `DiscontinuousInitialCondition` for more information) which comes with a specialized 
+# initialization routine suited for Riemann problems.
+# In short, if a discontinuity is right at an interface, the boundary nodes (which are at the same location)
+# on that interface will be initialized with the left and right state of the discontinuity, i.e., 
+#                         { u_1, if element = left element and x_{element}^{(n)} = x_jump
+# u(x_jump, t, element) = {
+#                         { u_2, if element = right element and x_{element}^{(1)} = x_jump
+# This is realized by shifting the outer DG nodes inwards, i.e., on reference element
+# the outer nodes at `[-1, 1]` are shifted inwards to `[-1 + ε, 1 - ε]` with machine precision `ε`.
+struct InitialConditionRyuJonesShockTube <: DiscontinuousInitialCondition end
+
 """
-    initial_condition_ryujones_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+    (initial_condition_ryujones_shock_tube::InitialConditionRyuJonesShockTube)(x, t,
+                                                                               equations::IdealGlmMhdEquations1D)
 
 Ryu and Jones shock tube test case for one dimensional ideal MHD equations. Contains
 fast shocks, slow shocks, and rational discontinuities that propagate on either side
@@ -20,7 +33,8 @@ present in the one dimensional MHD equations. It is the second test from Section
 !!! note
     This paper has a typo in the initial conditions. Their variable `E` should be `p`.
 """
-function initial_condition_ryujones_shock_tube(x, t, equations::IdealGlmMhdEquations1D)
+function (initial_condition_ryujones_shock_tube::InitialConditionRyuJonesShockTube)(x, t,
+                                                                                    equations::IdealGlmMhdEquations1D)
     # domain must be set to [0, 1], γ = 5/3, final time = 0.2
     RealT = eltype(x)
     rho = x[1] <= 0.5f0 ? RealT(1.08) : one(RealT)
@@ -35,7 +49,9 @@ function initial_condition_ryujones_shock_tube(x, t, equations::IdealGlmMhdEquat
 
     return prim2cons(SVector(rho, v1, v2, v3, p, B1, B2, B3), equations)
 end
-initial_condition = initial_condition_ryujones_shock_tube
+# Note calling the constructor of the struct: `InitialConditionRyuJonesShockTube()` instead of
+# `initial_condition_ryujones_shock_tube` !
+const initial_condition = InitialConditionRyuJonesShockTube()
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 

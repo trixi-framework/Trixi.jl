@@ -6,8 +6,20 @@ using Trixi
 equations = IdealGlmMhdMulticomponentEquations1D(gammas = (2.0, 2.0),
                                                  gas_constants = (2.0, 2.0))
 
+# Specify the initial condition as a discontinuous initial condition (see docstring of 
+# `DiscontinuousInitialCondition` for more information) which comes with a specialized 
+# initialization routine suited for Riemann problems.
+# In short, if a discontinuity is right at an interface, the boundary nodes (which are at the same location)
+# on that interface will be initialized with the left and right state of the discontinuity, i.e., 
+#                         { u_1, if element = left element and x_{element}^{(n)} = x_jump
+# u(x_jump, t, element) = {
+#                         { u_2, if element = right element and x_{element}^{(1)} = x_jump
+# This is realized by shifting the outer DG nodes inwards, i.e., on reference element
+# the outer nodes at `[-1, 1]` are shifted inwards to `[-1 + ε, 1 - ε]` with machine precision `ε`.
+struct InitialConditionBrioWuShockTube <: DiscontinuousInitialCondition end
 """
-    initial_condition_briowu_shock_tube(x, t, equations::IdealGlmMhdMulticomponentEquations1D)
+    (initial_condition_briowu_shock_tube::InitialConditionBrioWuShockTube)(x, t,
+                                                                           equations::IdealGlmMhdMulticomponentEquations1D)
 
 Compound shock tube test case for one dimensional ideal MHD equations. It is basically an
 MHD extension of the Sod shock tube. Taken from Section V of the article
@@ -15,8 +27,8 @@ MHD extension of the Sod shock tube. Taken from Section V of the article
   An Upwind Differencing Scheme for the Equations of Ideal Magnetohydrodynamics
   [DOI: 10.1016/0021-9991(88)90120-9](https://doi.org/10.1016/0021-9991(88)90120-9)
 """
-function initial_condition_briowu_shock_tube(x, t,
-                                             equations::IdealGlmMhdMulticomponentEquations1D)
+function (initial_condition_briowu_shock_tube::InitialConditionBrioWuShockTube)(x, t,
+                                                                                equations::IdealGlmMhdMulticomponentEquations1D)
     # domain must be set to [0, 1], γ = 2, final time = 0.12
     RealT = eltype(x)
     if x[1] < 0.5f0
@@ -43,7 +55,9 @@ function initial_condition_briowu_shock_tube(x, t,
     prim_other = SVector(v1, v2, v3, p, B1, B2, B3)
     return prim2cons(vcat(prim_other, prim_rho), equations)
 end
-initial_condition = initial_condition_briowu_shock_tube
+# Note calling the constructor of the struct: `InitialConditionBrioWuShockTube()`
+# instead of `initial_condition_briowu_shock_tube` !
+const initial_condition = InitialConditionBrioWuShockTube()
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 

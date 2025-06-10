@@ -52,7 +52,7 @@ function (initial_condition_medium_sedov_blast_wave::InitialConditionMediumSedov
 end
 # Note calling the constructor of the struct: `InitialConditionMediumSedovBlast()` instead of 
 # `initial_condition_medium_sedov_blast_wave` !
-initial_condition = InitialConditionMediumSedovBlast()
+const initial_condition = InitialConditionMediumSedovBlast()
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha

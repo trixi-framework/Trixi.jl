@@ -7,8 +7,21 @@ using Trixi
 
 equations = CompressibleEulerEquationsQuasi1D(1.4)
 
+# Specify the initial condition as a discontinuous initial condition (see docstring of 
+# `DiscontinuousInitialCondition` for more information) which comes with a specialized 
+# initialization routine suited for Riemann problems.
+# In short, if a discontinuity is right at an interface, the boundary nodes (which are at the same location)
+# on that interface will be initialized with the left and right state of the discontinuity, i.e., 
+#                         { u_1, if element = left element and x_{element}^{(n)} = x_jump
+# u(x_jump, t, element) = {
+#                         { u_2, if element = right element and x_{element}^{(1)} = x_jump
+# This is realized by shifting the outer DG nodes inwards, i.e., on reference element
+# the outer nodes at `[-1, 1]` are shifted inwards to `[-1 + ε, 1 - ε]` with machine precision `ε`.
+struct InitialConditionDiscontinuity <: DiscontinuousInitialCondition end
+
 """
-    initial_condition_discontinuity(x, t, equations::CompressibleEulerEquations1D)
+    (initial_condition_discontinuity::InitialConditionDiscontinuity)(x, t,
+                                                                     equations::CompressibleEulerEquations1D)
 
 A discontinuous initial condition taken from
 - Jesse Chan, Khemraj Shukla, Xinhui Wu, Ruofeng Liu, Prani Nalluri (2023)
@@ -16,8 +29,8 @@ A discontinuous initial condition taken from
     shallow water and compressible Euler equations
     [DOI: 10.48550/arXiv.2307.12089](https://doi.org/10.48550/arXiv.2307.12089)
 """
-function initial_condition_discontinuity(x, t,
-                                         equations::CompressibleEulerEquationsQuasi1D)
+function (initial_condition_discontinuity::InitialConditionDiscontinuity)(x, t,
+                                                                          equations::CompressibleEulerEquationsQuasi1D)
     RealT = eltype(x)
     rho = (x[1] < 0) ? RealT(3.4718) : RealT(2.0)
     v1 = (x[1] < 0) ? RealT(-2.5923) : RealT(-3.0)
@@ -26,8 +39,9 @@ function initial_condition_discontinuity(x, t,
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
-
-initial_condition = initial_condition_discontinuity
+# Note calling the constructor of the struct: `InitialConditionDiscontinuity()` instead of
+# `initial_condition_discontinuity` !
+const initial_condition_discontinuity = InitialConditionDiscontinuity()
 
 surface_flux = (flux_lax_friedrichs, flux_nonconservative_chan_etal)
 volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)

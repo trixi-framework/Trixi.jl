@@ -7,16 +7,28 @@ using Trixi
 equations = CompressibleEulerMulticomponentEquations1D(gammas = (1.4, 1.4, 1.4),
                                                        gas_constants = (0.4, 0.4, 0.4))
 
+# Specify the initial condition as a discontinuous initial condition (see docstring of 
+# `DiscontinuousInitialCondition` for more information) which comes with a specialized 
+# initialization routine suited for Riemann problems.
+# In short, if a discontinuity is right at an interface, the boundary nodes (which are at the same location)
+# on that interface will be initialized with the left and right state of the discontinuity, i.e., 
+#                         { u_1, if element = left element and x_{element}^{(n)} = x_jump
+# u(x_jump, t, element) = {
+#                         { u_2, if element = right element and x_{element}^{(1)} = x_jump
+# This is realized by shifting the outer DG nodes inwards, i.e., on reference element
+# the outer nodes at `[-1, 1]` are shifted inwards to `[-1 + ε, 1 - ε]` with machine precision `ε`.
+struct InitialConditionTwoBlastWaves <: DiscontinuousInitialCondition end
 """
-    initial_condition_two_interacting_blast_waves(x, t, equations::CompressibleEulerMulticomponentEquations1D)
+    (initial_condition_two_blast_waves::InitialConditionTwoBlastWaves)(x, t,
+                                                                       equations::CompressibleEulerMulticomponentEquations1D)
 
 A multicomponent two interacting blast wave test taken from
 - T. Plewa & E. Müller (1999)
   The consistent multi-fluid advection method
   [arXiv: 9807241](https://arxiv.org/pdf/astro-ph/9807241.pdf)
 """
-function initial_condition_two_interacting_blast_waves(x, t,
-                                                       equations::CompressibleEulerMulticomponentEquations1D)
+function (initial_condition_two_blast_waves::InitialConditionTwoBlastWaves)(x, t,
+                                                                            equations::CompressibleEulerMulticomponentEquations1D)
     RealT = eltype(x)
     rho1 = 0.5f0 * x[1]^2
     rho2 = 0.5f0 * (sin(20 * x[1]))^2
@@ -38,7 +50,9 @@ function initial_condition_two_interacting_blast_waves(x, t,
 
     return prim2cons(vcat(prim_other, prim_rho), equations)
 end
-initial_condition = initial_condition_two_interacting_blast_waves
+# Note calling the constructor of the struct: `InitialConditionTwoBlastWaves()` instead of 
+# `initial_condition_two_blast_waves` !
+const initial_condition = InitialConditionTwoBlastWaves()
 
 function boundary_condition_two_interacting_blast_waves(u_inner, orientation, direction,
                                                         x, t, surface_flux_function,

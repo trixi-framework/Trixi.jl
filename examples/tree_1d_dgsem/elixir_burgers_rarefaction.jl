@@ -32,13 +32,29 @@ mesh = TreeMesh(coordinate_min, coordinate_max,
                 n_cells_max = 10_000,
                 periodicity = false)
 
+# Specify the initial condition as a discontinuous initial condition (see docstring of 
+# `DiscontinuousInitialCondition` for more information) which comes with a specialized 
+# initialization routine suited for Riemann problems.
+# In short, if a discontinuity is right at an interface, the boundary nodes (which are at the same location)
+# on that interface will be initialized with the left and right state of the discontinuity, i.e., 
+#                         { u_1, if element = left element and x_{element}^{(n)} = x_jump
+# u(x_jump, t, element) = {
+#                         { u_2, if element = right element and x_{element}^{(1)} = x_jump
+# This is realized by shifting the outer DG nodes inwards, i.e., on reference element
+# the outer nodes at `[-1, 1]` are shifted inwards to `[-1 + ε, 1 - ε]` with machine precision `ε`.
+struct InitialConditionRarefaction <: DiscontinuousInitialCondition end
+
 # Discontinuous initial condition (Riemann Problem) leading to a rarefaction fan.
-function initial_condition_rarefaction(x, t, equation::InviscidBurgersEquation1D)
+function (initial_condition_rarefaction::InitialConditionRarefaction)(x, t,
+                                                                      equation::InviscidBurgersEquation1D)
     RealT = eltype(x)
     scalar = x[1] < 0.5f0 ? convert(RealT, 0.5f0) : convert(RealT, 1.5f0)
 
     return SVector(scalar)
 end
+# Note calling the constructor of the struct: `InitialConditionRarefaction()` instead of 
+# `initial_condition_rarefaction` !
+const initial_condition = InitialConditionRarefaction()
 
 ###############################################################################
 # Specify non-periodic boundary conditions
@@ -56,8 +72,6 @@ end
 
 boundary_conditions = (x_neg = boundary_condition_inflow,
                        x_pos = boundary_condition_outflow)
-
-initial_condition = initial_condition_rarefaction
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     boundary_conditions = boundary_conditions)

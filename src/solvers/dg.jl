@@ -732,33 +732,6 @@ end
                  nelements(dg, cache)))
 end
 
-@doc raw"""
-    DiscontinuousInitialCondition
-
-An abstract type for convenient setting of discontinuous initial conditions.
-For a struct that inherits from this type, i.e., 
-`struct initial_condition <: DiscontinuousInitialCondition end`
-a specialized initialization is performed.
-
-The outer nodes (i.e., ±1 on the DG reference element) are shifted inwards
-by the smallest amount possible, i.e., `[-1 + ϵ, +1 - ϵ]`, when the initial condition
-is evaluated at the nodes.
-This avoids steep gradients in elements if a discontinuity is right at a cell boundary,
-i.e., if the jump location `x_jump` is at the position of an interface which is shared by
-the nodes ``x_{e-1}^{(n)} = x_{e}^{(1)}`` where ``e`` indexes the elements and ``n`` the DG nodes.
-
-In particular, this results in the typically desired behaviour for discontinuous initial conditions of the form
-```math
-    u(x, t) = 
-    \begin{cases}
-        u_1, & \text{if } x \leq x_{\text{jump}} \\
-        u_2, & \text{if } x > x_{\text{jump}}
-    \end{cases}
-```
-where ``x_\text{jump}`` is the location of the discontinuity.
-"""
-abstract type DiscontinuousInitialCondition end
-
 # Standard function for computing coefficients of `func` (usually the initial condition)
 function compute_coefficients!(u, func, t,
                                mesh::AbstractMesh{1}, equations, dg::DG, cache)
