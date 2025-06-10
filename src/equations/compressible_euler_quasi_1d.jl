@@ -90,7 +90,7 @@ function initial_condition_convergence_test(x, t,
     v1 = 1
     e = ini^2 / rho
     p = (equations.gamma - 1) * (e - 0.5f0 * rho * v1^2)
-    a = 1.5f0 - 0.5f0 * cos(x[1] * convert(RealT, pi))
+    a = 1.5f0 - 0.5f0 * cospi(x[1])
 
     return prim2cons(SVector(rho, v1, p, a), equations)
 end
@@ -122,7 +122,7 @@ as defined in [`initial_condition_convergence_test`](@ref).
     v1(x1, t) = 1
     e(x1, t) = ini(x1, t)^2 / rho(x1, t)
     p1(x1, t) = (equations.gamma - 1) * (e(x1, t) - 0.5f0 * rho(x1, t) * v1(x1, t)^2)
-    a(x1, t) = 1.5f0 - 0.5f0 * cos(x1 * pi)
+    a(x1, t) = 1.5f0 - 0.5f0 * cospi(x1)
 
     arho(x1, t) = a(x1, t) * rho(x1, t)
     arhou(x1, t) = arho(x1, t) * v1(x1, t)
@@ -349,10 +349,16 @@ end
     w = cons2entropy(SVector(a_rho, a_rho_v1, a_e) / a,
                      CompressibleEulerEquations1D(equations.gamma))
 
-    # we follow the convention for other spatially-varying equations such as
-    # `ShallowWaterEquations1D` and return the spatially varying coefficient 
-    # `a` as the final entropy variable.
+    # we follow the convention for other spatially-varying equations and return the spatially 
+    # varying coefficient `a` as the final entropy variable.
     return SVector(w[1], w[2], w[3], a)
+end
+
+@inline function entropy2cons(w, equations::CompressibleEulerEquationsQuasi1D)
+    w_rho, w_rho_v1, w_rho_e, a = w
+    u = entropy2cons(SVector(w_rho, w_rho_v1, w_rho_e),
+                     CompressibleEulerEquations1D(equations.gamma))
+    return SVector(a * u[1], a * u[2], a * u[3], a)
 end
 
 # Convert primitive to conservative variables

@@ -81,8 +81,8 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         contravariant_flux1 = Ja11 * flux1 + Ja12 * flux2 + Ja13 * flux3
         for ii in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_dhat[ii, i],
-                                       contravariant_flux1, equations, dg, ii, j, k,
-                                       element)
+                                       contravariant_flux1, equations, dg,
+                                       ii, j, k, element)
         end
 
         # Compute the contravariant flux by taking the scalar product of the
@@ -92,19 +92,19 @@ See also https://github.com/trixi-framework/Trixi.jl/issues/1671#issuecomment-17
         contravariant_flux2 = Ja21 * flux1 + Ja22 * flux2 + Ja23 * flux3
         for jj in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_dhat[jj, j],
-                                       contravariant_flux2, equations, dg, i, jj, k,
-                                       element)
+                                       contravariant_flux2, equations, dg,
+                                       i, jj, k, element)
         end
 
         # Compute the contravariant flux by taking the scalar product of the
         # third contravariant vector Ja^3 and the flux vector
-        Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors, i, j, k,
-                                                    element)
+        Ja31, Ja32, Ja33 = get_contravariant_vector(3, contravariant_vectors,
+                                                    i, j, k, element)
         contravariant_flux3 = Ja31 * flux1 + Ja32 * flux2 + Ja33 * flux3
         for kk in eachnode(dg)
             multiply_add_to_node_vars!(du, alpha * derivative_dhat[kk, k],
-                                       contravariant_flux3, equations, dg, i, j, kk,
-                                       element)
+                                       contravariant_flux3, equations, dg,
+                                       i, j, kk, element)
         end
     end
 
@@ -223,8 +223,8 @@ end
         for ii in eachnode(dg)
             u_node_ii = get_node_vars(u, equations, dg, ii, j, k, element)
             # pull the contravariant vectors and compute the average
-            Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors, ii, j, k,
-                                                   element)
+            Ja1_node_ii = get_contravariant_vector(1, contravariant_vectors,
+                                                   ii, j, k, element)
             Ja1_avg = 0.5f0 * (Ja1_node + Ja1_node_ii)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -238,8 +238,8 @@ end
         for jj in eachnode(dg)
             u_node_jj = get_node_vars(u, equations, dg, i, jj, k, element)
             # pull the contravariant vectors and compute the average
-            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors, i, jj, k,
-                                                   element)
+            Ja2_node_jj = get_contravariant_vector(2, contravariant_vectors,
+                                                   i, jj, k, element)
             Ja2_avg = 0.5f0 * (Ja2_node + Ja2_node_jj)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -253,8 +253,8 @@ end
         for kk in eachnode(dg)
             u_node_kk = get_node_vars(u, equations, dg, i, j, kk, element)
             # pull the contravariant vectors and compute the average
-            Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors, i, j, kk,
-                                                   element)
+            Ja3_node_kk = get_contravariant_vector(3, contravariant_vectors,
+                                                   i, j, kk, element)
             Ja3_avg = 0.5f0 * (Ja3_node + Ja3_node_kk)
             # compute the contravariant nonconservative flux in the direction of the
             # averaged contravariant vector
@@ -292,8 +292,8 @@ end
     fstar1_R[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_R))
 
     for k in eachnode(dg), j in eachnode(dg)
-        normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, k,
-                                                    element)
+        normal_direction = get_contravariant_vector(1, contravariant_vectors,
+                                                    1, j, k, element)
 
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
@@ -319,8 +319,8 @@ end
     fstar2_R[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_R))
 
     for k in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, k,
-                                                    element)
+        normal_direction = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, 1, k, element)
 
         for j in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
@@ -346,8 +346,8 @@ end
     fstar3_R[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_R))
 
     for j in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(3, contravariant_vectors, i, j, 1,
-                                                    element)
+        normal_direction = get_contravariant_vector(3, contravariant_vectors,
+                                                    i, j, 1, element)
 
         for k in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)
@@ -390,8 +390,8 @@ end
     fstar1_R[:, nnodes(dg) + 1, :, :] .= zero(eltype(fstar1_R))
 
     for k in eachnode(dg), j in eachnode(dg)
-        normal_direction = get_contravariant_vector(1, contravariant_vectors, 1, j, k,
-                                                    element)
+        normal_direction = get_contravariant_vector(1, contravariant_vectors,
+                                                    1, j, k, element)
 
         for i in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i - 1, j, k, element)
@@ -428,8 +428,8 @@ end
     fstar2_R[:, :, nnodes(dg) + 1, :] .= zero(eltype(fstar2_R))
 
     for k in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(2, contravariant_vectors, i, 1, k,
-                                                    element)
+        normal_direction = get_contravariant_vector(2, contravariant_vectors,
+                                                    i, 1, k, element)
 
         for j in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j - 1, k, element)
@@ -466,8 +466,8 @@ end
     fstar3_R[:, :, :, nnodes(dg) + 1] .= zero(eltype(fstar3_R))
 
     for j in eachnode(dg), i in eachnode(dg)
-        normal_direction = get_contravariant_vector(3, contravariant_vectors, i, j, 1,
-                                                    element)
+        normal_direction = get_contravariant_vector(3, contravariant_vectors,
+                                                    i, j, 1, element)
 
         for k in 2:nnodes(dg)
             u_ll = get_node_vars(u, equations, dg, i, j, k - 1, element)

@@ -73,9 +73,13 @@ end
     initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations2D)
 
 An Alfvén wave as smooth initial condition used for convergence tests.
+See for reference section 4.2 in
+- Dominik Derigs, Andrew R. Winters, Gregor J. Gassner, and Stefanie Walch (2016) 
+  A novel high-order, entropy stable, 3D AMR MHD solver with guaranteed positive pressure
+  [DOI: 10.1016/j.jcp.2016.04.048](https://doi.org/10.1016/j.jcp.2016.04.048)
 """
 function initial_condition_convergence_test(x, t, equations::IdealGlmMhdEquations2D)
-    # smooth Alfvén wave test from Derigs et al. FLASH (2016)
+    # smooth Alfvén wave test from Derigs et al. (2016)
     # domain must be set to [0, 1/cos(α)] x [0, 1/sin(α)], γ = 5/3
     RealT = eltype(x)
     alpha = 0.25f0 * convert(RealT, pi)
@@ -124,7 +128,7 @@ end
 # Pre-defined source terms should be implemented as
 # function source_terms_WHATEVER(u, x, t, equations::IdealGlmMhdEquations2D)
 
-# Calculate 1D flux in for a single point
+# Calculate 1D flux for a single point
 @inline function flux(u, orientation::Integer, equations::IdealGlmMhdEquations2D)
     rho, rho_v1, rho_v2, rho_v3, rho_e, B1, B2, B3, psi = u
     v1 = rho_v1 / rho

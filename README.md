@@ -1,7 +1,7 @@
 # Trixi.jl
 
-[![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/Trixi.jl/stable)
-[![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/Trixi.jl/dev)
+[![Docs-stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://trixi-framework.github.io/TrixiDocumentation/stable)
+[![Docs-dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://trixi-framework.github.io/TrixiDocumentation/dev)
 [![Slack](https://img.shields.io/badge/chat-slack-e01e5a)](https://join.slack.com/t/trixi-framework/shared_invite/zt-sgkc6ppw-6OXJqZAD5SPjBYqLd8MU~g)
 [![Youtube](https://img.shields.io/youtube/channel/views/UCpd92vU2HjjTPup-AIN0pkg?style=social)](https://www.youtube.com/@trixi-framework)
 [![Build Status](https://github.com/trixi-framework/Trixi.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/trixi-framework/Trixi.jl/actions?query=workflow%3ACI)
@@ -26,7 +26,7 @@ having an extensible design with a fast implementation, Trixi.jl is
 focused on being easy to use for new or inexperienced users, including the
 installation and postprocessing procedures. Its features include:
 
-* 1D, 2D, and 3D simulations on [line/quad/hex/simplex meshes](https://trixi-framework.github.io/Trixi.jl/stable/overview/#Semidiscretizations)
+* 1D, 2D, and 3D simulations on [line/quad/hex/simplex meshes](https://trixi-framework.github.io/TrixiDocumentation/stable/overview/#Semidiscretizations)
   * Cartesian and curvilinear meshes
   * Conforming and non-conforming meshes
   * Structured and unstructured meshes
@@ -58,7 +58,7 @@ installation and postprocessing procedures. Its features include:
   * Linearized Euler and acoustic perturbation equations
   * Hyperbolic diffusion equations for elliptic problems
   * Lattice-Boltzmann equations (D2Q9 and D3Q27 schemes)
-  * Shallow water equations
+  * Shallow water equations via [TrixiShallowWater.jl](https://github.com/trixi-framework/TrixiShallowWater.jl)
   * Several scalar conservation laws (e.g., linear advection, Burgers' equation, LWR traffic flow)
 * Multi-physics simulations
   * [Self-gravitating gas dynamics](https://github.com/trixi-framework/paper-self-gravitating-gas-dynamics)
@@ -186,7 +186,7 @@ Additional documentation is available that contains more information on how to
 modify/extend Trixi.jl's implementation, how to visualize output files etc. It
 also includes a section on our preferred development workflow and some tips for
 using Git. The latest documentation can be accessed either
-[online](https://trixi-framework.github.io/Trixi.jl/stable) or under [`docs/src`](docs/src).
+[online](https://trixi-framework.github.io/TrixiDocumentation/stable) or under [`docs/src`](docs/src).
 
 
 ## Referencing

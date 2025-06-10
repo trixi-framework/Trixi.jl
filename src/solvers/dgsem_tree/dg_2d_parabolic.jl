@@ -145,10 +145,10 @@ function calc_volume_integral!(du, flux_viscous,
     @threaded for element in eachelement(dg, cache)
         # Calculate volume terms in one element
         for j in eachnode(dg), i in eachnode(dg)
-            flux_1_node = get_node_vars(flux_viscous_x, equations_parabolic, dg, i, j,
-                                        element)
-            flux_2_node = get_node_vars(flux_viscous_y, equations_parabolic, dg, i, j,
-                                        element)
+            flux_1_node = get_node_vars(flux_viscous_x, equations_parabolic, dg,
+                                        i, j, element)
+            flux_2_node = get_node_vars(flux_viscous_y, equations_parabolic, dg,
+                                        i, j, element)
 
             for ii in eachnode(dg)
                 multiply_add_to_node_vars!(du, derivative_dhat[ii, i], flux_1_node,
@@ -270,7 +270,8 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
             else # Element in +x direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations_parabolic)
                     # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                    boundaries_u[2, v, l, boundary] = flux_viscous_x[v, 1, l, element]
+                    boundaries_u[2, v, l, boundary] = flux_viscous_x[v, 1, l,
+                                                                     element]
                 end
             end
         else # if orientations[boundary] == 2
@@ -286,7 +287,8 @@ function prolong2boundaries!(cache_parabolic, flux_viscous,
                 # element in +y direction of boundary
                 for l in eachnode(dg), v in eachvariable(equations_parabolic)
                     # OBS! `boundaries_u` stores the interpolated *fluxes* and *not the solution*!
-                    boundaries_u[2, v, l, boundary] = flux_viscous_y[v, l, 1, element]
+                    boundaries_u[2, v, l, boundary] = flux_viscous_y[v, l, 1,
+                                                                     element]
                 end
             end
         end
@@ -306,12 +308,12 @@ function calc_viscous_fluxes!(flux_viscous,
     @threaded for element in eachelement(dg, cache)
         for j in eachnode(dg), i in eachnode(dg)
             # Get solution and gradients
-            u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j,
-                                   element)
-            gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg, i, j,
-                                             element)
-            gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg, i, j,
-                                             element)
+            u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                   i, j, element)
+            gradients_1_node = get_node_vars(gradients_x, equations_parabolic, dg,
+                                             i, j, element)
+            gradients_2_node = get_node_vars(gradients_y, equations_parabolic, dg,
+                                             i, j, element)
 
             # Calculate viscous flux and store each component for later use
             flux_viscous_node_x = flux(u_node, (gradients_1_node, gradients_2_node), 1,
@@ -500,7 +502,8 @@ function calc_boundary_flux_by_direction_divergence!(surface_flux_values::Abstra
             # Here, we pass in `u_inner = nothing` since we overwrite cache.boundaries.u with gradient information.
             # This currently works with Dirichlet/Neuman boundary conditions for LaplaceDiffusion2D and
             # NoSlipWall/Adiabatic boundary conditions for CompressibleNavierStokesDiffusion2D as of 2022-6-27.
-            # It will not work with implementations which utilize `u_inner` to impose boundary conditions.
+            # It will not work with implementations which utilize `u_inner` to impose boundary conditions, such as
+            # the `Slip` boundary condition, which can be imposed to realize reflective or symmetric boundaries.
             flux = boundary_condition(flux_inner, nothing,
                                       get_unsigned_normal_vector_2d(direction),
                                       x, t, Divergence(), equations_parabolic)
@@ -802,19 +805,19 @@ function calc_gradient!(gradients, u_transformed, t,
 
             # Calculate volume terms in one element
             for j in eachnode(dg), i in eachnode(dg)
-                u_node = get_node_vars(u_transformed, equations_parabolic, dg, i, j,
-                                       element)
+                u_node = get_node_vars(u_transformed, equations_parabolic, dg,
+                                       i, j, element)
 
                 for ii in eachnode(dg)
                     multiply_add_to_node_vars!(gradients_x, derivative_dhat[ii, i],
-                                               u_node, equations_parabolic, dg, ii, j,
-                                               element)
+                                               u_node, equations_parabolic, dg,
+                                               ii, j, element)
                 end
 
                 for jj in eachnode(dg)
                     multiply_add_to_node_vars!(gradients_y, derivative_dhat[jj, j],
-                                               u_node, equations_parabolic, dg, i, jj,
-                                               element)
+                                               u_node, equations_parabolic, dg,
+                                               i, jj, element)
                 end
             end
         end

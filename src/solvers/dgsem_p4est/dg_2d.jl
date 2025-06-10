@@ -396,8 +396,8 @@ end
                                             i_index, j_index, element_index)
 
     # Coordinates at boundary node
-    x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
-                        element_index)
+    x = get_node_coords(node_coordinates, equations, dg,
+                        i_index, j_index, element_index)
 
     flux_ = boundary_condition(u_inner, normal_direction, x, t, surface_flux, equations)
 
@@ -455,8 +455,8 @@ end
                                             i_index, j_index, element_index)
 
     # Coordinates at boundary node
-    x = get_node_coords(node_coordinates, equations, dg, i_index, j_index,
-                        element_index)
+    x = get_node_coords(node_coordinates, equations, dg,
+                        i_index, j_index, element_index)
 
     # Call pointwise numerical flux functions for the conservative and nonconservative part
     # in the normal direction on the boundary
@@ -621,8 +621,8 @@ end
     @unpack u = cache.mortars
     @unpack surface_flux = surface_integral
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index,
-                                       mortar_index)
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
+                                       node_index, mortar_index)
 
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
 
@@ -642,8 +642,8 @@ end
     @unpack u = cache.mortars
     surface_flux, nonconservative_flux = surface_integral.surface_flux
 
-    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index, node_index,
-                                       mortar_index)
+    u_ll, u_rr = get_surface_node_vars(u, equations, dg, position_index,
+                                       node_index, mortar_index)
 
     # Compute conservative flux
     flux = surface_flux(u_ll, u_rr, normal_direction, equations)
