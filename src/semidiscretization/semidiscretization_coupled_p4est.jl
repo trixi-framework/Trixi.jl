@@ -536,7 +536,8 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         i_index_g = i_index
     end
-    u_global_reshape = reshape(u_global, (n_nodes, n_nodes, length(u_global) ÷ n_nodes^2))
+    u_global_reshape = reshape(u_global,
+                               (n_nodes, n_nodes, length(u_global) ÷ n_nodes^2))
     u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_global])
 
     # u_boundary = u_inner
