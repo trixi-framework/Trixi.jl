@@ -41,7 +41,7 @@ function (initial_condition_discontinuity::InitialConditionDiscontinuity)(x, t,
 end
 # Note calling the constructor of the struct: `InitialConditionDiscontinuity()` instead of
 # `initial_condition_discontinuity` !
-const initial_condition_discontinuity = InitialConditionDiscontinuity()
+const initial_condition = InitialConditionDiscontinuity()
 
 surface_flux = (flux_lax_friedrichs, flux_nonconservative_chan_etal)
 volume_flux = (flux_chan_etal, flux_nonconservative_chan_etal)

@@ -59,7 +59,7 @@ const initial_condition = InitialConditionRarefaction()
 ###############################################################################
 # Specify non-periodic boundary conditions
 
-boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition_rarefaction)
+boundary_condition_inflow = BoundaryConditionDirichlet(initial_condition)
 
 function boundary_condition_outflow(u_inner, orientation, normal_direction, x, t,
                                     surface_flux_function,
