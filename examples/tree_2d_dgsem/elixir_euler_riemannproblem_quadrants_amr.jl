@@ -7,11 +7,9 @@ using Trixi
 equations = CompressibleEulerEquations2D(1.4)
 
 # Variant of the 4-quadrant Riemann problem considered in 
-#
 # - Carsten W. Schulz-Rinne:
 #   Classification of the Riemann Problem for Two-Dimensional Gas Dynamics
 #   https://doi.org/10.1137/0524006
-#
 # and 
 # - Carsten W. Schulz-Rinne, James P. Collins, and Harland M. Glaz
 #   Numerical Solution of the Riemann Problem for Two-Dimensional Gas Dynamics
@@ -19,14 +17,14 @@ equations = CompressibleEulerEquations2D(1.4)
 
 # Specify the initial condition as a discontinuous initial condition (see docstring of 
 # `DiscontinuousInitialCondition` for more information) which comes with a specialized 
-# initialization routine suited for the Riemann problems.
+# initialization routine suited for Riemann problems.
 # In short, if a discontinuity is right at an interface, the boundary nodes (which are at the same location)
 # on that interface will be initialized with the left and right state of the discontinuity, i.e., 
 #                         { u_1, if element = left element and x_{element}^{(n)} = x_jump
 # u(x_jump, t, element) = {
 #                         { u_2, if element = right element and x_{element}^{(1)} = x_jump
 # This is realized by shifting the outer DG nodes inwards, i.e., on reference element
-# the outer nodes are at `[-1, 1]` are shifted to `[-1 + ε, 1 - ε]` with machine precision `ε`.
+# the outer nodes at `[-1, 1]` are shifted inwards to `[-1 + ε, 1 - ε]` with machine precision `ε`.
 struct InitialConditionRP <: DiscontinuousInitialCondition end
 
 function (initial_condition_rp::InitialConditionRP)(x_, t,
@@ -128,8 +126,3 @@ callbacks = CallbackSet(summary_callback,
 
 sol = solve(ode, SSPRK54();
             dt = 1.0, save_everystep = false, callback = callbacks);
-
-using Plots
-pd = PlotData2D(sol)
-plot(pd["rho"])
-plot!(getmesh(pd))
