@@ -279,22 +279,23 @@ end
 
 # # Andrew's functions for computing the derivatives.
 # function DGSpaceDerivative_WeakForm!(
-# #     F_prime::Matrix{Float64},       # size: (N+1, nEqn)
 #     FL::Vector{Float64},            # size: nEqn
 #     FR::Vector{Float64},            # size: nEqn
-# #     Flux::Matrix{Float64},          # size: (N+1, nEqn)
-# #     D::Matrix{Float64},             # size: (N+1, N+1)
 #     l_minus::Vector{Float64},       # size: N+1
 #     l_plus::Vector{Float64},        # size: N+1
-#     weights::Vector{Float64},       # size: N+1
 #     nEqn::Int,
 #     N::Int
 # )
+#     # Get the required variables.
+#     @unpack derivative_dhat = dg.basis
+#
 #     # Translations.
-#     D = basis.derivative_dhat
+#     D = derivative_dhat
 #     J = elements.jacobian_matrix
 #     Flux =
 #     F_prime = D*Flux
+#     weights = dg.basis.weights
+#     spA_Dhat = dg.basis.derivative_dhat
 #
 #     # Volume derivative term using D matrix
 #     for k in 1:nEqn
