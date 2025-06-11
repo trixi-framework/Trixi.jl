@@ -398,6 +398,10 @@ function analyze(::Val{:linf_divb}, du, u, t,
             linf_divb = max(linf_divb, abs(divb))
         end
     end
+    if mpi_isparallel()
+        # Base.max instead of max needed, see comment in src/auxiliary/math.jl
+        linf_divb = MPI.Allreduce!(Ref(linf_divb), Base.max, mpi_comm())[]
+    end
 
     return linf_divb
 end

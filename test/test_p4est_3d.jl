@@ -587,6 +587,42 @@ end
     end
 end
 
+@trixi_testset "elixir_mhd_alfven_wave_nonperiodic.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_mhd_alfven_wave_nonperiodic.jl"),
+                        l2=[
+                            0.00017912812934894293,
+                            0.000630910737693146,
+                            0.0002256138768371346,
+                            0.0007301686017397987,
+                            0.0006647296256552257,
+                            0.0006409790941359089,
+                            0.00033986873316986315,
+                            0.0007277161123570452,
+                            1.3184121257198033e-5
+                        ],
+                        linf=[
+                            0.0012248374096375247,
+                            0.004857541490859554,
+                            0.001813452620706816,
+                            0.004803571938364726,
+                            0.005271403957646026,
+                            0.004571200760744465,
+                            0.002618188297242474,
+                            0.005010126350015381,
+                            6.309149507784953e-5
+                        ],
+                        tspan=(0.0, 0.25),)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 @trixi_testset "elixir_mhd_shockcapturing_amr.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_amr.jl"),
                         l2=[
