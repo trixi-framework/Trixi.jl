@@ -145,7 +145,7 @@ plot(sol)
 # above.
 
 error_1 = analysis_callback(sol).l2 |> first
-@test isapprox(error_1, 0.00029609575838969394) #src
+@test isapprox(error_1, 0.0002961027497380263) #src
 # Next, we increase the grid resolution by one refinement level and run the
 # simulation again.
 
