@@ -494,7 +494,6 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
                                                              surface_flux_function,
                                                              direction,
                                                              u_global)
-    @autoinfiltrate
     n_nodes = length(mesh.parent.nodes)
     if abs(sum(normal_direction .* (1.0, 0.0))) >
        abs(sum(normal_direction .* (0.0, 1.0)))
