@@ -501,6 +501,29 @@ function flux_nonconservative_waruszewski_lnmean(u_ll, u_rr, aux_ll, aux_rr, nor
                               v3_avg * normal_direction[3]))
 end
 
+function flux_nonconservative_waruszewski_arithmean(u_ll, u_rr, aux_ll, aux_rr, normal_direction::AbstractVector,
+                                          equations::CompressibleEulerEquationsNCGravity3D)
+    rho_ll, v1_ll, v2_ll, v3_ll = cons2prim(u_ll, aux_ll, equations)
+    rho_rr, v1_rr, v2_rr, v3_rr = cons2prim(u_rr, aux_rr, equations)
+    v1_avg = 0.5f0 * (v1_rr + v1_ll)
+    v2_avg = 0.5f0 * (v2_rr + v2_ll)
+    v3_avg = 0.5f0 * (v3_rr + v3_ll)
+
+    phi_ll = aux_ll[1]
+    phi_rr = aux_rr[1]
+
+    noncons = 0.5f0 * (rho_ll + rho_rr) * (phi_rr - phi_ll)
+
+    f0 = zero(eltype(u_ll))
+    return SVector(f0,
+                   noncons * normal_direction[1],
+                   noncons * normal_direction[2],
+                   noncons * normal_direction[3],
+                   noncons * (v1_avg * normal_direction[1] +
+                              v2_avg * normal_direction[2] +
+                              v3_avg * normal_direction[3]))
+end
+
 """
     FluxLMARS(c)(u_ll, u_rr, orientation_or_normal_direction,
                  equations::CompressibleEulerEquationsNCGravity3D)
@@ -708,7 +731,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    v_square = v1rho_pert_avg^2 + v2^2 + v3^2
+    v_square = v1^2 + v2^2 + v3^2
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho * v_square)
     s = log(p) - equations.gamma * log(rho)
     rho_p = rho / p

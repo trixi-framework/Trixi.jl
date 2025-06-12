@@ -549,6 +549,9 @@ end
 # Numerical flux formulations that are independent of the specific system of equations
 include("numerical_fluxes.jl")
 
+# Passive tracer equations
+include("passive_tracers.jl")
+
 # Linear scalar advection
 abstract type AbstractLinearScalarAdvectionEquation{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
@@ -598,9 +601,6 @@ include("compressible_euler_multicomponent_2d.jl")
 abstract type AbstractPolytropicEulerEquations{NDIMS, NVARS} <:
               AbstractEquations{NDIMS, NVARS} end
 include("polytropic_euler_2d.jl")
-
-# Passive tracer equations
-include("passive_tracers.jl")
 
 # Retrieve number of components from equation instance for the multicomponent case
 @inline function ncomponents(::AbstractCompressibleEulerMulticomponentEquations{NDIMS,

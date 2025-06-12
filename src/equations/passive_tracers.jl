@@ -33,6 +33,8 @@ end
 NTracers, FlowEquations} = NTracers
 
 have_nonconservative_terms(equations::PassiveTracerEquations) = have_nonconservative_terms(equations.flow_equations)
+have_aux_node_vars(equations::PassiveTracerEquations) = have_aux_node_vars(equations.flow_equations)
+n_aux_node_vars(equations::PassiveTracerEquations) = n_aux_node_vars(equations.flow_equations)
 
 function varnames(variables::typeof(cons2cons),
                   tracer_equations::PassiveTracerEquations)
@@ -107,6 +109,13 @@ function tracers(u, tracer_equations::PassiveTracerEquations)
     return SVector(ntuple(@inline(v->u[v + n_flow_variables] / rho),
                           Val(ntracers(tracer_equations))))
 end
+function tracers(u, aux, tracer_equations::PassiveTracerEquations)
+    n_flow_variables = nvariables_flow(tracer_equations)
+
+    rho = density(u, aux, tracer_equations)
+    return SVector(ntuple(@inline(v->u[v + n_flow_variables] / rho),
+                          Val(ntracers(tracer_equations))))
+end
 
 # Obtain rho * tracers which are the conservative variables for the tracer equations.
 function rho_tracers(u, tracer_equations::PassiveTracerEquations)
@@ -163,6 +172,21 @@ end
     return variables
 end
 
+# Convert conservative variables to entropy
+@inline function cons2entropy(u, aux, tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    flow_entropy = cons2entropy(flow_variables(u, tracer_equations), aux, flow_equations)
+    tracers_ = tracers(u, aux, tracer_equations)
+
+    flow_entropy_after_density = SVector(ntuple(@inline(v->flow_entropy[v + 1]),
+                                                Val(nvariables_flow(tracer_equations) -
+                                                    1)))
+    variables = SVector(flow_entropy[1] - sum(tracers_ .^ 2),
+                        flow_entropy_after_density...,
+                        2 * tracers_...) # factor of 2 because of the L2 norm
+    return variables
+end
+
 # Works if the method exists for flow equations
 @inline function velocity(u, orientation_or_normal,
                           tracer_equations::PassiveTracerEquations)
@@ -173,6 +197,10 @@ end
 # Works if the method exists for flow equations
 @inline function density(u, tracer_equations::PassiveTracerEquations)
     return density(flow_variables(u, tracer_equations), tracer_equations.flow_equations)
+end
+
+@inline function density(u, aux, tracer_equations::PassiveTracerEquations)
+    return density(flow_variables(u, tracer_equations), aux, tracer_equations.flow_equations)
 end
 
 # Works if the method exists for flow equations
@@ -236,6 +264,25 @@ end
     return SVector(flux_flow..., flux_tracer...)
 end
 
+@inline function (f::FluxTracerEquationsCentral)(u_ll, u_rr, aux_ll, aux_rr,
+                                                 orientation_or_normal_direction,
+                                                 tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow_ll = flow_variables(u_ll, tracer_equations)
+    u_flow_rr = flow_variables(u_rr, tracer_equations)
+
+    flux_flow = f.flow_flux(u_flow_ll, u_flow_rr, aux_ll, aux_rr,
+                            orientation_or_normal_direction,
+                            flow_equations)
+    flux_rho = flux_flow[1]
+    tracers_ll = tracers(u_ll, aux_ll, tracer_equations)
+    tracers_rr = tracers(u_rr, aux_rr, tracer_equations)
+    flux_tracer = 0.5f0 * SVector(ntuple(@inline(v->tracers_ll[v] + tracers_rr[v]),
+                                 Val(ntracers(tracer_equations))))
+    flux_tracer = flux_rho * flux_tracer
+    return SVector(flux_flow..., flux_tracer...)
+end
+
 struct FluxTracerEquationsPass{FlowFlux}
     flow_flux::FlowFlux
 end
@@ -253,6 +300,20 @@ function (f::FluxTracerEquationsPass)(u_ll, u_rr,
     return SVector(flux_flow..., flux_tracer...)
 end
 
+function (f::FluxTracerEquationsPass)(u_ll, u_rr, aux_ll, aux_rr,
+                                      orientation_or_normal_direction,
+                                      tracer_equations::PassiveTracerEquations)
+    (; flow_equations) = tracer_equations
+    u_flow_ll = flow_variables(u_ll, tracer_equations)
+    u_flow_rr = flow_variables(u_rr, tracer_equations)
+    flux_flow = f.flow_flux(u_flow_ll, u_flow_rr, aux_ll, aux_rr,
+                            orientation_or_normal_direction,
+                            flow_equations)
+    flux_tracer = SVector(ntuple(@inline(v->zero(eltype(u_ll))),
+                                 Val(ntracers(tracer_equations))))
+    return SVector(flux_flow..., flux_tracer...)
+end
+
 @inline function boundary_condition_slip_wall_noncons(u_inner,
                                                       normal_direction::AbstractVector,
                                                       x, t,
@@ -262,6 +323,21 @@ end
     u_flow = flow_variables(u_inner, tracer_equations)
     bc_flow, bc_flow_noncons = boundary_condition_slip_wall(u_flow, normal_direction, x,
                                                             t,
+                                                            surface_flux_function,
+                                                            flow_equations)
+    bc_tracer = SVector(ntuple(@inline(v->0), Val(ntracers(tracer_equations))))
+    return (vcat(bc_flow, bc_tracer), vcat(bc_flow_noncons, bc_tracer))
+end
+
+@inline function boundary_condition_slip_wall_noncons(u_inner, aux_inner,
+                                                      normal_direction::AbstractVector,
+                                                      x, t,
+                                                      surface_flux_function,
+                                                      tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow = flow_variables(u_inner, tracer_equations)
+    bc_flow, bc_flow_noncons = boundary_condition_slip_wall(u_flow, aux_inner,
+                                                            normal_direction, x, t,
                                                             surface_flux_function,
                                                             flow_equations)
     bc_tracer = SVector(ntuple(@inline(v->0), Val(ntracers(tracer_equations))))

@@ -870,4 +870,30 @@ end
 
     return SVector(w1, w2, w3, w4, w5)
 end
+
+@inline function density(u, aux, equations::CompressibleEulerEquationsGravityNCSPert3D)
+    rho = u[1] + aux[1]
+    return rho
+end
+
+@inline function cons2prim_total(u, aux, tracer_equations::PassiveTracerEquations)
+    return SVector(cons2prim_total(Trixi.flow_variables(u, tracer_equations), aux,
+                                   tracer_equations.flow_equations)...,
+                   Trixi.tracers(u, aux, tracer_equations)...)
+end
+
+function varnames(variables::typeof(cons2prim_total),
+                  tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    flow_varnames = varnames(variables, flow_equations)
+    n_tracers = ntracers(tracer_equations)
+    return (flow_varnames..., ntuple(i -> "chi_$i", Val(n_tracers))...)
+end
+
+function varnames(variables::typeof(cons2aux),
+                  tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    return varnames(variables, flow_equations)
+end
+
 end # @muladd
