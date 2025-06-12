@@ -208,7 +208,8 @@ function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
                         neighbor_ids_global[idx] = parent_xneg_element_ids[findfirst(parent_xpos_element_ids .== boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :y_neg
-                        neighbor_ids_global[idx] = parent_ypos_element_ids[findfirst(parent_yneg_element_ids .== boundary)]
+                        neighbor_ids_global[idx] = parent_ypos_element_ids[findfirst(parent_yneg_element_ids .==
+                                                                                     boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :y_pos
                         neighbor_ids_global[idx] = parent_yneg_element_ids[findfirst(parent_ypos_element_ids .==
