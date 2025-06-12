@@ -35,10 +35,12 @@ boundary_conditions = Dict(:x_neg => BoundaryConditionCoupledP4est(coupling_func
                            :y_pos => BoundaryConditionCoupledP4est(coupling_function),
                            :x_pos => BoundaryConditionCoupledP4est(coupling_function))
 
-semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test, solver,
-                                     boundary_conditions=boundary_conditions)
-semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test, solver,
-                                     boundary_conditions=boundary_conditions)
+semi1 = SemidiscretizationHyperbolic(mesh1, equations, initial_condition_convergence_test,
+                                     solver,
+                                     boundary_conditions = boundary_conditions)
+semi2 = SemidiscretizationHyperbolic(mesh2, equations, initial_condition_convergence_test,
+                                     solver,
+                                     boundary_conditions = boundary_conditions)
 
 # Create a semidiscretization that bundles semi1 and semi2
 semi = SemidiscretizationCoupledP4est(semi1, semi2)
