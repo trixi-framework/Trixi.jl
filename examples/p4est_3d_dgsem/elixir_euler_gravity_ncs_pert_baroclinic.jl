@@ -258,14 +258,14 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-
-save_solution = SaveSolutionCallback(dt = 2000, #interval = 5000,
+output = "out_baroclinic_gncs_ranocha_lmars_l0-2_vel-32-58"
+save_solution = SaveSolutionCallback(dt = 20_000, #interval = 5000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim_total,
-                                     output_directory="out_baroclinic_gncs_test")
+                                     output_directory=output)
 
-#save_restart = SaveRestartCallback(interval = 100000,
+#save_restart = SaveRestartCallback(interval = 500_000,
 #                                   save_final_restart = true,
 #                                   output_directory = output)
 
@@ -273,16 +273,16 @@ amr_indicator = IndicatorMax(semi, variable = vel_mag)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                     base_level = 0,
-                                    med_level = 1, med_threshold = 5.0,
-                                    max_level = 2, max_threshold = 25.0)
+                                    med_level = 1, med_threshold = 32.0,
+                                    max_level = 2, max_threshold = 58.0)
 
 amr_callback = AMRCallback(semi, amr_controller,
-                        interval = 5000,
+                        interval = 10_000,
                         adapt_initial_condition = true,
                         adapt_initial_condition_only_refine = true)
 
 callbacks = CallbackSet(summary_callback,
-                        #amr_callback,
+                        amr_callback,
                         analysis_callback, alive_callback,
                         save_solution)
 

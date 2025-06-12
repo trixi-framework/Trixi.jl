@@ -183,8 +183,7 @@ end
 
 @inline function source_terms_baroclinic_instability(u, aux, x, t,
                                                      equations::CompressibleEulerEquationsNCGravity3D)
-    #angular_velocity = 7.29212e-5  # Ω
-    angular_velocity = 0.0
+    angular_velocity = 7.29212e-5  # Ω
 
     du0 = zero(eltype(u))
 
@@ -238,7 +237,7 @@ save_solution = SaveSolutionCallback(dt=1000, #interval = 5000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim,
-                                     output_directory="out_baroclinic_gravity_nocor")
+                                     output_directory="out_baroclinic_ncgravity_test")
 
 callbacks = CallbackSet(summary_callback,
                         analysis_callback,
