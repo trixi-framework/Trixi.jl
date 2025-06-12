@@ -277,48 +277,52 @@ function integrate(func::Func, u,
     end
 end
 
-# # Andrew's functions for computing the derivatives.
-# function DGSpaceDerivative_WeakForm!(
-#     FL::Vector{Float64},            # size: nEqn
-#     FR::Vector{Float64},            # size: nEqn
-#     l_minus::Vector{Float64},       # size: N+1
-#     l_plus::Vector{Float64},        # size: N+1
-#     nEqn::Int,
-#     N::Int
-# )
-#     # Get the required variables.
-#     @unpack derivative_dhat = dg.basis
-#
-#     # Translations.
-#     D = derivative_dhat
-#     J = elements.jacobian_matrix
-#     Flux =
-#     F_prime = D*Flux
-#     weights = dg.basis.weights
-#     spA_Dhat = dg.basis.derivative_dhat
-#
-#     # Volume derivative term using D matrix
-#     for k in 1:nEqn
-#         MxVDerivative!(F_prime[:, k], Flux[:, k], D, N)
-#     end
-#
-#     # Surface contribution from numerical fluxes
-#     for j in 0:N
-#         for k in 1:nEqn
-#             F_prime[j+1, k] += (FR[k] * l_plus[j+1] + FL[k] * l_minus[j+1]) / weights[j+1]
-#         end
-#     end
-# end
-#
-# function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64}, D::Matrix{Float64}, N::Int)
-#     for i in 0:N
-#         t = 0.0
-#         for j in 0:N
-#             t += D[i+1, j+1] * Phi[j+1]  # Adjust for 1-based indexing
-#         end
-#         Phi_prime[i+1] = t
-#     end
-# end
+# Andrew's functions for computing the derivatives.
+function DGSpaceDerivative_WeakForm!(
+    FL::Vector{Float64},            # size: nEqn
+    FR::Vector{Float64},            # size: nEqn
+    l_minus::Vector{Float64},       # size: N+1
+    l_plus::Vector{Float64},        # size: N+1
+    nEqn::Int,
+    N::Int
+)
+    # Get the required variables.
+    @unpack derivative_dhat = dg.basis
+
+    # Translations.
+    D = derivative_dhat
+    spA_Dhat = D
+    J = elements.jacobian_matrix
+    Flux = dg.volume_integral.volume_flux_dg(???)
+    F_prime = spA_Dhat * Flux
+    weights = dg.basis.weights
+    geom%X_xi = elements.contravariant_vectors ???
+    l_minus = dg.basis.basis_at_ξ̂_min
+    l_plus = dg.basis.basis_at_ξ̂_max
+    Fstarb =
+
+    # Volume derivative term using D matrix
+    for k in 1:nEqn
+        MxVDerivative!(F_prime[:, k], Flux[:, k], D, N)
+    end
+
+    # Surface contribution from numerical fluxes
+    for j in 0:N
+        for k in 1:nEqn
+            F_prime[j+1, k] += (FR[k] * l_plus[j+1] + FL[k] * l_minus[j+1]) / weights[j+1]
+        end
+    end
+end
+
+function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64}, D::Matrix{Float64}, N::Int)
+    for i in 0:N
+        t = 0.0
+        for j in 0:N
+            t += D[i+1, j+1] * Phi[j+1]  # Adjust for 1-based indexing
+        end
+        Phi_prime[i+1] = t
+    end
+end
 
 function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, P4estMesh{2}},
