@@ -708,7 +708,7 @@ end
     v1 = rho_v1 / rho
     v2 = rho_v2 / rho
     v3 = rho_v3 / rho
-    v_square = v1^2 + v2^2 + v3^2
+    v_square = v1rho_pert_avg^2 + v2^2 + v3^2
     p = (equations.gamma - 1) * (rho_e - 0.5f0 * rho * v_square)
     s = log(p) - equations.gamma * log(rho)
     rho_p = rho / p

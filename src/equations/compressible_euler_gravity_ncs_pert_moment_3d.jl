@@ -55,6 +55,19 @@ end
     return SVector(rho, v1, v2, v3, p)
 end
 
+# compute steady pressure from steady state in aux
+# - will fail when steady rho ~ 0
+@inline function pressure_steady(aux,
+                                 equations::CompressibleEulerEquationsGravityNCSPert3D)
+    rho, rho_v1, rho_v2, rho_v3, rho_e = aux
+    v1 = rho_v1 / rho
+    v2 = rho_v2 / rho
+    v3 = rho_v3 / rho
+    p = (equations.gamma - 1) *
+        (rho_e - 0.5 * (rho_v1 * v1 + rho_v2 * v2 + rho_v3 * v3))
+    return p
+end
+
 # convert primitve to conervative variables
 @inline function prim2cons(prim, equations::CompressibleEulerEquationsGravityNCSPert3D)
     rho, v1, v2, v3, p = prim
@@ -177,11 +190,13 @@ Should be used together with [`UnstructuredMesh2D`](@ref).
                  (v_normal + sqrt(v_normal^2 + 4 * A * (p_local + B)))
     end
 
+    p_steady = pressure_steady(aux_inner, equations)
+
     # For the slip wall we directly set the flux as the normal velocity is zero
     return (SVector(0,
-                    p_star * normal_direction[1],
-                    p_star * normal_direction[2],
-                    p_star * normal_direction[3],
+                    (p_star - p_steady) * normal_direction[1],
+                    (p_star - p_steady) * normal_direction[2],
+                    (p_star - p_steady) * normal_direction[3],
                     0),
             SVector(0, 0, 0, 0, 0))
 end
@@ -243,23 +258,24 @@ end
     u_total = cons2cons_total(u, aux, equations)
     _, rho_v1, rho_v2, rho_v3, rho_e = u_total
     _, v1, v2, v3, p = cons2prim(u_total, aux, equations)
+    p_steady = pressure_steady(aux, equations)
     if orientation == 1
         f1 = rho_v1
-        f2 = rho_v1 * v1 + p
+        f2 = rho_v1 * v1 + p - p_steady
         f3 = rho_v1 * v2
         f4 = rho_v1 * v3
         f5 = (rho_e + p) * v1
     elseif orientation == 2
         f1 = rho_v2
         f2 = rho_v2 * v1
-        f3 = rho_v2 * v2 + p
+        f3 = rho_v2 * v2 + p - p_steady
         f4 = rho_v2 * v3
         f5 = (rho_e + p) * v2
     else
         f1 = rho_v3
         f3 = rho_v3 * v1
         f2 = rho_v3 * v2
-        f4 = rho_v3 * v3 + p
+        f4 = rho_v3 * v3 + p - p_steady
         f5 = (rho_e + p) * v3
     end
     return SVector(f1, f2, f3, f4, f5)
@@ -272,15 +288,16 @@ end
     u_total = cons2cons_total(u, aux, equations)
     rho, _, _, _, rho_e = u_total
     _, v1, v2, v3, p = cons2prim(u_total, aux, equations)
+    p_steady = pressure_steady(aux, equations)
 
     v_normal = v1 * normal_direction[1] +
                v2 * normal_direction[2] +
                v3 * normal_direction[3]
     rho_v_normal = rho * v_normal
     f1 = rho_v_normal
-    f2 = rho_v_normal * v1 + p * normal_direction[1]
-    f3 = rho_v_normal * v2 + p * normal_direction[2]
-    f4 = rho_v_normal * v3 + p * normal_direction[3]
+    f2 = rho_v_normal * v1 + (p - p_steady) * normal_direction[1]
+    f3 = rho_v_normal * v2 + (p - p_steady) * normal_direction[2]
+    f4 = rho_v_normal * v3 + (p - p_steady) * normal_direction[3]
     f5 = (rho_e + p) * v_normal
     return SVector(f1, f2, f3, f4, f5)
 end
@@ -306,6 +323,9 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
     @unpack inv_gamma_minus_one = equations.equations_total
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
+    p_steady_ll = pressure_steady(aux_ll, equations)
+    p_steady_rr = pressure_steady(aux_rr, equations)
+    p_steady_avg = 0.5f0 * (p_steady_ll + p_steady_rr)
 
     # Average each factor of products in flux
     rho_avg = 1 / 2 * (rho_ll + rho_rr)
@@ -319,7 +339,7 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
     if orientation == 1
         pv1_avg = 0.5f0 * (p_ll * v1_rr + p_rr * v1_ll)
         f1 = rho_avg * v1_avg
-        f2 = f1 * v1_avg + p_avg
+        f2 = f1 * v1_avg + p_avg - p_steady_avg
         f3 = f1 * v2_avg
         f4 = f1 * v3_avg
         f5 = p_avg * v1_avg * inv_gamma_minus_one + f1 * kin_avg + pv1_avg
@@ -327,7 +347,7 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
         pv2_avg = 0.5f0 * (p_ll * v2_rr + p_rr * v2_ll)
         f1 = rho_avg * v2_avg
         f2 = f1 * v1_avg
-        f3 = f1 * v2_avg + p_avg
+        f3 = f1 * v2_avg + p_avg - p_steady_avg
         f4 = f1 * v3_avg
         f5 = p_avg * v2_avg * inv_gamma_minus_one + f1 * kin_avg + pv2_avg
     else
@@ -335,7 +355,7 @@ The modification is in the energy flux to guarantee pressure equilibrium and was
         f1 = rho_avg * v3_avg
         f2 = f1 * v1_avg
         f3 = f1 * v2_avg
-        f4 = f1 * v3_avg + p_avg
+        f4 = f1 * v3_avg + p_avg - p_steady_avg
         f5 = p_avg * v3_avg * inv_gamma_minus_one + f1 * kin_avg + pv3_avg
     end
 
@@ -348,6 +368,9 @@ end
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
+    p_steady_ll = pressure_steady(aux_ll, equations)
+    p_steady_rr = pressure_steady(aux_rr, equations)
+    p_steady_avg = 0.5f0 * (p_steady_ll + p_steady_rr)
     v_dot_n_ll = v1_ll * normal_direction[1] +
                  v2_ll * normal_direction[2] +
                  v3_ll * normal_direction[3]
@@ -366,9 +389,9 @@ end
 
     # Calculate fluxes depending on normal_direction
     f1 = rho_avg * v_dot_n_avg
-    f2 = f1 * v1_avg + p_avg * normal_direction[1]
-    f3 = f1 * v2_avg + p_avg * normal_direction[2]
-    f4 = f1 * v3_avg + p_avg * normal_direction[3]
+    f2 = f1 * v1_avg + (p_avg - p_steady_avg) * normal_direction[1]
+    f3 = f1 * v2_avg + (p_avg - p_steady_avg) * normal_direction[2]
+    f4 = f1 * v3_avg + (p_avg - p_steady_avg) * normal_direction[3]
     f5 = (f1 * velocity_square_avg +
           p_avg * v_dot_n_avg * equations.inv_gamma_minus_one
           + 0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll))
@@ -395,6 +418,9 @@ Kinetic energy preserving two-point flux by
     rho_e_rr = u_rr_total[5]
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll_total, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr_total, aux_rr, equations)
+    p_steady_ll = pressure_steady(aux_ll, equations)
+    p_steady_rr = pressure_steady(aux_rr, equations)
+    p_steady_avg = 0.5f0 * (p_steady_ll + p_steady_rr)
 
     # Average each factor of products in flux
     rho_avg = 1 / 2 * (rho_ll + rho_rr)
@@ -407,21 +433,21 @@ Kinetic energy preserving two-point flux by
     # Calculate fluxes depending on orientation
     if orientation == 1
         f1 = rho_avg * v1_avg
-        f2 = rho_avg * v1_avg * v1_avg + p_avg
+        f2 = rho_avg * v1_avg * v1_avg + p_avg - p_steady_avg
         f3 = rho_avg * v1_avg * v2_avg
         f4 = rho_avg * v1_avg * v3_avg
         f5 = (rho_avg * e_avg + p_avg) * v1_avg
     elseif orientation == 1
         f1 = rho_avg * v2_avg
         f2 = rho_avg * v2_avg * v1_avg
-        f3 = rho_avg * v2_avg * v2_avg + p_avg
+        f3 = rho_avg * v2_avg * v2_avg + p_avg - p_steady_avg
         f4 = rho_avg * v2_avg * v3_avg
         f5 = (rho_avg * e_avg + p_avg) * v2_avg
     else
         f1 = rho_avg * v2_avg
         f2 = rho_avg * v3_avg * v1_avg
         f3 = rho_avg * v3_avg * v2_avg
-        f4 = rho_avg * v3_avg * v3_avg + p_avg
+        f4 = rho_avg * v3_avg * v3_avg + p_avg - p_steady_avg
         f5 = (rho_avg * e_avg + p_avg) * v3_avg
     end
 
@@ -438,6 +464,9 @@ end
     rho_e_rr = u_rr_total[5]
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll_total, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr_total, aux_rr, equations)
+    p_steady_ll = pressure_steady(aux_ll, equations)
+    p_steady_rr = pressure_steady(aux_rr, equations)
+    p_steady_avg = 0.5f0 * (p_steady_ll + p_steady_rr)
 
     # Average each factor of products in flux
     rho_avg = 0.5 * (rho_ll + rho_rr)
@@ -452,9 +481,9 @@ end
 
     # Calculate fluxes depending on normal_direction
     f1 = rho_avg * v_dot_n_avg
-    f2 = f1 * v1_avg + p_avg * normal_direction[1]
-    f3 = f1 * v2_avg + p_avg * normal_direction[2]
-    f4 = f1 * v3_avg + p_avg * normal_direction[3]
+    f2 = f1 * v1_avg + (p_avg - p_steady_avg) * normal_direction[1]
+    f3 = f1 * v2_avg + (p_avg - p_steady_avg) * normal_direction[2]
+    f4 = f1 * v3_avg + (p_avg - p_steady_avg) * normal_direction[3]
     f5 = f1 * e_avg + p_avg * v_dot_n_avg
 
     return SVector(f1, f2, f3, f4, f5)
@@ -481,6 +510,9 @@ See also
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
+    p_steady_ll = pressure_steady(aux_ll, equations)
+    p_steady_rr = pressure_steady(aux_rr, equations)
+    p_steady_avg = 0.5f0 * (p_steady_ll + p_steady_rr)
 
     # Compute the necessary mean values
     rho_mean = ln_mean(rho_ll, rho_rr)
@@ -498,7 +530,7 @@ See also
     # Calculate fluxes depending on orientation
     if orientation == 1
         f1 = rho_mean * v1_avg
-        f2 = f1 * v1_avg + p_avg
+        f2 = f1 * v1_avg + p_avg - p_steady_avg
         f3 = f1 * v2_avg
         f4 = f1 * v3_avg
         f5 = f1 *
@@ -507,7 +539,7 @@ See also
     elseif orientation == 2
         f1 = rho_mean * v2_avg
         f2 = f1 * v1_avg
-        f3 = f1 * v2_avg + p_avg
+        f3 = f1 * v2_avg + p_avg - p_steady_avg
         f4 = f1 * v3_avg
         f5 = f1 *
              (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
@@ -516,7 +548,7 @@ See also
         f1 = rho_mean * v3_avg
         f2 = f1 * v1_avg
         f3 = f1 * v2_avg
-        f4 = f1 * v3_avg + p_avg
+        f4 = f1 * v3_avg + p_avg - p_steady_avg
         f5 = f1 *
              (velocity_square_avg + inv_rho_p_mean * inv_gamma_minus_one) +
              0.5 * (p_ll * v3_rr + p_rr * v3_ll)
@@ -530,6 +562,9 @@ end
     # Unpack left and right state
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim_total(u_rr, aux_rr, equations)
+    p_steady_ll = pressure_steady(aux_ll, equations)
+    p_steady_rr = pressure_steady(aux_rr, equations)
+    p_steady_avg = 0.5f0 * (p_steady_ll + p_steady_rr)
     v_dot_n_ll = v1_ll * normal_direction[1] +
                  v2_ll * normal_direction[2] +
                  v3_ll * normal_direction[3]
@@ -552,9 +587,9 @@ end
 
     # Calculate fluxes depending on normal_direction
     f1 = rho_mean * 0.5 * (v_dot_n_ll + v_dot_n_rr)
-    f2 = f1 * v1_avg + p_avg * normal_direction[1]
-    f3 = f1 * v2_avg + p_avg * normal_direction[2]
-    f4 = f1 * v3_avg + p_avg * normal_direction[3]
+    f2 = f1 * v1_avg + (p_avg - p_steady_avg) * normal_direction[1]
+    f3 = f1 * v2_avg + (p_avg - p_steady_avg) * normal_direction[2]
+    f4 = f1 * v3_avg + (p_avg - p_steady_avg) * normal_direction[3]
     f5 = (f1 * (velocity_square_avg + inv_rho_p_mean * equations.inv_gamma_minus_one)
           +
           0.5 * (p_ll * v_dot_n_rr + p_rr * v_dot_n_ll))
@@ -565,11 +600,14 @@ end
 function flux_nonconservative_waruszewski_arithmean(u_ll, u_rr, aux_ll, aux_rr,
                                                     normal_direction::AbstractVector,
                                                     equations::CompressibleEulerEquationsGravityNCSPert3D)
+    # u[1] is perturbation in rho
+    rho_pert_avg = 0.5 * (u_ll[1] + u_rr[1])
+    phi_jump = aux_rr[6] - aux_ll[6]
+
     # Get left and right total quantities
     rho_ll, v1_ll, v2_ll, v3_ll, _ = cons2prim_total(u_ll, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, _ = cons2prim_total(u_rr, aux_rr, equations)
     rho_avg = 0.5 * (rho_ll + rho_rr)
-    phi_jump = aux_rr[6] - aux_ll[6]
     v1_avg = 0.5 * (v1_ll + v1_rr)
     v2_avg = 0.5 * (v2_ll + v2_rr)
     v3_avg = 0.5 * (v3_ll + v3_rr)
@@ -579,20 +617,24 @@ function flux_nonconservative_waruszewski_arithmean(u_ll, u_rr, aux_ll, aux_rr,
 
     f0 = zero(eltype(u_ll))
     return SVector(f0,
-                   rho_avg * phi_jump * normal_direction[1],
-                   rho_avg * phi_jump * normal_direction[2],
-                   rho_avg * phi_jump * normal_direction[3],
+                   rho_pert_avg * phi_jump * normal_direction[1],
+                   rho_pert_avg * phi_jump * normal_direction[2],
+                   rho_pert_avg * phi_jump * normal_direction[3],
                    rho_avg * phi_jump * v_dot_n_avg)
 end
 
 function flux_nonconservative_waruszewski_lnmean(u_ll, u_rr, aux_ll, aux_rr,
                                                  normal_direction::AbstractVector,
                                                  equations::CompressibleEulerEquationsGravityNCSPert3D)
-   # Get left and right total quantities
-    rho_ll, v1_ll, v2_ll, v3_ll, _ = cons2prim_total(u_ll, aux_ll, equations)
-    rho_rr, v1_rr, v2_rr, v3_rr, _ = cons2prim_total(u_rr, aux_rr, equations)
-    rho_avg = ln_mean(rho_ll, rho_rr)
-    phi_jump = aux_rr[6] - aux_ll[6]
+    # u[1] is perturbation in rho
+    rho_ll = u_ll[1]
+    rho_rr = u_rr[1]
+    phi_ll = aux_ll[6]
+    phi_rr = aux_rr[6]
+
+    # Get left and right velocites
+    _, v1_ll, v2_ll, v3_ll, _ = cons2prim_total(u_ll, aux_ll, equations)
+    _, v1_rr, v2_rr, v3_rr, _ = cons2prim_total(u_rr, aux_rr, equations)
     v1_avg = 0.5 * (v1_ll + v1_rr)
     v2_avg = 0.5 * (v2_ll + v2_rr)
     v3_avg = 0.5 * (v3_ll + v3_rr)
@@ -600,55 +642,69 @@ function flux_nonconservative_waruszewski_lnmean(u_ll, u_rr, aux_ll, aux_rr,
                   v2_avg * normal_direction[2] +
                   v3_avg * normal_direction[3]
 
+    noncons = ln_mean(rho_ll, rho_rr) * (phi_rr - phi_ll)
+
     f0 = zero(eltype(u_ll))
     return SVector(f0,
-                   rho_avg * phi_jump * normal_direction[1],
-                   rho_avg * phi_jump * normal_direction[2],
-                   rho_avg * phi_jump * normal_direction[3],
-                   rho_avg * phi_jump * v_dot_n_avg)
+                   noncons * normal_direction[1],
+                   noncons * normal_direction[2],
+                   noncons * normal_direction[3],
+                   noncons * v_dot_n_avg)
 end
 
 function flux_nonconservative_waruszewski_arithmean(u_ll, u_rr, aux_ll, aux_rr,
                                                     orientation::Integer,
                                                     equations::CompressibleEulerEquationsGravityNCSPert3D)
-    # Get left and right total quantities
-    rho_ll, v1_ll, v2_ll, v3_ll, _ = cons2prim_total(u_ll, aux_ll, equations)
-    rho_rr, v1_rr, v2_rr, v3_rr, _ = cons2prim_total(u_rr, aux_rr, equations)
-    rho_avg = 0.5 * (rho_ll + rho_rr)
-    phi_jump = aux_rr[6] - aux_ll[6]
+    # u[1] is perturbation in rho
+    rho_ll = u_ll[1]
+    rho_rr = u_rr[1]
+    phi_ll = aux_ll[6]
+    phi_rr = aux_rr[6]
+
+    # Get left and right velocites
+    _, v1_ll, v2_ll, v3_ll, _ = cons2prim_total(u_ll, aux_ll, equations)
+    _, v1_rr, v2_rr, v3_rr, _ = cons2prim_total(u_rr, aux_rr, equations)
     v1_avg = 0.5 * (v1_ll + v1_rr)
     v2_avg = 0.5 * (v2_ll + v2_rr)
     v3_avg = 0.5 * (v3_ll + v3_rr)
 
+    noncons = 0.5 * (rho_ll + rho_rr) * (phi_rr - phi_ll)
+
     f0 = zero(eltype(u_ll))
     if orientation == 1
-        return SVector(f0, rho_avg * phi_jump, f0, f0, rho_avg * phi_jump * v1_avg)
+        return SVector(f0, noncons, f0, f0, noncons * v1_avg)
     elseif orientation == 2
-        return SVector(f0, f0, rho_avg * phi_jump, f0, rho_avg * phi_jump * v2_avg)
+        return SVector(f0, f0, noncons, f0, noncons * v2_avg)
     else #if orientation == 3
-        return SVector(f0, f0, f0, rho_avg * phi_jump, rho_avg * phi_jump * v3_avg)
+        return SVector(f0, f0, f0, noncons, noncons * v3_avg)
     end
 end
 
 function flux_nonconservative_waruszewski_lnmean(u_ll, u_rr, aux_ll, aux_rr,
                                                     orientation::Integer,
                                                     equations::CompressibleEulerEquationsGravityNCSPert3D)
-    # Get left and right total quantities
-    rho_ll, v1_ll, v2_ll, v3_ll, _ = cons2prim_total(u_ll, aux_ll, equations)
-    rho_rr, v1_rr, v2_rr, v3_rr, _ = cons2prim_total(u_rr, aux_rr, equations)
-    rho_avg = ln_mean(rho_ll, rho_rr)
-    phi_jump = aux_rr[6] - aux_ll[6]
+    # u[1] is perturbation in rho
+    rho_ll = u_ll[1]
+    rho_rr = u_rr[1]
+    phi_ll = aux_ll[6]
+    phi_rr = aux_rr[6]
+
+    # Get left and right velocites
+    _, v1_ll, v2_ll, v3_ll, _ = cons2prim_total(u_ll, aux_ll, equations)
+    _, v1_rr, v2_rr, v3_rr, _ = cons2prim_total(u_rr, aux_rr, equations)
     v1_avg = 0.5 * (v1_ll + v1_rr)
     v2_avg = 0.5 * (v2_ll + v2_rr)
     v3_avg = 0.5 * (v3_ll + v3_rr)
 
+    noncons = ln_mean(rho_ll, rho_rr) * (phi_rr - phi_ll)
+
     f0 = zero(eltype(u_ll))
     if orientation == 1
-        return SVector(f0, rho_avg * phi_jump, f0, f0, rho_avg * phi_jump * v1_avg)
+        return SVector(f0, noncons, f0, f0, noncons * v1_avg)
     elseif orientation == 2
-        return SVector(f0, f0, rho_avg * phi_jump, f0, rho_avg * phi_jump * v2_avg)
+        return SVector(f0, f0, noncons, f0, noncons * v2_avg)
     else #if orientation == 3
-        return SVector(f0, f0, f0, rho_avg * phi_jump, rho_avg * phi_jump * v3_avg)
+        return SVector(f0, f0, f0, noncons, noncons * v3_avg)
     end
 end
 
@@ -677,6 +733,9 @@ References:
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll_total, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr_total, aux_rr, equations)
+    p_steady_ll = pressure_steady(aux_ll, equations)
+    p_steady_rr = pressure_steady(aux_rr, equations)
+    p_steady_avg = 0.5f0 * (p_steady_ll + p_steady_rr)
 
     if orientation == 1
         v_ll = v1_ll
@@ -704,11 +763,11 @@ References:
     end
 
     if orientation == 1
-        f2 = f2 + p
+        f2 = f2 + p - p_steady_avg
     elseif orientation == 2
-        f3 = f3 + p
+        f3 = f3 + p - p_steady_avg
     else # orientation == 2
-        f4 = f4 + p
+        f4 = f4 + p - p_steady_avg
     end
 
     return SVector(f1, f2, f3, f4, f5)
@@ -724,6 +783,9 @@ end
     u_rr_total = cons2cons_total(u_rr, aux_rr, equations)
     rho_ll, v1_ll, v2_ll, v3_ll, p_ll = cons2prim(u_ll_total, aux_ll, equations)
     rho_rr, v1_rr, v2_rr, v3_rr, p_rr = cons2prim(u_rr_total, aux_rr, equations)
+    p_steady_ll = pressure_steady(aux_ll, equations)
+    p_steady_rr = pressure_steady(aux_rr, equations)
+    p_steady_avg = 0.5f0 * (p_steady_ll + p_steady_rr)
 
     v_ll = v1_ll * normal_direction[1] +
            v2_ll * normal_direction[2] +
@@ -751,9 +813,9 @@ end
     end
 
     return SVector(f1,
-                   f2 + p * normal_direction[1],
-                   f3 + p * normal_direction[2],
-                   f4 + p * normal_direction[3],
+                   f2 + (p - p_steady_avg) * normal_direction[1],
+                   f3 + (p - p_steady_avg) * normal_direction[2],
+                   f4 + (p - p_steady_avg) * normal_direction[3],
                    f5)
 end
 
