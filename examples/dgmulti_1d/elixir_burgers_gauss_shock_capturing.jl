@@ -1,5 +1,5 @@
 using Trixi
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 
 equations = InviscidBurgersEquation1D()
 
