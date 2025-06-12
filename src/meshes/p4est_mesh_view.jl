@@ -179,7 +179,7 @@ function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
                     matching_boundary = 1
                 else
                     matching_boundary = 2
-               end
+                end
                 # Check if interfaces with this id have the right name/node_indices.
                 if boundaries.name[idx] == node_indices_to_name(interfaces_parent.node_indices[matching_boundary, interface])
                     if global_id == interfaces_parent.neighbor_ids[1, interface]
