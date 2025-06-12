@@ -50,7 +50,7 @@ function (initial_condition_blast_wave::InitialConditionBlastWave)(x, t,
 end
 # Note calling the constructor of the struct: `InitialConditionBlastWave()` instead of
 # `initial_condition_blast_wave` !
-const initial_condition = InitialConditionBlastWave()
+initial_condition = InitialConditionBlastWave()
 
 surface_flux = flux_lax_friedrichs
 volume_flux = flux_ranocha

@@ -38,7 +38,7 @@ function (initial_condition_greenlight::InitialConditionGreenlight)(x, t,
 end
 # Note calling the constructor of the struct: `InitialConditionGreenlight()` instead of
 # `initial_condition_greenlight` !
-const initial_condition = InitialConditionGreenlight()
+initial_condition = InitialConditionGreenlight()
 
 ###############################################################################
 # Specify non-periodic boundary conditions

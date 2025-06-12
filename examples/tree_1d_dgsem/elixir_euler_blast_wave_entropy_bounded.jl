@@ -50,7 +50,7 @@ function (initial_condition_blast_wave::InitialConditionBlastWave)(x, t,
 end
 # Note calling the constructor of the struct: `InitialConditionBlastWave()` instead of
 # `initial_condition_blast_wave` !
-const initial_condition = InitialConditionBlastWave()
+initial_condition = InitialConditionBlastWave()
 
 # Note: We do not need to use the shock-capturing methodology here,
 # in contrast to the standard `euler_blast_wave.jl` example.

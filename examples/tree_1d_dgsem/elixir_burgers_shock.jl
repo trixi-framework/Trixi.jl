@@ -53,7 +53,7 @@ function (initial_condition_shock::InitialConditionShock)(x, t,
     return SVector(scalar)
 end
 # Note calling the constructor of the struct: `InitialConditionShock()` instead of `initial_condition_shock` !
-const initial_condition = InitialConditionShock()
+initial_condition = InitialConditionShock()
 
 ###############################################################################
 # Specify non-periodic boundary conditions

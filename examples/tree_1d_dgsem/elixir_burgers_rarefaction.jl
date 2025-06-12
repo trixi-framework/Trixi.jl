@@ -54,7 +54,7 @@ function (initial_condition_rarefaction::InitialConditionRarefaction)(x, t,
 end
 # Note calling the constructor of the struct: `InitialConditionRarefaction()` instead of 
 # `initial_condition_rarefaction` !
-const initial_condition = InitialConditionRarefaction()
+initial_condition = InitialConditionRarefaction()
 
 ###############################################################################
 # Specify non-periodic boundary conditions

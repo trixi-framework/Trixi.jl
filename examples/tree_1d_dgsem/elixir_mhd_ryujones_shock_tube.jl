@@ -51,7 +51,7 @@ function (initial_condition_ryujones_shock_tube::InitialConditionRyuJonesShockTu
 end
 # Note calling the constructor of the struct: `InitialConditionRyuJonesShockTube()` instead of
 # `initial_condition_ryujones_shock_tube` !
-const initial_condition = InitialConditionRyuJonesShockTube()
+initial_condition = InitialConditionRyuJonesShockTube()
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 

@@ -44,7 +44,7 @@ function (initial_condition_briowu_shock_tube::InitialConditionBrioWuShockTube)(
 end
 # Note calling the constructor of the struct: `InitialConditionBrioWuShockTube()`
 # instead of `initial_condition_briowu_shock_tube` !
-const initial_condition = InitialConditionBrioWuShockTube()
+initial_condition = InitialConditionBrioWuShockTube()
 
 boundary_conditions = BoundaryConditionDirichlet(initial_condition)
 

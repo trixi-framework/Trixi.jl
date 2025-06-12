@@ -52,7 +52,7 @@ function (initial_condition_two_blast_waves::InitialConditionTwoBlastWaves)(x, t
 end
 # Note calling the constructor of the struct: `InitialConditionTwoBlastWaves()` instead of 
 # `initial_condition_two_blast_waves` !
-const initial_condition = InitialConditionTwoBlastWaves()
+initial_condition = InitialConditionTwoBlastWaves()
 
 function boundary_condition_two_interacting_blast_waves(u_inner, orientation, direction,
                                                         x, t, surface_flux_function,

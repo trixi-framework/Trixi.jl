@@ -50,7 +50,7 @@ function (initial_condition_sedov_blast_wave::InitialConditionSedovBlastWave)(x,
 end
 # Note calling the constructor of the struct: `InitialConditionSedovBlastWave()` instead of
 # `initial_condition_sedov_blast_wave` !
-const initial_condition = InitialConditionSedovBlastWave()
+initial_condition = InitialConditionSedovBlastWave()
 
 surface_flux = flux_hllc
 basis = LobattoLegendreBasis(3)

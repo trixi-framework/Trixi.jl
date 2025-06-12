@@ -57,7 +57,7 @@ function (initial_condition_composite::InitialConditionComposite)(x, t,
     return SVector(value)
 end
 # Note calling the constructor of the struct: `InitialConditionComposite()` instead of `initial_condition_composite` !
-const initial_condition = InitialConditionComposite()
+initial_condition = InitialConditionComposite()
 
 equations = LinearScalarAdvectionEquation1D(advection_velocity)
 
