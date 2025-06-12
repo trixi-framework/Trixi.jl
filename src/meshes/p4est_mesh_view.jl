@@ -206,7 +206,8 @@ function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
                 if boundaries.name[idx] == boundaries_parent.name[parent_idx]
                     # Make the coupling periodic.
                     if boundaries_parent.name[parent_idx] == :x_neg
-                        neighbor_ids_global[idx] = parent_xpos_element_ids[findfirst(parent_xneg_element_ids .== boundary)]
+                        neighbor_ids_global[idx] = parent_xpos_element_ids[findfirst(parent_xneg_element_ids .==
+                                                                                     boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :x_pos
                         neighbor_ids_global[idx] = parent_xneg_element_ids[findfirst(parent_xpos_element_ids .==
