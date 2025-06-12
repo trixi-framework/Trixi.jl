@@ -197,7 +197,9 @@ function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     # Extract the global solution vector from the local solutions.
     foreach_enumerate(semi.semis) do (i, semi_)
         system_ode = get_system_u_ode(u_ode, i, semi)
-        system_ode_reshape = reshape(system_ode, (n_nodes, n_nodes, Int(length(system_ode)/n_nodes^2)))
+        system_ode_reshape = reshape(system_ode,
+                                     (n_nodes, n_nodes,
+                                      Int(length(system_ode) / n_nodes^2)))
         u_ode_reformatted_reshape[:, :, semi.mesh_ids .== i] .= system_ode_reshape
     end
 
