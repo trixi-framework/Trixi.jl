@@ -185,7 +185,8 @@ function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
                    node_indices_to_name(interfaces_parent.node_indices[matching_boundary,
                                                                        interface])
                     if global_id == interfaces_parent.neighbor_ids[1, interface]
-                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[2, interface]
+                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[2,
+                                                                                  interface]
                     else
                         neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[1, interface]
                     end
