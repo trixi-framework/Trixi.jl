@@ -152,6 +152,9 @@ end
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
+    if limiter.smoothness_indicator
+        println("WARNING: Smoothness indicator is activated. Bound deviations are not computed correctly. (TODO)")
+    end
     if local_twosided
         for v in limiter.local_twosided_variables_cons
             v_string = string(v)
@@ -198,6 +201,11 @@ end
     println("─"^100)
     println("Maximum deviation from bounds:")
     println("─"^100)
+
+    if limiter.smoothness_indicator
+        println("WARNING: Smoothness indicator is activated. Bound deviations are not computed correctly. (TODO)")
+    end
+
     variables = varnames(cons2cons, semi.equations)
     for v in eachvariable(semi.equations)
         println(variables[v], ":\n- lower bound: ", mcl_bounds_delta_global[1, v],
@@ -249,6 +257,10 @@ end
             end
         end
         println(f)
+        if limiter.smoothness_indicator
+            println(f,
+                    "WARNING: Smoothness indicator is activated. Bound deviations are not computed correctly. (TODO)")
+        end
     end
     # Reset local maximum deviations
     for (key, _) in idp_bounds_delta_local
@@ -275,6 +287,10 @@ end
             print(f, ", ", mcl_bounds_delta_local[1, n_vars + 1])
         end
         println(f)
+        if limiter.smoothness_indicator
+            println(f,
+                    "WARNING: Smoothness indicator is activated. Bound deviations are not computed correctly. (TODO)")
+        end
     end
 
     # Reset mcl_bounds_delta_local

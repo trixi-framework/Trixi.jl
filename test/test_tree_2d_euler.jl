@@ -583,7 +583,7 @@ end
           "# iter, simu_time, alpha_max, alpha_avg"
     @test startswith(lines[end], "381, 1.0, 1.0, 0.544")
     @test count(",", lines[end]) == 3
-    @test !any(occursin.(r"NaN", lines))
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -630,7 +630,7 @@ end
           "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e, alpha_min_pressure, alpha_avg_pressure, alpha_min_entropy, alpha_avg_entropy"
     @test startswith(lines[end], "349, 1.0, 0.0002")
     @test count(",", lines[end]) == 13
-    @test !any(occursin.(r"NaN", lines))
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
 
     # Test alphas_min.txt
     lines = readlines(joinpath("out", "alphas_min.txt"))
@@ -638,7 +638,7 @@ end
           "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e, alpha_min_pressure, alpha_avg_pressure, alpha_min_entropy, alpha_avg_entropy"
     @test startswith(lines[end], "349, 1.0, -0.0, 0.773")
     @test count(",", lines[end]) == 13
-    @test !any(occursin.(r"NaN", lines))
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

@@ -754,7 +754,7 @@ end
           "# iter, simu_time, alpha_max, alpha_avg"
     @test startswith(lines[end], "193, 0.05, 1.0, 0.316")
     @test count(",", lines[end]) == 3
-    @test !any(occursin.(r"NaN", lines))
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -793,7 +793,7 @@ end
           "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e"
     @test startswith(lines[end], "191, 0.05, 3.70")
     @test count(",", lines[end]) == 9
-    @test !any(occursin.(r"NaN", lines))
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
 
     # Test alphas_min.txt
     lines = readlines(joinpath("out", "alphas_min.txt"))
@@ -801,7 +801,7 @@ end
           "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e"
     @test startswith(lines[end], "191, 0.05, -0.0, 0.7216")
     @test count(",", lines[end]) == 9
-    @test !any(occursin.(r"NaN", lines))
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -922,8 +922,8 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        # Larger values for allowed allocations due to usage of custom 
-        # integrator which are not *recorded* for the methods from 
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
         # OrdinaryDiffEq.jl
         # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 8000

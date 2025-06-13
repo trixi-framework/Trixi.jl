@@ -417,7 +417,7 @@ end
           "# iter, simu_time, alpha_max, alpha_avg"
     @test startswith(lines[end], "85, 0.3, 1.0, 0.57771")
     @test count(",", lines[end]) == 3
-    @test !any(occursin.(r"NaN", lines))
+    @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
