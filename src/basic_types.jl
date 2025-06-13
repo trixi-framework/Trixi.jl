@@ -125,7 +125,8 @@ end
 @doc raw"""
     DiscontinuousFunction
 
-An abstract type for convenient setting of discontinuous initial conditions.
+An abstract type for convenient setting of discontinuous functions,
+mainly initial conditions for Riemann problems.
 For a struct that inherits from this type, i.e., 
 `struct initial_condition <: DiscontinuousFunction end`
 a specialized initialization is performed.
