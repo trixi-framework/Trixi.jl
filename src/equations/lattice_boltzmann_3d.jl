@@ -194,7 +194,12 @@ function varnames(::typeof(cons2prim), equations::LatticeBoltzmannEquations3D)
     varnames(cons2cons, equations)
 end
 
-# Convert conservative variables to macroscopic
+"""
+    cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
+
+Convert the conservative variables `u` (the particle distribution functions)
+to the macroscopic variables (density, velocity_1, velocity_2, velocity_3, pressure).
+"""
 @inline function cons2macroscopic(u, equations::LatticeBoltzmannEquations3D)
     rho = density(u, equations)
     v1, v2, v3 = velocity(u, equations)
@@ -303,7 +308,7 @@ Calculate the macroscopic pressure from the density `rho` or the  particle distr
 `u`.
 """
 @inline function pressure(rho::Real, equations::LatticeBoltzmannEquations3D)
-    rho * equations.c_s^2
+    return rho * equations.c_s^2
 end
 @inline function pressure(u, equations::LatticeBoltzmannEquations3D)
     pressure(density(u, equations), equations)
