@@ -91,10 +91,9 @@ end
     return (i1, i2)
 end
 
-# We pass the `surface_integral` argument solely for dispatch
 function prolong2interfaces!(cache, u,
                              mesh::Union{P4estMesh{3}, T8codeMesh{3}},
-                             equations, surface_integral, dg::DG)
+                             equations, dg::DG)
     @unpack interfaces = cache
     index_range = eachnode(dg)
 
@@ -120,8 +119,10 @@ function prolong2interfaces!(cache, u,
         for j in eachnode(dg)
             for i in eachnode(dg)
                 for v in eachvariable(equations)
-                    interfaces.u[1, v, i, j, interface] = u[v, i_primary, j_primary,
-                                                            k_primary, primary_element]
+                    interfaces.u[1, v, i, j, interface] = u[v,
+                                                            i_primary, j_primary,
+                                                            k_primary,
+                                                            primary_element]
                 end
                 i_primary += i_primary_step_i
                 j_primary += j_primary_step_i
@@ -150,7 +151,8 @@ function prolong2interfaces!(cache, u,
         for j in eachnode(dg)
             for i in eachnode(dg)
                 for v in eachvariable(equations)
-                    interfaces.u[2, v, i, j, interface] = u[v, i_secondary, j_secondary,
+                    interfaces.u[2, v, i, j, interface] = u[v,
+                                                            i_secondary, j_secondary,
                                                             k_secondary,
                                                             secondary_element]
                 end
