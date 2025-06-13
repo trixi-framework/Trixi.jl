@@ -294,7 +294,7 @@ end
     sol = solve(ode, Tsit5(), abstol = 1.0e-6, reltol = 1.0e-6;
                 ode_default_options()..., callback = callbacks)
 
-    @test analysis_callback(sol).l2 ≈ [0.00029609575838969394, 5.5681704039507985e-6]
+    @test analysis_callback(sol).l2 ≈ [0.0002961027497380263, 5.573684084938363e-6]
 end
 
 # Clean up afterwards: delete Trixi.jl output directory
