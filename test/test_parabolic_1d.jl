@@ -17,7 +17,7 @@ isdir(outdir) && rm(outdir, recursive = true)
                                  "elixir_advection_diffusion.jl"),
                         initial_refinement_level=4, tspan=(0.0, 0.4), polydeg=3,
                         l2=[8.40483031802723e-6],
-                        linf=[2.8990878868540015e-5])
+                        linf=[2.899087786395471e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
