@@ -819,7 +819,7 @@ end
 function compute_coefficients!(u, func::DiscontinuousFunction, t,
                                mesh::AbstractMesh{2}, equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
-        # Helper variables to avoid quering `get_node_coords` too often
+        # Helper variables to avoid querying `get_node_coords` too often
         x1_min_at_node1 = true
         x2_min_at_node1 = true
         for j in eachnode(dg), i in eachnode(dg)
@@ -926,7 +926,7 @@ end
 function compute_coefficients!(u, func::DiscontinuousFunction, t,
                                mesh::AbstractMesh{3}, equations, dg::DG, cache)
     @threaded for element in eachelement(dg, cache)
-        # Helper variables to avoid quering `get_node_coords` too often
+        # Helper variables to avoid querying `get_node_coords` too often
         x1_min_at_node1 = true
         x2_min_at_node1 = true
         x3_min_at_node1 = true
