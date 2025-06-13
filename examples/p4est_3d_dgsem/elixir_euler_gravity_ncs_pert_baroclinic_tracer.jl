@@ -49,19 +49,18 @@ function initial_condition_baroclinic_instability(x, t,
     E_pert = 0.5 * rho * (2 * v1_ref * v1 + v1^2
                         + 2 * v2_ref * v2 + v2^2
                         + 2 * v3_ref * v3 + v3^2 )
-    #return Trixi.prim2cons_geopot(SVector(rho, v1, v2, v3, p), phi, equations)
-    # -
-    #       Trixi.prim2cons_geopot(SVector(rho, v1_ref, v2_ref, v3_ref, p), phi, equations)
 
-    lon_pos = pi / 9     # Longitude of perturbation location
-    lat_pos = 3 * pi / 9 # Latitude of perturbation location
+    # add tracers
+    lon_pos = 3 * pi / 9     # Longitude of perturbation location
     lon_dist = min(abs(lon - lon_pos), abs(lon + 2*pi - lon_pos), abs(lon - 2*pi - lon_pos))
+    lat_pos = 2 * pi / 9 # Latitude of perturbation location
+    r_pos = radius_earth + 5000
     tracer1 = 0.25 * exp(-500 * (lon_dist/pi)^2
-		                 -300 * ((lat - lat_pos)/pi)^2 
-		                 -100 * ((r - radius_earth)/30_000)^2)
+		                 -400 * ((lat - lat_pos)/pi)^2
+		                 -100 * ((r - r_pos)/30_000)^2)
     tracer2 = 0.5  * exp(-500 * (lon_dist/pi)^2
-                         -300 * ((lat + lat_pos)/pi)^2
-                         -100 * ((r - radius_earth)/30_000)^2)
+                         -400 * ((lat + lat_pos)/pi)^2
+                         -100 * ((r - r_pos)/30_000)^2)
 
     return vcat(SVector(0, rho * v1, rho * v2, rho * v3, E_pert),
                 SVector(rho * tracer1, rho * tracer2))
@@ -223,7 +222,7 @@ end
     du2 =  2 * angular_velocity * u_total[3]
     du3 = -2 * angular_velocity * u_total[2]
 
-    tracer = SVector(ntuple(@inline(v -> 0), Val(Trixi.ntracers(equations))))
+    tracer = SVector(ntuple(@inline(v -> du0), Val(Trixi.ntracers(equations))))
     return vcat(SVector(du0, du2, du3, du0, du0), tracer)
 end
 
@@ -244,18 +243,30 @@ initial_condition = initial_condition_baroclinic_instability
 boundary_conditions = Dict(:inside => Trixi.boundary_condition_slip_wall_noncons,
                            :outside => Trixi.boundary_condition_slip_wall_noncons,)
 
-volume_flux = (FluxTracerEquationsCentral(flux_kennedy_gruber),
-               Trixi.FluxTracerEquationsPass(flux_nonconservative_waruszewski_arithmean))
+volume_flux = (FluxTracerEquationsCentral(flux_ranocha),
+               Trixi.FluxTracerEquationsPass(flux_nonconservative_waruszewski_lnmean))
 surface_flux = (FluxTracerEquationsCentral(FluxLMARS(340.0)),
-                Trixi.FluxTracerEquationsPass(flux_nonconservative_waruszewski_arithmean))
+                Trixi.FluxTracerEquationsPass(flux_nonconservative_waruszewski_lnmean))
 
-solver = DGSEM(polydeg = 5, surface_flux = surface_flux,
-               volume_integral = VolumeIntegralFluxDifferencing(volume_flux))
+polydeg = 5
+basis = LobattoLegendreBasis(polydeg)
+
+#indicator_sc = IndicatorHennemannGassner(equations, basis,
+#                                         alpha_max = 0.002,
+#                                         alpha_min = 0.0001,
+#                                         alpha_smooth = true,
+#                                         variable = density_pressure)
+#volume_integral = VolumeIntegralShockCapturingHG(indicator_sc;
+#                                                 volume_flux_dg = volume_flux,
+#                                                 volume_flux_fv = surface_flux)
+volume_integral = VolumeIntegralFluxDifferencing(volume_flux)
+
+solver = DGSEM(basis, surface_flux, volume_integral)
 
 # For optimal results, use (16, 8) here
 trees_per_cube_face = (8, 4)
 mesh = Trixi.P4estMeshCubedSphere(trees_per_cube_face..., 6.371229e6, 30000.0,
-                                  polydeg = 5, initial_refinement_level = 0)
+                                  polydeg = polydeg, initial_refinement_level = 0)
 
 semi = SemidiscretizationHyperbolic(mesh, equations, initial_condition, solver,
                                     source_terms = source_terms_coriolis,
@@ -275,32 +286,31 @@ analysis_callback = AnalysisCallback(semi, interval = analysis_interval)
 
 alive_callback = AliveCallback(analysis_interval = analysis_interval)
 
-output = "out_baroclinic_gncs_ranocha_lmars_l0-2_vel-32-58"
+output = "out_baroclinic_gncs_ranocha_lmars_l0-2_vel-28-45"
 save_solution = SaveSolutionCallback(dt = 20_000, #interval = 5000,
                                      save_initial_solution = true,
                                      save_final_solution = true,
                                      solution_variables = cons2prim_total,
                                      output_directory=output)
 
-#save_restart = SaveRestartCallback(interval = 500_000,
-#                                   save_final_restart = true,
-#                                   output_directory = output)
-
 amr_indicator = IndicatorMax(semi, variable = vel_mag)
 
 amr_controller = ControllerThreeLevel(semi, amr_indicator,
                                     base_level = 0,
-                                    med_level = 1, med_threshold = 32.0,
-                                    max_level = 2, max_threshold = 58.0)
+                                    med_level = 1, med_threshold = 28.0,
+                                    max_level = 2, max_threshold = 45.0)
 
 amr_callback = AMRCallback(semi, amr_controller,
                         interval = 10_000,
                         adapt_initial_condition = true,
                         adapt_initial_condition_only_refine = true)
 
+stepsize_callback = StepsizeCallback(cfl = 0.8)
+
 callbacks = CallbackSet(summary_callback,
                         amr_callback,
                         analysis_callback, alive_callback,
+                        stepsize_callback,
                         save_solution)
 
 ###############################################################################
@@ -308,6 +318,9 @@ callbacks = CallbackSet(summary_callback,
 
 # Use a Runge-Kutta method with automatic (error based) time step size control
 # Enable threading of the RK method for better performance on multiple threads
-sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
-            abstol = 1.0e-6, reltol = 1.0e-6, maxiters=1e7,
-            ode_default_options()..., callback = callbacks);
+#sol = solve(ode, RDPK3SpFSAL49(thread = Trixi.True());
+#            abstol = 1.0e-6, reltol = 1.0e-6, maxiters=1e7,
+#            ode_default_options()..., callback = callbacks);
+sol = solve(ode, CarpenterKennedy2N54(williamson_condition = false),
+            dt = 1.0, # solve needs some value here but it will be overwritten by the stepsize_callback
+            save_everystep = false, callback = callbacks);

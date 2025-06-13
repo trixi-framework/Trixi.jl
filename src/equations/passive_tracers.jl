@@ -124,6 +124,13 @@ function rho_tracers(u, tracer_equations::PassiveTracerEquations)
     return SVector(ntuple(@inline(v->u[v + n_flow_variables]),
                           Val(ntracers(tracer_equations))))
 end
+# Obtain rho * tracers which are the conservative variables for the tracer equations.
+function rho_tracers(u, aux, tracer_equations::PassiveTracerEquations)
+    n_flow_variables = nvariables_flow(tracer_equations)
+
+    return SVector(ntuple(@inline(v->u[v + n_flow_variables]),
+                          Val(ntracers(tracer_equations))))
+end
 
 # Primitives for the flow equations and tracers. For a tracer, the primitive variable is obtained
 # by dividing by density.
@@ -215,6 +222,11 @@ end
     u_flow = flow_variables(u, tracer_equations)
     return density_pressure(u_flow, flow_equations)
 end
+@inline function density_pressure(u, aux, tracer_equations::PassiveTracerEquations)
+    @unpack flow_equations = tracer_equations
+    u_flow = flow_variables(u, tracer_equations)
+    return density_pressure(u_flow, aux, flow_equations)
+end
 
 # Used for local Lax-Friedrichs type dissipation, and uses only the flow equations
 # This assumes that the `velocity` is always bounded by the estimate of the
@@ -233,6 +245,12 @@ end
     u_flow = flow_variables(u, tracer_equations)
 
     return max_abs_speeds(u_flow, tracer_equations.flow_equations)
+end
+
+@inline function max_abs_speeds(u, aux, tracer_equations::PassiveTracerEquations)
+    u_flow = flow_variables(u, tracer_equations)
+
+    return max_abs_speeds(u_flow, aux, tracer_equations.flow_equations)
 end
 
 """

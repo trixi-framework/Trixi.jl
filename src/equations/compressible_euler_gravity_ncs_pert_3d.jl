@@ -70,8 +70,8 @@ end
 # TODO: based on total or perturbation?
 @inline function density_pressure(u, aux,
                                   equations::CompressibleEulerEquationsGravityNCSPert3D)
-    rho, rho_v1, rho_v2, rho_v3, rho_e = u
-    #rho, rho_v1, rho_v2, rho_v3, rho_e = cons2cons_total(u, aux, equations)
+    #rho, rho_v1, rho_v2, rho_v3, rho_e = u
+    rho, rho_v1, rho_v2, rho_v3, rho_e = cons2cons_total(u, aux, equations)
     rho_times_p = (equations.gamma - 1) *
                   (rho * rho_e - 0.5 * (rho_v1^2 + rho_v2^2 + rho_v3^2))
     return rho_times_p
@@ -879,7 +879,7 @@ end
 @inline function cons2prim_total(u, aux, tracer_equations::PassiveTracerEquations)
     return SVector(cons2prim_total(Trixi.flow_variables(u, tracer_equations), aux,
                                    tracer_equations.flow_equations)...,
-                   Trixi.tracers(u, aux, tracer_equations)...)
+                   Trixi.rho_tracers(u, aux, tracer_equations)...)
 end
 
 function varnames(variables::typeof(cons2prim_total),
