@@ -768,6 +768,7 @@ function compute_coefficients!(u, func::DiscontinuousFunction, t,
             elseif i == nnodes(dg)
                 x_node = SVector(prevfloat(x_node[1]))
             end
+
             u_node = func(x_node, t, equations)
             set_node_vars!(u, u_node, equations, dg, i, element)
         end
@@ -794,8 +795,9 @@ function compute_coefficients!(u, func::DiscontinuousFunction, t,
         for j in eachnode(dg), i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
                                      i, j, element)
-            # For explanation of the implemented logic see comment above or
-            # docstring of `DiscontinuousFunction`
+            # For explanation of the implemented logic see comment above for the 1D case, i.e., 
+            # `compute_coefficients!` for `func::DiscontinuousFunction`, `mesh::AbstractMesh{1}`
+            # or the docstring of `DiscontinuousFunction`
             if i == 1
                 x_node = SVector(nextfloat(x_node[1]), x_node[2])
             elseif i == nnodes(dg)
@@ -806,15 +808,16 @@ function compute_coefficients!(u, func::DiscontinuousFunction, t,
             elseif j == nnodes(dg)
                 x_node = SVector(x_node[1], prevfloat(x_node[2]))
             end
+
             u_node = func(x_node, t, equations)
             set_node_vars!(u, u_node, equations, dg, i, j, element)
         end
     end
 end
-# Mesh-type general function for dragging the outer nodes inwards
+# Mesh-type general function for dragging the outer nodes inwards for 
+# discontinuous functions/initial conditions
 function compute_coefficients!(u, func::DiscontinuousFunction, t,
                                mesh::AbstractMesh{2}, equations, dg::DG, cache)
-    @unpack contravariant_vectors, inverse_jacobian = cache.elements
     @threaded for element in eachelement(dg, cache)
         # Helper variables to avoid quering `get_node_coords` too often
         x1_min_at_node1 = true
@@ -822,16 +825,17 @@ function compute_coefficients!(u, func::DiscontinuousFunction, t,
         for j in eachnode(dg), i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
                                      i, j, element)
-            # For explanation of the implemented logic see comment above or
-            # docstring of `DiscontinuousFunction`
+            # For explanation of the implemented logic see comment above for the 1D case, i.e., 
+            # `compute_coefficients!` for `func::DiscontinuousFunction`, `mesh::AbstractMesh{1}`
+            # or the docstring of `DiscontinuousFunction`
             if i == 1
                 x_node_n = get_node_coords(cache.elements.node_coordinates, equations,
-                                           dg,
-                                           nnodes(dg), j, element)
+                                           dg, nnodes(dg), j, element)
 
                 # For non-`TreeMesh`es the node orientation within an element is not necessarily
                 # consistent with the global coordinate system, thus we need to check what node
                 # lies on the "left" and which on the "right" side.
+                # NOTE: This still assumes that the first node index somewhat resembles the first coordinate direction!
                 if x_node[1] < x_node_n[1]
                     x_node = SVector(nextfloat(x_node[1]), x_node[2])
                 else
@@ -845,15 +849,14 @@ function compute_coefficients!(u, func::DiscontinuousFunction, t,
                     x_node = SVector(nextfloat(x_node[1]), x_node[2])
                 end
             end
-
             if j == 1
                 x_node_n = get_node_coords(cache.elements.node_coordinates, equations,
-                                           dg,
-                                           i, nnodes(dg), element)
+                                           dg, i, nnodes(dg), element)
 
                 # For non-`TreeMesh`es the node orientation within an element is not necessarily
                 # consistent with the global coordinate system, thus we need to check what node
                 # lies on the "bottom" and which on the "top" side.
+                # NOTE: This still assumes that the second node index somewhat resembles the second coordinate direction!
                 if x_node[2] < x_node_n[2]
                     x_node = SVector(x_node[1], nextfloat(x_node[2]))
                 else
@@ -867,6 +870,7 @@ function compute_coefficients!(u, func::DiscontinuousFunction, t,
                     x_node = SVector(x_node[1], nextfloat(x_node[2]))
                 end
             end
+
             u_node = func(x_node, t, equations)
             set_node_vars!(u, u_node, equations, dg, i, j, element)
         end
@@ -893,17 +897,9 @@ function compute_coefficients!(u, func::DiscontinuousFunction, t,
         for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
             x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
                                      i, j, k, element)
-            # Shift the outer (i.e., ±1 on the reference element) nodes passed to the 
-            # `func` (usually the initial condition) inwards by the smallest amount possible,
-            # i.e., [-1 + ϵ, +1 - ϵ].
-            # This avoids steep gradients in elements if a discontinuity is right at a cell boundary,
-            # i.e., if the jump location `x_jump` is at the position of an interface which is shared by 
-            # the nodes x_{e-1}^{(i)} = x_{e}^{(1)}.
-            # In particular, this results in the typically desired behaviour for 
-            # initial conditions of the form
-            #           { u_1, if x <= x_jump
-            # u(x, t) = {
-            #           { u_2, if x > x_jump
+            # For explanation of the implemented logic see comment above for the 1D case, i.e., 
+            # `compute_coefficients!` for `func::DiscontinuousFunction`, `mesh::AbstractMesh{1}`
+            # or the docstring of `DiscontinuousFunction`
             if i == 1
                 x_node = SVector(nextfloat(x_node[1]), x_node[2], x_node[3])
             elseif i == nnodes(dg)
@@ -919,8 +915,95 @@ function compute_coefficients!(u, func::DiscontinuousFunction, t,
             elseif k == nnodes(dg)
                 x_node = SVector(x_node[1], x_node[2], prevfloat(x_node[3]))
             end
+
             u_node = func(x_node, t, equations)
             set_node_vars!(u, u_node, equations, dg, i, j, k, element)
+        end
+    end
+end
+# Mesh-type general function for dragging the outer nodes inwards for 
+# discontinuous functions/initial conditions
+function compute_coefficients!(u, func::DiscontinuousFunction, t,
+                               mesh::AbstractMesh{3}, equations, dg::DG, cache)
+    @threaded for element in eachelement(dg, cache)
+        # Helper variables to avoid quering `get_node_coords` too often
+        x1_min_at_node1 = true
+        x2_min_at_node1 = true
+        x3_min_at_node1 = true
+        for k in eachnode(dg), j in eachnode(dg), i in eachnode(dg)
+            x_node = get_node_coords(cache.elements.node_coordinates, equations, dg,
+                                     i, j, k, element)
+            # For explanation of the implemented logic see comment above for the 1D case, i.e., 
+            # `compute_coefficients!` for `func::DiscontinuousFunction`, `mesh::AbstractMesh{1}`
+            # or the docstring of `DiscontinuousFunction`
+            if i == 1
+                x_node_n = get_node_coords(cache.elements.node_coordinates, equations,
+                                           dg, nnodes(dg), j, k, element)
+
+                # For non-`TreeMesh`es the node orientation within an element is not necessarily
+                # consistent with the global coordinate system, thus we need to check what node
+                # lies on the "left" and which on the "right" side.
+                # NOTE: This still assumes that the first node index somewhat resembles the first coordinate direction!
+                if x_node[1] < x_node_n[1]
+                    x_node = SVector(nextfloat(x_node[1]), x_node[2], x_node[3])
+                else
+                    x1_min_at_node1 = false
+                    x_node = SVector(prevfloat(x_node[1]), x_node[2], x_node[3])
+                end
+            elseif i == nnodes(dg)
+                if x1_min_at_node1
+                    x_node = SVector(prevfloat(x_node[1]), x_node[2], x_node[3])
+                else
+                    x_node = SVector(nextfloat(x_node[1]), x_node[2], x_node[3])
+                end
+            end
+
+            if j == 1
+                x_node_n = get_node_coords(cache.elements.node_coordinates, equations,
+                                           dg, i, nnodes(dg), k, element)
+
+                # For non-`TreeMesh`es the node orientation within an element is not necessarily
+                # consistent with the global coordinate system, thus we need to check what node
+                # lies on the "bottom" and which on the "top" side.
+                # NOTE: This still assumes that the second node index somewhat resembles the second coordinate direction!
+                if x_node[2] < x_node_n[2]
+                    x_node = SVector(x_node[1], nextfloat(x_node[2]), x_node[3])
+                else
+                    x2_min_at_node1 = false
+                    x_node = SVector(x_node[1], prevfloat(x_node[2]), x_node[3])
+                end
+            elseif j == nnodes(dg)
+                if x2_min_at_node1
+                    x_node = SVector(x_node[1], prevfloat(x_node[2]), x_node[3])
+                else
+                    x_node = SVector(x_node[1], nextfloat(x_node[2]), x_node[3])
+                end
+            end
+
+            if k == 1
+                x_node_n = get_node_coords(cache.elements.node_coordinates, equations,
+                                           dg, i, j, nnodes(dg), element)
+
+                # For non-`TreeMesh`es the node orientation within an element is not necessarily
+                # consistent with the global coordinate system, thus we need to check what node
+                # lies on the "back" and which on the "front" side.
+                # NOTE: This still assumes that the third node index somewhat resembles the third coordinate direction!
+                if x_node[3] < x_node_n[3]
+                    x_node = SVector(x_node[1], x_node[2], nextfloat(x_node[3]))
+                else
+                    x3_min_at_node1 = false
+                    x_node = SVector(x_node[1], x_node[2], prevfloat(x_node[3]))
+                end
+            elseif k == nnodes(dg)
+                if x3_min_at_node1
+                    x_node = SVector(x_node[1], x_node[2], prevfloat(x_node[3]))
+                else
+                    x_node = SVector(x_node[1], x_node[2], nextfloat(x_node[3]))
+                end
+            end
+
+            u_node = func(x_node, t, equations)
+            set_node_vars!(u, u_node, equations, dg, i, j, element)
         end
     end
 end
