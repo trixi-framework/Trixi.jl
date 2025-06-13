@@ -1003,7 +1003,7 @@ function compute_coefficients!(u, func::DiscontinuousFunction, t,
             end
 
             u_node = func(x_node, t, equations)
-            set_node_vars!(u, u_node, equations, dg, i, j, element)
+            set_node_vars!(u, u_node, equations, dg, i, j, k, element)
         end
     end
 end
