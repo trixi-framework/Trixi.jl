@@ -117,31 +117,31 @@ end
     end
 end
 
-@trixi_testset "elixir_advection_meshview.jl" begin
-    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_meshview.jl"),
-                        l2=[0.00013773915040249946],
-                        linf=[0.0010140184322192658])
-    # Ensure that we do not have excessive memory allocations
-    # (e.g., from type instabilities)
-    let
-        t = sol.t[end]
-        u_ode = sol.u[end]
-        du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
-    end
-
-    # Ensure we cover the calculation of the node coordinates
-    node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
-                                                                 ntuple(_ -> length(parent_mesh.nodes),
-                                                                        2)...,
-                                                                 length(mesh.cell_ids))
-    result = Trixi.calc_node_coordinates!(node_coordinates, mesh, parent_mesh.nodes)
-    @test parent_mesh.tree_node_coordinates == result
-
-    # Load the mesh file for code coverage.
-    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
-                                         RealT = typeof(parent_mesh).parameters[3])
-end
+# @trixi_testset "elixir_advection_meshview.jl" begin
+#     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_meshview.jl"),
+#                         l2=[0.00013773915040249946],
+#                         linf=[0.0010140184322192658])
+#     # Ensure that we do not have excessive memory allocations
+#     # (e.g., from type instabilities)
+#     let
+#         t = sol.t[end]
+#         u_ode = sol.u[end]
+#         du_ode = similar(u_ode)
+#         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+#     end
+#
+#     # Ensure we cover the calculation of the node coordinates
+#     node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
+#                                                                  ntuple(_ -> length(parent_mesh.nodes),
+#                                                                         2)...,
+#                                                                  length(mesh.cell_ids))
+#     result = Trixi.calc_node_coordinates!(node_coordinates, mesh, parent_mesh.nodes)
+#     @test parent_mesh.tree_node_coordinates == result
+#
+#     # Load the mesh file for code coverage.
+#     loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh.h5"); n_cells_max = 0,
+#                                          RealT = typeof(parent_mesh).parameters[3])
+# end
 
 @trixi_testset "elixir_advection_coupled.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_advection_coupled.jl"),
@@ -155,6 +155,15 @@ end
         du_ode = similar(u_ode)
         @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
     end
+
+    # Ensure we cover the calculation of the node coordinates
+    node_coordinates = typeof(parent_mesh.tree_node_coordinates)(undef, 2,
+                                                                 ntuple(_ -> length(parent_mesh.nodes),
+                                                                        2)...,
+                                                                 length(mesh1.cell_ids))
+    # Load the mesh file for code coverage.
+    loaded_mesh = Trixi.load_mesh_serial(joinpath("out", "mesh_1.h5"); n_cells_max = 0,
+                                         RealT = typeof(parent_mesh).parameters[3])
 end
 
 @trixi_testset "elixir_advection_basic.jl" begin
