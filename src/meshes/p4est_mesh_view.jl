@@ -179,13 +179,17 @@ function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
                     matching_boundary = 1
                 else
                     matching_boundary = 2
-               end
+                end
                 # Check if interfaces with this id have the right name/node_indices.
-                if boundaries.name[idx] == node_indices_to_name(interfaces_parent.node_indices[matching_boundary, interface])
+                if boundaries.name[idx] ==
+                   node_indices_to_name(interfaces_parent.node_indices[matching_boundary,
+                                                                       interface])
                     if global_id == interfaces_parent.neighbor_ids[1, interface]
-                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[2, interface]
+                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[2,
+                                                                                  interface]
                     else
-                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[1, interface]
+                        neighbor_ids_global[idx] = interfaces_parent.neighbor_ids[1,
+                                                                                  interface]
                     end
                 end
             end
@@ -202,16 +206,20 @@ function extract_neighbor_ids_global(mesh::P4estMeshView, boundaries_parent,
                 if boundaries.name[idx] == boundaries_parent.name[parent_idx]
                     # Make the coupling periodic.
                     if boundaries_parent.name[parent_idx] == :x_neg
-                        neighbor_ids_global[idx] = parent_xpos_element_ids[findfirst(parent_xneg_element_ids .== boundary)]
+                        neighbor_ids_global[idx] = parent_xpos_element_ids[findfirst(parent_xneg_element_ids .==
+                                                                                     boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :x_pos
-                        neighbor_ids_global[idx] = parent_xneg_element_ids[findfirst(parent_xpos_element_ids .== boundary)]
+                        neighbor_ids_global[idx] = parent_xneg_element_ids[findfirst(parent_xpos_element_ids .==
+                                                                                     boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :y_neg
-                        neighbor_ids_global[idx] = parent_ypos_element_ids[findfirst(parent_yneg_element_ids .== boundary)]
+                        neighbor_ids_global[idx] = parent_ypos_element_ids[findfirst(parent_yneg_element_ids .==
+                                                                                     boundary)]
                     end
                     if boundaries_parent.name[parent_idx] == :y_pos
-                        neighbor_ids_global[idx] = parent_yneg_element_ids[findfirst(parent_ypos_element_ids .== boundary)]
+                        neighbor_ids_global[idx] = parent_yneg_element_ids[findfirst(parent_ypos_element_ids .==
+                                                                                     boundary)]
                     end
                 end
             end
@@ -240,7 +248,6 @@ end
 function global_element_id_to_local(id::Int, mesh::P4estMeshView)
     # Return -1 if the id is not part of the mesh view.
     local_id = -1
-    
     # Find the index of the cell id in the mesh view
     local_id = findfirst(==(id), mesh.cell_ids)
 
