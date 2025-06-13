@@ -15,7 +15,7 @@ mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
                       periodicity = false)
 
 # Specify the initial condition as a discontinuous initial condition (see docstring of 
-# `DiscontinuousInitialCondition` for more information) which comes with a specialized 
+# `DiscontinuousFunction` for more information) which comes with a specialized 
 # initialization routine suited for Riemann problems.
 # In short, if a discontinuity is right at an interface, the boundary nodes (which are at the same location)
 # on that interface will be initialized with the left and right state of the discontinuity, i.e., 
@@ -24,7 +24,7 @@ mesh = StructuredMesh(cells_per_dimension, coordinates_min, coordinates_max,
 #                         { u_2, if element = right element and x_{element}^{(1)} = x_jump
 # This is realized by shifting the outer DG nodes inwards, i.e., on reference element
 # the outer nodes at `[-1, 1]` are shifted inwards to `[-1 + ε, 1 - ε]` with machine precision `ε`.
-struct InitialConditionGreenlight <: DiscontinuousInitialCondition end
+struct InitialConditionGreenlight <: DiscontinuousFunction end
 
 # Example inspired from http://www.clawpack.org/riemann_book/html/Traffic_flow.html#Example:-green-light
 # Green light that at x = 0 which switches at t = 0 from red to green.

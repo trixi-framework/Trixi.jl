@@ -437,7 +437,7 @@ end
     left_direction = right_direction - 1
 
     for i in eachnode(dg)
-        if orientation == 1
+        if orientation == 1 # (x-direction)
             u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
             u_rr = get_node_vars(u, equations, dg, 1, i, right_element)
 
@@ -451,7 +451,7 @@ end
             normal_direction = sign_jacobian *
                                get_contravariant_vector(1, contravariant_vectors,
                                                         1, i, right_element)
-        else # orientation == 2
+        else # orientation == 2 (y-direction)
             u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
             u_rr = get_node_vars(u, equations, dg, i, 1, right_element)
 
@@ -495,7 +495,7 @@ end
     left_direction = right_direction - 1
 
     for i in eachnode(dg)
-        if orientation == 1
+        if orientation == 1 # (x-direction)
             u_ll = get_node_vars(u, equations, dg, nnodes(dg), i, left_element)
             u_rr = get_node_vars(u, equations, dg, 1, i, right_element)
 
@@ -509,7 +509,7 @@ end
             normal_direction = sign_jacobian *
                                get_contravariant_vector(1, contravariant_vectors,
                                                         1, i, right_element)
-        else # orientation == 2
+        else # orientation == 2 (y-direction)
             u_ll = get_node_vars(u, equations, dg, i, nnodes(dg), left_element)
             u_rr = get_node_vars(u, equations, dg, i, 1, right_element)
 

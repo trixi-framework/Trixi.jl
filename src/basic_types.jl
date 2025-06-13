@@ -123,11 +123,11 @@ function Base.show(io::IO, ::BoundaryConditionDoNothing)
 end
 
 @doc raw"""
-    DiscontinuousInitialCondition
+    DiscontinuousFunction
 
 An abstract type for convenient setting of discontinuous initial conditions.
 For a struct that inherits from this type, i.e., 
-`struct initial_condition <: DiscontinuousInitialCondition end`
+`struct initial_condition <: DiscontinuousFunction end`
 a specialized initialization is performed.
 
 The outer nodes (i.e., ±1 on the DG reference element) are shifted inwards
@@ -147,5 +147,5 @@ In particular, this results in the typically desired behaviour for discontinuous
 ```
 where ``x_\text{jump}`` is the location of the discontinuity.
 """
-abstract type DiscontinuousInitialCondition end
+abstract type DiscontinuousFunction end
 end # @muladd
