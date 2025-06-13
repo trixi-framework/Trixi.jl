@@ -398,7 +398,7 @@ end
 end
 
 # This is tested with reference values for the local-symmetric formulation.
-@trixi_testset "elixir_mhd_shockcapturing_subcell.jl (skew-symmetric formulation)" begin
+@trixi_testset "elixir_mhd_shockcapturing_subcell.jl (local-jump formulation)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_shockcapturing_subcell.jl"),
                         l2=[
                             3.2064026219236076e-02,
@@ -424,9 +424,9 @@ end
                         ],
                         tspan=(0.0, 0.003),
                         surface_flux=(flux_lax_friedrichs,
-                                      flux_nonconservative_powell_local_skew_symmetric),
+                                      flux_nonconservative_powell_local_jump),
                         volume_flux=(flux_derigs_etal,
-                                     flux_nonconservative_powell_local_skew_symmetric))
+                                     flux_nonconservative_powell_local_jump))
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let

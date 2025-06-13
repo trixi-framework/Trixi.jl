@@ -288,7 +288,7 @@ end
 end
 
 # For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
-# enable dispatch on the type of the nonconservative term (symmetric / skew-symmetric).
+# enable dispatch on the type of the nonconservative term (symmetric / jump).
 struct FluxNonConservativePowellLocalSymmetric <:
        FluxNonConservative{NonConservativeSymmetric()}
 end
@@ -486,15 +486,15 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
 end
 
 # For `VolumeIntegralSubcellLimiting` the nonconservative flux is created as a callable struct to 
-# enable dispatch on the type of the nonconservative term (symmetric / skew-symmetric).
-struct FluxNonConservativePowellLocalSkewSymmetric <:
-       FluxNonConservative{NonConservativeSkewSymmetric()}
+# enable dispatch on the type of the nonconservative term (symmetric / jump).
+struct FluxNonConservativePowellLocalJump <:
+       FluxNonConservative{NonConservativeJump()}
 end
 
-const flux_nonconservative_powell_local_skew_symmetric = FluxNonConservativePowellLocalSkewSymmetric()
+const flux_nonconservative_powell_local_jump = FluxNonConservativePowellLocalJump()
 
 """
-    flux_nonconservative_powell_local_skew_symmetric(u_ll, u_rr,
+    flux_nonconservative_powell_local_jump(u_ll, u_rr,
                                                 orientation::Integer,
                                                 equations::IdealGlmMhdEquations2D)
 
@@ -503,10 +503,10 @@ Powell and the Galilean nonconservative term associated with the GLM multiplier
 of the [`IdealGlmMhdEquations2D`](@ref).
 
 This implementation uses a non-conservative term that can be written as the product
-of local and skew-symmetric parts. 
+of local and jump parts. 
 
 The two other flux functions with the same name return either the local
-or skew-symmetric portion of the non-conservative flux based on the type of the
+or jump portion of the non-conservative flux based on the type of the
 nonconservative_type argument, employing multiple dispatch. They are used to
 compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 
@@ -514,9 +514,9 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 """
-@inline function (noncons_flux::FluxNonConservativePowellLocalSkewSymmetric)(u_ll, u_rr,
-                                                                             orientation::Integer,
-                                                                             equations::IdealGlmMhdEquations2D)
+@inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
+                                                                    orientation::Integer,
+                                                                    equations::IdealGlmMhdEquations2D)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
@@ -556,7 +556,7 @@ compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 end
 
 """
-    flux_nonconservative_powell_local_skew_symmetric(u_ll, orientation::Integer,
+    flux_nonconservative_powell_local_jump(u_ll, orientation::Integer,
                                                 equations::IdealGlmMhdEquations2D,
                                                 nonconservative_type::NonConservativeLocal,
                                                 nonconservative_term::Integer)
@@ -567,11 +567,11 @@ the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
-@inline function (noncons_flux::FluxNonConservativePowellLocalSkewSymmetric)(u_ll,
-                                                                             orientation::Integer,
-                                                                             equations::IdealGlmMhdEquations2D,
-                                                                             nonconservative_type::NonConservativeLocal,
-                                                                             nonconservative_term::Integer)
+@inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll,
+                                                                    orientation::Integer,
+                                                                    equations::IdealGlmMhdEquations2D,
+                                                                    nonconservative_type::NonConservativeLocal,
+                                                                    nonconservative_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     if nonconservative_term == 1
         # Powell nonconservative term:   (0, B_1, B_2, B_3, v⋅B, v_1, v_2, v_3, 0)
@@ -618,22 +618,22 @@ This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl
 end
 
 """
-    flux_nonconservative_powell_local_skew_symmetric(u_ll, orientation::Integer,
+    flux_nonconservative_powell_local_jump(u_ll, orientation::Integer,
                                                 equations::IdealGlmMhdEquations2D,
-                                                nonconservative_type::NonConservativeSkewSymmetric,
+                                                nonconservative_type::NonConservativeJump,
                                                 nonconservative_term::Integer)
 
-Skew-symmetric part of the Powell and GLM non-conservative terms. Needed for the calculation of
+Jump part of the Powell and GLM non-conservative terms. Needed for the calculation of
 the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
 This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
-@inline function (noncons_flux::FluxNonConservativePowellLocalSkewSymmetric)(u_ll, u_rr,
-                                                                             orientation::Integer,
-                                                                             equations::IdealGlmMhdEquations2D,
-                                                                             nonconservative_type::NonConservativeSkewSymmetric,
-                                                                             nonconservative_term::Integer)
+@inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
+                                                                    orientation::Integer,
+                                                                    equations::IdealGlmMhdEquations2D,
+                                                                    nonconservative_type::NonConservativeJump,
+                                                                    nonconservative_term::Integer)
     rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll, B1_ll, B2_ll, B3_ll, psi_ll = u_ll
     rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr, B1_rr, B2_rr, B3_rr, psi_rr = u_rr
 
