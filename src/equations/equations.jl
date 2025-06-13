@@ -285,6 +285,26 @@ the function returns the symmetric part of the non-conservative term.
 """
 struct NonConservativeSymmetric end
 
+"""
+    NonConservativeJump()
+
+Struct used for multiple dispatch on non-conservative flux functions in the format of "local * jump".
+When the argument `nonconservative_type` is of type `NonConservativeJump`,
+the function returns the jump part of the non-conservative term.
+"""
+struct NonConservativeJump end
+
+"""
+    FluxNonConservative{STRUCTURE}
+
+Abstract type for non-conservative fluxes that are composed of a local term and a structured two-point
+term. The `STRUCTURE` type parameter should be set to [`NonConservativeSymmetric`](@ref) or 
+[`NonConservativeJump`](@ref), depending on the structure of the non-conservative term.
+The abstract type is required for dispatch on the non-conservative type (symmetric / jump) 
+for the staggered volume flux computation in `calcflux_fhat!`.
+"""
+abstract type FluxNonConservative{STRUCTURE} end
+
 # set sensible default values that may be overwritten by specific equations
 """
     have_nonconservative_terms(equations)
