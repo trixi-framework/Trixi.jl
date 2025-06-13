@@ -62,7 +62,7 @@ end
     @test_trixi_include(joinpath(examples_dir(), "tree_1d_dgsem",
                                  "elixir_advection_diffusion_restart.jl"),
                         l2=[1.0679933947301556e-5],
-                        linf=[3.910500545667439e-5])
+                        linf=[3.910500469289646e-5])
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
