@@ -285,6 +285,7 @@ function DGSpaceDerivative_WeakForm!(
     l_plus::Vector{Float64},        # size: N+1
     nEqn::Int,
     N::Int
+    direction::Int
 )
     # Get the required variables.
     @unpack derivative_dhat = dg.basis
@@ -292,14 +293,12 @@ function DGSpaceDerivative_WeakForm!(
     # Translations.
     D = derivative_dhat
     spA_Dhat = D
-    J = elements.jacobian_matrix
-    Flux = dg.volume_integral.volume_flux_dg(???)
+    J = 1./cache.elements.inverse_jacobian
+#     Flux = dg.volume_integral.volume_flux_dg(???)
     F_prime = spA_Dhat * Flux
     weights = dg.basis.weights
-    geom%X_xi = elements.contravariant_vectors ???
-    l_minus = dg.basis.basis_at_ξ̂_min
-    l_plus = dg.basis.basis_at_ξ̂_max
-    Fstarb =
+    l_minus = l_minus = dg.basis.boundary_interpolation[:, 1]
+    l_plus = dg.basis.boundary_interpolation[:, 2]
 
     # Volume derivative term using D matrix
     for k in 1:nEqn
@@ -321,6 +320,13 @@ function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64}, D::Mat
             t += D[i+1, j+1] * Phi[j+1]  # Adjust for 1-based indexing
         end
         Phi_prime[i+1] = t
+    end
+end
+
+function compute_flux_array!(Flux, u, direction, equations)
+    Np, nvars = size(Flux)
+    for i in 1:Np
+        Flux[i, :] .= flux(u[i, :], 1, direction, equations)
     end
 end
 
