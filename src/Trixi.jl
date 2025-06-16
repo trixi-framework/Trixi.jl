@@ -259,7 +259,7 @@ export DG,
        VolumeIntegralUpwind,
        SurfaceIntegralWeakForm, SurfaceIntegralStrongForm,
        SurfaceIntegralUpwind,
-       MortarL2
+       MortarL2, MortarIDP
 
 export VolumeIntegralSubcellLimiting, BoundsCheckCallback,
        SubcellLimiterIDP, SubcellLimiterIDPCorrection

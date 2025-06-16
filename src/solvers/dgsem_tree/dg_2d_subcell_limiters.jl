@@ -91,15 +91,13 @@ function calc_mortar_weights(basis, RealT; first_order = true)
         calc_mortar_weights_second_order!(weights, basis)
     end
 
-    for i in 1:n_nodes
-        for j in 1:n_nodes
-            # Row
-            weights[i, end] += weights[i, j]
-            weights[i, end] += weights[i, j + n_nodes]
-            # Columns
-            weights[end, i] += weights[j, i]
-            weights[end, i + n_nodes] += weights[j, i + n_nodes]
-        end
+    for i in eachnode(basis), j in eachnode(basis)
+        # Row
+        weights[i, end] += weights[i, j]
+        weights[i, end] += weights[i, j + n_nodes]
+        # Columns
+        weights[end, i] += weights[j, i]
+        weights[end, i + n_nodes] += weights[j, i + n_nodes]
     end
 
     return weights
