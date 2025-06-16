@@ -168,16 +168,6 @@ end
     @view u_ode[semi.u_indices[index]]
 end
 
-@inline function foreach_enumerate(func, collection, index)
-    element = first(collection)
-    remaining_collection = Base.tail(collection)
-
-    func((index, element))
-
-    # Process remaining collection
-    foreach_enumerate(func, remaining_collection, index + 1)
-end
-
 function rhs!(du_ode, u_ode, semi::SemidiscretizationCoupledP4est, t)
     time_start = time_ns()
 
