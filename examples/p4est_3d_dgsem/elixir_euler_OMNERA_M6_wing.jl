@@ -1,5 +1,5 @@
 using Trixi
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqSSPRK
 using LinearAlgebra: norm
 
 ###############################################################################
