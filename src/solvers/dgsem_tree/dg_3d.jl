@@ -174,8 +174,7 @@ function rhs!(du, u, t,
 
     # Prolong solution to interfaces
     @trixi_timeit timer() "prolong2interfaces" begin
-        prolong2interfaces!(cache, u, mesh, equations,
-                            dg.surface_integral, dg)
+        prolong2interfaces!(cache, u, mesh, equations, dg)
     end
 
     # Calculate interface fluxes
@@ -620,9 +619,7 @@ end
     return nothing
 end
 
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u,
-                             mesh::TreeMesh{3}, equations, surface_integral, dg::DG)
+function prolong2interfaces!(cache, u, mesh::TreeMesh{3}, equations, dg::DG)
     @unpack interfaces = cache
     @unpack orientations, neighbor_ids = interfaces
     interfaces_u = interfaces.u
@@ -636,14 +633,16 @@ function prolong2interfaces!(cache, u,
             for k in eachnode(dg), j in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, j, k, interface] = u[v, nnodes(dg), j, k,
                                                         left_element]
-                interfaces_u[2, v, j, k, interface] = u[v, 1, j, k, right_element]
+                interfaces_u[2, v, j, k, interface] = u[v, 1, j, k,
+                                                        right_element]
             end
         elseif orientations[interface] == 2
             # interface in y-direction
             for k in eachnode(dg), i in eachnode(dg), v in eachvariable(equations)
                 interfaces_u[1, v, i, k, interface] = u[v, i, nnodes(dg), k,
                                                         left_element]
-                interfaces_u[2, v, i, k, interface] = u[v, i, 1, k, right_element]
+                interfaces_u[2, v, i, k, interface] = u[v, i, 1, k,
+                                                        right_element]
             end
         else # if orientations[interface] == 3
             # interface in z-direction

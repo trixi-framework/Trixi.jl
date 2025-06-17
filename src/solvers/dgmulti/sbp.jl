@@ -154,9 +154,8 @@ function estimate_dt(mesh::DGMultiMesh, dg::DGMultiPeriodicFDSBP)
 end
 
 # do nothing for interface terms if using a periodic operator
-# We pass the `surface_integral` argument solely for dispatch
-function prolong2interfaces!(cache, u, mesh::DGMultiMesh, equations,
-                             surface_integral, dg::DGMultiPeriodicFDSBP)
+function prolong2interfaces!(cache, u,
+                             mesh::DGMultiMesh, equations, dg::DGMultiPeriodicFDSBP)
     @assert nelements(mesh, dg, cache) == 1
     nothing
 end
