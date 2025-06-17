@@ -311,12 +311,24 @@ Download a file from given `src_url` to given `file_path` if
 `file_path`.
 This is a small wrapper of `Downloads.download(src_url, file_path)`
 that avoids race conditions when multiple MPI ranks are used.
+Furthermore, when run as part of a GitHub Action, it uses
+token-authenticated downloads to avoid GitHub's rate limiting
+for unauthenticated HTTP request. To use this feature, provide
+the environment variable `GITHUB_TOKEN`.
 """
 function download(src_url, file_path)
     # Note that `mpi_isroot()` is also `true` if running
     # in serial (without MPI).
     if mpi_isroot()
-        isfile(file_path) || Downloads.download(src_url, file_path)
+        if !isfile(file_path)
+            headers = Pair{String, String}[]
+            # Pass the GITHUB_TOKEN through to prevent rate-limiting
+            token = get(ENV, "GITHUB_TOKEN", nothing)
+            if token !== nothing
+                push!(headers, "authorization" => "Bearer $token")
+            end
+            Downloads.download(src_url, file_path; headers)
+        end
     end
 
     if mpi_isparallel()
