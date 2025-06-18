@@ -3,6 +3,7 @@ module TestElixirs
 using LinearAlgebra
 using Test
 using Trixi
+using OrdinaryDiffEqSSPRK: SSPRK43
 
 import ForwardDiff
 
