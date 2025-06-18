@@ -47,8 +47,8 @@ solver_euler = DGSEM(polydeg = polydeg, surface_flux = flux_hll,
 
 # Linear pressure wave moving in the positive x-direction.
 function initial_condition_wave(x, t, equations::PolytropicEulerEquations2D)
-    rho = ((1.0 + 0.01 * exp(-(x[1] - 1)^2/0.1)) / equations.kappa)^(1 / equations.gamma)
-    v1 = ((0.01 * exp(-(x[1] - 1)^2/0.1)) / equations.kappa)
+    rho = ((1.0 + 0.01 * exp(-(x[1] - 1)^2 / 0.1)) / equations.kappa)^(1 / equations.gamma)
+    v1 = ((0.01 * exp(-(x[1] - 1)^2 / 0.1)) / equations.kappa)
     v2 = 0.0
 
     return prim2cons(SVector(rho, v1, v2), equations)
@@ -113,8 +113,8 @@ end
 solver_lbm = DGSEM(polydeg = 2, surface_flux = flux_godunov)
 
 function initial_condition_lbm(x, t, equations::LatticeBoltzmannEquations2D)
-    rho = (1.0 + 0.01 * exp(-(x[1] - 1)^2/0.1))
-    v1 = 0.01 * exp(-(x[1] - 1)^2/0.1)
+    rho = (1.0 + 0.01 * exp(-(x[1] - 1)^2 / 0.1))
+    v1 = 0.01 * exp(-(x[1] - 1)^2 / 0.1)
 
     v2 = 0.0
 
