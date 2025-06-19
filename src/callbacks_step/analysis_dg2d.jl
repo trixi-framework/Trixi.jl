@@ -245,11 +245,110 @@ function integrate(func::Func, u,
                    mesh::Union{TreeMesh{2}, StructuredMesh{2}, StructuredMeshView{2},
                                UnstructuredMesh2D, P4estMesh{2}, P4estMeshView{2},
                                T8codeMesh{2}},
-                   equations, dg::DG, cache; normalize = true) where {Func}
-    integrate_via_indices(u, mesh, equations, dg, cache;
-                          normalize = normalize) do u, i, j, element, equations, dg
-        u_local = get_node_vars(u, equations, dg, i, j, element)
-        return func(u_local, equations)
+                   equations, dg::DG, cache; normalize = true, semi) where {Func}
+    @unpack solver = semi
+    @unpack boundaries = cache
+    m = methods(func)
+    if length(m[1].sig.parameters) == 2
+        integrate_via_indices(u, mesh, equations, dg, cache;
+                              normalize = normalize) do u, i, j, element, equations, dg
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            return func(u_local, equations)
+        end
+    end
+    if length(m[1].sig.parameters) == 3
+        integrate_via_indices(u, mesh, equations, dg, cache;
+                              normalize = normalize) do u, i, j, element, equations, dg
+            u_local = get_node_vars(u, equations, dg, i, j, element)
+            @autoinfiltrate
+            gradients = DGSpaceDerivative_WeakForm!(dg, cache, u, 1, equations)
+
+            return func(u_local, gradients, equations)
+        end
+    end
+end
+
+# Andrew's functions for computing the derivatives.
+function DGSpaceDerivative_WeakForm!(
+    dg,
+    cache,
+    u,
+    direction::Int,
+    equations
+)
+    # Get the required variables.
+    @unpack derivative_dhat = dg.basis
+
+    # Translations.
+    D = derivative_dhat
+    spA_Dhat = D
+    J = 1 ./ cache.elements.inverse_jacobian
+    weights = dg.basis.weights
+    l_minus = dg.basis.boundary_interpolation[:, 1]
+    l_plus = dg.basis.boundary_interpolation[:, 2]
+
+    Np, nvars = size(u)
+    F = similar(u)
+    F_prime = similar(u)
+
+    # Multiply Dhat * F for each variable
+    for k in 1:nvars
+        for i in 1:Np
+            F_prime[i, k] = sum(D[i, j] * F[j, k] for j in 1:Np)
+        end
+    end
+
+    # Store into gradients array
+    for i in 1:Np
+        for k in 1:nvars
+            gradients[k, direction, i] = F_prime[i, k]
+        end
+    end
+
+
+
+#     # Evaluate flux at each point
+#     for i in 1:Np
+#         F[i, :] .= flux_func(u[i, :], orientation, direction, equations)
+#     end
+#
+#     Flux = compute_flux_array!(Flux, u, direction, equations)
+#     # Volume derivative term using D matrix
+#     for k in 1:nEqn
+#         MxVDerivative!(F_prime[:, k], Flux[:, k], D, N)
+#     end
+#
+#     # Multiply Dhat * F for each variable
+#     F_prime = spA_Dhat * Flux
+#     for k in 1:nvars
+#         for i in 1:Np
+#             F_prime[i, k] = sum(Dhat[i, j] * F[j, k] for j in 1:Np)
+#         end
+#     end
+#=
+    for j in 1:Np
+        for k in 1:nvars
+            gradients[k, direction, j] = F_prime[j, k]
+        end
+    end=#
+
+    return gradients
+end
+
+function MxVDerivative!(Phi_prime::Vector{Float64}, Phi::Vector{Float64}, D::Matrix{Float64}, N::Int)
+    for i in 0:N
+        t = 0.0
+        for j in 0:N
+            t += D[i+1, j+1] * Phi[j+1]  # Adjust for 1-based indexing
+        end
+        Phi_prime[i+1] = t
+    end
+end
+
+function compute_flux_array!(Flux, u, direction, equations)
+    Np, nvars = size(Flux)
+    for i in 1:Np
+        Flux[i, :] .= flux(u[i, :], 1, direction, equations)
     end
 end
 
