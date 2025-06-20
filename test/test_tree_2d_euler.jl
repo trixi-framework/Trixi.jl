@@ -500,19 +500,76 @@ end
 @trixi_testset "elixir_euler_blast_wave_MCL.jl" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_blast_wave_MCL.jl"),
                         l2=[
-                            0.32716628280821736,
-                            0.17711362716405113,
-                            0.17710881738119433,
-                            0.6192141753914343
+                            0.32191828214715934,
+                            0.17540955611730064,
+                            0.17540982074090405,
+                            0.6191091024164918
                         ],
                         linf=[
-                            1.3147680231795071,
-                            1.1313232952582144,
-                            1.1308868661560831,
-                            2.4962119219206
+                            1.3010117741448277,
+                            1.0530533455435074,
+                            1.0526813029834023,
+                            2.485477346322933
                         ],
                         tspan=(0.0, 0.5),
                         initial_refinement_level=4,)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_weak_blast_wave_MCL.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_MCL.jl"),
+                        l2=[
+                            0.060265513980205014,
+                            0.05055194803960355,
+                            0.056248697219040605,
+                            0.2325719380594684
+                        ],
+                        linf=[
+                            0.4714424693905198,
+                            0.5025160071889491,
+                            0.49331696136822833,
+                            1.6346858599785934
+                        ],)
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        # Larger values for allowed allocations due to usage of custom
+        # integrator which are not *recorded* for the methods from
+        # OrdinaryDiffEq.jl
+        # Corresponding issue: https://github.com/trixi-framework/Trixi.jl/issues/1877
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 15000
+    end
+end
+
+@trixi_testset "elixir_euler_weak_blast_wave_MCL.jl (volume_flux=flux_ranocha)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_weak_blast_wave_MCL.jl"),
+                        volume_flux=flux_ranocha,
+                        l2=[
+                            0.05897998883955137,
+                            0.050012582230986674,
+                            0.05724008971398463,
+                            0.23154926008782764
+                        ],
+                        linf=[
+                            0.4185854411485098,
+                            0.5311302295872177,
+                            0.5098136427530978,
+                            1.6361998375084985
+                        ],)
     # Ensure that we do not have excessive memory allocations
     # (e.g., from type instabilities)
     let
@@ -604,16 +661,16 @@ end
     rm(joinpath("out", "alphas_min.txt"), force = true)
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_euler_sedov_blast_wave_MCL.jl"),
                         l2=[
-                            0.4740321851943766,
-                            0.15889871334104985,
-                            0.15889871334104988,
-                            0.6190405536267991
+                            0.4619257469360084,
+                            0.1563821055318811,
+                            0.1563821055318811,
+                            0.618809378479182
                         ],
                         linf=[
-                            4.011954283668753,
-                            1.8527131099524292,
-                            1.8527131099524277,
-                            6.465833729130187
+                            3.1267851321399522,
+                            1.4799515484572896,
+                            1.4799515484572887,
+                            6.4634390748742785
                         ],
                         tspan=(0.0, 1.0),
                         initial_refinement_level=4,
@@ -622,13 +679,13 @@ end
     lines = readlines(joinpath("out", "deviations.txt"))
     @test lines[1] ==
           "# iter, simu_time, rho_min, rho_max, rho_v1_min, rho_v1_max, rho_v2_min, rho_v2_max, rho_e_min, rho_e_max, pressure_min"
-    @test startswith(lines[end], "349")
+    @test startswith(lines[end], "346")
 
     # Test alphas_mean.txt
     lines = readlines(joinpath("out", "alphas_mean.txt"))
     @test lines[1] ==
           "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e, alpha_min_pressure, alpha_avg_pressure, alpha_min_entropy, alpha_avg_entropy"
-    @test startswith(lines[end], "349, 1.0, 0.0002")
+    @test startswith(lines[end], "346, 1.0, 0.002")
     @test count(",", lines[end]) == 13
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
 
@@ -636,7 +693,7 @@ end
     lines = readlines(joinpath("out", "alphas_min.txt"))
     @test lines[1] ==
           "# iter, simu_time, alpha_min_rho, alpha_avg_rho, alpha_min_rho_v1, alpha_avg_rho_v1, alpha_min_rho_v2, alpha_avg_rho_v2, alpha_min_rho_e, alpha_avg_rho_e, alpha_min_pressure, alpha_avg_pressure, alpha_min_entropy, alpha_avg_entropy"
-    @test startswith(lines[end], "349, 1.0, -0.0, 0.773")
+    @test startswith(lines[end], "346, 1.0, -0.0, 0.761")
     @test count(",", lines[end]) == 13
     @test !any(occursin.(r"NaN", lines)) && !any(occursin.(r"Inf", lines))
     # Ensure that we do not have excessive memory allocations
