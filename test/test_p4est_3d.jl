@@ -751,6 +751,34 @@ end
     @test isapprox(state_integrals[5], initial_state_integrals[5], atol = 1e-13)
 end
 
+@trixi_testset "elixir_euler_OMNERA_M6_wing.jl" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR,
+                                 "elixir_euler_OMNERA_M6_wing.jl"),
+                        l2=[
+                            1.3302852203314697e-7,
+                            7.016342225152883e-8,
+                            1.0954098970860626e-7,
+                            6.834890433113107e-8,
+                            3.796737956937651e-7
+                        ],
+                        linf=[
+                            0.08856648749331164,
+                            0.07431651477033197,
+                            0.08791247483932041,
+                            0.012973811024139751,
+                            0.25575828277482016
+                        ],
+                        tspan=(0.0, 5e-8))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+    end
+end
+
 # Multi-ion MHD tests
 include("test_p4est_3d_mhdmultiion.jl")
 end
