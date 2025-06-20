@@ -52,7 +52,7 @@ end
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_supersonic_inflow),
                                                 normal_direction::AbstractVector,
-                                                mesh::P4estMesh{2}, equations, dg, cache,
+                                                mesh::P4estMesh, equations, dg, cache,
                                                 indices...)
     x = Trixi.get_node_coords(cache.elements.node_coordinates, equations, dg, indices...)
 
@@ -73,7 +73,7 @@ end
 @inline function Trixi.get_boundary_outer_state(u_inner, t,
                                                 boundary_condition::typeof(boundary_condition_outflow),
                                                 normal_direction::AbstractVector,
-                                                mesh::P4estMesh{2}, equations, dg, cache,
+                                                mesh::P4estMesh, equations, dg, cache,
                                                 indices...)
     return u_inner
 end
@@ -82,7 +82,8 @@ end
 # @inline function Trixi.get_boundary_outer_state(u_inner, t,
 #                                                 boundary_condition::typeof(boundary_condition_slip_wall),
 #                                                 normal_direction::AbstractVector,
-#                                                 mesh::P4estMesh{2}, equations::CompressibleEulerEquations2D,
+#                                                 mesh::P4estMesh{2},
+#                                                 equations::CompressibleEulerEquations2D,
 #                                                 dg, cache, indices...)
 #     factor = (normal_direction[1] * u_inner[2] + normal_direction[2] * u_inner[3])
 #     u_normal = (factor / sum(normal_direction .^ 2)) * normal_direction

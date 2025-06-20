@@ -1855,7 +1855,8 @@ Should be used together with [`TreeMesh`](@ref) or [`StructuredMesh`](@ref).
 @inline function get_boundary_outer_state(u_inner, t,
                                           boundary_condition::BoundaryConditionDirichlet,
                                           orientation_or_normal, direction,
-                                          mesh, equations, dg, cache, indices...)
+                                          mesh::Union{TreeMesh, StructuredMesh},
+                                          equations, dg, cache, indices...)
     (; node_coordinates) = cache.elements
 
     x = get_node_coords(node_coordinates, equations, dg, indices...)

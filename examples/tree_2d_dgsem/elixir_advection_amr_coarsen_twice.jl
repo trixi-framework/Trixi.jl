@@ -1,6 +1,6 @@
 # This elixir and indicator is only for testing purposes and does not have any practical use
 
-using OrdinaryDiffEqSSPRK, OrdinaryDiffEqLowStorageRK
+using OrdinaryDiffEqLowStorageRK
 using Trixi
 
 # Define new structs inside a module to allow re-evaluating the file.
