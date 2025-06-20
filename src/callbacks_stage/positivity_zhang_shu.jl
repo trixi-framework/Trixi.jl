@@ -65,6 +65,14 @@ function limiter_zhang_shu!(u, thresholds::Tuple{}, variables::Tuple{},
     nothing
 end
 
+# Allow use of limiter as a stage callback in costum SSP integrators
+function (limiter!::PositivityPreservingLimiterZhangShu)(u_ode, integrator, stage)
+    return limiter!(u_ode, integrator, integrator.p, integrator.t)
+end
+init_callback(limiter!::PositivityPreservingLimiterZhangShu, semi) = nothing
+finalize_callback(limiter!::PositivityPreservingLimiterZhangShu, semi) = nothing
+
+
 include("positivity_zhang_shu_dg1d.jl")
 include("positivity_zhang_shu_dg2d.jl")
 include("positivity_zhang_shu_dg3d.jl")

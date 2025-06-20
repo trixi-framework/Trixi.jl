@@ -247,6 +247,8 @@ function solve!(integrator::SimpleIntegratorSSP)
             end
         end
 
+        unstable_check(integrator.dt, integrator.u, integrator)
+
         # respect maximum number of iterations
         if integrator.iter >= integrator.opts.maxiters && !integrator.finalstep
             @warn "Interrupted. Larger maxiters is needed."
@@ -283,6 +285,14 @@ end
 # used by adaptive timestepping algorithms in DiffEq
 function get_proposed_dt(integrator::SimpleIntegratorSSP)
     return ifelse(integrator.opts.adaptive, integrator.dt, integrator.dtcache)
+end
+
+function unstable_check(dt, u_ode, integrator::SimpleIntegratorSSP)
+    if !isfinite(dt) || isnan(dt) || !all(isfinite.(u_ode)) || any(isnan.(u_ode))
+        @warn "Instability detected. Aborting"
+        terminate!(integrator)
+    end
+    return nothing
 end
 
 # stop the time integration

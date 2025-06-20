@@ -676,8 +676,6 @@ function prolong2mortars!(cache, u, mesh::TreeMesh{2}, equations,
     # The data of both small elements were already copied to the mortar cache
     @threaded for mortar in eachmortar(dg, cache)
         large_element = cache.mortars.neighbor_ids[3, mortar]
-        # upper_element = cache.mortars.neighbor_ids[2, mortar]
-        # lower_element = cache.mortars.neighbor_ids[1, mortar]
 
         # Copy solutions
         if cache.mortars.large_sides[mortar] == 1 # -> small elements on right side
