@@ -188,6 +188,30 @@ function save_mesh(semi::AbstractSemidiscretization, output_directory, timestep 
         end
         mesh.unsaved_changes = false
     end
+    return mesh.current_filename
+end
+
+# Save mesh for a DGMultiMesh, which requires passing the `basis` as an argument to 
+# save_mesh_file
+function save_mesh(semi::Union{SemidiscretizationHyperbolic{<:DGMultiMesh},
+                               SemidiscretizationHyperbolicParabolic{<:DGMultiMesh}},
+                   output_directory, timestep = 0)
+    mesh, _, solver, _ = mesh_equations_solver_cache(semi)
+
+    if mesh.unsaved_changes
+        # We only append the time step number to the mesh file name if it has
+        # changed during the simulation due to AMR. We do not append it for
+        # the first time step.
+        if timestep == 0
+            mesh.current_filename = save_mesh_file(semi.mesh, solver.basis,
+                                                   output_directory)
+        else
+            mesh.current_filename = save_mesh_file(semi.mesh, solver.basis,
+                                                   output_directory, timestep)
+        end
+        mesh.unsaved_changes = false
+    end
+    return mesh.current_filename
 end
 
 # this method is called to determine whether the callback should be activated
