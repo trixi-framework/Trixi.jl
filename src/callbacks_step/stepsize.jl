@@ -136,4 +136,5 @@ end
 include("stepsize_dg1d.jl")
 include("stepsize_dg2d.jl")
 include("stepsize_dg3d.jl")
+include("stepsize_fv.jl")
 end # @muladd
