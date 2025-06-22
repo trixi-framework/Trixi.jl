@@ -321,7 +321,7 @@ julia> max(2, 5, 1)
 5
 ```
 """
-@inline max(args...) = @fastmath max(args...)
+#@inline max(args...) = @fastmath max(args...)
 
 """
     Trixi.min(x, y, ...)
@@ -340,7 +340,7 @@ julia> min(2, 5, 1)
 1
 ```
 """
-@inline min(args...) = @fastmath min(args...)
+#@inline min(args...) = @fastmath min(args...)
 
 """
     Trixi.positive_part(x)
