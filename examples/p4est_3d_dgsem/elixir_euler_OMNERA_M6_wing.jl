@@ -119,12 +119,10 @@ u_inf(equations) = 0.84
 ### Wing projected area calculated from geometry information provided at ###
 ### https://www.grc.nasa.gov/www/wind/valid/m6wing/m6wing.html ###
 
-#height = 1.1963
 height = 1.0 # Mesh we use normalizes wing height to one
 
 g_I = tan(deg2rad(30)) * height
 
-#base = 0.8059
 base = 0.8059 / 1.1963 # Mesh we use normalizes wing height to one
 
 g_II = base - g_I
