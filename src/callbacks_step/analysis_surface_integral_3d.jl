@@ -23,7 +23,8 @@ This employs the convention that the wing is oriented such that the streamwise f
 x-direction, the angle of attack rotates the flow into the y-direction, and that wing extends spanwise in the z-direction.
 
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `LiftCoefficientPressure3D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
@@ -58,7 +59,8 @@ This employs the convention that the wing is oriented such that the streamwise f
 x-direction, the angle of attack rotates the flow into the y-direction, and that wing extends spanwise in the z-direction.
 
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `DragCoefficientPressure3D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density

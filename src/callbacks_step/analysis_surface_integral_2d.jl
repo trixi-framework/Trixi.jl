@@ -20,7 +20,8 @@ In 2D, the freestream-normal unit vector ``\psi_L`` is given by
 ```
 where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `LiftCoefficientPressure2D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
@@ -53,7 +54,8 @@ In 2D, the freestream-tangent unit vector ``\psi_D`` is given by
 where ``\alpha`` is the angle of attack.
 
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `DragCoefficientPressure2D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
@@ -81,7 +83,8 @@ In 2D, the freestream-normal unit vector ``\psi_L`` is given by
 ```
 where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `LiftCoefficientShearStress2D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
@@ -113,7 +116,8 @@ In 2D, the freestream-tangent unit vector ``\psi_D`` is given by
 ```
 where ``\alpha`` is the angle of attack.
 Supposed to be used in conjunction with [`AnalysisSurfaceIntegral`](@ref)
-which stores the boundary information and semidiscretization.
+which stores the the to-be-computed variables (for instance `DragCoefficientShearStress2D`) 
+and boundary information.
 
 - `aoa::Real`: Angle of attack in radians (for airfoils etc.)
 - `rho_inf::Real`: Free-stream density
