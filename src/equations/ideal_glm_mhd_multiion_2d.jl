@@ -1297,7 +1297,9 @@ end
     v_rr = zero(eltype(u_rr))
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, _ = get_component(k, u_ll, equations)
-        v_ll = max(v_ll, abs((rho_v1 * normal_direction[1] + rho_v2 * normal_direction[2]) / rho))
+        v_ll = max(v_ll,
+                   abs((rho_v1 * normal_direction[1] + rho_v2 * normal_direction[2]) /
+                       rho))
         rho, rho_v1, rho_v2, _ = get_component(k, u_rr, equations)
         v_rr = max(v_rr, abs((rho_v1 * normal_direction[1] + rho_v2 * normal_direction[2]) / rho))
     end
