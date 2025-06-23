@@ -13,8 +13,7 @@ aoa() = pi / 180.0 # 1 Degree angle of attack
 c_inf(equations) = sqrt(equations.gamma * p_inf() / rho_inf())
 u_inf(equations) = mach_inf() * c_inf(equations)
 
-@inline function initial_condition_mach085_flow(x, t,
-                                                equations::CompressibleEulerEquations2D)
+@inline function initial_condition_mach085_flow(x, t, equations)
     v1 = u_inf(equations) * cos(aoa())
     v2 = u_inf(equations) * sin(aoa())
 
@@ -122,7 +121,11 @@ amr_callback = AMRCallback(semi, amr_controller,
                            adapt_initial_condition = true,
                            adapt_initial_condition_only_refine = true)
 
-callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback, save_solution,
+save_restart = SaveRestartCallback(interval = analysis_interval,
+                                   save_final_restart = true)
+
+callbacks = CallbackSet(summary_callback, analysis_callback, alive_callback,
+                        save_solution, save_restart,
                         stepsize_callback, amr_callback)
 
 ###############################################################################
