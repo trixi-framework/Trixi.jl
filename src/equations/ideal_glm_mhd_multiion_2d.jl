@@ -346,10 +346,14 @@ end
         gamma = equations.gammas[k]
         p = (gamma - 1) * (rho_e - kin_en - mag_en - div_clean_energy)
 
-        f1 = rho_v1 * normal_direction[1] + rho_v2 * normal_direction[2]
-        f2 = (rho_v1 * v1 + p) *  normal_direction[1] + rho_v2 * v1 * normal_direction[2]
-        f3 = rho_v1 * v2 * normal_direction[1] + (rho_v2 * v2 + p) * normal_direction[2]
+        v_normal = v1 * normal_direction[1] + v2 * normal_direction[2]
+        rho_v_normal = rho * v_normal
+
+        f1 = rho_v_normal
+        f2 = rho_v_normal * v1 + p * normal_direction[1]
+        f3 = rho_v_normal * v2 + p * normal_direction[2]
         f4 = rho_v1 * v3 * normal_direction[1] + rho_v2 * v3 * normal_direction[2]
+        f4 = rho_v_normal * v3
         f5 = ((kin_en + gamma * p / (gamma - 1)) * v1 + 2 * mag_en * vk1_plus[k] -
                 B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) +
                 equations.c_h * psi * B1) * normal_direction[1] +
@@ -572,10 +576,10 @@ end
 
     # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is
     # multiplied by 0.5 whenever it's used in the Trixi code)
-    v_plus_dot_n = v1_plus_ll * normal_direction[1] + v2_plus_ll * normal_direction[2]
-    f[1] = 2 * v_plus_dot_n * B1_avg
-    f[2] = 2 * v_plus_dot_n * B2_avg
-    f[3] = 2 * v_plus_dot_n * B3_avg
+    v_plus_ll_normal = v1_plus_ll * normal_direction[1] + v2_plus_ll * normal_direction[2]
+    f[1] = 2 * v_plus_ll_normal * B1_avg
+    f[2] = 2 * v_plus_ll_normal * B2_avg
+    f[3] = 2 * v_plus_ll_normal * B3_avg
 
     for k in eachcomponent(equations)
         # Compute term Lorentz term
@@ -617,7 +621,7 @@ end
     end
     # Compute GLM term for psi (multiply by 2 because the non-conservative flux is
     # multiplied by 0.5 whenever it's used in the Trixi code)
-    f[end] = 2 * (v1_plus_ll * normal_direction[1] + v2_plus_ll * normal_direction[2]) * psi_avg
+    f[end] = 2 * v_plus_ll_normal * psi_avg
 
     return SVector(f)
 end
