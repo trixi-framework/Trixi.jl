@@ -1182,7 +1182,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
         vel_dot_mag_ll = vk1_plus_ll[k] * B1_ll + vk2_plus_ll[k] * B2_ll +
                             vk3_plus_ll[k] * B3_ll
         vel_dot_mag_rr = vk1_plus_rr[k] * B1_rr + vk2_plus_rr[k] * B2_rr +
-                            vk3_plus_rr[k] * B3_rr
+                         vk3_plus_rr[k] * B3_rr
 
         # Compute the necessary mean values needed for either direction
         rho_avg = 0.5f0 * (rho_ll + rho_rr)
