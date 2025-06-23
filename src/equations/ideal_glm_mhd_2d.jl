@@ -34,7 +34,6 @@ function IdealGlmMhdEquations2D(gamma, inv_gamma_minus_one, c_h)
 end
 
 have_nonconservative_terms(::IdealGlmMhdEquations2D) = True()
-n_nonconservative_terms(::IdealGlmMhdEquations2D) = 2
 
 function varnames(::typeof(cons2cons), ::IdealGlmMhdEquations2D)
     ("rho", "rho_v1", "rho_v2", "rho_v3", "rho_e", "B1", "B2", "B3", "psi")
@@ -293,6 +292,8 @@ struct FluxNonConservativePowellLocalSymmetric <:
        FluxNonConservative{NonConservativeSymmetric()}
 end
 
+n_nonconservative_terms(::FluxNonConservativePowellLocalSymmetric) = 2
+
 const flux_nonconservative_powell_local_symmetric = FluxNonConservativePowellLocalSymmetric()
 
 """
@@ -490,6 +491,8 @@ end
 struct FluxNonConservativePowellLocalJump <:
        FluxNonConservative{NonConservativeJump()}
 end
+
+n_nonconservative_terms(::FluxNonConservativePowellLocalJump) = 2
 
 const flux_nonconservative_powell_local_jump = FluxNonConservativePowellLocalJump()
 

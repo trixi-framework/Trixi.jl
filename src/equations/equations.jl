@@ -317,13 +317,15 @@ The return value will be `True()` or `False()` to allow dispatching on the retur
 """
 have_nonconservative_terms(::AbstractEquations) = False()
 """
-    n_nonconservative_terms(equations)
+    n_nonconservative_terms(volume_flux_noncons)
 
-Number of nonconservative terms in the form local * symmetric for a particular equation.
+Number of nonconservative terms for a particular nonconservative flux. Even for a specific equation,
+this number may vary between different nonconservative fluxes.
 This function needs to be specialized only if equations with nonconservative terms are
 combined with certain solvers (e.g., subcell limiting).
 """
 function n_nonconservative_terms end
+
 have_constant_speed(::AbstractEquations) = False()
 
 """
