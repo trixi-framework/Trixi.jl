@@ -1171,7 +1171,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
         vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
         p_ll = (gammas[k] - 1) *
-                (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
+               (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
                 0.5f0 * psi_ll^2)
         p_rr = (gammas[k] - 1) *
                 (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
