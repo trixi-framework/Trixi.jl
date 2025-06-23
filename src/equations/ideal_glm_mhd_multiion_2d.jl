@@ -1162,7 +1162,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
         rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll,
                                                                             equations)
         rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
-                                                                            equations)
+                                                                          equations)
         rho_inv_ll = 1 / rho_ll
         v1_ll = rho_v1_ll * rho_inv_ll
         v2_ll = rho_v2_ll * rho_inv_ll
@@ -1175,18 +1175,18 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
         vel_norm_rr = v1_rr^2 + v2_rr^2 + v3_rr^2
 
         p_ll = (gammas[k] - 1) *
-                (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
+               (rho_e_ll - 0.5f0 * rho_ll * vel_norm_ll - 0.5f0 * mag_norm_ll -
                 0.5f0 * psi_ll^2)
         p_rr = (gammas[k] - 1) *
-                (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
+               (rho_e_rr - 0.5f0 * rho_rr * vel_norm_rr - 0.5f0 * mag_norm_rr -
                 0.5f0 * psi_rr^2)
         beta_ll = 0.5f0 * rho_ll / p_ll
         beta_rr = 0.5f0 * rho_rr / p_rr
         # for convenience store vk_plus⋅B
         vel_dot_mag_ll = vk1_plus_ll[k] * B1_ll + vk2_plus_ll[k] * B2_ll +
-                            vk3_plus_ll[k] * B3_ll
+                         vk3_plus_ll[k] * B3_ll
         vel_dot_mag_rr = vk1_plus_rr[k] * B1_rr + vk2_plus_rr[k] * B2_rr +
-                            vk3_plus_rr[k] * B3_rr
+                         vk3_plus_rr[k] * B3_rr
 
         # Compute the necessary mean values needed for either direction
         rho_avg = 0.5f0 * (rho_ll + rho_rr)
@@ -1215,8 +1215,10 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
 
         # Fill the fluxes for the mass and momentum equations
         f1 = rho_mean * (v1_avg * normal_direction[1] + v2_avg * normal_direction[2])
-        f2 = (f1 * v1_avg + p_mean) * normal_direction[1] + f1 * v1_avg * normal_direction[2]
-        f3 = f1 * v2_avg * normal_direction[1] + (f1 * v2_avg + p_mean) * normal_direction[2]
+        f2 = (f1 * v1_avg + p_mean) * normal_direction[1] +
+             f1 * v1_avg * normal_direction[2]
+        f3 = f1 * v2_avg * normal_direction[1] +
+             (f1 * v2_avg + p_mean) * normal_direction[2]
         f4 = f1 * v3_avg
 
         # total energy flux is complicated and involves the previous eight components
