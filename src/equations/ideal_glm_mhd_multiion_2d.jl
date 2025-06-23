@@ -1158,7 +1158,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
         rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll,
                                                                             equations)
         rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
-                                                                            equations)
+                                                                          equations)
         rho_inv_ll = 1 / rho_ll
         v1_ll = rho_v1_ll * rho_inv_ll
         v2_ll = rho_v2_ll * rho_inv_ll
