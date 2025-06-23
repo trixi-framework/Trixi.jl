@@ -572,9 +572,10 @@ end
 
     # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is
     # multiplied by 0.5 whenever it's used in the Trixi code)
-    f[1] = 2 * v1_plus_ll * (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
-    f[2] = 2 * v2_plus_ll * (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
-    f[3] = 2 * v3_plus_ll * (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
+    v_plus_dot_n = v1_plus_ll * normal_direction[1] + v2_plus_ll * normal_direction[2]
+    f[1] = 2 * v_plus_dot_n * B1_avg
+    f[2] = 2 * v_plus_dot_n * B2_avg
+    f[3] = 2 * v_plus_dot_n * B3_avg
 
     for k in eachcomponent(equations)
         # Compute term Lorentz term
