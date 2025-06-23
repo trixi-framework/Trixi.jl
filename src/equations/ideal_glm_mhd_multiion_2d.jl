@@ -331,9 +331,12 @@ end
 
     f = zero(MVector{nvariables(equations), eltype(u)})
 
-    f[1] = equations.c_h * psi * normal_direction[1] + (v2_plus * B1 - v1_plus * B2) * normal_direction[2]
-    f[2] = (v1_plus * B2 - v2_plus * B1) * normal_direction[1] + equations.c_h * psi * normal_direction[2]
-    f[3] = (v1_plus * B3 - v3_plus * B1) * normal_direction[1] + (v2_plus * B3 - v3_plus * B2) * normal_direction[2]
+    f[1] = equations.c_h * psi * normal_direction[1] +
+           (v2_plus * B1 - v1_plus * B2) * normal_direction[2]
+    f[2] = (v1_plus * B2 - v2_plus * B1) * normal_direction[1] +
+           equations.c_h * psi * normal_direction[2]
+    f[3] = (v1_plus * B3 - v3_plus * B1) * normal_direction[1] +
+           (v2_plus * B3 - v3_plus * B2) * normal_direction[2]
 
     for k in eachcomponent(equations)
         rho, rho_v1, rho_v2, rho_v3, rho_e = get_component(k, u, equations)
@@ -355,11 +358,11 @@ end
         f4 = rho_v1 * v3 * normal_direction[1] + rho_v2 * v3 * normal_direction[2]
         f4 = rho_v_normal * v3
         f5 = ((kin_en + gamma * p / (gamma - 1)) * v1 + 2 * mag_en * vk1_plus[k] -
-                B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) +
-                equations.c_h * psi * B1) * normal_direction[1] +
-                ((kin_en + gamma * p / (gamma - 1)) * v2 + 2 * mag_en * vk2_plus[k] -
-                B2 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) +
-                equations.c_h * psi * B2) * normal_direction[2]
+              B1 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) +
+              equations.c_h * psi * B1) * normal_direction[1] +
+             ((kin_en + gamma * p / (gamma - 1)) * v2 + 2 * mag_en * vk2_plus[k] -
+              B2 * (vk1_plus[k] * B1 + vk2_plus[k] * B2 + vk3_plus[k] * B3) +
+              equations.c_h * psi * B2) * normal_direction[2]
 
         set_component!(f, k, f1, f2, f3, f4, f5, equations)
     end
@@ -576,17 +579,23 @@ end
 
     # Entries of Godunov-Powell term for induction equation (multiply by 2 because the non-conservative flux is
     # multiplied by 0.5 whenever it's used in the Trixi code)
-    v_plus_ll_normal = v1_plus_ll * normal_direction[1] + v2_plus_ll * normal_direction[2]
+    v_plus_ll_normal = v1_plus_ll * normal_direction[1] +
+                       v2_plus_ll * normal_direction[2]
     f[1] = 2 * v_plus_ll_normal * B1_avg
     f[2] = 2 * v_plus_ll_normal * B2_avg
     f[3] = 2 * v_plus_ll_normal * B3_avg
 
     for k in eachcomponent(equations)
         # Compute term Lorentz term
-        f2 = charge_ratio_ll[k] * ((0.5f0 * mag_norm_avg - B1_avg * B1_avg + pe_mean) * normal_direction[1] + (-B2_avg * B1_avg) * normal_direction[2])
-        f3 = charge_ratio_ll[k] * ((-B1_avg * B2_avg) * normal_direction[1] + (-B2_avg * B2_avg + 0.5f0 * mag_norm_avg + pe_mean) * normal_direction[2])
-        f4 = charge_ratio_ll[k] * (-B1_avg * B3_avg * normal_direction[1] - B2_avg * B3_avg * normal_direction[2])
-        f5 = (vk1_plus_ll[k] * normal_direction[1] + vk2_plus_ll[k] * normal_direction[2]) * pe_mean
+        f2 = charge_ratio_ll[k] *
+             ((0.5f0 * mag_norm_avg - B1_avg * B1_avg + pe_mean) * normal_direction[1] +
+              (-B2_avg * B1_avg) * normal_direction[2])
+        f3 = charge_ratio_ll[k] * ((-B1_avg * B2_avg) * normal_direction[1] +
+              (-B2_avg * B2_avg + 0.5f0 * mag_norm_avg + pe_mean) * normal_direction[2])
+        f4 = charge_ratio_ll[k] * (-B1_avg * B3_avg * normal_direction[1] -
+              B2_avg * B3_avg * normal_direction[2])
+        f5 = (vk1_plus_ll[k] * normal_direction[1] +
+              vk2_plus_ll[k] * normal_direction[2]) * pe_mean
 
         # Compute multi-ion term (vanishes for NCOMP==1)
         vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
@@ -599,16 +608,21 @@ end
         vk2_minus_avg = 0.5f0 * (vk2_minus_ll + vk2_minus_rr)
         vk3_minus_avg = 0.5f0 * (vk3_minus_ll + vk3_minus_rr)
         f5 += (B2_ll * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) +
-                B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) * normal_direction[1]
+               B3_ll * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg)) *
+              normal_direction[1]
         f5 += (B1_ll * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) +
-                B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) * normal_direction[2]
+               B3_ll * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg)) *
+              normal_direction[2]
 
         # Compute Godunov-Powell term
-        f2 += charge_ratio_ll[k] * B1_ll * (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
-        f3 += charge_ratio_ll[k] * B2_ll * (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
-        f4 += charge_ratio_ll[k] * B3_ll * (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
+        f2 += charge_ratio_ll[k] * B1_ll *
+              (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
+        f3 += charge_ratio_ll[k] * B2_ll *
+              (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
+        f4 += charge_ratio_ll[k] * B3_ll *
+              (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
         f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
-                (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
+              (B1_avg * normal_direction[1] + B2_avg * normal_direction[2])
 
         # Compute GLM term for the energy
         f5 += v1_plus_ll * psi_ll * psi_avg * normal_direction[1]
@@ -617,7 +631,7 @@ end
         # Add to the flux vector (multiply by 2 because the non-conservative flux is
         # multiplied by 0.5 whenever it's used in the Trixi code)
         set_component!(f, k, 0, 2 * f2, 2 * f3, 2 * f4, 2 * f5,
-                        equations)
+                       equations)
     end
     # Compute GLM term for psi (multiply by 2 because the non-conservative flux is
     # multiplied by 0.5 whenever it's used in the Trixi code)
@@ -773,7 +787,8 @@ The term is composed of four individual non-conservative terms:
     return SVector(f)
 end
 
-@inline function flux_nonconservative_central(u_ll, u_rr, normal_direction::AbstractVector,
+@inline function flux_nonconservative_central(u_ll, u_rr,
+                                              normal_direction::AbstractVector,
                                               equations::IdealGlmMhdMultiIonEquations2D)
     @unpack charge_to_mass = equations
     # Unpack left and right states to get the magnetic field
@@ -809,21 +824,30 @@ end
     f = zero(MVector{nvariables(equations), eltype(u_ll)})
 
     # Entries of Godunov-Powell term for induction equation
-    f[1] = v1_plus_ll * (B1_ll + B1_rr) * normal_direction[1] + v1_plus_ll * (B2_ll + B2_rr) * normal_direction[2]
-    f[2] = v2_plus_ll * (B1_ll + B1_rr) * normal_direction[1] + v2_plus_ll * (B2_ll + B2_rr) * normal_direction[2]
-    f[3] = v3_plus_ll * (B1_ll + B1_rr) * normal_direction[1] + v3_plus_ll * (B2_ll + B2_rr) * normal_direction[2]
+    f[1] = v1_plus_ll * (B1_ll + B1_rr) * normal_direction[1] +
+           v1_plus_ll * (B2_ll + B2_rr) * normal_direction[2]
+    f[2] = v2_plus_ll * (B1_ll + B1_rr) * normal_direction[1] +
+           v2_plus_ll * (B2_ll + B2_rr) * normal_direction[2]
+    f[3] = v3_plus_ll * (B1_ll + B1_rr) * normal_direction[1] +
+           v3_plus_ll * (B2_ll + B2_rr) * normal_direction[2]
     for k in eachcomponent(equations)
         # Compute Lorentz term
-        f2 = charge_ratio_ll[k] * ((0.5f0 * mag_norm_ll - B1_ll * B1_ll + pe_ll) +
-                (0.5f0 * mag_norm_rr - B1_rr * B1_rr + pe_rr)) * normal_direction[1] +
-                charge_ratio_ll[k] * ((-B2_ll * B1_ll) + (-B2_rr * B1_rr)) * normal_direction[2]
-        f3 = charge_ratio_ll[k] * ((-B1_ll * B2_ll) + (-B1_rr * B2_rr)) * normal_direction[1] +
-                charge_ratio_ll[k] * ((-B2_ll * B2_ll + 0.5f0 * mag_norm_ll + pe_ll) +
-                (-B2_rr * B2_rr + 0.5f0 * mag_norm_rr + pe_rr)) * normal_direction[2]
-        f4 = charge_ratio_ll[k] * ((-B1_ll * B3_ll) + (-B1_rr * B3_rr)) * normal_direction[1] +
-                charge_ratio_ll[k] * ((-B2_ll * B3_ll) + (-B2_rr * B3_rr)) * normal_direction[2]
+        f2 = charge_ratio_ll[k] *
+             ((0.5f0 * mag_norm_ll - B1_ll * B1_ll + pe_ll) +
+              (0.5f0 * mag_norm_rr - B1_rr * B1_rr + pe_rr)) * normal_direction[1] +
+             charge_ratio_ll[k] * ((-B2_ll * B1_ll) + (-B2_rr * B1_rr)) *
+             normal_direction[2]
+        f3 = charge_ratio_ll[k] * ((-B1_ll * B2_ll) + (-B1_rr * B2_rr)) *
+             normal_direction[1] +
+             charge_ratio_ll[k] *
+             ((-B2_ll * B2_ll + 0.5f0 * mag_norm_ll + pe_ll) +
+              (-B2_rr * B2_rr + 0.5f0 * mag_norm_rr + pe_rr)) * normal_direction[2]
+        f4 = charge_ratio_ll[k] * ((-B1_ll * B3_ll) + (-B1_rr * B3_rr)) *
+             normal_direction[1] +
+             charge_ratio_ll[k] * ((-B2_ll * B3_ll) + (-B2_rr * B3_rr)) *
+             normal_direction[2]
         f5 = vk1_plus_ll[k] * (pe_ll + pe_rr) * normal_direction[1] +
-                vk2_plus_ll[k] * (pe_ll + pe_rr) * normal_direction[2]
+             vk2_plus_ll[k] * (pe_ll + pe_rr) * normal_direction[2]
 
         # Compute multi-ion term, which vanishes for NCOMP==1
         vk1_minus_ll = v1_plus_ll - vk1_plus_ll[k]
@@ -834,34 +858,35 @@ end
         vk3_minus_rr = v3_plus_rr - vk3_plus_rr[k]
         f5 += (B2_ll * ((vk1_minus_ll * B2_ll - vk2_minus_ll * B1_ll) +
                 (vk1_minus_rr * B2_rr - vk2_minus_rr * B1_rr)) +
-                B3_ll * ((vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll) +
+               B3_ll * ((vk1_minus_ll * B3_ll - vk3_minus_ll * B1_ll) +
                 (vk1_minus_rr * B3_rr - vk3_minus_rr * B1_rr))) * normal_direction[1]
         f5 += (B1_ll * ((vk2_minus_ll * B1_ll - vk1_minus_ll * B2_ll) +
                 (vk2_minus_rr * B1_rr - vk1_minus_rr * B2_rr)) +
-                B3_ll * ((vk2_minus_ll * B3_ll - vk3_minus_ll * B2_ll) +
+               B3_ll * ((vk2_minus_ll * B3_ll - vk3_minus_ll * B2_ll) +
                 (vk2_minus_rr * B3_rr - vk3_minus_rr * B2_rr))) * normal_direction[2]
 
         # Compute Godunov-Powell term
         f2 += charge_ratio_ll[k] * B1_ll * (B1_ll + B1_rr) * normal_direction[1] +
-                charge_ratio_ll[k] * B1_ll * (B2_ll + B2_rr) * normal_direction[2]
+              charge_ratio_ll[k] * B1_ll * (B2_ll + B2_rr) * normal_direction[2]
         f3 += charge_ratio_ll[k] * B2_ll * (B1_ll + B1_rr) * normal_direction[1] +
-                charge_ratio_ll[k] * B2_ll * (B2_ll + B2_rr) * normal_direction[2]
+              charge_ratio_ll[k] * B2_ll * (B2_ll + B2_rr) * normal_direction[2]
         f4 += charge_ratio_ll[k] * B3_ll * (B1_ll + B1_rr) * normal_direction[1] +
-                charge_ratio_ll[k] * B3_ll * (B2_ll + B2_rr) * normal_direction[2]
+              charge_ratio_ll[k] * B3_ll * (B2_ll + B2_rr) * normal_direction[2]
         f5 += (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
-                (B1_ll + B1_rr) * normal_direction[1] +
-                (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
-                (B2_ll + B2_rr) * normal_direction[2]
+              (B1_ll + B1_rr) * normal_direction[1] +
+              (v1_plus_ll * B1_ll + v2_plus_ll * B2_ll + v3_plus_ll * B3_ll) *
+              (B2_ll + B2_rr) * normal_direction[2]
 
         # Compute GLM term for the energy
         f5 += v1_plus_ll * psi_ll * (psi_ll + psi_rr) * normal_direction[1] +
-                v2_plus_ll * psi_ll * (psi_ll + psi_rr) * normal_direction[2]
+              v2_plus_ll * psi_ll * (psi_ll + psi_rr) * normal_direction[2]
 
         # Append to the flux vector
         set_component!(f, k, 0, f2, f3, f4, f5, equations)
     end
     # Compute GLM term for psi
-    f[end] = (v1_plus_ll * normal_direction[1] + v2_plus_ll * normal_direction[2]) * (psi_ll + psi_rr)
+    f[end] = (v1_plus_ll * normal_direction[1] + v2_plus_ll * normal_direction[2]) *
+             (psi_ll + psi_rr)
 
     return SVector(f)
 end
@@ -1142,13 +1167,13 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
 
     # Magnetic field components from f^MHD
     f6 = equations.c_h * psi_avg * normal_direction[1] +
-            (v2_plus_avg * B1_avg - v1_plus_avg * B2_avg) * normal_direction[2]
+         (v2_plus_avg * B1_avg - v1_plus_avg * B2_avg) * normal_direction[2]
     f7 = (v1_plus_avg * B2_avg - v2_plus_avg * B1_avg) * normal_direction[1] +
-            equations.c_h * psi_avg * normal_direction[2]
+         equations.c_h * psi_avg * normal_direction[2]
     f8 = (v1_plus_avg * B3_avg - v3_plus_avg * B1_avg) * normal_direction[1] +
-            (v2_plus_avg * B3_avg - v3_plus_avg * B2_avg) * normal_direction[2]
+         (v2_plus_avg * B3_avg - v3_plus_avg * B2_avg) * normal_direction[2]
     f9 = equations.c_h * B1_avg * normal_direction[1] +
-            equations.c_h * B2_avg * normal_direction[2]
+         equations.c_h * B2_avg * normal_direction[2]
 
     # Start building the flux
     f[1] = f6
@@ -1160,7 +1185,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
     for k in eachcomponent(equations)
         # Unpack left and right states
         rho_ll, rho_v1_ll, rho_v2_ll, rho_v3_ll, rho_e_ll = get_component(k, u_ll,
-                                                                            equations)
+                                                                          equations)
         rho_rr, rho_v1_rr, rho_v2_rr, rho_v3_rr, rho_e_rr = get_component(k, u_rr,
                                                                           equations)
         rho_inv_ll = 1 / rho_ll
@@ -1223,27 +1248,40 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
 
         # total energy flux is complicated and involves the previous eight components
         v1_plus_mag_avg = 0.5f0 * (vk1_plus_ll[k] * mag_norm_ll +
-                            vk1_plus_rr[k] * mag_norm_rr)
+                           vk1_plus_rr[k] * mag_norm_rr)
         v2_plus_mag_avg = 0.5f0 * (vk2_plus_ll[k] * mag_norm_ll +
-                            vk2_plus_rr[k] * mag_norm_rr)
+                           vk2_plus_rr[k] * mag_norm_rr)
         # Euler part
         f5 = f1 * 0.5f0 * (1 / (gammas[k] - 1) / beta_mean - vel_norm_avg) +
-                f2 * v1_avg + f3 * v2_avg + f4 * v3_avg
+             f2 * v1_avg + f3 * v2_avg + f4 * v3_avg
         # MHD part
         f5 += (f6 * B1_avg + f7 * B2_avg + f8 * B3_avg -
-                0.5f0 * v1_plus_mag_avg * normal_direction[1] - 0.5f0 * v2_plus_mag_avg + normal_direction[2] +
-                (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * vel_dot_mag_avg                # Same terms as in Derigs (but with v_plus)
-                + f9 * psi_avg - equations.c_h * (psi_B1_avg * normal_direction[1] + psi_B1_avg * normal_direction[2]) # GLM term
-                +
-                0.5f0 * (vk1_plus_avg * normal_direction[1] + vk2_plus_avg * normal_direction[2]) * mag_norm_avg -
-                vk1_plus_avg * (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * B1_avg -
-                vk2_plus_avg * (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * B2_avg -
-                vk3_plus_avg * (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * B3_avg   # Additional terms related to the Lorentz non-conservative term (momentum eqs)
-                -
-                B2_avg * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) * normal_direction[1] -
-                B3_avg * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg) * normal_direction[1] -
-                B1_avg * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) * normal_direction[2] -
-                B3_avg * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg) * normal_direction[2])       # Terms related to the multi-ion non-conservative term (induction equation!)
+               0.5f0 * v1_plus_mag_avg * normal_direction[1] - 0.5f0 * v2_plus_mag_avg +
+               normal_direction[2] +
+               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) *
+               vel_dot_mag_avg                # Same terms as in Derigs (but with v_plus)
+               + f9 * psi_avg -
+               equations.c_h *
+               (psi_B1_avg * normal_direction[1] + psi_B1_avg * normal_direction[2]) # GLM term
+               +
+               0.5f0 *
+               (vk1_plus_avg * normal_direction[1] + vk2_plus_avg * normal_direction[2]) *
+               mag_norm_avg -
+               vk1_plus_avg *
+               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * B1_avg -
+               vk2_plus_avg *
+               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * B2_avg -
+               vk3_plus_avg *
+               (B1_avg * normal_direction[1] + B2_avg * normal_direction[2]) * B3_avg   # Additional terms related to the Lorentz non-conservative term (momentum eqs)
+               -
+               B2_avg * (vk1_minus_avg * B2_avg - vk2_minus_avg * B1_avg) *
+               normal_direction[1] -
+               B3_avg * (vk1_minus_avg * B3_avg - vk3_minus_avg * B1_avg) *
+               normal_direction[1] -
+               B1_avg * (vk2_minus_avg * B1_avg - vk1_minus_avg * B2_avg) *
+               normal_direction[2] -
+               B3_avg * (vk2_minus_avg * B3_avg - vk3_minus_avg * B2_avg) *
+               normal_direction[2])       # Terms related to the multi-ion non-conservative term (induction equation!)
 
         set_component!(f, k, f1, f2, f3, f4, f5, equations)
     end
@@ -1301,7 +1339,9 @@ end
                    abs((rho_v1 * normal_direction[1] + rho_v2 * normal_direction[2]) /
                        rho))
         rho, rho_v1, rho_v2, _ = get_component(k, u_rr, equations)
-        v_rr = max(v_rr, abs((rho_v1 * normal_direction[1] + rho_v2 * normal_direction[2]) / rho))
+        v_rr = max(v_rr,
+                   abs((rho_v1 * normal_direction[1] + rho_v2 * normal_direction[2]) /
+                       rho))
     end
 
     return max(abs(v_ll), abs(v_rr)) + max(cf_ll, cf_rr)
@@ -1424,9 +1464,11 @@ end
         b_square = b1^2 + b2^2 + b3^2
 
         c_f = max(c_f,
-                    sqrt(0.5f0 * (a_square + b_square) +
-                        0.5f0 *
-                        sqrt((a_square + b_square)^2 - 4 * a_square * (b1 *normal_direction[1] + b2 * normal_direction[2])^2)))
+                  sqrt(0.5f0 * (a_square + b_square) +
+                       0.5f0 *
+                       sqrt((a_square + b_square)^2 -
+                            4 * a_square *
+                            (b1 * normal_direction[1] + b2 * normal_direction[2])^2)))
     end
 
     return c_f
