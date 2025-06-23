@@ -260,9 +260,9 @@ function integrate(func::Func, u,
         integrate_via_indices(u, mesh, equations, dg, cache;
                               normalize = normalize) do u, i, j, element, equations, dg
             u_local = get_node_vars(u, equations, dg, i, j, element)
-            @autoinfiltrate
             gradients = DGSpaceDerivative_WeakForm!(dg, cache, u, 1, equations)
 
+            @autoinfiltrate
             return func(u_local, gradients, equations)
         end
     end
@@ -287,50 +287,34 @@ function DGSpaceDerivative_WeakForm!(
     l_minus = dg.basis.boundary_interpolation[:, 1]
     l_plus = dg.basis.boundary_interpolation[:, 2]
 
-    Np, nvars = size(u)
-    F = similar(u)
-    F_prime = similar(u)
-
-    # Multiply Dhat * F for each variable
-    for k in 1:nvars
-        for i in 1:Np
-            F_prime[i, k] = sum(D[i, j] * F[j, k] for j in 1:Np)
-        end
-    end
-
-    # Store into gradients array
-    for i in 1:Np
-        for k in 1:nvars
-            gradients[k, direction, i] = F_prime[i, k]
-        end
-    end
-
-
-
-#     # Evaluate flux at each point
-#     for i in 1:Np
-#         F[i, :] .= flux_func(u[i, :], orientation, direction, equations)
-#     end
-#
-#     Flux = compute_flux_array!(Flux, u, direction, equations)
-#     # Volume derivative term using D matrix
-#     for k in 1:nEqn
-#         MxVDerivative!(F_prime[:, k], Flux[:, k], D, N)
-#     end
+#     nvars, Np = size(u)
+#     @autoinfiltrate
+#     F = similar(u)
+#     F_prime = similar(u)
 #
 #     # Multiply Dhat * F for each variable
-#     F_prime = spA_Dhat * Flux
 #     for k in 1:nvars
 #         for i in 1:Np
-#             F_prime[i, k] = sum(Dhat[i, j] * F[j, k] for j in 1:Np)
+#             F_prime[i, k] = sum(D[i, j] * F[j, k] for j in 1:Np)
 #         end
 #     end
-#=
-    for j in 1:Np
-        for k in 1:nvars
-            gradients[k, direction, j] = F_prime[j, k]
+#
+#     # Store into gradients array
+#     for i in 1:Np
+#         for k in 1:nvars
+#             gradients[k, i] = F_prime[i, k]
+#         end
+#     end
+
+    n_vars, Np, _, n_elements = size(u)
+    gradients = similar(u)
+
+    for elem in 1:n_elements
+        for v in 1:n_vars
+            # Contract D in the ξ̂ (first spatial) direction
+            gradients[v, :, :, elem] .= D * u[v, :, :, elem]
         end
-    end=#
+    end
 
     return gradients
 end
