@@ -9,7 +9,7 @@
     SemidiscretizationCoupledP4est
 
 Specialized semidiscretization routines for coupled problems using P4est mesh views.
-This is analogous to the implimantation for structured meshes.
+This is analogous to the implementation for structured meshes.
 [`semidiscretize`](@ref) will return an `ODEProblem` that synchronizes time steps between the semidiscretizations.
 Each call of `rhs!` will call `rhs!` for each semidiscretization individually.
 The semidiscretizations can be coupled by gluing meshes together using [`BoundaryConditionCoupled`](@ref).
