@@ -565,10 +565,12 @@ end
                                                 nonconservative_term::Integer)
 
 Local part of the Powell and GLM non-conservative terms. Needed for the calculation of
-the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
+the non-conservative staggered "fluxes" for subcell limiting. 
+This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+
+## References
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
-This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll,
                                                                     orientation::Integer,
@@ -627,10 +629,12 @@ end
                                                 nonconservative_term::Integer)
 
 Jump part of the Powell and GLM non-conservative terms. Needed for the calculation of
-the non-conservative staggered "fluxes" for subcell limiting. See, e.g.,
+the non-conservative staggered "fluxes" for subcell limiting. 
+This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
+
+## References
 - Rueda-Ramírez, Gassner (2023). A Flux-Differencing Formula for Split-Form Summation By Parts
   Discretizations of Non-Conservative Systems. https://arxiv.org/pdf/2211.14009.pdf.
-This function is used to compute the subcell fluxes in dg_2d_subcell_limiters.jl.
 """
 @inline function (noncons_flux::FluxNonConservativePowellLocalJump)(u_ll, u_rr,
                                                                     orientation::Integer,
