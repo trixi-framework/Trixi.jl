@@ -1180,7 +1180,7 @@ function flux_ruedaramirez_etal(u_ll, u_rr, normal_direction::AbstractVector,
         beta_rr = 0.5f0 * rho_rr / p_rr
         # for convenience store vk_plus⋅B
         vel_dot_mag_ll = vk1_plus_ll[k] * B1_ll + vk2_plus_ll[k] * B2_ll +
-                            vk3_plus_ll[k] * B3_ll
+                         vk3_plus_ll[k] * B3_ll
         vel_dot_mag_rr = vk1_plus_rr[k] * B1_rr + vk2_plus_rr[k] * B2_rr +
                          vk3_plus_rr[k] * B3_rr
 
