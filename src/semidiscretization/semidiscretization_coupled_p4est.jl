@@ -318,7 +318,7 @@ function save_mesh(semi::SemidiscretizationCoupledP4est, output_directory, times
         mesh, _, _, _ = mesh_equations_solver_cache(semi.semis[i])
 
         if mesh.unsaved_changes
-            mesh.current_filename = save_mesh_file(mesh, output_directory; system = i,
+            mesh.current_filename = save_mesh_file(mesh, output_directory; system = string(i),
                                                    timestep = timestep)
             mesh.unsaved_changes = false
         end
@@ -457,6 +457,7 @@ function (boundary_condition::BoundaryConditionCoupledP4est)(u_inner, mesh, equa
         end
         i_index_g = i_index
     end
+    # Perform integer division to get the right shape of the array.
     u_global_reshape = reshape(u_global,
                                (n_nodes, n_nodes, length(u_global) ÷ n_nodes^2))
     u_boundary = SVector(u_global_reshape[i_index_g, j_index_g, element_index_global])
