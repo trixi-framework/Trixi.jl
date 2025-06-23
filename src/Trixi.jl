@@ -290,7 +290,8 @@ export SummaryCallback, SteadyStateCallback, AnalysisCallback, AliveCallback,
        GlmSpeedCallback, LBMCollisionCallback, EulerAcousticsCouplingCallback,
        TrivialCallback, AnalysisCallbackCoupled,
        AnalysisSurfaceIntegral, DragCoefficientPressure2D, LiftCoefficientPressure2D,
-       DragCoefficientShearStress2D, LiftCoefficientShearStress2D
+       DragCoefficientShearStress2D, LiftCoefficientShearStress2D,
+       DragCoefficientPressure3D, LiftCoefficientPressure3D
 
 # TODO: deprecation introduced in v0.11
 @deprecate DragCoefficientPressure DragCoefficientPressure2D
