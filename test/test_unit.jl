@@ -2488,7 +2488,7 @@ end
     # Implementation for meshes with orientation
     for orientation in 1:2
         flux_noncons = zero(u_ll)
-        for noncons in 1:Trixi.n_nonconservative_terms(equations)
+        for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_symmetric)
             flux_noncons += flux_nonconservative_powell_local_symmetric(u_ll, 1,
                                                                         equations,
                                                                         Trixi.NonConservativeLocal(),
@@ -2507,7 +2507,7 @@ end
     for (orientation, normal_direction) in enumerate((SVector(1.0, 0.0),
                                                       SVector(0.0, 1.0)))
         flux_noncons = zero(u_ll)
-        for noncons in 1:Trixi.n_nonconservative_terms(equations)
+        for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_symmetric)
             flux_noncons += flux_nonconservative_powell_local_symmetric(u_ll,
                                                                         normal_direction,
                                                                         equations,
@@ -2532,13 +2532,13 @@ end
     # Implementation for meshes with orientation
     for orientation in 1:2
         flux_noncons = zero(u_ll)
-        for noncons in 1:Trixi.n_nonconservative_terms(equations)
+        for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_jump)
             flux_noncons += flux_nonconservative_powell_local_jump(u_ll, 1, equations,
                                                                    Trixi.NonConservativeLocal(),
                                                                    noncons) .*
                             flux_nonconservative_powell_local_jump(u_ll, u_rr, 1,
                                                                    equations,
-                                                                   Trixi.NonConservativeSkewSymmetric(),
+                                                                   Trixi.NonConservativeJump(),
                                                                    noncons)
         end
 
