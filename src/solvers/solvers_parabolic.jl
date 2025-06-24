@@ -20,8 +20,8 @@ In the latter case, the [`ViscousFormulationLocalDG`](@ref) scheme is recommende
 struct ViscousFormulationBassiRebay1 end
 
 """
-  flux_parabolic(u_ll, u_rr, gradient_or_divergence, mesh, equations,
-                 parabolic_scheme::ViscousFormulationBassiRebay1)
+    flux_parabolic(u_ll, u_rr, gradient_or_divergence, mesh, equations,
+                   parabolic_scheme::ViscousFormulationBassiRebay1)
 
 This computes the classical BR1 flux. Since the interface flux for both the 
 DG gradient and DG divergence under BR1 are identical, this function does 
@@ -66,11 +66,11 @@ Cockburn and Dong proved that this scheme is still stable despite the zero penal
 ViscousFormulationLocalDG() = ViscousFormulationLocalDG(nothing)
 
 """
-  flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations,
-                 parabolic_scheme::ViscousFormulationLocalDG)
-
-  flux_parabolic(u_ll, u_rr, ::Divergence, mesh::TreeMesh, equations,
-                 parabolic_scheme::ViscousFormulationLocalDG)
+    flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations,
+                   parabolic_scheme::ViscousFormulationLocalDG)
+  
+    flux_parabolic(u_ll, u_rr, ::Divergence, mesh::TreeMesh, equations,
+                   parabolic_scheme::ViscousFormulationLocalDG)
 
 These fluxes computes the gradient and divergence interface fluxes for the 
 local DG method. The local DG method uses an "upwind/downwind" flux for the 
