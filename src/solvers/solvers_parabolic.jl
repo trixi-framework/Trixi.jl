@@ -68,7 +68,6 @@ ViscousFormulationLocalDG() = ViscousFormulationLocalDG(nothing)
 """
     flux_parabolic(u_ll, u_rr, ::Gradient, mesh::TreeMesh, equations,
                    parabolic_scheme::ViscousFormulationLocalDG)
-  
     flux_parabolic(u_ll, u_rr, ::Divergence, mesh::TreeMesh, equations,
                    parabolic_scheme::ViscousFormulationLocalDG)
 
