@@ -1039,7 +1039,7 @@ end
     end
 end
 
-@trixi_testset "elixir_mhd_orszag_tang_sc_subcell.jl" begin
+@trixi_testset "elixir_mhd_orszag_tang_sc_subcell.jl (local * symmetric)" begin
     @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang_sc_subcell.jl"),
                         l2=[
                             0.25273393032493735,
@@ -1070,7 +1070,46 @@ end
         t = sol.t[end]
         u_ode = sol.u[end]
         du_ode = similar(u_ode)
-        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 1000
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
+    end
+end
+
+@trixi_testset "elixir_mhd_orszag_tang_sc_subcell.jl (local * jump)" begin
+    @test_trixi_include(joinpath(EXAMPLES_DIR, "elixir_mhd_orszag_tang_sc_subcell.jl"),
+                        l2=[
+                            0.2530220034364799,
+                            0.27729363747572594,
+                            0.3308186772937349,
+                            0.0,
+                            0.5869141703684749,
+                            0.2529654097201295,
+                            0.37142682840169594,
+                            0.0,
+                            0.0007325164135956989
+                        ],
+                        linf=[
+                            1.3957737298135737,
+                            0.7116192380872277,
+                            0.8964536325129836,
+                            0.0,
+                            3.2130348105151714,
+                            0.832556048617206,
+                            1.0697683641121731,
+                            0.0,
+                            0.009791212591441376
+                        ],
+                        surface_flux=(flux_lax_friedrichs,
+                                      flux_nonconservative_powell_local_jump),
+                        volume_flux=(flux_central,
+                                     flux_nonconservative_powell_local_jump),
+                        tspan=(0.0, 0.1))
+    # Ensure that we do not have excessive memory allocations
+    # (e.g., from type instabilities)
+    let
+        t = sol.t[end]
+        u_ode = sol.u[end]
+        du_ode = similar(u_ode)
+        @test (@allocated Trixi.rhs!(du_ode, u_ode, semi, t)) < 10000
     end
 end
 

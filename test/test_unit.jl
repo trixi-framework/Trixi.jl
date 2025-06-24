@@ -2545,6 +2545,31 @@ end
         @test flux_noncons ≈
               flux_nonconservative_powell_local_jump(u_ll, u_rr, 1, equations)
     end
+
+    # Implementation for meshes with normal_direction
+    for (orientation, normal_direction) in enumerate((SVector(1.0, 0.0),
+                                                      SVector(0.0, 1.0)))
+        flux_noncons = zero(u_ll)
+        for noncons in 1:Trixi.n_nonconservative_terms(flux_nonconservative_powell_local_jump)
+            flux_noncons += flux_nonconservative_powell_local_jump(u_ll,
+                                                                   normal_direction,
+                                                                   equations,
+                                                                   Trixi.NonConservativeLocal(),
+                                                                   noncons) .*
+                            flux_nonconservative_powell_local_jump(u_ll, u_rr,
+                                                                   normal_direction,
+                                                                   equations,
+                                                                   Trixi.NonConservativeJump(),
+                                                                   noncons)
+        end
+
+        @test flux_noncons ≈
+              flux_nonconservative_powell_local_jump(u_ll, u_rr, normal_direction,
+                                                     equations)
+        @test flux_noncons ≈
+              flux_nonconservative_powell_local_jump(u_ll, u_rr, orientation,
+                                                     equations)
+    end
 end
 end
 end #module
